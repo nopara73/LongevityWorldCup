@@ -299,13 +299,14 @@
 
 .lmx-track {
     margin-top: 1rem;
-    padding: 0.75rem;
+    padding: 0.85rem;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.72);
     border: 1px solid rgba(15, 23, 42, 0.10);
 }
 
-.lmx-day-strip {
+.lmx-day-strip,
+.lmx-dashboard-days {
     display: grid;
     grid-template-columns: repeat(14, minmax(0, 1fr));
     gap: 0.35rem;
@@ -341,6 +342,254 @@
     color: #64748b;
     font-size: 0.78rem;
     font-weight: 800;
+}
+
+.lmx-dashboard-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.lmx-dashboard-head h2 {
+    margin: 0.35rem 0 0;
+    text-align: left;
+    color: #0f172a;
+    font-size: 1.15rem;
+    letter-spacing: 0;
+}
+
+.lmx-dashboard-head > strong {
+    color: #334155;
+    font-family: Orbitron, Roboto, sans-serif;
+    font-size: 0.92rem;
+}
+
+.lmx-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.lmx-dashboard-stat {
+    min-height: 4.35rem;
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+    grid-template-areas:
+        "icon label"
+        "icon value"
+        "icon detail";
+    gap: 0.08rem 0.5rem;
+    align-content: center;
+    padding: 0.65rem;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.lmx-dashboard-stat i {
+    grid-area: icon;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f172a;
+    color: #ffffff;
+}
+
+.lmx-dashboard-stat.sleep i {
+    background: #2563eb;
+}
+
+.lmx-dashboard-stat.exercise i {
+    background: #dc2626;
+}
+
+.lmx-dashboard-stat.nutrition i {
+    background: #16a34a;
+}
+
+.lmx-dashboard-stat.vices i {
+    background: #7c3aed;
+}
+
+.lmx-dashboard-stat span {
+    grid-area: label;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.lmx-dashboard-stat strong {
+    grid-area: value;
+    min-width: 0;
+    color: #0f172a;
+    font-size: 1.05rem;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.lmx-dashboard-stat em {
+    grid-area: detail;
+    color: #64748b;
+    font-size: 0.76rem;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.lmx-dashboard-grid {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.lmx-dashboard-row {
+    display: grid;
+    grid-template-columns: minmax(9rem, 11rem) minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: center;
+}
+
+.lmx-dashboard-row-head {
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.lmx-dashboard-day,
+.lmx-category-day {
+    min-width: 0;
+    aspect-ratio: 1;
+    border-radius: 7px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    font-family: Orbitron, Roboto, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.lmx-dashboard-day {
+    background: #eef2f7;
+    color: #475569;
+}
+
+.lmx-dashboard-day.practice {
+    color: #075985;
+    background: #e0f2fe;
+}
+
+.lmx-dashboard-day.today,
+.lmx-category-day.today {
+    outline: 3px solid rgba(248, 211, 91, 0.52);
+}
+
+.lmx-dashboard-category {
+    min-width: 0;
+    min-height: 3.2rem;
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    gap: 0.18rem 0.45rem;
+    align-items: center;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.lmx-dashboard-category i {
+    grid-row: 1 / span 2;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+}
+
+.lmx-dashboard-category.sleep i {
+    background: #2563eb;
+}
+
+.lmx-dashboard-category.exercise i {
+    background: #dc2626;
+}
+
+.lmx-dashboard-category.nutrition i {
+    background: #16a34a;
+}
+
+.lmx-dashboard-category.vices i {
+    background: #7c3aed;
+}
+
+.lmx-dashboard-category span {
+    min-width: 0;
+    color: #0f172a;
+    font-weight: 900;
+    overflow-wrap: anywhere;
+}
+
+.lmx-dashboard-category strong {
+    color: #334155;
+    font-family: Orbitron, Roboto, sans-serif;
+    font-size: 0.82rem;
+}
+
+.lmx-dashboard-bar {
+    grid-column: 2 / -1;
+    height: 0.36rem;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.lmx-dashboard-bar span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #14b8a6, #f8d35b);
+}
+
+.lmx-category-day {
+    color: #334155;
+    background: #ffffff;
+}
+
+.lmx-category-day.full {
+    background: #bbf7d0;
+    border-color: rgba(22, 163, 74, 0.35);
+    color: #14532d;
+}
+
+.lmx-category-day.partial {
+    background: #fde68a;
+    border-color: rgba(217, 119, 6, 0.28);
+    color: #92400e;
+}
+
+.lmx-category-day.missed {
+    background: #fee2e2;
+    border-color: rgba(220, 38, 38, 0.22);
+    color: #991b1b;
+}
+
+.lmx-category-day.empty {
+    background: repeating-linear-gradient(135deg, #f8fafc, #f8fafc 4px, #eef2f7 4px, #eef2f7 8px);
+    color: transparent;
+}
+
+.lmx-category-day.practice {
+    box-shadow: inset 0 0 0 2px rgba(14, 165, 233, 0.16);
 }
 
 .lmx-metrics {
@@ -1402,6 +1651,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .lmx-dashboard-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .lmx-habit-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1494,6 +1747,24 @@
         aspect-ratio: 1;
     }
 
+    .lmx-dashboard-row {
+        grid-template-columns: 1fr;
+        gap: 0.35rem;
+        padding: 0.55rem;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 8px;
+        background: #ffffff;
+    }
+
+    .lmx-dashboard-row-head {
+        display: none;
+    }
+
+    .lmx-dashboard-days {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 0.32rem;
+    }
+
     .lmx-podium {
         grid-template-columns: 1fr;
     }
@@ -1535,6 +1806,15 @@
 
     .lmx-day-strip {
         grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+
+    .lmx-dashboard-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .lmx-dashboard-stats {
+        grid-template-columns: 1fr;
     }
 
     .lmx-segmented {
