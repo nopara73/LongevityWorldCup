@@ -682,31 +682,49 @@
         border-color:#3B82F6;
         box-shadow:0 0 0 2px rgba(59,130,246,.16);
     }
-    .leaderboard tr.is-new-athlete.is-new-revealed{
-        animation:newAthleteEntrySlide 1.6s cubic-bezier(.16,1,.3,1) 1 both;
+    .leaderboard tr.is-new-athlete:not(.is-new-revealed) > td,
+    .leaderboard tr.is-rank-up-athlete:not(.is-rank-up-revealed) > td{
+        opacity:0;
+    }
+    .leaderboard tr.is-new-athlete.is-new-revealed > td{
+        animation:newAthleteEntrySlide 2.8s cubic-bezier(.22,1,.36,1) 1 both;
+    }
+    .leaderboard tr.is-rank-up-athlete.is-rank-up-revealed > td{
+        animation:rankUpAthleteClimb 2.8s cubic-bezier(.22,1,.36,1) 1 both;
     }
     @keyframes newAthleteEntrySlide{
         0%{
-            transform:translateX(-42px);
-            opacity:.35;
-            background:rgba(59,130,246,.22);
+            transform:translateX(-28px);
+            opacity:0;
         }
-        38%{
+        44%{
             transform:translateX(0);
             opacity:1;
-            background:rgba(59,130,246,.15);
-        }
-        74%{
-            background:rgba(59,130,246,.06);
         }
         100%{
             transform:translateX(0);
             opacity:1;
-            background:transparent;
+        }
+    }
+    @keyframes rankUpAthleteClimb{
+        0%{
+            transform:translateY(18px);
+            opacity:0;
+        }
+        48%{
+            transform:translateY(0);
+            opacity:1;
+        }
+        100%{
+            transform:translateY(0);
+            opacity:1;
         }
     }
     @media (prefers-reduced-motion: reduce){
-        .leaderboard tr.is-new-athlete.is-new-revealed{ animation:none; }
+        .leaderboard tr.is-new-athlete:not(.is-new-revealed) > td,
+        .leaderboard tr.is-rank-up-athlete:not(.is-rank-up-revealed) > td{ opacity:1; }
+        .leaderboard tr.is-new-athlete.is-new-revealed > td,
+        .leaderboard tr.is-rank-up-athlete.is-rank-up-revealed > td{ animation:none; }
     }
 
     /* Rank-up and new-athlete arrow bubbles */
@@ -3094,7 +3112,7 @@
         return wrapper;
     }
 
-    function applyRankUpUI(imgEl, placesUp) {
+    function applyRankUpUI(imgEl, placesUp, rowEl) {
         const wrapper = ensureRankChangeWrapper(imgEl);
 
         // If "new" is active, never show the green arrow
@@ -3102,6 +3120,9 @@
             wrapper.classList.remove('rank-up');
             const existing = wrapper.querySelector('.rank-arrow');
             if (existing) existing.remove();
+            if (rowEl) {
+                rowEl.classList.remove('is-rank-up-athlete', 'is-rank-up-revealed');
+            }
             return;
         }
 
@@ -3125,6 +3146,12 @@
         arrow.title = msg;
         arrow.setAttribute('aria-label', msg);
         imgEl.title = msg; // hovering the portrait shows the same tooltip
+
+        if (rowEl) {
+            rowEl.classList.add('is-rank-up-athlete');
+            rowEl.classList.remove('is-rank-up-revealed');
+            revealRowOnView(rowEl, 'is-rank-up-revealed');
+        }
     }
 
     function applyNewUI(imgEl, rowEl) {
@@ -3145,7 +3172,7 @@
         if (rowEl) {
             rowEl.classList.add('is-new-athlete');
             rowEl.classList.remove('is-new-revealed');
-            revealNewAthleteOnView(rowEl);
+            revealRowOnView(rowEl, 'is-new-revealed');
         }
 
         // Ensure any green bits are cleared
@@ -3154,41 +3181,89 @@
         if (arrow) arrow.remove();
     }
 
-    const newAthleteRevealTargets = new Set();
-    let newAthleteRevealFrame = 0;
-    let newAthleteRevealListening = false;
+    const rowRevealTargets = new Map();
+    const rowRevealQueue = [];
+    let rowRevealFrame = 0;
+    let rowRevealListening = false;
+    let rowRevealInProgress = false;
+    let rowRevealSequence = 0;
+    const rowRevealStaggerMs = 220;
 
-    function revealNewAthleteOnView(markerEl) {
+    function revealRowOnView(markerEl, revealedClass) {
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-        newAthleteRevealTargets.add(markerEl);
-        if (!newAthleteRevealListening) {
-            newAthleteRevealListening = true;
-            window.addEventListener('scroll', scheduleNewAthleteRevealCheck, { passive: true });
-            window.addEventListener('resize', scheduleNewAthleteRevealCheck);
+        rowRevealTargets.set(markerEl, revealedClass);
+        if (!rowRevealListening) {
+            rowRevealListening = true;
+            window.addEventListener('scroll', scheduleRowRevealCheck, { passive: true });
+            window.addEventListener('resize', scheduleRowRevealCheck);
         }
-        scheduleNewAthleteRevealCheck();
+        scheduleRowRevealCheck();
     }
 
-    function scheduleNewAthleteRevealCheck() {
-        if (newAthleteRevealFrame) return;
-        newAthleteRevealFrame = requestAnimationFrame(checkNewAthleteReveals);
+    function scheduleRowRevealCheck() {
+        if (rowRevealFrame) return;
+        rowRevealFrame = requestAnimationFrame(checkRowReveals);
     }
 
-    function checkNewAthleteReveals() {
-        newAthleteRevealFrame = 0;
+    function checkRowReveals() {
+        rowRevealFrame = 0;
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-        newAthleteRevealTargets.forEach(markerEl => {
+        rowRevealTargets.forEach((revealedClass, markerEl) => {
             if (!markerEl.isConnected) {
-                newAthleteRevealTargets.delete(markerEl);
+                rowRevealTargets.delete(markerEl);
                 return;
             }
             const rect = markerEl.getBoundingClientRect();
             if (rect.width <= 0 || rect.height <= 0) return;
             if (rect.top < viewportHeight * .78 && rect.bottom > viewportHeight * .18) {
-                markerEl.classList.add('is-new-revealed');
-                newAthleteRevealTargets.delete(markerEl);
+                enqueueRowReveal(markerEl, revealedClass);
+                rowRevealTargets.delete(markerEl);
             }
         });
+        processRowRevealQueue();
+    }
+
+    function enqueueRowReveal(markerEl, revealedClass) {
+        if (markerEl.classList.contains(revealedClass)) return;
+        if (rowRevealQueue.some(item => item.markerEl === markerEl && item.revealedClass === revealedClass)) return;
+        rowRevealQueue.push({ markerEl, revealedClass });
+        rowRevealQueue.sort(compareRowRevealItems);
+    }
+
+    function compareRowRevealItems(a, b) {
+        const rankA = Number(a.markerEl.dataset.rank || Number.POSITIVE_INFINITY);
+        const rankB = Number(b.markerEl.dataset.rank || Number.POSITIVE_INFINITY);
+        if (rankA !== rankB) return rankA - rankB;
+        return a.markerEl.sectionRowIndex - b.markerEl.sectionRowIndex;
+    }
+
+    function resetRowRevealQueue() {
+        rowRevealTargets.clear();
+        rowRevealQueue.length = 0;
+        rowRevealInProgress = false;
+        rowRevealSequence += 1;
+        if (rowRevealFrame) {
+            cancelAnimationFrame(rowRevealFrame);
+            rowRevealFrame = 0;
+        }
+    }
+
+    function processRowRevealQueue() {
+        if (rowRevealInProgress) return;
+        while (rowRevealQueue.length > 0 && !rowRevealQueue[0].markerEl.isConnected) {
+            rowRevealQueue.shift();
+        }
+        const nextReveal = rowRevealQueue.shift();
+        if (!nextReveal) return;
+
+        rowRevealInProgress = true;
+        const revealSequence = rowRevealSequence;
+        nextReveal.markerEl.classList.add(nextReveal.revealedClass);
+        window.setTimeout(() => {
+            if (revealSequence !== rowRevealSequence) return;
+            rowRevealInProgress = false;
+            processRowRevealQueue();
+        }, rowRevealStaggerMs);
     }
 
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
@@ -3886,6 +3961,7 @@
                 const remainingAthletes = athleteResults;
 
                 tableBody.innerHTML = ''; // Clear existing table rows
+                resetRowRevealQueue();
                 let lastVisibleTier = null; // 'pro' | 'amateur' among rows actually shown in the table
                 remainingAthletes.forEach((athlete, index) => {
                     const isPro = athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
@@ -3909,6 +3985,7 @@
 
                     row.classList.add('tier-' + tier);
                     row.setAttribute('data-tier', tier);
+                    row.setAttribute('data-rank', athlete.rank);
 
                     row.querySelector('.rank').textContent = athlete.rank;
                     const athleteCell = row.querySelector('.athlete-td');
@@ -3922,7 +3999,7 @@
                     }
                     if (athlete.rankImproved) {
                         const placesUp = athlete.lastMonthRank - athlete.rank; // e.g. 12 → 7  => 5 places up
-                        applyRankUpUI(portraitImg, placesUp);
+                        applyRankUpUI(portraitImg, placesUp, row);
                     }
 
                     const athleteNameSpan = athleteCell.querySelector('.athlete-name');
