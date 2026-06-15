@@ -11,7 +11,6 @@ Before making user-facing UI changes, read `DESIGN.md` and preserve its visual, 
 This repository is a .NET solution, not a Node/npm-managed app. Browser smoke checks should use the `Microsoft.Playwright` package in `LongevityWorldCup.Tests`; do not add a `package.json` or npm install just to perform an agent-side smoke check unless the user explicitly asks for Node tooling.
 
 For repeatable local UI verification, prefer the repo-owned .NET Playwright path or the Codex Browser plugin/in-app browser when available. After building `LongevityWorldCup.Tests`, install browser binaries with `pwsh LongevityWorldCup.Tests\bin\Debug\net10.0\playwright.ps1 install chromium` if needed. If using a separate Playwright runtime for ad hoc checks, first verify that Playwright and its browser binaries actually resolve in that runtime; do not assume the in-app Node REPL has Playwright on its module path.
-
 Before trusting localhost screenshots, confirm exactly one dev-server process owns the port (`netstat -ano | findstr :5017`): an orphaned older `LongevityWorldCup.Website` instance can keep serving and make fresh edits look like they had no effect. A server started with `dotnet run --no-build` also serves whatever binary was last built — if the middleware source is newer than `bin/.../LongevityWorldCup.Website.dll`, rebuild before judging served HTML. Also note `LongevitymaxxingChallengeServiceTests.PublicStateWarmsUncachedGravatarWithoutBlockingLeaderboard` is network-dependent and can fail on a clean tree without any code change.
 
 ## Generated Documentation Pages
