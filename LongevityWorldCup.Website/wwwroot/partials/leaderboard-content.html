@@ -682,33 +682,50 @@
         border-color:#3B82F6;
         box-shadow:0 0 0 2px rgba(59,130,246,.16);
     }
-    .leaderboard img.portrait.is-new.is-new-revealed{
-        animation:newAthleteRingPulse 1.15s cubic-bezier(.16,1,.3,1) 2 both;
+    .leaderboard tr.is-new-athlete.is-new-revealed{
+        animation:newAthleteEntrySlide 1.6s cubic-bezier(.16,1,.3,1) 1 both;
     }
-    @keyframes newAthleteRingPulse{
-        0%{ box-shadow:0 0 0 2px rgba(59,130,246,.42), 0 0 0 0 rgba(59,130,246,.42); }
-        45%{ box-shadow:0 0 0 2px rgba(59,130,246,.26), 0 0 0 14px rgba(59,130,246,.3), 0 0 18px rgba(59,130,246,.3); }
-        78%{ box-shadow:0 0 0 2px rgba(59,130,246,.18), 0 0 0 20px rgba(59,130,246,0); }
-        100%{ box-shadow:0 0 0 2px rgba(59,130,246,.16); }
+    @keyframes newAthleteEntrySlide{
+        0%{
+            transform:translateX(-42px);
+            opacity:.35;
+            background:rgba(59,130,246,.22);
+        }
+        38%{
+            transform:translateX(0);
+            opacity:1;
+            background:rgba(59,130,246,.15);
+        }
+        74%{
+            background:rgba(59,130,246,.06);
+        }
+        100%{
+            transform:translateX(0);
+            opacity:1;
+            background:transparent;
+        }
     }
     @media (prefers-reduced-motion: reduce){
-        .leaderboard img.portrait.is-new.is-new-revealed{ animation:none; }
+        .leaderboard tr.is-new-athlete.is-new-revealed{ animation:none; }
     }
 
-    /* Rank-up arrow bubble */
-    .rank-change .rank-arrow{
+    /* Rank-up and new-athlete arrow bubbles */
+    .rank-change .rank-arrow,
+    .rank-change .new-bubble{
         position:absolute; z-index:-1; left:var(--arrow-left); top:50%; transform:translateY(-50%);
         width:20px; height:20px; border-radius:50% 0 0 50%;
         color: rgb(255 255 255 / 80%); display:flex; align-items:center; justify-content:center;
-        font-size:12px; pointer-events:none; transition:left .3s ease;
+        font-size:12px; cursor:default; transition:left .3s ease;
     }
     .rank-change .rank-arrow{ background:#2ecc71; }  /* green up arrow */
-    .rank-change:hover .rank-arrow,
-    .rank-change img:hover + .rank-arrow{
+    .rank-change .new-bubble{ background:#3B82F6; }  /* blue new-athlete arrow */
+    .rank-change img:hover + .rank-arrow,
+    .rank-change img:hover + .new-bubble{
         left: calc(var(--arrow-left) + var(--arrow-cover-extra) + var(--arrow-hover-shift));
     }
-    /* Never show rank-up bubbles on the podium */
+    /* Never show arrow bubbles on the podium */
     .podium .rank-arrow, .podium-item .rank-arrow{ display:none !important; }
+    .podium .new-bubble, .podium-item .new-bubble{ display:none !important; }
 
     /* PRO badge overlay – table only (not on podium); white text, black frame */
     .portrait-wrapper{ position:relative; display:inline-block; }
@@ -3110,29 +3127,40 @@
         imgEl.title = msg; // hovering the portrait shows the same tooltip
     }
 
-    function applyNewUI(imgEl) {
+    function applyNewUI(imgEl, rowEl) {
         const msg = 'New athlete';
         imgEl.title = msg;
-        imgEl.classList.remove('is-new-revealed');
-        revealNewAthleteOnView(imgEl);
+        const wrapper = ensureRankChangeWrapper(imgEl);
+
+        let bubble = wrapper.querySelector('.new-bubble');
+        if (!bubble) {
+            bubble = document.createElement('span');
+            bubble.className = 'new-bubble';
+            bubble.innerHTML = '<i class="fa fa-arrow-right" aria-hidden="true"></i>';
+            wrapper.appendChild(bubble);
+        }
+        bubble.title = msg;
+        bubble.setAttribute('aria-label', msg);
+
+        if (rowEl) {
+            rowEl.classList.add('is-new-athlete');
+            rowEl.classList.remove('is-new-revealed');
+            revealNewAthleteOnView(rowEl);
+        }
 
         // Ensure any green bits are cleared
-        const wrapper = imgEl.closest('.rank-change');
-        if (!wrapper) return;
         wrapper.classList.remove('rank-up');
         const arrow = wrapper.querySelector('.rank-arrow');
         if (arrow) arrow.remove();
-        const legacyBubble = wrapper.querySelector('.new-bubble');
-        if (legacyBubble) legacyBubble.remove();
     }
 
     const newAthleteRevealTargets = new Set();
     let newAthleteRevealFrame = 0;
     let newAthleteRevealListening = false;
 
-    function revealNewAthleteOnView(imgEl) {
+    function revealNewAthleteOnView(markerEl) {
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-        newAthleteRevealTargets.add(imgEl);
+        newAthleteRevealTargets.add(markerEl);
         if (!newAthleteRevealListening) {
             newAthleteRevealListening = true;
             window.addEventListener('scroll', scheduleNewAthleteRevealCheck, { passive: true });
@@ -3149,16 +3177,16 @@
     function checkNewAthleteReveals() {
         newAthleteRevealFrame = 0;
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-        newAthleteRevealTargets.forEach(imgEl => {
-            if (!imgEl.isConnected) {
-                newAthleteRevealTargets.delete(imgEl);
+        newAthleteRevealTargets.forEach(markerEl => {
+            if (!markerEl.isConnected) {
+                newAthleteRevealTargets.delete(markerEl);
                 return;
             }
-            const rect = imgEl.getBoundingClientRect();
+            const rect = markerEl.getBoundingClientRect();
             if (rect.width <= 0 || rect.height <= 0) return;
-            if (rect.top < viewportHeight * .82 && rect.bottom > viewportHeight * .18) {
-                imgEl.classList.add('is-new-revealed');
-                newAthleteRevealTargets.delete(imgEl);
+            if (rect.top < viewportHeight * .78 && rect.bottom > viewportHeight * .18) {
+                markerEl.classList.add('is-new-revealed');
+                newAthleteRevealTargets.delete(markerEl);
             }
         });
     }
@@ -3890,7 +3918,7 @@
                     wirePortraitFallback(portraitImg);
                     if (athlete.isNew) {
                         portraitImg.classList.add('is-new');
-                        applyNewUI(portraitImg);
+                        applyNewUI(portraitImg, row);
                     }
                     if (athlete.rankImproved) {
                         const placesUp = athlete.lastMonthRank - athlete.rank; // e.g. 12 → 7  => 5 places up
