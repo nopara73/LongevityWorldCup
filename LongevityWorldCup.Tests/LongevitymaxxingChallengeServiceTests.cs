@@ -330,10 +330,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
     public async Task LeaderboardBreaksPerformanceTiesByMainLeaderboardRankThenOlderAthlete()
     {
         using var fixture = TestChallengeFixture.Create();
-        fixture.AddAthleteTieBreak("young-ranked", currentPlacement: 2, birthYear: 1990, birthMonth: 1, birthDay: 1);
-        fixture.AddAthleteTieBreak("older-ranked", currentPlacement: 3, birthYear: 1970, birthMonth: 1, birthDay: 1);
-        fixture.AddAthleteTieBreak("same-rank-old", currentPlacement: 5, birthYear: 1975, birthMonth: 1, birthDay: 1);
-        fixture.AddAthleteTieBreak("same-rank-young", currentPlacement: 5, birthYear: 1985, birthMonth: 1, birthDay: 1);
+        fixture.AddAthleteTieBreak("young_ranked", currentPlacement: 2, birthYear: 1990, birthMonth: 1, birthDay: 1);
+        fixture.AddAthleteTieBreak("older_ranked", currentPlacement: 3, birthYear: 1970, birthMonth: 1, birthDay: 1);
+        fixture.AddAthleteTieBreak("same_rank_old", currentPlacement: 5, birthYear: 1975, birthMonth: 1, birthDay: 1);
+        fixture.AddAthleteTieBreak("same_rank_young", currentPlacement: 5, birthYear: 1985, birthMonth: 1, birthDay: 1);
 
         var plain = await fixture.ConfirmParticipantAsync("plain@example.com", "Aaron Plain");
         var young = await fixture.ConfirmParticipantAsync("young@example.com", "Young Ranked", athleteLink: "/athlete/young-ranked");

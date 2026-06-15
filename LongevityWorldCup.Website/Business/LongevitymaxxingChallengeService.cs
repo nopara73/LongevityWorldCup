@@ -1136,13 +1136,33 @@ public sealed class LongevitymaxxingChallengeService
                 continue;
 
             var placement = TryReadCurrentPlacement(athlete);
-            result[slug] = new AthleteTieBreak(
+            var tieBreak = new AthleteTieBreak(
                 placement is not null,
                 placement,
                 TryReadDateOfBirthUtc(athlete));
+            foreach (var key in BuildAthleteTieBreakKeys(slug))
+                result[key] = tieBreak;
         }
 
         return result;
+    }
+
+    private static IEnumerable<string> BuildAthleteTieBreakKeys(string athleteSlug)
+    {
+        var normalized = athleteSlug.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized))
+            yield break;
+
+        yield return normalized;
+
+        var hyphenSlug = normalized.Replace('_', '-');
+        if (!string.Equals(hyphenSlug, normalized, StringComparison.Ordinal))
+            yield return hyphenSlug;
+
+        var underscoreSlug = normalized.Replace('-', '_');
+        if (!string.Equals(underscoreSlug, normalized, StringComparison.Ordinal) &&
+            !string.Equals(underscoreSlug, hyphenSlug, StringComparison.Ordinal))
+            yield return underscoreSlug;
     }
 
     private static AthleteTieBreak GetAthleteTieBreak(
