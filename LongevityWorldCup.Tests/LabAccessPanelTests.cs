@@ -12,7 +12,7 @@ public sealed class LabAccessPanelTests
 
         Assert.Contains("https://merch.longevityworldcup.com/product/ultimate-league-test-package-new-zealand/", html);
         Assert.Contains("This New Zealand panel covers the biomarkers for bortz age.", html);
-        Assert.Contains("It also includes 70% off the entry fee.", html);
+        Assert.Contains("It also includes 40% off the entry fee.", html);
         Assert.Contains("Open New Zealand panel", html);
         Assert.Contains("/athlete/klaus-townsend", html);
         Assert.Contains("Available in most US states; not available in Hawaii, New York, New Jersey, or Rhode Island.", html);
