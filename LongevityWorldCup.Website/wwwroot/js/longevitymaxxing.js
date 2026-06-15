@@ -72,7 +72,7 @@
             await refreshState();
         } catch (err) {
             setStatus("lmxSignupStatus", messageOf(err), true);
-            await refreshPublicOnly();
+            if (!publicState) await refreshPublicOnly();
         }
     }
 
@@ -225,6 +225,10 @@
             return;
         }
 
+        if (!publicState) {
+            await refreshPublicOnly({ keepParticipant: !!accessToken });
+        }
+
         if (accessToken) {
             try {
                 participantState = await postJson(`${API}/participant`, { token: accessToken });
@@ -235,16 +239,26 @@
                 if (isAuthFailure(err)) {
                     safeStorageRemove(STORAGE_KEY);
                     accessToken = null;
+                } else {
+                    setStatus("lmxResendStatus", "Your private console did not load yet. Refresh to try again.", true);
+                    renderAll();
+                    return;
                 }
             }
         }
 
-        await refreshPublicOnly();
+        if (!publicState) {
+            await refreshPublicOnly();
+        } else {
+            participantState = null;
+            renderAll();
+        }
     }
 
-    async function refreshPublicOnly() {
+    async function refreshPublicOnly(options) {
+        const keepParticipant = !!(options && options.keepParticipant);
         publicState = await getJson(`${API}/state`);
-        participantState = null;
+        if (!keepParticipant) participantState = null;
         renderAll();
     }
 
