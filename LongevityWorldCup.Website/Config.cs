@@ -191,9 +191,9 @@ namespace LongevityWorldCup.Website
                 Label = "Kickoff",
                 CandidateSlots =
                 [
-                    new() { Id = "kickoff-a", StartsAtUtc = "2026-06-08T06:30:00Z" },
+                    new() { Id = "kickoff-a", StartsAtUtc = "2026-06-07T06:30:00Z" },
                     new() { Id = "kickoff-b", StartsAtUtc = "2026-06-07T06:30:00Z" },
-                    new() { Id = "kickoff-c", StartsAtUtc = "2026-06-08T16:00:00Z" }
+                    new() { Id = "kickoff-c", StartsAtUtc = "2026-06-07T06:30:00Z" }
                 ]
             },
             new()
@@ -203,8 +203,8 @@ namespace LongevityWorldCup.Website
                 CandidateSlots =
                 [
                     new() { Id = "midpoint-a", StartsAtUtc = "2026-06-15T06:30:00Z" },
-                    new() { Id = "midpoint-b", StartsAtUtc = "2026-06-15T13:00:00Z" },
-                    new() { Id = "midpoint-c", StartsAtUtc = "2026-06-15T16:00:00Z" }
+                    new() { Id = "midpoint-b", StartsAtUtc = "2026-06-15T06:30:00Z" },
+                    new() { Id = "midpoint-c", StartsAtUtc = "2026-06-15T06:30:00Z" }
                 ]
             },
             new()
@@ -214,8 +214,8 @@ namespace LongevityWorldCup.Website
                 CandidateSlots =
                 [
                     new() { Id = "finale-a", StartsAtUtc = "2026-06-22T06:30:00Z" },
-                    new() { Id = "finale-b", StartsAtUtc = "2026-06-22T13:00:00Z" },
-                    new() { Id = "finale-c", StartsAtUtc = "2026-06-22T16:00:00Z" }
+                    new() { Id = "finale-b", StartsAtUtc = "2026-06-22T06:30:00Z" },
+                    new() { Id = "finale-c", StartsAtUtc = "2026-06-22T06:30:00Z" }
                 ]
             }
         ];
