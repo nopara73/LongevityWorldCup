@@ -209,7 +209,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("toggle(\"lmxHabitHeading\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxHabitGrid\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxTrack\", hasParticipant && dashboardMode && !checkInOnly);", javascript);
-        Assert.Contains("Category dashboard", javascript);
+        Assert.DoesNotContain("<h2>Category dashboard</h2>", javascript);
+        Assert.DoesNotContain("<div role=\"columnheader\">Category</div>", javascript);
+        Assert.Contains("<span class=\"lmx-mini-label\">your trend</span>", javascript);
         Assert.Contains("function normalizeDashboardCells", javascript);
         Assert.Contains("function categoryDashboardRow", javascript);
         Assert.Contains("function categoryDayCell", javascript);

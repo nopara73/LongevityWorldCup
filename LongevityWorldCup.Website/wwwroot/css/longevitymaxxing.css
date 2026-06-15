@@ -352,14 +352,6 @@
     margin-bottom: 0.75rem;
 }
 
-.lmx-dashboard-head h2 {
-    margin: 0.35rem 0 0;
-    text-align: left;
-    color: #0f172a;
-    font-size: 1.15rem;
-    letter-spacing: 0;
-}
-
 .lmx-dashboard-head > strong {
     color: #334155;
     font-family: Orbitron, Roboto, sans-serif;
