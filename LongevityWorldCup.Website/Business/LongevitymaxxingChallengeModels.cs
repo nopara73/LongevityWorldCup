@@ -31,6 +31,7 @@ public sealed record LongevitymaxxingPublicState(
     bool SignupOpen,
     string StartDate,
     string SignupClosesAtUtc,
+    string CallSelectionClosesAtUtc,
     string EndDate,
     int DurationDays,
     int DailyMaxScore,

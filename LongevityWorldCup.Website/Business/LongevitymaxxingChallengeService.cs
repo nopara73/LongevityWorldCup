@@ -95,9 +95,10 @@ public sealed class LongevitymaxxingChallengeService
         return new LongevitymaxxingPublicState(
             ChallengeName,
             GetPhase(settings, now),
-            IsSignupOpen(settings, now),
+            true,
             settings.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             settings.SignupClosesAtUtc.ToString("o", CultureInfo.InvariantCulture),
+            settings.CallSelectionClosesAtUtc.ToString("o", CultureInfo.InvariantCulture),
             settings.EndDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             settings.DurationDays,
             GetScoredPoints(settings.DurationDays, RawDailyMaxScore, settings.DurationDays, PracticeCheckInDay),
@@ -117,7 +118,9 @@ public sealed class LongevitymaxxingChallengeService
         if (now < finalResultsAvailableAtUtc)
             return [];
 
-        var participants = GetConfirmedParticipants();
+        var participants = GetConfirmedParticipants()
+            .Where(participant => GetJoinedLocalDate(participant) <= settings.EndDate)
+            .ToList();
         if (participants.Count == 0)
             return [];
 
@@ -141,6 +144,7 @@ public sealed class LongevitymaxxingChallengeService
                     settings.DurationDays,
                     occurredAtUtc);
             })
+            .Where(row => row.CheckedInDays > 0)
             .Where(row => row.Placement <= 3 || (row.Completed && !string.IsNullOrWhiteSpace(row.AthleteSlug)))
             .ToList();
     }
@@ -149,8 +153,6 @@ public sealed class LongevitymaxxingChallengeService
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var settings = BuildSettings();
-        if (!IsSignupOpen(settings, now))
-            throw new InvalidOperationException("Signup is closed.");
 
         var email = NormalizeEmail(request.Email);
         var displayName = NormalizeDisplayName(request.DisplayName);
@@ -598,9 +600,10 @@ public sealed class LongevitymaxxingChallengeService
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var settings = BuildSettings();
         TrySelectCallSlots(now);
-        var calls = BuildParticipantCalls(settings)
+        var selectedCalls = BuildParticipantCalls(settings)
             .Where(call => call.SelectedSlot is not null)
             .ToList();
+        var calls = GetUpcomingParticipantCalls(selectedCalls, now);
         var participants = GetConfirmedParticipants()
             .Where(p => p.StoppedEmailsAtUtc is null)
             .ToList();
@@ -659,17 +662,19 @@ public sealed class LongevitymaxxingChallengeService
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var settings = BuildSettings();
-        if (now < settings.SignupClosesAtUtc)
+        var challengeStartsAtUtc = new DateTimeOffset(settings.StartDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        if (now < challengeStartsAtUtc)
             return [];
 
         TrySelectCallSlots(now);
 
-        var calls = BuildParticipantCalls(settings)
+        var selectedCalls = BuildParticipantCalls(settings)
             .Where(call => call.SelectedSlot is not null)
             .ToList();
         var expectedCallCount = settings.Calls.Count(call => call.CandidateSlots.Count > 0);
-        if (calls.Count < expectedCallCount)
+        if (selectedCalls.Count < expectedCallCount)
             return [];
+        var calls = GetUpcomingParticipantCalls(selectedCalls, now);
 
         return GetConfirmedParticipants()
             .Where(participant => participant.StoppedEmailsAtUtc is null)
@@ -1239,8 +1244,6 @@ public sealed class LongevitymaxxingChallengeService
             badges.Add($"Streak {currentStreak}");
         if (HasComeback(byDay))
             badges.Add("Comeback");
-        if (byDay.Count >= settings.DurationDays)
-            badges.Add("Completion");
 
         foreach (var category in CategoryNames)
         {
@@ -1536,6 +1539,32 @@ public sealed class LongevitymaxxingChallengeService
                 call.SelectedSlot,
                 settings.VideoCallUrl))
             .ToList();
+    }
+
+    private static IReadOnlyList<LongevitymaxxingParticipantCall> GetUpcomingParticipantCalls(
+        IReadOnlyList<LongevitymaxxingParticipantCall> calls,
+        DateTimeOffset now)
+    {
+        return calls
+            .Where(call => !HasParticipantCallStarted(call, now))
+            .ToList();
+    }
+
+    private static bool HasParticipantCallStarted(LongevitymaxxingParticipantCall call, DateTimeOffset now)
+    {
+        if (call.SelectedSlot is null)
+            return false;
+
+        if (!DateTimeOffset.TryParse(
+            call.SelectedSlot.StartsAtUtc,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal,
+            out var startsAt))
+        {
+            return false;
+        }
+
+        return startsAt.ToUniversalTime() <= now;
     }
 
     private IReadOnlyList<LongevitymaxxingPublicCall> BuildPublicCalls(ChallengeSettings settings)
@@ -2437,14 +2466,8 @@ public sealed class LongevitymaxxingChallengeService
     {
         var utcDate = DateOnly.FromDateTime(now.UtcDateTime);
         if (utcDate < settings.StartDate)
-            return IsSignupOpen(settings, now) ? "signup" : "roster";
+            return "signup";
         return "active";
-    }
-
-    private static bool IsSignupOpen(ChallengeSettings settings, DateTimeOffset now)
-    {
-        var utcDate = DateOnly.FromDateTime(now.UtcDateTime);
-        return utcDate >= settings.StartDate || now < settings.SignupClosesAtUtc;
     }
 
     private sealed record ChallengeSettings(

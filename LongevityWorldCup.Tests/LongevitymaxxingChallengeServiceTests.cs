@@ -73,6 +73,41 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task SignupStaysOpenBeforeChallengeStartAfterConfiguredSignupClose()
+    {
+        using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-01T00:00:00Z");
+        var now = DateTimeOffset.Parse("2026-06-06T12:00:00Z");
+
+        var publicState = fixture.Service.GetPublicState(now);
+        Assert.Equal("signup", publicState.Phase);
+        Assert.True(publicState.SignupOpen);
+        Assert.Empty(fixture.Service.GetChallengeStartCandidates(now));
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "prestart@example.com",
+            "Prestart Pat",
+            "UTC",
+            null,
+            []), now);
+        var access = await fixture.Service.ConfirmAsync(ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"), now.AddMinutes(1));
+
+        Assert.Empty(access.State.EligibleDays);
+        Assert.True(access.State.Public.SignupOpen);
+    }
+
+    [Fact]
+    public async Task EmptyPostDayFourteenLeaderboardStillRendersVisibleDayCells()
+    {
+        using var fixture = TestChallengeFixture.Create();
+
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-25T09:00:00Z"));
+
+        Assert.Empty(state.Leaderboard);
+        Assert.Contains(state.Days, day => day.ChallengeDay == 18);
+        Assert.Equal(18, state.Days.Count);
+    }
+
+    [Fact]
     public async Task ParticipantWithoutAthleteProfileCanUploadChallengeProfilePicture()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -645,13 +680,13 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task DailyReminderMissThresholdIgnoresScoredDaysBeforeLateSignup()
+    public async Task DailyReminderMissThresholdIgnoresScoredDaysBeforeSignup()
     {
         using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-12T22:00:00Z");
         var signup = DateTimeOffset.Parse("2026-06-10T12:00:00Z");
         await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
-            "late-missed@example.com",
-            "Late Missy",
+            "joined-missed@example.com",
+            "Joined Jenny",
             "UTC",
             null,
             []), signup);
@@ -704,7 +739,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             fixture.Service.BuildStopUrl(reminder.StopToken));
 
         Assert.Contains("Updated call schedule:", content.TextBody);
-        Assert.Contains("- Kickoff: 2026-06-08 15:00 (Europe/Budapest)", content.TextBody);
+        Assert.DoesNotContain("- Kickoff:", content.TextBody);
         Assert.Contains("- Midpoint: 2026-06-15 08:30 (Europe/Budapest)", content.TextBody);
         Assert.Contains("- Finale: 2026-06-21 08:30 (Europe/Budapest)", content.TextBody);
         Assert.Contains("Call link: https://meet.example.test", content.TextBody);
@@ -828,7 +863,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task ChallengeStartCandidatesWaitUntilSignupCloseAndSendOnce()
+    public async Task ChallengeStartCandidatesWaitUntilChallengeStartAndSendOnce()
     {
         using var fixture = TestChallengeFixture.Create();
         await fixture.ConfirmParticipantAsync(
@@ -905,6 +940,56 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task ChallengeStartEmailAfterFinishedCallsDoesNotIncludeStaleCallSchedule()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var signup = DateTimeOffset.Parse("2026-06-24T12:00:00Z");
+        await fixture.Service.SignupAsync(
+            new LongevitymaxxingSignupRequest("post-calls-start@example.com", "Post Calls Pat", "UTC", null, []),
+            signup);
+        await fixture.Service.ConfirmAsync(
+            ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
+            signup.AddMinutes(1));
+
+        var start = Assert.Single(fixture.Service.GetChallengeStartCandidates(signup.AddMinutes(2)));
+        Assert.Empty(start.Calls);
+
+        var content = SmtpLongevitymaxxingEmailSender.BuildChallengeStartEmailContent(
+            start,
+            fixture.Service.BuildAccessUrl(start.AccessToken),
+            fixture.Service.BuildStopUrl(start.StopToken));
+
+        Assert.DoesNotContain("Calls:", content.TextBody);
+        Assert.DoesNotContain("calendar invite", content.TextBody, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(content.Attachments);
+    }
+
+    [Fact]
+    public async Task DailyReminderAfterFinishedCallsDoesNotIncludeStaleScheduleUpdate()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var signup = DateTimeOffset.Parse("2026-06-24T12:00:00Z");
+        await fixture.Service.SignupAsync(
+            new LongevitymaxxingSignupRequest("post-calls-daily@example.com", "Post Calls Dana", "UTC", null, []),
+            signup);
+        await fixture.Service.ConfirmAsync(
+            ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
+            signup.AddMinutes(1));
+
+        var reminder = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-25T08:05:00Z")));
+        Assert.Empty(reminder.Calls);
+        Assert.False(reminder.IncludeCallScheduleUpdate);
+
+        var content = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
+            reminder,
+            fixture.Service.BuildAccessUrl(reminder.AccessToken),
+            fixture.Service.BuildStopUrl(reminder.StopToken));
+
+        Assert.DoesNotContain("Updated call schedule:", content.TextBody);
+        Assert.Contains("Stop challenge emails:", content.TextBody);
+    }
+
+    [Fact]
     public async Task SignupAfterChallengeStartIsAccepted()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -923,7 +1008,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task FinalResultEventsIncludePodiumAndLinkedCompletionsAfterGraceWindow()
+    public async Task DayFourteenResultEventsIncludeTopThreeAndLinkedFinishersAfterGraceWindow()
     {
         using var fixture = TestChallengeFixture.Create();
         var bob = await fixture.ConfirmParticipantAsync("bob@example.com", "Bob");
@@ -966,7 +1051,35 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task PublicStateStaysActiveAndDoesNotExposeFinalPodiumAfterGraceWindow()
+    public async Task DayFourteenResultEventsExcludeParticipantsWhoJoinedAfterOriginalEndDate()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var signup = DateTimeOffset.Parse("2026-06-25T12:00:00Z");
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "post-end-event@example.com",
+            "Post End Pat",
+            "UTC",
+            "/athlete/post-end-pat",
+            []), signup);
+        var access = await fixture.Service.ConfirmAsync(ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"), signup.AddMinutes(1));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access.AccessToken,
+            18,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-26T08:00:00Z"));
+
+        var publicState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-26T09:00:00Z"));
+        Assert.Contains(publicState.Leaderboard, row => row.DisplayName == "Post End Pat");
+
+        var rows = fixture.Service.GetFinalResultEventRows(DateTimeOffset.Parse("2026-06-26T09:00:00Z"));
+        Assert.Empty(rows);
+    }
+
+    [Fact]
+    public async Task PublicStateStaysActiveAndDoesNotExposePodiumAfterGraceWindow()
     {
         using var fixture = TestChallengeFixture.Create();
         await fixture.ConfirmParticipantAsync("final@example.com", "Final Finn");
@@ -980,6 +1093,19 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Empty(continuing.Podium);
         Assert.True(continuing.SignupOpen);
         Assert.Contains(continuing.Days, day => day.ChallengeDay == 17);
+    }
+
+    [Fact]
+    public async Task PublicLeaderboardDoesNotExposeCompletionBadgeAfterOriginalDuration()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("badge@example.com", "Badge Bea");
+        SubmitChallengeDays(fixture, access, 14, 2, 2, 2, 2);
+
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-24T00:01:00Z"));
+        var row = Assert.Single(state.Leaderboard);
+
+        Assert.DoesNotContain("Completion", row.Badges);
     }
 
     private static string ReadQueryToken(string url, string key)

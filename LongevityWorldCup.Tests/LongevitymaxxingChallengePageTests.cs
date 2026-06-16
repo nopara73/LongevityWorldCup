@@ -88,6 +88,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("\"challengeName\":\"Longevitymaxxing Challenge\"", json);
         Assert.Contains("\"startDate\":\"2026-06-08\"", json);
         Assert.Contains("\"signupClosesAtUtc\":\"2026-06-09T22:00:00.0000000+00:00\"", json);
+        Assert.Contains("\"callSelectionClosesAtUtc\":\"2026-06-07T06:30:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-08T13:00:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-15T06:30:00.0000000+00:00\"", json);
         Assert.Contains("\"startsAtUtc\":\"2026-06-21T06:30:00.0000000+00:00\"", json);
@@ -143,7 +144,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Separate Lifestyle challenge", html);
         Assert.Contains("does not affect Ultimate League rankings", html);
         Assert.Contains("href=\"/longevitymaxxing\"", html);
-        Assert.Contains("/api/longevitymaxxing/state", html);
+        Assert.DoesNotContain("/api/longevitymaxxing/state", html);
     }
 
     [Fact]
@@ -164,6 +165,29 @@ public sealed class LongevitymaxxingChallengePageTests
 
         Assert.Contains("id=\"longevitymaxxingPromo\"", html);
         Assert.Contains("href=\"/longevitymaxxing\"", html);
+    }
+
+    [Fact]
+    public async Task Homepage_AdvertisesLongevitymaxxingChallengeBeforeStartAfterConfiguredSignupClose()
+    {
+        var now = DateTimeOffset.UtcNow;
+        using var factory = CreateFactory(new Config
+        {
+            LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig
+            {
+                StartDate = DateOnly.FromDateTime(now.UtcDateTime).AddDays(10).ToString("yyyy-MM-dd"),
+                SignupClosesAtUtc = now.AddDays(-1).ToString("O")
+            }
+        });
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+        var json = await client.GetStringAsync("/api/longevitymaxxing/state");
+
+        Assert.Contains("id=\"longevitymaxxingPromo\"", html);
+        Assert.Contains("href=\"/longevitymaxxing\"", html);
+        Assert.Contains("\"phase\":\"signup\"", json);
+        Assert.Contains("\"signupOpen\":true", json);
     }
 
     [Fact]
@@ -200,11 +224,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("err.status = response.status;", javascript);
         Assert.Contains("function isAuthFailure(err)", javascript);
         Assert.Contains("const checkInOnly = pendingCheckInDays.length > 0;", javascript);
-        Assert.Contains("const publicClosed = !hasParticipant && !state.signupOpen;", javascript);
-        Assert.Contains("hero.classList.toggle(\"public-board-only\", publicClosed);", javascript);
+        Assert.DoesNotContain("publicClosed", javascript);
+        Assert.DoesNotContain("public-board-only", javascript);
         Assert.Contains("toggle(\"lmxBoardSection\", !checkInOnly);", javascript);
         Assert.Contains("toggle(\"lmxParticipantTools\", !checkInOnly);", javascript);
-        Assert.Contains("toggle(\"lmxTitlePanel\", !checkInOnly && !publicClosed);", javascript);
+        Assert.Contains("toggle(\"lmxTitlePanel\", !checkInOnly);", javascript);
         Assert.Contains("toggle(\"lmxResendPanel\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxHabitHeading\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxHabitGrid\", !hasParticipant);", javascript);
@@ -227,6 +251,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("row.totalPoints", javascript);
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
         Assert.Contains("lmx-cell-strip", javascript);
+        Assert.Contains("const visibleDays = cells.length || state.durationDays || 14;", javascript);
+        Assert.Contains("`${checkedCells.length}/${visibleDays} days`", javascript);
+        Assert.Contains("emptyBoardRow(dayCount, publicViewer)", javascript);
+        Assert.Contains("emptyRosterRow(dayCount)", javascript);
         Assert.Contains("function setBoardDayColumns", javascript);
         Assert.Contains("--lmx-day-columns", javascript);
         Assert.Contains("var(--lmx-day-columns)", css);
@@ -244,6 +272,15 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("Final leaderboard", javascript);
         Assert.DoesNotContain("The challenge is complete. The final board is archived below.", javascript);
         Assert.DoesNotContain("Check-ins are closed.", javascript);
+        Assert.DoesNotContain("case \"completed\"", javascript);
+        Assert.DoesNotContain("Signup is paused", javascript);
+        Assert.DoesNotContain("signup paused", javascript);
+        Assert.DoesNotContain("lmxClosedPanel", javascript);
+        Assert.DoesNotContain("lmx-closed-panel", css);
+        Assert.DoesNotContain("renderPodium", javascript);
+        Assert.DoesNotContain("lmxPodium", javascript);
+        Assert.DoesNotContain("lmx-podium", css);
+        Assert.DoesNotContain("id=\"lmxPodium\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("Already joined or opened this page in a new browser?", javascript);
         Assert.DoesNotContain("Send participant link", javascript);
         Assert.Contains(".lmx-checkin-card > .lmx-button", css);
@@ -268,8 +305,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function hasOpenCallVoting", javascript);
         Assert.Contains("function getOpenCallVoteCalls", javascript);
         Assert.Contains("renderCallsForSignup(state);", javascript);
+        Assert.Contains("if (publicState) renderCallsForSignup(publicState);", javascript);
         Assert.Contains("Timezone and profile", javascript);
-        Assert.Contains("state.signupOpen && hasOpenCallVoting(state)", javascript);
+        Assert.Contains("hasParticipant && hasOpenCallVoting(state) && !checkInOnly", javascript);
         Assert.Contains("id=\"lmxSignupCallField\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("Intl.DateTimeFormat().resolvedOptions().timeZone", javascript);
         Assert.Contains("const COMMON_TIME_ZONES = [", javascript);
@@ -326,9 +364,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function renderRosterBoard", javascript);
         Assert.Contains("people signed up", javascript);
         Assert.DoesNotContain("email confirmed", javascript);
-        Assert.Contains("renderParticipantCalls(state.calls || [], state.public.signupClosesAtUtc);", javascript);
+        Assert.Contains("renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);", javascript);
         Assert.Contains("function pendingCallTimeLabel", javascript);
-        Assert.Contains("Meeting time pending. Signup closes on", javascript);
+        Assert.Contains("Meeting time pending. Availability closes on", javascript);
+        Assert.DoesNotContain("Signup closes on", javascript);
         Assert.Contains("class=\"lmx-call-link\"", javascript);
         Assert.Contains(".lmx-call-link", css);
         Assert.Contains("Your first check-in email arrives the morning after Day 1. Nothing is due before then.", javascript);

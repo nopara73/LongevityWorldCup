@@ -25,10 +25,6 @@
     position: static;
 }
 
-.lmx-hero.public-board-only {
-    display: none;
-}
-
 .lmx-panel,
 .lmx-card,
 .lmx-board-wrap {
@@ -1111,12 +1107,6 @@
     accent-color: #00bcd4;
 }
 
-.lmx-closed-panel {
-    border-top: 1px solid rgba(15, 23, 42, 0.10);
-    margin-top: 0.9rem;
-    padding-top: 0.9rem;
-}
-
 .lmx-resend-panel {
     display: grid;
     gap: 0.75rem;
@@ -1390,29 +1380,6 @@
 .lmx-habit-mark.missed {
     background: transparent;
     opacity: 0.62;
-}
-
-.lmx-podium {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.75rem;
-}
-
-.lmx-podium-item {
-    min-height: 6rem;
-    display: grid;
-    align-content: center;
-    gap: 0.25rem;
-    padding: 0.8rem;
-    border-radius: 8px;
-    border: 1px solid rgba(15, 23, 42, 0.10);
-    background: #fff7ed;
-}
-
-.lmx-podium-place {
-    font-family: Orbitron, Roboto, sans-serif;
-    font-size: 1.5rem;
-    font-weight: 700;
 }
 
 .lmx-checkin-list {
@@ -1757,9 +1724,6 @@
         gap: 0.32rem;
     }
 
-    .lmx-podium {
-        grid-template-columns: 1fr;
-    }
 }
 
 @media (max-width: 520px) {

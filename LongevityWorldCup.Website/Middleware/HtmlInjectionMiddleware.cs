@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, Config config, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
@@ -16,7 +16,6 @@ namespace LongevityWorldCup.Website.Middleware
         private readonly AssetVersionProvider _assetVersionProvider = assetVersionProvider;
         private readonly LeaderboardFactsService _leaderboardFacts = leaderboardFacts;
         private readonly SitemapService _sitemap = sitemap;
-        private readonly Config _config = config;
         private readonly ILogger<HtmlInjectionMiddleware> _logger = logger;
         private readonly string _webRootPath = ResolveWebRootPath(environment);
         private const string SiteBaseUrl = "https://longevityworldcup.com";
@@ -24,8 +23,6 @@ namespace LongevityWorldCup.Website.Middleware
         private const string LongevitymaxxingOgImagePath = "/assets/longevitymaxxing-og.png";
         private const string LeaderboardRowsStartMarker = "<!--LEADERBOARD-TBODY-ROWS-START-->";
         private const string LeaderboardRowsEndMarker = "<!--LEADERBOARD-TBODY-ROWS-END-->";
-        private const string LongevitymaxxingPromoStartMarker = "<!--LONGEVITYMAXXING-PROMO-START-->";
-        private const string LongevitymaxxingPromoEndMarker = "<!--LONGEVITYMAXXING-PROMO-END-->";
         private const string LeaderboardSkeletonTbodyOpenTag = "<tbody class=\"loading-skeleton\" aria-busy=\"true\">";
         private static readonly HashSet<string> IndexableRoutes = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -221,24 +218,6 @@ namespace LongevityWorldCup.Website.Middleware
                 LeaderboardSkeletonTbodyOpenTag,
                 $"<tbody {LeaderboardHtmlRenderer.ServerRenderedTbodyAttributes}>",
                 StringComparison.Ordinal);
-        }
-
-        private static string RemoveMarkedSection(string html, string startMarker, string endMarker)
-        {
-            var start = html.IndexOf(startMarker, StringComparison.Ordinal);
-            var end = html.IndexOf(endMarker, StringComparison.Ordinal);
-            if (start < 0 || end < 0 || end <= start)
-            {
-                return html;
-            }
-
-            var sectionEnd = end + endMarker.Length;
-            while (sectionEnd < html.Length && (html[sectionEnd] == '\r' || html[sectionEnd] == '\n'))
-            {
-                sectionEnd++;
-            }
-
-            return html.Remove(start, sectionEnd - start);
         }
 
         private static bool ShouldRenderLeaderboardRows(HttpContext context)
@@ -1279,37 +1258,7 @@ $@"<script type=""module"">
 
         private string ApplyLongevitymaxxingPromo(string html)
         {
-            if (ShouldShowLongevitymaxxingPromo())
-            {
-                return html;
-            }
-
-            return RemoveMarkedSection(html, LongevitymaxxingPromoStartMarker, LongevitymaxxingPromoEndMarker);
-        }
-
-        private bool ShouldShowLongevitymaxxingPromo()
-        {
-            var cfg = _config.LongevitymaxxingChallenge ?? new LongevitymaxxingChallengeConfig();
-            var start = ParseDateOnly(cfg.StartDate, DateOnly.FromDateTime(DateTime.UtcNow.Date));
-            var signupCloses = ParseDateTimeOffset(cfg.SignupClosesAtUtc, new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero));
-            var now = DateTimeOffset.UtcNow;
-            var utcDate = DateOnly.FromDateTime(now.UtcDateTime.Date);
-
-            return utcDate >= start || now < signupCloses.ToUniversalTime();
-        }
-
-        private static DateOnly ParseDateOnly(string? value, DateOnly fallback)
-        {
-            return DateOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
-                ? parsed
-                : fallback;
-        }
-
-        private static DateTimeOffset ParseDateTimeOffset(string? value, DateTimeOffset fallback)
-        {
-            return DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
-                ? parsed.ToUniversalTime()
-                : fallback.ToUniversalTime();
+            return html;
         }
 
         private sealed record SeoMeta(

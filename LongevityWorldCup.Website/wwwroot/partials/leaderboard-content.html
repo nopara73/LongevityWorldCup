@@ -2368,22 +2368,6 @@
                 Join the challenge <i class="fa fa-arrow-right" aria-hidden="true"></i>
             </a>
         </section>
-        <script>
-            (function () {
-                var promo = document.getElementById('longevitymaxxingPromo');
-                if (!promo || !window.fetch) return;
-
-                fetch('/api/longevitymaxxing/state', { cache: 'no-store' })
-                    .then(function (response) { return response.ok ? response.json() : null; })
-                    .then(function (state) {
-                        if (!state) return;
-                        if (!state.signupOpen) {
-                            promo.hidden = true;
-                        }
-                    })
-                    .catch(function () { });
-            }());
-        </script>
         <!--LONGEVITYMAXXING-PROMO-END-->
 
         <div class="leaderboard-toolbar">
