@@ -1198,20 +1198,23 @@
 }
 
 .lmx-board {
-    min-width: 820px;
+    --lmx-day-columns: repeat(14, 2.15rem);
+    --lmx-board-min-width: 820px;
+    min-width: var(--lmx-board-min-width);
 }
 
 .lmx-board.public {
-    min-width: 820px;
+    min-width: var(--lmx-board-min-width);
 }
 
 .lmx-board.roster {
-    min-width: 680px;
+    --lmx-board-min-width: 680px;
+    min-width: var(--lmx-board-min-width);
 }
 
 .lmx-board-row {
     display: grid;
-    grid-template-columns: 16rem 4.8rem repeat(14, 2.15rem);
+    grid-template-columns: 16rem 4.8rem var(--lmx-day-columns);
     gap: 0.35rem;
     align-items: center;
     min-height: 3rem;
@@ -1220,11 +1223,11 @@
 }
 
 .lmx-board.public .lmx-board-row {
-    grid-template-columns: 16rem 4.8rem repeat(14, 2.15rem);
+    grid-template-columns: 16rem 4.8rem var(--lmx-day-columns);
 }
 
 .lmx-board-row.lmx-roster-row {
-    grid-template-columns: minmax(14rem, 1fr) repeat(14, 2.15rem);
+    grid-template-columns: minmax(14rem, 1fr) var(--lmx-day-columns);
 }
 
 .lmx-cell-strip {

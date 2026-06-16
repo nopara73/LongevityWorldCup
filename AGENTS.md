@@ -31,12 +31,15 @@ Before changing domain concepts, leaderboard/ranking logic, athlete onboarding, 
 Use its canonical terms when naming UI text, code concepts, issues, and docs. If behavior or terminology changes, update `UBIQUITOUS_LANGUAGE.md` in the same change.
 
 - Keep the Longevitymaxxing Challenge separate from Ultimate League ranking, biological age placements, and athlete badges, even when challenge results appear as Events/highlights.
-- Longevitymaxxing Challenge signup may remain open during active challenge days when configured; late participants join the current challenge and catch up through normal eligible check-ins.
+- Longevitymaxxing Challenge daily check-ins continue indefinitely after Day 14 on the same live leaderboard. Keep adding Day 15, Day 16, and later daily grid columns; do not archive, freeze, split, or create a preserved winners board for the leaderboard.
+- Longevitymaxxing Challenge Day 14 completion/result Events still emit after the existing grace window and may say participants completed the Longevitymaxxing Challenge, even though the live check-in leaderboard continues afterward.
+- Longevitymaxxing Challenge signup stays open during the ongoing challenge. New signups join the same global leaderboard, see prior global days as empty/missed, and may only check in for days on or after their local signup date.
+- Each participant's first eligible Longevitymaxxing Challenge check-in is practice: it counts for checked-in days and streak, but not habit points, category leader badges, point tie-breaks, or missed-scored-day reminder stops.
 - Longevitymaxxing Challenge call times may be selected before signup closes when needed for 24-hour call reminders.
 - Longevitymaxxing Challenge built-in call defaults use Sunday 08:30 GMT+2 call dates for future competitions. The June 2026 finale has a one-off Sunday 08:30 GMT+2 override; the already-completed June 2026 kickoff keeps its historical selected time.
 - Longevitymaxxing Challenge daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
-- Longevitymaxxing Challenge daily reminder emails stop after 3 consecutive missed scored days. Day 1 practice does not count, and days before a late participant's local signup date do not count.
-- Longevitymaxxing Challenge habit points use a small day-weight ramp after Day 1: Day 2 starts at the raw 8-point maximum and the final day peaks at 11 points.
+- Longevitymaxxing Challenge daily reminder emails continue indefinitely and stop after 3 consecutive missed scored days. Practice does not count, and days before a participant's local signup date do not count.
+- Longevitymaxxing Challenge habit points use a small day-weight ramp after practice: Day 2 starts at the raw 8-point maximum, the original Day 14 peak is 11 points, and later days stay capped at that peak unless scoring is explicitly redesigned.
 - Longevitymaxxing Challenge habit points allow one daily slip only after an actually perfect previous check-in: either one `No` territory or one/two `Somewhat` territories still score that day's maximum, but a saved slip is not perfect for saving the next day.
 - Longevitymaxxing Challenge leaderboard ties after challenge performance metrics prefer participants linked to a currently placed Longevity athlete profile, then better current placement, then older linked athletes by date of birth.
 - Challenge uploads and Gravatar fallbacks are challenge-only profile pictures; linked Longevity athlete profile pictures stay the display priority and must not be created or modified from challenge images.

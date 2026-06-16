@@ -2357,9 +2357,9 @@
             <div class="longevitymaxxing-promo-text">
                 <div class="longevitymaxxing-promo-kicker"><i class="fa fa-calendar-check-o" aria-hidden="true"></i> Separate Lifestyle challenge</div>
                 <h2 id="longevitymaxxingPromoTitle">Longevitymaxxing Challenge</h2>
-                <p>Join the 14-day check-in sprint for sleep, exercise, nutrition, and vices. It has its own public visual leaderboard and does not affect Ultimate League rankings.</p>
+                <p>Join the daily check-in board for sleep, exercise, nutrition, and vices. It has its own public visual leaderboard and does not affect Ultimate League rankings.</p>
                 <div class="longevitymaxxing-promo-points" aria-label="Challenge details">
-                    <span>14 days</span>
+                    <span>Ongoing</span>
                     <span>Daily check-ins</span>
                     <span>Free signup</span>
                 </div>
@@ -2379,17 +2379,6 @@
                         if (!state) return;
                         if (!state.signupOpen) {
                             promo.hidden = true;
-                            return;
-                        }
-
-                        var closesAt = Date.parse(state.signupClosesAtUtc);
-                        if (Number.isFinite(closesAt)) {
-                            var delay = closesAt - Date.now();
-                            if (delay <= 0) {
-                                promo.hidden = true;
-                            } else if (delay < 2147483647) {
-                                window.setTimeout(function () { promo.hidden = true; }, delay);
-                            }
                         }
                     })
                     .catch(function () { });
