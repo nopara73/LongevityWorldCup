@@ -140,6 +140,7 @@ public sealed record LongevitymaxxingReminderCandidate(
     string StopToken,
     int ChallengeDay,
     string TargetDate,
+    bool CountsForScore,
     bool IncludeCallScheduleUpdate,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
 
