@@ -160,13 +160,13 @@
         });
 
         signupTimeZone.addEventListener("change", () => {
-            renderCallsForSignup((publicState && publicState.calls) || []);
+            if (publicState) renderCallsForSignup(publicState);
         });
 
         editTimeZone.addEventListener("change", () => {
             if (!participantState) return;
             renderCallVoteControls("lmxEditCalls", participantState.public.calls || [], participantState.callAvailability || []);
-            renderParticipantCalls(participantState.calls || [], participantState.public.signupClosesAtUtc);
+            renderParticipantCalls(participantState.calls || [], participantState.public.callSelectionClosesAtUtc);
         });
     }
 
@@ -271,7 +271,6 @@
         renderChallengeVisuals(state);
         renderCallsForSignup(state);
         renderBoard(state);
-        renderPodium(state);
         renderPanels(state);
 
         if (participantState) {
@@ -299,8 +298,8 @@
             setText("lmxBoardTitle", "Live leaderboard");
             setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · later days score higher · one slip can still score max, never twice in a row`);
         }
-        setText("lmxSignupKicker", state.signupOpen ? "free signup" : "signup paused");
-        setText("lmxSignupTitle", state.signupOpen ? (preStartSignup ? `Join free before ${formatDateLabel(state.startDate)}` : "Join free today") : "Signup is paused");
+        setText("lmxSignupKicker", "free signup");
+        setText("lmxSignupTitle", preStartSignup ? `Join free before ${formatDateLabel(state.startDate)}` : "Join free today");
     }
 
     function renderHeroContext(state) {
@@ -336,9 +335,7 @@
             setText("lmxHeroMode", "Live leaderboard");
             setText(
                 "lmxHeroCopy",
-                state.signupOpen
-                    ? "Signup is open today. Join from the card and start from your private link."
-                    : "Follow the public board as the daily challenge keeps moving.");
+                "Signup is open today. Join from the card and start from your private link.");
             highlights.className = "lmx-benefit-strip lmx-ops-strip";
             highlights.setAttribute("aria-label", "Challenge status");
             highlights.innerHTML = [
@@ -433,6 +430,7 @@
         const participant = participantState.participant || {};
         const row = (state.leaderboard || []).find(item => item.participantId === participant.id);
         const cells = normalizeDashboardCells(row, state);
+        const visibleDays = cells.length || state.durationDays || 14;
         const scoredCells = cells.filter(cell => cell.checkedIn && cell.countsForScore !== false);
         const checkedCells = cells.filter(cell => cell.checkedIn);
         const categories = dashboardCategories();
@@ -461,7 +459,7 @@
                 <div>
                     <span class="lmx-mini-label">your trend</span>
                 </div>
-                <strong>${checkedCells.length ? `${checkedCells.length}/${state.durationDays || cells.length} days` : emptyLabel}</strong>
+                <strong>${checkedCells.length ? `${checkedCells.length}/${visibleDays} days` : emptyLabel}</strong>
             </div>
             <div class="lmx-dashboard-stats" aria-label="Personal challenge stats">
                 ${dashboardStat("Best", best ? best.category.label : "-", best ? `${Math.round(best.rate * 100)}%` : "-", best ? best.category.icon : "fa-arrow-trend-up", best ? best.category.tone : "")}
@@ -575,17 +573,14 @@
         const pendingCheckInDays = hasParticipant ? getPendingCheckInDays(participantState) : [];
         const checkInOnly = pendingCheckInDays.length > 0;
         const dashboardMode = hasParticipant || !isPreStartSignup(state);
-        const publicClosed = !hasParticipant && !state.signupOpen;
         const hero = document.getElementById("lmxHeroLayout");
         if (hero) {
             hero.classList.toggle("checkin-only", checkInOnly);
-            hero.classList.toggle("public-board-only", publicClosed);
         }
 
-        toggle("lmxTitlePanel", !checkInOnly && !publicClosed);
-        toggle("lmxSignupPanel", state.signupOpen && !hasParticipant);
+        toggle("lmxTitlePanel", !checkInOnly);
+        toggle("lmxSignupPanel", !hasParticipant);
         toggle("lmxParticipantPanel", hasParticipant);
-        toggle("lmxClosedPanel", false);
         toggle("lmxResendPanel", !hasParticipant);
         toggle("lmxNotesPanel", hasParticipant && !checkInOnly);
         toggle("lmxSignupIntro", !signupSubmitted);
@@ -597,23 +592,19 @@
         toggle("lmxBoardSection", !checkInOnly);
         toggle("lmxParticipantTools", !checkInOnly);
         toggle("lmxParticipantCalls", hasParticipant && !checkInOnly);
-        toggle("lmxEditCallField", hasParticipant && state.signupOpen && hasOpenCallVoting(state) && !checkInOnly);
+        toggle("lmxEditCallField", hasParticipant && hasOpenCallVoting(state) && !checkInOnly);
         if (checkInOnly) toggle("lmxEditForm", false);
         if (!hasParticipant) {
-            const signupOpen = state.signupOpen;
             setText("lmxResendTitle", "Need your check-in link?");
             setText(
                 "lmxResendCopy",
-                signupOpen
-                    ? "Already joined or opened this page in a new browser? Enter your email and we will send your private link."
-                    : "Enter your email and we will send your private check-in link.");
+                "Already joined or opened this page in a new browser? Enter your email and we will send your private link.");
             setText("lmxResendButtonText", "Send check-in link");
         }
         const details = document.getElementById("lmxSignupDetails");
         if (details && !signupDetailsPrompted && !signupSubmitted) {
             details.open = false;
         }
-        if (!dashboardMode || checkInOnly) toggle("lmxPodium", false);
         const slackInvite = document.getElementById("lmxSlackInviteLink");
         if (slackInvite) {
             slackInvite.href = state.slackInviteUrl || "#";
@@ -648,7 +639,7 @@
         setSelectValue(document.getElementById("lmxEditTimeZone"), participant.timeZoneId);
         renderProfilePictureControls(participant);
         renderCallVoteControls("lmxEditCalls", getOpenCallVoteCalls(state.public), state.callAvailability || []);
-        renderParticipantCalls(state.calls || [], state.public.signupClosesAtUtc);
+        renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         renderCheckIns(state.eligibleDays || []);
         renderNotes(state.notes || []);
     }
@@ -703,7 +694,7 @@
         }).join("");
     }
 
-    function renderParticipantCalls(calls, signupClosesAtUtc) {
+    function renderParticipantCalls(calls, callSelectionClosesAtUtc) {
         const container = document.getElementById("lmxParticipantCalls");
         const visibleCalls = (calls || []).filter(call => !isParticipantCallDone(call));
         if (!visibleCalls.length) {
@@ -713,7 +704,7 @@
 
         container.innerHTML = visibleCalls.map(call => {
             const timeZoneId = getParticipantTimeZone();
-            const when = call.selectedSlot ? formatDateTime(call.selectedSlot.startsAtUtc, timeZoneId) : pendingCallTimeLabel(signupClosesAtUtc, timeZoneId);
+            const when = call.selectedSlot ? formatDateTime(call.selectedSlot.startsAtUtc, timeZoneId) : pendingCallTimeLabel(callSelectionClosesAtUtc, timeZoneId);
             const label = visibleCalls.length === 1 && isFinaleCall(call) ? "Next call" : call.label;
             const link = call.videoCallUrl
                 ? `<a class="lmx-call-link" href="${escAttr(call.videoCallUrl)}" target="_blank" rel="noopener">Google Meet</a>`
@@ -768,7 +759,7 @@
             <div role="columnheader">Participant</div>
             <div role="columnheader">Score</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyBoardRow(state.durationDays || 14, publicViewer)}`;
+        </div>${rows || emptyBoardRow(dayCount, publicViewer)}`;
     }
 
     function practiceDayCellHtml(cell) {
@@ -864,7 +855,7 @@
         board.innerHTML = `<div class="lmx-board-row lmx-roster-row header" role="row">
             <div role="columnheader">Participant</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyRosterRow(state.durationDays || 14)}`;
+        </div>${rows || emptyRosterRow(dayCount)}`;
     }
 
     function setBoardDayColumns(board, dayCount, rosterMode) {
@@ -891,22 +882,6 @@
             </div>
             <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${Array.from({ length: durationDays }, () => `<div class="lmx-cell empty"></div>`).join("")}</div>
         </div>`;
-    }
-
-    function renderPodium(state) {
-        const podium = state.podium || [];
-        toggle("lmxPodium", podium.length > 0);
-        const list = document.getElementById("lmxPodiumList");
-        list.innerHTML = podium.map(row => {
-            const name = row.athleteUrl
-                ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
-                : `<strong>${esc(row.displayName)}</strong>`;
-            return `<div class="lmx-podium-item">
-                <span class="lmx-podium-place">#${row.placement}</span>
-                ${name}
-                <span>${row.checkedInDays} days / ${row.totalPoints} pts</span>
-            </div>`;
-        }).join("");
     }
 
     function renderCheckIns(days) {
@@ -1727,13 +1702,12 @@
             case "signup": return "Signup open";
             case "roster": return "Getting ready";
             case "active": return "Live";
-            case "completed": return "Live";
             default: return "loading";
         }
     }
 
     function isPreStartSignup(state) {
-        return !!state && state.signupOpen && state.phase === "signup";
+        return !!state && state.phase === "signup";
     }
 
     function hasOpenCallVoting(state) {
@@ -1797,8 +1771,8 @@
         return new Intl.DateTimeFormat("en-US", options).format(date);
     }
 
-    function pendingCallTimeLabel(signupClosesAtUtc, timeZoneId) {
-        const date = new Date(signupClosesAtUtc);
+    function pendingCallTimeLabel(callSelectionClosesAtUtc, timeZoneId) {
+        const date = new Date(callSelectionClosesAtUtc);
         if (Number.isNaN(date.getTime())) return "Meeting time pending.";
         const options = {
             weekday: "long",
@@ -1808,7 +1782,7 @@
         const timeZone = normalizeDisplayTimeZone(timeZoneId);
         if (timeZone) options.timeZone = timeZone;
         const closes = new Intl.DateTimeFormat("en-US", options).format(date);
-        return `Meeting time pending. Signup closes on ${closes}.`;
+        return `Meeting time pending. Availability closes on ${closes}.`;
     }
 
     function getCallDisplayTimeZone(containerId) {
