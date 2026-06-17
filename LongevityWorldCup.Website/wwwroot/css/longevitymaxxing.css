@@ -1132,6 +1132,7 @@
 
 .lmx-board-wrap {
     overflow: hidden;
+    scroll-margin-top: 4.5rem;
 }
 
 .lmx-board-header {
@@ -1400,6 +1401,7 @@
 }
 
 .lmx-cell {
+    position: relative;
     width: 2.25rem;
     height: 2.25rem;
     border-radius: 7px;
@@ -1733,6 +1735,10 @@
         flex-direction: column;
     }
 
+    .lmx-board-wrap {
+        scroll-margin-top: 7.25rem;
+    }
+
     .lmx-board-scroll {
         overflow-x: visible;
         padding: 0.55rem;
@@ -1767,7 +1773,10 @@
         background: #ffffff;
     }
 
-    .lmx-name {
+    .lmx-board-row > .lmx-name,
+    .lmx-board-row.lmx-roster-row > .lmx-name,
+    .lmx-board-row:not(.header):nth-child(even) > .lmx-name,
+    .lmx-board-row.lmx-roster-row:not(.header):nth-child(even) > .lmx-name {
         grid-column: 1 / -1;
         position: static;
         left: auto;
@@ -1779,7 +1788,8 @@
         box-shadow: none;
     }
 
-    .lmx-number {
+    .lmx-board-row > .lmx-number,
+    .lmx-board-row:not(.header):nth-child(even) > .lmx-number {
         grid-column: span 2;
         position: static;
         left: auto;
@@ -1817,6 +1827,19 @@
         height: auto;
         min-height: 2rem;
         aspect-ratio: 1;
+    }
+
+    .lmx-cell[data-day]::before {
+        content: attr(data-day);
+        position: absolute;
+        top: 0.22rem;
+        left: 0.26rem;
+        color: rgba(15, 23, 42, 0.58);
+        font-family: Roboto, sans-serif;
+        font-size: 0.56rem;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: 0;
     }
 
     .lmx-dashboard-row {
