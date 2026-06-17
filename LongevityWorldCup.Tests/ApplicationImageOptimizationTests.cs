@@ -2,6 +2,7 @@ using LongevityWorldCup.Website.Controllers;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Net;
 using System.Reflection;
 using Xunit;
 
@@ -89,6 +90,20 @@ public class ApplicationImageOptimizationTests
         var result = method!.Invoke(null, [input]);
 
         Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void ApplicationBtcpayFailureMessageDoesNotExposeProviderResponseBody()
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildBtcpayFailureMessage", BindingFlags.Static | BindingFlags.NonPublic);
+
+        Assert.NotNull(method);
+
+        var result = (string)method!.Invoke(null, [HttpStatusCode.BadRequest])!;
+
+        Assert.Equal("BTCPay API returned HTTP 400.", result);
+        Assert.DoesNotContain("secret", result, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("@", result, StringComparison.Ordinal);
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment
