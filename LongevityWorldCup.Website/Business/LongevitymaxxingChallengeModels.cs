@@ -38,6 +38,7 @@ public sealed record LongevitymaxxingPublicState(
     IReadOnlyList<LongevitymaxxingDaySummary> Days,
     IReadOnlyList<LongevitymaxxingLeaderboardRow> Leaderboard,
     IReadOnlyList<LongevitymaxxingPodiumRow> Podium,
+    IReadOnlyList<LongevitymaxxingParticipantNote> Notes,
     IReadOnlyList<LongevitymaxxingPublicCall> Calls,
     string SlackInviteUrl,
     string? SlackRoomUrl);
@@ -46,7 +47,7 @@ public sealed record LongevitymaxxingParticipantState(
     LongevitymaxxingPublicState Public,
     LongevitymaxxingParticipantSummary Participant,
     IReadOnlyList<LongevitymaxxingEligibleDay> EligibleDays,
-    IReadOnlyList<LongevitymaxxingPrivateNote> Notes,
+    IReadOnlyList<LongevitymaxxingParticipantNote> Notes,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls,
     IReadOnlyList<LongevitymaxxingCallAvailabilitySelection> CallAvailability);
 
@@ -118,7 +119,7 @@ public sealed record LongevitymaxxingCheckInDraft(
     string? Note,
     IReadOnlyList<LongevitymaxxingCheckInImage> Images);
 
-public sealed record LongevitymaxxingPrivateNote(
+public sealed record LongevitymaxxingParticipantNote(
     string ParticipantId,
     string DisplayName,
     int ChallengeDay,

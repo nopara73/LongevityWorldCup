@@ -169,6 +169,12 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal(1600, image.Width);
         Assert.Equal(800, image.Height);
 
+        var publicNote = Assert.Single(state.Public.Notes);
+        Assert.Equal(note.ParticipantId, publicNote.ParticipantId);
+        Assert.Equal("Notes Nora", publicNote.DisplayName);
+        Assert.Equal("Good breakfast prep.\nps.: kept line break", publicNote.Note);
+        Assert.Single(publicNote.Images);
+
         var draft = Assert.Single(state.EligibleDays).Existing;
         Assert.NotNull(draft);
         Assert.Single(draft.Images);
@@ -188,6 +194,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var editedNote = Assert.Single(edited.Notes);
         Assert.Equal("Edited note.", editedNote.Note);
         Assert.Single(editedNote.Images);
+        Assert.Equal("Edited note.", Assert.Single(edited.Public.Notes).Note);
     }
 
     [Fact]
