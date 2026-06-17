@@ -76,6 +76,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Timezone, profile, and calls", html);
         Assert.Contains("Used for reminder timing and call times.", html);
         Assert.Contains("Call availability <span>optional</span>", html);
+        Assert.Contains("Available call times are picked automatically before reminders go out.", html);
+        Assert.Contains("Available call times are chosen before reminders go out.", html);
+        Assert.DoesNotContain("The best kickoff, midpoint, and finale times", html);
         Assert.Contains("/css/longevitymaxxing.css?v=", html);
         Assert.Contains("/js/longevitymaxxing.js?v=", html);
         Assert.Contains("property=\"og:image\" content=\"https://longevityworldcup.com/assets/longevitymaxxing-og.png?v=", html);
