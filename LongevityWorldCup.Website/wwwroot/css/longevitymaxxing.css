@@ -500,7 +500,7 @@
 .lmx-dashboard-grid {
     --lmx-dashboard-day-columns: repeat(14, 2.15rem);
     --lmx-dashboard-min-width: 46.55rem;
-    --lmx-dashboard-category-width: 11rem;
+    --lmx-dashboard-category-width: 12.5rem;
     --lmx-dashboard-gap: 0.55rem;
     width: max-content;
     min-width: var(--lmx-dashboard-min-width);
@@ -624,7 +624,8 @@
     min-width: 0;
     color: #0f172a;
     font-weight: 900;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
+    white-space: nowrap;
 }
 
 .lmx-dashboard-category strong {
