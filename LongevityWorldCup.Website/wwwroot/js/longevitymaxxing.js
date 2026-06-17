@@ -60,6 +60,8 @@
     let athleteDirectoryPromise = null;
     let boardScrollObserver = null;
     let boardScrollObservedElement = null;
+    let dashboardScrollObserver = null;
+    let dashboardScrollObservedElement = null;
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -275,6 +277,7 @@
         renderCallsForSignup(state);
         renderBoard(state);
         renderPanels(state);
+        scrollDashboardToLatestDay();
 
         if (participantState) {
             renderParticipant(participantState);
@@ -438,6 +441,7 @@
         const row = (state.leaderboard || []).find(item => item.participantId === participant.id);
         const cells = normalizeDashboardCells(row, state);
         const visibleDays = cells.length || state.durationDays || 14;
+        const dayCount = Math.max(1, Math.trunc(Number(visibleDays) || 14));
         const scoredCells = cells.filter(cell => cell.checkedIn && cell.countsForScore !== false);
         const checkedCells = cells.filter(cell => cell.checkedIn);
         const categories = dashboardCategories();
@@ -474,12 +478,14 @@
                 ${dashboardStat("Locked-in days", String(fullDays), "", "fa-calendar-check")}
                 ${dashboardStat("Points", scoredCells.length ? String(totalPoints) : "-", "", "fa-chart-line")}
             </div>
-            <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time">
-                <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
-                    <div aria-hidden="true"></div>
-                    <div class="lmx-dashboard-days" role="presentation">${dayHeaders}</div>
+            <div class="lmx-dashboard-scroll">
+                <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-columns: repeat(${dayCount}, 2.15rem); --lmx-dashboard-min-width: ${(11.55 + (dayCount * 2.5)).toFixed(2)}rem;">
+                    <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
+                        <div class="lmx-dashboard-corner" role="columnheader">Habit</div>
+                        <div class="lmx-dashboard-days" role="presentation">${dayHeaders}</div>
+                    </div>
+                    ${rows}
                 </div>
-                ${rows}
             </div>`;
     }
 
@@ -542,12 +548,12 @@
         if (cell.countsForScore === false) classes.push("practice");
         if (!cell.checkedIn) {
             classes.push("empty");
-            return `<span class="${classes.join(" ")}" title="${escAttr(`${dayTitle(cell)}: no check-in`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: no check-in`)}"></span>`;
+            return `<span class="${classes.join(" ")}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(`${dayTitle(cell)}: no check-in`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: no check-in`)}"></span>`;
         }
 
         const value = clampHabitValue(cell[category.key]);
         classes.push(value >= 2 ? "full" : value > 0 ? "partial" : "missed");
-        return `<span class="${classes.join(" ")}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2`)}"></span>`;
+        return `<span class="${classes.join(" ")}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2`)}"></span>`;
     }
 
     function dashboardStat(label, value, detail, icon, tone) {
@@ -899,6 +905,35 @@
             boardScrollObserver.observe(scroller);
             const board = document.getElementById("lmxBoard");
             if (board) boardScrollObserver.observe(board);
+        }
+    }
+
+    function scrollDashboardToLatestDay() {
+        const scroller = document.querySelector("#lmxTrack .lmx-dashboard-scroll");
+        if (!scroller) return;
+
+        const scrollRight = () => {
+            scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+        };
+
+        requestAnimationFrame(() => {
+            scrollRight();
+            requestAnimationFrame(scrollRight);
+            window.setTimeout(scrollRight, 120);
+            window.setTimeout(scrollRight, 500);
+        });
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(scrollRight).catch(() => { });
+        }
+
+        if (window.ResizeObserver && dashboardScrollObservedElement !== scroller) {
+            if (dashboardScrollObserver) dashboardScrollObserver.disconnect();
+            dashboardScrollObservedElement = scroller;
+            dashboardScrollObserver = new ResizeObserver(scrollRight);
+            dashboardScrollObserver.observe(scroller);
+            const dashboard = scroller.querySelector(".lmx-dashboard-grid");
+            if (dashboard) dashboardScrollObserver.observe(dashboard);
         }
     }
 
