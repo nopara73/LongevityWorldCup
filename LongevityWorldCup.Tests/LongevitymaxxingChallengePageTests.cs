@@ -446,6 +446,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("Signup closes on", javascript);
         Assert.Contains("class=\"lmx-call-link\"", javascript);
         Assert.Contains(".lmx-call-link", css);
+        Assert.Contains(".lmx-call-link:focus-visible", css);
+        Assert.Contains(".lmx-payment-link:focus-visible", css);
+        Assert.Contains(".lmx-checkin-switcher button:focus-visible", css);
+        Assert.Contains(".lmx-segmented button:focus-visible", css);
+        Assert.Contains(".lmx-note-photo-remove:focus-visible", css);
         Assert.Contains(".lmx-tabs", css);
         Assert.Contains(".lmx-tab[aria-selected=\"true\"]", css);
         Assert.Contains(".lmx-home-status", css);

@@ -1009,6 +1009,11 @@
     cursor: pointer;
 }
 
+.lmx-note-photo-remove:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.42);
+    outline-offset: 2px;
+}
+
 .lmx-field input:focus,
 .lmx-field select:focus,
 .lmx-field textarea:focus {
@@ -1380,6 +1385,11 @@
     background: #bae6fd;
 }
 
+.lmx-call-link:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.32);
+    outline-offset: 2px;
+}
+
 .lmx-call-done {
     background: #e2e8f0;
     color: #475569;
@@ -1527,6 +1537,11 @@
 .lmx-button-row .lmx-payment-link {
     min-height: 44px;
     padding-inline: 0.75rem;
+}
+
+.lmx-payment-link:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.32);
+    outline-offset: 2px;
 }
 
 .lmx-commitment-hint {
@@ -1996,6 +2011,12 @@
 .lmx-checkin-switcher button[aria-pressed="true"] em {
     background: #10b981;
     color: #ffffff;
+}
+
+.lmx-checkin-switcher button:focus-visible,
+.lmx-segmented button:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.32);
+    outline-offset: 2px;
 }
 
 .lmx-checkin-card {
