@@ -458,7 +458,7 @@
                     { icon: "fa-flag-checkered", text: `Starts ${formatDateLabel(state.startDate)}` },
                     { icon: "fa-calendar-days", text: selectedCalls.length ? "Calls set" : "Call times pending" }
                 ],
-                note: "Your first check-in email arrives the morning after Day 1. Nothing is due before then."
+                note: "Your first check-in email arrives after your first eligible day. Nothing is due before then."
             };
         }
 
