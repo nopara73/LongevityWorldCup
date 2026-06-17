@@ -65,6 +65,8 @@
     let dashboardScrollObservedElement = null;
     let participantActiveTab = null;
     let participantTabManual = false;
+    let participantNotice = null;
+    let showInactiveLeaderboard = false;
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -93,6 +95,9 @@
         const profilePictureButton = document.getElementById("lmxProfilePictureButton");
         const signupTimeZone = document.getElementById("lmxSignupTimeZone");
         const editTimeZone = document.getElementById("lmxEditTimeZone");
+        const inactiveToggle = document.getElementById("lmxInactiveToggle");
+        wireCommitmentAmountValidation("lmxSignupCommitmentAmount");
+        wireCommitmentAmountValidation("lmxEditCommitmentAmount");
 
         signupForm.addEventListener("submit", async event => {
             event.preventDefault();
@@ -104,12 +109,14 @@
                     displayName: document.getElementById("lmxSignupName").value.trim(),
                     timeZoneId: document.getElementById("lmxSignupTimeZone").value,
                     athleteLink: getAthleteSelectorPayload("lmxSignupAthlete"),
-                    callAvailability: collectAvailability("lmxSignupCalls")
+                    callAvailability: collectAvailability("lmxSignupCalls"),
+                    commitmentAmountUsd: parseCommitmentAmount("lmxSignupCommitmentAmount")
                 };
                 const result = await postJson(`${API}/signup`, payload);
                 setStatus("lmxSignupStatus", result.message || "Check your email.", false);
                 signupForm.reset();
                 clearAthleteSelector("lmxSignupAthlete");
+                setCommitmentInputValue("lmxSignupCommitmentAmount", null);
                 setDefaultTimezone(document.getElementById("lmxSignupTimeZone"));
                 signupSubmitted = true;
                 signupDetailsPrompted = false;
@@ -158,13 +165,19 @@
                     displayName: document.getElementById("lmxEditName").value.trim(),
                     timeZoneId: document.getElementById("lmxEditTimeZone").value,
                     athleteLink: getAthleteSelectorPayload("lmxEditAthlete"),
-                    callAvailability: collectAvailability("lmxEditCalls")
+                    callAvailability: collectAvailability("lmxEditCalls"),
+                    commitmentAmountUsd: parseCommitmentAmount("lmxEditCommitmentAmount")
                 });
                 participantState = result;
                 publicState = result.public;
                 renderAll();
                 setStatus("lmxEditStatus", "Saved.", false);
             }, "Saving...");
+        });
+
+        inactiveToggle?.addEventListener("click", () => {
+            showInactiveLeaderboard = !showInactiveLeaderboard;
+            if (publicState) renderBoard(publicState);
         });
 
         signupTimeZone.addEventListener("change", () => {
@@ -293,8 +306,9 @@
 
     function renderMetrics(state) {
         const preStartSignup = isPreStartSignup(state);
-        const checks = (state.leaderboard || []).reduce((sum, row) => sum + row.checkedInDays, 0);
-        setText("lmxMetricPeople", String((state.leaderboard || []).length));
+        const boardRows = splitLeaderboardRows(state);
+        const checks = boardRows.active.reduce((sum, row) => sum + row.checkedInDays, 0);
+        setText("lmxMetricPeople", String(boardRows.active.length));
         setText("lmxMetricChecks", String(checks));
         setText("lmxMetricMax", String(state.dailyMaxScore || 11));
         setText("lmxMetricPhase", phaseLabel(state.phase));
@@ -306,10 +320,10 @@
         if (boardSection) boardSection.classList.toggle("signup-roster", preStartSignup);
         if (preStartSignup) {
             setText("lmxBoardTitle", "Leaderboard");
-            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people signed up · starts ${formatDateLabel(state.startDate)}`);
+            setText("lmxBoardMeta", `${boardRows.active.length} active people signed up · starts ${formatDateLabel(state.startDate)}`);
         } else {
             setText("lmxBoardTitle", "Live leaderboard");
-            setText("lmxBoardMeta", `${(state.leaderboard || []).length} people · ${checks} check-ins · later days score higher · one slip can still score max, never twice in a row`);
+            setText("lmxBoardMeta", `${boardRows.active.length} active people · ${checks} check-ins · later days score higher · one slip can still score max, never twice in a row`);
         }
         setText("lmxSignupKicker", "free signup");
         setText("lmxSignupTitle", preStartSignup ? `Join free before ${formatDateLabel(state.startDate)}` : "Join free today");
@@ -351,9 +365,10 @@
                 "Signup is open today. Join from the card and start from your private link.");
             highlights.className = "lmx-benefit-strip lmx-ops-strip";
             highlights.setAttribute("aria-label", "Challenge status");
+            const boardRows = splitLeaderboardRows(state);
             highlights.innerHTML = [
-                opsTile("People", (state.leaderboard || []).length, "fa-users"),
-                opsTile("Check-ins", (state.leaderboard || []).reduce((sum, row) => sum + row.checkedInDays, 0), "fa-list-check"),
+                opsTile("People", boardRows.active.length, "fa-users"),
+                opsTile("Check-ins", boardRows.active.reduce((sum, row) => sum + row.checkedInDays, 0), "fa-list-check"),
                 opsTile("Peak points/day", state.dailyMaxScore || 11, "fa-bolt"),
                 opsTile("Status", phaseLabel(state.phase), "fa-signal")
             ].join("");
@@ -369,7 +384,8 @@
         }
 
         const participant = participantState.participant || {};
-        const leaderboard = state.leaderboard || [];
+        const leaderboardRows = splitLeaderboardRows(state);
+        const leaderboard = participant.challengeEmailsStopped ? (state.leaderboard || []) : leaderboardRows.active;
         const rowIndex = leaderboard.findIndex(row => row.participantId === participant.id);
         const row = rowIndex >= 0 ? leaderboard[rowIndex] : null;
         const duration = (state.days || []).length || state.durationDays || 14;
@@ -400,6 +416,28 @@
     }
 
     function participantStatus(state) {
+        const commitment = participantState && participantState.commitment;
+        if (commitment && commitment.blocksParticipant) {
+            if (commitment.status === "due") {
+                return {
+                    title: "Commitment due",
+                    chips: [
+                        { icon: "fa-credit-card", text: formatUsd(commitment.owedAmountUsd) },
+                        { icon: "fa-triangle-exclamation", text: `Day ${commitment.triggerChallengeDay || "-"}` }
+                    ],
+                    note: "Pay it, or fix the eligible check-in before the edit window closes."
+                };
+            }
+
+            return {
+                title: "Commitment setup",
+                chips: [
+                    { icon: "fa-dollar-sign", text: "Amount required" }
+                ],
+                note: "Configure the amount before continuing."
+            };
+        }
+
         const dueDays = getPendingCheckInDays(participantState);
         const selectedCalls = (participantState.calls || []).filter(call => call.selectedSlot);
         if (dueDays.length > 0) {
@@ -481,6 +519,7 @@
                 ${dashboardStat("Locked-in days", String(fullDays), "", "fa-calendar-check")}
                 ${dashboardStat("Points", scoredCells.length ? String(totalPoints) : "-", "", "fa-chart-line")}
             </div>
+            ${participantState.trendGuidance?.text ? `<div class="lmx-trend-guidance"><i class="fas fa-scale-balanced" aria-hidden="true"></i><span>${esc(participantState.trendGuidance.text)}</span></div>` : ""}
             <div class="lmx-dashboard-scroll">
                 <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-columns: repeat(${dayCount}, 2.15rem); --lmx-dashboard-min-width: ${(11.55 + (dayCount * 2.5)).toFixed(2)}rem;">
                     <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
@@ -587,8 +626,9 @@
     function renderPanels(state) {
         const hasParticipant = !!participantState;
         const pendingCheckInDays = hasParticipant ? getPendingCheckInDays(participantState) : [];
+        const commitmentBlocked = hasCommitmentBlock(participantState);
         const activeParticipantTab = hasParticipant ? ensureParticipantTab(participantState) : null;
-        const checkInOnly = pendingCheckInDays.length > 0 && activeParticipantTab === "checkin";
+        const checkInOnly = !commitmentBlocked && pendingCheckInDays.length > 0 && activeParticipantTab === "checkin";
         const dashboardMode = hasParticipant || !isPreStartSignup(state);
         const hero = document.getElementById("lmxHeroLayout");
         if (hero) {
@@ -607,13 +647,19 @@
         toggle("lmxTrack", hasParticipant && dashboardMode && !checkInOnly);
         toggle("lmxMetrics", hasParticipant && dashboardMode && !checkInOnly);
         toggle("lmxBoardSection", !checkInOnly);
-        toggle("lmxParticipantTools", hasParticipant && activeParticipantTab === "home");
-        toggle("lmxParticipantCalls", hasParticipant && activeParticipantTab === "home");
-        toggle("lmxEditCallField", hasParticipant && hasOpenCallVoting(state));
+        toggle("lmxParticipantTabs", hasParticipant && !commitmentBlocked);
+        toggle("lmxCommitmentPanel", hasParticipant && commitmentBlocked);
+        toggle("lmxCheckinPanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "checkin");
+        toggle("lmxEditForm", hasParticipant && !commitmentBlocked && activeParticipantTab === "profile");
+        toggle("lmxHomePanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
+        toggle("lmxParticipantTools", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
+        toggle("lmxParticipantCalls", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
+        toggle("lmxEditCallField", hasParticipant && !commitmentBlocked && hasOpenCallVoting(state));
         renderParticipantTabs();
         if (!hasParticipant) {
             participantActiveTab = null;
             participantTabManual = false;
+            participantNotice = null;
             setText("lmxResendTitle", "Need your check-in link?");
             setText(
                 "lmxResendCopy",
@@ -645,11 +691,16 @@
         const kicker = participantPanelKicker(activeTab, pendingCheckInDays, state.public.phase);
         setText("lmxParticipantKicker", kicker);
         setText("lmxParticipantTitle", title);
+        renderCommitmentPanel(state);
+        renderParticipantNotice();
         renderParticipantHome(state, pendingCheckInDays);
 
         document.getElementById("lmxEditName").value = participant.displayName || "";
         setAthleteSelectorValue("lmxEditAthlete", participant.athleteSlug || participant.athleteUrl || "");
         setSelectValue(document.getElementById("lmxEditTimeZone"), participant.timeZoneId);
+        setCommitmentInputValue("lmxEditCommitmentAmount", participant.commitmentAmountUsd ?? state.commitment?.amountUsd);
+        const commitmentInput = document.getElementById("lmxEditCommitmentAmount");
+        if (commitmentInput) commitmentInput.disabled = state.commitment?.canEditAmount === false;
         renderProfilePictureControls(participant);
         renderCallVoteControls("lmxEditCalls", getOpenCallVoteCalls(state.public), state.callAvailability || []);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
@@ -660,6 +711,11 @@
 
     function participantPanelTitle(activeTab, pendingCheckInDays, participant, phase) {
         const name = participant.displayName || "participant";
+        if (hasCommitmentBlock(participantState)) {
+            return participantState.commitment?.status === "due"
+                ? `Commitment due, ${name}`
+                : `Commitment setup, ${name}`;
+        }
         if (activeTab === "profile") return `Profile, ${name}`;
         if (activeTab === "home") {
             if (pendingCheckInDays.length) return `Home, ${name}`;
@@ -670,6 +726,7 @@
     }
 
     function participantPanelKicker(activeTab, pendingCheckInDays, phase) {
+        if (hasCommitmentBlock(participantState)) return "commitment";
         if (activeTab === "profile") return "profile";
         if (activeTab === "home") {
             if (pendingCheckInDays.length) return "home";
@@ -688,6 +745,17 @@
             : nextCall
                 ? "Next call is listed below."
                 : "You're caught up.");
+    }
+
+    function renderParticipantNotice() {
+        const notice = document.getElementById("lmxParticipantNotice");
+        if (!notice) return;
+
+        const visible = !!(participantNotice && participantNotice.message && participantState && !hasCommitmentBlock(participantState));
+        notice.textContent = visible ? participantNotice.message : "";
+        notice.classList.toggle("lmx-hidden", !visible);
+        notice.classList.toggle("error", visible && !!participantNotice.isError);
+        notice.classList.toggle("success", visible && !participantNotice.isError);
     }
 
     function ensureParticipantTab(state) {
@@ -724,6 +792,19 @@
 
     function renderParticipantTabs() {
         if (!participantState) return;
+        if (hasCommitmentBlock(participantState)) {
+            PARTICIPANT_TABS.forEach(tab => {
+                const panel = getParticipantTabPanel(tab);
+                const button = document.querySelector(`[data-lmx-tab="${tab}"]`);
+                if (button) button.setAttribute("aria-selected", "false");
+                if (panel) {
+                    panel.classList.add("lmx-hidden");
+                    panel.toggleAttribute("hidden", true);
+                }
+            });
+            return;
+        }
+
         const activeTab = ensureParticipantTab(participantState);
         PARTICIPANT_TABS.forEach(tab => {
             const button = document.querySelector(`[data-lmx-tab="${tab}"]`);
@@ -745,6 +826,224 @@
         if (tab === "profile") return document.getElementById("lmxEditForm");
         if (tab === "home") return document.getElementById("lmxHomePanel");
         return null;
+    }
+
+    function renderCommitmentPanel(state) {
+        const panel = document.getElementById("lmxCommitmentPanel");
+        if (!panel) return;
+
+        const commitment = state.commitment || {};
+        if (!commitment.blocksParticipant) {
+            panel.innerHTML = "";
+            return;
+        }
+
+        if (commitment.status === "needs-amount") {
+            panel.innerHTML = `
+                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card">
+                    <div>
+                        <strong>Set your commitment amount</strong>
+                        <span>Configure an amount that'd hurt. If a future scored check-in lands below your recent average, this amount becomes due before you continue.</span>
+                    </div>
+                    <div class="lmx-field">
+                        <label for="lmxBlockedCommitmentAmount">USD amount</label>
+                        <input id="lmxBlockedCommitmentAmount" type="number" min="1" step="0.01" inputmode="decimal" required placeholder="25">
+                    </div>
+                    <button class="lmx-button" type="submit">
+                        <i class="fas fa-lock-open" aria-hidden="true"></i>
+                        Activate commitment
+                    </button>
+                    <div class="lmx-status"></div>
+                </form>`;
+            panel.querySelector("form")?.addEventListener("submit", event => {
+                event.preventDefault();
+                saveCommitmentAmountFromBlockedPanel(panel.querySelector("button[type='submit']"));
+            });
+            wireCommitmentAmountValidation("lmxBlockedCommitmentAmount");
+            return;
+        }
+
+        const invoiceStatus = String(commitment.invoiceStatus || "");
+        const hasInvoice = !!(commitment.invoiceId || commitment.checkoutLink || invoiceStatus);
+        const replacesInvoice = ["expired", "failed", "invalid"].includes(invoiceStatus.toLowerCase());
+        const payText = hasInvoice && !replacesInvoice ? "Open invoice" : "Create invoice";
+        const payBusyText = hasInvoice && !replacesInvoice ? "Opening invoice..." : "Creating invoice...";
+        const invoiceLine = commitment.checkoutLink && !replacesInvoice
+            ? `<a class="lmx-payment-link" href="${escAttr(commitment.checkoutLink)}" target="_blank" rel="noopener">Invoice link</a>`
+            : "";
+        const refreshDisabled = hasInvoice ? "" : " disabled";
+        const refreshTitle = hasInvoice
+            ? "Check whether BTCPay has confirmed the full payment."
+            : "Create an invoice before refreshing payment status.";
+        const hint = hasInvoice
+            ? "Already paid? Refresh payment. Expired or failed invoices can be replaced from here."
+            : "Create a BTCPay invoice. The amount is locked until this commitment is cleared.";
+        const editableDays = getCommitmentEditableDays(state);
+        panel.innerHTML = `
+            <div class="lmx-commitment-card due">
+                <div class="lmx-commitment-main">
+                    <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                    <div>
+                        <strong>Commitment due</strong>
+                        <span>${esc(commitment.message || "This check-in landed below your recent average. Pay the locked amount, or improve the editable check-in enough to clear it.")}</span>
+                    </div>
+                    <b>${esc(formatUsd(commitment.owedAmountUsd))}</b>
+                </div>
+                <div class="lmx-commitment-meta">
+                    <span>Trigger: Day ${esc(commitment.triggerChallengeDay || "-")}</span>
+                    <span>Score: ${esc(commitment.triggerScore ?? "-")}</span>
+                    <span>Baseline: ${esc(formatNumber(commitment.thresholdAverage))}</span>
+                    ${commitment.invoiceStatus ? `<span>Invoice: ${esc(commitment.invoiceStatus)}</span>` : ""}
+                </div>
+                <div class="lmx-button-row">
+                    <button id="lmxCommitmentPayButton" class="lmx-button" type="button" data-busy-text="${escAttr(payBusyText)}">
+                        <i class="fas fa-credit-card" aria-hidden="true"></i>
+                        ${esc(payText)}
+                    </button>
+                    <button id="lmxCommitmentRefreshButton" class="lmx-button secondary" type="button" title="${escAttr(refreshTitle)}"${refreshDisabled}>
+                        <i class="fas fa-rotate" aria-hidden="true"></i>
+                        Refresh payment
+                    </button>
+                    ${invoiceLine}
+                </div>
+                <div class="lmx-commitment-hint">${esc(hint)}</div>
+                <div id="lmxCommitmentStatus" class="lmx-status"></div>
+            </div>
+            <div class="lmx-commitment-edit">
+                <strong>Eligible fixes</strong>
+                <div id="lmxCommitmentCheckinList" class="lmx-checkin-list"></div>
+            </div>`;
+
+        panel.querySelector("#lmxCommitmentPayButton")?.addEventListener("click", event => {
+            payCommitment(event.currentTarget);
+        });
+        panel.querySelector("#lmxCommitmentRefreshButton")?.addEventListener("click", event => {
+            refreshCommitmentPayment(event.currentTarget);
+        });
+        if (editableDays.length) {
+            renderCheckIns(editableDays, "lmxCommitmentCheckinList");
+        } else {
+            const list = document.getElementById("lmxCommitmentCheckinList");
+            if (list) {
+                list.innerHTML = `<div class="lmx-empty-state">
+                    <i class="fas fa-lock" aria-hidden="true"></i>
+                    <strong>No editable fix available.</strong>
+                    <span>The edit window closed, so payment is required to continue.</span>
+                </div>`;
+            }
+        }
+    }
+
+    function hasCommitmentBlock(state) {
+        return !!(state && state.commitment && state.commitment.blocksParticipant);
+    }
+
+    function getCommitmentEditableDays(state) {
+        const triggerDay = Number(state?.commitment?.triggerChallengeDay || 0);
+        return ((state && state.eligibleDays) || [])
+            .filter(day => day.existing && (!triggerDay || day.challengeDay === triggerDay));
+    }
+
+    async function saveCommitmentAmountFromBlockedPanel(button) {
+        if (!accessToken || !participantState) return;
+        await withButton(button, async () => {
+            const participant = participantState.participant || {};
+            const result = await postJson(`${API}/edit`, {
+                accessToken,
+                displayName: participant.displayName || "",
+                timeZoneId: participant.timeZoneId || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+                athleteLink: participant.athleteSlug || participant.athleteUrl || null,
+                callAvailability: participantState.callAvailability || [],
+                commitmentAmountUsd: parseCommitmentAmount("lmxBlockedCommitmentAmount")
+            });
+            participantState = result;
+            publicState = result.public;
+            if (!hasCommitmentBlock(result)) {
+                participantNotice = { message: "Commitment amount saved. You can continue.", isError: false };
+                participantActiveTab = null;
+                participantTabManual = false;
+            }
+            renderAll();
+        }, "Saving...");
+    }
+
+    async function payCommitment(button) {
+        if (!accessToken) return;
+        const checkoutWindow = window.open("", "_blank", "noopener");
+        await withStandaloneButton(button, button?.dataset.busyText || "Creating invoice...", async () => {
+            const result = await postJson(`${API}/commitment-payment`, { accessToken });
+            participantState = result;
+            publicState = result.public;
+            const checkoutLink = result.commitment && result.commitment.checkoutLink;
+            if (!checkoutLink) throw new Error("The payment invoice did not return a checkout link.");
+            if (checkoutWindow) {
+                checkoutWindow.location = checkoutLink;
+            } else {
+                window.location.href = checkoutLink;
+            }
+            renderAll();
+            setCommitmentStatus("Invoice opened. After paying, refresh payment status here.", false);
+        }, err => {
+            if (checkoutWindow) checkoutWindow.close();
+            setCommitmentStatus(messageOf(err), true);
+        });
+    }
+
+    async function refreshCommitmentPayment(button) {
+        if (!accessToken) return;
+        await withStandaloneButton(button, "Refreshing...", async () => {
+            const result = await postJson(`${API}/commitment-payment/status`, { accessToken });
+            participantState = result;
+            publicState = result.public;
+            if (!hasCommitmentBlock(result)) {
+                participantNotice = { message: "Payment confirmed. Your check-ins are unlocked.", isError: false };
+                participantActiveTab = null;
+                participantTabManual = false;
+                renderAll();
+                return;
+            }
+            renderAll();
+            setCommitmentStatus(commitmentRefreshMessage(result.commitment), true);
+        }, err => setCommitmentStatus(messageOf(err), true));
+    }
+
+    function commitmentRefreshMessage(commitment) {
+        const status = String(commitment?.invoiceStatus || "").trim();
+        const normalized = status.toLowerCase();
+        if (["expired", "failed", "invalid"].includes(normalized)) {
+            return `Still due. The invoice is ${normalized}; create a new invoice when ready.`;
+        }
+
+        return "Still due. BTCPay has not confirmed the full locked amount yet.";
+    }
+
+    async function withStandaloneButton(button, busyText, work, onError) {
+        const original = button ? button.innerHTML : "";
+        if (button) {
+            button.disabled = true;
+            button.setAttribute("aria-busy", "true");
+            button.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>${busyText}`;
+        }
+
+        try {
+            await work();
+        } catch (err) {
+            if (onError) onError(err);
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.removeAttribute("aria-busy");
+                button.innerHTML = original;
+            }
+        }
+    }
+
+    function setCommitmentStatus(message, isError) {
+        const status = document.getElementById("lmxCommitmentStatus");
+        if (!status) return;
+        status.textContent = message || "";
+        status.classList.toggle("error", !!isError);
+        status.classList.toggle("success", !!message && !isError);
     }
 
     function renderProfilePictureControls(participant) {
@@ -838,8 +1137,9 @@
         board.className = publicViewer ? "lmx-board public" : "lmx-board";
         const dayCount = (state.days || []).length || state.durationDays || 14;
         setBoardDayColumns(board, dayCount, false);
+        updateInactiveToggle(state);
         const dayHeaders = (state.days || []).map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
-        const rows = (state.leaderboard || []).map(row => {
+        const rows = splitLeaderboardRows(state).visible.map(row => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
@@ -851,7 +1151,7 @@
                 }
                 return scoredDayCellHtml(cell);
             }).join("");
-            return `<div class="lmx-board-row" role="row">
+            return `<div class="lmx-board-row${row.challengeEmailsStopped ? " inactive" : ""}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-number" role="cell" data-label="Score">${row.totalPoints}</div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
@@ -942,14 +1242,15 @@
         board.className = "lmx-board roster";
         const dayCount = (state.days || []).length || state.durationDays || 14;
         setBoardDayColumns(board, dayCount, true);
+        updateInactiveToggle(state);
         const dayHeaders = (state.days || []).map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
-        const rows = (state.leaderboard || []).map(row => {
+        const rows = splitLeaderboardRows(state).visible.map(row => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
             const participant = participantNameHtml(row, name);
             const cells = (row.cells || state.days || []).map(cell => `<div class="lmx-cell empty" data-day="${escAttr(cell.challengeDay)}" title="Day ${cell.challengeDay}"></div>`).join("");
-            return `<div class="lmx-board-row lmx-roster-row" role="row">
+            return `<div class="lmx-board-row lmx-roster-row${row.challengeEmailsStopped ? " inactive" : ""}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${cells}</div>
             </div>`;
@@ -966,6 +1267,27 @@
         board.style.setProperty("--lmx-day-columns", `repeat(${count}, 2.15rem)`);
         const baseWidthRem = rosterMode ? 14.35 : 21.15;
         board.style.setProperty("--lmx-board-min-width", `${(baseWidthRem + (count * 2.5)).toFixed(2)}rem`);
+    }
+
+    function splitLeaderboardRows(state) {
+        const all = (state && state.leaderboard) || [];
+        const active = all.filter(row => !row.challengeEmailsStopped);
+        const inactive = all.filter(row => row.challengeEmailsStopped);
+        return {
+            active,
+            inactive,
+            visible: showInactiveLeaderboard ? [...active, ...inactive] : active
+        };
+    }
+
+    function updateInactiveToggle(state) {
+        const button = document.getElementById("lmxInactiveToggle");
+        if (!button) return;
+        const rows = splitLeaderboardRows(state);
+        button.classList.toggle("lmx-hidden", rows.inactive.length === 0);
+        button.innerHTML = showInactiveLeaderboard
+            ? `<i class="fas fa-users" aria-hidden="true"></i>Hide inactive`
+            : `<i class="fas fa-users-slash" aria-hidden="true"></i>Show inactive (${rows.inactive.length})`;
     }
 
     function scrollBoardToLatestDay() {
@@ -1046,8 +1368,9 @@
         </div>`;
     }
 
-    function renderCheckIns(days) {
-        const container = document.getElementById("lmxCheckinList");
+    function renderCheckIns(days, containerId) {
+        const container = document.getElementById(containerId || "lmxCheckinList");
+        if (!container) return;
         if (!days.length) {
             container.innerHTML = emptyCheckInHtml();
             return;
@@ -1503,6 +1826,70 @@
             }));
     }
 
+    function parseCommitmentAmount(inputId) {
+        const input = document.getElementById(inputId);
+        const raw = String(input?.value || "").trim();
+        const value = Number(raw);
+        if (!Number.isFinite(value) || value < 1) {
+            const message = raw ? "Commitment amount must be at least USD 1." : "Enter a commitment amount of at least USD 1.";
+            markCommitmentAmountInvalid(input, message, true);
+            input?.focus();
+            throw new Error(message);
+        }
+
+        clearCommitmentAmountValidity(input);
+        return Math.round(value * 100) / 100;
+    }
+
+    function wireCommitmentAmountValidation(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input || input.dataset.commitmentValidationWired) return;
+        input.dataset.commitmentValidationWired = "true";
+        input.addEventListener("input", () => clearCommitmentAmountValidity(input));
+        input.addEventListener("invalid", () => {
+            const raw = String(input.value || "").trim();
+            markCommitmentAmountInvalid(input, raw ? "Commitment amount must be at least USD 1." : "Enter a commitment amount of at least USD 1.");
+        });
+    }
+
+    function markCommitmentAmountInvalid(input, message, report) {
+        if (!input) return;
+        input.setAttribute("aria-invalid", "true");
+        if (typeof input.setCustomValidity === "function") {
+            input.setCustomValidity(message);
+            if (report) input.reportValidity?.();
+        }
+    }
+
+    function clearCommitmentAmountValidity(input) {
+        if (!input) return;
+        input.removeAttribute("aria-invalid");
+        if (typeof input.setCustomValidity === "function") input.setCustomValidity("");
+    }
+
+    function setCommitmentInputValue(inputId, value) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        input.value = value === null || value === undefined ? "" : String(value);
+    }
+
+    function formatUsd(value) {
+        const amount = Number(value);
+        if (!Number.isFinite(amount)) return "USD -";
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+            maximumFractionDigits: 2
+        }).format(amount);
+    }
+
+    function formatNumber(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return "-";
+        return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(number);
+    }
+
     function participantNameHtml(row, nameHtml) {
         const athlete = findAthleteForParticipant(row);
         const profileImage = String(row.profileImageUrl || "").trim();
@@ -1511,11 +1898,15 @@
         const hasProfileImage = !!(athleteProfileImage || profileImage);
         const avatarClass = hasProfileImage ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
         const alt = hasProfileImage ? `${row.displayName || "Participant"} profile picture` : "";
+        const badges = [
+            row.commitmentStatus === "commitment-due" ? "Commitment due" : "",
+            row.challengeEmailsStopped ? "Inactive" : ""
+        ].filter(Boolean);
         return `<div class="lmx-participant-name">
             <span class="${avatarClass}" aria-hidden="${hasProfileImage ? "false" : "true"}">
                 <img src="${escAttr(image)}" alt="${escAttr(alt)}" loading="lazy" decoding="async">
             </span>
-            <span class="lmx-participant-label">${nameHtml}</span>
+            <span class="lmx-participant-label">${nameHtml}${badges.length ? `<span class="lmx-row-badges">${badges.map(badge => `<em>${esc(badge)}</em>`).join("")}</span>` : ""}</span>
         </div>`;
     }
 
@@ -1817,6 +2208,7 @@
     async function withButton(button, work, busyText) {
         const original = button.innerHTML;
         button.disabled = true;
+        button.setAttribute("aria-busy", "true");
         button.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>${busyText}`;
         try {
             await work();
@@ -1829,6 +2221,7 @@
             }
         } finally {
             button.disabled = false;
+            button.removeAttribute("aria-busy");
             button.innerHTML = original;
         }
     }

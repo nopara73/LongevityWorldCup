@@ -52,6 +52,11 @@ Use this as a compact guardrail for terms agents often misuse.
 - **Longevitymaxxing Challenge** call times may be selected before the challenge starts for 24-hour reminders.
 - **Longevitymaxxing Challenge** daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - **Longevitymaxxing Challenge** daily reminder emails continue indefinitely and stop after 3 consecutive missed scored days. Practice does not count, and days before a participant's local signup date do not count.
+- **Longevitymaxxing Challenge** commitment payments require each participant to configure a USD amount of at least `$1`. Existing participants without an amount are blocked until they configure one.
+- **Longevitymaxxing Challenge** commitment payments trigger only when a submitted scored check-in scores below the exact average of the participant's previous scored check-ins: the 4th scored check-in uses the previous 3, then later checks use up to the previous 7.
+- **Longevitymaxxing Challenge** commitment payment blocks save the triggering check-in, lock the owed amount, and block the participant panel until the participant pays or edits the still-eligible triggering check-in enough to pass its original average threshold.
+- **Longevitymaxxing Challenge** payment reminders send only while the triggering check-in remains editable. If the block remains unpaid after that window, challenge notifications stop and the participant is hidden as inactive until payment later reactivates notifications.
+- **Longevitymaxxing Challenge** public leaderboard rows may show `Commitment due`, but commitment amounts are private and must not be exposed in public state.
 - **Longevitymaxxing Challenge** participant check-in notes and note photos are public on the challenge page.
 - **Longevitymaxxing Challenge** profile pictures are challenge-only unless a linked **Longevity athlete** profile picture exists. Uploaded challenge images outrank cached Gravatar fallbacks.
 

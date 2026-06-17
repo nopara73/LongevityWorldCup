@@ -21,6 +21,10 @@ public sealed class LongevitymaxxingChallengeService
     private const int RawDailyMaxScore = 8;
     private const int PracticeCheckInDay = 1;
     private const int MaxConsecutiveMissedScoredDaysForDailyReminders = 3;
+    private const decimal MinimumCommitmentAmountUsd = 1m;
+    private const int CommitmentEnforcementPreviousScoredDays = 3;
+    private const int CommitmentAverageWindowDays = 7;
+    private const string CommitmentPaymentReminderKind = "commitment-payment";
     private const double FinalDayScoreMultiplier = 1.4d;
     public const int MaxProfilePictureUploadBytes = 32 * 1024 * 1024;
     public const int MaxCheckInPhotoCount = 4;
@@ -60,6 +64,7 @@ public sealed class LongevitymaxxingChallengeService
     private readonly ILongevitymaxxingEmailSender _email;
     private readonly ILogger<LongevitymaxxingChallengeService> _logger;
     private readonly IAthleteSnapshotProvider? _athletes;
+    private readonly IBtcpayInvoiceClient? _btcpayInvoices;
     private readonly ConcurrentDictionary<string, byte> _profilePictureWarmups = new(StringComparer.Ordinal);
 
     public LongevitymaxxingChallengeService(
@@ -69,7 +74,8 @@ public sealed class LongevitymaxxingChallengeService
         IWebHostEnvironment environment,
         ILongevitymaxxingEmailSender email,
         ILogger<LongevitymaxxingChallengeService> logger,
-        IAthleteSnapshotProvider? athletes = null)
+        IAthleteSnapshotProvider? athletes = null,
+        IBtcpayInvoiceClient? btcpayInvoices = null)
     {
         _db = db;
         _config = config;
@@ -78,6 +84,7 @@ public sealed class LongevitymaxxingChallengeService
         _email = email;
         _logger = logger;
         _athletes = athletes;
+        _btcpayInvoices = btcpayInvoices;
         EnsureTables();
     }
 
@@ -160,6 +167,7 @@ public sealed class LongevitymaxxingChallengeService
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
         var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
         var callAvailability = NormalizeCallAvailability(settings, request.CallAvailability);
+        var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
 
         var confirmationToken = CreateToken();
         var accessToken = CreateToken();
@@ -177,8 +185,8 @@ public sealed class LongevitymaxxingChallengeService
                 insert.CommandText =
                     """
                     INSERT INTO LongevitymaxxingParticipants
-                    (Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken, CreatedAtUtc, UpdatedAtUtc)
-                    VALUES (@id, @email, @name, @tz, @athlete, @access, @confirm, @stop, @created, @updated);
+                    (Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc)
+                    VALUES (@id, @email, @name, @tz, @athlete, @access, @confirm, @stop, @commitmentAmount, @created, @updated);
                     """;
                 Add(insert, "@id", participantId);
                 Add(insert, "@email", email);
@@ -188,6 +196,7 @@ public sealed class LongevitymaxxingChallengeService
                 Add(insert, "@access", accessToken);
                 Add(insert, "@confirm", confirmationToken);
                 Add(insert, "@stop", stopToken);
+                Add(insert, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
                 Add(insert, "@created", now.ToString("o"));
                 Add(insert, "@updated", now.ToString("o"));
                 insert.ExecuteNonQuery();
@@ -207,12 +216,24 @@ public sealed class LongevitymaxxingChallengeService
                     SET DisplayName = @name,
                         TimeZoneId = @tz,
                         AthleteSlug = @athlete,
+                        CommitmentAmountUsd = CASE
+                            WHEN EXISTS (
+                                SELECT 1
+                                FROM LongevitymaxxingPaymentObligations
+                                WHERE ParticipantId = @id
+                                  AND PaidAtUtc IS NULL
+                                  AND ClearedAtUtc IS NULL
+                                LIMIT 1
+                            ) THEN CommitmentAmountUsd
+                            ELSE @commitmentAmount
+                        END,
                         UpdatedAtUtc = @updated
                     WHERE Id = @id;
                     """;
                 Add(update, "@name", displayName);
                 Add(update, "@tz", timeZoneId);
                 Add(update, "@athlete", athleteSlug);
+                Add(update, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
                 Add(update, "@updated", now.ToString("o"));
                 Add(update, "@id", participantId);
                 update.ExecuteNonQuery();
@@ -287,14 +308,20 @@ public sealed class LongevitymaxxingChallengeService
         var participantSummary = ToParticipantSummary(participant);
         var publicState = GetPublicState(now);
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
+        checkIns.TryGetValue(participant.Id, out var byDay);
+        byDay ??= [];
+        var settings = BuildSettings();
+        var eligibleDays = BuildEligibleDays(settings, participant, checkIns, now);
 
         return new LongevitymaxxingParticipantState(
             publicState,
             participantSummary,
-            BuildEligibleDays(BuildSettings(), participant, checkIns, now),
+            eligibleDays,
             publicState.Notes,
-            BuildParticipantCalls(BuildSettings()),
-            GetCallAvailability(participant.Id));
+            BuildParticipantCalls(settings),
+            GetCallAvailability(participant.Id),
+            BuildCommitmentState(participant, byDay, eligibleDays, now),
+            BuildCommitmentTrendGuidance(settings, participant, byDay, now));
     }
 
     public async Task<LongevitymaxxingSignupResult> ResendAccessLinkAsync(string email, DateTimeOffset? nowUtc = null, CancellationToken ct = default)
@@ -324,6 +351,9 @@ public sealed class LongevitymaxxingChallengeService
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
         var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
         var callAvailability = NormalizeCallAvailability(settings, request.CallAvailability);
+        var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
+        if (GetActivePaymentObligation(participant.Id) is not null)
+            throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before editing your profile.");
 
         _db.Run(sqlite =>
         {
@@ -334,12 +364,14 @@ public sealed class LongevitymaxxingChallengeService
                 SET DisplayName = @name,
                     TimeZoneId = @tz,
                     AthleteSlug = @athlete,
+                    CommitmentAmountUsd = @commitmentAmount,
                     UpdatedAtUtc = @updated
                 WHERE Id = @id;
                 """;
             Add(update, "@name", displayName);
             Add(update, "@tz", timeZoneId);
             Add(update, "@athlete", athleteSlug);
+            Add(update, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
             Add(update, "@updated", now.ToString("o"));
             Add(update, "@id", participant.Id);
             update.ExecuteNonQuery();
@@ -352,6 +384,7 @@ public sealed class LongevitymaxxingChallengeService
     public async Task<LongevitymaxxingParticipantState> UploadParticipantProfilePictureAsync(string accessToken, IFormFile? profilePicture, CancellationToken ct = default)
     {
         var participant = RequireParticipantByAccessToken(accessToken);
+        EnsureParticipantNotCommitmentBlocked(participant);
         if (!string.IsNullOrWhiteSpace(participant.AthleteSlug))
             throw new InvalidOperationException("Profile picture upload is only for participants without a LWC athlete profile.");
 
@@ -401,6 +434,111 @@ public sealed class LongevitymaxxingChallengeService
         }
 
         return GetParticipantState(accessToken);
+    }
+
+    public async Task<LongevitymaxxingParticipantState> CreateCommitmentPaymentInvoiceAsync(
+        string accessToken,
+        DateTimeOffset? nowUtc = null,
+        CancellationToken ct = default)
+    {
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        var participant = RequireParticipantByAccessToken(accessToken);
+        var obligation = GetActivePaymentObligation(participant.Id)
+            ?? throw new InvalidOperationException("No commitment payment is due.");
+        if (CanReuseCommitmentInvoice(obligation))
+            return GetParticipantState(accessToken, now);
+
+        var invoiceResult = await GetBtcpayInvoiceClient().CreateInvoiceAsync(
+            _config,
+            new BtcpayInvoiceCreateRequest(
+                obligation.AmountUsd,
+                "USD",
+                $"lmx-commitment-{obligation.Id}",
+                participant.Email,
+                participant.DisplayName,
+                new Dictionary<string, object?>
+                {
+                    ["source"] = "longevitymaxxing-commitment",
+                    ["participantId"] = participant.Id,
+                    ["triggerChallengeDay"] = obligation.TriggerChallengeDay,
+                    ["triggerScore"] = obligation.TriggerScore,
+                    ["thresholdAverage"] = FormatDecimal(obligation.ThresholdAverage)
+                }),
+            ct).ConfigureAwait(false);
+
+        if (!invoiceResult.Success || string.IsNullOrWhiteSpace(invoiceResult.InvoiceId) || string.IsNullOrWhiteSpace(invoiceResult.CheckoutLink))
+            throw new InvalidOperationException($"Could not create commitment invoice: {invoiceResult.Error ?? "unknown BTCPay error"}");
+
+        _db.Run(sqlite =>
+        {
+            using var update = sqlite.CreateCommand();
+            update.CommandText =
+                """
+                UPDATE LongevitymaxxingPaymentObligations
+                SET InvoiceId = @invoiceId,
+                    CheckoutLink = @checkoutLink,
+                    InvoiceStatus = NULL,
+                    InvoiceAdditionalStatus = NULL,
+                    InvoiceCreatedAtUtc = @invoiceCreated,
+                    UpdatedAtUtc = @updated
+                WHERE Id = @id
+                  AND PaidAtUtc IS NULL
+                  AND ClearedAtUtc IS NULL;
+                """;
+            Add(update, "@invoiceId", invoiceResult.InvoiceId);
+            Add(update, "@checkoutLink", invoiceResult.CheckoutLink);
+            Add(update, "@invoiceCreated", now.ToString("o"));
+            Add(update, "@updated", now.ToString("o"));
+            Add(update, "@id", obligation.Id);
+            update.ExecuteNonQuery();
+        });
+
+        return GetParticipantState(accessToken, now);
+    }
+
+    public async Task<LongevitymaxxingParticipantState> RefreshCommitmentPaymentStatusAsync(
+        string accessToken,
+        DateTimeOffset? nowUtc = null,
+        CancellationToken ct = default)
+    {
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        var participant = RequireParticipantByAccessToken(accessToken);
+        var obligation = GetActivePaymentObligation(participant.Id);
+        if (obligation is null || string.IsNullOrWhiteSpace(obligation.InvoiceId))
+            return GetParticipantState(accessToken, now);
+
+        var invoice = await GetBtcpayInvoiceClient()
+            .GetInvoiceAsync(_config, obligation.InvoiceId, ct)
+            .ConfigureAwait(false);
+        if (!invoice.Success)
+            throw new InvalidOperationException($"Could not refresh commitment payment: {invoice.Error ?? "unknown BTCPay error"}");
+        var invoicePaid = IsCommitmentInvoicePaid(invoice, obligation);
+
+        _db.Run(sqlite =>
+        {
+            using var update = sqlite.CreateCommand();
+            update.CommandText =
+                """
+                UPDATE LongevitymaxxingPaymentObligations
+                SET InvoiceStatus = @status,
+                    InvoiceAdditionalStatus = @additionalStatus,
+                    PaidAtUtc = CASE WHEN @isPaid = 1 THEN COALESCE(PaidAtUtc, @paid) ELSE PaidAtUtc END,
+                    UpdatedAtUtc = @updated
+                WHERE Id = @id;
+                """;
+            Add(update, "@status", TrimToNull(invoice.Status));
+            Add(update, "@additionalStatus", TrimToNull(invoice.AdditionalStatus));
+            Add(update, "@isPaid", invoicePaid ? 1 : 0);
+            Add(update, "@paid", now.ToString("o"));
+            Add(update, "@updated", now.ToString("o"));
+            Add(update, "@id", obligation.Id);
+            update.ExecuteNonQuery();
+
+            if (invoicePaid)
+                ReactivateParticipantEmails(sqlite, participant.Id, now);
+        });
+
+        return GetParticipantState(accessToken, now);
     }
 
     public LongevitymaxxingParticipantState SubmitCheckIn(LongevitymaxxingCheckInRequest request, DateTimeOffset? nowUtc = null)
@@ -462,6 +600,10 @@ public sealed class LongevitymaxxingChallengeService
         var eligible = BuildEligibleDays(settings, participant, checkIns, now).FirstOrDefault(x => x.ChallengeDay == request.ChallengeDay);
         if (eligible is null)
             throw new InvalidOperationException("That challenge day is not open for check-in.");
+        if (participant.CommitmentAmountUsd is null)
+            throw new InvalidOperationException("Configure your commitment amount before continuing.");
+        if (GetActivePaymentObligation(participant.Id) is not null && eligible.Existing is null)
+            throw new InvalidOperationException("Pay the commitment due or fix an existing eligible check-in before continuing.");
 
         var note = NormalizeNote(request.Note);
         var challengeDate = settings.StartDate.AddDays(request.ChallengeDay - 1);
@@ -519,6 +661,7 @@ public sealed class LongevitymaxxingChallengeService
             }
         });
 
+        UpdateCommitmentAfterCheckIn(checkIn);
         return GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc);
     }
 
@@ -580,20 +723,49 @@ public sealed class LongevitymaxxingChallengeService
         var normalized = NormalizeToken(token);
         _db.Run(sqlite =>
         {
-            using var update = sqlite.CreateCommand();
-            update.CommandText =
-                """
-                UPDATE LongevitymaxxingParticipants
-                SET StoppedEmailsAtUtc = COALESCE(StoppedEmailsAtUtc, @stopped),
-                    UpdatedAtUtc = @updated
-                WHERE StopToken = @token OR AccessToken = @token;
-                """;
-            Add(update, "@stopped", now.ToString("o"));
-            Add(update, "@updated", now.ToString("o"));
-            Add(update, "@token", normalized);
-            if (update.ExecuteNonQuery() == 0)
+            if (!StopParticipantEmails(sqlite, normalized, now, tokenIsParticipantId: false))
                 throw new UnauthorizedAccessException("Invalid stop link.");
         });
+    }
+
+    private void StopParticipantEmails(string participantId, DateTimeOffset now)
+        => _db.Run(sqlite => StopParticipantEmails(sqlite, participantId, now, tokenIsParticipantId: true));
+
+    private static bool StopParticipantEmails(SqliteConnection sqlite, string participantIdOrToken, DateTimeOffset now, bool tokenIsParticipantId)
+    {
+        using var update = sqlite.CreateCommand();
+        update.CommandText = tokenIsParticipantId
+            ? """
+              UPDATE LongevitymaxxingParticipants
+              SET StoppedEmailsAtUtc = COALESCE(StoppedEmailsAtUtc, @stopped),
+                  UpdatedAtUtc = @updated
+              WHERE Id = @value;
+              """
+            : """
+              UPDATE LongevitymaxxingParticipants
+              SET StoppedEmailsAtUtc = COALESCE(StoppedEmailsAtUtc, @stopped),
+                  UpdatedAtUtc = @updated
+              WHERE StopToken = @value OR AccessToken = @value;
+              """;
+        Add(update, "@stopped", now.ToString("o"));
+        Add(update, "@updated", now.ToString("o"));
+        Add(update, "@value", participantIdOrToken);
+        return update.ExecuteNonQuery() > 0;
+    }
+
+    private static void ReactivateParticipantEmails(SqliteConnection sqlite, string participantId, DateTimeOffset now)
+    {
+        using var update = sqlite.CreateCommand();
+        update.CommandText =
+            """
+            UPDATE LongevitymaxxingParticipants
+            SET StoppedEmailsAtUtc = NULL,
+                UpdatedAtUtc = @updated
+            WHERE Id = @participantId;
+            """;
+        Add(update, "@updated", now.ToString("o"));
+        Add(update, "@participantId", participantId);
+        update.ExecuteNonQuery();
     }
 
     public IReadOnlyList<LongevitymaxxingReminderCandidate> GetDailyReminderCandidates(DateTimeOffset? nowUtc = null)
@@ -626,12 +798,47 @@ public sealed class LongevitymaxxingChallengeService
             if (challengeDay is null)
                 continue;
 
+            var activeObligation = GetActivePaymentObligation(participant.Id);
+            if (activeObligation is not null)
+            {
+                checkIns.TryGetValue(participant.Id, out var obligationByDay);
+                obligationByDay ??= [];
+                if (!IsCommitmentTriggerEditable(settings, participant, activeObligation, now, obligationByDay))
+                {
+                    StopParticipantEmails(participant.Id, now);
+                    continue;
+                }
+
+                if (WasReminderSent(participant.Id, challengeDay.Value, CommitmentPaymentReminderKind))
+                    continue;
+
+                candidates.Add(new LongevitymaxxingReminderCandidate(
+                    participant.Id,
+                    participant.Email,
+                    participant.DisplayName,
+                    participant.TimeZoneId,
+                    participant.AccessToken,
+                    participant.StopToken,
+                    challengeDay.Value,
+                    targetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    false,
+                    false,
+                    [],
+                    true,
+                    activeObligation.AmountUsd,
+                    activeObligation.TriggerChallengeDay));
+                continue;
+            }
+
             if (checkIns.TryGetValue(participant.Id, out var byDay) && byDay.ContainsKey(challengeDay.Value))
                 continue;
             byDay ??= [];
 
             if (CountConsecutiveMissedScoredDays(settings, participant, byDay, targetDate) >= MaxConsecutiveMissedScoredDaysForDailyReminders)
+            {
+                StopParticipantEmails(participant.Id, now);
                 continue;
+            }
 
             if (WasReminderSent(participant.Id, challengeDay.Value, "daily"))
                 continue;
@@ -655,6 +862,9 @@ public sealed class LongevitymaxxingChallengeService
 
     public void MarkDailyReminderSent(string participantId, int challengeDay, DateTimeOffset? nowUtc = null)
         => MarkReminderSent(participantId, challengeDay, "daily", nowUtc);
+
+    public void MarkCommitmentPaymentReminderSent(string participantId, int challengeDay, DateTimeOffset? nowUtc = null)
+        => MarkReminderSent(participantId, challengeDay, CommitmentPaymentReminderKind, nowUtc);
 
     public void MarkCallScheduleUpdateNoticeSent(string participantId, DateTimeOffset? nowUtc = null)
         => MarkReminderSent(participantId, CallScheduleUpdateNoticeDay, CallScheduleUpdateReminderKind, nowUtc);
@@ -857,6 +1067,7 @@ public sealed class LongevitymaxxingChallengeService
                     StopToken TEXT NOT NULL UNIQUE,
                     ConfirmedAtUtc TEXT NULL,
                     StoppedEmailsAtUtc TEXT NULL,
+                    CommitmentAmountUsd TEXT NULL,
                     CreatedAtUtc TEXT NOT NULL,
                     UpdatedAtUtc TEXT NOT NULL
                 );
@@ -923,10 +1134,50 @@ public sealed class LongevitymaxxingChallengeService
                     ParticipantId TEXT PRIMARY KEY,
                     SentAtUtc TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS LongevitymaxxingPaymentObligations (
+                    Id TEXT PRIMARY KEY,
+                    ParticipantId TEXT NOT NULL,
+                    TriggerChallengeDay INTEGER NOT NULL,
+                    TriggerScore INTEGER NOT NULL,
+                    ThresholdAverage TEXT NOT NULL,
+                    AmountUsd TEXT NOT NULL,
+                    InvoiceId TEXT NULL COLLATE NOCASE,
+                    CheckoutLink TEXT NULL,
+                    InvoiceStatus TEXT NULL,
+                    InvoiceAdditionalStatus TEXT NULL,
+                    InvoiceCreatedAtUtc TEXT NULL,
+                    PaidAtUtc TEXT NULL,
+                    ClearedAtUtc TEXT NULL,
+                    CreatedAtUtc TEXT NOT NULL,
+                    UpdatedAtUtc TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS IX_LongevitymaxxingPaymentObligations_ParticipantActive
+                    ON LongevitymaxxingPaymentObligations(ParticipantId, PaidAtUtc, ClearedAtUtc);
                 """;
             cmd.ExecuteNonQuery();
+
+            TryAddLongevitymaxxingParticipantsColumn(sqlite, "CommitmentAmountUsd TEXT NULL");
         });
     }
+
+    private static void TryAddLongevitymaxxingParticipantsColumn(SqliteConnection sqlite, string columnDefinition)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText = $"ALTER TABLE LongevitymaxxingParticipants ADD COLUMN {columnDefinition};";
+        try
+        {
+            cmd.ExecuteNonQuery();
+        }
+        catch (SqliteException ex) when (IsDuplicateColumnException(ex))
+        {
+        }
+    }
+
+    private static bool IsDuplicateColumnException(SqliteException ex)
+        => ex.SqliteErrorCode == 1 &&
+           ex.Message.Contains("duplicate column name", StringComparison.OrdinalIgnoreCase);
 
     private ChallengeSettings BuildSettings()
     {
@@ -1080,6 +1331,7 @@ public sealed class LongevitymaxxingChallengeService
     {
         var categoryLeaders = BuildCategoryLeaders(settings, participants, checkIns, maxChallengeDay);
         var athleteTieBreaks = BuildAthleteTieBreaks();
+        var activePaymentObligations = GetActivePaymentObligations(participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
         var rows = participants.Select(p =>
         {
             checkIns.TryGetValue(p.Id, out var byDay);
@@ -1119,7 +1371,9 @@ public sealed class LongevitymaxxingChallengeService
                     currentStreak,
                     cells,
                     badges,
-                    latest?.ToString("o")),
+                    latest?.ToString("o"),
+                    p.StoppedEmailsAtUtc is not null,
+                    activePaymentObligations.ContainsKey(p.Id) ? "commitment-due" : null),
                 TieBreak: GetAthleteTieBreak(athleteTieBreaks, p.AthleteSlug));
         })
         .OrderByDescending(r => r.Row.CheckedInDays)
@@ -1147,6 +1401,445 @@ public sealed class LongevitymaxxingChallengeService
             .Where(kv => kv.Key <= maxChallengeDay.Value)
             .ToDictionary(kv => kv.Key, kv => kv.Value);
     }
+
+    private LongevitymaxxingCommitmentState BuildCommitmentState(
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        IReadOnlyList<LongevitymaxxingEligibleDay> eligibleDays,
+        DateTimeOffset now)
+    {
+        var obligation = GetActivePaymentObligation(participant.Id);
+        if (obligation is not null)
+        {
+            var settings = BuildSettings();
+            var triggerEditable = IsCommitmentTriggerEditable(settings, participant, obligation, now, byDay);
+            var message = triggerEditable
+                ? $"Commitment due for Day {obligation.TriggerChallengeDay}. Pay USD {obligation.AmountUsd:0.##}, or fix an eligible check-in so Day {obligation.TriggerChallengeDay} reaches its baseline."
+                : $"Commitment due for Day {obligation.TriggerChallengeDay}. The edit window has closed, so payment is required to continue.";
+            return new LongevitymaxxingCommitmentState(
+                "due",
+                true,
+                false,
+                true,
+                participant.CommitmentAmountUsd,
+                obligation.AmountUsd,
+                obligation.TriggerChallengeDay,
+                obligation.TriggerScore,
+                obligation.ThresholdAverage,
+                obligation.InvoiceId,
+                obligation.CheckoutLink,
+                obligation.InvoiceStatus,
+                message);
+        }
+
+        if (participant.CommitmentAmountUsd is null)
+        {
+            return new LongevitymaxxingCommitmentState(
+                "needs-amount",
+                true,
+                true,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "Configure an amount that'd hurt before continuing.");
+        }
+
+        return new LongevitymaxxingCommitmentState(
+            "clear",
+            false,
+            true,
+            false,
+            participant.CommitmentAmountUsd,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            eligibleDays.Any(day => day.CountsForScore && day.Existing is null)
+                ? "Your commitment is active."
+                : "No commitment due.");
+    }
+
+    private LongevitymaxxingCommitmentTrendGuidance BuildCommitmentTrendGuidance(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        DateTimeOffset now)
+    {
+        var referenceDay = byDay.Keys.DefaultIfEmpty(0).Max() + 1;
+        var prior = GetPreviousScoredCheckIns(settings, participant, byDay, referenceDay)
+            .Take(CommitmentAverageWindowDays)
+            .ToList();
+        if (prior.Count < CommitmentEnforcementPreviousScoredDays)
+        {
+            var remaining = CommitmentEnforcementPreviousScoredDays - prior.Count;
+            var plural = remaining == 1 ? "" : "s";
+            return new LongevitymaxxingCommitmentTrendGuidance(
+                false,
+                prior.Count,
+                null,
+                null,
+                $"Commitment starts after {remaining} more scored check-in{plural}.");
+        }
+
+        var average = AverageScoredPoints(settings, participant, byDay, prior);
+        var needed = (int)Math.Ceiling(average);
+        var nextDay = GetNextCommitmentGuidanceDay(settings, participant, byDay, now);
+        var maxMissedUnits = GetMaximumPassingMissedUnits(settings, participant, byDay, nextDay, average);
+        var allowance = maxMissedUnits is null
+            ? "you need a perfect day"
+            : DescribeMissAllowance(maxMissedUnits.Value);
+
+        return new LongevitymaxxingCommitmentTrendGuidance(
+            true,
+            prior.Count,
+            average,
+            needed,
+            $"Next scored day: need at least {needed} points; {allowance}.");
+    }
+
+    private static int GetNextCommitmentGuidanceDay(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        DateTimeOffset now)
+    {
+        var checkIns = new Dictionary<string, Dictionary<int, CheckInRecord>>(StringComparer.Ordinal)
+        {
+            [participant.Id] = new(byDay)
+        };
+        var openMissing = BuildEligibleDaysStatic(settings, participant, checkIns, now)
+            .Where(day => day.CountsForScore && day.Existing is null)
+            .OrderBy(day => day.ChallengeDay)
+            .FirstOrDefault();
+        var nextDay = openMissing?.ChallengeDay ?? byDay.Keys.DefaultIfEmpty(GetParticipantPracticeDay(settings, participant)).Max() + 1;
+        while (!CountsForScore(settings, participant, nextDay))
+            nextDay++;
+        return nextDay;
+    }
+
+    private static int? GetMaximumPassingMissedUnits(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        int challengeDay,
+        decimal average)
+    {
+        int? maxMissedUnits = null;
+        for (var sleep = 0; sleep <= 2; sleep++)
+        for (var exercise = 0; exercise <= 2; exercise++)
+        for (var nutrition = 0; nutrition <= 2; nutrition++)
+        for (var vices = 0; vices <= 2; vices++)
+        {
+            var checkIn = new CheckInRecord(
+                participant.Id,
+                challengeDay,
+                settings.StartDate.AddDays(challengeDay - 1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                sleep,
+                exercise,
+                nutrition,
+                vices,
+                null,
+                null,
+                null,
+                []);
+            var points = GetScoredPoints(settings, participant, checkIn, byDay);
+            if (points < average)
+                continue;
+
+            var missedUnits = RawDailyMaxScore - checkIn.Score;
+            maxMissedUnits = Math.Max(maxMissedUnits.GetValueOrDefault(), missedUnits);
+        }
+
+        return maxMissedUnits;
+    }
+
+    private static string DescribeMissAllowance(int missedUnits)
+        => missedUnits switch
+        {
+            <= 0 => "no misses",
+            1 => "you can miss up to one somewhat",
+            2 => "you can miss one whole habit or two somewhat",
+            3 => "you can miss one whole habit and one somewhat",
+            4 => "you can miss up to two whole habits",
+            _ => $"you can miss up to {missedUnits} habit-points"
+        };
+
+    private void UpdateCommitmentAfterCheckIn(ValidatedCheckIn checkIn)
+    {
+        var settings = BuildSettings();
+        var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { checkIn.Participant.Id });
+        checkIns.TryGetValue(checkIn.Participant.Id, out var byDay);
+        byDay ??= [];
+        if (!byDay.TryGetValue(checkIn.Request.ChallengeDay, out var saved))
+            return;
+
+        var activeObligation = GetActivePaymentObligation(checkIn.Participant.Id);
+        if (activeObligation is not null)
+        {
+            if (activeObligation.TriggerChallengeDay == checkIn.Request.ChallengeDay)
+            {
+                var triggerScore = GetScoredPoints(settings, checkIn.Participant, saved, byDay);
+                if (triggerScore >= activeObligation.ThresholdAverage)
+                    ClearPaymentObligation(activeObligation.Id, checkIn.NowUtc);
+                else
+                    UpdatePaymentObligationTriggerScore(activeObligation.Id, triggerScore, checkIn.NowUtc);
+            }
+
+            return;
+        }
+
+        if (checkIn.Participant.CommitmentAmountUsd is not decimal amountUsd)
+            return;
+
+        var assessment = AssessCommitment(settings, checkIn.Participant, byDay, saved);
+        if (!assessment.IsEnforced || !assessment.IsBelowAverage || assessment.AveragePoints is null)
+            return;
+
+        CreatePaymentObligation(
+            checkIn.Participant.Id,
+            saved.ChallengeDay,
+            assessment.Score,
+            assessment.AveragePoints.Value,
+            amountUsd,
+            checkIn.NowUtc);
+    }
+
+    private static CommitmentAssessment AssessCommitment(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        CheckInRecord checkIn)
+    {
+        if (!CountsForScore(settings, participant, checkIn.ChallengeDay))
+            return new(false, 0, null, GetScoredPoints(settings, participant, checkIn, byDay), false);
+
+        var previous = GetPreviousScoredCheckIns(settings, participant, byDay, checkIn.ChallengeDay)
+            .Take(CommitmentAverageWindowDays)
+            .ToList();
+        var score = GetScoredPoints(settings, participant, checkIn, byDay);
+        if (previous.Count < CommitmentEnforcementPreviousScoredDays)
+            return new(false, previous.Count, null, score, false);
+
+        var average = AverageScoredPoints(settings, participant, byDay, previous);
+        return new(true, previous.Count, average, score, score < average);
+    }
+
+    private static IReadOnlyList<CheckInRecord> GetPreviousScoredCheckIns(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        int challengeDay)
+        => byDay.Values
+            .Where(c => c.ChallengeDay < challengeDay)
+            .Where(c => CountsForScore(settings, participant, c.ChallengeDay))
+            .OrderByDescending(c => c.ChallengeDay)
+            .ToList();
+
+    private static decimal AverageScoredPoints(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        IReadOnlyList<CheckInRecord> checkIns)
+        => checkIns.Count == 0
+            ? 0m
+            : checkIns.Sum(c => (decimal)GetScoredPoints(settings, participant, c, byDay)) / checkIns.Count;
+
+    private void CreatePaymentObligation(
+        string participantId,
+        int triggerChallengeDay,
+        int triggerScore,
+        decimal thresholdAverage,
+        decimal amountUsd,
+        DateTimeOffset now)
+    {
+        _db.Run(sqlite =>
+        {
+            using var insert = sqlite.CreateCommand();
+            insert.CommandText =
+                """
+                INSERT INTO LongevitymaxxingPaymentObligations
+                (Id, ParticipantId, TriggerChallengeDay, TriggerScore, ThresholdAverage, AmountUsd, CreatedAtUtc, UpdatedAtUtc)
+                VALUES (@id, @participantId, @triggerDay, @triggerScore, @thresholdAverage, @amountUsd, @created, @updated);
+                """;
+            Add(insert, "@id", Guid.NewGuid().ToString("N"));
+            Add(insert, "@participantId", participantId);
+            Add(insert, "@triggerDay", triggerChallengeDay);
+            Add(insert, "@triggerScore", triggerScore);
+            Add(insert, "@thresholdAverage", FormatDecimal(thresholdAverage));
+            Add(insert, "@amountUsd", FormatDecimal(amountUsd));
+            Add(insert, "@created", now.ToString("o"));
+            Add(insert, "@updated", now.ToString("o"));
+            insert.ExecuteNonQuery();
+        });
+    }
+
+    private void UpdatePaymentObligationTriggerScore(string obligationId, int triggerScore, DateTimeOffset now)
+    {
+        _db.Run(sqlite =>
+        {
+            using var update = sqlite.CreateCommand();
+            update.CommandText =
+                """
+                UPDATE LongevitymaxxingPaymentObligations
+                SET TriggerScore = @triggerScore,
+                    UpdatedAtUtc = @updated
+                WHERE Id = @id
+                  AND PaidAtUtc IS NULL
+                  AND ClearedAtUtc IS NULL;
+                """;
+            Add(update, "@triggerScore", triggerScore);
+            Add(update, "@updated", now.ToString("o"));
+            Add(update, "@id", obligationId);
+            update.ExecuteNonQuery();
+        });
+    }
+
+    private void ClearPaymentObligation(string obligationId, DateTimeOffset now)
+    {
+        _db.Run(sqlite =>
+        {
+            using var update = sqlite.CreateCommand();
+            update.CommandText =
+                """
+                UPDATE LongevitymaxxingPaymentObligations
+                SET ClearedAtUtc = COALESCE(ClearedAtUtc, @cleared),
+                    UpdatedAtUtc = @updated
+                WHERE Id = @id
+                  AND PaidAtUtc IS NULL;
+                """;
+            Add(update, "@cleared", now.ToString("o"));
+            Add(update, "@updated", now.ToString("o"));
+            Add(update, "@id", obligationId);
+            update.ExecuteNonQuery();
+        });
+    }
+
+    private PaymentObligation? GetActivePaymentObligation(string participantId)
+        => GetActivePaymentObligations(new HashSet<string>(StringComparer.Ordinal) { participantId })
+            .GetValueOrDefault(participantId);
+
+    private IReadOnlyDictionary<string, PaymentObligation> GetActivePaymentObligations(IReadOnlySet<string> participantIds)
+    {
+        if (participantIds.Count == 0)
+            return new Dictionary<string, PaymentObligation>(StringComparer.Ordinal);
+
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            var placeholders = participantIds.Select((_, i) => $"@participantId{i}").ToList();
+            cmd.CommandText =
+                $"""
+                SELECT Id, ParticipantId, TriggerChallengeDay, TriggerScore, ThresholdAverage, AmountUsd,
+                       InvoiceId, CheckoutLink, InvoiceStatus, InvoiceAdditionalStatus, InvoiceCreatedAtUtc,
+                       PaidAtUtc, ClearedAtUtc, CreatedAtUtc, UpdatedAtUtc
+                FROM LongevitymaxxingPaymentObligations
+                WHERE ParticipantId IN ({string.Join(",", placeholders)})
+                  AND PaidAtUtc IS NULL
+                  AND ClearedAtUtc IS NULL
+                ORDER BY CreatedAtUtc DESC;
+                """;
+            var index = 0;
+            foreach (var participantId in participantIds)
+                Add(cmd, $"@participantId{index++}", participantId);
+
+            var result = new Dictionary<string, PaymentObligation>(StringComparer.Ordinal);
+            foreach (var obligation in ReadPaymentObligations(cmd))
+                result.TryAdd(obligation.ParticipantId, obligation);
+            return result;
+        });
+    }
+
+    private static IReadOnlyList<PaymentObligation> ReadPaymentObligations(SqliteCommand cmd)
+    {
+        var rows = new List<PaymentObligation>();
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            rows.Add(new PaymentObligation(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetInt32(2),
+                reader.GetInt32(3),
+                ParseDecimal(reader.GetString(4)).GetValueOrDefault(),
+                ParseDecimal(reader.GetString(5)).GetValueOrDefault(),
+                reader.IsDBNull(6) ? null : reader.GetString(6),
+                reader.IsDBNull(7) ? null : reader.GetString(7),
+                reader.IsDBNull(8) ? null : reader.GetString(8),
+                reader.IsDBNull(9) ? null : reader.GetString(9),
+                reader.IsDBNull(10) ? null : ParseNullableDateTimeOffset(reader.GetString(10)),
+                reader.IsDBNull(11) ? null : ParseNullableDateTimeOffset(reader.GetString(11)),
+                reader.IsDBNull(12) ? null : ParseNullableDateTimeOffset(reader.GetString(12)),
+                ParseNullableDateTimeOffset(reader.GetString(13))!.Value,
+                ParseNullableDateTimeOffset(reader.GetString(14))!.Value));
+        }
+
+        return rows;
+    }
+
+    private static bool IsCommitmentTriggerEditable(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        PaymentObligation obligation,
+        DateTimeOffset now,
+        IReadOnlyDictionary<int, CheckInRecord> byDay)
+    {
+        var checkIns = new Dictionary<string, Dictionary<int, CheckInRecord>>(StringComparer.Ordinal)
+        {
+            [participant.Id] = new(byDay)
+        };
+        return BuildEligibleDaysStatic(settings, participant, checkIns, now)
+            .Any(day => day.ChallengeDay == obligation.TriggerChallengeDay && day.Existing is not null);
+    }
+
+    private void EnsureParticipantNotCommitmentBlocked(ParticipantRecord participant)
+    {
+        if (participant.CommitmentAmountUsd is null)
+            throw new InvalidOperationException("Configure your commitment amount before continuing.");
+        if (GetActivePaymentObligation(participant.Id) is not null)
+            throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before continuing.");
+    }
+
+    private static bool CanReuseCommitmentInvoice(PaymentObligation obligation)
+    {
+        return !string.IsNullOrWhiteSpace(obligation.InvoiceId)
+            && !string.IsNullOrWhiteSpace(obligation.CheckoutLink)
+            && !IsReplaceableCommitmentInvoiceStatus(obligation.InvoiceStatus)
+            && !IsReplaceableCommitmentInvoiceStatus(obligation.InvoiceAdditionalStatus);
+    }
+
+    private static bool IsReplaceableCommitmentInvoiceStatus(string? status)
+    {
+        var normalized = (status ?? "").Trim();
+        return string.Equals(normalized, "Expired", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, "Invalid", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, "Failed", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsCommitmentInvoicePaid(BtcpayInvoiceLookupResult invoice, PaymentObligation obligation)
+    {
+        if (string.Equals(invoice.Status, "Settled", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var paidAmount = invoice.PaidAmount ?? ParseDecimal(invoice.PaidAmountText);
+        if (paidAmount is null)
+            return false;
+
+        var expectedAmount = invoice.Amount ?? ParseDecimal(invoice.AmountText) ?? obligation.AmountUsd;
+        return expectedAmount > 0m && paidAmount.Value >= expectedAmount;
+    }
+
+    private IBtcpayInvoiceClient GetBtcpayInvoiceClient()
+        => _btcpayInvoices ?? new BtcpayInvoiceClient(_httpClientFactory);
+
 
     private Dictionary<string, AthleteTieBreak> BuildAthleteTieBreaks()
     {
@@ -1327,7 +2020,7 @@ public sealed class LongevitymaxxingChallengeService
         return streak;
     }
 
-    private IReadOnlyList<LongevitymaxxingEligibleDay> BuildEligibleDays(
+    private static IReadOnlyList<LongevitymaxxingEligibleDay> BuildEligibleDays(
         ChallengeSettings settings,
         ParticipantRecord participant,
         IReadOnlyDictionary<string, Dictionary<int, CheckInRecord>> checkIns,
@@ -1357,6 +2050,13 @@ public sealed class LongevitymaxxingChallengeService
             })
             .ToList();
     }
+
+    private static IReadOnlyList<LongevitymaxxingEligibleDay> BuildEligibleDaysStatic(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<string, Dictionary<int, CheckInRecord>> checkIns,
+        DateTimeOffset now)
+        => BuildEligibleDays(settings, participant, checkIns, now);
 
     private static bool CountsForScore(ChallengeSettings settings, ParticipantRecord participant, int challengeDay)
         => challengeDay != GetParticipantPracticeDay(settings, participant);
@@ -1639,7 +2339,7 @@ public sealed class LongevitymaxxingChallengeService
             cmd.CommandText =
                 """
                 SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                       ConfirmedAtUtc, StoppedEmailsAtUtc, CreatedAtUtc, UpdatedAtUtc
+                       ConfirmedAtUtc, StoppedEmailsAtUtc, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
                 FROM LongevitymaxxingParticipants
                 WHERE ConfirmedAtUtc IS NOT NULL;
                 """;
@@ -1793,7 +2493,7 @@ public sealed class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, CreatedAtUtc, UpdatedAtUtc
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE Email = @email
             LIMIT 1;
@@ -1808,7 +2508,7 @@ public sealed class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, CreatedAtUtc, UpdatedAtUtc
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE AccessToken = @token
             LIMIT 1;
@@ -1823,7 +2523,7 @@ public sealed class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, CreatedAtUtc, UpdatedAtUtc
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE ConfirmationToken = @token
             LIMIT 1;
@@ -1849,8 +2549,9 @@ public sealed class LongevitymaxxingChallengeService
                 reader.GetString(7),
                 reader.IsDBNull(8) ? null : ParseNullableDateTimeOffset(reader.GetString(8)),
                 reader.IsDBNull(9) ? null : ParseNullableDateTimeOffset(reader.GetString(9)),
-                ParseNullableDateTimeOffset(reader.GetString(10))!.Value,
-                ParseNullableDateTimeOffset(reader.GetString(11))!.Value));
+                reader.IsDBNull(10) ? null : ParseDecimal(reader.GetString(10)),
+                ParseNullableDateTimeOffset(reader.GetString(11))!.Value,
+                ParseNullableDateTimeOffset(reader.GetString(12))!.Value));
         }
 
         return rows;
@@ -2072,6 +2773,18 @@ public sealed class LongevitymaxxingChallengeService
 
             return TimeZoneInfo.Utc;
         }
+    }
+
+    private static decimal NormalizeCommitmentAmount(decimal? amount)
+    {
+        if (amount is null)
+            throw new InvalidOperationException("Configure an amount that'd hurt.");
+
+        var rounded = decimal.Round(amount.Value, 2, MidpointRounding.AwayFromZero);
+        if (rounded < MinimumCommitmentAmountUsd)
+            throw new InvalidOperationException("Commitment amount must be at least USD 1.");
+
+        return rounded;
     }
 
     private static string NormalizeToken(string token)
@@ -2390,7 +3103,8 @@ public sealed class LongevitymaxxingChallengeService
             participant.AthleteSlug,
             BuildAthleteUrl(participant.AthleteSlug),
             BuildCachedProfilePictureUrl(participant),
-            participant.StoppedEmailsAtUtc is not null);
+            participant.StoppedEmailsAtUtc is not null,
+            participant.CommitmentAmountUsd);
     }
 
     private static string CreateToken()
@@ -2431,6 +3145,20 @@ public sealed class LongevitymaxxingChallengeService
     private static void Add(SqliteCommand cmd, string name, object? value)
     {
         cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+    }
+
+    private static string FormatDecimal(decimal value)
+        => value.ToString("0.####", CultureInfo.InvariantCulture);
+
+    private static decimal? ParseDecimal(string? value)
+        => decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
+
+    private static string? TrimToNull(string? value)
+    {
+        var trimmed = (value ?? "").Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
 
     private static DateOnly ParseDateOnly(string? value, DateOnly fallback)
@@ -2497,6 +3225,7 @@ public sealed class LongevitymaxxingChallengeService
         string StopToken,
         DateTimeOffset? ConfirmedAtUtc,
         DateTimeOffset? StoppedEmailsAtUtc,
+        decimal? CommitmentAmountUsd,
         DateTimeOffset CreatedAtUtc,
         DateTimeOffset UpdatedAtUtc);
 
@@ -2504,6 +3233,30 @@ public sealed class LongevitymaxxingChallengeService
     {
         public static readonly AthleteTieBreak None = new(false, null, null);
     }
+
+    private sealed record PaymentObligation(
+        string Id,
+        string ParticipantId,
+        int TriggerChallengeDay,
+        int TriggerScore,
+        decimal ThresholdAverage,
+        decimal AmountUsd,
+        string? InvoiceId,
+        string? CheckoutLink,
+        string? InvoiceStatus,
+        string? InvoiceAdditionalStatus,
+        DateTimeOffset? InvoiceCreatedAtUtc,
+        DateTimeOffset? PaidAtUtc,
+        DateTimeOffset? ClearedAtUtc,
+        DateTimeOffset CreatedAtUtc,
+        DateTimeOffset UpdatedAtUtc);
+
+    private sealed record CommitmentAssessment(
+        bool IsEnforced,
+        int PriorScoredDays,
+        decimal? AveragePoints,
+        int Score,
+        bool IsBelowAverage);
 
     private sealed record GravatarAvatar(string Url, byte[] Bytes);
 

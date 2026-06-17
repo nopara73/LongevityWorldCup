@@ -42,6 +42,11 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Longevitymaxxing Challenge participant check-in notes and note photos are public on the challenge page.
 - Longevitymaxxing Challenge habit points use a small day-weight ramp after practice: Day 2 starts at the raw 8-point maximum, the original Day 14 peak is 11 points, and later days stay capped at that peak unless scoring is explicitly redesigned.
 - Longevitymaxxing Challenge habit points allow one daily slip only after an actually perfect previous check-in: either one `No` territory or one/two `Somewhat` territories still score that day's maximum, but a saved slip is not perfect for saving the next day.
+- Longevitymaxxing Challenge commitment payments require each participant to configure a USD amount of at least `$1`; existing participants without an amount are blocked until they configure one.
+- Longevitymaxxing Challenge commitment payments trigger only when a submitted scored check-in scores below the exact average of the participant's previous scored check-ins: the 4th scored check-in uses the previous 3, then later checks use up to the previous 7.
+- Longevitymaxxing Challenge commitment payment blocks save the triggering check-in, lock the owed amount, and block the participant panel until the participant pays through BTCPay or edits the still-eligible triggering check-in enough to pass its original average threshold.
+- Longevitymaxxing Challenge payment reminders send only while the triggering check-in remains editable. If the block remains unpaid after that window, challenge notifications stop and the participant is hidden as inactive until payment later reactivates notifications.
+- Longevitymaxxing Challenge public leaderboard rows may show `Commitment due`, but commitment amounts are private and must not be exposed in public state.
 - Longevitymaxxing Challenge leaderboard ties after challenge performance metrics prefer participants linked to a currently placed Longevity athlete profile, then better current placement, then older linked athletes by date of birth.
 - Challenge uploads and Gravatar fallbacks are challenge-only profile pictures; linked Longevity athlete profile pictures stay the display priority and must not be created or modified from challenge images.
 
