@@ -263,6 +263,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function renderCommitmentPanel", javascript);
         Assert.Contains("function payCommitment", javascript);
         Assert.Contains("commitmentAmountUsd: parseCommitmentAmount", javascript);
+        Assert.Contains("renderCheckIns(editableDays, \"lmxCommitmentCheckinList\");", javascript);
+        Assert.Contains("renderCheckIns(orderedDays, containerId);", javascript);
         Assert.Contains("function renderParticipantNotice", javascript);
         Assert.Contains("setAttribute(\"aria-invalid\", \"true\")", javascript);
         Assert.Contains("Payment confirmed. Your check-ins are unlocked.", javascript);

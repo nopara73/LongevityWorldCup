@@ -1421,7 +1421,7 @@
         container.querySelectorAll(".lmx-checkin-switcher button").forEach(button => {
             button.addEventListener("click", () => {
                 selectedCheckInDay = Number(button.dataset.day);
-                renderCheckIns(orderedDays);
+                renderCheckIns(orderedDays, containerId);
             });
         });
         container.querySelectorAll(".lmx-segmented button").forEach(button => {
