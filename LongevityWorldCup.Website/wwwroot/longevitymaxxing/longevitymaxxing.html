@@ -126,7 +126,7 @@
                                 <i class="fas fa-flag-checkered" aria-hidden="true"></i>
                                 Join free
                             </button>
-                            <div id="lmxSignupStatus" class="lmx-status"></div>
+                            <div id="lmxSignupStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                         </form>
                     </div>
                     <div id="lmxSignupDonePanel" class="lmx-hidden">
@@ -161,8 +161,8 @@
                             Home
                         </button>
                     </div>
-                    <div id="lmxParticipantNotice" class="lmx-status lmx-participant-notice lmx-hidden" aria-live="polite"></div>
-                    <div id="lmxCommitmentPanel" class="lmx-commitment-panel lmx-hidden" aria-live="polite"></div>
+                    <div id="lmxParticipantNotice" class="lmx-status lmx-participant-notice lmx-hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+                    <div id="lmxCommitmentPanel" class="lmx-commitment-panel lmx-hidden" aria-live="polite" aria-atomic="true"></div>
                     <div id="lmxCheckinPanel" class="lmx-tab-panel" role="tabpanel" aria-labelledby="lmxCheckinTab">
                         <div id="lmxCheckinList" class="lmx-checkin-list"></div>
                     </div>
@@ -196,8 +196,8 @@
                                         <i class="fas fa-image" aria-hidden="true"></i>
                                         Upload profile picture
                                     </button>
-                                    <input id="lmxProfilePictureInput" type="file" accept="image/*">
-                                    <div id="lmxProfilePictureStatus" class="lmx-status"></div>
+                                    <input id="lmxProfilePictureInput" type="file" accept="image/*" tabindex="-1" aria-label="Choose profile picture">
+                                    <div id="lmxProfilePictureStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                                 </div>
                             </div>
                         </div>
@@ -207,7 +207,7 @@
                             <div id="lmxEditCalls" class="lmx-call-votes"></div>
                         </div>
                         <button class="lmx-button" type="submit">Save</button>
-                        <div id="lmxEditStatus" class="lmx-status"></div>
+                        <div id="lmxEditStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                     </form>
                     <div id="lmxHomePanel" class="lmx-tab-panel lmx-hidden" role="tabpanel" aria-labelledby="lmxHomeTab">
                         <div class="lmx-home-status">
@@ -241,7 +241,7 @@
                     <p id="lmxBoardMeta" class="lmx-board-meta">Checked-in days rank first. Points break ties.</p>
                 </div>
                 <div class="lmx-board-legend" aria-label="Habit key">
-                    <button id="lmxInactiveToggle" class="lmx-button secondary lmx-compact-button lmx-hidden" type="button">
+                    <button id="lmxInactiveToggle" class="lmx-button secondary lmx-compact-button lmx-hidden" type="button" aria-pressed="false">
                         <i class="fas fa-users-slash" aria-hidden="true"></i>
                         Show inactive
                     </button>
@@ -274,7 +274,7 @@
                     <i class="fas fa-envelope" aria-hidden="true"></i>
                     <span id="lmxResendButtonText">Send check-in link</span>
                 </button>
-                <div id="lmxResendStatus" class="lmx-status"></div>
+                <div id="lmxResendStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
             </form>
         </section>
 

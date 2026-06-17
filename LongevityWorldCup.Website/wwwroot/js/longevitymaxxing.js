@@ -145,6 +145,9 @@
             button.addEventListener("click", () => {
                 setParticipantTab(button.dataset.lmxTab, true);
             });
+            button.addEventListener("keydown", event => {
+                handleParticipantTabKeydown(event, button);
+            });
         });
 
         profilePictureButton.addEventListener("click", () => {
@@ -521,7 +524,7 @@
             </div>
             ${participantState.trendGuidance?.text ? `<div class="lmx-trend-guidance"><i class="fas fa-scale-balanced" aria-hidden="true"></i><span>${esc(participantState.trendGuidance.text)}</span></div>` : ""}
             <div class="lmx-dashboard-scroll">
-                <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-columns: repeat(${dayCount}, 2.15rem); --lmx-dashboard-min-width: ${(11.55 + (dayCount * 2.5)).toFixed(2)}rem;">
+                <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-columns: repeat(${dayCount}, 2.15rem); --lmx-dashboard-min-width: ${(13.05 + (dayCount * 2.5)).toFixed(2)}rem;">
                     <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
                         <div class="lmx-dashboard-corner" role="columnheader">Habit</div>
                         <div class="lmx-dashboard-days" role="presentation">${dayHeaders}</div>
@@ -796,7 +799,11 @@
             PARTICIPANT_TABS.forEach(tab => {
                 const panel = getParticipantTabPanel(tab);
                 const button = document.querySelector(`[data-lmx-tab="${tab}"]`);
-                if (button) button.setAttribute("aria-selected", "false");
+                if (button) {
+                    button.setAttribute("aria-selected", "false");
+                    button.setAttribute("tabindex", "-1");
+                    button.hidden = true;
+                }
                 if (panel) {
                     panel.classList.add("lmx-hidden");
                     panel.toggleAttribute("hidden", true);
@@ -812,7 +819,8 @@
             const isActive = tab === activeTab;
             if (button) {
                 button.setAttribute("aria-selected", isActive ? "true" : "false");
-                button.removeAttribute("tabindex");
+                button.setAttribute("tabindex", isActive ? "0" : "-1");
+                button.hidden = false;
             }
             if (panel) {
                 panel.classList.toggle("lmx-hidden", !isActive);
@@ -826,6 +834,31 @@
         if (tab === "profile") return document.getElementById("lmxEditForm");
         if (tab === "home") return document.getElementById("lmxHomePanel");
         return null;
+    }
+
+    function handleParticipantTabKeydown(event, button) {
+        if (!participantState || hasCommitmentBlock(participantState)) return;
+
+        const currentIndex = PARTICIPANT_TABS.indexOf(button.dataset.lmxTab);
+        if (currentIndex < 0) return;
+
+        let nextIndex = currentIndex;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+            nextIndex = (currentIndex + 1) % PARTICIPANT_TABS.length;
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+            nextIndex = (currentIndex - 1 + PARTICIPANT_TABS.length) % PARTICIPANT_TABS.length;
+        } else if (event.key === "Home") {
+            nextIndex = 0;
+        } else if (event.key === "End") {
+            nextIndex = PARTICIPANT_TABS.length - 1;
+        } else {
+            return;
+        }
+
+        event.preventDefault();
+        const nextTab = PARTICIPANT_TABS[nextIndex];
+        setParticipantTab(nextTab, true);
+        document.querySelector(`[data-lmx-tab="${nextTab}"]`)?.focus();
     }
 
     function renderCommitmentPanel(state) {
@@ -843,17 +876,17 @@
                 <form id="lmxCommitmentAmountForm" class="lmx-commitment-card">
                     <div>
                         <strong>Set your commitment amount</strong>
-                        <span class="lmx-commitment-copy">Configure an amount that'd hurt. If a future scored check-in lands below your recent average, this amount becomes due before you continue.</span>
+                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Configure an amount that'd hurt. If a future scored check-in lands below your recent average, this amount becomes due before you continue.</span>
                     </div>
                     <div class="lmx-field">
                         <label for="lmxBlockedCommitmentAmount">USD amount</label>
-                        <input id="lmxBlockedCommitmentAmount" type="number" min="1" step="0.01" inputmode="decimal" required placeholder="25">
+                        <input id="lmxBlockedCommitmentAmount" type="number" min="1" step="0.01" inputmode="decimal" required placeholder="25" aria-describedby="lmxBlockedCommitmentHelp">
                     </div>
                     <button class="lmx-button" type="submit">
                         <i class="fas fa-lock-open" aria-hidden="true"></i>
                         Activate commitment
                     </button>
-                    <div class="lmx-status"></div>
+                    <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                 </form>`;
             panel.querySelector("form")?.addEventListener("submit", event => {
                 event.preventDefault();
@@ -869,7 +902,7 @@
         const payText = hasInvoice && !replacesInvoice ? "Open invoice" : "Create invoice";
         const payBusyText = hasInvoice && !replacesInvoice ? "Opening invoice..." : "Creating invoice...";
         const invoiceLine = commitment.checkoutLink && !replacesInvoice
-            ? `<a class="lmx-payment-link" href="${escAttr(commitment.checkoutLink)}" target="_blank" rel="noopener">Invoice link</a>`
+            ? `<a class="lmx-payment-link" href="${escAttr(commitment.checkoutLink)}" target="_blank" rel="noopener">Open BTCPay invoice</a>`
             : "";
         const refreshDisabled = hasInvoice ? "" : " disabled";
         const refreshTitle = hasInvoice
@@ -887,7 +920,7 @@
                         <strong>Commitment due</strong>
                         <span>${esc(commitment.message || "This check-in landed below your recent average. Pay the locked amount, or improve the editable check-in enough to clear it.")}</span>
                     </div>
-                    <b>${esc(formatUsd(commitment.owedAmountUsd))}</b>
+                    <b aria-label="${escAttr(`Commitment due amount ${formatUsd(commitment.owedAmountUsd)}`)}">${esc(formatUsd(commitment.owedAmountUsd))}</b>
                 </div>
                 <div class="lmx-commitment-meta">
                     <span>Trigger: Day ${esc(commitment.triggerChallengeDay || "-")}</span>
@@ -907,7 +940,7 @@
                     ${invoiceLine}
                 </div>
                 <div class="lmx-commitment-hint">${esc(hint)}</div>
-                <div id="lmxCommitmentStatus" class="lmx-status"></div>
+                <div id="lmxCommitmentStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
             </div>
             <div class="lmx-commitment-edit">
                 <strong>Eligible fixes</strong>
@@ -1285,6 +1318,10 @@
         if (!button) return;
         const rows = splitLeaderboardRows(state);
         button.classList.toggle("lmx-hidden", rows.inactive.length === 0);
+        button.setAttribute("aria-pressed", showInactiveLeaderboard ? "true" : "false");
+        button.setAttribute("aria-label", showInactiveLeaderboard
+            ? "Hide inactive participants"
+            : `Show inactive participants (${rows.inactive.length})`);
         button.innerHTML = showInactiveLeaderboard
             ? `<i class="fas fa-users" aria-hidden="true"></i>Hide inactive`
             : `<i class="fas fa-users-slash" aria-hidden="true"></i>Show inactive (${rows.inactive.length})`;
@@ -2380,7 +2417,9 @@
 
     function toggle(id, visible) {
         const el = document.getElementById(id);
-        if (el) el.classList.toggle("lmx-hidden", !visible);
+        if (!el) return;
+        el.classList.toggle("lmx-hidden", !visible);
+        el.toggleAttribute("hidden", !visible);
     }
 
     function messageOf(err) {

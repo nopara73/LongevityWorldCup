@@ -64,7 +64,7 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
         using var response = await client.SendAsync(message, ct).ConfigureAwait(false);
         var responseBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
-            return BtcpayInvoiceCreateResult.Failure($"BTCPay API {(int)response.StatusCode}: {responseBody}");
+            return BtcpayInvoiceCreateResult.Failure(BuildBtcpayFailureMessage(response.StatusCode));
 
         using var json = JsonDocument.Parse(responseBody);
         if (!TryGetPropertyString(json.RootElement, "checkoutLink", out var checkoutLink) || string.IsNullOrWhiteSpace(checkoutLink))
@@ -97,7 +97,7 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
         var responseBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            return BtcpayInvoiceLookupResult.Failure($"BTCPay API {(int)response.StatusCode}: {responseBody}");
+            return BtcpayInvoiceLookupResult.Failure(BuildBtcpayFailureMessage(response.StatusCode));
         }
 
         return ParseInvoiceJson(responseBody);
@@ -142,6 +142,9 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
             ? parsed
             : null;
     }
+
+    private static string BuildBtcpayFailureMessage(System.Net.HttpStatusCode statusCode)
+        => $"BTCPay API returned HTTP {(int)statusCode}.";
 
     private static bool TryGetPropertyString(JsonElement element, string propertyName, out string? value)
     {
