@@ -580,6 +580,45 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task SignupDateControlsPracticeDayWhenConfirmationIsNextLocalDay()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var signup = DateTimeOffset.Parse("2026-06-25T23:50:00Z");
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "overnight-signup@example.com",
+            "Overnight Signup",
+            "UTC",
+            null,
+            []), signup);
+
+        var access = await fixture.Service.ConfirmAsync(
+            ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
+            DateTimeOffset.Parse("2026-06-26T00:05:00Z"));
+
+        var practice = Assert.Single(access.State.EligibleDays);
+        Assert.Equal(18, practice.ChallengeDay);
+        Assert.False(practice.CountsForScore);
+        Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access.AccessToken, 17, 2, 2, 2, 2, null),
+            DateTimeOffset.Parse("2026-06-26T08:00:00Z")));
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access.AccessToken,
+            18,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-26T08:10:00Z"));
+
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-26T09:00:00Z"));
+        var row = Assert.Single(state.Leaderboard);
+        Assert.Equal(1, row.CheckedInDays);
+        Assert.Equal(0, row.TotalPoints);
+        Assert.False(row.Cells.Single(cell => cell.ChallengeDay == 18).CountsForScore);
+    }
+
+    [Fact]
     public async Task DailySlipGetsMaxPointsOnlyAfterActuallyPerfectPreviousDay()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -1083,6 +1122,40 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         var rows = fixture.Service.GetFinalResultEventRows(DateTimeOffset.Parse("2026-06-26T09:00:00Z"));
         Assert.Empty(rows);
+    }
+
+    [Fact]
+    public async Task DayFourteenResultEventsUseSignupDateForOriginalWindowCutoff()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var signup = DateTimeOffset.Parse("2026-06-21T23:50:00Z");
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "last-day-signup@example.com",
+            "Last Day Lee",
+            "UTC",
+            null,
+            []), signup);
+
+        var access = await fixture.Service.ConfirmAsync(
+            ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
+            DateTimeOffset.Parse("2026-06-22T00:05:00Z"));
+
+        var day = Assert.Single(access.State.EligibleDays, day => day.ChallengeDay == 14);
+        Assert.False(day.CountsForScore);
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access.AccessToken,
+            14,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-22T08:00:00Z"));
+
+        var rows = fixture.Service.GetFinalResultEventRows(DateTimeOffset.Parse("2026-06-24T00:01:00Z"));
+        var row = Assert.Single(rows);
+        Assert.Equal("Last Day Lee", row.DisplayName);
+        Assert.Equal(1, row.CheckedInDays);
     }
 
     [Fact]

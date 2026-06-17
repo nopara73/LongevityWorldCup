@@ -1373,8 +1373,7 @@ public sealed class LongevitymaxxingChallengeService
     private static DateOnly GetJoinedLocalDate(ParticipantRecord participant)
     {
         var tz = ResolveTimeZone(participant.TimeZoneId);
-        var joinedAt = participant.ConfirmedAtUtc ?? participant.CreatedAtUtc;
-        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(joinedAt, tz).DateTime);
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(participant.CreatedAtUtc, tz).DateTime);
     }
 
     private static int CountConsecutiveMissedScoredDays(
@@ -1383,9 +1382,7 @@ public sealed class LongevitymaxxingChallengeService
         IReadOnlyDictionary<int, CheckInRecord> byDay,
         DateOnly targetDate)
     {
-        var tz = ResolveTimeZone(participant.TimeZoneId);
-        var joinedAt = participant.ConfirmedAtUtc ?? participant.CreatedAtUtc;
-        var joinedLocalDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(joinedAt, tz).DateTime);
+        var joinedLocalDate = GetJoinedLocalDate(participant);
         var missed = 0;
 
         for (var date = targetDate; date >= settings.StartDate && date >= joinedLocalDate; date = date.AddDays(-1))
