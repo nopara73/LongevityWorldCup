@@ -45,7 +45,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Need your check-in link?", html);
         Assert.Contains("private link", html);
         Assert.Contains("Send check-in link", html);
-        Assert.Contains("The first check-in email arrives the morning after Day 1", html);
+        Assert.Contains("The first check-in email arrives after your first eligible day", html);
         Assert.DoesNotContain("Get your link", html);
         Assert.DoesNotContain("daily max", html);
         Assert.Contains("peak points/day", html);
@@ -441,7 +441,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-home-status", css);
         Assert.Contains("function renderParticipantTabs", javascript);
         Assert.Contains("function renderParticipantHome", javascript);
-        Assert.Contains("Your first check-in email arrives the morning after Day 1. Nothing is due before then.", javascript);
+        Assert.Contains("Your first check-in email arrives after your first eligible day. Nothing is due before then.", javascript);
         Assert.Contains("Practice check-in", javascript);
         Assert.Contains("Counts for checked-in days and streak, not points.", javascript);
         Assert.Contains("later days score higher", javascript);
