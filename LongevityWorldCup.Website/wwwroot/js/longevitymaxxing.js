@@ -55,6 +55,7 @@
     const savedDays = new Set();
     const pendingNotePhotos = new Map();
     const pendingNotePhotoUrls = new Map();
+    const PARTICIPANT_TABS = ["checkin", "profile", "home"];
     const athleteSelectors = new Map();
     let athleteDirectory = [];
     let athleteDirectoryPromise = null;
@@ -62,6 +63,8 @@
     let boardScrollObservedElement = null;
     let dashboardScrollObserver = null;
     let dashboardScrollObservedElement = null;
+    let participantActiveTab = null;
+    let participantTabManual = false;
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -85,7 +88,6 @@
         const signupForm = document.getElementById("lmxSignupForm");
         const resendForm = document.getElementById("lmxResendForm");
         const editForm = document.getElementById("lmxEditForm");
-        const editToggle = document.getElementById("lmxEditToggle");
         const signupAgain = document.getElementById("lmxSignupAgain");
         const profilePictureInput = document.getElementById("lmxProfilePictureInput");
         const profilePictureButton = document.getElementById("lmxProfilePictureButton");
@@ -132,9 +134,10 @@
             }, "Sending...");
         });
 
-        editToggle.addEventListener("click", () => {
-            const form = document.getElementById("lmxEditForm");
-            form.classList.toggle("lmx-hidden");
+        document.querySelectorAll("[data-lmx-tab]").forEach(button => {
+            button.addEventListener("click", () => {
+                setParticipantTab(button.dataset.lmxTab, true);
+            });
         });
 
         profilePictureButton.addEventListener("click", () => {
@@ -584,7 +587,8 @@
     function renderPanels(state) {
         const hasParticipant = !!participantState;
         const pendingCheckInDays = hasParticipant ? getPendingCheckInDays(participantState) : [];
-        const checkInOnly = pendingCheckInDays.length > 0;
+        const activeParticipantTab = hasParticipant ? ensureParticipantTab(participantState) : null;
+        const checkInOnly = pendingCheckInDays.length > 0 && activeParticipantTab === "checkin";
         const dashboardMode = hasParticipant || !isPreStartSignup(state);
         const hero = document.getElementById("lmxHeroLayout");
         if (hero) {
@@ -603,11 +607,13 @@
         toggle("lmxTrack", hasParticipant && dashboardMode && !checkInOnly);
         toggle("lmxMetrics", hasParticipant && dashboardMode && !checkInOnly);
         toggle("lmxBoardSection", !checkInOnly);
-        toggle("lmxParticipantTools", !checkInOnly);
-        toggle("lmxParticipantCalls", hasParticipant && !checkInOnly);
-        toggle("lmxEditCallField", hasParticipant && hasOpenCallVoting(state) && !checkInOnly);
-        if (checkInOnly) toggle("lmxEditForm", false);
+        toggle("lmxParticipantTools", hasParticipant && activeParticipantTab === "home");
+        toggle("lmxParticipantCalls", hasParticipant && activeParticipantTab === "home");
+        toggle("lmxEditCallField", hasParticipant && hasOpenCallVoting(state));
+        renderParticipantTabs();
         if (!hasParticipant) {
+            participantActiveTab = null;
+            participantTabManual = false;
             setText("lmxResendTitle", "Need your check-in link?");
             setText(
                 "lmxResendCopy",
@@ -634,18 +640,12 @@
     function renderParticipant(state) {
         const participant = state.participant;
         const pendingCheckInDays = getPendingCheckInDays(state);
-        const title = pendingCheckInDays.length
-            ? `Check in, ${participant.displayName}`
-            : state.public.phase === "active"
-                ? `Caught up, ${participant.displayName}`
-                : `Ready, ${participant.displayName}`;
-        const kicker = pendingCheckInDays.length
-            ? "due now"
-            : state.public.phase === "signup" || state.public.phase === "roster"
-                ? "you're in"
-                : "caught up";
+        const activeTab = ensureParticipantTab(state);
+        const title = participantPanelTitle(activeTab, pendingCheckInDays, participant, state.public.phase);
+        const kicker = participantPanelKicker(activeTab, pendingCheckInDays, state.public.phase);
         setText("lmxParticipantKicker", kicker);
         setText("lmxParticipantTitle", title);
+        renderParticipantHome(state, pendingCheckInDays);
 
         document.getElementById("lmxEditName").value = participant.displayName || "";
         setAthleteSelectorValue("lmxEditAthlete", participant.athleteSlug || participant.athleteUrl || "");
@@ -655,6 +655,96 @@
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         renderCheckIns(state.eligibleDays || []);
         renderNotes(state.notes || state.public.notes || []);
+        renderParticipantTabs();
+    }
+
+    function participantPanelTitle(activeTab, pendingCheckInDays, participant, phase) {
+        const name = participant.displayName || "participant";
+        if (activeTab === "profile") return `Profile, ${name}`;
+        if (activeTab === "home") {
+            if (pendingCheckInDays.length) return `Home, ${name}`;
+            return phase === "active" ? `Caught up, ${name}` : `Ready, ${name}`;
+        }
+
+        return pendingCheckInDays.length ? `Check in, ${name}` : `Check-in, ${name}`;
+    }
+
+    function participantPanelKicker(activeTab, pendingCheckInDays, phase) {
+        if (activeTab === "profile") return "profile";
+        if (activeTab === "home") {
+            if (pendingCheckInDays.length) return "home";
+            return phase === "signup" || phase === "roster" ? "you're in" : "caught up";
+        }
+
+        return pendingCheckInDays.length ? "due now" : "no due day";
+    }
+
+    function renderParticipantHome(state, pendingCheckInDays) {
+        const hasDue = pendingCheckInDays.length > 0;
+        const nextCall = (state.calls || []).filter(call => !isParticipantCallDone(call))[0];
+        setText("lmxHomeStatusTitle", hasDue ? "Check-in open" : "Nothing due");
+        setText("lmxHomeStatusCopy", hasDue
+            ? "Use the Check-in tab when ready."
+            : nextCall
+                ? "Next call is listed below."
+                : "You're caught up.");
+    }
+
+    function ensureParticipantTab(state) {
+        if (!state) return null;
+
+        const fallback = getDefaultParticipantTab(state);
+        if (!PARTICIPANT_TABS.includes(participantActiveTab)) {
+            participantActiveTab = fallback;
+            participantTabManual = false;
+            return participantActiveTab;
+        }
+
+        if (!participantTabManual && participantActiveTab !== fallback) {
+            participantActiveTab = fallback;
+        }
+
+        return participantActiveTab;
+    }
+
+    function getDefaultParticipantTab(state) {
+        return getPendingCheckInDays(state).length ? "checkin" : "home";
+    }
+
+    function setParticipantTab(tab, manual) {
+        if (!PARTICIPANT_TABS.includes(tab) || !participantState) return;
+        participantActiveTab = tab;
+        participantTabManual = !!manual;
+        renderPanels(participantState.public);
+        renderParticipant(participantState);
+        if (tab === "checkin") {
+            document.getElementById("lmxParticipantPanel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }
+
+    function renderParticipantTabs() {
+        if (!participantState) return;
+        const activeTab = ensureParticipantTab(participantState);
+        PARTICIPANT_TABS.forEach(tab => {
+            const button = document.querySelector(`[data-lmx-tab="${tab}"]`);
+            const panel = getParticipantTabPanel(tab);
+            const isActive = tab === activeTab;
+            if (button) {
+                button.setAttribute("aria-selected", isActive ? "true" : "false");
+                button.removeAttribute("tabindex");
+            }
+            if (panel) {
+                panel.classList.toggle("lmx-hidden", !isActive);
+                panel.toggleAttribute("hidden", !isActive);
+            }
+        });
+    }
+
+    function getParticipantTabPanel(tab) {
+        if (tab === "checkin") return document.getElementById("lmxCheckinPanel");
+        if (tab === "profile") return document.getElementById("lmxEditForm");
+        if (tab === "home") return document.getElementById("lmxHomePanel");
+        return null;
     }
 
     function renderProfilePictureControls(participant) {
