@@ -105,6 +105,7 @@ public sealed class LongevitymaxxingChallengeService
             BuildDays(settings, visibleDayCount),
             leaderboard,
             BuildPodium(settings, leaderboard, now),
+            GetPublicParticipantNotes(),
             BuildPublicCalls(settings),
             settings.SlackInviteUrl,
             settings.SlackRoomUrl);
@@ -291,7 +292,7 @@ public sealed class LongevitymaxxingChallengeService
             publicState,
             participantSummary,
             BuildEligibleDays(BuildSettings(), participant, checkIns, now),
-            GetParticipantVisibleNotes(participant.Id),
+            publicState.Notes,
             BuildParticipantCalls(BuildSettings()),
             GetCallAvailability(participant.Id));
     }
@@ -1454,7 +1455,7 @@ public sealed class LongevitymaxxingChallengeService
         return 1d + ((FinalDayScoreMultiplier - 1d) * progress);
     }
 
-    private IReadOnlyList<LongevitymaxxingPrivateNote> GetParticipantVisibleNotes(string participantId)
+    private IReadOnlyList<LongevitymaxxingParticipantNote> GetPublicParticipantNotes()
     {
         return _db.Run(sqlite =>
         {
@@ -1495,7 +1496,7 @@ public sealed class LongevitymaxxingChallengeService
 
             var imagesByCheckIn = GetCheckInImagesFor(sqlite, participantIds);
             return rows
-                .Select(row => new LongevitymaxxingPrivateNote(
+                .Select(row => new LongevitymaxxingParticipantNote(
                     row.ParticipantId,
                     row.DisplayName,
                     row.ChallengeDay,

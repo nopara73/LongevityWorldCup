@@ -278,6 +278,8 @@
 
         if (participantState) {
             renderParticipant(participantState);
+        } else {
+            renderNotes(state.notes || []);
         }
 
         scrollBoardToLatestDay();
@@ -587,7 +589,7 @@
         toggle("lmxSignupPanel", !hasParticipant);
         toggle("lmxParticipantPanel", hasParticipant);
         toggle("lmxResendPanel", !hasParticipant);
-        toggle("lmxNotesPanel", hasParticipant && !checkInOnly);
+        toggle("lmxNotesPanel", dashboardMode && !checkInOnly);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
         toggle("lmxHabitHeading", !hasParticipant);
@@ -646,7 +648,7 @@
         renderCallVoteControls("lmxEditCalls", getOpenCallVoteCalls(state.public), state.callAvailability || []);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         renderCheckIns(state.eligibleDays || []);
-        renderNotes(state.notes || []);
+        renderNotes(state.notes || state.public.notes || []);
     }
 
     function renderProfilePictureControls(participant) {
@@ -1022,7 +1024,7 @@
             ${questions}
             <div class="lmx-field">
                 <label for="lmx-note-${day.challengeDay}">Participant note <span>optional</span></label>
-                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible to participants only">${esc(note)}</textarea>
+                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible publicly">${esc(note)}</textarea>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
                 <span class="lmx-label">Note photos <span>optional</span></span>

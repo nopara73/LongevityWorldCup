@@ -52,6 +52,7 @@ Use this as a compact guardrail for terms agents often misuse.
 - **Longevitymaxxing Challenge** call times may be selected before the challenge starts for 24-hour reminders.
 - **Longevitymaxxing Challenge** daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - **Longevitymaxxing Challenge** daily reminder emails continue indefinitely and stop after 3 consecutive missed scored days. Practice does not count, and days before a participant's local signup date do not count.
+- **Longevitymaxxing Challenge** participant check-in notes and note photos are public on the challenge page.
 - **Longevitymaxxing Challenge** profile pictures are challenge-only unless a linked **Longevity athlete** profile picture exists. Uploaded challenge images outrank cached Gravatar fallbacks.
 
 ## Naming Notes
