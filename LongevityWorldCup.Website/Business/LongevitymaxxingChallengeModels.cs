@@ -5,7 +5,8 @@ public sealed record LongevitymaxxingSignupRequest(
     string DisplayName,
     string TimeZoneId,
     string? AthleteLink,
-    IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? CallAvailability);
+    IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? CallAvailability,
+    decimal? CommitmentAmountUsd = null);
 
 public sealed record LongevitymaxxingCallAvailabilitySelection(string CallKey, string SlotId);
 
@@ -23,7 +24,10 @@ public sealed record LongevitymaxxingParticipantEditRequest(
     string DisplayName,
     string TimeZoneId,
     string? AthleteLink,
-    IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? CallAvailability);
+    IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? CallAvailability,
+    decimal? CommitmentAmountUsd = null);
+
+public sealed record LongevitymaxxingCommitmentPaymentRequest(string AccessToken);
 
 public sealed record LongevitymaxxingPublicState(
     string ChallengeName,
@@ -49,7 +53,9 @@ public sealed record LongevitymaxxingParticipantState(
     IReadOnlyList<LongevitymaxxingEligibleDay> EligibleDays,
     IReadOnlyList<LongevitymaxxingParticipantNote> Notes,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls,
-    IReadOnlyList<LongevitymaxxingCallAvailabilitySelection> CallAvailability);
+    IReadOnlyList<LongevitymaxxingCallAvailabilitySelection> CallAvailability,
+    LongevitymaxxingCommitmentState Commitment,
+    LongevitymaxxingCommitmentTrendGuidance TrendGuidance);
 
 public sealed record LongevitymaxxingSignupResult(string Message);
 
@@ -63,7 +69,8 @@ public sealed record LongevitymaxxingParticipantSummary(
     string? AthleteSlug,
     string? AthleteUrl,
     string? ProfileImageUrl,
-    bool ChallengeEmailsStopped);
+    bool ChallengeEmailsStopped,
+    decimal? CommitmentAmountUsd);
 
 public sealed record LongevitymaxxingDaySummary(int ChallengeDay, string Date);
 
@@ -77,7 +84,31 @@ public sealed record LongevitymaxxingLeaderboardRow(
     int CurrentStreak,
     IReadOnlyList<LongevitymaxxingDayCell> Cells,
     IReadOnlyList<string> Badges,
-    string? LatestCheckInAtUtc);
+    string? LatestCheckInAtUtc,
+    bool ChallengeEmailsStopped,
+    string? CommitmentStatus);
+
+public sealed record LongevitymaxxingCommitmentState(
+    string Status,
+    bool BlocksParticipant,
+    bool CanEditAmount,
+    bool CanPay,
+    decimal? AmountUsd,
+    decimal? OwedAmountUsd,
+    int? TriggerChallengeDay,
+    int? TriggerScore,
+    decimal? ThresholdAverage,
+    string? InvoiceId,
+    string? CheckoutLink,
+    string? InvoiceStatus,
+    string? Message);
+
+public sealed record LongevitymaxxingCommitmentTrendGuidance(
+    bool Enforced,
+    int PriorScoredDays,
+    decimal? AveragePoints,
+    int? NeededPoints,
+    string Text);
 
 public sealed record LongevitymaxxingDayCell(
     int ChallengeDay,
@@ -144,7 +175,10 @@ public sealed record LongevitymaxxingReminderCandidate(
     string TargetDate,
     bool CountsForScore,
     bool IncludeCallScheduleUpdate,
-    IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
+    IReadOnlyList<LongevitymaxxingParticipantCall> Calls,
+    bool IsCommitmentPaymentReminder = false,
+    decimal? CommitmentOwedAmountUsd = null,
+    int? CommitmentTriggerChallengeDay = null);
 
 public sealed record LongevitymaxxingCallReminderCandidate(
     string ParticipantId,

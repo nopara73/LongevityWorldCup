@@ -441,6 +441,34 @@
     line-height: 1.1;
 }
 
+.lmx-trend-guidance {
+    min-height: 2.4rem;
+    display: grid;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: center;
+    margin: -0.2rem 0 0.75rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    border-radius: 8px;
+    background: #fff7ed;
+    color: #7c2d12;
+    font-size: 0.84rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.lmx-trend-guidance i {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fed7aa;
+    color: #9a3412;
+}
+
 .lmx-dashboard-scroll {
     min-width: 0;
     width: 100%;
@@ -939,6 +967,11 @@
     border-color: rgba(0, 188, 212, 0.72);
 }
 
+.lmx-field input[aria-invalid="true"] {
+    border-color: rgba(185, 28, 28, 0.75);
+    box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12);
+}
+
 .lmx-athlete-selector {
     position: relative;
 }
@@ -1178,6 +1211,14 @@
     box-shadow: none;
 }
 
+.lmx-compact-button {
+    min-height: 2rem;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
 .lmx-button.slack {
     background: linear-gradient(135deg, #4a154b, #1264a3);
 }
@@ -1191,6 +1232,10 @@
     opacity: 0.6;
     cursor: not-allowed;
     box-shadow: none;
+}
+
+.lmx-button[aria-busy="true"] {
+    cursor: progress;
 }
 
 .lmx-status {
@@ -1297,6 +1342,119 @@
 .lmx-participant-actions {
     display: grid;
     gap: 0.8rem;
+}
+
+.lmx-participant-notice {
+    margin-top: 0;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid rgba(4, 120, 87, 0.18);
+    border-radius: 8px;
+    background: #ecfdf5;
+    color: #047857;
+    line-height: 1.35;
+}
+
+.lmx-participant-notice.error {
+    border-color: rgba(185, 28, 28, 0.22);
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.lmx-commitment-panel {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.lmx-commitment-card {
+    display: grid;
+    gap: 0.7rem;
+    padding: 0.8rem;
+    border: 1px solid rgba(185, 28, 28, 0.18);
+    border-radius: 8px;
+    background: #fff7ed;
+}
+
+.lmx-commitment-card > div > strong,
+.lmx-commitment-edit > strong {
+    display: block;
+    color: #0f172a;
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+.lmx-commitment-card > div > span {
+    display: block;
+    margin-top: 0.18rem;
+    color: #475569;
+    line-height: 1.4;
+}
+
+.lmx-commitment-card.due {
+    background: #fef2f2;
+}
+
+.lmx-commitment-main {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    align-items: center;
+}
+
+.lmx-commitment-main > i {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #dc2626;
+    color: #ffffff;
+}
+
+.lmx-commitment-main b {
+    min-width: 4.5rem;
+    padding: 0.35rem 0.55rem;
+    border-radius: 999px;
+    background: #991b1b;
+    color: #ffffff;
+    text-align: center;
+}
+
+.lmx-commitment-meta {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.lmx-commitment-meta span,
+.lmx-payment-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.8rem;
+    padding: 0 0.55rem;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.lmx-payment-link {
+    color: #075985;
+    background: #e0f2fe;
+}
+
+.lmx-commitment-hint {
+    color: #7f1d1d;
+    font-size: 0.82rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.lmx-commitment-edit {
+    display: grid;
+    gap: 0.55rem;
 }
 
 .lmx-board-wrap {
@@ -1434,6 +1592,10 @@
     background: rgba(248, 250, 252, 0.88);
 }
 
+.lmx-board-row.inactive {
+    opacity: 0.62;
+}
+
 .lmx-name {
     min-width: 0;
     display: grid;
@@ -1550,6 +1712,28 @@
 .lmx-participant-label {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+.lmx-row-badges {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    margin-top: 0.18rem;
+}
+
+.lmx-row-badges em {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.15rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 0.62rem;
+    font-style: normal;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
 }
 
 .lmx-empty-name {
