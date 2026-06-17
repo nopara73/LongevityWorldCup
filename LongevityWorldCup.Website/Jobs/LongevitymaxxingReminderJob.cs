@@ -36,6 +36,8 @@ public sealed class LongevitymaxxingReminderJob(
             }
         }
 
+        _challenge.ApplyDailyReminderStopRules(now);
+
         foreach (var reminder in _challenge.GetDailyReminderCandidates(now))
         {
             try
