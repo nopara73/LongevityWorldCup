@@ -1,19 +1,26 @@
 .lmx-page {
+    min-width: 0;
     max-width: 1280px;
     color: #172033;
     padding-block: 1.5rem 2.5rem;
 }
 
 .lmx-shell {
+    min-width: 0;
     display: grid;
     gap: 1rem;
 }
 
 .lmx-hero {
+    min-width: 0;
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
     gap: 1rem;
     align-items: start;
+}
+
+.lmx-hero > * {
+    min-width: 0;
 }
 
 .lmx-hero.checkin-only {
@@ -28,6 +35,7 @@
 .lmx-panel,
 .lmx-card,
 .lmx-board-wrap {
+    min-width: 0;
     background: rgba(255, 255, 255, 0.86);
     border: 1px solid rgba(15, 23, 42, 0.12);
     border-radius: 8px;
@@ -294,15 +302,16 @@
 }
 
 .lmx-track {
+    min-width: 0;
     margin-top: 1rem;
     padding: 0.85rem;
+    overflow: hidden;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.72);
     border: 1px solid rgba(15, 23, 42, 0.10);
 }
 
-.lmx-day-strip,
-.lmx-dashboard-days {
+.lmx-day-strip {
     display: grid;
     grid-template-columns: repeat(14, minmax(0, 1fr));
     gap: 0.35rem;
@@ -432,15 +441,49 @@
     line-height: 1.1;
 }
 
+.lmx-dashboard-scroll {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.28) rgba(226, 232, 240, 0.72);
+    -webkit-overflow-scrolling: touch;
+}
+
+.lmx-dashboard-scroll::-webkit-scrollbar {
+    height: 0.65rem;
+}
+
+.lmx-dashboard-scroll::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: rgba(226, 232, 240, 0.72);
+}
+
+.lmx-dashboard-scroll::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(248, 250, 252, 0.95);
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.28);
+}
+
 .lmx-dashboard-grid {
+    --lmx-dashboard-day-columns: repeat(14, 2.15rem);
+    --lmx-dashboard-min-width: 46.55rem;
+    --lmx-dashboard-category-width: 11rem;
+    --lmx-dashboard-gap: 0.55rem;
+    width: max-content;
+    min-width: var(--lmx-dashboard-min-width);
     display: grid;
     gap: 0.4rem;
 }
 
 .lmx-dashboard-row {
     display: grid;
-    grid-template-columns: minmax(9rem, 11rem) minmax(0, 1fr);
-    gap: 0.55rem;
+    grid-template-columns: var(--lmx-dashboard-category-width) max-content;
+    gap: var(--lmx-dashboard-gap);
     align-items: center;
 }
 
@@ -449,6 +492,35 @@
     font-size: 0.72rem;
     font-weight: 900;
     text-transform: uppercase;
+}
+
+.lmx-dashboard-corner,
+.lmx-dashboard-category {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+}
+
+.lmx-dashboard-corner {
+    align-self: stretch;
+    display: grid;
+    align-items: center;
+    padding: 0.35rem 0.55rem;
+    border-radius: 8px;
+    background: #eef2f7;
+    box-shadow: var(--lmx-dashboard-gap) 0 0 #ffffff;
+}
+
+.lmx-dashboard-category {
+    box-shadow:
+        var(--lmx-dashboard-gap) 0 0 #ffffff,
+        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+}
+
+.lmx-dashboard-days {
+    display: grid;
+    grid-template-columns: var(--lmx-dashboard-day-columns);
+    gap: 0.35rem;
 }
 
 .lmx-dashboard-day,
@@ -549,6 +621,7 @@
 }
 
 .lmx-category-day {
+    position: relative;
     color: #334155;
     background: #ffffff;
 }
@@ -1851,13 +1924,44 @@
         background: #ffffff;
     }
 
+    .lmx-dashboard-scroll {
+        overflow-x: visible;
+        scrollbar-gutter: auto;
+    }
+
+    .lmx-dashboard-grid {
+        min-width: 0;
+        width: 100%;
+    }
+
     .lmx-dashboard-row-head {
         display: none;
+    }
+
+    .lmx-dashboard-corner,
+    .lmx-dashboard-category {
+        position: static;
+        left: auto;
+        z-index: auto;
+        box-shadow: none;
     }
 
     .lmx-dashboard-days {
         grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 0.32rem;
+    }
+
+    .lmx-category-day[data-day]::before {
+        content: attr(data-day);
+        position: absolute;
+        top: 0.22rem;
+        left: 0.26rem;
+        color: rgba(15, 23, 42, 0.58);
+        font-family: Roboto, sans-serif;
+        font-size: 0.56rem;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: 0;
     }
 
 }

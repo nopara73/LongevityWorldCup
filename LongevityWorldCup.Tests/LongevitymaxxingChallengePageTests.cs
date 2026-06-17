@@ -241,6 +241,12 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("<h2>Category dashboard</h2>", javascript);
         Assert.DoesNotContain("<div role=\"columnheader\">Category</div>", javascript);
         Assert.Contains("<span class=\"lmx-mini-label\">your trend</span>", javascript);
+        Assert.Contains("class=\"lmx-dashboard-scroll\"", javascript);
+        Assert.Contains("class=\"lmx-dashboard-corner\" role=\"columnheader\">Habit", javascript);
+        Assert.Contains("--lmx-dashboard-day-columns: repeat(${dayCount}, 2.15rem);", javascript);
+        Assert.Contains("function scrollDashboardToLatestDay", javascript);
+        Assert.Contains("const scroller = document.querySelector(\"#lmxTrack .lmx-dashboard-scroll\");", javascript);
+        Assert.Contains("dashboardScrollObserver = new ResizeObserver(scrollRight);", javascript);
         Assert.Contains("function normalizeDashboardCells", javascript);
         Assert.Contains("function categoryDashboardRow", javascript);
         Assert.Contains("function categoryDayCell", javascript);
@@ -314,6 +320,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function getPendingCheckInDays", javascript);
         Assert.Contains("formatCheckInDate(day.date)", javascript);
         Assert.Contains(".lmx-dashboard-grid", css);
+        Assert.Contains(".lmx-dashboard-scroll", css);
+        Assert.Contains("--lmx-dashboard-category-width", css);
+        Assert.Contains(".lmx-dashboard-corner,", css);
+        Assert.Contains(".lmx-dashboard-category {", css);
+        Assert.Contains(".lmx-category-day[data-day]::before", css);
         Assert.Contains(".lmx-category-day.partial", css);
         Assert.Contains("background: linear-gradient(90deg, #bbf7d0 0 50%, #ffffff 50% 100%);", css);
         Assert.DoesNotContain("${value}</span>", javascript);
