@@ -1172,7 +1172,8 @@
         setBoardDayColumns(board, dayCount, false);
         updateInactiveToggle(state);
         const dayHeaders = (state.days || []).map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
-        const rows = splitLeaderboardRows(state).visible.map(row => {
+        const leaderboardRows = splitLeaderboardRows(state);
+        const rows = leaderboardRows.visible.map(row => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
@@ -1195,7 +1196,7 @@
             <div class="lmx-name lmx-sticky-heading" role="columnheader">Participant</div>
             <div class="lmx-number lmx-sticky-heading" role="columnheader">Score</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyBoardRow(dayCount, publicViewer)}`;
+        </div>${rows || emptyBoardRow(dayCount, leaderboardRows.inactive.length)}`;
     }
 
     function practiceDayCellHtml(cell) {
@@ -1277,7 +1278,8 @@
         setBoardDayColumns(board, dayCount, true);
         updateInactiveToggle(state);
         const dayHeaders = (state.days || []).map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
-        const rows = splitLeaderboardRows(state).visible.map(row => {
+        const leaderboardRows = splitLeaderboardRows(state);
+        const rows = leaderboardRows.visible.map(row => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
@@ -1292,7 +1294,7 @@
         board.innerHTML = `<div class="lmx-board-row lmx-roster-row header" role="row">
             <div class="lmx-name lmx-sticky-heading" role="columnheader">Participant</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyRosterRow(dayCount)}`;
+        </div>${rows || emptyRosterRow(dayCount, leaderboardRows.inactive.length)}`;
     }
 
     function setBoardDayColumns(board, dayCount, rosterMode) {
@@ -1386,20 +1388,29 @@
         }
     }
 
-    function emptyBoardRow(durationDays, publicViewer) {
+    function emptyBoardRow(durationDays, hiddenInactiveCount) {
+        const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
+        const message = hasHiddenInactive
+            ? `${hiddenInactiveCount} inactive participant${hiddenInactiveCount === 1 ? " is" : "s are"} hidden`
+            : "No one has joined yet";
+        const scoreLabel = hasHiddenInactive ? "Inactive participants hidden" : "No score yet";
         return `<div class="lmx-board-row" role="row">
             <div class="lmx-name" role="cell">
-                <span class="lmx-empty-name">No one has joined yet</span>
+                <span class="lmx-empty-name">${esc(message)}</span>
             </div>
-            <div class="lmx-number lmx-empty-score" role="cell" data-label="Score" aria-label="No score yet">-</div>
+            <div class="lmx-number lmx-empty-score" role="cell" data-label="Score" aria-label="${escAttr(scoreLabel)}">-</div>
             <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${Array.from({ length: durationDays }, (_, index) => `<div class="lmx-cell empty" data-day="${index + 1}"></div>`).join("")}</div>
         </div>`;
     }
 
-    function emptyRosterRow(durationDays) {
+    function emptyRosterRow(durationDays, hiddenInactiveCount) {
+        const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
+        const message = hasHiddenInactive
+            ? `${hiddenInactiveCount} inactive participant${hiddenInactiveCount === 1 ? " is" : "s are"} hidden`
+            : "No one has joined yet";
         return `<div class="lmx-board-row lmx-roster-row" role="row">
             <div class="lmx-name" role="cell">
-                <span class="lmx-empty-name">No one has joined yet</span>
+                <span class="lmx-empty-name">${esc(message)}</span>
             </div>
             <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${Array.from({ length: durationDays }, (_, index) => `<div class="lmx-cell empty" data-day="${index + 1}"></div>`).join("")}</div>
         </div>`;
