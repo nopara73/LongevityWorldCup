@@ -749,7 +749,7 @@
                 : `<span>${esc(row.displayName)}</span>`;
             const participant = participantNameHtml(row, name);
             const cells = (row.cells || []).map(cell => {
-                if (!cell.checkedIn) return `<div class="lmx-cell empty" title="Day ${cell.challengeDay}"></div>`;
+                if (!cell.checkedIn) return `<div class="lmx-cell empty" data-day="${escAttr(cell.challengeDay)}" title="Day ${cell.challengeDay}"></div>`;
                 if (cell.countsForScore === false) {
                     return practiceDayCellHtml(cell);
                 }
@@ -773,11 +773,11 @@
         const breakdown = habitBreakdown(cell);
         const title = practiceCellTitle(cell, breakdown);
         if (!breakdown.length) {
-            return `<div class="lmx-cell practice" title="${escAttr(title)}" aria-label="${escAttr(title)}"><i class="fa fa-rocket" aria-hidden="true"></i></div>`;
+            return `<div class="lmx-cell practice" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}"><i class="fa fa-rocket" aria-hidden="true"></i></div>`;
         }
 
         const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
-        return `<div class="lmx-cell lmx-cell-breakdown practice" title="${escAttr(title)}" aria-label="${escAttr(title)}">
+        return `<div class="lmx-cell lmx-cell-breakdown practice" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
             <span class="lmx-cell-score"><i class="fa fa-rocket" aria-hidden="true"></i></span>
             <span class="lmx-habit-marks">${marks}</span>
         </div>`;
@@ -789,13 +789,13 @@
         const title = habitCellTitle(cell, score, breakdown);
         if (!breakdown.length) {
             const scoreClass = score >= 8 ? "score-high" : score >= 4 ? "score-mid" : "score-low";
-            return `<div class="lmx-cell ${scoreClass}" title="${escAttr(title)}" aria-label="${escAttr(title)}">${score}</div>`;
+            return `<div class="lmx-cell ${scoreClass}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">${score}</div>`;
         }
 
         const rawScore = breakdown.reduce((sum, item) => sum + item.value, 0);
         const scoreClass = rawScore >= 6 ? "score-high" : rawScore >= 3 ? "score-mid" : "score-low";
         const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
-        return `<div class="lmx-cell lmx-cell-breakdown ${scoreClass}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
+        return `<div class="lmx-cell lmx-cell-breakdown ${scoreClass}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
             <span class="lmx-cell-score">${score}</span>
             <span class="lmx-habit-marks">${marks}</span>
         </div>`;
@@ -852,7 +852,7 @@
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
             const participant = participantNameHtml(row, name);
-            const cells = (row.cells || state.days || []).map(cell => `<div class="lmx-cell empty" title="Day ${cell.challengeDay}"></div>`).join("");
+            const cells = (row.cells || state.days || []).map(cell => `<div class="lmx-cell empty" data-day="${escAttr(cell.challengeDay)}" title="Day ${cell.challengeDay}"></div>`).join("");
             return `<div class="lmx-board-row lmx-roster-row" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${cells}</div>
@@ -908,7 +908,7 @@
                 <span class="lmx-empty-name">No one has joined yet</span>
             </div>
             <div class="lmx-number" role="cell" data-label="Score">0</div>
-            <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${Array.from({ length: durationDays }, () => `<div class="lmx-cell empty"></div>`).join("")}</div>
+            <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${Array.from({ length: durationDays }, (_, index) => `<div class="lmx-cell empty" data-day="${index + 1}"></div>`).join("")}</div>
         </div>`;
     }
 
@@ -917,7 +917,7 @@
             <div class="lmx-name" role="cell">
                 <span class="lmx-empty-name">No one has joined yet</span>
             </div>
-            <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${Array.from({ length: durationDays }, () => `<div class="lmx-cell empty"></div>`).join("")}</div>
+            <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${Array.from({ length: durationDays }, (_, index) => `<div class="lmx-cell empty" data-day="${index + 1}"></div>`).join("")}</div>
         </div>`;
     }
 

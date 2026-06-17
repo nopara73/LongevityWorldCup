@@ -262,6 +262,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("emptyRosterRow(dayCount)", javascript);
         Assert.Contains("class=\"lmx-name lmx-sticky-heading\" role=\"columnheader\">Participant", javascript);
         Assert.Contains("class=\"lmx-number lmx-sticky-heading\" role=\"columnheader\">Score", javascript);
+        Assert.Contains("data-day=\"${escAttr(cell.challengeDay)}\"", javascript);
+        Assert.Contains("data-day=\"${index + 1}\"", javascript);
         Assert.Contains("function setBoardDayColumns", javascript);
         Assert.Contains("--lmx-day-columns", javascript);
         Assert.Contains("var(--lmx-day-columns)", css);
@@ -269,9 +271,17 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);", javascript);
         Assert.Contains("new ResizeObserver(scrollRight)", javascript);
         Assert.Contains("scrollbar-gutter: stable;", css);
+        Assert.Contains("scroll-margin-top: 4.5rem;", css);
+        Assert.Contains("scroll-margin-top: 7.25rem;", css);
         Assert.Contains("--lmx-sticky-name-width", css);
         Assert.Contains("position: sticky;", css);
         Assert.Contains("left: calc(var(--lmx-sticky-name-width) + var(--lmx-board-gap) - var(--lmx-board-row-padding));", css);
+        Assert.Contains(".lmx-board-row > .lmx-name,", css);
+        Assert.Contains(".lmx-board-row.lmx-roster-row > .lmx-name,", css);
+        Assert.Contains(".lmx-board-row > .lmx-number,", css);
+        Assert.Contains(".lmx-board-row:not(.header):nth-child(even) > .lmx-number", css);
+        Assert.Contains(".lmx-cell[data-day]::before", css);
+        Assert.Contains("content: attr(data-day);", css);
         Assert.DoesNotContain("S/E/N/V dots show habit gaps", javascript);
         Assert.Contains("function scoredDayCellHtml", javascript);
         Assert.Contains("function practiceDayCellHtml", javascript);
