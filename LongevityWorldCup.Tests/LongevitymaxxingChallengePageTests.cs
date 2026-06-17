@@ -299,10 +299,14 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("row.totalPoints", javascript);
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
         Assert.Contains("lmx-cell-strip", javascript);
+        Assert.Contains("const leaderboardRows = splitLeaderboardRows(state);", javascript);
+        Assert.Contains("emptyBoardRow(dayCount, leaderboardRows.inactive.length)", javascript);
+        Assert.Contains("emptyRosterRow(dayCount, leaderboardRows.inactive.length)", javascript);
+        Assert.Contains("inactive participant${hiddenInactiveCount === 1 ? \" is\" : \"s are\"} hidden", javascript);
         Assert.Contains("const visibleDays = cells.length || state.durationDays || 14;", javascript);
         Assert.Contains("`${checkedCells.length}/${visibleDays} days`", javascript);
-        Assert.Contains("emptyBoardRow(dayCount, publicViewer)", javascript);
-        Assert.Contains("emptyRosterRow(dayCount)", javascript);
+        Assert.DoesNotContain("emptyBoardRow(dayCount, publicViewer)", javascript);
+        Assert.DoesNotContain("emptyRosterRow(dayCount)", javascript);
         Assert.Contains("class=\"lmx-name lmx-sticky-heading\" role=\"columnheader\">Participant", javascript);
         Assert.Contains("class=\"lmx-number lmx-sticky-heading\" role=\"columnheader\">Score", javascript);
         Assert.Contains("data-day=\"${escAttr(cell.challengeDay)}\"", javascript);
