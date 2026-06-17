@@ -1210,6 +1210,11 @@
 .lmx-board {
     --lmx-day-columns: repeat(14, 2.15rem);
     --lmx-board-min-width: 820px;
+    --lmx-sticky-name-width: 16rem;
+    --lmx-sticky-score-width: 4.8rem;
+    --lmx-board-gap: 0.35rem;
+    --lmx-board-row-padding: 0.35rem;
+    --lmx-sticky-gap-cover: calc(var(--lmx-board-gap) + 0.45rem);
     min-width: var(--lmx-board-min-width);
 }
 
@@ -1224,20 +1229,20 @@
 
 .lmx-board-row {
     display: grid;
-    grid-template-columns: 16rem 4.8rem var(--lmx-day-columns);
-    gap: 0.35rem;
+    grid-template-columns: var(--lmx-sticky-name-width) var(--lmx-sticky-score-width) var(--lmx-day-columns);
+    gap: var(--lmx-board-gap);
     align-items: center;
     min-height: 3rem;
-    padding: 0.35rem;
+    padding: var(--lmx-board-row-padding);
     border-radius: 8px;
 }
 
 .lmx-board.public .lmx-board-row {
-    grid-template-columns: 16rem 4.8rem var(--lmx-day-columns);
+    grid-template-columns: var(--lmx-sticky-name-width) var(--lmx-sticky-score-width) var(--lmx-day-columns);
 }
 
 .lmx-board-row.lmx-roster-row {
-    grid-template-columns: minmax(14rem, 1fr) var(--lmx-day-columns);
+    grid-template-columns: var(--lmx-sticky-name-width) var(--lmx-day-columns);
 }
 
 .lmx-cell-strip {
@@ -1263,6 +1268,83 @@
     min-width: 0;
     display: grid;
     gap: 0.2rem;
+}
+
+.lmx-board-row > .lmx-name,
+.lmx-board-row > .lmx-number {
+    position: sticky;
+    z-index: 2;
+    align-self: stretch;
+    background: #ffffff;
+}
+
+.lmx-board-row > .lmx-name {
+    left: calc(-1 * var(--lmx-board-row-padding));
+    align-content: center;
+    padding-inline: calc((var(--lmx-board-row-padding) * 2) + 0.35rem) 0.35rem;
+    border-radius: 0;
+    box-shadow: var(--lmx-board-gap) 0 0 #ffffff;
+}
+
+.lmx-board-row > .lmx-number {
+    left: calc(var(--lmx-sticky-name-width) + var(--lmx-board-gap) - var(--lmx-board-row-padding));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 7px 7px 0;
+    box-shadow:
+        var(--lmx-sticky-gap-cover) 0 0 #ffffff,
+        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+}
+
+.lmx-board-row.header > .lmx-name,
+.lmx-board-row.header > .lmx-number {
+    z-index: 4;
+    background: #eef2f7;
+}
+
+.lmx-board-row.header > .lmx-name {
+    box-shadow: var(--lmx-board-gap) 0 0 #eef2f7;
+}
+
+.lmx-board-row.header > .lmx-number {
+    box-shadow:
+        var(--lmx-sticky-gap-cover) 0 0 #eef2f7,
+        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+}
+
+.lmx-board-row:not(.header):nth-child(even) > .lmx-name,
+.lmx-board-row:not(.header):nth-child(even) > .lmx-number {
+    background: #f8fafc;
+}
+
+.lmx-board-row:not(.header):nth-child(even) > .lmx-name {
+    box-shadow: var(--lmx-board-gap) 0 0 #f8fafc;
+}
+
+.lmx-board-row:not(.header):nth-child(even) > .lmx-number {
+    box-shadow:
+        var(--lmx-sticky-gap-cover) 0 0 #f8fafc,
+        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+}
+
+.lmx-board-row.lmx-roster-row > .lmx-name {
+    border-radius: 0;
+    box-shadow:
+        var(--lmx-board-gap) 0 0 #ffffff,
+        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+}
+
+.lmx-board-row.lmx-roster-row.header > .lmx-name {
+    box-shadow:
+        var(--lmx-board-gap) 0 0 #eef2f7,
+        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
+}
+
+.lmx-board-row.lmx-roster-row:not(.header):nth-child(even) > .lmx-name {
+    box-shadow:
+        var(--lmx-board-gap) 0 0 #f8fafc,
+        0.55rem 0 0.75rem -0.82rem rgba(15, 23, 42, 0.55);
 }
 
 .lmx-participant-name {
@@ -1687,10 +1769,21 @@
 
     .lmx-name {
         grid-column: 1 / -1;
+        position: static;
+        left: auto;
+        z-index: auto;
+        align-self: auto;
+        padding-inline: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
     }
 
     .lmx-number {
         grid-column: span 2;
+        position: static;
+        left: auto;
+        z-index: auto;
         min-height: 2.5rem;
         padding: 0.35rem 0.45rem;
         border-radius: 8px;
