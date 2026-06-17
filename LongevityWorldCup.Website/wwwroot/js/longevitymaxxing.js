@@ -707,7 +707,7 @@
         renderProfilePictureControls(participant);
         renderCallVoteControls("lmxEditCalls", getOpenCallVoteCalls(state.public), state.callAvailability || []);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
-        renderCheckIns(state.eligibleDays || []);
+        if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || []);
         renderNotes(state.notes || state.public.notes || []);
         renderParticipantTabs();
     }
