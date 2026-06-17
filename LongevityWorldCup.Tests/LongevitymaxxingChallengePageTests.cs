@@ -265,6 +265,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Payment confirmed. Your check-ins are unlocked.", javascript);
         Assert.Contains("Create invoice", javascript);
         Assert.Contains("Open invoice", javascript);
+        Assert.Contains("const checkoutWindow = window.open(\"\", \"_blank\", \"noopener\");", javascript);
+        Assert.Contains("checkoutWindow.location = checkoutLink;", javascript);
+        Assert.Contains("window.location.href = checkoutLink;", javascript);
+        Assert.Contains("Invoice opened. After paying, refresh payment status here.", javascript);
         Assert.Contains("id=\"lmxSignupCommitmentAmount\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("id=\"lmxCommitmentPanel\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("id=\"lmxParticipantNotice\"", await client.GetStringAsync("/longevitymaxxing"));

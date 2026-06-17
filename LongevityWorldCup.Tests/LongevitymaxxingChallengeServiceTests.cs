@@ -1229,6 +1229,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var blocked = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
         Assert.Equal("needs-amount", blocked.Commitment.Status);
         Assert.True(blocked.Commitment.BlocksParticipant);
+        Assert.True(blocked.Commitment.CanEditAmount);
+        Assert.False(blocked.Commitment.CanPay);
+        Assert.Contains("Configure an amount that'd hurt before continuing.", blocked.Commitment.Message);
         Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(
             new LongevitymaxxingCheckInRequest(access, 1, 2, 2, 2, 2, null),
             DateTimeOffset.Parse("2026-06-09T08:05:00Z")));
@@ -1272,6 +1275,81 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.DoesNotContain("amountUsd", publicJson, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("owedAmountUsd", publicJson, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("commitmentAmountUsd", publicJson, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CommitmentCanTriggerAfterOriginalDurationOnDay15()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("day15-commitment@example.com", "Day Fifteen Dana");
+        SubmitChallengeDays(fixture, access, 14, 2, 2, 2, 2);
+
+        var due = fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            15,
+            0,
+            0,
+            0,
+            0,
+            null), DateTimeOffset.Parse("2026-06-23T08:00:00Z"));
+
+        Assert.Equal("due", due.Commitment.Status);
+        Assert.True(due.Commitment.BlocksParticipant);
+        Assert.Equal(15, due.Commitment.TriggerChallengeDay);
+        Assert.Equal(0, due.Commitment.TriggerScore);
+        Assert.True(due.Commitment.ThresholdAverage >= 10m);
+        Assert.Equal("commitment-due", due.Public.Leaderboard.Single().CommitmentStatus);
+        Assert.True(due.Public.Leaderboard.Single().Cells.Single(cell => cell.ChallengeDay == 15).CheckedIn);
+    }
+
+    [Fact]
+    public async Task PostDay14SignupKeepsCommitmentClearThroughPersonalPracticeDay()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var signup = DateTimeOffset.Parse("2026-06-25T12:00:00Z");
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "post-day14-commitment@example.com",
+            "Post Day Paula",
+            "UTC",
+            null,
+            [],
+            25m), signup);
+        var access = await fixture.Service.ConfirmAsync(ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"), signup.AddMinutes(1));
+
+        var nextDay = fixture.Service.GetParticipantState(access.AccessToken, DateTimeOffset.Parse("2026-06-26T08:05:00Z"));
+        var practice = Assert.Single(nextDay.EligibleDays);
+        Assert.Equal(18, practice.ChallengeDay);
+        Assert.False(practice.CountsForScore);
+
+        var practiceState = fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access.AccessToken,
+            18,
+            0,
+            0,
+            0,
+            0,
+            null), DateTimeOffset.Parse("2026-06-26T08:10:00Z"));
+
+        Assert.Equal("clear", practiceState.Commitment.Status);
+        Assert.False(practiceState.Commitment.BlocksParticipant);
+        var row = Assert.Single(practiceState.Public.Leaderboard);
+        Assert.Null(row.CommitmentStatus);
+        Assert.Null(row.Cells.Single(cell => cell.ChallengeDay == 18).Score);
+    }
+
+    [Fact]
+    public async Task TrendGuidanceIncludesScoringForgivenessAllowance()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("trend-forgiveness@example.com", "Trend Tina");
+        SubmitChallengeDays(fixture, access, 4, 2, 2, 2, 2);
+
+        var state = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T09:00:00Z"));
+
+        Assert.True(state.TrendGuidance.Enforced);
+        Assert.Equal(3, state.TrendGuidance.PriorScoredDays);
+        Assert.Contains("Next scored day: need at least", state.TrendGuidance.Text);
+        Assert.Contains("you can miss one whole habit or two somewhat", state.TrendGuidance.Text);
     }
 
     [Fact]
@@ -1421,6 +1499,22 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Equal("due", partial.Commitment.Status);
         Assert.True(partial.Commitment.BlocksParticipant);
+
+        fixture.Btcpay.LookupResults["lmx-invoice-1"] = BtcpayInvoiceClient.ParseInvoiceJson(
+            """
+            {
+              "status": "Settled",
+              "amount": "25",
+              "currency": "USD",
+              "paidAmount": "10",
+              "checkoutLink": "https://btcpay.example.test/i/lmx-invoice-1"
+            }
+            """);
+
+        var settledPartial = await fixture.Service.RefreshCommitmentPaymentStatusAsync(access, DateTimeOffset.Parse("2026-06-13T09:02:30Z"));
+
+        Assert.Equal("due", settledPartial.Commitment.Status);
+        Assert.True(settledPartial.Commitment.BlocksParticipant);
 
         fixture.Btcpay.LookupResults["lmx-invoice-1"] = BtcpayInvoiceClient.ParseInvoiceJson(
             """
