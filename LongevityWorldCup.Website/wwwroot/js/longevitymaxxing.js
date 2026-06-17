@@ -763,8 +763,8 @@
         }).join("");
 
         board.innerHTML = `<div class="lmx-board-row header" role="row">
-            <div role="columnheader">Participant</div>
-            <div role="columnheader">Score</div>
+            <div class="lmx-name lmx-sticky-heading" role="columnheader">Participant</div>
+            <div class="lmx-number lmx-sticky-heading" role="columnheader">Score</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
         </div>${rows || emptyBoardRow(dayCount, publicViewer)}`;
     }
@@ -860,7 +860,7 @@
         }).join("");
 
         board.innerHTML = `<div class="lmx-board-row lmx-roster-row header" role="row">
-            <div role="columnheader">Participant</div>
+            <div class="lmx-name lmx-sticky-heading" role="columnheader">Participant</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
         </div>${rows || emptyRosterRow(dayCount)}`;
     }

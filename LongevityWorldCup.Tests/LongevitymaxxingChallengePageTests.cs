@@ -260,6 +260,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("`${checkedCells.length}/${visibleDays} days`", javascript);
         Assert.Contains("emptyBoardRow(dayCount, publicViewer)", javascript);
         Assert.Contains("emptyRosterRow(dayCount)", javascript);
+        Assert.Contains("class=\"lmx-name lmx-sticky-heading\" role=\"columnheader\">Participant", javascript);
+        Assert.Contains("class=\"lmx-number lmx-sticky-heading\" role=\"columnheader\">Score", javascript);
         Assert.Contains("function setBoardDayColumns", javascript);
         Assert.Contains("--lmx-day-columns", javascript);
         Assert.Contains("var(--lmx-day-columns)", css);
@@ -267,6 +269,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);", javascript);
         Assert.Contains("new ResizeObserver(scrollRight)", javascript);
         Assert.Contains("scrollbar-gutter: stable;", css);
+        Assert.Contains("--lmx-sticky-name-width", css);
+        Assert.Contains("position: sticky;", css);
+        Assert.Contains("left: calc(var(--lmx-sticky-name-width) + var(--lmx-board-gap) - var(--lmx-board-row-padding));", css);
         Assert.DoesNotContain("S/E/N/V dots show habit gaps", javascript);
         Assert.Contains("function scoredDayCellHtml", javascript);
         Assert.Contains("function practiceDayCellHtml", javascript);
