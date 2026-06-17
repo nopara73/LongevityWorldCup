@@ -1391,7 +1391,7 @@
             <div class="lmx-name" role="cell">
                 <span class="lmx-empty-name">No one has joined yet</span>
             </div>
-            <div class="lmx-number" role="cell" data-label="Score">0</div>
+            <div class="lmx-number lmx-empty-score" role="cell" data-label="Score" aria-label="No score yet">-</div>
             <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${Array.from({ length: durationDays }, (_, index) => `<div class="lmx-cell empty" data-day="${index + 1}"></div>`).join("")}</div>
         </div>`;
     }
