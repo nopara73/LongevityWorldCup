@@ -1875,9 +1875,6 @@ public sealed class LongevitymaxxingChallengeService
 
     private static bool IsCommitmentInvoicePaid(BtcpayInvoiceLookupResult invoice, PaymentObligation obligation)
     {
-        if (string.Equals(invoice.Status, "Settled", StringComparison.OrdinalIgnoreCase))
-            return true;
-
         var paidAmount = invoice.PaidAmount ?? ParseDecimal(invoice.PaidAmountText);
         if (paidAmount is null)
             return false;
