@@ -1185,6 +1185,26 @@
 .lmx-board-scroll {
     overflow-x: auto;
     padding: 0.35rem;
+    overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.28) rgba(226, 232, 240, 0.72);
+    -webkit-overflow-scrolling: touch;
+}
+
+.lmx-board-scroll::-webkit-scrollbar {
+    height: 0.65rem;
+}
+
+.lmx-board-scroll::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: rgba(226, 232, 240, 0.72);
+}
+
+.lmx-board-scroll::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(248, 250, 252, 0.95);
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.28);
 }
 
 .lmx-board {

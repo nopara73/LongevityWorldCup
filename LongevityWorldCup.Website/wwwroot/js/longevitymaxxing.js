@@ -58,6 +58,8 @@
     const athleteSelectors = new Map();
     let athleteDirectory = [];
     let athleteDirectoryPromise = null;
+    let boardScrollObserver = null;
+    let boardScrollObservedElement = null;
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -70,6 +72,7 @@
         try {
             await consumeUrlTokens();
             await refreshState();
+            scrollBoardToLatestDay();
         } catch (err) {
             setStatus("lmxSignupStatus", messageOf(err), true);
             if (!publicState) await refreshPublicOnly();
@@ -276,6 +279,8 @@
         if (participantState) {
             renderParticipant(participantState);
         }
+
+        scrollBoardToLatestDay();
     }
 
     function renderMetrics(state) {
@@ -863,6 +868,36 @@
         board.style.setProperty("--lmx-day-columns", `repeat(${count}, 2.15rem)`);
         const baseWidthRem = rosterMode ? 14.35 : 21.15;
         board.style.setProperty("--lmx-board-min-width", `${(baseWidthRem + (count * 2.5)).toFixed(2)}rem`);
+    }
+
+    function scrollBoardToLatestDay() {
+        const scroller = document.querySelector("#lmxBoardSection .lmx-board-scroll");
+        if (!scroller) return;
+
+        const scrollRight = () => {
+            scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+        };
+
+        requestAnimationFrame(() => {
+            scrollRight();
+            requestAnimationFrame(scrollRight);
+            window.setTimeout(scrollRight, 120);
+            window.setTimeout(scrollRight, 500);
+            window.setTimeout(scrollRight, 1200);
+        });
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(scrollRight).catch(() => { });
+        }
+
+        if (window.ResizeObserver && boardScrollObservedElement !== scroller) {
+            if (boardScrollObserver) boardScrollObserver.disconnect();
+            boardScrollObservedElement = scroller;
+            boardScrollObserver = new ResizeObserver(scrollRight);
+            boardScrollObserver.observe(scroller);
+            const board = document.getElementById("lmxBoard");
+            if (board) boardScrollObserver.observe(board);
+        }
     }
 
     function emptyBoardRow(durationDays, publicViewer) {
