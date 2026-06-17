@@ -142,23 +142,24 @@
                         <span id="lmxParticipantKicker" class="lmx-mini-label">check-in</span>
                         <h2 id="lmxParticipantTitle">Check in</h2>
                     </div>
-                    <div id="lmxParticipantTools" class="lmx-button-row">
-                        <a id="lmxSlackInviteLink" class="lmx-button slack" href="#" target="_blank" rel="noopener">
-                            <i class="fab fa-slack" aria-hidden="true"></i>
-                            Join Slack
-                        </a>
-                        <a id="lmxSlackRoomLink" class="lmx-button secondary lmx-hidden" href="#" target="_blank" rel="noopener">
-                            <i class="fas fa-hashtag" aria-hidden="true"></i>
-                            Slack room
-                        </a>
-                        <button id="lmxEditToggle" class="lmx-button secondary" type="button">
+                    <div id="lmxParticipantTabs" class="lmx-tabs" role="tablist" aria-label="Participant tabs">
+                        <button id="lmxCheckinTab" class="lmx-tab" type="button" role="tab" aria-controls="lmxCheckinPanel" aria-selected="true" data-lmx-tab="checkin">
+                            <i class="fas fa-check" aria-hidden="true"></i>
+                            Check-in
+                        </button>
+                        <button id="lmxProfileTab" class="lmx-tab" type="button" role="tab" aria-controls="lmxEditForm" aria-selected="false" data-lmx-tab="profile">
                             <i class="fas fa-user-pen" aria-hidden="true"></i>
                             Profile
                         </button>
+                        <button id="lmxHomeTab" class="lmx-tab" type="button" role="tab" aria-controls="lmxHomePanel" aria-selected="false" data-lmx-tab="home">
+                            <i class="fas fa-house" aria-hidden="true"></i>
+                            Home
+                        </button>
                     </div>
-                    <div id="lmxCheckinList" class="lmx-checkin-list"></div>
-                    <div id="lmxParticipantCalls" class="lmx-call-votes"></div>
-                    <form id="lmxEditForm" class="lmx-form lmx-hidden">
+                    <div id="lmxCheckinPanel" class="lmx-tab-panel" role="tabpanel" aria-labelledby="lmxCheckinTab">
+                        <div id="lmxCheckinList" class="lmx-checkin-list"></div>
+                    </div>
+                    <form id="lmxEditForm" class="lmx-form lmx-tab-panel lmx-hidden" role="tabpanel" aria-labelledby="lmxProfileTab">
                         <div class="lmx-field">
                             <label for="lmxEditName">Username</label>
                             <input id="lmxEditName" autocomplete="username" required maxlength="80">
@@ -196,6 +197,26 @@
                         <button class="lmx-button" type="submit">Save</button>
                         <div id="lmxEditStatus" class="lmx-status"></div>
                     </form>
+                    <div id="lmxHomePanel" class="lmx-tab-panel lmx-hidden" role="tabpanel" aria-labelledby="lmxHomeTab">
+                        <div class="lmx-home-status">
+                            <i class="fas fa-house" aria-hidden="true"></i>
+                            <div>
+                                <strong id="lmxHomeStatusTitle">Nothing due</strong>
+                                <span id="lmxHomeStatusCopy">You're caught up.</span>
+                            </div>
+                        </div>
+                        <div id="lmxParticipantTools" class="lmx-button-row">
+                            <a id="lmxSlackInviteLink" class="lmx-button slack" href="#" target="_blank" rel="noopener">
+                                <i class="fab fa-slack" aria-hidden="true"></i>
+                                Join Slack
+                            </a>
+                            <a id="lmxSlackRoomLink" class="lmx-button secondary lmx-hidden" href="#" target="_blank" rel="noopener">
+                                <i class="fas fa-hashtag" aria-hidden="true"></i>
+                                Slack room
+                            </a>
+                        </div>
+                        <div id="lmxParticipantCalls" class="lmx-call-votes"></div>
+                    </div>
                 </div>
 
             </aside>
