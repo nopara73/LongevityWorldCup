@@ -728,6 +728,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal(3, beforeThreshold[0].ChallengeDay);
 
         Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-12T08:05:00Z")));
+        var stillActive = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T08:05:30Z"));
+        Assert.False(stillActive.Participant.ChallengeEmailsStopped);
+
+        fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-12T08:05:00Z"));
         var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T08:06:00Z"));
         Assert.True(stopped.Participant.ChallengeEmailsStopped);
         Assert.True(stopped.Public.Leaderboard.Single().ChallengeEmailsStopped);
@@ -760,6 +764,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var access = await fixture.ConfirmParticipantAsync("resume@example.com", "Resume Rae");
 
         Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-12T08:05:00Z")));
+        fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-12T08:05:00Z"));
         var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T08:06:00Z"));
         Assert.True(stopped.Participant.ChallengeEmailsStopped);
 
@@ -1270,6 +1275,55 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task SignupCannotMutateExistingParticipantWhileCommitmentIsDue()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await CreateCommitmentDueParticipantAsync(fixture, "blocked-signup@example.com", "Blocked Bea");
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "blocked-signup@example.com",
+            "Renamed Bea",
+            "Europe/Budapest",
+            "/athlete/renamed-bea",
+            [new("kickoff", "kickoff-b")],
+            99m), DateTimeOffset.Parse("2026-06-13T10:00:00Z"));
+
+        var state = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-13T10:01:00Z"));
+
+        Assert.Equal("Blocked Bea", state.Participant.DisplayName);
+        Assert.Equal("UTC", state.Participant.TimeZoneId);
+        Assert.Null(state.Participant.AthleteSlug);
+        Assert.Equal(25m, state.Participant.CommitmentAmountUsd);
+        Assert.Empty(state.CallAvailability);
+        Assert.Equal("due", state.Commitment.Status);
+        Assert.Single(fixture.Email.AccessLinks);
+    }
+
+    [Fact]
+    public async Task DatabaseRejectsDuplicateActiveCommitmentObligations()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await CreateCommitmentDueParticipantAsync(fixture, "duplicate-obligation@example.com", "Duplicate Dee");
+        var participantId = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-13T09:10:00Z")).Participant.Id;
+
+        Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => fixture.Db.Run(sqlite =>
+        {
+            using var insert = sqlite.CreateCommand();
+            insert.CommandText =
+                """
+                INSERT INTO LongevitymaxxingPaymentObligations
+                (Id, ParticipantId, TriggerChallengeDay, TriggerScore, ThresholdAverage, AmountUsd, CreatedAtUtc, UpdatedAtUtc)
+                VALUES (@id, @participantId, 6, 1, '8', '25', @created, @updated);
+                """;
+            insert.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N"));
+            insert.Parameters.AddWithValue("@participantId", participantId);
+            insert.Parameters.AddWithValue("@created", "2026-06-13T09:11:00.0000000+00:00");
+            insert.Parameters.AddWithValue("@updated", "2026-06-13T09:11:00.0000000+00:00");
+            insert.ExecuteNonQuery();
+        }));
+    }
+
+    [Fact]
     public async Task EditingTriggerDayCanClearCommitmentBlock()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -1425,6 +1479,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.DoesNotContain("pay the price", emailContent.TextBody, StringComparison.OrdinalIgnoreCase);
 
         Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-15T08:05:00Z")));
+        var stillActive = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-15T08:05:30Z"));
+        Assert.False(stillActive.Participant.ChallengeEmailsStopped);
+
+        fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-15T08:05:00Z"));
         var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-15T08:06:00Z"));
         Assert.True(stopped.Participant.ChallengeEmailsStopped);
         Assert.True(stopped.Public.Leaderboard.Single().ChallengeEmailsStopped);

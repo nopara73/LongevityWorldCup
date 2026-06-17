@@ -208,6 +208,8 @@ public sealed class LongevitymaxxingChallengeService
                 confirmationToken = existing.ConfirmationToken;
                 accessToken = existing.AccessToken;
                 stopToken = existing.StopToken;
+                if (HasActivePaymentObligation(sqlite, existing.Id))
+                    return;
 
                 using var update = sqlite.CreateCommand();
                 update.CommandText =
@@ -216,17 +218,7 @@ public sealed class LongevitymaxxingChallengeService
                     SET DisplayName = @name,
                         TimeZoneId = @tz,
                         AthleteSlug = @athlete,
-                        CommitmentAmountUsd = CASE
-                            WHEN EXISTS (
-                                SELECT 1
-                                FROM LongevitymaxxingPaymentObligations
-                                WHERE ParticipantId = @id
-                                  AND PaidAtUtc IS NULL
-                                  AND ClearedAtUtc IS NULL
-                                LIMIT 1
-                            ) THEN CommitmentAmountUsd
-                            ELSE @commitmentAmount
-                        END,
+                        CommitmentAmountUsd = @commitmentAmount,
                         UpdatedAtUtc = @updated
                     WHERE Id = @id;
                     """;
@@ -804,10 +796,7 @@ public sealed class LongevitymaxxingChallengeService
                 checkIns.TryGetValue(participant.Id, out var obligationByDay);
                 obligationByDay ??= [];
                 if (!IsCommitmentTriggerEditable(settings, participant, activeObligation, now, obligationByDay))
-                {
-                    StopParticipantEmails(participant.Id, now);
                     continue;
-                }
 
                 if (WasReminderSent(participant.Id, challengeDay.Value, CommitmentPaymentReminderKind))
                     continue;
@@ -835,10 +824,7 @@ public sealed class LongevitymaxxingChallengeService
             byDay ??= [];
 
             if (CountConsecutiveMissedScoredDays(settings, participant, byDay, targetDate) >= MaxConsecutiveMissedScoredDaysForDailyReminders)
-            {
-                StopParticipantEmails(participant.Id, now);
                 continue;
-            }
 
             if (WasReminderSent(participant.Id, challengeDay.Value, "daily"))
                 continue;
@@ -858,6 +844,49 @@ public sealed class LongevitymaxxingChallengeService
         }
 
         return candidates;
+    }
+
+    public void ApplyDailyReminderStopRules(DateTimeOffset? nowUtc = null)
+    {
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        var settings = BuildSettings();
+        var participants = GetConfirmedParticipants()
+            .Where(p => p.StoppedEmailsAtUtc is null)
+            .ToList();
+        var checkIns = GetCheckInsFor(participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
+
+        foreach (var participant in participants)
+        {
+            var tz = ResolveTimeZone(participant.TimeZoneId);
+            var localNow = TimeZoneInfo.ConvertTime(now, tz);
+            if (localNow.Hour < settings.DailyReminderHourLocal)
+                continue;
+
+            var targetDate = DateOnly.FromDateTime(localNow.DateTime).AddDays(-1);
+            if (targetDate < GetJoinedLocalDate(participant))
+                continue;
+
+            var challengeDay = DayFromDate(settings, targetDate);
+            if (challengeDay is null)
+                continue;
+
+            checkIns.TryGetValue(participant.Id, out var byDay);
+            byDay ??= [];
+
+            var activeObligation = GetActivePaymentObligation(participant.Id);
+            if (activeObligation is not null)
+            {
+                if (!IsCommitmentTriggerEditable(settings, participant, activeObligation, now, byDay))
+                    StopParticipantEmails(participant.Id, now);
+                continue;
+            }
+
+            if (byDay.ContainsKey(challengeDay.Value))
+                continue;
+
+            if (CountConsecutiveMissedScoredDays(settings, participant, byDay, targetDate) >= MaxConsecutiveMissedScoredDaysForDailyReminders)
+                StopParticipantEmails(participant.Id, now);
+        }
     }
 
     public void MarkDailyReminderSent(string participantId, int challengeDay, DateTimeOffset? nowUtc = null)
@@ -1155,6 +1184,10 @@ public sealed class LongevitymaxxingChallengeService
 
                 CREATE INDEX IF NOT EXISTS IX_LongevitymaxxingPaymentObligations_ParticipantActive
                     ON LongevitymaxxingPaymentObligations(ParticipantId, PaidAtUtc, ClearedAtUtc);
+
+                CREATE UNIQUE INDEX IF NOT EXISTS UX_LongevitymaxxingPaymentObligations_ParticipantActive
+                    ON LongevitymaxxingPaymentObligations(ParticipantId)
+                    WHERE PaidAtUtc IS NULL AND ClearedAtUtc IS NULL;
                 """;
             cmd.ExecuteNonQuery();
 
@@ -1666,7 +1699,7 @@ public sealed class LongevitymaxxingChallengeService
             using var insert = sqlite.CreateCommand();
             insert.CommandText =
                 """
-                INSERT INTO LongevitymaxxingPaymentObligations
+                INSERT OR IGNORE INTO LongevitymaxxingPaymentObligations
                 (Id, ParticipantId, TriggerChallengeDay, TriggerScore, ThresholdAverage, AmountUsd, CreatedAtUtc, UpdatedAtUtc)
                 VALUES (@id, @participantId, @triggerDay, @triggerScore, @thresholdAverage, @amountUsd, @created, @updated);
                 """;
@@ -1726,6 +1759,22 @@ public sealed class LongevitymaxxingChallengeService
     private PaymentObligation? GetActivePaymentObligation(string participantId)
         => GetActivePaymentObligations(new HashSet<string>(StringComparer.Ordinal) { participantId })
             .GetValueOrDefault(participantId);
+
+    private static bool HasActivePaymentObligation(SqliteConnection sqlite, string participantId)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            """
+            SELECT 1
+            FROM LongevitymaxxingPaymentObligations
+            WHERE ParticipantId = @participantId
+              AND PaidAtUtc IS NULL
+              AND ClearedAtUtc IS NULL
+            LIMIT 1;
+            """;
+        Add(cmd, "@participantId", participantId);
+        return cmd.ExecuteScalar() is not null;
+    }
 
     private IReadOnlyDictionary<string, PaymentObligation> GetActivePaymentObligations(IReadOnlySet<string> participantIds)
     {
