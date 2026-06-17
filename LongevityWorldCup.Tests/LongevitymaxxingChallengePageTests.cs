@@ -258,6 +258,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function setBoardDayColumns", javascript);
         Assert.Contains("--lmx-day-columns", javascript);
         Assert.Contains("var(--lmx-day-columns)", css);
+        Assert.Contains("function scrollBoardToLatestDay", javascript);
+        Assert.Contains("scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);", javascript);
+        Assert.Contains("new ResizeObserver(scrollRight)", javascript);
+        Assert.Contains("scrollbar-gutter: stable;", css);
         Assert.DoesNotContain("S/E/N/V dots show habit gaps", javascript);
         Assert.Contains("function scoredDayCellHtml", javascript);
         Assert.Contains("function practiceDayCellHtml", javascript);
