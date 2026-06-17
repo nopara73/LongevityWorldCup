@@ -820,6 +820,20 @@
     line-height: 1.35;
 }
 
+.lmx-commitment-help,
+.lmx-commitment-copy {
+    padding: 0.58rem 0.65rem;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #334155;
+    text-wrap: pretty;
+}
+
+.lmx-commitment-copy {
+    margin-top: 0.35rem;
+}
+
 .lmx-field input,
 .lmx-field select,
 .lmx-field textarea {
@@ -867,9 +881,43 @@
     padding: 0 0.75rem;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
     cursor: pointer;
     font-weight: 900;
     color: #1e293b;
+    list-style: none;
+}
+
+.lmx-details summary::marker {
+    content: "";
+}
+
+.lmx-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.lmx-details summary::after {
+    content: "\f078";
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    background: #ffffff;
+    color: #475569;
+    font-family: "Font Awesome 6 Free";
+    font-size: 0.72rem;
+    font-weight: 900;
+    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.lmx-details[open] summary::after {
+    transform: rotate(180deg);
+    color: #0f172a;
+    background: #e0f2fe;
 }
 
 .lmx-details-body {
@@ -1088,7 +1136,7 @@
     display: flex;
     gap: 0.6rem;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: stretch;
 }
 
 .lmx-tabs {
@@ -1202,6 +1250,28 @@
     background: linear-gradient(135deg, #059669, #14b8a6);
     color: #ffffff;
     box-shadow: 0 6px 14px rgba(20, 184, 166, 0.22);
+    transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.lmx-button i {
+    width: 1em;
+    flex: 0 0 1em;
+    text-align: center;
+}
+
+.lmx-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(20, 184, 166, 0.26);
+}
+
+.lmx-button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(20, 184, 166, 0.20);
+}
+
+.lmx-button:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.32);
+    outline-offset: 2px;
 }
 
 .lmx-button.secondary {
@@ -1211,9 +1281,15 @@
     box-shadow: none;
 }
 
+.lmx-button.secondary:hover:not(:disabled) {
+    border-color: rgba(15, 23, 42, 0.26);
+    background: #f8fafc;
+    box-shadow: none;
+}
+
 .lmx-compact-button {
-    min-height: 2rem;
-    padding: 0.28rem 0.55rem;
+    min-height: 2.15rem;
+    padding: 0.32rem 0.62rem;
     border-radius: 999px;
     font-size: 0.78rem;
     font-weight: 900;
@@ -1367,8 +1443,8 @@
 
 .lmx-commitment-card {
     display: grid;
-    gap: 0.7rem;
-    padding: 0.8rem;
+    gap: 0.75rem;
+    padding: 0.85rem;
     border: 1px solid rgba(185, 28, 28, 0.18);
     border-radius: 8px;
     background: #fff7ed;
@@ -1396,7 +1472,7 @@
 .lmx-commitment-main {
     display: grid;
     grid-template-columns: 2.25rem minmax(0, 1fr) auto;
-    gap: 0.65rem;
+    gap: 0.65rem 0.75rem;
     align-items: center;
 }
 
@@ -1418,6 +1494,7 @@
     background: #991b1b;
     color: #ffffff;
     text-align: center;
+    white-space: nowrap;
 }
 
 .lmx-commitment-meta {
@@ -1443,6 +1520,11 @@
 .lmx-payment-link {
     color: #075985;
     background: #e0f2fe;
+}
+
+.lmx-button-row .lmx-payment-link {
+    min-height: 44px;
+    padding-inline: 0.75rem;
 }
 
 .lmx-commitment-hint {
@@ -2086,6 +2168,21 @@
     .lmx-board-header {
         align-items: flex-start;
         flex-direction: column;
+        gap: 0.8rem;
+        padding: 0.85rem;
+    }
+
+    .lmx-board-legend {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .lmx-board-legend .lmx-habit-key {
+        min-height: 2.15rem;
+    }
+
+    .lmx-board-legend .lmx-compact-button {
+        min-height: 44px;
     }
 
     .lmx-board-wrap {
@@ -2251,10 +2348,59 @@
         padding-inline: 0.55rem;
     }
 
+    .lmx-card {
+        padding: 0.85rem;
+    }
+
+    .lmx-card-head {
+        margin-bottom: 0.7rem;
+    }
+
     .lmx-tab {
         gap: 0.28rem;
         padding-inline: 0.32rem;
         font-size: 0.84rem;
+    }
+
+    .lmx-tab i {
+        width: 1rem;
+    }
+
+    .lmx-commitment-main {
+        grid-template-columns: 2.25rem minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .lmx-commitment-main b {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .lmx-commitment-meta span,
+    .lmx-payment-link {
+        min-height: 2rem;
+    }
+
+    .lmx-button-row .lmx-button,
+    .lmx-button-row .lmx-payment-link {
+        flex: 1 1 100%;
+    }
+
+    .lmx-profile-upload {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .lmx-profile-preview {
+        justify-self: start;
+    }
+
+    .lmx-profile-upload-actions {
+        width: 100%;
+    }
+
+    .lmx-profile-upload-actions .lmx-button {
+        width: 100%;
     }
 
     .lmx-title-row h1 {
@@ -2314,5 +2460,17 @@
 
     .lmx-resend-panel .lmx-status {
         grid-column: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lmx-button,
+    .lmx-details summary::after {
+        transition: none;
+    }
+
+    .lmx-button:hover:not(:disabled),
+    .lmx-button:active:not(:disabled) {
+        transform: none;
     }
 }

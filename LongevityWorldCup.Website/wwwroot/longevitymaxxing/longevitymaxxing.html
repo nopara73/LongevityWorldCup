@@ -100,7 +100,7 @@
                             </div>
                             <div class="lmx-field">
                                 <label for="lmxSignupCommitmentAmount">Commitment amount</label>
-                                <p id="lmxSignupCommitmentHelp" class="lmx-field-help">Required. Configure an amount that'd hurt. If a future scored check-in lands below your recent average, this amount becomes due before you continue.</p>
+                                <p id="lmxSignupCommitmentHelp" class="lmx-field-help lmx-commitment-help">Required. Configure an amount that'd hurt. If a future scored check-in lands below your recent average, this amount becomes due before you continue.</p>
                                 <input id="lmxSignupCommitmentAmount" name="commitmentAmountUsd" type="number" min="1" step="0.01" inputmode="decimal" required placeholder="25" aria-describedby="lmxSignupCommitmentHelp">
                             </div>
                             <details id="lmxSignupDetails" class="lmx-details">
@@ -182,7 +182,7 @@
                         </div>
                         <div class="lmx-field">
                             <label for="lmxEditCommitmentAmount">Commitment amount</label>
-                            <p class="lmx-field-help">Configure an amount that'd hurt. If you fall below your recent average, this locked amount becomes due before you continue.</p>
+                            <p class="lmx-field-help lmx-commitment-help">Configure an amount that'd hurt. If you fall below your recent average, this locked amount becomes due before you continue.</p>
                             <input id="lmxEditCommitmentAmount" type="number" min="1" step="0.01" inputmode="decimal" required>
                         </div>
                         <div id="lmxProfilePictureField" class="lmx-field lmx-profile-picture-field">

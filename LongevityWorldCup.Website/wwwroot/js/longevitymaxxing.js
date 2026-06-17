@@ -843,7 +843,7 @@
                 <form id="lmxCommitmentAmountForm" class="lmx-commitment-card">
                     <div>
                         <strong>Set your commitment amount</strong>
-                        <span>Configure an amount that'd hurt. If a future scored check-in lands below your recent average, this amount becomes due before you continue.</span>
+                        <span class="lmx-commitment-copy">Configure an amount that'd hurt. If a future scored check-in lands below your recent average, this amount becomes due before you continue.</span>
                     </div>
                     <div class="lmx-field">
                         <label for="lmxBlockedCommitmentAmount">USD amount</label>
