@@ -73,6 +73,7 @@
     async function init() {
         fillTimeZones(document.getElementById("lmxSignupTimeZone"));
         fillTimeZones(document.getElementById("lmxEditTimeZone"));
+        renderQuestionPreview();
         wireForms();
         initAthleteSelectors();
 
@@ -93,7 +94,6 @@
         const signupAgain = document.getElementById("lmxSignupAgain");
         const profilePictureInput = document.getElementById("lmxProfilePictureInput");
         const profilePictureButton = document.getElementById("lmxProfilePictureButton");
-        const signupTimeZone = document.getElementById("lmxSignupTimeZone");
         const editTimeZone = document.getElementById("lmxEditTimeZone");
         const inactiveToggle = document.getElementById("lmxInactiveToggle");
         wireCommitmentAmountValidation("lmxSignupCommitmentAmount");
@@ -109,7 +109,6 @@
                     displayName: document.getElementById("lmxSignupName").value.trim(),
                     timeZoneId: document.getElementById("lmxSignupTimeZone").value,
                     athleteLink: getAthleteSelectorPayload("lmxSignupAthlete"),
-                    callAvailability: collectAvailability("lmxSignupCalls"),
                     commitmentAmountUsd: parseCommitmentAmount("lmxSignupCommitmentAmount")
                 };
                 const result = await postJson(`${API}/signup`, payload);
@@ -168,7 +167,6 @@
                     displayName: document.getElementById("lmxEditName").value.trim(),
                     timeZoneId: document.getElementById("lmxEditTimeZone").value,
                     athleteLink: getAthleteSelectorPayload("lmxEditAthlete"),
-                    callAvailability: collectAvailability("lmxEditCalls"),
                     commitmentAmountUsd: parseCommitmentAmount("lmxEditCommitmentAmount")
                 });
                 participantState = result;
@@ -183,14 +181,8 @@
             if (publicState) renderBoard(publicState);
         });
 
-        signupTimeZone.addEventListener("change", () => {
-            if (publicState) renderCallsForSignup(publicState);
-        });
-
         editTimeZone.addEventListener("change", () => {
-            if (!participantState) return;
-            renderCallVoteControls("lmxEditCalls", participantState.public.calls || [], participantState.callAvailability || []);
-            renderParticipantCalls(participantState.calls || [], participantState.public.callSelectionClosesAtUtc);
+            if (participantState) renderParticipantCalls(participantState.calls || [], participantState.public.callSelectionClosesAtUtc);
         });
     }
 
@@ -293,7 +285,6 @@
         renderMetrics(state);
         renderHeroContext(state);
         renderChallengeVisuals(state);
-        renderCallsForSignup(state);
         renderBoard(state);
         renderPanels(state);
         scrollDashboardToLatestDay();
@@ -307,18 +298,29 @@
         scrollBoardToLatestDay();
     }
 
+    function renderQuestionPreview() {
+        const list = document.getElementById("lmxQuestionPreviewList");
+        if (!list) return;
+
+        list.innerHTML = QUESTIONS.map(q => `
+            <div class="lmx-question-preview-item">
+                <div class="lmx-question-preview-label">
+                    <i class="fas ${q.icon}" aria-hidden="true"></i>
+                    <span>${esc(q.text)}</span>
+                </div>
+            </div>`).join("");
+    }
+
     function renderMetrics(state) {
         const preStartSignup = isPreStartSignup(state);
         const boardRows = splitLeaderboardRows(state);
         const checks = boardRows.active.reduce((sum, row) => sum + row.checkedInDays, 0);
         setText("lmxMetricPeople", String(boardRows.active.length));
         setText("lmxMetricChecks", String(checks));
-        setText("lmxMetricMax", String(state.dailyMaxScore || 11));
+        setText("lmxMetricMax", "4");
         setText("lmxMetricPhase", phaseLabel(state.phase));
         setText("lmxHeroStatus", phaseLabel(state.phase));
-        setText("lmxPhaseLabel", phaseLabel(state.phase));
-        const startLabel = formatDateLabel(state.startDate);
-        setText("lmxStartChip", preStartSignup ? `Starts ${startLabel}` : `Started ${startLabel}`);
+        setText("lmxStartChip", "Agency > Outcome");
         const boardSection = document.getElementById("lmxBoardSection");
         if (boardSection) boardSection.classList.toggle("signup-roster", preStartSignup);
         if (preStartSignup) {
@@ -328,8 +330,7 @@
             setText("lmxBoardTitle", "Live leaderboard");
             setText("lmxBoardMeta", `${boardRows.active.length} active people · ${checks} check-ins · later days score higher · one slip can still score max, never twice in a row`);
         }
-        setText("lmxSignupKicker", "free signup");
-        setText("lmxSignupTitle", preStartSignup ? `Join free before ${formatDateLabel(state.startDate)}` : "Join free today");
+        setText("lmxSignupKicker", "signup for free");
     }
 
     function renderHeroContext(state) {
@@ -341,6 +342,9 @@
         if (!highlights || !life) return;
 
         if (!dashboardMode) {
+            toggle("lmxHeroStatus", true);
+            toggle("lmxHeroMode", true);
+            toggle("lmxHeroCopy", true);
             setText("lmxHeroMode", `Starts ${formatDateLabel(state.startDate)}`);
             setText("lmxHeroCopy", "Track four daily habits and get sleep, movement, food, and vices back under control.");
             highlights.className = "lmx-benefit-strip";
@@ -353,36 +357,33 @@
             life.className = "lmx-life-strip";
             life.setAttribute("aria-label", "Real life compatible challenge");
             life.innerHTML = `
-                <strong>For busy people.</strong>
-                <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
-                <span><i class="fas fa-child" aria-hidden="true"></i>Children compatible</span>
                 <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
-                <span><i class="fas fa-heart-pulse" aria-hidden="true"></i>Injury compatible</span>`;
+                <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
+                <span><i class="fas fa-people-roof" aria-hidden="true"></i>Family compatible</span>
+                <span><i class="fas fa-notes-medical" aria-hidden="true"></i>Illness compatible</span>`;
             return;
         }
 
         if (!hasParticipant) {
-            setText("lmxHeroMode", "Live leaderboard");
-            setText(
-                "lmxHeroCopy",
-                "Signup is open today. Join from the card and start from your private link.");
+            toggle("lmxHeroStatus", false);
+            toggle("lmxHeroMode", false);
+            toggle("lmxHeroCopy", false);
             highlights.className = "lmx-benefit-strip lmx-ops-strip";
             highlights.setAttribute("aria-label", "Challenge status");
             const boardRows = splitLeaderboardRows(state);
             highlights.innerHTML = [
                 opsTile("People", boardRows.active.length, "fa-users"),
                 opsTile("Check-ins", boardRows.active.reduce((sum, row) => sum + row.checkedInDays, 0), "fa-list-check"),
-                opsTile("Peak points/day", state.dailyMaxScore || 11, "fa-bolt"),
-                opsTile("Status", phaseLabel(state.phase), "fa-signal")
+                opsTile("Agencies", 4, "fa-layer-group"),
+                opsTile("", phaseLabel(state.phase), "fa-signal")
             ].join("");
             life.className = "lmx-life-strip lmx-ops-status";
-            life.setAttribute("aria-label", "Public challenge status");
+            life.setAttribute("aria-label", "Challenge compatibility");
             life.innerHTML = `
-                <strong>Live board</strong>
-                <span><i class="fas fa-ranking-star" aria-hidden="true"></i>Leaderboard</span>
-                <span><i class="fas fa-table-cells" aria-hidden="true"></i>Daily grid</span>
-                <span><i class="fas fa-envelope" aria-hidden="true"></i>Daily check-ins</span>
-                <em>Participants use private email links to check in.</em>`;
+                <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
+                <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
+                <span><i class="fas fa-people-roof" aria-hidden="true"></i>Family compatible</span>
+                <span><i class="fas fa-notes-medical" aria-hidden="true"></i>Illness compatible</span>`;
             return;
         }
 
@@ -393,8 +394,11 @@
         const row = rowIndex >= 0 ? leaderboard[rowIndex] : null;
         const duration = (state.days || []).length || state.durationDays || 14;
 
+        toggle("lmxHeroStatus", true);
+        toggle("lmxHeroMode", true);
+        toggle("lmxHeroCopy", true);
         setText("lmxHeroMode", "You're in");
-        setText("lmxHeroCopy", "Use this page for check-ins, standings, calls, and participant notes.");
+        setText("lmxHeroCopy", "Use this page for check-ins, standings, scheduled calls, and participant notes.");
         highlights.className = "lmx-benefit-strip lmx-ops-strip";
         highlights.setAttribute("aria-label", "Participant status");
         highlights.innerHTML = [
@@ -411,9 +415,10 @@
     }
 
     function opsTile(label, value, icon) {
-        return `<div class="lmx-ops-tile">
+        const hasLabel = !!String(label || "").trim();
+        return `<div class="lmx-ops-tile${hasLabel ? "" : " no-label"}">
             <i class="fas ${escAttr(icon)}" aria-hidden="true"></i>
-            <span>${esc(label)}</span>
+            ${hasLabel ? `<span>${esc(label)}</span>` : ""}
             <strong>${esc(value)}</strong>
         </div>`;
     }
@@ -657,16 +662,12 @@
         toggle("lmxHomePanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
         toggle("lmxParticipantTools", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
         toggle("lmxParticipantCalls", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
-        toggle("lmxEditCallField", hasParticipant && !commitmentBlocked && hasOpenCallVoting(state));
         renderParticipantTabs();
         if (!hasParticipant) {
             participantActiveTab = null;
             participantTabManual = false;
             participantNotice = null;
-            setText("lmxResendTitle", "Need your check-in link?");
-            setText(
-                "lmxResendCopy",
-                "Already joined or opened this page in a new browser? Enter your email and we will send your private link.");
+            setText("lmxResendTitle", "Check-in link");
             setText("lmxResendButtonText", "Send check-in link");
         }
         const details = document.getElementById("lmxSignupDetails");
@@ -705,7 +706,6 @@
         const commitmentInput = document.getElementById("lmxEditCommitmentAmount");
         if (commitmentInput) commitmentInput.disabled = state.commitment?.canEditAmount === false;
         renderProfilePictureControls(participant);
-        renderCallVoteControls("lmxEditCalls", getOpenCallVoteCalls(state.public), state.callAvailability || []);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || []);
         renderNotes(state.notes || state.public.notes || []);
@@ -876,11 +876,11 @@
                 <form id="lmxCommitmentAmountForm" class="lmx-commitment-card">
                     <div>
                         <strong>Set your commitment amount</strong>
-                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Configure an amount that'd hurt. If a future scored check-in lands below your recent average, this amount becomes due before you continue.</span>
+                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Set a real stake. Pay it only if you fall below your recent average, or stop there; choose an amount that'll hurt.</span>
                     </div>
                     <div class="lmx-field">
                         <label for="lmxBlockedCommitmentAmount">USD amount</label>
-                        <input id="lmxBlockedCommitmentAmount" type="number" min="1" step="0.01" inputmode="decimal" required placeholder="25" aria-describedby="lmxBlockedCommitmentHelp">
+                        <input id="lmxBlockedCommitmentAmount" type="text" inputmode="decimal" required placeholder="$300" aria-describedby="lmxBlockedCommitmentHelp">
                     </div>
                     <button class="lmx-button" type="submit">
                         <i class="fas fa-lock-open" aria-hidden="true"></i>
@@ -986,7 +986,6 @@
                 displayName: participant.displayName || "",
                 timeZoneId: participant.timeZoneId || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
                 athleteLink: participant.athleteSlug || participant.athleteUrl || null,
-                callAvailability: participantState.callAvailability || [],
                 commitmentAmountUsd: parseCommitmentAmount("lmxBlockedCommitmentAmount")
             });
             participantState = result;
@@ -1094,39 +1093,6 @@
         preview.setAttribute("aria-hidden", profileImage ? "false" : "true");
         image.src = profileImage || ATHLETE_PLACEHOLDER_IMAGE;
         image.alt = profileImage ? `${participant.displayName || "Participant"} profile picture` : "";
-    }
-
-    function renderCallsForSignup(state) {
-        const field = document.getElementById("lmxSignupCallField");
-        const container = document.getElementById("lmxSignupCalls");
-        const summary = document.getElementById("lmxSignupDetailsSummary");
-        const calls = getOpenCallVoteCalls(state);
-        if (summary) summary.textContent = calls.length ? "Timezone, profile, and calls" : "Timezone and profile";
-        if (!calls.length) {
-            if (container) container.innerHTML = "";
-            if (field) field.classList.add("lmx-hidden");
-            return;
-        }
-
-        if (field) field.classList.remove("lmx-hidden");
-        renderCallVoteControls("lmxSignupCalls", calls, []);
-    }
-
-    function renderCallVoteControls(containerId, calls, selected) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        const selectedKeys = new Set((selected || []).map(x => `${x.callKey}:${x.slotId}`));
-        container.innerHTML = (calls || []).map(call => {
-            const slots = (call.candidateSlots || []).map(slot => {
-                const id = `${containerId}-${call.key}-${slot.id}`.replace(/[^a-zA-Z0-9_-]/g, "-");
-                const checked = selectedKeys.has(`${call.key}:${slot.id}`) ? " checked" : "";
-                return `<label class="lmx-check" for="${escAttr(id)}">
-                    <input id="${escAttr(id)}" type="checkbox" data-call-key="${escAttr(call.key)}" data-slot-id="${escAttr(slot.id)}"${checked}>
-                    <span>${esc(formatDateTime(slot.startsAtUtc, getCallDisplayTimeZone(containerId)))}</span>
-                </label>`;
-            }).join("");
-            return `<div class="lmx-call-group"><strong>${esc(call.label)}</strong>${slots || "<span>No slots yet.</span>"}</div>`;
-        }).join("");
     }
 
     function renderParticipantCalls(calls, callSelectionClosesAtUtc) {
@@ -1299,9 +1265,9 @@
 
     function setBoardDayColumns(board, dayCount, rosterMode) {
         const count = Math.max(1, Math.trunc(Number(dayCount) || 14));
-        board.style.setProperty("--lmx-day-columns", `repeat(${count}, 2.15rem)`);
+        board.style.setProperty("--lmx-day-columns", `repeat(${count}, 2.55rem)`);
         const baseWidthRem = rosterMode ? 14.35 : 21.15;
-        board.style.setProperty("--lmx-board-min-width", `${(baseWidthRem + (count * 2.5)).toFixed(2)}rem`);
+        board.style.setProperty("--lmx-board-min-width", `${(baseWidthRem + (count * 2.9)).toFixed(2)}rem`);
     }
 
     function splitLeaderboardRows(state) {
@@ -1866,18 +1832,11 @@
         }).join("");
     }
 
-    function collectAvailability(containerId) {
-        return Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`))
-            .map(input => ({
-                callKey: input.dataset.callKey,
-                slotId: input.dataset.slotId
-            }));
-    }
-
     function parseCommitmentAmount(inputId) {
         const input = document.getElementById(inputId);
         const raw = String(input?.value || "").trim();
-        const value = Number(raw);
+        const normalized = raw.replace(/^\$/, "").trim();
+        const value = Number(normalized);
         if (!Number.isFinite(value) || value < 1) {
             const message = raw ? "Commitment amount must be at least USD 1." : "Enter a commitment amount of at least USD 1.";
             markCommitmentAmountInvalid(input, message, true);
@@ -1978,7 +1937,8 @@
             .then(data => {
                 athleteDirectory = (Array.isArray(data) ? data : [])
                     .map(a => ({
-                        name: String(a.Name || "").trim(),
+                        name: String(a.DisplayName || a.Name || "").trim(),
+                        legalName: String(a.Name || "").trim(),
                         slug: String(a.AthleteSlug || "").trim(),
                         profilePic: String(a.ProfilePicLeaderboardThumb || a.ProfilePicThumb || a.ProfilePic || "").trim()
                     }))
@@ -2006,6 +1966,7 @@
             input.setAttribute("role", "combobox");
             input.setAttribute("aria-autocomplete", "list");
             input.setAttribute("aria-expanded", "false");
+            input.setAttribute("aria-haspopup", "listbox");
         });
 
         loadAthleteDirectory()
@@ -2016,13 +1977,18 @@
         if (athleteSelectors.has(input.id)) return;
 
         let currentFocus = -1;
+        const selected = document.getElementById(`${input.id}Selected`);
+        const clearButton = document.getElementById(`${input.id}Clear`);
         const selector = {
             input,
             athletes,
             setValue(value) {
                 const raw = String(value || "").trim();
                 const normalized = normalizeAthleteSlug(raw);
-                const match = athletes.find(a => normalizeAthleteSlug(a.slug) === normalized);
+                const match = athletes.find(a =>
+                    normalizeAthleteSlug(a.slug) === normalized ||
+                    a.name.toLowerCase() === raw.toLowerCase() ||
+                    a.legalName.toLowerCase() === raw.toLowerCase());
                 if (match) {
                     select(match);
                     return;
@@ -2030,6 +1996,42 @@
 
                 input.value = raw;
                 clearSelection();
+                updateSelectedState(null);
+            },
+            clear() {
+                input.value = "";
+                clearSelection();
+                updateSelectedState(null);
+                closeList();
+            },
+            getPayload() {
+                const raw = input.value.trim();
+                if (!raw) {
+                    input.setCustomValidity?.("");
+                    return null;
+                }
+
+                const selectedName = input.dataset.athleteName || "";
+                if (input.dataset.athleteSlug && raw.toLowerCase() === selectedName.toLowerCase()) {
+                    input.setCustomValidity?.("");
+                    return input.dataset.athleteSlug;
+                }
+
+                const normalized = normalizeAthleteSlug(raw);
+                const match = athletes.find(a =>
+                    a.name.toLowerCase() === raw.toLowerCase() ||
+                    a.legalName.toLowerCase() === raw.toLowerCase() ||
+                    normalizeAthleteSlug(a.slug) === normalized);
+                if (match) {
+                    select(match);
+                    input.setCustomValidity?.("");
+                    return match.slug;
+                }
+
+                const message = "Select an athlete from the list or clear this field.";
+                input.setCustomValidity?.(message);
+                input.reportValidity?.();
+                throw new Error(message);
             }
         };
 
@@ -2037,8 +2039,14 @@
         selector.setValue(input.value);
 
         input.addEventListener("input", () => {
+            input.setCustomValidity?.("");
             clearSelection();
+            updateSelectedState(null);
             renderSuggestions();
+        });
+
+        input.addEventListener("focus", () => {
+            if (!input.value.trim()) renderSuggestions(true);
         });
 
         input.addEventListener("keydown", event => {
@@ -2065,28 +2073,38 @@
             if (!input.closest(".lmx-athlete-selector")?.contains(event.target)) closeList();
         });
 
-        function renderSuggestions() {
+        clearButton?.addEventListener("click", () => {
+            selector.clear();
+            input.focus();
+        });
+
+        function renderSuggestions(showInitial) {
             const query = input.value.trim().toLowerCase();
             const terms = query.split(/\s+/).filter(Boolean);
             closeList();
-            if (!terms.length) return;
+            if (!terms.length && !showInitial) return;
 
             const matches = athletes
                 .filter(a => {
+                    if (!terms.length) return true;
                     const name = a.name.toLowerCase();
+                    const legalName = a.legalName.toLowerCase();
                     const slug = normalizeAthleteSlug(a.slug);
-                    return terms.every(term => name.includes(term) || slug.includes(term));
+                    return terms.every(term => name.includes(term) || legalName.includes(term) || slug.includes(term));
                 })
                 .slice(0, 6);
-
-            if (!matches.length) return;
 
             const list = document.createElement("div");
             list.id = `${input.id}-autocomplete-list`;
             list.className = "lmx-athlete-options";
             list.setAttribute("role", "listbox");
-            input.parentNode.appendChild(list);
+            input.closest(".lmx-athlete-picker")?.appendChild(list);
             input.setAttribute("aria-expanded", "true");
+
+            if (!matches.length) {
+                list.innerHTML = `<div class="lmx-athlete-empty" role="option" aria-disabled="true">No listed athlete found</div>`;
+                return;
+            }
 
             matches.forEach(athlete => {
                 const item = document.createElement("div");
@@ -2094,7 +2112,7 @@
                 item.setAttribute("role", "option");
                 item.innerHTML = `
                     ${athlete.profilePic ? `<img src="${escAttr(athlete.profilePic)}" alt="" loading="lazy">` : "<span class=\"lmx-athlete-fallback\"></span>"}
-                    <span>${highlightMatch(athlete.name, terms[0])}</span>`;
+                    <span><span class="lmx-athlete-name">${highlightMatch(athlete.name, terms[0] || "")}</span><em>${esc(athlete.slug.replace(/_/g, "-"))}</em></span>`;
                 item.addEventListener("mousedown", event => {
                     event.preventDefault();
                     select(athlete);
@@ -2108,11 +2126,26 @@
             input.value = athlete.name;
             input.dataset.athleteSlug = athlete.slug;
             input.dataset.athleteName = athlete.name;
+            input.setCustomValidity?.("");
+            updateSelectedState(athlete);
         }
 
         function clearSelection() {
             delete input.dataset.athleteSlug;
             delete input.dataset.athleteName;
+        }
+
+        function updateSelectedState(athlete) {
+            const hasSelection = !!athlete;
+            input.classList.toggle("has-athlete-selection", hasSelection);
+            clearButton?.classList.toggle("lmx-hidden", !hasSelection && !input.value.trim());
+
+            if (!selected) return;
+            selected.classList.toggle("lmx-hidden", !hasSelection);
+            selected.innerHTML = hasSelection
+                ? `${athlete.profilePic ? `<img src="${escAttr(athlete.profilePic)}" alt="" loading="lazy">` : "<span class=\"lmx-athlete-fallback\"></span>"}
+                   <span><strong>${esc(athlete.name)}</strong><em>${esc(athlete.slug.replace(/_/g, "-"))}</em></span>`
+                : "";
         }
 
         function closeList() {
@@ -2132,21 +2165,19 @@
     }
 
     function getAthleteSelectorPayload(id) {
+        const selector = athleteSelectors.get(id);
+        if (selector) return selector.getPayload();
+
         const input = document.getElementById(id);
         if (!input) return null;
 
         const raw = input.value.trim();
         if (!raw) return null;
 
-        const selectedName = input.dataset.athleteName || "";
-        if (input.dataset.athleteSlug && raw.toLowerCase() === selectedName.toLowerCase()) {
-            return input.dataset.athleteSlug;
-        }
-
-        const normalized = normalizeAthleteSlug(raw);
-        const match = athleteSelectors.get(id)?.athletes.find(a =>
-            a.name.toLowerCase() === raw.toLowerCase() || normalizeAthleteSlug(a.slug) === normalized);
-        return match ? match.slug : raw;
+        const message = "Select an athlete from the list or clear this field.";
+        input.setCustomValidity?.(message);
+        input.reportValidity?.();
+        throw new Error(message);
     }
 
     function setAthleteSelectorValue(id, value) {
@@ -2161,11 +2192,18 @@
     }
 
     function clearAthleteSelector(id) {
+        const selector = athleteSelectors.get(id);
+        if (selector) {
+            selector.clear();
+            return;
+        }
+
         const input = document.getElementById(id);
         if (!input) return;
         input.value = "";
         delete input.dataset.athleteSlug;
         delete input.dataset.athleteName;
+        input.setCustomValidity?.("");
     }
 
     function normalizeAthleteSlug(value) {
@@ -2313,14 +2351,6 @@
         return !!state && state.phase === "signup";
     }
 
-    function hasOpenCallVoting(state) {
-        return getOpenCallVoteCalls(state).length > 0;
-    }
-
-    function getOpenCallVoteCalls(state) {
-        return ((state && state.calls) || []).filter(call => !call.selectedSlot && (call.candidateSlots || []).length);
-    }
-
     function formatDateLabel(value) {
         const date = parseIsoDate(value);
         if (!date) return value || "";
@@ -2375,27 +2405,7 @@
     }
 
     function pendingCallTimeLabel(callSelectionClosesAtUtc, timeZoneId) {
-        const date = new Date(callSelectionClosesAtUtc);
-        if (Number.isNaN(date.getTime())) return "Meeting time pending.";
-        const options = {
-            weekday: "long",
-            month: "short",
-            day: "numeric"
-        };
-        const timeZone = normalizeDisplayTimeZone(timeZoneId);
-        if (timeZone) options.timeZone = timeZone;
-        const closes = new Intl.DateTimeFormat("en-US", options).format(date);
-        return `Meeting time pending. Availability closes on ${closes}.`;
-    }
-
-    function getCallDisplayTimeZone(containerId) {
-        if (containerId === "lmxSignupCalls") {
-            return document.getElementById("lmxSignupTimeZone")?.value;
-        }
-        if (containerId === "lmxEditCalls") {
-            return document.getElementById("lmxEditTimeZone")?.value || getParticipantTimeZone();
-        }
-        return getParticipantTimeZone();
+        return "Meeting time pending.";
     }
 
     function getParticipantTimeZone() {

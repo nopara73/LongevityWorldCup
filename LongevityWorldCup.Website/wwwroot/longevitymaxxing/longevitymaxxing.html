@@ -16,10 +16,8 @@
                     <span id="lmxHeroMode" class="lmx-status-pill muted">Starts soon</span>
                 </div>
                 <div class="lmx-title-row">
-                    <h1 id="lmx-title">Longevitymaxxing Challenge</h1>
-                    <span id="lmxStartChip" class="lmx-season-chip">Starts soon</span>
-                    <span class="lmx-season-chip secondary">Free</span>
-                    <span class="lmx-season-chip secondary">Ongoing</span>
+                    <h1 id="lmx-title">Longevitymaxxing</h1>
+                    <span id="lmxStartChip" class="lmx-season-chip">Agency &gt; Outcome</span>
                 </div>
                 <p id="lmxHeroCopy" class="lmx-hero-copy">Track four daily habits and get sleep, movement, food, and vices back under control.</p>
                 <div id="lmxHeroHighlights" class="lmx-benefit-strip" aria-label="Challenge benefits">
@@ -29,13 +27,12 @@
                     <span>Perfect plans keep failing?</span>
                 </div>
                 <div id="lmxLifeStrip" class="lmx-life-strip" aria-label="Real life compatible challenge">
-                    <strong>For busy people.</strong>
-                    <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
-                    <span><i class="fas fa-child" aria-hidden="true"></i>Children compatible</span>
                     <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
-                    <span><i class="fas fa-heart-pulse" aria-hidden="true"></i>Injury compatible</span>
+                    <span><i class="fas fa-plane" aria-hidden="true"></i>Travel compatible</span>
+                    <span><i class="fas fa-people-roof" aria-hidden="true"></i>Family compatible</span>
+                    <span><i class="fas fa-notes-medical" aria-hidden="true"></i>Illness compatible</span>
                 </div>
-                <h2 id="lmxHabitHeading" class="lmx-habit-heading">Habits you'll track</h2>
+                <h2 id="lmxHabitHeading" class="lmx-habit-heading">Agencies to develop</h2>
                 <div id="lmxHabitGrid" class="lmx-habit-grid" aria-label="Daily check-in categories">
                     <div class="lmx-habit-card sleep">
                         <i class="fas fa-moon" aria-hidden="true"></i>
@@ -54,6 +51,10 @@
                         <span>Vices</span>
                     </div>
                 </div>
+                <section class="lmx-question-preview" aria-labelledby="lmxQuestionPreviewHeading">
+                    <h2 id="lmxQuestionPreviewHeading">Daily checkins</h2>
+                    <div id="lmxQuestionPreviewList" class="lmx-question-preview-list" aria-label="Daily checkins"></div>
+                </section>
                 <div id="lmxTrack" class="lmx-track lmx-hidden" aria-label="Personal challenge dashboard">
                     <div id="lmxDayStrip" class="lmx-day-strip"></div>
                     <div class="lmx-scale">
@@ -70,12 +71,11 @@
                         <span>check-ins</span>
                     </div>
                     <div class="lmx-metric">
-                        <strong id="lmxMetricMax">11</strong>
-                        <span>peak points/day</span>
+                        <strong id="lmxMetricMax">4</strong>
+                        <span>Agencies</span>
                     </div>
-                    <div class="lmx-metric">
+                    <div class="lmx-metric phase-only">
                         <strong id="lmxMetricPhase">...</strong>
-                        <span>status</span>
                     </div>
                 </div>
             </div>
@@ -84,8 +84,8 @@
                 <div id="lmxSignupPanel">
                     <div id="lmxSignupIntro">
                         <div class="lmx-card-head">
-                            <span id="lmxSignupKicker" class="lmx-mini-label">open signup</span>
-                            <h2 id="lmxSignupTitle">Join the challenge</h2>
+                            <span id="lmxSignupKicker" class="lmx-mini-label">signup for free</span>
+                            <h2 id="lmxSignupTitle" class="lmx-hidden"></h2>
                         </div>
                         <form id="lmxSignupForm" class="lmx-form">
                             <div class="lmx-field-grid">
@@ -100,25 +100,28 @@
                             </div>
                             <div class="lmx-field">
                                 <label for="lmxSignupCommitmentAmount">Commitment amount</label>
-                                <p id="lmxSignupCommitmentHelp" class="lmx-field-help lmx-commitment-help">Required. Configure an amount that'd hurt. If a future scored check-in lands below your recent average, this amount becomes due before you continue.</p>
-                                <input id="lmxSignupCommitmentAmount" name="commitmentAmountUsd" type="number" min="1" step="0.01" inputmode="decimal" required placeholder="25" aria-describedby="lmxSignupCommitmentHelp">
+                                <p id="lmxSignupCommitmentHelp" class="lmx-field-help lmx-commitment-help">Set a real stake. Pay it only if you fall below your recent average, or stop there; choose an amount that'll hurt.</p>
+                                <input id="lmxSignupCommitmentAmount" name="commitmentAmountUsd" type="text" inputmode="decimal" required placeholder="$300" aria-describedby="lmxSignupCommitmentHelp">
                             </div>
                             <details id="lmxSignupDetails" class="lmx-details">
-                                <summary id="lmxSignupDetailsSummary">Timezone, profile, and calls</summary>
+                                <summary id="lmxSignupDetailsSummary">Extra details</summary>
                                 <div class="lmx-details-body">
                                     <div class="lmx-field">
                                         <label for="lmxSignupTimeZone">Timezone</label>
-                                        <p class="lmx-field-help">Used for reminder timing and call times.</p>
                                         <select id="lmxSignupTimeZone" name="timeZoneId" required></select>
                                     </div>
                                     <div class="lmx-field lmx-athlete-selector">
-                                        <label for="lmxSignupAthlete">LWC athlete profile <span>optional</span></label>
-                                        <input id="lmxSignupAthlete" name="athleteLink" autocomplete="off" placeholder="Only if you are already listed as an athlete">
-                                    </div>
-                                    <div id="lmxSignupCallField" class="lmx-field">
-                                        <span class="lmx-label">Call availability <span>optional</span></span>
-                                        <p class="lmx-field-help">Check every time that could work. Available call times are picked automatically before reminders go out.</p>
-                                        <div id="lmxSignupCalls" class="lmx-call-votes"></div>
+                                        <label for="lmxSignupAthlete">Athlete profile <span>optional</span></label>
+                                        <div class="lmx-athlete-picker">
+                                            <div class="lmx-athlete-search">
+                                                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                                <input id="lmxSignupAthlete" name="athleteLink" autocomplete="off" placeholder="Search athlete name">
+                                                <button id="lmxSignupAthleteClear" class="lmx-athlete-clear lmx-hidden" type="button" aria-label="Clear selected athlete">
+                                                    <i class="fas fa-xmark" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                            <div id="lmxSignupAthleteSelected" class="lmx-athlete-selected lmx-hidden" aria-live="polite"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </details>
@@ -133,7 +136,7 @@
                         <div class="lmx-card-head">
                             <span class="lmx-mini-label">email sent</span>
                             <h2>Check your email</h2>
-                            <p class="lmx-card-copy">Open the confirmation link in your email once. After that, this page becomes your check-in console. The first check-in email arrives after your first eligible day; nothing else is due before then.</p>
+                            <p class="lmx-card-copy">Open the confirmation link in your email once. After that, this page becomes your check-in console. Your first check-in email arrives tomorrow morning at 7 AM; nothing else is due before then.</p>
                         </div>
                         <button id="lmxSignupAgain" class="lmx-button secondary" type="button">
                             <i class="fas fa-rotate-left" aria-hidden="true"></i>
@@ -173,16 +176,24 @@
                         </div>
                         <div class="lmx-field">
                             <label for="lmxEditTimeZone">Timezone</label>
-                            <p class="lmx-field-help">Used for reminder timing and call times.</p>
                             <select id="lmxEditTimeZone" required></select>
                         </div>
                         <div class="lmx-field lmx-athlete-selector">
-                            <label for="lmxEditAthlete">LWC athlete profile <span>optional</span></label>
-                            <input id="lmxEditAthlete" autocomplete="off" placeholder="Only if you are already listed as an athlete">
+                            <label for="lmxEditAthlete">Athlete profile <span>optional</span></label>
+                            <div class="lmx-athlete-picker">
+                                <div class="lmx-athlete-search">
+                                    <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                    <input id="lmxEditAthlete" autocomplete="off" placeholder="Search athlete name">
+                                    <button id="lmxEditAthleteClear" class="lmx-athlete-clear lmx-hidden" type="button" aria-label="Clear selected athlete">
+                                        <i class="fas fa-xmark" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <div id="lmxEditAthleteSelected" class="lmx-athlete-selected lmx-hidden" aria-live="polite"></div>
+                            </div>
                         </div>
                         <div class="lmx-field">
                             <label for="lmxEditCommitmentAmount">Commitment amount</label>
-                            <p class="lmx-field-help lmx-commitment-help">Configure an amount that'd hurt. If you fall below your recent average, this locked amount becomes due before you continue.</p>
+                            <p class="lmx-field-help lmx-commitment-help">Set a real stake. Pay it only if you fall below your recent average, or stop there; choose an amount that'll hurt.</p>
                             <input id="lmxEditCommitmentAmount" type="number" min="1" step="0.01" inputmode="decimal" required>
                         </div>
                         <div id="lmxProfilePictureField" class="lmx-field lmx-profile-picture-field">
@@ -200,11 +211,6 @@
                                     <div id="lmxProfilePictureStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                                 </div>
                             </div>
-                        </div>
-                        <div id="lmxEditCallField" class="lmx-field">
-                            <span class="lmx-label">Call availability <span>optional</span></span>
-                            <p class="lmx-field-help">Check every time you could attend. Available call times are chosen before reminders go out.</p>
-                            <div id="lmxEditCalls" class="lmx-call-votes"></div>
                         </div>
                         <button class="lmx-button" type="submit">Save</button>
                         <div id="lmxEditStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -227,7 +233,7 @@
                                 Slack room
                             </a>
                         </div>
-                        <div id="lmxParticipantCalls" class="lmx-call-votes"></div>
+                        <div id="lmxParticipantCalls" class="lmx-call-list"></div>
                     </div>
                 </div>
 
@@ -245,13 +251,12 @@
                         <i class="fas fa-users-slash" aria-hidden="true"></i>
                         Show inactive
                     </button>
-                    <span class="lmx-habit-key" title="Cell dots follow sleep, exercise, nutrition, vices">
+                    <span class="lmx-habit-key" title="Cell dots follow sleep, exercise, nutrition, vices" aria-label="Sleep, exercise, nutrition, vices">
                         <i class="fas fa-moon" aria-hidden="true"></i>
                         <i class="fas fa-dumbbell" aria-hidden="true"></i>
                         <i class="fas fa-bowl-food" aria-hidden="true"></i>
                         <i class="fas fa-shield-halved" aria-hidden="true"></i>
                     </span>
-                    <strong id="lmxPhaseLabel" class="lmx-phase">loading</strong>
                 </div>
             </div>
             <div class="lmx-board-scroll">
@@ -261,9 +266,7 @@
 
         <section id="lmxResendPanel" class="lmx-card lmx-resend-panel lmx-hidden" aria-labelledby="lmxResendTitle">
             <div class="lmx-card-head">
-                <span class="lmx-mini-label">participant access</span>
-                <h2 id="lmxResendTitle">Need your check-in link?</h2>
-                <p id="lmxResendCopy" class="lmx-card-copy">Already joined or opened this page in a new browser? Enter your email and we will send your private link.</p>
+                <h2 id="lmxResendTitle">Check-in link</h2>
             </div>
             <form id="lmxResendForm" class="lmx-form">
                 <div class="lmx-field">
