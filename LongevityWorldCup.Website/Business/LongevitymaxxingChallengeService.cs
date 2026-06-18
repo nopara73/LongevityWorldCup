@@ -166,7 +166,6 @@ public sealed class LongevitymaxxingChallengeService
         var displayName = NormalizeDisplayName(request.DisplayName);
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
         var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
-        var callAvailability = NormalizeCallAvailability(settings, request.CallAvailability);
         var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
 
         var confirmationToken = CreateToken();
@@ -180,6 +179,7 @@ public sealed class LongevitymaxxingChallengeService
             var existing = FindParticipantByEmail(sqlite, email);
             if (existing is null)
             {
+                EnsureDisplayNameAvailable(sqlite, displayName, null);
                 participantId = Guid.NewGuid().ToString("N");
                 using var insert = sqlite.CreateCommand();
                 insert.CommandText =
@@ -211,6 +211,7 @@ public sealed class LongevitymaxxingChallengeService
                 if (HasActivePaymentObligation(sqlite, existing.Id))
                     return;
 
+                EnsureDisplayNameAvailable(sqlite, displayName, existing.Id);
                 using var update = sqlite.CreateCommand();
                 update.CommandText =
                     """
@@ -230,8 +231,6 @@ public sealed class LongevitymaxxingChallengeService
                 Add(update, "@id", participantId);
                 update.ExecuteNonQuery();
             }
-
-            ReplaceAvailability(sqlite, participantId, callAvailability, now);
         });
 
         var url = alreadyConfirmed
@@ -311,7 +310,6 @@ public sealed class LongevitymaxxingChallengeService
             eligibleDays,
             publicState.Notes,
             BuildParticipantCalls(settings),
-            GetCallAvailability(participant.Id),
             BuildCommitmentState(participant, byDay, eligibleDays, now),
             BuildCommitmentTrendGuidance(settings, participant, byDay, now));
     }
@@ -342,13 +340,13 @@ public sealed class LongevitymaxxingChallengeService
         var displayName = NormalizeDisplayName(request.DisplayName);
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
         var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
-        var callAvailability = NormalizeCallAvailability(settings, request.CallAvailability);
         var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before editing your profile.");
 
         _db.Run(sqlite =>
         {
+            EnsureDisplayNameAvailable(sqlite, displayName, participant.Id);
             using var update = sqlite.CreateCommand();
             update.CommandText =
                 """
@@ -367,7 +365,6 @@ public sealed class LongevitymaxxingChallengeService
             Add(update, "@updated", now.ToString("o"));
             Add(update, "@id", participant.Id);
             update.ExecuteNonQuery();
-            ReplaceAvailability(sqlite, participant.Id, callAvailability, now);
         });
 
         return GetParticipantState(request.AccessToken, now);
@@ -1037,31 +1034,8 @@ public sealed class LongevitymaxxingChallengeService
                 if (GetSelectedSlotId(sqlite, call.Key) is not null)
                     continue;
 
-                var candidateIds = call.CandidateSlots.Select(s => s.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-                using var votes = sqlite.CreateCommand();
-                votes.CommandText =
-                    """
-                    SELECT SlotId, COUNT(*) AS VoteCount
-                    FROM LongevitymaxxingCallAvailability
-                    WHERE CallKey = @callKey
-                    GROUP BY SlotId;
-                    """;
-                Add(votes, "@callKey", call.Key);
-
-                var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                using (var reader = votes.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var slotId = reader.GetString(0);
-                        if (candidateIds.Contains(slotId))
-                            counts[slotId] = reader.GetInt32(1);
-                    }
-                }
-
                 var selected = call.CandidateSlots
-                    .OrderByDescending(s => counts.GetValueOrDefault(s.Id))
-                    .ThenBy(s => ParseDateTimeOffset(s.StartsAtUtc, DateTimeOffset.MaxValue))
+                    .OrderBy(s => ParseDateTimeOffset(s.StartsAtUtc, DateTimeOffset.MaxValue))
                     .First();
 
                 using var insert = sqlite.CreateCommand();
@@ -1103,14 +1077,6 @@ public sealed class LongevitymaxxingChallengeService
 
                 CREATE UNIQUE INDEX IF NOT EXISTS IX_LongevitymaxxingParticipants_Email
                     ON LongevitymaxxingParticipants(Email);
-
-                CREATE TABLE IF NOT EXISTS LongevitymaxxingCallAvailability (
-                    ParticipantId TEXT NOT NULL,
-                    CallKey TEXT NOT NULL,
-                    SlotId TEXT NOT NULL,
-                    CreatedAtUtc TEXT NOT NULL,
-                    PRIMARY KEY (ParticipantId, CallKey, SlotId)
-                );
 
                 CREATE TABLE IF NOT EXISTS LongevitymaxxingCallSelections (
                     CallKey TEXT PRIMARY KEY,
@@ -2251,29 +2217,6 @@ public sealed class LongevitymaxxingChallengeService
         });
     }
 
-    private IReadOnlyList<LongevitymaxxingCallAvailabilitySelection> GetCallAvailability(string participantId)
-    {
-        return _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText =
-                """
-                SELECT CallKey, SlotId
-                FROM LongevitymaxxingCallAvailability
-                WHERE ParticipantId = @participantId
-                ORDER BY CallKey, SlotId;
-                """;
-            Add(cmd, "@participantId", participantId);
-
-            var selections = new List<LongevitymaxxingCallAvailabilitySelection>();
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-                selections.Add(new LongevitymaxxingCallAvailabilitySelection(reader.GetString(0), reader.GetString(1)));
-
-            return selections;
-        });
-    }
-
     private IReadOnlyList<LongevitymaxxingParticipantCall> BuildParticipantCalls(ChallengeSettings settings)
     {
         return BuildPublicCalls(settings)
@@ -2603,36 +2546,6 @@ public sealed class LongevitymaxxingChallengeService
         return rows;
     }
 
-    private static void ReplaceAvailability(SqliteConnection sqlite, string participantId, IReadOnlyList<LongevitymaxxingCallAvailabilitySelection> selections, DateTimeOffset now)
-    {
-        using (var delete = sqlite.CreateCommand())
-        {
-            delete.CommandText = "DELETE FROM LongevitymaxxingCallAvailability WHERE ParticipantId = @id;";
-            Add(delete, "@id", participantId);
-            delete.ExecuteNonQuery();
-        }
-
-        using var insert = sqlite.CreateCommand();
-        insert.CommandText =
-            """
-            INSERT INTO LongevitymaxxingCallAvailability (ParticipantId, CallKey, SlotId, CreatedAtUtc)
-            VALUES (@participantId, @callKey, @slotId, @created);
-            """;
-        var pParticipant = insert.Parameters.Add("@participantId", SqliteType.Text);
-        var pCall = insert.Parameters.Add("@callKey", SqliteType.Text);
-        var pSlot = insert.Parameters.Add("@slotId", SqliteType.Text);
-        var pCreated = insert.Parameters.Add("@created", SqliteType.Text);
-
-        foreach (var selection in selections)
-        {
-            pParticipant.Value = participantId;
-            pCall.Value = selection.CallKey;
-            pSlot.Value = selection.SlotId;
-            pCreated.Value = now.ToString("o");
-            insert.ExecuteNonQuery();
-        }
-    }
-
     private string? GetSelectedSlotId(SqliteConnection sqlite, string callKey)
     {
         using var cmd = sqlite.CreateCommand();
@@ -2716,25 +2629,6 @@ public sealed class LongevitymaxxingChallengeService
         });
     }
 
-    private static IReadOnlyList<LongevitymaxxingCallAvailabilitySelection> NormalizeCallAvailability(
-        ChallengeSettings settings,
-        IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? selections)
-    {
-        if (selections is null || selections.Count == 0)
-            return [];
-
-        var valid = settings.Calls.ToDictionary(
-            c => c.Key,
-            c => c.CandidateSlots.Select(s => s.Id).ToHashSet(StringComparer.OrdinalIgnoreCase),
-            StringComparer.OrdinalIgnoreCase);
-
-        return selections
-            .Select(s => new LongevitymaxxingCallAvailabilitySelection(NormalizeKey(s.CallKey), (s.SlotId ?? "").Trim()))
-            .Where(s => valid.TryGetValue(s.CallKey, out var slots) && slots.Contains(s.SlotId))
-            .Distinct()
-            .ToList();
-    }
-
     private static (int Sleep, int Exercise, int Nutrition, int Vices) ValidateAnswers(int sleep, int exercise, int nutrition, int vices)
     {
         static int V(int value)
@@ -2769,6 +2663,75 @@ public sealed class LongevitymaxxingChallengeService
         if (normalized.Length is < 2 or > 80)
             throw new InvalidOperationException("Display name must be 2 to 80 characters.");
         return normalized;
+    }
+
+    private void EnsureDisplayNameAvailable(SqliteConnection sqlite, string displayName, string? participantIdToIgnore)
+    {
+        var canonical = CanonicalDisplayName(displayName);
+        if (string.IsNullOrWhiteSpace(canonical))
+            throw new InvalidOperationException("Display name is required.");
+
+        using (var cmd = sqlite.CreateCommand())
+        {
+            cmd.CommandText =
+                """
+                SELECT Id, DisplayName
+                FROM LongevitymaxxingParticipants;
+                """;
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var participantId = reader.GetString(0);
+                if (string.Equals(participantId, participantIdToIgnore, StringComparison.Ordinal))
+                    continue;
+
+                if (string.Equals(CanonicalDisplayName(reader.GetString(1)), canonical, StringComparison.Ordinal))
+                    throw new InvalidOperationException("That username is already taken.");
+            }
+        }
+
+        var athletes = _athletes?.GetAthletesSnapshot();
+        if (athletes is null)
+            return;
+
+        foreach (var athlete in athletes.OfType<JsonObject>())
+        {
+            if (IsAthleteNameMatch(athlete, canonical))
+                throw new InvalidOperationException("That username is already used by a Longevity athlete.");
+        }
+    }
+
+    private static bool IsAthleteNameMatch(JsonObject athlete, string canonicalDisplayName)
+        => string.Equals(CanonicalDisplayName(GetJsonString(athlete, "DisplayName")), canonicalDisplayName, StringComparison.Ordinal)
+           || string.Equals(CanonicalDisplayName(GetJsonString(athlete, "Name")), canonicalDisplayName, StringComparison.Ordinal);
+
+    private static string? GetJsonString(JsonObject obj, string propertyName)
+        => obj.TryGetPropertyValue(propertyName, out var node) ? node?.GetValue<string>() : null;
+
+    private static string CanonicalDisplayName(string? value)
+    {
+        var normalized = new StringBuilder();
+        var pendingSpace = false;
+
+        foreach (var c in (value ?? "").Trim())
+        {
+            if (char.IsWhiteSpace(c))
+            {
+                pendingSpace = normalized.Length > 0;
+                continue;
+            }
+
+            if (pendingSpace)
+            {
+                normalized.Append(' ');
+                pendingSpace = false;
+            }
+
+            normalized.Append(char.ToLowerInvariant(c));
+        }
+
+        return normalized.ToString();
     }
 
     private static string NormalizeTimeZone(string timeZoneId)

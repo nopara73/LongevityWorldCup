@@ -35,7 +35,7 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Longevitymaxxing Challenge Day 14 completion/result Events still emit after the existing grace window and may say participants completed the Longevitymaxxing Challenge, even though the live check-in leaderboard continues afterward.
 - Longevitymaxxing Challenge signup stays open during the ongoing challenge. New signups join the same global leaderboard, see prior global days as empty/missed, and may only check in for days on or after their local signup date.
 - Each participant's first eligible Longevitymaxxing Challenge check-in is practice: it counts for checked-in days and streak, but not habit points, category leader badges, point tie-breaks, or missed-scored-day reminder stops.
-- Longevitymaxxing Challenge call times may be selected before the challenge starts when needed for 24-hour call reminders.
+- Longevitymaxxing Challenge call times are configured or automatically selected before reminders; participants do not vote on call availability.
 - Longevitymaxxing Challenge built-in call defaults use Sunday 08:30 GMT+2 call dates for future competitions. The June 2026 finale has a one-off Sunday 08:30 GMT+2 override; the already-completed June 2026 kickoff keeps its historical selected time.
 - Longevitymaxxing Challenge daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - Longevitymaxxing Challenge daily reminder emails continue indefinitely and stop after 3 consecutive missed scored days. Practice does not count, and days before a participant's local signup date do not count.

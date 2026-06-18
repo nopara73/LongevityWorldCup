@@ -5,10 +5,7 @@ public sealed record LongevitymaxxingSignupRequest(
     string DisplayName,
     string TimeZoneId,
     string? AthleteLink,
-    IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? CallAvailability,
     decimal? CommitmentAmountUsd = null);
-
-public sealed record LongevitymaxxingCallAvailabilitySelection(string CallKey, string SlotId);
 
 public sealed record LongevitymaxxingCheckInRequest(
     string AccessToken,
@@ -24,7 +21,6 @@ public sealed record LongevitymaxxingParticipantEditRequest(
     string DisplayName,
     string TimeZoneId,
     string? AthleteLink,
-    IReadOnlyList<LongevitymaxxingCallAvailabilitySelection>? CallAvailability,
     decimal? CommitmentAmountUsd = null);
 
 public sealed record LongevitymaxxingCommitmentPaymentRequest(string AccessToken);
@@ -53,7 +49,6 @@ public sealed record LongevitymaxxingParticipantState(
     IReadOnlyList<LongevitymaxxingEligibleDay> EligibleDays,
     IReadOnlyList<LongevitymaxxingParticipantNote> Notes,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls,
-    IReadOnlyList<LongevitymaxxingCallAvailabilitySelection> CallAvailability,
     LongevitymaxxingCommitmentState Commitment,
     LongevitymaxxingCommitmentTrendGuidance TrendGuidance);
 
