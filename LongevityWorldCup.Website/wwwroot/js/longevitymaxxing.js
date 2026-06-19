@@ -72,6 +72,7 @@
     let showInactiveLeaderboard = false;
     let commitmentPaymentPollRun = 0;
     let accessTab = "signup";
+    let accessLoading = !!accessToken;
     let timeZoneCountryCodes = null;
     let regionDisplayNames = null;
     let callCountdownTimer = null;
@@ -88,6 +89,7 @@
         initAthleteSelectors();
         wireIdentityControls();
         startCallCountdownTimer();
+        if (accessLoading) renderAccessLoading();
 
         try {
             await consumeUrlTokens();
@@ -175,10 +177,11 @@
             event.preventDefault();
             if (!accessToken) return;
             await withButton(editForm.querySelector("button[type='submit']"), async () => {
+                const showCommitment = shouldShowCommitmentAmountField(participantState);
                 const result = await postJson(`${API}/edit`, {
                     accessToken,
                     timeZoneId: document.getElementById("lmxEditTimeZone").value,
-                    commitmentAmountUsd: parseCommitmentAmount("lmxEditCommitmentAmount")
+                    commitmentAmountUsd: showCommitment ? parseCommitmentAmount("lmxEditCommitmentAmount") : null
                 });
                 participantState = result;
                 publicState = result.public;
@@ -286,8 +289,10 @@
             const token = params.get("token") || "";
             if (token.length > 0) {
                 accessToken = token;
+                accessLoading = true;
                 safeStorageSet(STORAGE_KEY, accessToken);
                 shouldClean = true;
+                renderAccessLoading();
             }
         }
 
@@ -315,6 +320,7 @@
 
     async function refreshState() {
         if (participantState && publicState) {
+            accessLoading = false;
             renderAll();
             return;
         }
@@ -324,17 +330,24 @@
         }
 
         if (accessToken) {
+            accessLoading = true;
+            renderAccessLoading();
             try {
                 participantState = await postJson(`${API}/participant`, { token: accessToken });
                 publicState = participantState.public;
+                accessLoading = false;
                 renderAll();
                 return;
             } catch (err) {
                 if (isAuthFailure(err)) {
                     safeStorageRemove(STORAGE_KEY);
                     accessToken = null;
+                    accessLoading = false;
+                    accessTab = "signin";
                 } else {
                     setStatus("lmxResendStatus", "Your private console did not load yet. Refresh to try again.", true);
+                    accessLoading = false;
+                    accessTab = "signin";
                     renderAll();
                     return;
                 }
@@ -345,6 +358,7 @@
             await refreshPublicOnly();
         } else {
             participantState = null;
+            accessLoading = false;
             renderAll();
         }
     }
@@ -686,6 +700,7 @@
 
     function renderPanels(state) {
         const hasParticipant = !!participantState;
+        const isAccessLoading = accessLoading && !hasParticipant;
         const pendingCheckInDays = hasParticipant ? getPendingCheckInDays(participantState) : [];
         const commitmentBlocked = hasCommitmentBlock(participantState);
         const activeParticipantTab = hasParticipant ? ensureParticipantTab(participantState) : null;
@@ -697,10 +712,11 @@
         }
 
         toggle("lmxTitlePanel", !checkInOnly);
-        toggle("lmxAccessTabs", !hasParticipant);
-        toggle("lmxSignupPanel", !hasParticipant && accessTab === "signup");
+        toggle("lmxAccessTabs", !hasParticipant && !isAccessLoading);
+        toggle("lmxSignupPanel", !hasParticipant && !isAccessLoading && accessTab === "signup");
+        toggle("lmxAccessLoadingPanel", isAccessLoading);
         toggle("lmxParticipantPanel", hasParticipant);
-        toggle("lmxResendPanel", !hasParticipant && accessTab === "signin");
+        toggle("lmxResendPanel", !hasParticipant && !isAccessLoading && accessTab === "signin");
         toggle("lmxNotesPanel", dashboardMode && !checkInOnly);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
@@ -738,6 +754,14 @@
         }
     }
 
+    function renderAccessLoading() {
+        toggle("lmxAccessTabs", false);
+        toggle("lmxSignupPanel", false);
+        toggle("lmxResendPanel", false);
+        toggle("lmxParticipantPanel", false);
+        toggle("lmxAccessLoadingPanel", true);
+    }
+
     function renderParticipant(state) {
         const participant = state.participant;
         const pendingCheckInDays = getPendingCheckInDays(state);
@@ -753,8 +777,13 @@
         renderProfileIdentity(participant);
         setSelectValue(document.getElementById("lmxEditTimeZone"), participant.timeZoneId);
         setCommitmentInputValue("lmxEditCommitmentAmount", participant.commitmentAmountUsd ?? state.commitment?.amountUsd);
+        toggle("lmxEditCommitmentField", shouldShowCommitmentAmountField(state));
         const commitmentInput = document.getElementById("lmxEditCommitmentAmount");
-        if (commitmentInput) commitmentInput.disabled = state.commitment?.canEditAmount === false;
+        if (commitmentInput) {
+            const showCommitment = shouldShowCommitmentAmountField(state);
+            commitmentInput.disabled = !showCommitment || state.commitment?.canEditAmount === false;
+            commitmentInput.required = showCommitment;
+        }
         renderProfilePictureControls(participant);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || []);
@@ -1058,6 +1087,10 @@
         return !!(state && state.commitment && state.commitment.blocksParticipant);
     }
 
+    function shouldShowCommitmentAmountField(state) {
+        return !!(state && state.commitment && state.commitment.status !== "deferred");
+    }
+
     function getCommitmentEditableDays(state) {
         const triggerDay = Number(state?.commitment?.triggerChallengeDay || 0);
         return ((state && state.eligibleDays) || [])
@@ -1315,11 +1348,11 @@
         updateInactiveToggle(state);
         const dayHeaders = (state.days || []).map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
         const leaderboardRows = splitLeaderboardRows(state);
-        const rows = leaderboardRows.visible.map(row => {
+        const rows = leaderboardRows.visible.map((row, index) => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
-            const participant = participantNameHtml(row, name);
+            const participant = participantNameHtml(row, name, index + 1);
             const cells = (row.cells || []).map(cell => {
                 if (!cell.checkedIn) return `<div class="lmx-cell empty" data-day="${escAttr(cell.challengeDay)}" title="Day ${cell.challengeDay}"></div>`;
                 if (cell.countsForScore === false) {
@@ -1421,11 +1454,11 @@
         updateInactiveToggle(state);
         const dayHeaders = (state.days || []).map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
         const leaderboardRows = splitLeaderboardRows(state);
-        const rows = leaderboardRows.visible.map(row => {
+        const rows = leaderboardRows.visible.map((row, index) => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
-            const participant = participantNameHtml(row, name);
+            const participant = participantNameHtml(row, name, index + 1);
             const cells = (row.cells || state.days || []).map(cell => `<div class="lmx-cell empty" data-day="${escAttr(cell.challengeDay)}" title="Day ${cell.challengeDay}"></div>`).join("");
             return `<div class="lmx-board-row lmx-roster-row${row.challengeEmailsStopped ? " inactive" : ""}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
@@ -2005,7 +2038,7 @@
     function renderNotes(notes) {
         const container = document.getElementById("lmxNotes");
         if (!notes.length) {
-            container.innerHTML = `<div class="lmx-note"><strong>No notes yet.</strong></div>`;
+            container.innerHTML = `<div class="lmx-note"><strong>No public notes yet.</strong></div>`;
             return;
         }
 
@@ -2115,7 +2148,7 @@
         return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(number);
     }
 
-    function participantNameHtml(row, nameHtml) {
+    function participantNameHtml(row, nameHtml, rank) {
         const athlete = findAthleteForParticipant(row);
         const profileImage = String(row.profileImageUrl || "").trim();
         const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? "" : (athlete?.profilePic || "");
@@ -2127,7 +2160,12 @@
             row.commitmentStatus === "commitment-due" ? "Commitment due" : "",
             row.challengeEmailsStopped ? "Inactive" : ""
         ].filter(Boolean);
+        const rankNumber = Number.isFinite(Number(rank)) ? Math.trunc(Number(rank)) : null;
+        const rankHtml = rankNumber && rankNumber > 0
+            ? `<span class="lmx-rank" aria-label="Rank ${rankNumber}">#${rankNumber}</span>`
+            : "";
         return `<div class="lmx-participant-name">
+            ${rankHtml}
             <span class="${avatarClass}" aria-hidden="${hasProfileImage ? "false" : "true"}">
                 <img src="${escAttr(image)}" alt="${escAttr(alt)}" loading="lazy" decoding="async">
             </span>

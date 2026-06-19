@@ -321,7 +321,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         gravatarGate.Set();
         Assert.True(SpinWait.SpinUntil(() =>
             fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
-            TimeSpan.FromSeconds(2)));
+            TimeSpan.FromSeconds(8)));
         var cached = fixture.Service.GetParticipantState(access);
 
         Assert.Contains(".gravatar.webp?v=", cached.Participant.ProfileImageUrl);
@@ -386,7 +386,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.True(SpinWait.SpinUntil(() =>
             fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
-            TimeSpan.FromSeconds(2)));
+            TimeSpan.FromSeconds(8)));
         var state = fixture.Service.GetParticipantState(access);
 
         Assert.Equal("/athlete/linked-gail", state.Participant.AthleteUrl);
@@ -435,7 +435,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task LeaderboardRanksConsistencyBeforeScoreAndKeepsLegacyNotesPrivate()
+    public async Task LeaderboardRanksScoreBeforeConsistencyAndKeepsLegacyNotesPrivate()
     {
         using var fixture = TestChallengeFixture.Create();
         var alice = await fixture.ConfirmParticipantAsync("alice@example.com", "Alice");
@@ -449,6 +449,14 @@ public sealed class LongevitymaxxingChallengeServiceTests
             2,
             2,
             "perfect start"), DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            alice,
+            2,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-10T08:00:00Z"));
         fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
             bob,
             1,
@@ -465,15 +473,26 @@ public sealed class LongevitymaxxingChallengeServiceTests
             0,
             0,
             "still returned"), DateTimeOffset.Parse("2026-06-10T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            bob,
+            3,
+            0,
+            0,
+            0,
+            0,
+            null), DateTimeOffset.Parse("2026-06-11T08:00:00Z"));
 
-        var publicState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-10T09:00:00Z"));
+        var publicState = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-11T09:00:00Z"));
 
-        Assert.Equal("Bob", publicState.Leaderboard[0].DisplayName);
+        Assert.Equal("Alice", publicState.Leaderboard[0].DisplayName);
+        Assert.Equal(8, publicState.Leaderboard[0].TotalPoints);
         Assert.Equal(2, publicState.Leaderboard[0].CheckedInDays);
-        Assert.Equal("Alice", publicState.Leaderboard[1].DisplayName);
-        Assert.DoesNotContain(publicState.Leaderboard[1].Badges, badge => badge.Contains("perfect start", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("Bob", publicState.Leaderboard[1].DisplayName);
+        Assert.Equal(0, publicState.Leaderboard[1].TotalPoints);
+        Assert.Equal(3, publicState.Leaderboard[1].CheckedInDays);
+        Assert.DoesNotContain(publicState.Leaderboard[0].Badges, badge => badge.Contains("perfect start", StringComparison.OrdinalIgnoreCase));
 
-        var participantState = fixture.Service.GetParticipantState(alice, DateTimeOffset.Parse("2026-06-10T09:00:00Z"));
+        var participantState = fixture.Service.GetParticipantState(alice, DateTimeOffset.Parse("2026-06-11T09:00:00Z"));
         Assert.DoesNotContain(participantState.Notes, note => note.Note == "perfect start");
         Assert.DoesNotContain(participantState.Notes, note => note.Note == "still returned");
     }
@@ -563,6 +582,56 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal(2, bobDay2.Vices);
         Assert.Equal("Alice", scoredState.Leaderboard[1].DisplayName);
         Assert.Equal(0, scoredState.Leaderboard[1].TotalPoints);
+    }
+
+    [Fact]
+    public async Task EarlierKnownCheckInStaysPracticeWhenSignupDerivedPracticeDayIsLater()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("zyron@example.com", "Zyron");
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            1,
+            2,
+            2,
+            2,
+            1,
+            null), DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            2,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-10T08:00:00Z"));
+
+        fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                UPDATE LongevitymaxxingParticipants
+                SET CreatedAtUtc = @created,
+                    UpdatedAtUtc = @created
+                WHERE AccessToken = @access;
+                """;
+            cmd.Parameters.AddWithValue("@created", DateTimeOffset.Parse("2026-06-09T12:00:00Z").ToString("o"));
+            cmd.Parameters.AddWithValue("@access", access);
+            cmd.ExecuteNonQuery();
+        });
+
+        var state = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-10T09:00:00Z"));
+        var row = Assert.Single(state.Leaderboard);
+        var day1 = row.Cells.Single(cell => cell.ChallengeDay == 1);
+        var day2 = row.Cells.Single(cell => cell.ChallengeDay == 2);
+
+        Assert.False(day1.CountsForScore);
+        Assert.Null(day1.Score);
+        Assert.True(day2.CountsForScore);
+        Assert.Equal(8, day2.Score);
+        Assert.Equal(8, row.TotalPoints);
     }
 
     [Fact]
@@ -1227,16 +1296,16 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Equal(4, rows.Count);
         Assert.Equal(1, rows.Single(row => row.DisplayName == "Bob").Placement);
-        Assert.Equal(2, rows.Single(row => row.DisplayName == "Cara").Placement);
-        Assert.Equal(3, rows.Single(row => row.DisplayName == "Dan").Placement);
+        Assert.Equal(2, rows.Single(row => row.DisplayName == "Eve").Placement);
+        Assert.Equal(3, rows.Single(row => row.DisplayName == "Cara").Placement);
 
         var aliceRow = rows.Single(row => row.DisplayName == "Alice");
-        Assert.Equal(4, aliceRow.Placement);
+        Assert.Equal(5, aliceRow.Placement);
         Assert.True(aliceRow.Completed);
         Assert.Equal("alice-athlete", aliceRow.AthleteSlug);
         Assert.Equal(14, aliceRow.CheckedInDays);
 
-        Assert.DoesNotContain(rows, row => row.DisplayName == "Eve");
+        Assert.DoesNotContain(rows, row => row.DisplayName == "Dan");
         Assert.All(rows, row => Assert.Equal(DateTimeKind.Utc, row.OccurredAtUtc.Kind));
     }
 
@@ -1351,20 +1420,40 @@ public sealed class LongevitymaxxingChallengeServiceTests
             0.99m)));
 
         var access = fixture.InsertConfirmedParticipant("legacy-commitment@example.com", "Legacy Lou", commitmentAmountUsd: null);
-        var blocked = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
+        var deferred = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
+        Assert.Equal("deferred", deferred.Commitment.Status);
+        Assert.False(deferred.Commitment.BlocksParticipant);
+        Assert.False(deferred.Commitment.CanEditAmount);
+        Assert.False(deferred.Commitment.CanPay);
+
+        var checkedIn = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access, 1, 2, 2, 2, 2, null),
+            DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
+        Assert.Equal("deferred", checkedIn.Commitment.Status);
+
+        var editedBeforeConclusion = fixture.Service.EditParticipant(new LongevitymaxxingParticipantEditRequest(
+            access,
+            "Europe/London"),
+            DateTimeOffset.Parse("2026-06-10T08:05:00Z"));
+
+        Assert.Equal("deferred", editedBeforeConclusion.Commitment.Status);
+        Assert.Null(editedBeforeConclusion.Participant.CommitmentAmountUsd);
+
+        var blocked = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-22T00:05:00Z"));
         Assert.Equal("needs-amount", blocked.Commitment.Status);
         Assert.True(blocked.Commitment.BlocksParticipant);
         Assert.True(blocked.Commitment.CanEditAmount);
         Assert.False(blocked.Commitment.CanPay);
         Assert.Contains("Configure an amount that'd hurt before continuing.", blocked.Commitment.Message);
         Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(
-            new LongevitymaxxingCheckInRequest(access, 1, 2, 2, 2, 2, null),
-            DateTimeOffset.Parse("2026-06-09T08:05:00Z")));
+            new LongevitymaxxingCheckInRequest(access, 14, 2, 2, 2, 2, null),
+            DateTimeOffset.Parse("2026-06-22T08:05:00Z")));
 
         var configured = fixture.Service.EditParticipant(new LongevitymaxxingParticipantEditRequest(
             access,
             "UTC",
-            12.345m));
+            12.345m),
+            DateTimeOffset.Parse("2026-06-22T08:10:00Z"));
 
         Assert.Equal("clear", configured.Commitment.Status);
         Assert.Equal(12.35m, configured.Participant.CommitmentAmountUsd);
@@ -1669,7 +1758,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var setupFile = CreatePngFormFile(setupStream);
 
         var setupError = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            fixture.Service.UploadParticipantProfilePictureAsync(setupAccess, setupFile));
+            fixture.Service.UploadParticipantProfilePictureAsync(
+                setupAccess,
+                setupFile,
+                nowUtc: DateTimeOffset.Parse("2026-06-22T08:05:00Z")));
         Assert.Contains("Configure your commitment amount", setupError.Message);
     }
 

@@ -277,6 +277,13 @@ public sealed class LongevitymaxxingChallengePageTests
         var css = await client.GetStringAsync("/css/longevitymaxxing.css");
 
         Assert.Contains("const pendingCheckInDays = hasParticipant ? getPendingCheckInDays(participantState) : [];", javascript);
+        Assert.Contains("let accessLoading = !!accessToken;", javascript);
+        Assert.Contains("if (accessLoading) renderAccessLoading();", javascript);
+        Assert.Contains("toggle(\"lmxAccessLoadingPanel\", isAccessLoading);", javascript);
+        Assert.Contains("function renderAccessLoading()", javascript);
+        Assert.Contains("accessTab = \"signin\";", javascript);
+        Assert.Contains("id=\"lmxAccessLoadingPanel\"", await client.GetStringAsync("/longevitymaxxing"));
+        Assert.Contains(".lmx-access-loading", css);
         Assert.Contains("if (isAuthFailure(err))", javascript);
         Assert.Contains("err.status = response.status;", javascript);
         Assert.Contains("function isAuthFailure(err)", javascript);
@@ -314,8 +321,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("const leaderboardRows = splitLeaderboardRows(state);", javascript);
         Assert.Contains("const leaderboard = participant.challengeEmailsStopped ? (state.leaderboard || []) : leaderboardRows.active;", javascript);
         Assert.Contains("toggle(\"lmxTitlePanel\", !checkInOnly);", javascript);
-        Assert.Contains("toggle(\"lmxAccessTabs\", !hasParticipant);", javascript);
-        Assert.Contains("toggle(\"lmxResendPanel\", !hasParticipant && accessTab === \"signin\");", javascript);
+        Assert.Contains("toggle(\"lmxAccessTabs\", !hasParticipant && !isAccessLoading);", javascript);
+        Assert.Contains("toggle(\"lmxResendPanel\", !hasParticipant && !isAccessLoading && accessTab === \"signin\");", javascript);
         Assert.Contains("toggle(\"lmxHabitHeading\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxHabitGrid\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxQuestionPreview\", !hasParticipant || pendingCheckInDays.length > 0);", javascript);
@@ -323,6 +330,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("toggle(\"lmxNotesPanel\", dashboardMode && !checkInOnly);", javascript);
         Assert.Contains("renderNotes(state.notes || []);", javascript);
         Assert.Contains("renderNotes(state.notes || state.public.notes || []);", javascript);
+        Assert.Contains("No public notes yet.", javascript);
         Assert.Contains("placeholder=\"Visible publicly\"", javascript);
         Assert.DoesNotContain("Visible to participants only", javascript);
         Assert.DoesNotContain("<h2>Category dashboard</h2>", javascript);
@@ -414,6 +422,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("emptyRosterRow(dayCount)", javascript);
         Assert.Contains("class=\"lmx-name lmx-sticky-heading\" role=\"columnheader\">Participant", javascript);
         Assert.Contains("class=\"lmx-number lmx-sticky-heading\" role=\"columnheader\">Score", javascript);
+        Assert.Contains("aria-label=\"Rank ${rankNumber}\"", javascript);
+        Assert.Contains(".lmx-rank", css);
         Assert.Contains("data-day=\"${escAttr(cell.challengeDay)}\"", javascript);
         Assert.Contains("data-day=\"${index + 1}\"", javascript);
         Assert.Contains("function setBoardDayColumns", javascript);
