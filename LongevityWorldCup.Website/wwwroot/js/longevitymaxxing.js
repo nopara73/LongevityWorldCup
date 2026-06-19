@@ -1011,6 +1011,7 @@
                         </div>
                     </div>
                     <button class="lmx-button" type="submit">
+                        <i class="fas fa-pen-nib" aria-hidden="true"></i>
                         Make a pledge
                     </button>
                     <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
