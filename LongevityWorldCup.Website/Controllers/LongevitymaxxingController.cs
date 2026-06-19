@@ -105,6 +105,44 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         }
     }
 
+    [HttpPost("commitment-payment")]
+    public async Task<IActionResult> CreateCommitmentPayment(
+        [FromBody] LongevitymaxxingCommitmentPaymentRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _challenge.CreateCommitmentPaymentInvoiceAsync(request.AccessToken, ct: ct).ConfigureAwait(false));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("commitment-payment/status")]
+    public async Task<IActionResult> RefreshCommitmentPayment(
+        [FromBody] LongevitymaxxingCommitmentPaymentRequest request,
+        CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _challenge.RefreshCommitmentPaymentStatusAsync(request.AccessToken, ct: ct).ConfigureAwait(false));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("check-in")]
     [Consumes("application/json")]
     public IActionResult CheckIn([FromBody] LongevitymaxxingCheckInRequest request)

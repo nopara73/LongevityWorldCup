@@ -249,6 +249,9 @@ public sealed class DiscountSignupReportServiceTests
         public Dictionary<string, BtcpayInvoiceLookupResult> Results { get; } = new(StringComparer.OrdinalIgnoreCase);
         public List<string> RequestedInvoiceIds { get; } = [];
 
+        public Task<BtcpayInvoiceCreateResult> CreateInvoiceAsync(Config config, BtcpayInvoiceCreateRequest request, CancellationToken ct = default)
+            => Task.FromResult(BtcpayInvoiceCreateResult.Failure("not used"));
+
         public Task<BtcpayInvoiceLookupResult> GetInvoiceAsync(Config config, string invoiceId, CancellationToken ct = default)
         {
             RequestedInvoiceIds.Add(invoiceId);

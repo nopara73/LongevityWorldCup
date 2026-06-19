@@ -947,7 +947,7 @@ namespace LongevityWorldCup.Website.Controllers
 
             if (!response.IsSuccessStatusCode)
             {
-                return (false, null, null, $"BTCPay API {(int)response.StatusCode}: {responseBody}");
+                return (false, null, null, BuildBtcpayFailureMessage(response.StatusCode));
             }
 
             using var json = JsonDocument.Parse(responseBody);
@@ -993,11 +993,14 @@ namespace LongevityWorldCup.Website.Controllers
             var responseBody = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
-                return BtcpayInvoiceLookupResult.Failure($"BTCPay API {(int)response.StatusCode}: {responseBody}");
+                return BtcpayInvoiceLookupResult.Failure(BuildBtcpayFailureMessage(response.StatusCode));
             }
 
             return BtcpayInvoiceClient.ParseInvoiceJson(responseBody);
         }
+
+        private static string BuildBtcpayFailureMessage(System.Net.HttpStatusCode statusCode)
+            => $"BTCPay API returned HTTP {(int)statusCode}.";
 
         private async Task<(bool Success, string? Error)> SendPaymentFollowupEmailAsync(
             Config config,

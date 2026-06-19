@@ -1,17 +1,79 @@
 using System.Globalization;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 namespace LongevityWorldCup.Website.Business;
 
 public interface IBtcpayInvoiceClient
 {
+    Task<BtcpayInvoiceCreateResult> CreateInvoiceAsync(Config config, BtcpayInvoiceCreateRequest request, CancellationToken ct = default);
     Task<BtcpayInvoiceLookupResult> GetInvoiceAsync(Config config, string invoiceId, CancellationToken ct = default);
 }
 
 public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : IBtcpayInvoiceClient
 {
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+
+    public async Task<BtcpayInvoiceCreateResult> CreateInvoiceAsync(Config config, BtcpayInvoiceCreateRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(config.BTCPayBaseUrl))
+            return BtcpayInvoiceCreateResult.Failure("BTCPayBaseUrl is missing in config.");
+        if (string.IsNullOrWhiteSpace(config.BTCPayStoreId))
+            return BtcpayInvoiceCreateResult.Failure("BTCPayStoreId is missing in config.");
+        if (string.IsNullOrWhiteSpace(config.BTCPayGreenfieldApiKey))
+            return BtcpayInvoiceCreateResult.Failure("BTCPayGreenfieldApiKey is missing in config.");
+        if (request.Amount <= 0)
+            return BtcpayInvoiceCreateResult.Failure("Invoice amount must be positive.");
+        if (string.IsNullOrWhiteSpace(request.Currency))
+            return BtcpayInvoiceCreateResult.Failure("Invoice currency is required.");
+
+        var baseUrl = config.BTCPayBaseUrl!.TrimEnd('/');
+        var endpoint = $"{baseUrl}/api/v1/stores/{Uri.EscapeDataString(config.BTCPayStoreId!)}/invoices";
+        var client = _httpClientFactory.CreateClient(nameof(BtcpayInvoiceClient));
+        var metadata = new Dictionary<string, object?>(request.Metadata, StringComparer.OrdinalIgnoreCase)
+        {
+            ["orderId"] = request.OrderId,
+            ["buyerName"] = request.BuyerName,
+            ["buyerEmail"] = request.BuyerEmail
+        };
+        var payload = new Dictionary<string, object?>
+        {
+            ["amount"] = request.Amount,
+            ["currency"] = request.Currency.Trim().ToUpperInvariant(),
+            ["metadata"] = metadata,
+            ["checkout"] = new Dictionary<string, object?>
+            {
+                ["speedPolicy"] = "HighSpeed",
+                ["paymentMethods"] = new[] { "BTC" }
+            }
+        };
+
+        if (!string.IsNullOrWhiteSpace(request.BuyerEmail))
+        {
+            payload["buyer"] = new Dictionary<string, object?>
+            {
+                ["email"] = request.BuyerEmail!.Trim()
+            };
+        }
+
+        using var message = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        message.Headers.Authorization = new AuthenticationHeaderValue("token", config.BTCPayGreenfieldApiKey);
+        message.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+        using var response = await client.SendAsync(message, ct).ConfigureAwait(false);
+        var responseBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+            return BtcpayInvoiceCreateResult.Failure(BuildBtcpayFailureMessage(response.StatusCode));
+
+        using var json = JsonDocument.Parse(responseBody);
+        if (!TryGetPropertyString(json.RootElement, "checkoutLink", out var checkoutLink) || string.IsNullOrWhiteSpace(checkoutLink))
+            return BtcpayInvoiceCreateResult.Failure("BTCPay response missing checkoutLink.");
+        if (!TryGetPropertyString(json.RootElement, "id", out var invoiceId) || string.IsNullOrWhiteSpace(invoiceId))
+            return BtcpayInvoiceCreateResult.Failure("BTCPay response missing invoice id.");
+
+        return new BtcpayInvoiceCreateResult(true, checkoutLink, invoiceId, null);
+    }
 
     public async Task<BtcpayInvoiceLookupResult> GetInvoiceAsync(Config config, string invoiceId, CancellationToken ct = default)
     {
@@ -35,7 +97,7 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
         var responseBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            return BtcpayInvoiceLookupResult.Failure($"BTCPay API {(int)response.StatusCode}: {responseBody}");
+            return BtcpayInvoiceLookupResult.Failure(BuildBtcpayFailureMessage(response.StatusCode));
         }
 
         return ParseInvoiceJson(responseBody);
@@ -81,6 +143,9 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
             : null;
     }
 
+    private static string BuildBtcpayFailureMessage(System.Net.HttpStatusCode statusCode)
+        => $"BTCPay API returned HTTP {(int)statusCode}.";
+
     private static bool TryGetPropertyString(JsonElement element, string propertyName, out string? value)
     {
         foreach (var property in element.EnumerateObject())
@@ -122,6 +187,24 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
         value = default;
         return false;
     }
+}
+
+public sealed record BtcpayInvoiceCreateRequest(
+    decimal Amount,
+    string Currency,
+    string OrderId,
+    string? BuyerEmail,
+    string? BuyerName,
+    IReadOnlyDictionary<string, object?> Metadata);
+
+public sealed record BtcpayInvoiceCreateResult(
+    bool Success,
+    string? CheckoutLink,
+    string? InvoiceId,
+    string? Error)
+{
+    public static BtcpayInvoiceCreateResult Failure(string error) =>
+        new(false, null, null, error);
 }
 
 public sealed record BtcpayInvoiceLookupResult(
