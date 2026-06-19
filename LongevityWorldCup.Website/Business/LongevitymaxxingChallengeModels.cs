@@ -173,7 +173,9 @@ public sealed record LongevitymaxxingReminderCandidate(
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls,
     bool IsCommitmentPaymentReminder = false,
     decimal? CommitmentOwedAmountUsd = null,
-    int? CommitmentTriggerChallengeDay = null);
+    int? CommitmentTriggerChallengeDay = null,
+    int? CommitmentTriggerScore = null,
+    decimal? CommitmentThresholdAverage = null);
 
 public sealed record LongevitymaxxingCallReminderCandidate(
     string ParticipantId,

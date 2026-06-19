@@ -24,6 +24,7 @@ public sealed class LongevitymaxxingChallengeService
     private const decimal MinimumCommitmentAmountUsd = 1m;
     private const int CommitmentEnforcementPreviousScoredDays = 3;
     private const int CommitmentAverageWindowDays = 7;
+    private const int LeaderboardScoringWindowDays = 14;
     private const string CommitmentPaymentReminderKind = "commitment-payment";
     private const double FinalDayScoreMultiplier = 1.4d;
     public const int MaxProfilePictureUploadBytes = 32 * 1024 * 1024;
@@ -35,23 +36,12 @@ public sealed class LongevitymaxxingChallengeService
     private const int CheckInPhotoQuality = 82;
     private const string GravatarMissingCacheVersion = "v4";
     private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
-    private const string CurrentChallengeFinaleStartsAtUtc = "2026-06-21T06:30:00Z";
     private const int CallScheduleUpdateNoticeDay = 0;
-    private const string CallScheduleUpdateReminderKind = "call-schedule-update-2026-finale-sunday";
-    private static readonly DateOnly CurrentChallengeStartDate = new(2026, 6, 8);
-    private static readonly TimeOnly[] DefaultSundayCallTimesUtc = [new(6, 30)];
-    private static readonly IReadOnlyDictionary<string, string[]> BuiltInCallSlotStartsAtUtc = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
-    {
-        ["kickoff:kickoff-a"] = ["2026-06-08T06:30:00Z", "2026-06-07T06:30:00Z"],
-        ["kickoff:kickoff-b"] = ["2026-06-08T13:00:00Z", "2026-06-07T06:30:00Z"],
-        ["kickoff:kickoff-c"] = ["2026-06-08T16:00:00Z", "2026-06-07T06:30:00Z"],
-        ["midpoint:midpoint-a"] = ["2026-06-15T06:30:00Z"],
-        ["midpoint:midpoint-b"] = ["2026-06-15T13:00:00Z", "2026-06-15T06:30:00Z"],
-        ["midpoint:midpoint-c"] = ["2026-06-15T16:00:00Z", "2026-06-15T06:30:00Z"],
-        ["finale:finale-a"] = ["2026-06-22T06:30:00Z", CurrentChallengeFinaleStartsAtUtc],
-        ["finale:finale-b"] = ["2026-06-22T13:00:00Z", "2026-06-22T06:30:00Z", CurrentChallengeFinaleStartsAtUtc],
-        ["finale:finale-c"] = ["2026-06-22T16:00:00Z", "2026-06-22T06:30:00Z", CurrentChallengeFinaleStartsAtUtc]
-    };
+    private const string CallScheduleUpdateReminderKind = "call-schedule-update-weekly-community-sunday";
+    private const int CommunityCallGenerationPastDays = 7;
+    private const int CommunityCallGenerationFutureDays = 42;
+    private const int UpcomingCommunityCallDisplayCount = 4;
+    private static readonly TimeOnly WeeklyCommunityCallTimeUtc = new(6, 30);
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
     private static readonly SemaphoreSlim ProfilePictureWarmupSlots = new(2);
     private static readonly EmailAddressAttribute EmailValidator = new();
@@ -91,7 +81,7 @@ public sealed class LongevitymaxxingChallengeService
     public LongevitymaxxingPublicState GetPublicState(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         TrySelectCallSlots(now);
         var participants = GetConfirmedParticipants();
         QueueProfilePictureWarmups(participants);
@@ -121,7 +111,7 @@ public sealed class LongevitymaxxingChallengeService
     public IReadOnlyList<LongevitymaxxingChallengeResultEventRow> GetFinalResultEventRows(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         var finalResultsAvailableAtUtc = GetFinalResultsAvailableAtUtc(settings);
         if (now < finalResultsAvailableAtUtc)
             return [];
@@ -160,12 +150,13 @@ public sealed class LongevitymaxxingChallengeService
     public async Task<LongevitymaxxingSignupResult> SignupAsync(LongevitymaxxingSignupRequest request, DateTimeOffset? nowUtc = null, CancellationToken ct = default)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
 
         var email = NormalizeEmail(request.Email);
-        var displayName = NormalizeDisplayName(request.DisplayName);
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
         var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
+        var athleteProfile = ResolveAthleteProfile(athleteSlug);
+        var displayName = ResolveSignupDisplayName(request.DisplayName, athleteSlug, athleteProfile);
         var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
 
         var confirmationToken = CreateToken();
@@ -179,7 +170,7 @@ public sealed class LongevitymaxxingChallengeService
             var existing = FindParticipantByEmail(sqlite, email);
             if (existing is null)
             {
-                EnsureDisplayNameAvailable(sqlite, displayName, null);
+                EnsureParticipantIdentityAvailable(sqlite, displayName, athleteSlug, null);
                 participantId = Guid.NewGuid().ToString("N");
                 using var insert = sqlite.CreateCommand();
                 insert.CommandText =
@@ -211,7 +202,7 @@ public sealed class LongevitymaxxingChallengeService
                 if (HasActivePaymentObligation(sqlite, existing.Id))
                     return;
 
-                EnsureDisplayNameAvailable(sqlite, displayName, existing.Id);
+                EnsureParticipantIdentityAvailable(sqlite, displayName, athleteSlug, existing.Id);
                 using var update = sqlite.CreateCommand();
                 update.CommandText =
                     """
@@ -301,7 +292,7 @@ public sealed class LongevitymaxxingChallengeService
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
         checkIns.TryGetValue(participant.Id, out var byDay);
         byDay ??= [];
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         var eligibleDays = BuildEligibleDays(settings, participant, checkIns, now);
 
         return new LongevitymaxxingParticipantState(
@@ -335,18 +326,19 @@ public sealed class LongevitymaxxingChallengeService
     public LongevitymaxxingParticipantState EditParticipant(LongevitymaxxingParticipantEditRequest request, DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         var participant = RequireParticipantByAccessToken(request.AccessToken);
-        var displayName = NormalizeDisplayName(request.DisplayName);
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
         var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
+        var athleteProfile = ResolveAthleteProfile(athleteSlug);
+        var displayName = ResolveSignupDisplayName(request.DisplayName, athleteSlug, athleteProfile);
         var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before editing your profile.");
 
         _db.Run(sqlite =>
         {
-            EnsureDisplayNameAvailable(sqlite, displayName, participant.Id);
+            EnsureParticipantIdentityAvailable(sqlite, displayName, athleteSlug, participant.Id);
             using var update = sqlite.CreateCommand();
             update.CommandText =
                 """
@@ -375,7 +367,7 @@ public sealed class LongevitymaxxingChallengeService
         var participant = RequireParticipantByAccessToken(accessToken);
         EnsureParticipantNotCommitmentBlocked(participant);
         if (!string.IsNullOrWhiteSpace(participant.AthleteSlug))
-            throw new InvalidOperationException("Profile picture upload is only for participants without a LWC athlete profile.");
+            throw new InvalidOperationException("Profile picture upload is only for participants without a linked Longevity athlete profile.");
 
         if (profilePicture is null || profilePicture.Length <= 0)
             throw new InvalidOperationException("Profile picture is required.");
@@ -582,7 +574,7 @@ public sealed class LongevitymaxxingChallengeService
     private ValidatedCheckIn ValidateCheckIn(LongevitymaxxingCheckInRequest request, DateTimeOffset? nowUtc)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         var participant = RequireParticipantByAccessToken(request.AccessToken);
         var values = ValidateAnswers(request.Sleep, request.Exercise, request.Nutrition, request.Vices);
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
@@ -760,7 +752,7 @@ public sealed class LongevitymaxxingChallengeService
     public IReadOnlyList<LongevitymaxxingReminderCandidate> GetDailyReminderCandidates(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         TrySelectCallSlots(now);
         var selectedCalls = BuildParticipantCalls(settings)
             .Where(call => call.SelectedSlot is not null)
@@ -812,7 +804,9 @@ public sealed class LongevitymaxxingChallengeService
                     [],
                     true,
                     activeObligation.AmountUsd,
-                    activeObligation.TriggerChallengeDay));
+                    activeObligation.TriggerChallengeDay,
+                    activeObligation.TriggerScore,
+                    activeObligation.ThresholdAverage));
                 continue;
             }
 
@@ -846,7 +840,7 @@ public sealed class LongevitymaxxingChallengeService
     public void ApplyDailyReminderStopRules(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         var participants = GetConfirmedParticipants()
             .Where(p => p.StoppedEmailsAtUtc is null)
             .ToList();
@@ -898,7 +892,7 @@ public sealed class LongevitymaxxingChallengeService
     public IReadOnlyList<LongevitymaxxingChallengeStartCandidate> GetChallengeStartCandidates(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         var challengeStartsAtUtc = new DateTimeOffset(settings.StartDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
         if (now < challengeStartsAtUtc)
             return [];
@@ -948,13 +942,14 @@ public sealed class LongevitymaxxingChallengeService
     public IReadOnlyList<LongevitymaxxingCallReminderCandidate> GetCallReminderCandidates(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         TrySelectCallSlots(now);
         var selectedCalls = BuildParticipantCalls(settings)
             .Where(c => c.SelectedSlot is not null)
             .ToList();
         if (selectedCalls.Count == 0)
             return [];
+        var upcomingCalls = GetUpcomingParticipantCalls(selectedCalls, now);
 
         var participants = GetConfirmedParticipants()
             .Where(p => p.StoppedEmailsAtUtc is null)
@@ -989,7 +984,7 @@ public sealed class LongevitymaxxingChallengeService
                         call.SelectedSlot.StartsAtUtc,
                         kind,
                         call.VideoCallUrl,
-                        selectedCalls));
+                        upcomingCalls));
                 }
             }
         }
@@ -1020,7 +1015,7 @@ public sealed class LongevitymaxxingChallengeService
     public void TrySelectCallSlots(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings();
+        var settings = BuildSettings(now);
         if (now < settings.CallSelectionClosesAtUtc)
             return;
 
@@ -1178,27 +1173,15 @@ public sealed class LongevitymaxxingChallengeService
         => ex.SqliteErrorCode == 1 &&
            ex.Message.Contains("duplicate column name", StringComparison.OrdinalIgnoreCase);
 
-    private ChallengeSettings BuildSettings()
+    private ChallengeSettings BuildSettings(DateTimeOffset? nowUtc = null)
     {
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var cfg = _config.LongevitymaxxingChallenge ?? new LongevitymaxxingChallengeConfig();
         var start = ParseDateOnly(cfg.StartDate, DateOnly.FromDateTime(DateTime.UtcNow.Date));
         var durationDays = cfg.DurationDays is >= 1 and <= 31 ? cfg.DurationDays : 14;
         var signupCloses = ParseDateTimeOffset(cfg.SignupClosesAtUtc, new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero));
         var reminderHour = Math.Clamp(cfg.DailyReminderHourLocal, 0, 23);
-        var configuredCalls = cfg.Calls
-            .Where(c => !string.IsNullOrWhiteSpace(c.Key))
-            .Select(c => new CallSettings(
-                NormalizeKey(c.Key),
-                string.IsNullOrWhiteSpace(c.Label) ? c.Key.Trim() : c.Label.Trim(),
-                string.IsNullOrWhiteSpace(c.SelectedSlotId) ? null : c.SelectedSlotId.Trim(),
-                c.CandidateSlots
-                    .Where(s => !string.IsNullOrWhiteSpace(s.Id) && !string.IsNullOrWhiteSpace(s.StartsAtUtc))
-                    .Select(s => new LongevitymaxxingCallSlot(s.Id.Trim(), ParseDateTimeOffset(s.StartsAtUtc, DateTimeOffset.UtcNow).ToUniversalTime().ToString("o")))
-                    .ToList()))
-            .ToList();
-        var calls = ShouldUseSundayDefaultCalls(start, configuredCalls)
-            ? BuildSundayDefaultCalls(start, durationDays)
-            : ApplyCurrentChallengeCallOverrides(start, configuredCalls);
+        var calls = BuildWeeklyCommunityCalls(start, now);
         var callSelectionCloses = ParseDateTimeOffset(
             cfg.CallSelectionClosesAtUtc,
             GetDefaultCallSelectionClosesAtUtc(calls, signupCloses));
@@ -1216,88 +1199,49 @@ public sealed class LongevitymaxxingChallengeService
             calls);
     }
 
-    private static bool ShouldUseSundayDefaultCalls(DateOnly start, IReadOnlyList<CallSettings> calls)
-        => start != CurrentChallengeStartDate && (calls.Count == 0 || LooksLikeBuiltInCallTemplate(calls));
-
-    private static bool LooksLikeBuiltInCallTemplate(IReadOnlyList<CallSettings> calls)
+    private static IReadOnlyList<CallSettings> BuildWeeklyCommunityCalls(DateOnly start, DateTimeOffset now)
     {
-        var expectedKeys = new HashSet<string>(["kickoff", "midpoint", "finale"], StringComparer.Ordinal);
-        if (calls.Count != expectedKeys.Count || calls.Any(call => !expectedKeys.Contains(call.Key)))
-            return false;
+        var firstCallDate = GetSundayOnOrBefore(start);
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var windowStart = today <= firstCallDate
+            ? firstCallDate
+            : GetSundayOnOrBefore(today.AddDays(-CommunityCallGenerationPastDays));
+        if (windowStart < firstCallDate)
+            windowStart = firstCallDate;
 
-        return calls.All(call =>
-        {
-            return call.CandidateSlots.Count > 0 &&
-                   call.CandidateSlots.All(slot => SlotMatchesBuiltInTemplate(call.Key, slot));
-        });
+        var windowEnd = today > start
+            ? today.AddDays(CommunityCallGenerationFutureDays)
+            : start.AddDays(CommunityCallGenerationFutureDays);
+        windowEnd = GetSundayOnOrAfter(windowEnd);
+
+        var calls = new List<CallSettings>();
+        for (var date = windowStart; date <= windowEnd; date = date.AddDays(7))
+            calls.Add(BuildWeeklyCommunityCall(date));
+
+        return calls;
     }
 
-    private static bool SlotMatchesBuiltInTemplate(string callKey, LongevitymaxxingCallSlot slot)
+    private static DateOnly GetSundayOnOrBefore(DateOnly date)
     {
-        if (!BuiltInCallSlotStartsAtUtc.TryGetValue($"{callKey}:{slot.Id}", out var allowedStartsAtUtc))
-            return false;
-
-        var startsAt = ParseDateTimeOffset(slot.StartsAtUtc, DateTimeOffset.MinValue).ToUniversalTime();
-        return allowedStartsAtUtc
-            .Select(value => ParseDateTimeOffset(value, DateTimeOffset.MinValue).ToUniversalTime())
-            .Any(value => value == startsAt);
+        var daysSinceSunday = (int)date.DayOfWeek;
+        return date.AddDays(-daysSinceSunday);
     }
 
-    private static IReadOnlyList<CallSettings> BuildSundayDefaultCalls(DateOnly start, int durationDays)
+    private static DateOnly GetSundayOnOrAfter(DateOnly date)
     {
-        var midpointOffsetDays = Math.Max(0, (durationDays / 2) - 1);
-        var finalOffsetDays = Math.Max(0, durationDays - 1);
-        return
-        [
-            BuildSundayDefaultCall("kickoff", "Kickoff", start.AddDays(-1)),
-            BuildSundayDefaultCall("midpoint", "Midpoint", start.AddDays(midpointOffsetDays)),
-            BuildSundayDefaultCall("finale", "Finale", start.AddDays(finalOffsetDays))
-        ];
+        var daysUntilSunday = ((int)DayOfWeek.Sunday - (int)date.DayOfWeek + 7) % 7;
+        return date.AddDays(daysUntilSunday);
     }
 
-    private static CallSettings BuildSundayDefaultCall(string key, string label, DateOnly date)
+    private static CallSettings BuildWeeklyCommunityCall(DateOnly date)
     {
-        var slots = DefaultSundayCallTimesUtc
-            .Select((time, index) =>
-            {
-                var startsAtUtc = new DateTimeOffset(date.ToDateTime(time), TimeSpan.Zero);
-                return new LongevitymaxxingCallSlot(
-                    $"{key}-{(char)('a' + index)}",
-                    startsAtUtc.ToString("o", CultureInfo.InvariantCulture));
-            })
-            .ToList();
+        var key = $"community-{date:yyyy-MM-dd}";
+        var slot = new LongevitymaxxingCallSlot(
+            $"{key}-a",
+            new DateTimeOffset(date.ToDateTime(WeeklyCommunityCallTimeUtc), TimeSpan.Zero)
+                .ToString("o", CultureInfo.InvariantCulture));
 
-        return new CallSettings(key, label, null, slots);
-    }
-
-    private static IReadOnlyList<CallSettings> ApplyCurrentChallengeCallOverrides(
-        DateOnly start,
-        IReadOnlyList<CallSettings> calls)
-    {
-        if (start != CurrentChallengeStartDate)
-            return calls;
-
-        var finaleStartsAt = ParseDateTimeOffset(CurrentChallengeFinaleStartsAtUtc, DateTimeOffset.UtcNow)
-            .ToUniversalTime()
-            .ToString("o", CultureInfo.InvariantCulture);
-
-        return calls
-            .Select(call =>
-            {
-                if (!string.Equals(call.Key, "finale", StringComparison.Ordinal))
-                    return call;
-
-                var slots = call.CandidateSlots.Count == 0
-                    ? [new LongevitymaxxingCallSlot("finale-a", finaleStartsAt)]
-                    : call.CandidateSlots
-                    .Select(slot => new LongevitymaxxingCallSlot(
-                        slot.Id,
-                        finaleStartsAt))
-                    .ToList();
-
-                return call with { CandidateSlots = slots };
-            })
-            .ToList();
+        return new CallSettings(key, "Community call", slot.Id, [slot]);
     }
 
     private static DateTimeOffset GetDefaultCallSelectionClosesAtUtc(
@@ -1328,7 +1272,8 @@ public sealed class LongevitymaxxingChallengeService
         int visibleDayCount,
         int? maxChallengeDay = null)
     {
-        var categoryLeaders = BuildCategoryLeaders(settings, participants, checkIns, maxChallengeDay);
+        var leaderboardWindowStartDay = GetLeaderboardWindowStartDay(visibleDayCount, maxChallengeDay);
+        var categoryLeaders = BuildCategoryLeaders(settings, participants, checkIns, maxChallengeDay, leaderboardWindowStartDay);
         var athleteTieBreaks = BuildAthleteTieBreaks();
         var activePaymentObligations = GetActivePaymentObligations(participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
         var rows = participants.Select(p =>
@@ -1336,15 +1281,16 @@ public sealed class LongevitymaxxingChallengeService
             checkIns.TryGetValue(p.Id, out var byDay);
             byDay ??= [];
             var includedByDay = FilterChallengeDays(byDay, maxChallengeDay);
-            var checkedInDays = includedByDay.Count;
-            var totalPoints = includedByDay.Values.Sum(c => GetScoredPoints(settings, p, c, includedByDay));
-            var currentStreak = CalculateCurrentStreak(settings, p, byDay, now);
-            var latest = includedByDay.Values
+            var performanceByDay = FilterLeaderboardPerformanceDays(includedByDay, leaderboardWindowStartDay);
+            var checkedInDays = performanceByDay.Count;
+            var totalPoints = performanceByDay.Values.Sum(c => GetScoredPoints(settings, p, c, includedByDay));
+            var currentStreak = Math.Min(CalculateCurrentStreak(settings, p, byDay, now), LeaderboardScoringWindowDays);
+            var latest = performanceByDay.Values
                 .Select(c => c.CheckedInAtUtc)
                 .Where(x => x is not null)
                 .OrderByDescending(x => x)
                 .FirstOrDefault();
-            var badges = BuildBadges(settings, p, p.Id, includedByDay, currentStreak, categoryLeaders);
+            var badges = BuildBadges(settings, p, p.Id, performanceByDay, currentStreak, categoryLeaders);
             var cells = Enumerable.Range(1, visibleDayCount)
                 .Select(day => includedByDay.TryGetValue(day, out var checkIn)
                     ? new LongevitymaxxingDayCell(
@@ -1389,6 +1335,12 @@ public sealed class LongevitymaxxingChallengeService
         return rows;
     }
 
+    private static int GetLeaderboardWindowStartDay(int visibleDayCount, int? maxChallengeDay)
+    {
+        var latestChallengeDay = Math.Max(1, maxChallengeDay ?? visibleDayCount);
+        return Math.Max(1, latestChallengeDay - LeaderboardScoringWindowDays + 1);
+    }
+
     private static Dictionary<int, CheckInRecord> FilterChallengeDays(
         IReadOnlyDictionary<int, CheckInRecord> byDay,
         int? maxChallengeDay)
@@ -1401,6 +1353,13 @@ public sealed class LongevitymaxxingChallengeService
             .ToDictionary(kv => kv.Key, kv => kv.Value);
     }
 
+    private static Dictionary<int, CheckInRecord> FilterLeaderboardPerformanceDays(
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        int minChallengeDay)
+        => byDay
+            .Where(kv => kv.Key >= minChallengeDay)
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+
     private LongevitymaxxingCommitmentState BuildCommitmentState(
         ParticipantRecord participant,
         IReadOnlyDictionary<int, CheckInRecord> byDay,
@@ -1410,7 +1369,7 @@ public sealed class LongevitymaxxingChallengeService
         var obligation = GetActivePaymentObligation(participant.Id);
         if (obligation is not null)
         {
-            var settings = BuildSettings();
+            var settings = BuildSettings(now);
             var triggerEditable = IsCommitmentTriggerEditable(settings, participant, obligation, now, byDay);
             var message = triggerEditable
                 ? $"Commitment due for Day {obligation.TriggerChallengeDay}. Pay USD {obligation.AmountUsd:0.##}, or fix an eligible check-in so Day {obligation.TriggerChallengeDay} reaches its baseline."
@@ -1574,7 +1533,7 @@ public sealed class LongevitymaxxingChallengeService
 
     private void UpdateCommitmentAfterCheckIn(ValidatedCheckIn checkIn)
     {
-        var settings = BuildSettings();
+        var settings = BuildSettings(checkIn.NowUtc);
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { checkIn.Participant.Id });
         checkIns.TryGetValue(checkIn.Participant.Id, out var byDay);
         byDay ??= [];
@@ -1975,7 +1934,8 @@ public sealed class LongevitymaxxingChallengeService
         ChallengeSettings settings,
         IReadOnlyList<ParticipantRecord> participants,
         IReadOnlyDictionary<string, Dictionary<int, CheckInRecord>> checkIns,
-        int? maxChallengeDay)
+        int? maxChallengeDay,
+        int minChallengeDay)
     {
         var totals = new Dictionary<string, Dictionary<string, int>>(StringComparer.Ordinal)
         {
@@ -1991,6 +1951,7 @@ public sealed class LongevitymaxxingChallengeService
             byDay ??= [];
             var scored = byDay.Values
                 .Where(c => maxChallengeDay is null || c.ChallengeDay <= maxChallengeDay.Value)
+                .Where(c => c.ChallengeDay >= minChallengeDay)
                 .Where(c => CountsForScore(settings, participant, c.ChallengeDay))
                 .ToList();
             var participantId = participant.Id;
@@ -2234,6 +2195,8 @@ public sealed class LongevitymaxxingChallengeService
     {
         return calls
             .Where(call => !HasParticipantCallStarted(call, now))
+            .OrderBy(call => ParseDateTimeOffset(call.SelectedSlot?.StartsAtUtc, DateTimeOffset.MaxValue))
+            .Take(UpcomingCommunityCallDisplayCount)
             .ToList();
     }
 
@@ -2665,7 +2628,37 @@ public sealed class LongevitymaxxingChallengeService
         return normalized;
     }
 
-    private void EnsureDisplayNameAvailable(SqliteConnection sqlite, string displayName, string? participantIdToIgnore)
+    private string ResolveSignupDisplayName(string? requestedDisplayName, string? athleteSlug, AthleteProfile? athleteProfile)
+    {
+        if (!string.IsNullOrWhiteSpace(athleteSlug))
+        {
+            if (athleteProfile is not null)
+                return NormalizeDisplayName(athleteProfile.DisplayName);
+
+            return NormalizeDisplayName(requestedDisplayName ?? "");
+        }
+
+        return NormalizeDisplayName(requestedDisplayName ?? "");
+    }
+
+    private void EnsureParticipantIdentityAvailable(
+        SqliteConnection sqlite,
+        string displayName,
+        string? athleteSlug,
+        string? participantIdToIgnore)
+    {
+        if (!string.IsNullOrWhiteSpace(athleteSlug))
+        {
+            EnsureAthleteSlugAvailable(sqlite, athleteSlug, participantIdToIgnore);
+            EnsureParticipantDisplayNameAvailable(sqlite, displayName, participantIdToIgnore);
+            return;
+        }
+
+        EnsureParticipantDisplayNameAvailable(sqlite, displayName, participantIdToIgnore);
+        EnsureDisplayNameDoesNotMatchAthlete(displayName);
+    }
+
+    private void EnsureParticipantDisplayNameAvailable(SqliteConnection sqlite, string displayName, string? participantIdToIgnore)
     {
         var canonical = CanonicalDisplayName(displayName);
         if (string.IsNullOrWhiteSpace(canonical))
@@ -2690,7 +2683,33 @@ public sealed class LongevitymaxxingChallengeService
                     throw new InvalidOperationException("That username is already taken.");
             }
         }
+    }
 
+    private void EnsureAthleteSlugAvailable(SqliteConnection sqlite, string athleteSlug, string? participantIdToIgnore)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            """
+            SELECT Id, AthleteSlug
+            FROM LongevitymaxxingParticipants
+            WHERE AthleteSlug IS NOT NULL;
+            """;
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var participantId = reader.GetString(0);
+            if (string.Equals(participantId, participantIdToIgnore, StringComparison.Ordinal))
+                continue;
+
+            if (AthleteSlugMatches(reader.GetString(1), athleteSlug))
+                throw new InvalidOperationException("That athlete profile is already in the challenge.");
+        }
+    }
+
+    private void EnsureDisplayNameDoesNotMatchAthlete(string displayName)
+    {
+        var canonical = CanonicalDisplayName(displayName);
         var athletes = _athletes?.GetAthletesSnapshot();
         if (athletes is null)
             return;
@@ -2702,9 +2721,57 @@ public sealed class LongevitymaxxingChallengeService
         }
     }
 
+    private AthleteProfile? ResolveAthleteProfile(string? athleteSlug)
+    {
+        if (string.IsNullOrWhiteSpace(athleteSlug))
+            return null;
+
+        var athletes = _athletes?.GetAthletesSnapshot();
+        if (athletes is null)
+            return null;
+
+        foreach (var athlete in athletes.OfType<JsonObject>())
+        {
+            var candidateSlug = GetJsonString(athlete, "AthleteSlug");
+            if (string.IsNullOrWhiteSpace(candidateSlug) || !AthleteSlugMatches(candidateSlug, athleteSlug))
+                continue;
+
+            var displayName = GetAthleteDisplayName(athlete, athleteSlug);
+            return new AthleteProfile(athleteSlug, displayName);
+        }
+
+        return null;
+    }
+
     private static bool IsAthleteNameMatch(JsonObject athlete, string canonicalDisplayName)
         => string.Equals(CanonicalDisplayName(GetJsonString(athlete, "DisplayName")), canonicalDisplayName, StringComparison.Ordinal)
            || string.Equals(CanonicalDisplayName(GetJsonString(athlete, "Name")), canonicalDisplayName, StringComparison.Ordinal);
+
+    private static bool AthleteSlugMatches(string? left, string? right)
+        => string.Equals(TryNormalizeAthleteSlug(left), TryNormalizeAthleteSlug(right), StringComparison.Ordinal);
+
+    private static string GetAthleteDisplayName(JsonObject athlete, string athleteSlug)
+    {
+        var displayName = GetJsonString(athlete, "DisplayName");
+        if (!string.IsNullOrWhiteSpace(displayName))
+            return displayName.Trim();
+
+        var name = GetJsonString(athlete, "Name");
+        if (!string.IsNullOrWhiteSpace(name))
+            return name.Trim();
+
+        return AthleteSlugToDisplayName(athleteSlug);
+    }
+
+    private static string AthleteSlugToDisplayName(string slug)
+    {
+        var parts = (TryNormalizeAthleteSlug(slug) ?? slug)
+            .Replace('_', '-')
+            .Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts.Length == 0
+            ? "Longevity athlete"
+            : string.Join(" ", parts.Select(CultureInfo.InvariantCulture.TextInfo.ToTitleCase));
+    }
 
     private static string? GetJsonString(JsonObject obj, string propertyName)
         => obj.TryGetPropertyValue(propertyName, out var node) ? node?.GetValue<string>() : null;
@@ -3242,6 +3309,8 @@ public sealed class LongevitymaxxingChallengeService
     {
         public static readonly AthleteTieBreak None = new(false, null, null);
     }
+
+    private sealed record AthleteProfile(string Slug, string DisplayName);
 
     private sealed record PaymentObligation(
         string Id,

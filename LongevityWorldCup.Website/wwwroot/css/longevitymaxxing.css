@@ -869,6 +869,60 @@
     gap: 0.3rem;
 }
 
+.lmx-identity-field {
+    margin: 0;
+    padding: 0.65rem;
+    display: grid;
+    gap: 0.6rem;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.lmx-identity-field legend {
+    padding: 0 0.2rem;
+    color: #1e293b;
+    font-size: 0.9rem;
+    font-weight: 850;
+}
+
+.lmx-identity-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.lmx-identity-options label {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0 0.65rem;
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334155;
+    font-weight: 850;
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.lmx-identity-options input {
+    accent-color: #0f172a;
+}
+
+.lmx-identity-options label:has(input:checked) {
+    border-color: #0f172a;
+    background: #0f172a;
+    color: #ffffff;
+}
+
+.lmx-identity-options label:focus-within {
+    outline: 3px solid rgba(0, 188, 212, 0.24);
+    outline-offset: 2px;
+}
+
 .lmx-field label,
 .lmx-field span.lmx-label {
     font-size: 0.84rem;
@@ -876,7 +930,8 @@
     color: #475569;
 }
 
-.lmx-field label span {
+.lmx-field label span,
+.lmx-field span.lmx-label span {
     color: #94a3b8;
     font-weight: 800;
 }
@@ -914,6 +969,50 @@
     font: inherit;
     background: #ffffff;
     color: #0f172a;
+}
+
+.lmx-money-input {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    border: 1px solid rgba(15, 23, 42, 0.16);
+    border-radius: 8px;
+    background: #ffffff;
+    color: #0f172a;
+    overflow: hidden;
+}
+
+.lmx-money-input span {
+    flex: 0 0 auto;
+    padding-left: 0.75rem;
+    color: #0f172a;
+    font: inherit;
+    font-weight: 700;
+}
+
+.lmx-money-input input {
+    min-height: 42px;
+    border: 0;
+    border-radius: 0;
+    padding-left: 0.35rem;
+}
+
+.lmx-money-input input:focus {
+    outline: none;
+}
+
+.lmx-money-input:focus-within {
+    border-color: #67e8f9;
+    box-shadow: 0 0 0 4px rgba(103, 232, 249, 0.32);
+}
+
+.lmx-money-input:has(input[aria-invalid="true"]) {
+    border-color: #ef4444;
+}
+
+.lmx-money-input:has(input:disabled) {
+    background: #f1f5f9;
+    color: #64748b;
 }
 
 .lmx-details {
@@ -1310,6 +1409,10 @@
     align-items: stretch;
 }
 
+#lmxParticipantTools {
+    margin: 0.9rem 0 0.75rem;
+}
+
 .lmx-tabs {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1346,6 +1449,19 @@
 .lmx-tab:focus-visible {
     color: #0f172a;
     background: rgba(255, 255, 255, 0.64);
+}
+
+.lmx-tab:disabled,
+.lmx-tab[aria-disabled="true"] {
+    color: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.62;
+}
+
+.lmx-tab:disabled:hover,
+.lmx-tab[aria-disabled="true"]:hover {
+    color: #94a3b8;
+    background: transparent;
 }
 
 .lmx-tab:focus-visible {
@@ -1530,6 +1646,26 @@
     color: #334155;
 }
 
+.lmx-call-when {
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.42rem;
+}
+
+.lmx-call-when b {
+    color: #0f172a;
+    font-size: 1.02rem;
+    line-height: 1.2;
+}
+
+.lmx-call-when small {
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 .lmx-call-link,
 .lmx-call-done {
     display: inline-flex;
@@ -1686,48 +1822,25 @@
 
 .lmx-commitment-meta {
     display: flex;
+    align-items: center;
     gap: 0.35rem;
     flex-wrap: wrap;
 }
 
-.lmx-commitment-meta span,
-.lmx-payment-link {
+.lmx-commitment-meta span {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     min-height: 1.8rem;
-    padding: 0 0.55rem;
+    padding: 0.22rem 0.7rem;
     border-radius: 999px;
     background: #ffffff;
     color: #334155;
     font-size: 0.78rem;
     font-weight: 900;
+    line-height: 1;
     text-decoration: none;
-}
-
-.lmx-payment-link {
-    color: #075985;
-    background: #e0f2fe;
-}
-
-.lmx-button-row .lmx-payment-link {
-    min-height: 44px;
-    padding-inline: 0.75rem;
-}
-
-.lmx-payment-link:focus-visible {
-    outline: 3px solid rgba(0, 188, 212, 0.32);
-    outline-offset: 2px;
-}
-
-.lmx-commitment-hint {
-    padding: 0.5rem 0.6rem;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.78);
-    color: #334155;
-    font-size: 0.82rem;
-    font-weight: 800;
-    line-height: 1.35;
+    white-space: nowrap;
 }
 
 .lmx-commitment-edit {
@@ -2524,39 +2637,48 @@
         letter-spacing: 0;
     }
 
-    .lmx-dashboard-row {
-        grid-template-columns: 1fr;
-        gap: 0.35rem;
-        padding: 0.55rem;
-        border: 1px solid rgba(15, 23, 42, 0.08);
-        border-radius: 8px;
-        background: #ffffff;
+    .lmx-dashboard-grid {
+        --lmx-dashboard-category-width: 10.75rem;
+        --lmx-dashboard-gap: 0.42rem;
     }
 
     .lmx-dashboard-scroll {
-        overflow-x: visible;
-        scrollbar-gutter: auto;
+        overflow-x: auto;
+        scrollbar-gutter: stable;
     }
 
-    .lmx-dashboard-grid {
-        min-width: 0;
-        width: 100%;
+    .lmx-dashboard-row {
+        grid-template-columns: var(--lmx-dashboard-category-width) max-content;
+        gap: var(--lmx-dashboard-gap);
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
     }
 
     .lmx-dashboard-row-head {
-        display: none;
+        display: grid;
     }
 
     .lmx-dashboard-corner,
     .lmx-dashboard-category {
-        position: static;
-        left: auto;
-        z-index: auto;
-        box-shadow: none;
+        position: sticky;
+        left: 0;
+        z-index: 2;
+    }
+
+    .lmx-dashboard-corner {
+        box-shadow: var(--lmx-dashboard-gap) 0 0 #ffffff;
+    }
+
+    .lmx-dashboard-category {
+        box-shadow:
+            var(--lmx-dashboard-gap) 0 0 #ffffff,
+            0.45rem 0 0.7rem -0.78rem rgba(15, 23, 42, 0.5);
     }
 
     .lmx-dashboard-days {
-        grid-template-columns: repeat(7, minmax(0, 1fr));
+        grid-template-columns: var(--lmx-dashboard-day-columns);
         gap: 0.32rem;
     }
 
@@ -2608,13 +2730,11 @@
         justify-self: start;
     }
 
-    .lmx-commitment-meta span,
-    .lmx-payment-link {
+    .lmx-commitment-meta span {
         min-height: 2rem;
     }
 
-    .lmx-button-row .lmx-button,
-    .lmx-button-row .lmx-payment-link {
+    .lmx-button-row .lmx-button {
         flex: 1 1 100%;
     }
 

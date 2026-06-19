@@ -32,11 +32,13 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 
 - Keep the Longevitymaxxing Challenge separate from Ultimate League ranking, biological age placements, and athlete badges, even when challenge results appear as Events/highlights.
 - Longevitymaxxing Challenge daily check-ins continue indefinitely after Day 14 on the same live leaderboard. Keep adding Day 15, Day 16, and later daily grid columns; do not archive, freeze, split, or create a preserved winners board for the leaderboard.
+- Longevitymaxxing Challenge live leaderboard performance metrics are rolling: checked-in days, total points, current streak, category leader badges, and leaderboard tie-breaks count only the latest 14 challenge days while the daily grid still shows the full check-in history.
 - Longevitymaxxing Challenge Day 14 completion/result Events still emit after the existing grace window and may say participants completed the Longevitymaxxing Challenge, even though the live check-in leaderboard continues afterward.
 - Longevitymaxxing Challenge signup stays open during the ongoing challenge. New signups join the same global leaderboard, see prior global days as empty/missed, and may only check in for days on or after their local signup date.
+- Longevitymaxxing Challenge signup/profile identity asks whether the participant is already a Longevity athlete. Linked participants use the selected athlete profile as their identity and display name, and athlete profiles can only be linked once. Non-athletes choose a username that must not collide with challenge participants or Longevity athlete names.
 - Each participant's first eligible Longevitymaxxing Challenge check-in is practice: it counts for checked-in days and streak, but not habit points, category leader badges, point tie-breaks, or missed-scored-day reminder stops.
-- Longevitymaxxing Challenge call times are configured or automatically selected before reminders; participants do not vote on call availability.
-- Longevitymaxxing Challenge built-in call defaults use Sunday 08:30 GMT+2 call dates for future competitions. The June 2026 finale has a one-off Sunday 08:30 GMT+2 override; the already-completed June 2026 kickoff keeps its historical selected time.
+- Longevitymaxxing Challenge call times are fixed by the generated weekly community-call schedule; participants do not vote on call availability.
+- Longevitymaxxing Challenge community calls happen every Sunday at 08:30 GMT+2 / 06:30 UTC. The ongoing challenge generates future Sunday calls automatically; do not model calls as a finite kickoff/midpoint/finale schedule.
 - Longevitymaxxing Challenge daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - Longevitymaxxing Challenge daily reminder emails continue indefinitely and stop after 3 consecutive missed scored days. Practice does not count, and days before a participant's local signup date do not count.
 - Longevitymaxxing Challenge participant check-in notes and note photos are public on the challenge page.

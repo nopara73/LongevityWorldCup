@@ -51,7 +51,7 @@
                         <span>Vices</span>
                     </div>
                 </div>
-                <section class="lmx-question-preview" aria-labelledby="lmxQuestionPreviewHeading">
+                <section id="lmxQuestionPreview" class="lmx-question-preview" aria-labelledby="lmxQuestionPreviewHeading">
                     <h2 id="lmxQuestionPreviewHeading">Daily checkins</h2>
                     <div id="lmxQuestionPreviewList" class="lmx-question-preview-list" aria-label="Daily checkins"></div>
                 </section>
@@ -88,20 +88,47 @@
                             <h2 id="lmxSignupTitle" class="lmx-hidden"></h2>
                         </div>
                         <form id="lmxSignupForm" class="lmx-form">
-                            <div class="lmx-field-grid">
-                                <div class="lmx-field">
+                            <div class="lmx-field">
+                                <label for="lmxSignupEmail">Email</label>
+                                <input id="lmxSignupEmail" name="email" type="email" autocomplete="email" required>
+                            </div>
+                            <fieldset class="lmx-identity-field" data-identity-scope="signup">
+                                <legend>Are you already a Longevity World Cup athlete?</legend>
+                                <div class="lmx-identity-options" role="radiogroup" aria-label="Athlete status">
+                                    <label>
+                                        <input type="radio" name="lmxSignupIdentity" value="participant" checked>
+                                        <span>No</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="lmxSignupIdentity" value="athlete">
+                                        <span>Yes</span>
+                                    </label>
+                                </div>
+                                <div id="lmxSignupUsernameField" class="lmx-field lmx-identity-username" data-identity-panel="username">
                                     <label for="lmxSignupName">Username</label>
                                     <input id="lmxSignupName" name="displayName" autocomplete="username" required maxlength="80">
                                 </div>
-                                <div class="lmx-field">
-                                    <label for="lmxSignupEmail">Email</label>
-                                    <input id="lmxSignupEmail" name="email" type="email" autocomplete="email" required>
+                                <div id="lmxSignupAthleteField" class="lmx-field lmx-athlete-selector lmx-identity-athlete lmx-hidden" data-identity-panel="athlete">
+                                    <label for="lmxSignupAthlete">Athlete profile</label>
+                                    <div class="lmx-athlete-picker">
+                                        <div class="lmx-athlete-search">
+                                            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                            <input id="lmxSignupAthlete" name="athleteLink" autocomplete="off" placeholder="Search athlete name">
+                                            <button id="lmxSignupAthleteClear" class="lmx-athlete-clear lmx-hidden" type="button" aria-label="Clear selected athlete">
+                                                <i class="fas fa-xmark" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                        <div id="lmxSignupAthleteSelected" class="lmx-athlete-selected lmx-hidden" aria-live="polite"></div>
+                                    </div>
                                 </div>
-                            </div>
+                            </fieldset>
                             <div class="lmx-field">
                                 <label for="lmxSignupCommitmentAmount">Commitment amount</label>
                                 <p id="lmxSignupCommitmentHelp" class="lmx-field-help lmx-commitment-help">Set a real stake. Pay it only if you fall below your recent average, or stop there; choose an amount that'll hurt.</p>
-                                <input id="lmxSignupCommitmentAmount" name="commitmentAmountUsd" type="text" inputmode="decimal" required placeholder="$300" aria-describedby="lmxSignupCommitmentHelp">
+                                <div class="lmx-money-input">
+                                    <span aria-hidden="true">$</span>
+                                    <input id="lmxSignupCommitmentAmount" name="commitmentAmountUsd" type="text" inputmode="decimal" required placeholder="300" aria-describedby="lmxSignupCommitmentHelp">
+                                </div>
                             </div>
                             <details id="lmxSignupDetails" class="lmx-details">
                                 <summary id="lmxSignupDetailsSummary">Extra details</summary>
@@ -109,19 +136,6 @@
                                     <div class="lmx-field">
                                         <label for="lmxSignupTimeZone">Timezone</label>
                                         <select id="lmxSignupTimeZone" name="timeZoneId" required></select>
-                                    </div>
-                                    <div class="lmx-field lmx-athlete-selector">
-                                        <label for="lmxSignupAthlete">Athlete profile <span>optional</span></label>
-                                        <div class="lmx-athlete-picker">
-                                            <div class="lmx-athlete-search">
-                                                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                                                <input id="lmxSignupAthlete" name="athleteLink" autocomplete="off" placeholder="Search athlete name">
-                                                <button id="lmxSignupAthleteClear" class="lmx-athlete-clear lmx-hidden" type="button" aria-label="Clear selected athlete">
-                                                    <i class="fas fa-xmark" aria-hidden="true"></i>
-                                                </button>
-                                            </div>
-                                            <div id="lmxSignupAthleteSelected" class="lmx-athlete-selected lmx-hidden" aria-live="polite"></div>
-                                        </div>
                                     </div>
                                 </div>
                             </details>
@@ -170,31 +184,47 @@
                         <div id="lmxCheckinList" class="lmx-checkin-list"></div>
                     </div>
                     <form id="lmxEditForm" class="lmx-form lmx-tab-panel lmx-hidden" role="tabpanel" aria-labelledby="lmxProfileTab">
-                        <div class="lmx-field">
-                            <label for="lmxEditName">Username</label>
-                            <input id="lmxEditName" autocomplete="username" required maxlength="80">
-                        </div>
+                        <fieldset class="lmx-identity-field" data-identity-scope="edit">
+                            <legend>Are you already a Longevity World Cup athlete?</legend>
+                            <div class="lmx-identity-options" role="radiogroup" aria-label="Athlete status">
+                                <label>
+                                    <input type="radio" name="lmxEditIdentity" value="participant" checked>
+                                    <span>No</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="lmxEditIdentity" value="athlete">
+                                    <span>Yes</span>
+                                </label>
+                            </div>
+                            <div id="lmxEditUsernameField" class="lmx-field lmx-identity-username" data-identity-panel="username">
+                                <label for="lmxEditName">Username</label>
+                                <input id="lmxEditName" autocomplete="username" required maxlength="80">
+                            </div>
+                            <div id="lmxEditAthleteField" class="lmx-field lmx-athlete-selector lmx-identity-athlete lmx-hidden" data-identity-panel="athlete">
+                                <label for="lmxEditAthlete">Athlete profile</label>
+                                <div class="lmx-athlete-picker">
+                                    <div class="lmx-athlete-search">
+                                        <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                        <input id="lmxEditAthlete" autocomplete="off" placeholder="Search athlete name">
+                                        <button id="lmxEditAthleteClear" class="lmx-athlete-clear lmx-hidden" type="button" aria-label="Clear selected athlete">
+                                            <i class="fas fa-xmark" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    <div id="lmxEditAthleteSelected" class="lmx-athlete-selected lmx-hidden" aria-live="polite"></div>
+                                </div>
+                            </div>
+                        </fieldset>
                         <div class="lmx-field">
                             <label for="lmxEditTimeZone">Timezone</label>
                             <select id="lmxEditTimeZone" required></select>
                         </div>
-                        <div class="lmx-field lmx-athlete-selector">
-                            <label for="lmxEditAthlete">Athlete profile <span>optional</span></label>
-                            <div class="lmx-athlete-picker">
-                                <div class="lmx-athlete-search">
-                                    <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                                    <input id="lmxEditAthlete" autocomplete="off" placeholder="Search athlete name">
-                                    <button id="lmxEditAthleteClear" class="lmx-athlete-clear lmx-hidden" type="button" aria-label="Clear selected athlete">
-                                        <i class="fas fa-xmark" aria-hidden="true"></i>
-                                    </button>
-                                </div>
-                                <div id="lmxEditAthleteSelected" class="lmx-athlete-selected lmx-hidden" aria-live="polite"></div>
-                            </div>
-                        </div>
                         <div class="lmx-field">
                             <label for="lmxEditCommitmentAmount">Commitment amount</label>
                             <p class="lmx-field-help lmx-commitment-help">Set a real stake. Pay it only if you fall below your recent average, or stop there; choose an amount that'll hurt.</p>
-                            <input id="lmxEditCommitmentAmount" type="number" min="1" step="0.01" inputmode="decimal" required>
+                            <div class="lmx-money-input">
+                                <span aria-hidden="true">$</span>
+                                <input id="lmxEditCommitmentAmount" type="text" inputmode="decimal" required placeholder="300">
+                            </div>
                         </div>
                         <div id="lmxProfilePictureField" class="lmx-field lmx-profile-picture-field">
                             <span class="lmx-label">Profile picture <span>optional</span></span>
@@ -230,7 +260,7 @@
                             </a>
                             <a id="lmxSlackRoomLink" class="lmx-button secondary lmx-hidden" href="#" target="_blank" rel="noopener">
                                 <i class="fas fa-hashtag" aria-hidden="true"></i>
-                                Slack room
+                                Challenge channel
                             </a>
                         </div>
                         <div id="lmxParticipantCalls" class="lmx-call-list"></div>
