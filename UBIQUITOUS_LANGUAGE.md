@@ -60,7 +60,7 @@ Use this as a compact guardrail for terms agents often misuse.
 - **Longevitymaxxing Challenge** commitment payment blocks save the triggering check-in, lock the owed amount, and block the participant panel until the participant pays or edits the still-eligible triggering check-in enough to pass its original average threshold.
 - **Longevitymaxxing Challenge** payment reminders send only while the triggering check-in remains editable. If the block remains unpaid after that window, challenge notifications stop and the participant is hidden as inactive until payment later reactivates notifications.
 - **Longevitymaxxing Challenge** public leaderboard rows may show `Commitment due`, but commitment amounts are private and must not be exposed in public state.
-- **Longevitymaxxing Challenge** participant check-in notes and note photos submitted after the June 19, 2026 public-notes cutoff are public on the challenge page. Notes/photos from earlier check-ins remain private legacy data and must not be exposed retroactively.
+- **Longevitymaxxing Challenge** participant check-in notes and note photos submitted after the June 19, 2026 public-notes cutoff are public on the challenge page. Notes/photos from earlier check-ins stay hidden from unauthenticated public state, but authenticated challenge participants can see the shared participant notes feed.
 - **Longevitymaxxing Challenge** profile pictures are challenge-only unless a linked **Longevity athlete** profile picture exists. Uploaded challenge images outrank cached Gravatar fallbacks.
 
 ## Naming Notes

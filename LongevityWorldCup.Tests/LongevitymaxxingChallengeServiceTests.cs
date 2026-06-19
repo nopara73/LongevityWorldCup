@@ -301,6 +301,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal("public note", publicNote.Note);
         Assert.Equal("New Note", publicNote.DisplayName);
         Assert.DoesNotContain(publicState.Notes, note => note.Note == "legacy note");
+
+        var participantState = fixture.Service.GetParticipantState(newAccess, afterCutoff.AddMinutes(1));
+        Assert.Contains(participantState.Notes, note => note.Note == "legacy note" && note.DisplayName == "Old Note");
+        Assert.Contains(participantState.Notes, note => note.Note == "public note" && note.DisplayName == "New Note");
     }
 
     [Fact]
@@ -435,7 +439,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task LeaderboardRanksScoreBeforeConsistencyAndKeepsLegacyNotesPrivate()
+    public async Task LeaderboardRanksScoreBeforeConsistencyAndKeepsLegacyNotesOutOfPublicState()
     {
         using var fixture = TestChallengeFixture.Create();
         var alice = await fixture.ConfirmParticipantAsync("alice@example.com", "Alice");
@@ -493,8 +497,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.DoesNotContain(publicState.Leaderboard[0].Badges, badge => badge.Contains("perfect start", StringComparison.OrdinalIgnoreCase));
 
         var participantState = fixture.Service.GetParticipantState(alice, DateTimeOffset.Parse("2026-06-11T09:00:00Z"));
-        Assert.DoesNotContain(participantState.Notes, note => note.Note == "perfect start");
-        Assert.DoesNotContain(participantState.Notes, note => note.Note == "still returned");
+        Assert.DoesNotContain(publicState.Notes, note => note.Note == "perfect start");
+        Assert.DoesNotContain(publicState.Notes, note => note.Note == "still returned");
+        Assert.Contains(participantState.Notes, note => note.Note == "perfect start");
+        Assert.Contains(participantState.Notes, note => note.Note == "still returned");
     }
 
     [Fact]

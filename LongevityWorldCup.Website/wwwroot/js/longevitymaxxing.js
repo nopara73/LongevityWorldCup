@@ -384,7 +384,7 @@
         if (participantState) {
             renderParticipant(participantState);
         } else {
-            renderNotes(state.notes || []);
+            renderNotes(state.notes || [], false);
         }
 
         scrollBoardToLatestDay();
@@ -787,7 +787,7 @@
         renderProfilePictureControls(participant);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || []);
-        renderNotes(state.notes || state.public.notes || []);
+        renderNotes(state.notes || state.public.notes || [], true);
         renderParticipantTabs();
     }
 
@@ -2035,10 +2035,10 @@
         return `${clean || "profile-picture"}.${extension}`;
     }
 
-    function renderNotes(notes) {
+    function renderNotes(notes, participantView) {
         const container = document.getElementById("lmxNotes");
         if (!notes.length) {
-            container.innerHTML = `<div class="lmx-note"><strong>No public notes yet.</strong></div>`;
+            container.innerHTML = `<div class="lmx-note"><strong>${participantView ? "No participant notes yet." : "No public notes yet."}</strong></div>`;
             return;
         }
 
