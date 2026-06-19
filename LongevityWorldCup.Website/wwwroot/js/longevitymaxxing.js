@@ -767,7 +767,7 @@
         if (hasCommitmentBlock(participantState)) {
             return participantState.commitment?.status === "due"
                 ? `Commitment due, ${name}`
-                : `Commitment setup, ${name}`;
+                : "Make a pledge";
         }
         if (activeTab === "profile") return `Profile, ${name}`;
         if (activeTab === "home") {
@@ -778,7 +778,7 @@
     }
 
     function participantPanelKicker(activeTab, pendingCheckInDays, phase) {
-        if (hasCommitmentBlock(participantState)) return "commitment";
+        if (hasCommitmentBlock(participantState)) return "pledge";
         if (activeTab === "profile") return "profile";
         if (activeTab === "home") {
             return "";
@@ -971,8 +971,8 @@
             panel.innerHTML = `
                 <form id="lmxCommitmentAmountForm" class="lmx-commitment-card">
                     <div>
-                        <strong>Set your commitment amount</strong>
-                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Set a real stake. Fall below your recent average and either pay it or stop. Choose an amount that would hurt.</span>
+                        <strong>Set a real stake</strong>
+                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Fall below your recent average and either pay it or stop. Choose an amount that would hurt.</span>
                     </div>
                     <div class="lmx-field">
                         <label for="lmxBlockedCommitmentAmount">Pledge</label>
@@ -983,7 +983,7 @@
                     </div>
                     <button class="lmx-button" type="submit">
                         <i class="fas fa-lock-open" aria-hidden="true"></i>
-                        Activate commitment
+                        Make a pledge
                     </button>
                     <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                 </form>`;
