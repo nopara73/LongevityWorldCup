@@ -495,46 +495,24 @@
     .ranking-explanation.is-visible{ display:block; }
     .ranking-explanation strong{ color:var(--primary-color); }
     .longevitymaxxing-promo{
-        display:grid; grid-template-columns:minmax(0, 1fr) auto; align-items:center; gap:.85rem; margin:0 0 1rem;
-        padding:.85rem 1rem; border:1px solid rgba(0,188,212,.18); border-left:4px solid var(--secondary-color);
-        border-radius:8px; background:linear-gradient(135deg, rgba(255,255,255,.9), rgba(0,188,212,.055) 58%, rgba(255,64,129,.055));
-        box-shadow:0 8px 18px rgba(0,0,0,.06); box-sizing:border-box;
-    }
-    .longevitymaxxing-promo[hidden]{ display:none; }
-    .longevitymaxxing-promo-text{
-        display:grid; gap:.45rem; min-width:0;
-    }
-    .longevitymaxxing-promo-kicker{
-        display:inline-flex; align-items:center; gap:.45rem; color:var(--secondary-color);
-        font-size:.78rem; font-weight:700; line-height:1.2; text-transform:uppercase; letter-spacing:.06em;
-    }
-    .longevitymaxxing-promo-kicker i{
-        color:var(--primary-color); font-size:.95rem;
-    }
-    .longevitymaxxing-promo h2{
-        margin:0; padding:0; text-align:left; color:#1f2933; font-size:clamp(1.18rem, 2.2vw, 1.55rem);
-        line-height:1.08; letter-spacing:0; text-shadow:none;
+        display:flex; align-items:center; justify-content:space-between; gap:.9rem; margin:0 0 1rem; padding:.85rem 1rem;
+        border:1px solid rgba(15,23,42,.12); border-radius:8px; background:rgba(255,255,255,.86);
+        box-shadow:0 4px 10px rgba(15,23,42,.06); box-sizing:border-box;
     }
     .longevitymaxxing-promo p{
-        max-width:48rem; margin:0; color:#3d4b55; font-size:.94rem; line-height:1.42;
+        margin:0; color:#1f2933; font-size:.98rem; line-height:1.4;
     }
-    .longevitymaxxing-promo-points{
-        display:flex; flex-wrap:wrap; gap:.45rem; margin-top:.05rem;
-    }
-    .longevitymaxxing-promo-points span{
-        display:inline-flex; align-items:center; min-height:30px; padding:.25rem .6rem; border:1px solid rgba(0,0,0,.08);
-        border-radius:999px; background:rgba(255,255,255,.72); color:#52606d; font-size:.82rem; font-weight:700; box-sizing:border-box;
+    .longevitymaxxing-promo p strong{
+        color:#0f172a; font-weight:800;
     }
     .longevitymaxxing-promo-action{
-        display:inline-flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; white-space:nowrap;
-        padding:.62rem .95rem; border:1px solid rgba(0,188,212,.36); border-radius:999px; background:rgba(255,255,255,.78); color:#167986;
-        font-weight:700; text-decoration:none; box-shadow:0 5px 12px rgba(0,0,0,.08);
-        transition:transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease, border-color .2s ease;
+        display:inline-flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;
+        padding:.62rem .9rem; border:1px solid rgba(0,188,212,.32); border-radius:8px; background:#fff; color:#167986;
+        font-weight:800; text-decoration:none;
     }
     .longevitymaxxing-promo-action:hover,
     .longevitymaxxing-promo-action:focus-visible{
-        background:rgba(0,188,212,.1); color:var(--primary-color); border-color:var(--primary-color); transform:translateY(-1px);
-        box-shadow:0 8px 16px rgba(0,188,212,.14); outline:none;
+        color:var(--primary-color); border-color:var(--primary-color); background:rgba(0,188,212,.08); outline:none;
     }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
@@ -1706,13 +1684,7 @@
             margin-right:auto;
         }
         .longevitymaxxing-promo{
-            grid-template-columns:1fr; gap:.9rem; margin:1.15rem 0 1.25rem; padding:.95rem; box-shadow:0 8px 18px rgba(0,0,0,.07);
-        }
-        .longevitymaxxing-promo h2{
-            font-size:1.42rem;
-        }
-        .longevitymaxxing-promo p{
-            font-size:.96rem;
+            flex-direction:column; align-items:stretch; gap:.75rem; margin:1.15rem 0 1.25rem; padding:.95rem;
         }
         .longevitymaxxing-promo-action{
             width:100%; box-sizing:border-box;
@@ -2178,16 +2150,18 @@
         }
 
         .longevitymaxxing-promo{
-            grid-template-columns:minmax(0, 1fr) auto; gap:.7rem; margin:0 0 .6rem; padding:.75rem .85rem;
+            flex-direction:row;
+            align-items:center;
+            margin:0 0 .6rem;
+            padding:.75rem .85rem;
         }
 
-        .longevitymaxxing-promo h2{
-            font-size:1.18rem;
+        .longevitymaxxing-promo p{
+            font-size:.92rem;
         }
 
-        .longevitymaxxing-promo p,
-        .longevitymaxxing-promo-points{
-            display:none;
+        .longevitymaxxing-promo-action{
+            width:auto;
         }
 
         .leaderboard-view-switcher{
@@ -2352,23 +2326,10 @@
             </div>
         </div>
 
-        <!--LONGEVITYMAXXING-PROMO-START-->
-        <section class="longevitymaxxing-promo" id="longevitymaxxingPromo" aria-labelledby="longevitymaxxingPromoTitle">
-            <div class="longevitymaxxing-promo-text">
-                <div class="longevitymaxxing-promo-kicker"><i class="fa fa-calendar-check-o" aria-hidden="true"></i> Separate Lifestyle challenge</div>
-                <h2 id="longevitymaxxingPromoTitle">Longevitymaxxing Challenge</h2>
-                <p>Join the daily check-in board for sleep, exercise, nutrition, and vices. It has its own public visual leaderboard and does not affect Ultimate League rankings.</p>
-                <div class="longevitymaxxing-promo-points" aria-label="Challenge details">
-                    <span>Ongoing</span>
-                    <span>Daily check-ins</span>
-                    <span>Free signup</span>
-                </div>
-            </div>
-            <a class="longevitymaxxing-promo-action" href="/longevitymaxxing">
-                Join the challenge <i class="fa fa-arrow-right" aria-hidden="true"></i>
-            </a>
+        <section class="longevitymaxxing-promo" id="longevitymaxxingPromo" aria-label="Longevitymaxxing">
+            <p>Don't feel ready for the Longevity World Cup? <strong>The first muscle to train is your mind.</strong></p>
+            <a class="longevitymaxxing-promo-action" href="/longevitymaxxing">Start Longevitymaxxing</a>
         </section>
-        <!--LONGEVITYMAXXING-PROMO-END-->
 
         <div class="leaderboard-toolbar">
             <div class="leaderboard-view-switcher" role="radiogroup" aria-labelledby="leaderboardViewLabel">
