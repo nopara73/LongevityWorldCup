@@ -328,9 +328,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("toggle(\"lmxQuestionPreview\", !hasParticipant || pendingCheckInDays.length > 0);", javascript);
         Assert.Contains("toggle(\"lmxTrack\", hasParticipant && dashboardMode && !checkInOnly);", javascript);
         Assert.Contains("toggle(\"lmxNotesPanel\", dashboardMode && !checkInOnly);", javascript);
-        Assert.Contains("renderNotes(state.notes || []);", javascript);
-        Assert.Contains("renderNotes(state.notes || state.public.notes || []);", javascript);
+        Assert.Contains("renderNotes(state.notes || [], false);", javascript);
+        Assert.Contains("renderNotes(state.notes || state.public.notes || [], true);", javascript);
         Assert.Contains("No public notes yet.", javascript);
+        Assert.Contains("No participant notes yet.", javascript);
         Assert.Contains("placeholder=\"Visible publicly\"", javascript);
         Assert.DoesNotContain("Visible to participants only", javascript);
         Assert.DoesNotContain("<h2>Category dashboard</h2>", javascript);

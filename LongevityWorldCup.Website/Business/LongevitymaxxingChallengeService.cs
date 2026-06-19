@@ -103,7 +103,7 @@ public sealed class LongevitymaxxingChallengeService
             BuildDays(settings, visibleDayCount),
             leaderboard,
             BuildPodium(settings, leaderboard, now),
-            GetPublicParticipantNotes(),
+            GetParticipantNotes(publicOnly: true),
             BuildPublicCalls(settings),
             settings.SlackInviteUrl,
             settings.SlackRoomUrl);
@@ -300,7 +300,7 @@ public sealed class LongevitymaxxingChallengeService
             publicState,
             participantSummary,
             eligibleDays,
-            publicState.Notes,
+            GetParticipantNotes(publicOnly: false),
             BuildParticipantCalls(settings),
             BuildCommitmentState(participant, byDay, eligibleDays, now),
             BuildCommitmentTrendGuidance(settings, participant, byDay, now));
@@ -2162,18 +2162,18 @@ public sealed class LongevitymaxxingChallengeService
         return 1d + ((FinalDayScoreMultiplier - 1d) * progress);
     }
 
-    private IReadOnlyList<LongevitymaxxingParticipantNote> GetPublicParticipantNotes()
+    private IReadOnlyList<LongevitymaxxingParticipantNote> GetParticipantNotes(bool publicOnly)
     {
         return _db.Run(sqlite =>
         {
             using var cmd = sqlite.CreateCommand();
             cmd.CommandText =
-                """
+                $"""
                 SELECT p.Id, p.DisplayName, c.ChallengeDay, c.ChallengeDate, c.Note, c.UpdatedAtUtc
                 FROM LongevitymaxxingCheckIns c
                 JOIN LongevitymaxxingParticipants p ON p.Id = c.ParticipantId
                 WHERE p.ConfirmedAtUtc IS NOT NULL
-                  AND c.CheckedInAtUtc >= @publicNotesStart
+                  {(publicOnly ? "AND c.CheckedInAtUtc >= @publicNotesStart" : "")}
                   AND (
                     (c.Note IS NOT NULL AND TRIM(c.Note) <> '')
                     OR EXISTS (
@@ -2184,9 +2184,10 @@ public sealed class LongevitymaxxingChallengeService
                     )
                   )
                 ORDER BY c.UpdatedAtUtc DESC
-                LIMIT 100;
+                {(publicOnly ? "LIMIT 100" : "")};
                 """;
-            Add(cmd, "@publicNotesStart", PublicParticipantNotesStartAtUtc);
+            if (publicOnly)
+                Add(cmd, "@publicNotesStart", PublicParticipantNotesStartAtUtc);
             var rows = new List<(string ParticipantId, string DisplayName, int ChallengeDay, string Date, string? Note, string UpdatedAtUtc)>();
             var participantIds = new HashSet<string>(StringComparer.Ordinal);
             using var reader = cmd.ExecuteReader();
