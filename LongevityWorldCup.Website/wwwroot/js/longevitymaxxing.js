@@ -509,12 +509,12 @@
 
     function opsTileLabelHtml(label) {
         if (label && typeof label === "object") {
-            return `<span>
+            return `<span class="lmx-ops-label">
                 <span class="lmx-ops-label-short">${esc(label.shortLabel || "")}</span>
                 <span class="lmx-ops-label-long">${esc(label.longLabel || label.shortLabel || "")}</span>
             </span>`;
         }
-        return String(label || "").trim() ? `<span>${esc(label)}</span>` : "";
+        return String(label || "").trim() ? `<span class="lmx-ops-label">${esc(label)}</span>` : "";
     }
 
     function challengeCallCount(state) {
@@ -972,7 +972,7 @@
                 <form id="lmxCommitmentAmountForm" class="lmx-commitment-card">
                     <div>
                         <strong>Set your commitment amount</strong>
-                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Set a real stake. Fall below your recent average and either pay it or stop. Choose an amount that’ll hurt.</span>
+                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Set a real stake. Fall below your recent average and either pay it or stop. Choose an amount that would hurt.</span>
                     </div>
                     <div class="lmx-field">
                         <label for="lmxBlockedCommitmentAmount">Pledge</label>
