@@ -72,16 +72,22 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             var amount = reminder.CommitmentOwedAmountUsd is decimal owed
                 ? $"USD {owed:0.##}"
                 : "your configured amount";
+            var triggerDay = reminder.CommitmentTriggerChallengeDay;
+            var triggerDayText = triggerDay is int day ? $"Day {day}" : "the triggering day";
+            var scoreLine = reminder.CommitmentTriggerScore is int triggerScore && reminder.CommitmentThresholdAverage is decimal thresholdAverage
+                ? $"{triggerDayText} scored {triggerScore} points. Your recent average was {thresholdAverage:0.##}, so the commitment is due: {amount}.\n\n"
+                : $"Your Longevitymaxxing commitment is due: {amount}.\n\n";
             var paymentBody =
                 $"Hi {SafeName(reminder.DisplayName)},\n\n" +
-                $"Your Longevitymaxxing commitment is due for Day {reminder.CommitmentTriggerChallengeDay}: {amount}.\n\n" +
-                "That check-in landed below your recent average. Open your participant page to pay, or fix the triggering check-in while it is still editable:\n" +
+                $"{scoreLine}" +
+                $"You can either pay the locked amount, or edit {triggerDayText} while it is still eligible. You also can quit, but you'll still have to live with yourself.\n\n" +
+                "Open your participant page:\n" +
                 $"{checkInUrl}\n\n" +
                 $"Stop challenge emails: {stopUrl}\n\n" +
                 "Longevity World Cup";
 
             return new LongevitymaxxingEmailContent(
-                $"Longevitymaxxing commitment due for Day {reminder.CommitmentTriggerChallengeDay}",
+                "Longevitymaxxing commitment due",
                 paymentBody,
                 []);
         }
@@ -126,17 +132,18 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var link = string.IsNullOrWhiteSpace(reminder.VideoCallUrl)
             ? "Call link: not configured yet."
             : $"Call link:\n{reminder.VideoCallUrl}";
+        var callLabel = FormatCallLabelForSentence(reminder.CallLabel);
 
         var body =
             $"Hi {SafeName(reminder.DisplayName)},\n\n" +
-            $"The Longevitymaxxing {reminder.CallLabel} call starts at {localStartsAt}.\n" +
+            $"The Longevitymaxxing {callLabel} starts at {localStartsAt}.\n" +
             $"{link}\n\n" +
             $"Participant page:\n{challengeUrl}\n\n" +
             $"Stop challenge emails: {stopUrl}\n\n" +
             "Longevity World Cup";
 
         return new LongevitymaxxingEmailContent(
-            $"Longevitymaxxing {reminder.CallLabel} call reminder",
+            $"Longevitymaxxing {callLabel} reminder",
             body,
             []);
     }
@@ -326,7 +333,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
                 .AppendLine($"DTSTAMP:{FormatCalendarUtc(startsAt)}")
                 .AppendLine($"DTSTART:{FormatCalendarUtc(startsAt)}")
                 .AppendLine($"DTEND:{FormatCalendarUtc(endsAt)}")
-                .AppendLine($"SUMMARY:{EscapeCalendarText($"Longevitymaxxing {call.Label} call")}")
+                .AppendLine($"SUMMARY:{EscapeCalendarText($"Longevitymaxxing {FormatCallLabelForSentence(call.Label)}")}")
                 .AppendLine($"DESCRIPTION:{EscapeCalendarText(description)}");
 
             if (!string.IsNullOrWhiteSpace(call.VideoCallUrl))
@@ -347,6 +354,17 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
     private static string BuildCalendarUid(LongevitymaxxingParticipantCall call, DateTimeOffset startsAt)
         => $"longevitymaxxing-{SanitizeUidPart(call.Key)}-{FormatCalendarUtc(startsAt)}@longevityworldcup.com";
+
+    private static string FormatCallLabelForSentence(string label)
+    {
+        var trimmed = (label ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return "call";
+
+        return trimmed.EndsWith("call", StringComparison.OrdinalIgnoreCase)
+            ? trimmed
+            : $"{trimmed} call";
+    }
 
     private static string SanitizeUidPart(string value)
         => new((value ?? "").Select(ch => char.IsLetterOrDigit(ch) || ch == '-' ? ch : '-').ToArray());

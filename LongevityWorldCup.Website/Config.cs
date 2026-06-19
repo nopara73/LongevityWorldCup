@@ -183,58 +183,5 @@ namespace LongevityWorldCup.Website
         public string SlackInviteUrl { get; set; } = "https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ";
         public string? SlackRoomUrl { get; set; }
         public string VideoCallUrl { get; set; } = "https://meet.google.com/kem-kfpt-bhs";
-        public List<LongevitymaxxingCallConfig> Calls { get; set; } =
-        [
-            new()
-            {
-                Key = "kickoff",
-                Label = "Kickoff",
-                SelectedSlotId = "kickoff-b",
-                CandidateSlots =
-                [
-                    new() { Id = "kickoff-a", StartsAtUtc = "2026-06-08T06:30:00Z" },
-                    new() { Id = "kickoff-b", StartsAtUtc = "2026-06-08T13:00:00Z" },
-                    new() { Id = "kickoff-c", StartsAtUtc = "2026-06-08T16:00:00Z" }
-                ]
-            },
-            new()
-            {
-                Key = "midpoint",
-                Label = "Midpoint",
-                SelectedSlotId = "midpoint-a",
-                CandidateSlots =
-                [
-                    new() { Id = "midpoint-a", StartsAtUtc = "2026-06-15T06:30:00Z" },
-                    new() { Id = "midpoint-b", StartsAtUtc = "2026-06-15T13:00:00Z" },
-                    new() { Id = "midpoint-c", StartsAtUtc = "2026-06-15T16:00:00Z" }
-                ]
-            },
-            new()
-            {
-                Key = "finale",
-                Label = "Finale",
-                SelectedSlotId = "finale-b",
-                CandidateSlots =
-                [
-                    new() { Id = "finale-a", StartsAtUtc = "2026-06-21T06:30:00Z" },
-                    new() { Id = "finale-b", StartsAtUtc = "2026-06-21T06:30:00Z" },
-                    new() { Id = "finale-c", StartsAtUtc = "2026-06-21T06:30:00Z" }
-                ]
-            }
-        ];
-    }
-
-    public sealed class LongevitymaxxingCallConfig
-    {
-        public string Key { get; set; } = "";
-        public string Label { get; set; } = "";
-        public string? SelectedSlotId { get; set; }
-        public List<LongevitymaxxingCallSlotConfig> CandidateSlots { get; set; } = [];
-    }
-
-    public sealed class LongevitymaxxingCallSlotConfig
-    {
-        public string Id { get; set; } = "";
-        public string StartsAtUtc { get; set; } = "";
     }
 }
