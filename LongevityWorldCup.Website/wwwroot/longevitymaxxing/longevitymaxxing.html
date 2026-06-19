@@ -188,6 +188,14 @@
                     </form>
                 </div>
 
+                <div id="lmxAccessLoadingPanel" class="lmx-access-loading lmx-hidden" role="status" aria-live="polite" aria-atomic="true">
+                    <i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>
+                    <span>
+                        <strong>Loading your console</strong>
+                        <em>Checking your private link.</em>
+                    </span>
+                </div>
+
                 <div id="lmxParticipantPanel" class="lmx-participant-actions lmx-hidden">
                     <div class="lmx-card-head">
                         <span id="lmxParticipantKicker" class="lmx-mini-label">check-in</span>
@@ -235,7 +243,7 @@
                                 <select id="lmxEditTimeZone" class="lmx-timezone-native" required tabindex="-1" aria-hidden="true"></select>
                             </div>
                         </div>
-                        <div class="lmx-field">
+                        <div id="lmxEditCommitmentField" class="lmx-field">
                             <label for="lmxEditCommitmentAmount">Pledge</label>
                             <p class="lmx-field-help lmx-commitment-help">Set a real stake. Fall below your recent average and either pay it or stop. Choose an amount that would hurt.</p>
                             <div class="lmx-money-input">
@@ -284,7 +292,7 @@
             <div class="lmx-board-header">
                 <div>
                     <h2 id="lmxBoardTitle">Leaderboard</h2>
-                    <p id="lmxBoardMeta" class="lmx-board-meta">Checked-in days rank first. Points break ties.</p>
+                    <p id="lmxBoardMeta" class="lmx-board-meta">Score ranks first. Checked-in days break ties.</p>
                 </div>
                 <div class="lmx-board-legend" aria-label="Habit key">
                     <button id="lmxInactiveToggle" class="lmx-inactive-toggle lmx-hidden" type="button" aria-pressed="false">

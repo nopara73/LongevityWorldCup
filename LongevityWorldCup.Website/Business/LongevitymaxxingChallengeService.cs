@@ -330,10 +330,15 @@ public sealed class LongevitymaxxingChallengeService
         var settings = BuildSettings(now);
         var participant = RequireParticipantByAccessToken(request.AccessToken);
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
-        var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
+        var commitmentAmountUsd = request.CommitmentAmountUsd is null && !IsCommitmentAmountRequired(settings, now)
+            ? participant.CommitmentAmountUsd
+            : NormalizeCommitmentAmount(request.CommitmentAmountUsd);
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before editing your profile.");
         EnsureParticipantIdentityUnchanged(participant, request);
+        var commitmentAmountParameter = commitmentAmountUsd.HasValue
+            ? FormatDecimal(commitmentAmountUsd.GetValueOrDefault())
+            : null;
 
         _db.Run(sqlite =>
         {
@@ -347,7 +352,7 @@ public sealed class LongevitymaxxingChallengeService
                 WHERE Id = @id;
                 """;
             Add(update, "@tz", timeZoneId);
-            Add(update, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
+            Add(update, "@commitmentAmount", commitmentAmountParameter);
             Add(update, "@updated", now.ToString("o"));
             Add(update, "@id", participant.Id);
             update.ExecuteNonQuery();
@@ -356,10 +361,14 @@ public sealed class LongevitymaxxingChallengeService
         return GetParticipantState(request.AccessToken, now);
     }
 
-    public async Task<LongevitymaxxingParticipantState> UploadParticipantProfilePictureAsync(string accessToken, IFormFile? profilePicture, CancellationToken ct = default)
+    public async Task<LongevitymaxxingParticipantState> UploadParticipantProfilePictureAsync(
+        string accessToken,
+        IFormFile? profilePicture,
+        CancellationToken ct = default,
+        DateTimeOffset? nowUtc = null)
     {
         var participant = RequireParticipantByAccessToken(accessToken);
-        EnsureParticipantNotCommitmentBlocked(participant);
+        EnsureParticipantNotCommitmentBlocked(participant, nowUtc);
         if (!string.IsNullOrWhiteSpace(participant.AthleteSlug))
             throw new InvalidOperationException("Profile picture upload is only for participants without a linked Longevity athlete profile.");
 
@@ -575,7 +584,7 @@ public sealed class LongevitymaxxingChallengeService
         var eligible = BuildEligibleDays(settings, participant, checkIns, now).FirstOrDefault(x => x.ChallengeDay == request.ChallengeDay);
         if (eligible is null)
             throw new InvalidOperationException("That challenge day is not open for check-in.");
-        if (participant.CommitmentAmountUsd is null)
+        if (participant.CommitmentAmountUsd is null && IsCommitmentAmountRequired(settings, now))
             throw new InvalidOperationException("Configure your commitment amount before continuing.");
         if (GetActivePaymentObligation(participant.Id) is not null && eligible.Existing is null)
             throw new InvalidOperationException("Pay the commitment due or fix an existing eligible check-in before continuing.");
@@ -823,7 +832,7 @@ public sealed class LongevitymaxxingChallengeService
                 participant.StopToken,
                 challengeDay.Value,
                 targetDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                CountsForScore(settings, participant, challengeDay.Value),
+                CountsForScore(settings, participant, byDay, challengeDay.Value),
                 calls.Count > 0 && !WasCallScheduleUpdateNoticeSent(participant.Id),
                 calls));
         }
@@ -1290,13 +1299,13 @@ public sealed class LongevitymaxxingChallengeService
                     ? new LongevitymaxxingDayCell(
                         day,
                         true,
-                        CountsForScore(settings, p, day) ? GetScoredPoints(settings, p, checkIn, includedByDay) : null,
-                        CountsForScore(settings, p, day),
+                        CountsForScore(settings, p, includedByDay, day) ? GetScoredPoints(settings, p, checkIn, includedByDay) : null,
+                        CountsForScore(settings, p, includedByDay, day),
                         checkIn.Sleep,
                         checkIn.Exercise,
                         checkIn.Nutrition,
                         checkIn.Vices)
-                    : new LongevitymaxxingDayCell(day, false, null, CountsForScore(settings, p, day), null, null, null, null))
+                    : new LongevitymaxxingDayCell(day, false, null, CountsForScore(settings, p, includedByDay, day), null, null, null, null))
                 .ToList();
 
             return (
@@ -1315,8 +1324,8 @@ public sealed class LongevitymaxxingChallengeService
                     activePaymentObligations.ContainsKey(p.Id) ? "commitment-due" : null),
                 TieBreak: GetAthleteTieBreak(athleteTieBreaks, p.AthleteSlug));
         })
-        .OrderByDescending(r => r.Row.CheckedInDays)
-        .ThenByDescending(r => r.Row.TotalPoints)
+        .OrderByDescending(r => r.Row.TotalPoints)
+        .ThenByDescending(r => r.Row.CheckedInDays)
         .ThenByDescending(r => r.Row.CurrentStreak)
         .ThenByDescending(r => r.TieBreak.IsOnLeaderboard)
         .ThenBy(r => r.TieBreak.CurrentPlacement ?? int.MaxValue)
@@ -1386,6 +1395,24 @@ public sealed class LongevitymaxxingChallengeService
 
         if (participant.CommitmentAmountUsd is null)
         {
+            if (!IsCommitmentAmountRequired(BuildSettings(now), now))
+            {
+                return new LongevitymaxxingCommitmentState(
+                    "deferred",
+                    false,
+                    false,
+                    false,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
+            }
+
             return new LongevitymaxxingCommitmentState(
                 "needs-amount",
                 true,
@@ -1472,8 +1499,8 @@ public sealed class LongevitymaxxingChallengeService
             .Where(day => day.CountsForScore && day.Existing is null)
             .OrderBy(day => day.ChallengeDay)
             .FirstOrDefault();
-        var nextDay = openMissing?.ChallengeDay ?? byDay.Keys.DefaultIfEmpty(GetParticipantPracticeDay(settings, participant)).Max() + 1;
-        while (!CountsForScore(settings, participant, nextDay))
+        var nextDay = openMissing?.ChallengeDay ?? byDay.Keys.DefaultIfEmpty(GetParticipantPracticeDay(settings, participant, byDay)).Max() + 1;
+        while (!CountsForScore(settings, participant, byDay, nextDay))
             nextDay++;
         return nextDay;
     }
@@ -1571,7 +1598,7 @@ public sealed class LongevitymaxxingChallengeService
         IReadOnlyDictionary<int, CheckInRecord> byDay,
         CheckInRecord checkIn)
     {
-        if (!CountsForScore(settings, participant, checkIn.ChallengeDay))
+        if (!CountsForScore(settings, participant, byDay, checkIn.ChallengeDay))
             return new(false, 0, null, GetScoredPoints(settings, participant, checkIn, byDay), false);
 
         var previous = GetPreviousScoredCheckIns(settings, participant, byDay, checkIn.ChallengeDay)
@@ -1592,7 +1619,7 @@ public sealed class LongevitymaxxingChallengeService
         int challengeDay)
         => byDay.Values
             .Where(c => c.ChallengeDay < challengeDay)
-            .Where(c => CountsForScore(settings, participant, c.ChallengeDay))
+            .Where(c => CountsForScore(settings, participant, byDay, c.ChallengeDay))
             .OrderByDescending(c => c.ChallengeDay)
             .ToList();
 
@@ -1768,9 +1795,10 @@ public sealed class LongevitymaxxingChallengeService
             .Any(day => day.ChallengeDay == obligation.TriggerChallengeDay && day.Existing is not null);
     }
 
-    private void EnsureParticipantNotCommitmentBlocked(ParticipantRecord participant)
+    private void EnsureParticipantNotCommitmentBlocked(ParticipantRecord participant, DateTimeOffset? nowUtc = null)
     {
-        if (participant.CommitmentAmountUsd is null)
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        if (participant.CommitmentAmountUsd is null && IsCommitmentAmountRequired(BuildSettings(now), now))
             throw new InvalidOperationException("Configure your commitment amount before continuing.");
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before continuing.");
@@ -1946,7 +1974,7 @@ public sealed class LongevitymaxxingChallengeService
             var scored = byDay.Values
                 .Where(c => maxChallengeDay is null || c.ChallengeDay <= maxChallengeDay.Value)
                 .Where(c => c.ChallengeDay >= minChallengeDay)
-                .Where(c => CountsForScore(settings, participant, c.ChallengeDay))
+                .Where(c => CountsForScore(settings, participant, byDay, c.ChallengeDay))
                 .ToList();
             var participantId = participant.Id;
             totals["Sleep"][participantId] = scored.Sum(c => c.Sleep);
@@ -2010,7 +2038,7 @@ public sealed class LongevitymaxxingChallengeService
                 return new LongevitymaxxingEligibleDay(
                     x.day.Value,
                     x.date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    CountsForScore(settings, participant, x.day.Value),
+                    CountsForScore(settings, participant, byDay, x.day.Value),
                     existing is null
                         ? null
                         : new LongevitymaxxingCheckInDraft(existing.Sleep, existing.Exercise, existing.Nutrition, existing.Vices, existing.Note, existing.Images));
@@ -2025,16 +2053,31 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset now)
         => BuildEligibleDays(settings, participant, checkIns, now);
 
-    private static bool CountsForScore(ChallengeSettings settings, ParticipantRecord participant, int challengeDay)
-        => challengeDay != GetParticipantPracticeDay(settings, participant);
+    private static bool IsCommitmentAmountRequired(ChallengeSettings settings, DateTimeOffset now)
+        => DateOnly.FromDateTime(now.UtcDateTime) > settings.EndDate;
 
-    private static int GetParticipantPracticeDay(ChallengeSettings settings, ParticipantRecord participant)
+    private static bool CountsForScore(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        int challengeDay)
+        => challengeDay != GetParticipantPracticeDay(settings, participant, byDay);
+
+    private static int GetParticipantPracticeDay(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay)
     {
         var joinedLocalDate = GetJoinedLocalDate(participant);
-        if (joinedLocalDate < settings.StartDate)
-            return PracticeCheckInDay;
+        var signupPracticeDay = joinedLocalDate < settings.StartDate
+            ? PracticeCheckInDay
+            : DayFromDate(settings, joinedLocalDate) ?? PracticeCheckInDay;
 
-        return DayFromDate(settings, joinedLocalDate) ?? PracticeCheckInDay;
+        var earliestKnownCheckInDay = byDay.Keys
+            .Where(day => day > 0)
+            .DefaultIfEmpty(signupPracticeDay)
+            .Min();
+        return Math.Min(signupPracticeDay, earliestKnownCheckInDay);
     }
 
     private static DateOnly GetJoinedLocalDate(ParticipantRecord participant)
@@ -2055,7 +2098,7 @@ public sealed class LongevitymaxxingChallengeService
         for (var date = targetDate; date >= settings.StartDate && date >= joinedLocalDate; date = date.AddDays(-1))
         {
             var challengeDay = DayFromDate(settings, date);
-            if (challengeDay is null || !CountsForScore(settings, participant, challengeDay.Value))
+            if (challengeDay is null || !CountsForScore(settings, participant, byDay, challengeDay.Value))
                 continue;
 
             if (byDay.ContainsKey(challengeDay.Value))
@@ -2072,7 +2115,7 @@ public sealed class LongevitymaxxingChallengeService
         ParticipantRecord participant,
         CheckInRecord checkIn,
         IReadOnlyDictionary<int, CheckInRecord> byDay)
-        => GetScoredPoints(checkIn.ChallengeDay, GetEffectiveRawScore(checkIn, byDay), settings.DurationDays, GetParticipantPracticeDay(settings, participant));
+        => GetScoredPoints(checkIn.ChallengeDay, GetEffectiveRawScore(checkIn, byDay), settings.DurationDays, GetParticipantPracticeDay(settings, participant, byDay));
 
     private static int GetScoredPoints(int challengeDay, int rawScore, int durationDays, int practiceDay)
     {
