@@ -12,6 +12,7 @@
     const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const LEADERBOARD_SCORING_WINDOW_DAYS = 14;
     const COMMITMENT_PAYMENT_POLL_DELAYS_MS = [2500, 5000, 8000, 12000];
+    const TIME_ZONE_MATCH_LIMIT = 10;
     const QUESTIONS = [
         { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you set yourself up for good sleep last night?" },
         { key: "exercise", icon: "fa-dumbbell", title: "Exercise", text: "Did you challenge or intentionally rest your body yesterday?" },
@@ -19,7 +20,7 @@
         { key: "vices", icon: "fa-shield-halved", title: "Vices", text: "Were your vices under control yesterday?" }
     ];
     const ATHLETE_PLACEHOLDER_IMAGE = "/assets/content-images/headshot.webp";
-    const COMMON_TIME_ZONES = [
+    const FALLBACK_TIME_ZONES = [
         "UTC",
         "Europe/London",
         "Europe/Berlin",
@@ -47,12 +48,12 @@
         "America/Sao_Paulo",
         "America/Argentina/Buenos_Aires"
     ];
+    const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE,OM,RE,SC,TF|Asia/Kabul=AF|Europe/Tirane=AL|Asia/Yerevan=AM|Antarctica/Casey=AQ|Antarctica/Davis=AQ|Antarctica/Mawson=AQ|Antarctica/Palmer=AQ|Antarctica/Rothera=AQ|Antarctica/Troll=AQ|Antarctica/Vostok=AQ|America/Argentina/Buenos_Aires=AR|America/Argentina/Cordoba=AR|America/Argentina/Salta=AR|America/Argentina/Jujuy=AR|America/Argentina/Tucuman=AR|America/Argentina/Catamarca=AR|America/Argentina/La_Rioja=AR|America/Argentina/San_Juan=AR|America/Argentina/Mendoza=AR|America/Argentina/San_Luis=AR|America/Argentina/Rio_Gallegos=AR|America/Argentina/Ushuaia=AR|Pacific/Pago_Pago=AS,UM|Europe/Vienna=AT|Australia/Lord_Howe=AU|Antarctica/Macquarie=AU|Australia/Hobart=AU|Australia/Melbourne=AU|Australia/Sydney=AU|Australia/Broken_Hill=AU|Australia/Brisbane=AU|Australia/Lindeman=AU|Australia/Adelaide=AU|Australia/Darwin=AU|Australia/Perth=AU|Australia/Eucla=AU|Asia/Baku=AZ|America/Barbados=BB|Asia/Dhaka=BD|Europe/Brussels=BE,LU,NL|Europe/Sofia=BG|Atlantic/Bermuda=BM|America/La_Paz=BO|America/Noronha=BR|America/Belem=BR|America/Fortaleza=BR|America/Recife=BR|America/Araguaina=BR|America/Maceio=BR|America/Bahia=BR|America/Sao_Paulo=BR|America/Campo_Grande=BR|America/Cuiaba=BR|America/Santarem=BR|America/Porto_Velho=BR|America/Boa_Vista=BR|America/Manaus=BR|America/Eirunepe=BR|America/Rio_Branco=BR|Asia/Thimphu=BT|Europe/Minsk=BY|America/Belize=BZ|America/St_Johns=CA|America/Halifax=CA|America/Glace_Bay=CA|America/Moncton=CA|America/Goose_Bay=CA|America/Toronto=CA,BS|America/Iqaluit=CA|America/Winnipeg=CA|America/Resolute=CA|America/Rankin_Inlet=CA|America/Regina=CA|America/Swift_Current=CA|America/Edmonton=CA|America/Cambridge_Bay=CA|America/Inuvik=CA|America/Dawson_Creek=CA|America/Fort_Nelson=CA|America/Whitehorse=CA|America/Dawson=CA|America/Vancouver=CA|Europe/Zurich=CH,DE,LI|Africa/Abidjan=CI,BF,GH,GM,GN,IS,ML,MR,SH,SL,SN,TG|Pacific/Rarotonga=CK|America/Santiago=CL|America/Coyhaique=CL|America/Punta_Arenas=CL|Pacific/Easter=CL|Asia/Shanghai=CN|Asia/Urumqi=CN|America/Bogota=CO|America/Costa_Rica=CR|America/Havana=CU|Atlantic/Cape_Verde=CV|Asia/Nicosia=CY|Asia/Famagusta=CY|Europe/Prague=CZ,SK|Europe/Berlin=DE,DK,NO,SE,SJ|America/Santo_Domingo=DO|Africa/Algiers=DZ|America/Guayaquil=EC|Pacific/Galapagos=EC|Europe/Tallinn=EE|Africa/Cairo=EG|Africa/El_Aaiun=EH|Europe/Madrid=ES|Africa/Ceuta=ES|Atlantic/Canary=ES|Europe/Helsinki=FI,AX|Pacific/Fiji=FJ|Atlantic/Stanley=FK|Pacific/Kosrae=FM|Atlantic/Faroe=FO|Europe/Paris=FR,MC|Europe/London=GB,GG,IM,JE|Asia/Tbilisi=GE|America/Cayenne=GF|Europe/Gibraltar=GI|America/Nuuk=GL|America/Danmarkshavn=GL|America/Scoresbysund=GL|America/Thule=GL|Europe/Athens=GR|Atlantic/South_Georgia=GS|America/Guatemala=GT|Pacific/Guam=GU,MP|Africa/Bissau=GW|America/Guyana=GY|Asia/Hong_Kong=HK|America/Tegucigalpa=HN|America/Port-au-Prince=HT|Europe/Budapest=HU|Asia/Jakarta=ID|Asia/Pontianak=ID|Asia/Makassar=ID|Asia/Jayapura=ID|Europe/Dublin=IE|Asia/Jerusalem=IL|Asia/Kolkata=IN|Indian/Chagos=IO|Asia/Baghdad=IQ|Asia/Tehran=IR|Europe/Rome=IT,SM,VA|America/Jamaica=JM|Asia/Amman=JO|Asia/Tokyo=JP,AU|Africa/Nairobi=KE,DJ,ER,ET,KM,MG,SO,TZ,UG,YT|Asia/Bishkek=KG|Pacific/Tarawa=KI,MH,TV,UM,WF|Pacific/Kanton=KI|Pacific/Kiritimati=KI|Asia/Pyongyang=KP|Asia/Seoul=KR|Asia/Almaty=KZ|Asia/Qyzylorda=KZ|Asia/Qostanay=KZ|Asia/Aqtobe=KZ|Asia/Aqtau=KZ|Asia/Atyrau=KZ|Asia/Oral=KZ|Asia/Beirut=LB|Asia/Colombo=LK|Africa/Monrovia=LR|Europe/Vilnius=LT|Europe/Riga=LV|Africa/Tripoli=LY|Africa/Casablanca=MA|Europe/Chisinau=MD|Pacific/Kwajalein=MH|Asia/Yangon=MM,CC|Asia/Ulaanbaatar=MN|Asia/Hovd=MN|Asia/Macau=MO|America/Martinique=MQ|Europe/Malta=MT|Indian/Mauritius=MU|Indian/Maldives=MV,TF|America/Mexico_City=MX|America/Cancun=MX|America/Merida=MX|America/Monterrey=MX|America/Matamoros=MX|America/Chihuahua=MX|America/Ciudad_Juarez=MX|America/Ojinaga=MX|America/Mazatlan=MX|America/Bahia_Banderas=MX|America/Hermosillo=MX|America/Tijuana=MX|Asia/Kuching=MY,BN|Africa/Maputo=MZ,BI,BW,CD,MW,RW,ZM,ZW|Africa/Windhoek=NA|Pacific/Noumea=NC|Pacific/Norfolk=NF|Africa/Lagos=NG,AO,BJ,CD,CF,CG,CM,GA,GQ,NE|America/Managua=NI|Asia/Kathmandu=NP|Pacific/Nauru=NR|Pacific/Niue=NU|Pacific/Auckland=NZ,AQ|Pacific/Chatham=NZ|America/Panama=PA,CA,KY|America/Lima=PE|Pacific/Tahiti=PF|Pacific/Marquesas=PF|Pacific/Gambier=PF|Pacific/Port_Moresby=PG,AQ,FM|Pacific/Bougainville=PG|Asia/Manila=PH|Asia/Karachi=PK|Europe/Warsaw=PL|America/Miquelon=PM|Pacific/Pitcairn=PN|America/Puerto_Rico=PR,AG,CA,AI,AW,BL,BQ,CW,DM,GD,GP,KN,LC,MF,MS,SX,TT,VC,VG,VI|Asia/Gaza=PS|Asia/Hebron=PS|Europe/Lisbon=PT|Atlantic/Madeira=PT|Atlantic/Azores=PT|Pacific/Palau=PW|America/Asuncion=PY|Asia/Qatar=QA,BH|Europe/Bucharest=RO|Europe/Belgrade=RS,BA,HR,ME,MK,SI|Europe/Kaliningrad=RU|Europe/Moscow=RU|Europe/Simferopol=RU,UA|Europe/Kirov=RU|Europe/Volgograd=RU|Europe/Astrakhan=RU|Europe/Saratov=RU|Europe/Ulyanovsk=RU|Europe/Samara=RU|Asia/Yekaterinburg=RU|Asia/Omsk=RU|Asia/Novosibirsk=RU|Asia/Barnaul=RU|Asia/Tomsk=RU|Asia/Novokuznetsk=RU|Asia/Krasnoyarsk=RU|Asia/Irkutsk=RU|Asia/Chita=RU|Asia/Yakutsk=RU|Asia/Khandyga=RU|Asia/Vladivostok=RU|Asia/Ust-Nera=RU|Asia/Magadan=RU|Asia/Sakhalin=RU|Asia/Srednekolymsk=RU|Asia/Kamchatka=RU|Asia/Anadyr=RU|Asia/Riyadh=SA,AQ,KW,YE|Pacific/Guadalcanal=SB,FM|Africa/Khartoum=SD|Asia/Singapore=SG,AQ,MY|America/Paramaribo=SR|Africa/Juba=SS|Africa/Sao_Tome=ST|America/El_Salvador=SV|Asia/Damascus=SY|America/Grand_Turk=TC|Africa/Ndjamena=TD|Asia/Bangkok=TH,CX,KH,LA,VN|Asia/Dushanbe=TJ|Pacific/Fakaofo=TK|Asia/Dili=TL|Asia/Ashgabat=TM|Africa/Tunis=TN|Pacific/Tongatapu=TO|Europe/Istanbul=TR|Asia/Taipei=TW|Europe/Kyiv=UA|America/New_York=US|America/Detroit=US|America/Kentucky/Louisville=US|America/Kentucky/Monticello=US|America/Indiana/Indianapolis=US|America/Indiana/Vincennes=US|America/Indiana/Winamac=US|America/Indiana/Marengo=US|America/Indiana/Petersburg=US|America/Indiana/Vevay=US|America/Chicago=US|America/Indiana/Tell_City=US|America/Indiana/Knox=US|America/Menominee=US|America/North_Dakota/Center=US|America/North_Dakota/New_Salem=US|America/North_Dakota/Beulah=US|America/Denver=US|America/Boise=US|America/Phoenix=US,CA|America/Los_Angeles=US|America/Anchorage=US|America/Juneau=US|America/Sitka=US|America/Metlakatla=US|America/Yakutat=US|America/Nome=US|America/Adak=US|Pacific/Honolulu=US|America/Montevideo=UY|Asia/Samarkand=UZ|Asia/Tashkent=UZ|America/Caracas=VE|Asia/Ho_Chi_Minh=VN|Pacific/Efate=VU|Pacific/Apia=WS|Africa/Johannesburg=ZA,LS,SZ";
 
     let publicState = null;
     let participantState = null;
     let accessToken = safeStorageGet(STORAGE_KEY);
     let signupSubmitted = false;
-    let signupDetailsPrompted = false;
     let selectedCheckInDay = null;
     const savedDays = new Set();
     const pendingNotePhotos = new Map();
@@ -70,16 +71,23 @@
     let participantNotice = null;
     let showInactiveLeaderboard = false;
     let commitmentPaymentPollRun = 0;
+    let accessTab = "signup";
+    let timeZoneCountryCodes = null;
+    let regionDisplayNames = null;
+    let callCountdownTimer = null;
 
     document.addEventListener("DOMContentLoaded", init);
 
     async function init() {
         fillTimeZones(document.getElementById("lmxSignupTimeZone"));
         fillTimeZones(document.getElementById("lmxEditTimeZone"));
+        initTimeZonePickers();
         renderQuestionPreview();
         wireForms();
+        wireAccessTabs();
         initAthleteSelectors();
         wireIdentityControls();
+        startCallCountdownTimer();
 
         try {
             await consumeUrlTokens();
@@ -105,7 +113,7 @@
 
         signupForm.addEventListener("submit", async event => {
             event.preventDefault();
-            if (revealSignupDetailsBeforeSubmit()) return;
+            accessTab = "signup";
 
             await withButton(signupForm.querySelector("button[type='submit']"), async () => {
                 const payload = {
@@ -123,14 +131,13 @@
                 setCommitmentInputValue("lmxSignupCommitmentAmount", null);
                 setDefaultTimezone(document.getElementById("lmxSignupTimeZone"));
                 signupSubmitted = true;
-                signupDetailsPrompted = false;
                 renderAll();
             }, "Joining...");
         });
 
         signupAgain.addEventListener("click", () => {
+            accessTab = "signup";
             signupSubmitted = false;
-            signupDetailsPrompted = false;
             setStatus("lmxSignupStatus", "", false);
             renderAll();
         });
@@ -170,9 +177,7 @@
             await withButton(editForm.querySelector("button[type='submit']"), async () => {
                 const result = await postJson(`${API}/edit`, {
                     accessToken,
-                    displayName: getIdentityDisplayName("edit"),
                     timeZoneId: document.getElementById("lmxEditTimeZone").value,
-                    athleteLink: getIdentityAthletePayload("edit"),
                     commitmentAmountUsd: parseCommitmentAmount("lmxEditCommitmentAmount")
                 });
                 participantState = result;
@@ -192,8 +197,20 @@
         });
     }
 
+    function wireAccessTabs() {
+        document.querySelectorAll("[data-lmx-access-tab]").forEach(button => {
+            button.addEventListener("click", () => {
+                accessTab = button.dataset.lmxAccessTab === "signin" ? "signin" : "signup";
+                renderPanels(publicState || {});
+            });
+            button.addEventListener("keydown", event => {
+                handleAccessTabKeydown(event, button);
+            });
+        });
+    }
+
     function wireIdentityControls() {
-        ["signup", "edit"].forEach(scope => {
+        ["signup"].forEach(scope => {
             document.querySelectorAll(`input[name="${identityRadioName(scope)}"]`).forEach(input => {
                 input.addEventListener("change", () => updateIdentityScope(scope));
             });
@@ -244,12 +261,6 @@
             athleteInput.disabled = !athleteMode;
             if (!athleteMode) athleteInput.setCustomValidity?.("");
         }
-
-        if (scope === "edit") {
-            const profilePictureField = document.getElementById("lmxProfilePictureField");
-            const linkedAthlete = !!(participantState?.participant?.athleteSlug || participantState?.participant?.athleteUrl);
-            profilePictureField?.classList.toggle("lmx-hidden", athleteMode || linkedAthlete);
-        }
     }
 
     function getIdentityDisplayName(scope) {
@@ -265,21 +276,6 @@
             return null;
 
         return getRequiredAthleteSelectorPayload(`${identityPrefix(scope)}Athlete`);
-    }
-
-    function revealSignupDetailsBeforeSubmit() {
-        const details = document.getElementById("lmxSignupDetails");
-        if (!details || details.open) return false;
-
-        details.open = true;
-        signupDetailsPrompted = true;
-        details.classList.remove("attention");
-        void details.offsetWidth;
-        details.classList.add("attention");
-        window.setTimeout(() => details.classList.remove("attention"), 1400);
-        details.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        setStatus("lmxSignupStatus", "Check these once, then join.", false);
-        return true;
     }
 
     async function consumeUrlTokens() {
@@ -307,6 +303,7 @@
 
         if (params.has("stop")) {
             await postJson(`${API}/stop-emails`, { token: params.get("stop") || "" });
+            accessTab = "signin";
             setStatus("lmxResendStatus", "Challenge emails stopped.", false);
             shouldClean = true;
         }
@@ -396,12 +393,12 @@
         const preStartSignup = isPreStartSignup(state);
         const boardRows = splitLeaderboardRows(state);
         const checks = boardRows.active.reduce((sum, row) => sum + row.checkedInDays, 0);
+        const callCount = challengeCallCount(state);
         setText("lmxMetricPeople", String(boardRows.active.length));
         setText("lmxMetricChecks", String(checks));
-        setText("lmxMetricMax", "4");
+        setText("lmxMetricMax", String(callCount));
         setText("lmxMetricPhase", phaseLabel(state.phase));
         setText("lmxHeroStatus", phaseLabel(state.phase));
-        setText("lmxStartChip", "Agency > Outcome");
         const boardSection = document.getElementById("lmxBoardSection");
         if (boardSection) boardSection.classList.toggle("signup-roster", preStartSignup);
         if (preStartSignup) {
@@ -411,16 +408,17 @@
             setText("lmxBoardTitle", "Live leaderboard");
             setText("lmxBoardMeta", `${boardRows.active.length} active people · ${checks} check-ins · last 2 weeks count · later days score higher · one slip can still score max, never twice in a row`);
         }
-        setText("lmxSignupKicker", "signup for free");
     }
 
     function renderHeroContext(state) {
         const hasParticipant = !!participantState;
         const preStartSignup = isPreStartSignup(state);
         const dashboardMode = hasParticipant || !preStartSignup;
+        const titlePanel = document.getElementById("lmxTitlePanel");
         const highlights = document.getElementById("lmxHeroHighlights");
         const life = document.getElementById("lmxLifeStrip");
         if (!highlights || !life) return;
+        titlePanel?.classList.toggle("stats-last", !hasParticipant && dashboardMode);
 
         if (!dashboardMode) {
             toggle("lmxHeroStatus", true);
@@ -428,7 +426,7 @@
             toggle("lmxHeroCopy", true);
             toggle("lmxLifeStrip", true);
             setText("lmxHeroMode", `Starts ${formatDateLabel(state.startDate)}`);
-            setText("lmxHeroCopy", "Track four daily habits and get sleep, movement, food, and vices back under control.");
+            setText("lmxHeroCopy", "The first muscle to train is your mind.");
             highlights.className = "lmx-benefit-strip";
             highlights.setAttribute("aria-label", "Challenge benefits");
             highlights.innerHTML = `
@@ -449,15 +447,17 @@
         if (!hasParticipant) {
             toggle("lmxHeroStatus", false);
             toggle("lmxHeroMode", false);
-            toggle("lmxHeroCopy", false);
+            toggle("lmxHeroCopy", true);
             toggle("lmxLifeStrip", true);
+            setText("lmxHeroCopy", "The first muscle to train is your mind.");
             highlights.className = "lmx-benefit-strip lmx-ops-strip";
             highlights.setAttribute("aria-label", "Challenge status");
             const boardRows = splitLeaderboardRows(state);
+            const callCount = challengeCallCount(state);
             highlights.innerHTML = [
                 opsTile("People", boardRows.active.length, "fa-users"),
                 opsTile("Check-ins", boardRows.active.reduce((sum, row) => sum + row.checkedInDays, 0), "fa-list-check"),
-                opsTile("Agencies", 4, "fa-layer-group"),
+                opsTile(responsiveLabel("Calls", "Community calls"), callCount, "fa-layer-group", "community-calls"),
                 opsTile("", phaseLabel(state.phase), "fa-signal")
             ].join("");
             life.className = "lmx-life-strip lmx-ops-status";
@@ -475,7 +475,7 @@
         const leaderboard = participant.challengeEmailsStopped ? (state.leaderboard || []) : leaderboardRows.active;
         const rowIndex = leaderboard.findIndex(row => row.participantId === participant.id);
         const row = rowIndex >= 0 ? leaderboard[rowIndex] : null;
-        const duration = leaderboardScoringWindowDays(state);
+        const daysIn = Math.max(0, Math.trunc(Number(participant.daysIn) || 0));
 
         toggle("lmxHeroStatus", true);
         toggle("lmxHeroMode", true);
@@ -487,19 +487,45 @@
         highlights.setAttribute("aria-label", "Participant status");
         highlights.innerHTML = [
             opsTile("Rank", row ? `#${rowIndex + 1}` : "-", "fa-ranking-star"),
-            opsTile("Days", row ? `${row.checkedInDays}/${duration}` : `0/${duration}`, "fa-calendar-check"),
+            opsTile("Days in", daysIn, "fa-calendar-check"),
             opsTile("Score", row ? row.totalPoints : 0, "fa-bolt"),
             opsTile("Streak", row ? row.currentStreak : 0, "fa-fire")
         ].join("");
     }
 
-    function opsTile(label, value, icon) {
+    function responsiveLabel(shortLabel, longLabel) {
+        return { shortLabel, longLabel };
+    }
+
+    function opsTile(label, value, icon, modifier) {
         const hasLabel = !!String(label || "").trim();
-        return `<div class="lmx-ops-tile${hasLabel ? "" : " no-label"}">
+        const labelHtml = opsTileLabelHtml(label);
+        return `<div class="lmx-ops-tile${hasLabel ? "" : " no-label"}${modifier ? ` ${escAttr(modifier)}` : ""}">
             <i class="fas ${escAttr(icon)}" aria-hidden="true"></i>
-            ${hasLabel ? `<span>${esc(label)}</span>` : ""}
+            ${labelHtml}
             <strong>${esc(value)}</strong>
         </div>`;
+    }
+
+    function opsTileLabelHtml(label) {
+        if (label && typeof label === "object") {
+            return `<span>
+                <span class="lmx-ops-label-short">${esc(label.shortLabel || "")}</span>
+                <span class="lmx-ops-label-long">${esc(label.longLabel || label.shortLabel || "")}</span>
+            </span>`;
+        }
+        return String(label || "").trim() ? `<span>${esc(label)}</span>` : "";
+    }
+
+    function challengeCallCount(state) {
+        const dayCount = (state?.days || []).length;
+        if (dayCount > 0) return Math.max(1, Math.ceil(dayCount / 7));
+
+        const start = parseIsoDate(state?.startDate);
+        if (!start) return 1;
+
+        const elapsedDays = Math.floor((Date.now() - start.getTime()) / 86400000) + 1;
+        return Math.max(1, Math.ceil(elapsedDays / 7));
     }
 
     function renderChallengeVisuals(state) {
@@ -558,7 +584,7 @@
             <div class="lmx-dashboard-scroll">
                 <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-columns: repeat(${dayCount}, 2.15rem); --lmx-dashboard-min-width: ${(13.05 + (dayCount * 2.5)).toFixed(2)}rem;">
                     <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
-                        <div class="lmx-dashboard-corner" role="columnheader">Habit</div>
+                        <div class="lmx-dashboard-corner" role="columnheader">Agency</div>
                         <div class="lmx-dashboard-days" role="presentation">${dayHeaders}</div>
                     </div>
                     ${rows}
@@ -671,9 +697,10 @@
         }
 
         toggle("lmxTitlePanel", !checkInOnly);
-        toggle("lmxSignupPanel", !hasParticipant);
+        toggle("lmxAccessTabs", !hasParticipant);
+        toggle("lmxSignupPanel", !hasParticipant && accessTab === "signup");
         toggle("lmxParticipantPanel", hasParticipant);
-        toggle("lmxResendPanel", !hasParticipant);
+        toggle("lmxResendPanel", !hasParticipant && accessTab === "signin");
         toggle("lmxNotesPanel", dashboardMode && !checkInOnly);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
@@ -695,13 +722,9 @@
             participantActiveTab = null;
             participantTabManual = false;
             participantNotice = null;
-            setText("lmxResendTitle", "Check-in link");
             setText("lmxResendButtonText", "Send check-in link");
         }
-        const details = document.getElementById("lmxSignupDetails");
-        if (details && !signupDetailsPrompted && !signupSubmitted) {
-            details.open = false;
-        }
+        renderAccessTabs();
         const slackInvite = document.getElementById("lmxSlackInviteLink");
         if (slackInvite) {
             slackInvite.href = state.slackInviteUrl || "#";
@@ -726,16 +749,13 @@
         setText("lmxParticipantTitle", title);
         renderCommitmentPanel(state);
         renderParticipantNotice();
-        renderParticipantHome(state, pendingCheckInDays);
 
-        document.getElementById("lmxEditName").value = participant.displayName || "";
-        setAthleteSelectorValue("lmxEditAthlete", participant.athleteSlug || participant.athleteUrl || "");
+        renderProfileIdentity(participant);
         setSelectValue(document.getElementById("lmxEditTimeZone"), participant.timeZoneId);
         setCommitmentInputValue("lmxEditCommitmentAmount", participant.commitmentAmountUsd ?? state.commitment?.amountUsd);
         const commitmentInput = document.getElementById("lmxEditCommitmentAmount");
         if (commitmentInput) commitmentInput.disabled = state.commitment?.canEditAmount === false;
         renderProfilePictureControls(participant);
-        setIdentityMode("edit", participant.athleteSlug || participant.athleteUrl ? "athlete" : "participant");
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
         if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || []);
         renderNotes(state.notes || state.public.notes || []);
@@ -765,17 +785,6 @@
         }
 
         return pendingCheckInDays.length ? "due now" : "no due day";
-    }
-
-    function renderParticipantHome(state, pendingCheckInDays) {
-        const hasDue = pendingCheckInDays.length > 0;
-        const nextCall = (state.calls || []).filter(call => !isParticipantCallDone(call))[0];
-        setText("lmxHomeStatusTitle", hasDue ? "Check-in open" : "Nothing due");
-        setText("lmxHomeStatusCopy", hasDue
-            ? "Use the Check-in tab when ready."
-            : nextCall
-                ? "Next community call is listed below."
-                : "Nothing else is due.");
     }
 
     function renderParticipantNotice() {
@@ -814,6 +823,49 @@
 
     function getDefaultParticipantTab(state) {
         return getPendingCheckInDays(state).length ? "checkin" : "home";
+    }
+
+    function renderAccessTabs() {
+        [
+            { tab: "signup", buttonId: "lmxSignupTab", panelId: "lmxSignupPanel" },
+            { tab: "signin", buttonId: "lmxSigninTab", panelId: "lmxResendPanel" }
+        ].forEach(item => {
+            const isActive = accessTab === item.tab;
+            const button = document.getElementById(item.buttonId);
+            const panel = document.getElementById(item.panelId);
+            if (button) {
+                button.setAttribute("aria-selected", isActive ? "true" : "false");
+                button.setAttribute("tabindex", isActive ? "0" : "-1");
+            }
+            if (panel) {
+                const hidden = panel.classList.contains("lmx-hidden") || !isActive;
+                panel.toggleAttribute("hidden", hidden);
+            }
+        });
+    }
+
+    function handleAccessTabKeydown(event, button) {
+        const tabs = ["signup", "signin"];
+        const currentIndex = tabs.indexOf(button.dataset.lmxAccessTab);
+        if (currentIndex < 0) return;
+
+        let nextIndex = currentIndex;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+            nextIndex = (currentIndex + 1) % tabs.length;
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+            nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else if (event.key === "Home") {
+            nextIndex = 0;
+        } else if (event.key === "End") {
+            nextIndex = tabs.length - 1;
+        } else {
+            return;
+        }
+
+        event.preventDefault();
+        accessTab = tabs[nextIndex];
+        renderPanels(publicState || {});
+        document.querySelector(`[data-lmx-access-tab="${accessTab}"]`)?.focus();
     }
 
     function setParticipantTab(tab, manual) {
@@ -920,10 +972,10 @@
                 <form id="lmxCommitmentAmountForm" class="lmx-commitment-card">
                     <div>
                         <strong>Set your commitment amount</strong>
-                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Set a real stake. Pay it only if you fall below your recent average, or stop there; choose an amount that'll hurt.</span>
+                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Set a real stake. Fall below your recent average and either pay it or stop. Choose an amount that’ll hurt.</span>
                     </div>
                     <div class="lmx-field">
-                        <label for="lmxBlockedCommitmentAmount">USD amount</label>
+                        <label for="lmxBlockedCommitmentAmount">Pledge</label>
                         <div class="lmx-money-input">
                             <span aria-hidden="true">$</span>
                             <input id="lmxBlockedCommitmentAmount" type="text" inputmode="decimal" required placeholder="300" aria-describedby="lmxBlockedCommitmentHelp">
@@ -1130,6 +1182,21 @@
         status.classList.toggle("success", !!message && !isError);
     }
 
+    function renderProfileIdentity(participant) {
+        const container = document.getElementById("lmxProfileIdentity");
+        if (!container) return;
+
+        const linkedAthlete = !!(participant.athleteSlug || participant.athleteUrl);
+        const name = participant.displayName || "Participant";
+        const badge = linkedAthlete ? "Longevity athlete" : "Challenge username";
+        const identity = participant.athleteUrl
+            ? `<a href="${escAttr(participant.athleteUrl)}">${esc(name)}</a>`
+            : `<strong>${esc(name)}</strong>`;
+        container.innerHTML = `
+            <i class="fas ${linkedAthlete ? "fa-ranking-star" : "fa-user"}" aria-hidden="true"></i>
+            <span>${identity}<em>${esc(badge)}</em></span>`;
+    }
+
     function renderProfilePictureControls(participant) {
         const field = document.getElementById("lmxProfilePictureField");
         const preview = document.getElementById("lmxProfilePicturePreview");
@@ -1155,17 +1222,73 @@
             .slice(0, 1);
         if (!visibleCalls.length) {
             container.innerHTML = "";
+            updateCallCountdowns();
             return;
         }
 
         container.innerHTML = visibleCalls.map(call => {
             const timeZoneId = getParticipantTimeZone();
             const when = call.selectedSlot ? formatCallWhen(call.selectedSlot.startsAtUtc, timeZoneId) : { primary: pendingCallTimeLabel(callSelectionClosesAtUtc, timeZoneId), secondary: "" };
+            const countdown = call.selectedSlot
+                ? callCountdownHtml(call.selectedSlot.startsAtUtc)
+                : "";
             const link = call.videoCallUrl
                 ? `<a class="lmx-call-link" href="${escAttr(call.videoCallUrl)}" target="_blank" rel="noopener">Google Meet</a>`
                 : "";
-            return `<div class="lmx-call-group"><strong>Next community call</strong><div class="lmx-call-meta"><span class="lmx-call-when"><b>${esc(when.primary)}</b>${when.secondary ? `<small>${esc(when.secondary)}</small>` : ""}</span>${link}</div></div>`;
+            return `<div class="lmx-call-group">
+                <div class="lmx-call-main">
+                    <div class="lmx-call-copy">
+                        <strong><i class="fas fa-users lmx-call-title-icon" aria-hidden="true"></i>Next community call</strong>
+                        <span class="lmx-call-when"><b>${esc(when.primary)}</b>${when.secondary ? `<small>${esc(when.secondary)}</small>` : ""}</span>
+                    </div>
+                </div>
+                <div class="lmx-call-side">
+                    ${countdown}
+                    ${link}
+                </div>
+            </div>`;
         }).join("");
+        updateCallCountdowns();
+    }
+
+    function callCountdownHtml(startsAtUtc) {
+        const countdown = formatCallCountdown(startsAtUtc);
+        if (!countdown.value) return "";
+        return `<span class="lmx-call-countdown" data-call-countdown data-call-starts-at="${escAttr(startsAtUtc)}">
+            <small>${esc(countdown.label)}</small>
+            <b>${esc(countdown.value)}</b>
+        </span>`;
+    }
+
+    function startCallCountdownTimer() {
+        if (callCountdownTimer) return;
+        callCountdownTimer = window.setInterval(updateCallCountdowns, 60000);
+    }
+
+    function updateCallCountdowns() {
+        document.querySelectorAll("[data-call-countdown]").forEach(element => {
+            const countdown = formatCallCountdown(element.dataset.callStartsAt || "");
+            element.classList.toggle("live", countdown.label === "Live now");
+            element.classList.toggle("lmx-hidden", !countdown.value);
+            const label = element.querySelector("small");
+            const value = element.querySelector("b");
+            if (label) label.textContent = countdown.label;
+            if (value) value.textContent = countdown.value;
+        });
+    }
+
+    function formatCallCountdown(startsAtUtc) {
+        const startsAtMs = Date.parse(startsAtUtc);
+        if (!Number.isFinite(startsAtMs)) return { label: "", value: "" };
+        const remainingMinutes = Math.ceil((startsAtMs - Date.now()) / 60000);
+        if (remainingMinutes <= 0) return { label: "Live now", value: "Join" };
+        if (remainingMinutes < 60) return { label: "Starts in", value: `${remainingMinutes}m` };
+
+        const days = Math.floor(remainingMinutes / 1440);
+        const hours = Math.floor((remainingMinutes % 1440) / 60);
+        const minutes = remainingMinutes % 60;
+        if (days > 0) return { label: "Starts in", value: hours > 0 ? `${days}d ${hours}h` : `${days}d` };
+        return { label: "Starts in", value: minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h` };
     }
 
     function isParticipantCallDone(call) {
@@ -1319,8 +1442,12 @@
     function setBoardDayColumns(board, dayCount, rosterMode) {
         const count = Math.max(1, Math.trunc(Number(dayCount) || 14));
         board.style.setProperty("--lmx-day-columns", `repeat(${count}, 2.55rem)`);
-        const baseWidthRem = rosterMode ? 14.35 : 21.15;
-        board.style.setProperty("--lmx-board-min-width", `${(baseWidthRem + (count * 2.9)).toFixed(2)}rem`);
+        const stickyWidthRem = rosterMode ? 16 : 21.15;
+        const gapCount = rosterMode ? count : count + 1;
+        const rowPaddingRem = 0.7;
+        const dayWidthRem = count * 2.55;
+        const gapWidthRem = gapCount * 0.35;
+        board.style.setProperty("--lmx-board-min-width", `${(stickyWidthRem + dayWidthRem + gapWidthRem + rowPaddingRem).toFixed(2)}rem`);
     }
 
     function splitLeaderboardRows(state) {
@@ -1348,9 +1475,7 @@
         button.setAttribute("aria-label", showInactiveLeaderboard
             ? "Hide inactive participants"
             : `Show inactive participants (${rows.inactive.length})`);
-        button.innerHTML = showInactiveLeaderboard
-            ? `<i class="fas fa-users" aria-hidden="true"></i>Hide inactive`
-            : `<i class="fas fa-users-slash" aria-hidden="true"></i>Show inactive (${rows.inactive.length})`;
+        button.textContent = showInactiveLeaderboard ? "Hide inactive" : `Show inactive (${rows.inactive.length})`;
     }
 
     function scrollBoardToLatestDay() {
@@ -1387,25 +1512,38 @@
         const scroller = document.querySelector("#lmxTrack .lmx-dashboard-scroll");
         if (!scroller) return;
 
-        const scrollRight = () => {
-            scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+        const scrollCurrentDayIntoFocus = () => {
+            const currentDay = scroller.querySelector(".lmx-dashboard-row-head .lmx-dashboard-day.today");
+            if (!currentDay) {
+                scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+                return;
+            }
+
+            const stickyColumn = scroller.querySelector(".lmx-dashboard-corner");
+            const styles = getComputedStyle(scroller.querySelector(".lmx-dashboard-grid") || scroller);
+            const gap = parseFloat(styles.getPropertyValue("--lmx-dashboard-gap")) || 0;
+            const stickyWidth = (stickyColumn?.offsetWidth || 0) + gap;
+            const availableWidth = Math.max(currentDay.offsetWidth, scroller.clientWidth - stickyWidth);
+            const centered = currentDay.offsetLeft - stickyWidth - ((availableWidth - currentDay.offsetWidth) / 2);
+            const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+            scroller.scrollLeft = Math.max(0, Math.min(maxScroll, centered));
         };
 
         requestAnimationFrame(() => {
-            scrollRight();
-            requestAnimationFrame(scrollRight);
-            window.setTimeout(scrollRight, 120);
-            window.setTimeout(scrollRight, 500);
+            scrollCurrentDayIntoFocus();
+            requestAnimationFrame(scrollCurrentDayIntoFocus);
+            window.setTimeout(scrollCurrentDayIntoFocus, 120);
+            window.setTimeout(scrollCurrentDayIntoFocus, 500);
         });
 
         if (document.fonts && document.fonts.ready) {
-            document.fonts.ready.then(scrollRight).catch(() => { });
+            document.fonts.ready.then(scrollCurrentDayIntoFocus).catch(() => { });
         }
 
         if (window.ResizeObserver && dashboardScrollObservedElement !== scroller) {
             if (dashboardScrollObserver) dashboardScrollObserver.disconnect();
             dashboardScrollObservedElement = scroller;
-            dashboardScrollObserver = new ResizeObserver(scrollRight);
+            dashboardScrollObserver = new ResizeObserver(scrollCurrentDayIntoFocus);
             dashboardScrollObserver.observe(scroller);
             const dashboard = scroller.querySelector(".lmx-dashboard-grid");
             if (dashboard) dashboardScrollObserver.observe(dashboard);
@@ -1414,10 +1552,8 @@
 
     function emptyBoardRow(durationDays, hiddenInactiveCount) {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
-        const message = hasHiddenInactive
-            ? `${hiddenInactiveCount} inactive participant${hiddenInactiveCount === 1 ? " is" : "s are"} hidden`
-            : "No one has joined yet";
-        const scoreLabel = hasHiddenInactive ? "Inactive participants hidden" : "No score yet";
+        const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
+        const scoreLabel = hasHiddenInactive ? "No active score" : "No score yet";
         return `<div class="lmx-board-row" role="row">
             <div class="lmx-name" role="cell">
                 <span class="lmx-empty-name">${esc(message)}</span>
@@ -1429,9 +1565,7 @@
 
     function emptyRosterRow(durationDays, hiddenInactiveCount) {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
-        const message = hasHiddenInactive
-            ? `${hiddenInactiveCount} inactive participant${hiddenInactiveCount === 1 ? " is" : "s are"} hidden`
-            : "No one has joined yet";
+        const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
         return `<div class="lmx-board-row lmx-roster-row" role="row">
             <div class="lmx-name" role="cell">
                 <span class="lmx-empty-name">${esc(message)}</span>
@@ -1664,7 +1798,7 @@
             </div>`;
         }
 
-        return `<div class="lmx-empty-state">
+        return `<div class="lmx-empty-state compact">
             <i class="fas fa-circle-check" aria-hidden="true"></i>
             <strong>Nothing due.</strong>
         </div>`;
@@ -2041,7 +2175,7 @@
     }
 
     function initAthleteSelectors() {
-        const inputs = ["lmxSignupAthlete", "lmxEditAthlete"]
+        const inputs = ["lmxSignupAthlete"]
             .map(id => document.getElementById(id))
             .filter(Boolean);
         if (!inputs.length) return;
@@ -2420,16 +2554,161 @@
 
     function fillTimeZones(select) {
         if (!select) return;
-        const current = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-        select.innerHTML = Array.from(new Set([current, ...COMMON_TIME_ZONES]))
+        const current = getBrowserTimeZone();
+        select.innerHTML = getAvailableTimeZones(current)
             .filter(Boolean)
             .map(zone => `<option value="${escAttr(zone)}">${esc(zone)}</option>`)
             .join("");
         setDefaultTimezone(select);
     }
 
+    function initTimeZonePickers() {
+        document.querySelectorAll("[data-timezone-picker]").forEach(picker => {
+            if (picker.dataset.wired === "true") return;
+            picker.dataset.wired = "true";
+            const button = picker.querySelector(".lmx-timezone-button");
+            const input = picker.querySelector(".lmx-timezone-search input");
+            const select = getTimeZoneSelect(picker);
+
+            button?.addEventListener("click", () => toggleTimeZonePicker(picker));
+            input?.addEventListener("input", () => renderTimeZoneOptions(picker, input.value));
+            input?.addEventListener("keydown", event => handleTimeZoneSearchKeydown(event, picker));
+            select?.addEventListener("change", () => syncTimeZonePicker(picker));
+            syncTimeZonePicker(picker);
+        });
+
+        document.addEventListener("click", event => {
+            document.querySelectorAll("[data-timezone-picker].open").forEach(picker => {
+                if (!picker.contains(event.target)) closeTimeZonePicker(picker);
+            });
+        });
+    }
+
+    function getTimeZoneSelect(picker) {
+        const id = picker?.dataset?.selectId || "";
+        return id ? document.getElementById(id) : null;
+    }
+
+    function toggleTimeZonePicker(picker) {
+        if (picker.classList.contains("open")) {
+            closeTimeZonePicker(picker);
+        } else {
+            openTimeZonePicker(picker);
+        }
+    }
+
+    function openTimeZonePicker(picker) {
+        document.querySelectorAll("[data-timezone-picker].open").forEach(openPicker => {
+            if (openPicker !== picker) closeTimeZonePicker(openPicker);
+        });
+        picker.classList.add("open");
+        const button = picker.querySelector(".lmx-timezone-button");
+        const popover = picker.querySelector(".lmx-timezone-popover");
+        const input = picker.querySelector(".lmx-timezone-search input");
+        button?.setAttribute("aria-expanded", "true");
+        if (popover) popover.hidden = false;
+        if (input) {
+            input.value = "";
+            renderTimeZoneOptions(picker, "");
+            requestAnimationFrame(() => input.focus());
+        }
+    }
+
+    function closeTimeZonePicker(picker) {
+        picker.classList.remove("open");
+        picker.querySelector(".lmx-timezone-button")?.setAttribute("aria-expanded", "false");
+        const popover = picker.querySelector(".lmx-timezone-popover");
+        if (popover) popover.hidden = true;
+    }
+
+    function syncTimeZonePicker(picker) {
+        const select = getTimeZoneSelect(picker);
+        const display = picker.querySelector("[data-timezone-display]");
+        const offset = picker.querySelector("[data-timezone-offset]");
+        const value = select?.value || "UTC";
+        if (display) display.textContent = timeZoneDisplayName(value);
+        if (offset) offset.textContent = timeZoneOffsetLabel(value);
+    }
+
+    function renderTimeZoneOptions(picker, query) {
+        const select = getTimeZoneSelect(picker);
+        const list = picker.querySelector(".lmx-timezone-list");
+        if (!select || !list) return;
+        const selected = select.value || "UTC";
+        const terms = normalizeTimeZoneQuery(query).split(" ").filter(Boolean);
+        const zones = Array.from(select.options).map(option => option.value).filter(Boolean);
+        const matches = zones
+            .map(zone => ({ zone, score: timeZoneMatchScore(zone, terms, selected) }))
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score || a.zone.localeCompare(b.zone))
+            .slice(0, TIME_ZONE_MATCH_LIMIT);
+
+        list.innerHTML = matches.length
+            ? matches.map((item, index) => timeZoneOptionHtml(item.zone, selected, index === 0)).join("")
+            : `<div class="lmx-timezone-empty">No timezone found</div>`;
+
+        list.querySelectorAll(".lmx-timezone-option").forEach(option => {
+            option.addEventListener("click", () => chooseTimeZone(picker, option.dataset.timeZone || "UTC"));
+        });
+    }
+
+    function timeZoneOptionHtml(zone, selected, active) {
+        return `<button type="button" class="lmx-timezone-option${active ? " active" : ""}" role="option" data-time-zone="${escAttr(zone)}" aria-selected="${zone === selected ? "true" : "false"}">
+            <span>${esc(timeZoneDisplayName(zone))}</span>
+            <small>${esc(zone)} · ${esc(timeZoneOffsetLabel(zone))}</small>
+        </button>`;
+    }
+
+    function chooseTimeZone(picker, zone) {
+        const select = getTimeZoneSelect(picker);
+        if (!select) return;
+        setSelectValue(select, zone);
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        closeTimeZonePicker(picker);
+        picker.querySelector(".lmx-timezone-button")?.focus();
+    }
+
+    function handleTimeZoneSearchKeydown(event, picker) {
+        const options = Array.from(picker.querySelectorAll(".lmx-timezone-option"));
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeTimeZonePicker(picker);
+            picker.querySelector(".lmx-timezone-button")?.focus();
+            return;
+        }
+        if (event.key === "Enter") {
+            event.preventDefault();
+            const active = picker.querySelector(".lmx-timezone-option.active") || options[0];
+            if (active) chooseTimeZone(picker, active.dataset.timeZone || "UTC");
+            return;
+        }
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+        event.preventDefault();
+        if (!options.length) return;
+        const current = Math.max(0, options.findIndex(option => option.classList.contains("active")));
+        const next = event.key === "ArrowDown"
+            ? (current + 1) % options.length
+            : (current - 1 + options.length) % options.length;
+        options.forEach((option, index) => option.classList.toggle("active", index === next));
+        options[next].scrollIntoView({ block: "nearest" });
+    }
+
+    function getAvailableTimeZones(current) {
+        const zones = typeof Intl.supportedValuesOf === "function"
+            ? Intl.supportedValuesOf("timeZone")
+            : FALLBACK_TIME_ZONES;
+        const sorted = Array.from(new Set(["UTC", ...zones]))
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b));
+        return Array.from(new Set([current || "UTC", ...sorted]));
+    }
+
     function setDefaultTimezone(select) {
-        setSelectValue(select, Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
+        setSelectValue(select, getBrowserTimeZone());
+    }
+
+    function getBrowserTimeZone() {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     }
 
     function setSelectValue(select, value) {
@@ -2442,7 +2721,80 @@
             select.appendChild(option);
         }
         select.value = candidate;
+        const picker = Array.from(document.querySelectorAll("[data-timezone-picker]"))
+            .find(candidatePicker => candidatePicker.dataset.selectId === select.id);
+        if (picker) syncTimeZonePicker(picker);
     }
+
+    function timeZoneMatchScore(zone, terms, selected) {
+        if (!terms.length) return zone === selected ? 1000 : 1;
+        const haystack = normalizeTimeZoneQuery(`${zone} ${timeZoneDisplayName(zone)} ${timeZoneCountryLabel(zone, true)}`);
+        let score = zone === selected ? 8 : 0;
+        for (const term of terms) {
+            const index = haystack.indexOf(term);
+            if (index < 0) return 0;
+            score += index === 0 ? 80 : 50;
+            if (haystack.includes(`/${term}`) || haystack.includes(` ${term}`)) score += 25;
+        }
+        return score;
+    }
+
+    function normalizeTimeZoneQuery(value) {
+        return String(value || "")
+            .toLowerCase()
+            .replace(/[_/-]+/g, " ")
+            .replace(/[^a-z0-9+ ]+/g, "")
+            .trim();
+    }
+
+    function timeZoneDisplayName(zone) {
+        if (!zone) return "UTC";
+        const parts = String(zone).split("/");
+        const city = (parts[parts.length - 1] || zone).replace(/_/g, " ");
+        const country = timeZoneCountryLabel(zone, false).split(", ")[0] || "";
+        return country ? `${city}, ${country}` : city;
+    }
+
+    function timeZoneCountryLabel(zone, includeAll) {
+        const codes = getTimeZoneCountryCodes().get(zone) || [];
+        const names = codes
+            .map(code => {
+                try {
+                    regionDisplayNames ||= new Intl.DisplayNames(["en"], { type: "region" });
+                    return regionDisplayNames.of(code) || code;
+                } catch (_) {
+                    return code;
+                }
+            })
+            .filter(Boolean);
+        if (includeAll) return names.join(", ");
+        return names[0] || "";
+    }
+
+    function getTimeZoneCountryCodes() {
+        if (!timeZoneCountryCodes) {
+            timeZoneCountryCodes = new Map(TIME_ZONE_COUNTRY_DATA.split("|").map(entry => {
+                const [zone, codes] = entry.split("=");
+                return [zone, String(codes || "").split(",").filter(Boolean)];
+            }));
+        }
+        return timeZoneCountryCodes;
+    }
+
+    function timeZoneOffsetLabel(zone) {
+        try {
+            const parts = new Intl.DateTimeFormat("en-US", {
+                timeZone: zone,
+                timeZoneName: "shortOffset",
+                hour: "2-digit",
+                minute: "2-digit"
+            }).formatToParts(new Date());
+            return parts.find(part => part.type === "timeZoneName")?.value || zone;
+        } catch (_) {
+            return zone || "UTC";
+        }
+    }
+
 
     function phaseLabel(phase) {
         switch (phase) {

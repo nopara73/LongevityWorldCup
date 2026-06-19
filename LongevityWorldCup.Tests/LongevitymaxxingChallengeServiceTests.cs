@@ -139,23 +139,25 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task EditRejectsUsernameAlreadyUsedByAnotherParticipant()
+    public async Task EditRejectsDisplayNameChangesAfterSignup()
     {
         using var fixture = TestChallengeFixture.Create();
         await fixture.ConfirmParticipantAsync("taken@example.com", "Taken Tina");
         var access = await fixture.ConfirmParticipantAsync("editor@example.com", "Editor Eli");
 
-        var duplicate = Assert.Throws<InvalidOperationException>(() => fixture.Service.EditParticipant(
-            new LongevitymaxxingParticipantEditRequest(access, "taken tina", "UTC", null, 25m)));
-        Assert.Equal("That username is already taken.", duplicate.Message);
+        var rename = Assert.Throws<InvalidOperationException>(() => fixture.Service.EditParticipant(
+            new LongevitymaxxingParticipantEditRequest(access, "UTC", 25m, "taken tina")));
+        Assert.Equal("Identity cannot be changed after signup.", rename.Message);
 
-        var ownName = fixture.Service.EditParticipant(
-            new LongevitymaxxingParticipantEditRequest(access, "Editor   Eli", "UTC", null, 25m));
-        Assert.Equal("Editor   Eli", ownName.Participant.DisplayName);
+        var profile = fixture.Service.EditParticipant(
+            new LongevitymaxxingParticipantEditRequest(access, "Europe/Budapest", 26m));
+        Assert.Equal("Editor Eli", profile.Participant.DisplayName);
+        Assert.Equal("Europe/Budapest", profile.Participant.TimeZoneId);
+        Assert.Equal(26m, profile.Participant.CommitmentAmountUsd);
     }
 
     [Fact]
-    public async Task EditCanSwitchToSelectedAthleteProfileAndUsesAthleteName()
+    public async Task EditRejectsAthleteProfileChangesAfterSignup()
     {
         using var fixture = TestChallengeFixture.Create();
         fixture.Athletes.Snapshot.Add(new JsonObject
@@ -166,11 +168,13 @@ public sealed class LongevitymaxxingChallengeServiceTests
         });
         var access = await fixture.ConfirmParticipantAsync("bea@example.com", "Bea User");
 
-        var linked = fixture.Service.EditParticipant(
-            new LongevitymaxxingParticipantEditRequest(access, "Should Not Win", "UTC", "/athlete/athlete-bea", 25m));
+        var link = Assert.Throws<InvalidOperationException>(() => fixture.Service.EditParticipant(
+            new LongevitymaxxingParticipantEditRequest(access, "UTC", 25m, AthleteLink: "/athlete/athlete-bea")));
+        Assert.Equal("Identity cannot be changed after signup.", link.Message);
 
-        Assert.Equal("Bea Baseline", linked.Participant.DisplayName);
-        Assert.Equal("athlete-bea", linked.Participant.AthleteSlug);
+        var state = fixture.Service.GetParticipantState(access);
+        Assert.Equal("Bea User", state.Participant.DisplayName);
+        Assert.Null(state.Participant.AthleteSlug);
     }
 
     [Fact]
@@ -1335,9 +1339,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         var configured = fixture.Service.EditParticipant(new LongevitymaxxingParticipantEditRequest(
             access,
-            "Legacy Lou",
             "UTC",
-            null,
             12.345m));
 
         Assert.Equal("clear", configured.Commitment.Status);

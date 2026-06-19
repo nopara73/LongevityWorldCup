@@ -18,10 +18,10 @@ public sealed record LongevitymaxxingCheckInRequest(
 
 public sealed record LongevitymaxxingParticipantEditRequest(
     string AccessToken,
-    string DisplayName,
     string TimeZoneId,
-    string? AthleteLink,
-    decimal? CommitmentAmountUsd = null);
+    decimal? CommitmentAmountUsd = null,
+    string? DisplayName = null,
+    string? AthleteLink = null);
 
 public sealed record LongevitymaxxingCommitmentPaymentRequest(string AccessToken);
 
@@ -65,7 +65,8 @@ public sealed record LongevitymaxxingParticipantSummary(
     string? AthleteUrl,
     string? ProfileImageUrl,
     bool ChallengeEmailsStopped,
-    decimal? CommitmentAmountUsd);
+    decimal? CommitmentAmountUsd,
+    int DaysIn);
 
 public sealed record LongevitymaxxingDaySummary(int ChallengeDay, string Date);
 

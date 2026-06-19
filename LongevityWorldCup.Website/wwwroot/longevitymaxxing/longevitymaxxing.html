@@ -17,9 +17,8 @@
                 </div>
                 <div class="lmx-title-row">
                     <h1 id="lmx-title">Longevitymaxxing</h1>
-                    <span id="lmxStartChip" class="lmx-season-chip">Agency &gt; Outcome</span>
                 </div>
-                <p id="lmxHeroCopy" class="lmx-hero-copy">Track four daily habits and get sleep, movement, food, and vices back under control.</p>
+                <p id="lmxHeroCopy" class="lmx-hero-copy">The first muscle to train is your mind.</p>
                 <div id="lmxHeroHighlights" class="lmx-benefit-strip" aria-label="Challenge benefits">
                     <strong>Fell off your habits?</strong>
                     <span>Too busy for a full reset?</span>
@@ -71,8 +70,8 @@
                         <span>check-ins</span>
                     </div>
                     <div class="lmx-metric">
-                        <strong id="lmxMetricMax">4</strong>
-                        <span>Agencies</span>
+                        <strong id="lmxMetricMax">1</strong>
+                        <span>Calls</span>
                     </div>
                     <div class="lmx-metric phase-only">
                         <strong id="lmxMetricPhase">...</strong>
@@ -81,12 +80,19 @@
             </div>
 
             <aside class="lmx-card lmx-action-card" aria-live="polite">
-                <div id="lmxSignupPanel">
+                <div id="lmxAccessTabs" class="lmx-tabs lmx-access-tabs" role="tablist" aria-label="Access">
+                    <button id="lmxSignupTab" class="lmx-tab" type="button" role="tab" aria-controls="lmxSignupPanel" aria-selected="true" data-lmx-access-tab="signup">
+                        <i class="fas fa-user-plus" aria-hidden="true"></i>
+                        Sign up
+                    </button>
+                    <button id="lmxSigninTab" class="lmx-tab" type="button" role="tab" aria-controls="lmxResendPanel" aria-selected="false" data-lmx-access-tab="signin">
+                        <i class="fas fa-right-to-bracket" aria-hidden="true"></i>
+                        Sign in
+                    </button>
+                </div>
+
+                <div id="lmxSignupPanel" class="lmx-access-panel" role="tabpanel" aria-labelledby="lmxSignupTab">
                     <div id="lmxSignupIntro">
-                        <div class="lmx-card-head">
-                            <span id="lmxSignupKicker" class="lmx-mini-label">signup for free</span>
-                            <h2 id="lmxSignupTitle" class="lmx-hidden"></h2>
-                        </div>
                         <form id="lmxSignupForm" class="lmx-form">
                             <div class="lmx-field">
                                 <label for="lmxSignupEmail">Email</label>
@@ -123,25 +129,34 @@
                                 </div>
                             </fieldset>
                             <div class="lmx-field">
-                                <label for="lmxSignupCommitmentAmount">Commitment amount</label>
-                                <p id="lmxSignupCommitmentHelp" class="lmx-field-help lmx-commitment-help">Set a real stake. Pay it only if you fall below your recent average, or stop there; choose an amount that'll hurt.</p>
+                                <label for="lmxSignupCommitmentAmount">Pledge</label>
+                                <p id="lmxSignupCommitmentHelp" class="lmx-field-help lmx-commitment-help">Set a real stake. Fall below your recent average and either pay it or stop. Choose an amount that’ll hurt.</p>
                                 <div class="lmx-money-input">
                                     <span aria-hidden="true">$</span>
                                     <input id="lmxSignupCommitmentAmount" name="commitmentAmountUsd" type="text" inputmode="decimal" required placeholder="300" aria-describedby="lmxSignupCommitmentHelp">
                                 </div>
                             </div>
-                            <details id="lmxSignupDetails" class="lmx-details">
-                                <summary id="lmxSignupDetailsSummary">Extra details</summary>
-                                <div class="lmx-details-body">
-                                    <div class="lmx-field">
-                                        <label for="lmxSignupTimeZone">Timezone</label>
-                                        <select id="lmxSignupTimeZone" name="timeZoneId" required></select>
+                            <div class="lmx-field">
+                                <span class="lmx-label" id="lmxSignupTimeZoneLabel">Timezone</span>
+                                <div class="lmx-timezone-picker" data-timezone-picker data-select-id="lmxSignupTimeZone" aria-labelledby="lmxSignupTimeZoneLabel">
+                                    <button id="lmxSignupTimeZoneButton" class="lmx-timezone-button" type="button" aria-haspopup="listbox" aria-expanded="false">
+                                        <span data-timezone-display>Detecting timezone</span>
+                                        <small data-timezone-offset></small>
+                                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="lmx-timezone-popover" hidden>
+                                        <div class="lmx-timezone-search">
+                                            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                            <input id="lmxSignupTimeZoneSearch" type="search" autocomplete="off" placeholder="Search city or timezone" aria-controls="lmxSignupTimeZoneList">
+                                        </div>
+                                        <div id="lmxSignupTimeZoneList" class="lmx-timezone-list" role="listbox" aria-label="Timezones"></div>
                                     </div>
+                                    <select id="lmxSignupTimeZone" class="lmx-timezone-native" name="timeZoneId" required tabindex="-1" aria-hidden="true"></select>
                                 </div>
-                            </details>
+                            </div>
                             <button class="lmx-button lmx-primary-action" type="submit">
                                 <i class="fas fa-flag-checkered" aria-hidden="true"></i>
-                                Join free
+                                Sign up
                             </button>
                             <div id="lmxSignupStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                         </form>
@@ -157,6 +172,20 @@
                             Edit signup
                         </button>
                     </div>
+                </div>
+
+                <div id="lmxResendPanel" class="lmx-access-panel lmx-hidden" role="tabpanel" aria-labelledby="lmxSigninTab">
+                    <form id="lmxResendForm" class="lmx-form">
+                        <div class="lmx-field">
+                            <label for="lmxResendEmail">Email</label>
+                            <input id="lmxResendEmail" type="email" autocomplete="email" required>
+                        </div>
+                        <button class="lmx-button lmx-primary-action" type="submit">
+                            <i class="fas fa-envelope" aria-hidden="true"></i>
+                            <span id="lmxResendButtonText">Send check-in link</span>
+                        </button>
+                        <div id="lmxResendStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
+                    </form>
                 </div>
 
                 <div id="lmxParticipantPanel" class="lmx-participant-actions lmx-hidden">
@@ -184,43 +213,31 @@
                         <div id="lmxCheckinList" class="lmx-checkin-list"></div>
                     </div>
                     <form id="lmxEditForm" class="lmx-form lmx-tab-panel lmx-hidden" role="tabpanel" aria-labelledby="lmxProfileTab">
-                        <fieldset class="lmx-identity-field" data-identity-scope="edit">
-                            <legend>Are you already a Longevity World Cup athlete?</legend>
-                            <div class="lmx-identity-options" role="radiogroup" aria-label="Athlete status">
-                                <label>
-                                    <input type="radio" name="lmxEditIdentity" value="participant" checked>
-                                    <span>No</span>
-                                </label>
-                                <label>
-                                    <input type="radio" name="lmxEditIdentity" value="athlete">
-                                    <span>Yes</span>
-                                </label>
-                            </div>
-                            <div id="lmxEditUsernameField" class="lmx-field lmx-identity-username" data-identity-panel="username">
-                                <label for="lmxEditName">Username</label>
-                                <input id="lmxEditName" autocomplete="username" required maxlength="80">
-                            </div>
-                            <div id="lmxEditAthleteField" class="lmx-field lmx-athlete-selector lmx-identity-athlete lmx-hidden" data-identity-panel="athlete">
-                                <label for="lmxEditAthlete">Athlete profile</label>
-                                <div class="lmx-athlete-picker">
-                                    <div class="lmx-athlete-search">
-                                        <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                                        <input id="lmxEditAthlete" autocomplete="off" placeholder="Search athlete name">
-                                        <button id="lmxEditAthleteClear" class="lmx-athlete-clear lmx-hidden" type="button" aria-label="Clear selected athlete">
-                                            <i class="fas fa-xmark" aria-hidden="true"></i>
-                                        </button>
-                                    </div>
-                                    <div id="lmxEditAthleteSelected" class="lmx-athlete-selected lmx-hidden" aria-live="polite"></div>
-                                </div>
-                            </div>
-                        </fieldset>
                         <div class="lmx-field">
-                            <label for="lmxEditTimeZone">Timezone</label>
-                            <select id="lmxEditTimeZone" required></select>
+                            <span class="lmx-label">Identity</span>
+                            <div id="lmxProfileIdentity" class="lmx-profile-identity" aria-live="polite"></div>
                         </div>
                         <div class="lmx-field">
-                            <label for="lmxEditCommitmentAmount">Commitment amount</label>
-                            <p class="lmx-field-help lmx-commitment-help">Set a real stake. Pay it only if you fall below your recent average, or stop there; choose an amount that'll hurt.</p>
+                            <span class="lmx-label" id="lmxEditTimeZoneLabel">Timezone</span>
+                            <div class="lmx-timezone-picker" data-timezone-picker data-select-id="lmxEditTimeZone" aria-labelledby="lmxEditTimeZoneLabel">
+                                <button id="lmxEditTimeZoneButton" class="lmx-timezone-button" type="button" aria-haspopup="listbox" aria-expanded="false">
+                                    <span data-timezone-display>Detecting timezone</span>
+                                    <small data-timezone-offset></small>
+                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                </button>
+                                <div class="lmx-timezone-popover" hidden>
+                                    <div class="lmx-timezone-search">
+                                        <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                        <input id="lmxEditTimeZoneSearch" type="search" autocomplete="off" placeholder="Search city or timezone" aria-controls="lmxEditTimeZoneList">
+                                    </div>
+                                    <div id="lmxEditTimeZoneList" class="lmx-timezone-list" role="listbox" aria-label="Timezones"></div>
+                                </div>
+                                <select id="lmxEditTimeZone" class="lmx-timezone-native" required tabindex="-1" aria-hidden="true"></select>
+                            </div>
+                        </div>
+                        <div class="lmx-field">
+                            <label for="lmxEditCommitmentAmount">Pledge</label>
+                            <p class="lmx-field-help lmx-commitment-help">Set a real stake. Fall below your recent average and either pay it or stop. Choose an amount that’ll hurt.</p>
                             <div class="lmx-money-input">
                                 <span aria-hidden="true">$</span>
                                 <input id="lmxEditCommitmentAmount" type="text" inputmode="decimal" required placeholder="300">
@@ -246,13 +263,6 @@
                         <div id="lmxEditStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                     </form>
                     <div id="lmxHomePanel" class="lmx-tab-panel lmx-hidden" role="tabpanel" aria-labelledby="lmxHomeTab">
-                        <div class="lmx-home-status">
-                            <i class="fas fa-house" aria-hidden="true"></i>
-                            <div>
-                                <strong id="lmxHomeStatusTitle">Nothing due</strong>
-                                <span id="lmxHomeStatusCopy">You're caught up.</span>
-                            </div>
-                        </div>
                         <div id="lmxParticipantTools" class="lmx-button-row">
                             <a id="lmxSlackInviteLink" class="lmx-button slack" href="#" target="_blank" rel="noopener">
                                 <i class="fab fa-slack" aria-hidden="true"></i>
@@ -277,8 +287,7 @@
                     <p id="lmxBoardMeta" class="lmx-board-meta">Checked-in days rank first. Points break ties.</p>
                 </div>
                 <div class="lmx-board-legend" aria-label="Habit key">
-                    <button id="lmxInactiveToggle" class="lmx-button secondary lmx-compact-button lmx-hidden" type="button" aria-pressed="false">
-                        <i class="fas fa-users-slash" aria-hidden="true"></i>
+                    <button id="lmxInactiveToggle" class="lmx-inactive-toggle lmx-hidden" type="button" aria-pressed="false">
                         Show inactive
                     </button>
                     <span class="lmx-habit-key" title="Cell dots follow sleep, exercise, nutrition, vices" aria-label="Sleep, exercise, nutrition, vices">
@@ -292,23 +301,6 @@
             <div class="lmx-board-scroll">
                 <div id="lmxBoard" class="lmx-board" role="table" aria-label="Longevitymaxxing leaderboard"></div>
             </div>
-        </section>
-
-        <section id="lmxResendPanel" class="lmx-card lmx-resend-panel lmx-hidden" aria-labelledby="lmxResendTitle">
-            <div class="lmx-card-head">
-                <h2 id="lmxResendTitle">Check-in link</h2>
-            </div>
-            <form id="lmxResendForm" class="lmx-form">
-                <div class="lmx-field">
-                    <label for="lmxResendEmail">Email</label>
-                    <input id="lmxResendEmail" type="email" autocomplete="email" required>
-                </div>
-                <button class="lmx-button secondary" type="submit">
-                    <i class="fas fa-envelope" aria-hidden="true"></i>
-                    <span id="lmxResendButtonText">Send check-in link</span>
-                </button>
-                <div id="lmxResendStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
-            </form>
         </section>
 
         <section id="lmxNotesPanel" class="lmx-card lmx-hidden" aria-labelledby="lmxNotesTitle">

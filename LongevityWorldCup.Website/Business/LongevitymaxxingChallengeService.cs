@@ -287,7 +287,7 @@ public sealed class LongevitymaxxingChallengeService
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var participant = RequireParticipantByAccessToken(accessToken);
         QueueProfilePictureWarmups([participant]);
-        var participantSummary = ToParticipantSummary(participant);
+        var participantSummary = ToParticipantSummary(participant, now);
         var publicState = GetPublicState(now);
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
         checkIns.TryGetValue(participant.Id, out var byDay);
@@ -329,30 +329,23 @@ public sealed class LongevitymaxxingChallengeService
         var settings = BuildSettings(now);
         var participant = RequireParticipantByAccessToken(request.AccessToken);
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
-        var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
-        var athleteProfile = ResolveAthleteProfile(athleteSlug);
-        var displayName = ResolveSignupDisplayName(request.DisplayName, athleteSlug, athleteProfile);
         var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before editing your profile.");
+        EnsureParticipantIdentityUnchanged(participant, request);
 
         _db.Run(sqlite =>
         {
-            EnsureParticipantIdentityAvailable(sqlite, displayName, athleteSlug, participant.Id);
             using var update = sqlite.CreateCommand();
             update.CommandText =
                 """
                 UPDATE LongevitymaxxingParticipants
-                SET DisplayName = @name,
-                    TimeZoneId = @tz,
-                    AthleteSlug = @athlete,
+                SET TimeZoneId = @tz,
                     CommitmentAmountUsd = @commitmentAmount,
                     UpdatedAtUtc = @updated
                 WHERE Id = @id;
                 """;
-            Add(update, "@name", displayName);
             Add(update, "@tz", timeZoneId);
-            Add(update, "@athlete", athleteSlug);
             Add(update, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
             Add(update, "@updated", now.ToString("o"));
             Add(update, "@id", participant.Id);
@@ -1445,7 +1438,7 @@ public sealed class LongevitymaxxingChallengeService
                 prior.Count,
                 null,
                 null,
-                $"Commitment starts after {remaining} more scored check-in{plural}.");
+                $"Your pledge starts after {remaining} more scored check-in{plural}.");
         }
 
         var average = AverageScoredPoints(settings, participant, byDay, prior);
@@ -2658,6 +2651,24 @@ public sealed class LongevitymaxxingChallengeService
         EnsureDisplayNameDoesNotMatchAthlete(displayName);
     }
 
+    private static void EnsureParticipantIdentityUnchanged(
+        ParticipantRecord participant,
+        LongevitymaxxingParticipantEditRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.DisplayName) &&
+            !string.Equals(CanonicalDisplayName(request.DisplayName), CanonicalDisplayName(participant.DisplayName), StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Identity cannot be changed after signup.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.AthleteLink))
+        {
+            var requestedAthleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
+            if (!string.Equals(requestedAthleteSlug, participant.AthleteSlug, StringComparison.Ordinal))
+                throw new InvalidOperationException("Identity cannot be changed after signup.");
+        }
+    }
+
     private void EnsureParticipantDisplayNameAvailable(SqliteConnection sqlite, string displayName, string? participantIdToIgnore)
     {
         var canonical = CanonicalDisplayName(displayName);
@@ -3169,8 +3180,11 @@ public sealed class LongevitymaxxingChallengeService
         }
     }
 
-    private LongevitymaxxingParticipantSummary ToParticipantSummary(ParticipantRecord participant)
+    private LongevitymaxxingParticipantSummary ToParticipantSummary(ParticipantRecord participant, DateTimeOffset now)
     {
+        var localToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, ResolveTimeZone(participant.TimeZoneId)).DateTime);
+        var daysIn = Math.Max(0, localToday.DayNumber - GetJoinedLocalDate(participant).DayNumber);
+
         return new LongevitymaxxingParticipantSummary(
             participant.Id,
             participant.Email,
@@ -3180,7 +3194,8 @@ public sealed class LongevitymaxxingChallengeService
             BuildAthleteUrl(participant.AthleteSlug),
             BuildCachedProfilePictureUrl(participant),
             participant.StoppedEmailsAtUtc is not null,
-            participant.CommitmentAmountUsd);
+            participant.CommitmentAmountUsd,
+            daysIn);
     }
 
     private static string CreateToken()

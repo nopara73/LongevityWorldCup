@@ -43,11 +43,18 @@
 }
 
 .lmx-title-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     padding: clamp(1rem, 3vw, 1.7rem);
     background:
         radial-gradient(circle at top right, rgba(248, 211, 91, 0.26), transparent 34%),
         linear-gradient(135deg, rgba(0, 188, 212, 0.16), rgba(255, 64, 129, 0.11)),
         rgba(255, 255, 255, 0.9);
+}
+
+.lmx-title-panel.stats-last .lmx-ops-strip {
+    order: 20;
 }
 
 .lmx-topline,
@@ -97,25 +104,8 @@
     text-shadow: none;
 }
 
-.lmx-season-chip {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.25rem;
-    padding: 0 0.75rem;
-    border-radius: 999px;
-    color: #0f172a;
-    background: #f8d35b;
-    border: 1px solid rgba(15, 23, 42, 0.14);
-    font-weight: 700;
-}
-
-.lmx-season-chip.secondary {
-    background: #ffffff;
-    color: #334155;
-}
-
 .lmx-hero-copy {
-    margin: 0.8rem 0 0;
+    margin: 0.55rem 0 0;
     max-width: 48rem;
     font-size: 1.12rem;
     line-height: 1.5;
@@ -157,6 +147,7 @@
 }
 
 .lmx-ops-tile {
+    container-type: inline-size;
     min-height: 4.4rem;
     padding: 0.65rem 0.75rem;
     border-radius: 8px;
@@ -193,6 +184,7 @@
     font-size: 0.72rem;
     font-weight: 900;
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .lmx-ops-tile strong {
@@ -214,10 +206,24 @@
     align-self: center;
 }
 
+.lmx-ops-label-long {
+    display: none;
+}
+
+@container (min-width: 11.25rem) {
+    .lmx-ops-tile.community-calls .lmx-ops-label-short {
+        display: none;
+    }
+
+    .lmx-ops-tile.community-calls .lmx-ops-label-long {
+        display: inline;
+    }
+}
+
 .lmx-life-strip {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr));
     align-items: center;
-    flex-wrap: wrap;
     gap: 0.45rem;
     margin-top: 0.9rem;
     padding: 0.65rem;
@@ -234,9 +240,10 @@
 .lmx-life-strip span {
     min-height: 2rem;
     padding: 0 0.55rem;
-    border-radius: 999px;
+    border-radius: 8px;
     display: inline-flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 0.35rem;
     background: #ffffff;
     border: 1px solid rgba(15, 23, 42, 0.10);
@@ -782,6 +789,9 @@
 .lmx-action-card {
     position: sticky;
     top: 0.75rem;
+    display: grid;
+    align-content: start;
+    gap: 0.85rem;
 }
 
 .lmx-card-head {
@@ -909,7 +919,16 @@
 }
 
 .lmx-identity-options input {
-    accent-color: #0f172a;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .lmx-identity-options label:has(input:checked) {
@@ -991,6 +1010,8 @@
 }
 
 .lmx-money-input input {
+    flex: 1 1 auto;
+    min-width: 0;
     min-height: 42px;
     border: 0;
     border-radius: 0;
@@ -1013,84 +1034,6 @@
 .lmx-money-input:has(input:disabled) {
     background: #f1f5f9;
     color: #64748b;
-}
-
-.lmx-details {
-    border: 1px solid rgba(15, 23, 42, 0.12);
-    border-radius: 8px;
-    background: #f8fafc;
-}
-
-.lmx-details.attention {
-    animation: lmx-details-attention 1.3s ease;
-}
-
-@keyframes lmx-details-attention {
-    0% {
-        border-color: rgba(248, 211, 91, 0.95);
-        box-shadow: 0 0 0 0 rgba(248, 211, 91, 0.45);
-        transform: translateY(0);
-    }
-    35% {
-        border-color: rgba(20, 184, 166, 0.8);
-        box-shadow: 0 0 0 5px rgba(20, 184, 166, 0.12);
-        transform: translateY(-2px);
-    }
-    100% {
-        border-color: rgba(15, 23, 42, 0.12);
-        box-shadow: none;
-        transform: translateY(0);
-    }
-}
-
-.lmx-details summary {
-    min-height: 44px;
-    padding: 0 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.7rem;
-    cursor: pointer;
-    font-weight: 900;
-    color: #1e293b;
-    list-style: none;
-}
-
-.lmx-details summary::marker {
-    content: "";
-}
-
-.lmx-details summary::-webkit-details-marker {
-    display: none;
-}
-
-.lmx-details summary::after {
-    content: "\f078";
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    background: #ffffff;
-    color: #475569;
-    font-family: "Font Awesome 6 Free";
-    font-size: 0.72rem;
-    font-weight: 900;
-    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease;
-}
-
-.lmx-details[open] summary::after {
-    transform: rotate(180deg);
-    color: #0f172a;
-    background: #e0f2fe;
-}
-
-.lmx-details-body {
-    display: grid;
-    gap: 0.75rem;
-    padding: 0 0.75rem 0.75rem;
 }
 
 .lmx-field textarea {
@@ -1185,6 +1128,12 @@
 .lmx-field textarea:focus {
     outline: 3px solid rgba(0, 188, 212, 0.22);
     border-color: rgba(0, 188, 212, 0.72);
+}
+
+.lmx-field .lmx-money-input input:focus {
+    outline: none;
+    border-color: transparent;
+    box-shadow: none;
 }
 
 .lmx-field input[aria-invalid="true"] {
@@ -1292,6 +1241,54 @@
     font-weight: 700;
 }
 
+.lmx-profile-identity {
+    min-height: 3.25rem;
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.lmx-profile-identity > i {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f172a;
+    color: #ffffff;
+}
+
+.lmx-profile-identity span {
+    min-width: 0;
+    display: grid;
+    gap: 0.1rem;
+}
+
+.lmx-profile-identity strong,
+.lmx-profile-identity a {
+    color: #0f172a;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.lmx-profile-identity a:hover,
+.lmx-profile-identity a:focus-visible {
+    text-decoration: underline;
+}
+
+.lmx-profile-identity em {
+    color: #64748b;
+    font-size: 0.78rem;
+    font-style: normal;
+    font-weight: 800;
+}
+
 .lmx-athlete-options {
     position: absolute;
     top: calc(44px + 0.3rem);
@@ -1341,6 +1338,166 @@
 }
 
 .lmx-athlete-empty {
+    padding: 0.75rem;
+    color: #64748b;
+    font-weight: 750;
+}
+
+.lmx-timezone-picker {
+    position: relative;
+    min-width: 0;
+}
+
+.lmx-timezone-native {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.lmx-timezone-button {
+    width: 100%;
+    min-height: 44px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.55rem;
+    align-items: center;
+    padding: 0.58rem 0.75rem;
+    border: 1px solid rgba(15, 23, 42, 0.16);
+    border-radius: 8px;
+    background: #ffffff;
+    color: #0f172a;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.lmx-timezone-button span {
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lmx-timezone-button small {
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.lmx-timezone-button i {
+    color: #64748b;
+    font-size: 0.78rem;
+}
+
+.lmx-timezone-button:focus-visible {
+    border-color: rgba(0, 188, 212, 0.72);
+    outline: 3px solid rgba(0, 188, 212, 0.22);
+}
+
+.lmx-timezone-picker.open .lmx-timezone-button {
+    border-color: rgba(0, 188, 212, 0.42);
+}
+
+.lmx-timezone-popover {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 0;
+    right: 0;
+    z-index: 24;
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+}
+
+.lmx-timezone-search {
+    min-height: 44px;
+    display: grid;
+    grid-template-columns: 1rem minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0 0.65rem;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 7px;
+    background: #f8fafc;
+}
+
+.lmx-timezone-search i {
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.lmx-timezone-search input {
+    min-height: 42px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: #0f172a;
+    outline: none;
+}
+
+.lmx-timezone-search:focus-within {
+    border-color: rgba(0, 188, 212, 0.72);
+    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
+}
+
+.lmx-field .lmx-timezone-search input:focus {
+    border-color: transparent;
+    box-shadow: none;
+    outline: none;
+}
+
+.lmx-timezone-list {
+    max-height: min(16rem, 42vh);
+    overflow-y: auto;
+    display: grid;
+    gap: 0.1rem;
+}
+
+.lmx-timezone-option {
+    min-height: 42px;
+    display: grid;
+    gap: 0.04rem;
+    padding: 0.45rem 0.55rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #0f172a;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.lmx-timezone-option:hover,
+.lmx-timezone-option.active {
+    background: rgba(0, 188, 212, 0.12);
+}
+
+.lmx-timezone-option[aria-selected="true"] {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+.lmx-timezone-option span {
+    font-weight: 850;
+}
+
+.lmx-timezone-option small {
+    color: inherit;
+    opacity: 0.72;
+    font-size: 0.75rem;
+    font-weight: 750;
+}
+
+.lmx-timezone-empty {
     padding: 0.75rem;
     color: #64748b;
     font-weight: 750;
@@ -1423,6 +1580,10 @@
     background: #eef2f7;
 }
 
+.lmx-access-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .lmx-tab {
     min-width: 0;
     min-height: 44px;
@@ -1479,47 +1640,8 @@
     min-width: 0;
 }
 
-.lmx-home-status {
+.lmx-access-panel {
     min-width: 0;
-    min-height: 4.15rem;
-    display: grid;
-    grid-template-columns: 2.2rem minmax(0, 1fr);
-    gap: 0.65rem;
-    align-items: center;
-    padding: 0.72rem;
-    border: 1px solid rgba(15, 23, 42, 0.10);
-    border-radius: 8px;
-    background: #f8fafc;
-}
-
-.lmx-home-status > i {
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    background: #0f172a;
-}
-
-.lmx-home-status strong,
-.lmx-home-status span {
-    display: block;
-    min-width: 0;
-}
-
-.lmx-home-status strong {
-    color: #0f172a;
-    font-size: 1.02rem;
-    line-height: 1.15;
-}
-
-.lmx-home-status span {
-    margin-top: 0.12rem;
-    color: #475569;
-    font-size: 0.9rem;
-    line-height: 1.3;
 }
 
 .lmx-button {
@@ -1625,25 +1747,47 @@
 .lmx-call-group {
     border: 1px solid rgba(15, 23, 42, 0.10);
     border-radius: 8px;
-    padding: 0.65rem;
+    padding: 0.75rem 0.8rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
     background: #f8fafc;
 }
 
-.lmx-call-group strong {
+.lmx-call-main {
+    min-width: 0;
     display: block;
-    margin-bottom: 0.45rem;
+}
+
+.lmx-call-copy {
+    min-width: 0;
+    display: grid;
+    gap: 0.22rem;
+}
+
+.lmx-call-copy strong {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+.lmx-call-title-icon {
+    color: #075985;
+    font-size: 0.88rem;
 }
 
 .lmx-call-group.done {
     opacity: 0.72;
 }
 
-.lmx-call-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-    color: #334155;
+.lmx-call-side {
+    display: grid;
+    justify-items: end;
+    gap: 0.3rem;
 }
 
 .lmx-call-when {
@@ -1666,12 +1810,44 @@
     line-height: 1.2;
 }
 
+.lmx-call-countdown {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.28rem;
+    color: #475569;
+    white-space: nowrap;
+}
+
+.lmx-call-countdown small {
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.lmx-call-countdown b {
+    color: #0f172a;
+    font-size: 0.9rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.lmx-call-countdown.live {
+    color: #047857;
+}
+
+.lmx-call-countdown.live small,
+.lmx-call-countdown.live b {
+    color: #047857;
+}
+
 .lmx-call-link,
 .lmx-call-done {
     display: inline-flex;
     align-items: center;
-    min-height: 1.8rem;
-    padding: 0 0.55rem;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0 0.65rem;
     border-radius: 999px;
     font-weight: 800;
 }
@@ -1708,34 +1884,6 @@
     width: 18px;
     height: 18px;
     accent-color: #00bcd4;
-}
-
-.lmx-resend-panel {
-    display: grid;
-    gap: 0.55rem;
-    padding-block: 0.8rem;
-}
-
-.lmx-resend-panel .lmx-card-head {
-    margin-bottom: 0;
-}
-
-.lmx-resend-panel .lmx-card-head h2 {
-    font-size: 1rem;
-}
-
-.lmx-resend-panel .lmx-form {
-    grid-template-columns: minmax(16rem, 1fr) auto;
-    align-items: end;
-    gap: 0.55rem;
-}
-
-.lmx-resend-panel .lmx-field {
-    gap: 0.25rem;
-}
-
-.lmx-resend-panel .lmx-status {
-    grid-column: 1 / -1;
 }
 
 .lmx-participant-actions {
@@ -1912,6 +2060,31 @@
     color: #be185d;
 }
 
+.lmx-inactive-toggle {
+    min-height: 2rem;
+    padding: 0 0.15rem;
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 850;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.lmx-inactive-toggle:hover {
+    color: #0f172a;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+}
+
+.lmx-inactive-toggle:focus-visible {
+    border-radius: 6px;
+    outline: 3px solid rgba(0, 188, 212, 0.24);
+    outline-offset: 2px;
+}
+
 .lmx-phase {
     color: #64748b;
     font-weight: 700;
@@ -1920,7 +2093,7 @@
 }
 
 .lmx-board-scroll {
-    overflow-x: scroll;
+    overflow-x: auto;
     padding: 0.35rem 0.35rem 0.65rem;
     overscroll-behavior-inline: contain;
     scrollbar-gutter: stable;
@@ -1946,14 +2119,14 @@
 
 .lmx-board {
     --lmx-day-columns: repeat(14, 2.55rem);
-    --lmx-board-min-width: 820px;
+    --lmx-board-min-width: 61.75rem;
     --lmx-sticky-name-width: 16rem;
     --lmx-sticky-score-width: 4.8rem;
     --lmx-board-gap: 0.35rem;
     --lmx-board-row-padding: 0.35rem;
-    --lmx-sticky-gap-cover: calc(var(--lmx-board-gap) + 0.45rem);
+    --lmx-sticky-gap-cover: calc(var(--lmx-board-gap) + 0.05rem);
     min-width: max(100%, var(--lmx-board-min-width));
-    width: max-content;
+    width: 100%;
 }
 
 .lmx-board.public {
@@ -1961,7 +2134,7 @@
 }
 
 .lmx-board.roster {
-    --lmx-board-min-width: 680px;
+    --lmx-board-min-width: 53.2rem;
     min-width: max(100%, var(--lmx-board-min-width));
 }
 
@@ -2391,10 +2564,20 @@
     color: #ffffff;
 }
 
+.lmx-empty-state.compact {
+    grid-template-areas: "icon title";
+    grid-template-rows: 1fr;
+    align-content: center;
+}
+
 .lmx-empty-state strong {
     grid-area: title;
     align-self: end;
     color: #0f172a;
+}
+
+.lmx-empty-state.compact strong {
+    align-self: center;
 }
 
 .lmx-empty-state span {
@@ -2526,8 +2709,8 @@
         min-height: 2.15rem;
     }
 
-    .lmx-board-legend .lmx-compact-button {
-        min-height: 44px;
+    .lmx-inactive-toggle {
+        min-height: 2.5rem;
     }
 
     .lmx-board-wrap {
@@ -2755,6 +2938,16 @@
         width: 100%;
     }
 
+    .lmx-call-group {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .lmx-call-side {
+        justify-content: flex-start;
+        justify-items: start;
+    }
+
     .lmx-title-row h1 {
         font-size: 2rem;
     }
@@ -2788,15 +2981,8 @@
     }
 
     .lmx-life-strip span {
-        width: 100%;
         min-height: 2.35rem;
-        justify-content: flex-start;
-        border-radius: 8px;
         padding-inline: 0.55rem;
-    }
-
-    .lmx-life-strip span:last-child {
-        grid-column: 1 / -1;
     }
 
     .lmx-question-preview {
@@ -2850,18 +3036,16 @@
         justify-self: stretch;
     }
 
-    .lmx-resend-panel .lmx-form {
-        grid-template-columns: 1fr;
-    }
+}
 
-    .lmx-resend-panel .lmx-status {
-        grid-column: auto;
+@media (max-width: 360px) {
+    .lmx-life-strip {
+        grid-template-columns: 1fr;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .lmx-button,
-    .lmx-details summary::after {
+    .lmx-button {
         transition: none;
     }
 
