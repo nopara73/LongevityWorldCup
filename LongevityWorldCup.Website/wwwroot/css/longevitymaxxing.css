@@ -119,8 +119,8 @@
     margin-top: 0.9rem;
 }
 
-.lmx-benefit-strip strong,
-.lmx-benefit-strip span {
+.lmx-benefit-strip > strong,
+.lmx-benefit-strip > span {
     min-height: 3.2rem;
     padding: 0.65rem 0.75rem;
     border-radius: 8px;
@@ -129,13 +129,13 @@
     border: 1px solid rgba(15, 23, 42, 0.10);
 }
 
-.lmx-benefit-strip strong {
+.lmx-benefit-strip > strong {
     background: #0f172a;
     color: #ffffff;
     font-size: 1rem;
 }
 
-.lmx-benefit-strip span {
+.lmx-benefit-strip > span {
     background: #ffffff;
     color: #334155;
     font-size: 0.86rem;
@@ -174,11 +174,15 @@
     color: #ffffff;
 }
 
-.lmx-ops-tile span {
+.lmx-ops-tile > .lmx-ops-label {
     grid-area: label;
+    min-width: 0;
     min-height: 0;
     padding: 0;
     border: 0;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
     background: transparent;
     color: #64748b;
     font-size: 0.72rem;
@@ -210,7 +214,7 @@
     display: none;
 }
 
-@container (min-width: 11.25rem) {
+@container (min-width: 12.5rem) {
     .lmx-ops-tile.community-calls .lmx-ops-label-short {
         display: none;
     }

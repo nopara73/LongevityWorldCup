@@ -651,7 +651,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("lmx-ops-label-short", javascript);
         Assert.Contains("lmx-ops-label-long", javascript);
         Assert.Contains("container-type: inline-size;", css);
-        Assert.Contains("@container (min-width: 11.25rem)", css);
+        Assert.Contains("@container (min-width: 12.5rem)", css);
         Assert.Contains(".lmx-ops-tile.community-calls .lmx-ops-label-long", css);
         Assert.DoesNotContain("Optional weekly community calls", javascript);
         Assert.Contains("grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr));", css);
