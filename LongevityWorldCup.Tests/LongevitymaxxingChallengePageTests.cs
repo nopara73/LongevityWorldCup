@@ -192,9 +192,8 @@ public sealed class LongevitymaxxingChallengePageTests
         var html = await client.GetStringAsync("/");
 
         Assert.Contains("id=\"longevitymaxxingPromo\"", html);
-        Assert.Contains("Don't feel ready for the Longevity World Cup?", html);
-        Assert.Contains("The first muscle to train is your mind.", html);
-        Assert.Contains("Start Longevitymaxxing", html);
+        Assert.Contains("Don't feel ready for the Longevity World Cup yet? Try longevitymaxxing first.", html);
+        Assert.Contains("Start longevitymaxxing", html);
         Assert.Contains("href=\"/longevitymaxxing\"", html);
         Assert.DoesNotContain("Separate Lifestyle challenge", html);
         Assert.DoesNotContain("does not affect Ultimate League rankings", html);
@@ -218,7 +217,7 @@ public sealed class LongevitymaxxingChallengePageTests
         var html = await client.GetStringAsync("/");
 
         Assert.Contains("id=\"longevitymaxxingPromo\"", html);
-        Assert.Contains("Start Longevitymaxxing", html);
+        Assert.Contains("Start longevitymaxxing", html);
         Assert.DoesNotContain("Separate Lifestyle challenge", html);
     }
 
@@ -240,7 +239,7 @@ public sealed class LongevitymaxxingChallengePageTests
         var json = await client.GetStringAsync("/api/longevitymaxxing/state");
 
         Assert.Contains("id=\"longevitymaxxingPromo\"", html);
-        Assert.Contains("Start Longevitymaxxing", html);
+        Assert.Contains("Start longevitymaxxing", html);
         Assert.DoesNotContain("Separate Lifestyle challenge", html);
         Assert.Contains("\"phase\":\"signup\"", json);
         Assert.Contains("\"signupOpen\":true", json);
@@ -262,8 +261,8 @@ public sealed class LongevitymaxxingChallengePageTests
         var html = await client.GetStringAsync("/");
 
         Assert.Contains("id=\"longevitymaxxingPromo\"", html);
-        Assert.Contains("Don't feel ready for the Longevity World Cup?", html);
-        Assert.Contains("Start Longevitymaxxing", html);
+        Assert.Contains("Don't feel ready for the Longevity World Cup yet? Try longevitymaxxing first.", html);
+        Assert.Contains("Start longevitymaxxing", html);
         Assert.DoesNotContain("Separate Lifestyle challenge", html);
         Assert.DoesNotContain("does not affect Ultimate League rankings", html);
     }

@@ -495,24 +495,26 @@
     .ranking-explanation.is-visible{ display:block; }
     .ranking-explanation strong{ color:var(--primary-color); }
     .longevitymaxxing-promo{
-        display:flex; align-items:center; justify-content:space-between; gap:.9rem; margin:0 0 1rem; padding:.85rem 1rem;
-        border:1px solid rgba(15,23,42,.12); border-radius:8px; background:rgba(255,255,255,.86);
-        box-shadow:0 4px 10px rgba(15,23,42,.06); box-sizing:border-box;
+        display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:0 0 1rem; padding:.9rem 1rem;
+        border:1px solid rgba(0,188,212,.20); border-radius:8px;
+        background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(0,188,212,.075));
+        box-shadow:0 6px 14px rgba(15,23,42,.07); box-sizing:border-box;
     }
     .longevitymaxxing-promo p{
-        margin:0; color:#1f2933; font-size:.98rem; line-height:1.4;
+        margin:0; color:#2f3f49; font-size:.98rem; line-height:1.4;
     }
     .longevitymaxxing-promo p strong{
-        color:#0f172a; font-weight:800;
+        color:#0f172a; font-weight:850;
     }
     .longevitymaxxing-promo-action{
         display:inline-flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;
-        padding:.62rem .9rem; border:1px solid rgba(0,188,212,.32); border-radius:8px; background:#fff; color:#167986;
-        font-weight:800; text-decoration:none;
+        padding:.62rem .95rem; border:1px solid rgba(0,188,212,.35); border-radius:8px;
+        background:var(--primary-color); color:#fff; font-weight:800; text-decoration:none;
+        box-shadow:0 4px 10px rgba(0,188,212,.18);
     }
     .longevitymaxxing-promo-action:hover,
     .longevitymaxxing-promo-action:focus-visible{
-        color:var(--primary-color); border-color:var(--primary-color); background:rgba(0,188,212,.08); outline:none;
+        color:#fff; border-color:var(--secondary-color); background:#1098a8; outline:none;
     }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
@@ -660,10 +662,6 @@
         border-color:#3B82F6;
         box-shadow:0 0 0 2px rgba(59,130,246,.16);
     }
-    .leaderboard tr.is-new-athlete:not(.is-new-revealed) > td,
-    .leaderboard tr.is-rank-up-athlete:not(.is-rank-up-revealed) > td{
-        opacity:0;
-    }
     .leaderboard tr.is-new-athlete.is-new-revealed > td{
         animation:newAthleteEntrySlide 2.8s cubic-bezier(.22,1,.36,1) 1 both;
     }
@@ -673,7 +671,7 @@
     @keyframes newAthleteEntrySlide{
         0%{
             transform:translateX(-28px);
-            opacity:0;
+            opacity:1;
         }
         44%{
             transform:translateX(0);
@@ -687,7 +685,7 @@
     @keyframes rankUpAthleteClimb{
         0%{
             transform:translateY(18px);
-            opacity:0;
+            opacity:1;
         }
         48%{
             transform:translateY(0);
@@ -699,8 +697,6 @@
         }
     }
     @media (prefers-reduced-motion: reduce){
-        .leaderboard tr.is-new-athlete:not(.is-new-revealed) > td,
-        .leaderboard tr.is-rank-up-athlete:not(.is-rank-up-revealed) > td{ opacity:1; }
         .leaderboard tr.is-new-athlete.is-new-revealed > td,
         .leaderboard tr.is-rank-up-athlete.is-rank-up-revealed > td{ animation:none; }
     }
@@ -2327,8 +2323,8 @@
         </div>
 
         <section class="longevitymaxxing-promo" id="longevitymaxxingPromo" aria-label="Longevitymaxxing">
-            <p>Don't feel ready for the Longevity World Cup? <strong>The first muscle to train is your mind.</strong></p>
-            <a class="longevitymaxxing-promo-action" href="/longevitymaxxing">Start Longevitymaxxing</a>
+            <p>Don't feel ready for the Longevity World Cup yet? Try longevitymaxxing first.</p>
+            <a class="longevitymaxxing-promo-action" href="/longevitymaxxing">Start longevitymaxxing</a>
         </section>
 
         <div class="leaderboard-toolbar">
