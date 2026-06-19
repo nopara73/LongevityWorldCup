@@ -1011,7 +1011,7 @@
                         </div>
                     </div>
                     <button class="lmx-button" type="submit">
-                        <i class="fas fa-lock-open" aria-hidden="true"></i>
+                        <i class="fas fa-file-signature" aria-hidden="true"></i>
                         Make a pledge
                     </button>
                     <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
