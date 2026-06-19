@@ -36,6 +36,8 @@ public sealed class LongevitymaxxingReminderJob(
             }
         }
 
+        _challenge.ApplyDailyReminderStopRules(now);
+
         foreach (var reminder in _challenge.GetDailyReminderCandidates(now))
         {
             try
@@ -45,7 +47,10 @@ public sealed class LongevitymaxxingReminderJob(
                     _challenge.BuildAccessUrl(reminder.AccessToken),
                     _challenge.BuildStopUrl(reminder.StopToken),
                     context.CancellationToken).ConfigureAwait(false);
-                _challenge.MarkDailyReminderSent(reminder.ParticipantId, reminder.ChallengeDay, now);
+                if (reminder.IsCommitmentPaymentReminder)
+                    _challenge.MarkCommitmentPaymentReminderSent(reminder.ParticipantId, reminder.ChallengeDay, now);
+                else
+                    _challenge.MarkDailyReminderSent(reminder.ParticipantId, reminder.ChallengeDay, now);
                 if (reminder.IncludeCallScheduleUpdate)
                     _challenge.MarkCallScheduleUpdateNoticeSent(reminder.ParticipantId, now);
             }
