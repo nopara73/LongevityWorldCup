@@ -236,10 +236,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var access = await fixture.ConfirmParticipantAsync("notes@example.com", "Notes Nora");
         using var stream = CreatePngStream(width: 2400, height: 1200);
         var file = CreatePngFormFile(stream, formName: "notePhotos", fileName: "kitchen.png");
-        var now = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
+        var now = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
 
         var state = await fixture.Service.SubmitCheckInAsync(
-            new LongevitymaxxingCheckInRequest(access, 1, 2, 2, 2, 2, "Good breakfast prep.\nps.: kept line break"),
+            new LongevitymaxxingCheckInRequest(access, 12, 2, 2, 2, 2, "Good breakfast prep.\nps.: kept line break"),
             [file],
             now);
 
@@ -257,7 +257,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal("Good breakfast prep.\nps.: kept line break", publicNote.Note);
         Assert.Single(publicNote.Images);
 
-        var draft = Assert.Single(state.EligibleDays).Existing;
+        var draft = state.EligibleDays.Single(day => day.ChallengeDay == 12).Existing;
         Assert.NotNull(draft);
         Assert.Single(draft.Images);
 
@@ -270,13 +270,37 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal(800, storedInfo.Height);
 
         var edited = fixture.Service.SubmitCheckIn(
-            new LongevitymaxxingCheckInRequest(access, 1, 2, 1, 2, 2, "Edited note."),
+            new LongevitymaxxingCheckInRequest(access, 12, 2, 1, 2, 2, "Edited note."),
             now.AddMinutes(5));
 
         var editedNote = Assert.Single(edited.Notes);
         Assert.Equal("Edited note.", editedNote.Note);
         Assert.Single(editedNote.Images);
         Assert.Equal("Edited note.", Assert.Single(edited.Public.Notes).Note);
+    }
+
+    [Fact]
+    public async Task PublicNotesOnlyExposeCheckInsAfterPublicNotesCutoff()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var oldAccess = await fixture.ConfirmParticipantAsync("old-note@example.com", "Old Note");
+        var newAccess = await fixture.ConfirmParticipantAsync("new-note@example.com", "New Note");
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(oldAccess, 1, 2, 2, 2, 2, "legacy note"),
+            DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
+
+        var afterCutoff = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(newAccess, 12, 2, 2, 2, 2, "public note"),
+            afterCutoff);
+
+        var publicState = fixture.Service.GetPublicState(afterCutoff.AddMinutes(1));
+
+        var publicNote = Assert.Single(publicState.Notes);
+        Assert.Equal("public note", publicNote.Note);
+        Assert.Equal("New Note", publicNote.DisplayName);
+        Assert.DoesNotContain(publicState.Notes, note => note.Note == "legacy note");
     }
 
     [Fact]
@@ -411,7 +435,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task LeaderboardRanksConsistencyBeforeScoreAndKeepsNotesParticipantOnly()
+    public async Task LeaderboardRanksConsistencyBeforeScoreAndKeepsLegacyNotesPrivate()
     {
         using var fixture = TestChallengeFixture.Create();
         var alice = await fixture.ConfirmParticipantAsync("alice@example.com", "Alice");
@@ -450,8 +474,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.DoesNotContain(publicState.Leaderboard[1].Badges, badge => badge.Contains("perfect start", StringComparison.OrdinalIgnoreCase));
 
         var participantState = fixture.Service.GetParticipantState(alice, DateTimeOffset.Parse("2026-06-10T09:00:00Z"));
-        Assert.Contains(participantState.Notes, note => note.Note == "perfect start");
-        Assert.Contains(participantState.Notes, note => note.Note == "still returned");
+        Assert.DoesNotContain(participantState.Notes, note => note.Note == "perfect start");
+        Assert.DoesNotContain(participantState.Notes, note => note.Note == "still returned");
     }
 
     [Fact]
