@@ -26,6 +26,7 @@ public sealed class LongevitymaxxingChallengeService
     private const int CommitmentAverageWindowDays = 7;
     private const int LeaderboardScoringWindowDays = 14;
     private const string CommitmentPaymentReminderKind = "commitment-payment";
+    private const string PublicParticipantNotesStartAtUtc = "2026-06-19T12:50:40.4598757+00:00";
     private const double FinalDayScoreMultiplier = 1.4d;
     public const int MaxProfilePictureUploadBytes = 32 * 1024 * 1024;
     public const int MaxCheckInPhotoCount = 4;
@@ -2129,6 +2130,7 @@ public sealed class LongevitymaxxingChallengeService
                 FROM LongevitymaxxingCheckIns c
                 JOIN LongevitymaxxingParticipants p ON p.Id = c.ParticipantId
                 WHERE p.ConfirmedAtUtc IS NOT NULL
+                  AND c.CheckedInAtUtc >= @publicNotesStart
                   AND (
                     (c.Note IS NOT NULL AND TRIM(c.Note) <> '')
                     OR EXISTS (
@@ -2141,6 +2143,7 @@ public sealed class LongevitymaxxingChallengeService
                 ORDER BY c.UpdatedAtUtc DESC
                 LIMIT 100;
                 """;
+            Add(cmd, "@publicNotesStart", PublicParticipantNotesStartAtUtc);
             var rows = new List<(string ParticipantId, string DisplayName, int ChallengeDay, string Date, string? Note, string UpdatedAtUtc)>();
             var participantIds = new HashSet<string>(StringComparer.Ordinal);
             using var reader = cmd.ExecuteReader();

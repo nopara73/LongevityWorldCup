@@ -41,7 +41,7 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Longevitymaxxing Challenge community calls happen every Sunday at 08:30 GMT+2 / 06:30 UTC. The ongoing challenge generates future Sunday calls automatically; do not model calls as a finite kickoff/midpoint/finale schedule.
 - Longevitymaxxing Challenge daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - Longevitymaxxing Challenge daily reminder emails continue indefinitely and stop after 3 consecutive missed scored days. Practice does not count, and days before a participant's local signup date do not count.
-- Longevitymaxxing Challenge participant check-in notes and note photos are public on the challenge page.
+- Longevitymaxxing Challenge participant check-in notes and note photos submitted after the June 19, 2026 public-notes cutoff are public on the challenge page. Notes/photos from earlier check-ins remain private legacy data and must not be exposed retroactively.
 - Longevitymaxxing Challenge habit points use a small day-weight ramp after practice: Day 2 starts at the raw 8-point maximum, the original Day 14 peak is 11 points, and later days stay capped at that peak unless scoring is explicitly redesigned.
 - Longevitymaxxing Challenge habit points allow one daily slip only after an actually perfect previous check-in: either one `No` territory or one/two `Somewhat` territories still score that day's maximum, but a saved slip is not perfect for saving the next day.
 - Longevitymaxxing Challenge commitment payments require each participant to configure a USD amount of at least `$1`; existing participants without an amount are blocked until they configure one.
