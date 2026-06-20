@@ -503,7 +503,12 @@ window.APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS = 2500;
 
 window.readApplicationErrorMessage = async function (response) {
     const fallback = response && response.statusText ? response.statusText : 'Request failed';
-    const text = response ? await response.text() : '';
+    let text = '';
+    try {
+        text = response ? await response.text() : '';
+    } catch (_) {
+        return fallback;
+    }
     return window.extractApplicationErrorMessage(text, fallback);
 };
 
