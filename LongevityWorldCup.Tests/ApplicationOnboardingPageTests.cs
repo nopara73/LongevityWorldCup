@@ -129,12 +129,38 @@ public sealed class ApplicationOnboardingPageTests
 
         var parseBody = html[parseStart..parseEnd];
         Assert.Contains("try {", parseBody);
-        Assert.Contains("biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));", parseBody);
+        Assert.Contains("biomarkerData = JSON.parse(getSessionItem('biomarkerData'));", parseBody);
         Assert.Contains("} catch (_) {", parseBody);
         Assert.Contains("biomarkerData = null;", parseBody);
         Assert.Contains("!Array.isArray(biomarkerData.Biomarkers)", parseBody);
         Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
         Assert.Contains("customAlert('Biomarker data is missing. Please complete the biomarker form.');", parseBody);
+    }
+
+    [Fact]
+    public async Task ApplicationSubmit_UsesSafeStorageForStoredMetadata()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var collectStart = html.IndexOf("function collectApplicantData()", StringComparison.Ordinal);
+        var collectEnd = html.IndexOf("return applicantData;", collectStart, StringComparison.Ordinal);
+
+        Assert.True(collectStart >= 0);
+        Assert.True(collectEnd > collectStart);
+
+        var collectBody = html[collectStart..collectEnd];
+
+        Assert.Contains("function getBrowserStorageItem(storageName, key)", html);
+        Assert.Contains("return window[storageName].getItem(key);", html);
+        Assert.Contains("return null;", html);
+        Assert.Contains("const chronoPhenoDifference = getSessionItem('chronoPhenoDifference');", collectBody);
+        Assert.Contains("const chronoBortzDifference = getSessionItem('chronoBortzDifference');", collectBody);
+        Assert.Contains("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", collectBody);
+        Assert.DoesNotContain("sessionStorage.getItem('chronoPhenoDifference')", collectBody);
+        Assert.DoesNotContain("sessionStorage.getItem('chronoBortzDifference')", collectBody);
+        Assert.DoesNotContain("sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)", collectBody);
     }
 
     [Fact]

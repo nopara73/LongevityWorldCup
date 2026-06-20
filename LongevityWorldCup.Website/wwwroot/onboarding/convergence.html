@@ -703,7 +703,16 @@
             }
         }
 
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
         function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
         function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
@@ -839,14 +848,14 @@
             const personalLink = document.getElementById('personalLink').value.trim();
 
             // Get the differences from sessionStorage
-            const chronoPhenoDifference = sessionStorage.getItem('chronoPhenoDifference');
-            const chronoBortzDifference = sessionStorage.getItem('chronoBortzDifference');
+            const chronoPhenoDifference = getSessionItem('chronoPhenoDifference');
+            const chronoBortzDifference = getSessionItem('chronoBortzDifference');
 
             // Use the global variables `profilePic` and `proofPics` directly
             // Get the biomarker data from sessionStorage
             let biomarkerData = null;
             try {
-                biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
+                biomarkerData = JSON.parse(getSessionItem('biomarkerData'));
             } catch (_) {
                 biomarkerData = null;
             }
@@ -857,7 +866,7 @@
 
             let paymentOffer = null;
             try {
-                paymentOffer = JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
+                paymentOffer = JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
             } catch (_) {
                 paymentOffer = null;
             }
