@@ -53,6 +53,23 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ProofHelper_FallsBackToRawImageWhenClientOptimizationFails()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+
+        Assert.Contains("const optimizeProofImageOrFallback = async raw =>", javascript);
+        Assert.Contains("return dataUrl || raw;", javascript);
+        Assert.Contains("} catch (_) {", javascript);
+        Assert.Contains("return raw;", javascript);
+        Assert.Contains("const optimizedPage = await optimizeProofImageOrFallback(rawPage);", javascript);
+        Assert.Contains("const dataUrl = await optimizeProofImageOrFallback(raw);", javascript);
+        Assert.DoesNotContain("await window.optimizeImageClient(rawPage, proofOptimizationOptions);", javascript);
+    }
+
+    [Fact]
     public async Task ResultUploadFailures_UseReadableErrorExtractor()
     {
         using var factory = new TestWebApplicationFactory();
