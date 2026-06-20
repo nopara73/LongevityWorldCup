@@ -1,6 +1,7 @@
 (function () {
     const STORAGE_KEY = "lmxAccessToken";
     const API = "/api/longevitymaxxing";
+    const REQUEST_TIMEOUT_MS = 65000;
     const CALL_ACTIVE_WINDOW_MS = 90 * 60 * 1000;
     const ANSWERS = [
         { label: "No", value: 0 },
@@ -3445,12 +3446,12 @@
     }
 
     async function getJson(url) {
-        const response = await fetch(url, { headers: { "Accept": "application/json" } });
+        const response = await requestJson(url, { headers: { "Accept": "application/json" } });
         return readJsonResponse(response, url);
     }
 
     async function postJson(url, payload) {
-        const response = await fetch(url, {
+        const response = await requestJson(url, {
             method: "POST",
             headers: {
                 "Accept": "application/json",
@@ -3462,12 +3463,31 @@
     }
 
     async function postForm(url, formData) {
-        const response = await fetch(url, {
+        const response = await requestJson(url, {
             method: "POST",
             headers: { "Accept": "application/json" },
             body: formData
         });
         return readJsonResponse(response, url);
+    }
+
+    async function requestJson(url, options) {
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        const timer = controller
+            ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+            : null;
+
+        try {
+            return await fetch(url, {
+                ...(options || {}),
+                ...(controller ? { signal: controller.signal } : {})
+            });
+        } catch (err) {
+            if (err && err.name === "AbortError") throw new Error("Request timed out");
+            throw err;
+        } finally {
+            if (timer) window.clearTimeout(timer);
+        }
     }
 
     async function readJsonResponse(response, url) {

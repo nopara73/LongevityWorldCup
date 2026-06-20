@@ -1,3 +1,4 @@
+using LongevityWorldCup.Website.Tools;
 using LongevityWorldCup.Website;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -9,6 +10,24 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class LongevitymaxxingChallengePageTests
 {
+    [Fact]
+    public async Task ChallengeApiRequests_AreTimeBoundedPastServerPublicWorkTimeout()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+        var timeoutMatch = System.Text.RegularExpressions.Regex.Match(javascript, @"REQUEST_TIMEOUT_MS\s*=\s*(\d+)");
+
+        Assert.True(timeoutMatch.Success);
+        Assert.True(int.Parse(timeoutMatch.Groups[1].Value) > PublicRequestTimeoutPolicies.PublicWorkTimeout.TotalMilliseconds);
+        Assert.Contains("async function requestJson(url, options)", javascript);
+        Assert.Contains("window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)", javascript);
+        Assert.Contains("...(controller ? { signal: controller.signal } : {})", javascript);
+        Assert.Contains("if (err && err.name === \"AbortError\") throw new Error(\"Request timed out\");", javascript);
+        Assert.Contains("const response = await requestJson(url, {", javascript);
+    }
+
     [Fact]
     public async Task ChallengeNotePhotoSelection_ClearsFileInputAfterCapturingPendingPhotos()
     {
