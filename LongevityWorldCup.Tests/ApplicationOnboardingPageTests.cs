@@ -32,4 +32,22 @@ public sealed class ApplicationOnboardingPageTests
         var timeoutMs = int.Parse(match.Groups[1].Value);
         Assert.True(timeoutMs > PublicRequestTimeoutPolicies.PublicWorkTimeout.TotalMilliseconds);
     }
+
+    [Fact]
+    public async Task ApplicationSubmissionReport_IsTimeBoundedBecauseItIsBestEffort()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/misc.js");
+        var submissionTimeoutMatch = Regex.Match(javascript, @"APPLICATION_SUBMISSION_TIMEOUT_MS\s*=\s*(\d+)");
+        var reportTimeoutMatch = Regex.Match(javascript, @"APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS\s*=\s*(\d+)");
+
+        Assert.True(submissionTimeoutMatch.Success);
+        Assert.True(reportTimeoutMatch.Success);
+        Assert.True(int.Parse(reportTimeoutMatch.Groups[1].Value) < int.Parse(submissionTimeoutMatch.Groups[1].Value));
+        Assert.Contains("const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;", javascript);
+        Assert.Contains("window.setTimeout(() => controller.abort(), timeoutMs)", javascript);
+        Assert.Contains("...(controller ? { signal: controller.signal } : {})", javascript);
+    }
 }
