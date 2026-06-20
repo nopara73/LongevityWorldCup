@@ -69,6 +69,33 @@ public class SitemapDiscoveryTests
     }
 
     [Fact]
+    public void BuildXml_NormalizesAndDeduplicatesRoutesUsingNewestLastModified()
+    {
+        var xml = SitemapService.BuildXml(
+        [
+            new SitemapUrlEntry("/Leaderboard/", new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc), "weekly", 0.1m),
+            new SitemapUrlEntry("leaderboard", new DateTime(2026, 5, 30, 0, 0, 0, DateTimeKind.Utc), "daily", 0.9m),
+            new SitemapUrlEntry("/league/Amateur/", new DateTime(2026, 5, 20, 0, 0, 0, DateTimeKind.Utc), "daily", 0.8m),
+            new SitemapUrlEntry("/league/amateur", new DateTime(2026, 5, 21, 0, 0, 0, DateTimeKind.Utc), "daily", 0.8m)
+        ]);
+
+        var doc = XDocument.Parse(xml);
+        XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
+        var urls = doc.Descendants(ns + "url")
+            .Select(url => new
+            {
+                Loc = url.Element(ns + "loc")?.Value,
+                LastModified = url.Element(ns + "lastmod")?.Value
+            })
+            .ToList();
+
+        var leaderboard = Assert.Single(urls, url => url.Loc == "https://longevityworldcup.com/leaderboard");
+        Assert.Equal("2026-05-30", leaderboard.LastModified);
+        var amateur = Assert.Single(urls, url => url.Loc == "https://longevityworldcup.com/league/amateur");
+        Assert.Equal("2026-05-21", amateur.LastModified);
+    }
+
+    [Fact]
     public void Robots_AllowsPublicLeagueAndAthleteRoutes()
     {
         var robotsPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "wwwroot", "robots.txt"));
