@@ -87,10 +87,12 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("? `HTTP ${response.status}`", javascript);
         Assert.Contains("return fallback;", javascript);
         Assert.Contains("if (/^(?:<!doctype\\s+html\\b|<html[\\s>])/i.test(raw)) return fallback || 'Request failed';", javascript);
+        Assert.Contains("if (typeof data === 'string' && data.trim())", javascript);
         Assert.Contains("if (data && typeof data.message === 'string' && data.message.trim())", javascript);
         Assert.Contains("if (data && data.errors && typeof data.errors === 'object')", javascript);
         Assert.Contains("const collectMessages = function (values)", javascript);
         Assert.Contains(".filter(value => typeof value === 'string')", javascript);
+        Assert.Contains("if (Array.isArray(data))", javascript);
         Assert.Contains("if (data && typeof data === 'object' && !Array.isArray(data))", javascript);
         Assert.Contains("return messages.join('\\n');", javascript);
         Assert.DoesNotContain(".map(value => String(value || '').trim())", javascript);
