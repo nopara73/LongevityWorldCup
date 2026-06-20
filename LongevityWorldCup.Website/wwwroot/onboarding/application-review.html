@@ -177,11 +177,39 @@
     <!--FOOTER-->
 
     <script>
-        const isNewResultsUploaded = sessionStorage.getItem("came-from") === "proof-upload";
-        const isEditRequest = sessionStorage.getItem("came-from") === "edit-profile";
+        function getStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function setStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+            } catch (_) {
+            }
+        }
+
+        function removeStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function getSessionItem(key) { return getStorageItem('sessionStorage', key); }
+        function getLocalItem(key) { return getStorageItem('localStorage', key); }
+        function setLocalItem(key, value) { setStorageItem('localStorage', key, value); }
+        function removeSessionItem(key) { removeStorageItem('sessionStorage', key); }
+        function removeLocalItem(key) { removeStorageItem('localStorage', key); }
+
+        const isNewResultsUploaded = getSessionItem("came-from") === "proof-upload";
+        const isEditRequest = getSessionItem("came-from") === "edit-profile";
         const PENDING_PAYMENT_INVOICE_KEY = "pendingPaymentInvoice";
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = "pendingPaymentInvoicePersistent";
-        sessionStorage.removeItem("came-from");
+        removeSessionItem("came-from");
 
         document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
@@ -203,13 +231,13 @@
 
         // Retrieve the contact email
         const contactEmail =
-            sessionStorage.getItem('contactEmail')
-            || localStorage.getItem('contactEmail')
+            getSessionItem('contactEmail')
+            || getLocalItem('contactEmail')
             || (() => {
                 try {
                     const pending = JSON.parse(
-                        sessionStorage.getItem(PENDING_PAYMENT_INVOICE_KEY)
-                        || localStorage.getItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
+                        getSessionItem(PENDING_PAYMENT_INVOICE_KEY)
+                        || getLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
                         || "null"
                     );
                     return pending && pending.accountEmail ? pending.accountEmail : null;
@@ -226,14 +254,14 @@
         }
 
         // mark that they’ve submitted an application
-        localStorage.setItem('hasApplication', 'true');
+        setLocalItem('hasApplication', 'true');
 
         function maybeNotifyPaidInvoice() {
             let pending;
             try {
                 pending = JSON.parse(
-                    sessionStorage.getItem(PENDING_PAYMENT_INVOICE_KEY)
-                    || localStorage.getItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
+                    getSessionItem(PENDING_PAYMENT_INVOICE_KEY)
+                    || getLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
                     || "null"
                 );
             } catch (_) {
@@ -256,8 +284,8 @@
                     if (!result) return;
                     // If we confirmed paid + notified (or already notified), we can stop checking.
                     if (result.isPaid && (result.notificationSent || result.alreadyNotified)) {
-                        sessionStorage.removeItem(PENDING_PAYMENT_INVOICE_KEY);
-                        localStorage.removeItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
                     }
                 })
                 .catch(() => {
