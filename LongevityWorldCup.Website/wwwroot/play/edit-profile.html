@@ -535,8 +535,11 @@
         }
 
         if (!originalAthlete || typeof originalAthlete !== 'object') {
-            sessionStorage.removeItem('selectedAthlete');
-            sessionStorage.removeItem('tempAthlete');
+            try {
+                sessionStorage.removeItem('selectedAthlete');
+                sessionStorage.removeItem('tempAthlete');
+            } catch (_) {
+            }
             window.location.replace('/select-athlete');
             originalAthlete = {};
         }
@@ -545,7 +548,10 @@
             const tempAthleteJson = sessionStorage.getItem('tempAthlete');
             tempAthlete = tempAthleteJson ? JSON.parse(tempAthleteJson) : null;
         } catch {
-            sessionStorage.removeItem('tempAthlete');
+            try {
+                sessionStorage.removeItem('tempAthlete');
+            } catch (_) {
+            }
             tempAthlete = null;
         }
 
