@@ -27,6 +27,18 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task ApplicationNullBodyReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(null!, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Applicant data is null.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task InterviewRequestInvalidModelStateReturnsValidationProblemDetails()
     {
         using var factory = new TestWebApplicationFactory();
