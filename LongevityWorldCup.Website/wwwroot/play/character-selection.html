@@ -265,8 +265,7 @@
             </div>
         </div>
         <div class="options-container character-selection-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button disabled id="confirmBtn" class="option-button green"
-                    onclick="window.location.href='/dashboard'">
+            <button disabled id="confirmBtn" class="option-button green">
                 Select&nbsp;<i class="fas fa-arrow-right"></i>
             </button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
@@ -291,29 +290,38 @@
 
             const confirmBtn = document.getElementById('confirmBtn');
             confirmBtn.addEventListener('click', () => {
-                // if we had a different athlete before, clear any PhenoAge data
-                const prevName = localStorage.getItem('selectedAthleteName');
-                if (!prevName || prevName !== currentAthlete.Name) {
-                    sessionStorage.removeItem('biomarkerData');
-                    sessionStorage.removeItem('chronoPhenoDifference');
-                    sessionStorage.removeItem('chronoBortzDifference');
-                }
+                if (!currentAthlete || !currentAthlete.Name) return;
 
-                localStorage.setItem('selectedAthleteName', currentAthlete.Name);
-                sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));
+                try {
+                    // if we had a different athlete before, clear any PhenoAge data
+                    const prevName = localStorage.getItem('selectedAthleteName');
+                    if (!prevName || prevName !== currentAthlete.Name) {
+                        sessionStorage.removeItem('biomarkerData');
+                        sessionStorage.removeItem('chronoPhenoDifference');
+                        sessionStorage.removeItem('chronoBortzDifference');
+                    }
 
-                const tempJson = sessionStorage.getItem('tempAthlete');
-                if (tempJson) {
-                    try {
-                        const tempAthlete = JSON.parse(tempJson);
-                        if (tempAthlete.Name !== currentAthlete.Name) {
+                    localStorage.setItem('selectedAthleteName', currentAthlete.Name);
+                    sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));
+
+                    const tempJson = sessionStorage.getItem('tempAthlete');
+                    if (tempJson) {
+                        try {
+                            const tempAthlete = JSON.parse(tempJson);
+                            if (tempAthlete.Name !== currentAthlete.Name) {
+                                sessionStorage.removeItem('tempAthlete');
+                            }
+                        } catch (e) {
+                            // if it wasn't valid JSON, just drop it
                             sessionStorage.removeItem('tempAthlete');
                         }
-                    } catch (e) {
-                        // if it wasn't valid JSON, just drop it
-                        sessionStorage.removeItem('tempAthlete');
                     }
+                } catch (_) {
+                    customAlert('Browser storage is unavailable. Enable storage and try again.');
+                    return;
                 }
+
+                window.location.href = '/dashboard';
             });
 
             // — ATHLETE AUTOCOMPLETE —
