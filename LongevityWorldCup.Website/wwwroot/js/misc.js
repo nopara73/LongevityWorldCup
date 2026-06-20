@@ -515,6 +515,13 @@ window.readApplicationErrorMessage = async function (response) {
 window.extractApplicationErrorMessage = function (text, fallback) {
     const raw = String(text || '').trim();
     if (!raw) return fallback || 'Request failed';
+    const collectMessages = function (values) {
+        return values
+            .flatMap(value => Array.isArray(value) ? value : [value])
+            .filter(value => typeof value === 'string')
+            .map(value => value.trim())
+            .filter(Boolean);
+    };
 
     try {
         const data = JSON.parse(raw);
@@ -527,10 +534,12 @@ window.extractApplicationErrorMessage = function (text, fallback) {
         }
 
         if (data && data.errors && typeof data.errors === 'object') {
-            const messages = Object.values(data.errors)
-                .flatMap(value => Array.isArray(value) ? value : [value])
-                .map(value => String(value || '').trim())
-                .filter(Boolean);
+            const messages = collectMessages(Object.values(data.errors));
+            if (messages.length) return messages.join('\n');
+        }
+
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+            const messages = collectMessages(Object.values(data));
             if (messages.length) return messages.join('\n');
         }
 
