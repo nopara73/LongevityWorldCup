@@ -1756,7 +1756,9 @@
                 form.querySelector("input[data-note-photos]")?.click();
             });
             form.querySelector("input[data-note-photos]")?.addEventListener("change", event => {
-                setPendingNotePhotos(form, Array.from(event.target.files || []));
+                const input = event.target;
+                setPendingNotePhotos(form, Array.from(input.files || []));
+                input.value = "";
                 renderSelectedNotePhotoPreviews(form);
                 updateCheckInSaveState(form);
             });

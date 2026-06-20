@@ -10,6 +10,19 @@ namespace LongevityWorldCup.Tests;
 public sealed class LongevitymaxxingChallengePageTests
 {
     [Fact]
+    public async Task ChallengeNotePhotoSelection_ClearsFileInputAfterCapturingPendingPhotos()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+
+        Assert.Contains("const input = event.target;", javascript);
+        Assert.Contains("setPendingNotePhotos(form, Array.from(input.files || []));", javascript);
+        Assert.Contains("input.value = \"\";", javascript);
+    }
+
+    [Fact]
     public async Task LongevitymaxxingPage_RendersProductCopyAndVersionedAssets()
     {
         using var factory = CreateFactory();
