@@ -161,7 +161,10 @@ public sealed class DatabaseManager : IDisposable
         {
             var files = new List<FileInfo>();
             foreach (var f in Directory.GetFiles(backupDir, "*.db"))
-                files.Add(new FileInfo(f));
+            {
+                if (Path.GetFileName(f).StartsWith(filePrefix, StringComparison.Ordinal))
+                    files.Add(new FileInfo(f));
+            }
 
             files.Sort((a, b) => b.CreationTimeUtc.CompareTo(a.CreationTimeUtc));
 
