@@ -2175,16 +2175,16 @@
     async function uploadProfilePicture(file, input) {
         if (!accessToken) return;
 
-        const uploadFile = await prepareProfilePictureFile(file);
-        const formData = new FormData();
-        formData.append("accessToken", accessToken);
-        formData.append("profilePicture", uploadFile, uploadFile.name || "profile-picture.jpg");
-
         const button = document.getElementById("lmxProfilePictureButton");
         input.disabled = true;
         if (button) button.disabled = true;
         setStatus("lmxProfilePictureStatus", "Uploading...", false);
         try {
+            const uploadFile = await prepareProfilePictureFile(file);
+            const formData = new FormData();
+            formData.append("accessToken", accessToken);
+            formData.append("profilePicture", uploadFile, uploadFile.name || "profile-picture.jpg");
+
             const result = await postForm(`${API}/profile-picture`, formData);
             participantState = result;
             publicState = result.public;
