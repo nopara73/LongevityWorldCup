@@ -530,6 +530,10 @@ window.extractApplicationErrorMessage = function (text, fallback) {
 
     try {
         const data = JSON.parse(raw);
+        if (typeof data === 'string' && data.trim()) {
+            return data.trim();
+        }
+
         if (data && typeof data.message === 'string' && data.message.trim()) {
             return data.message.trim();
         }
@@ -540,6 +544,11 @@ window.extractApplicationErrorMessage = function (text, fallback) {
 
         if (data && data.errors && typeof data.errors === 'object') {
             const messages = collectMessages(Object.values(data.errors));
+            if (messages.length) return messages.join('\n');
+        }
+
+        if (Array.isArray(data)) {
+            const messages = collectMessages(data);
             if (messages.length) return messages.join('\n');
         }
 
