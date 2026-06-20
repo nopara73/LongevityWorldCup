@@ -38,10 +38,13 @@ public sealed class EventBoardRedirectMiddlewareTests
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/event-board-embed.html?athlete=ron-lugbill&embed=1");
+        var html = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("noindex, nofollow", GetHeader(response, "X-Robots-Tag"));
         Assert.Null(response.Headers.Location);
+        Assert.Contains("<meta name=\"robots\" content=\"noindex, nofollow, noarchive, nosnippet\">", html);
+        Assert.Contains("<meta name=\"googlebot\" content=\"noindex, nofollow, noarchive, nosnippet\">", html);
     }
 
     private static string GetHeader(HttpResponseMessage response, string name)
