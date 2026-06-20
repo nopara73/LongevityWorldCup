@@ -1,21 +1,25 @@
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Net.Http.Headers;
 
 namespace LongevityWorldCup.Website.Controllers;
 
 [Controller]
 [Route("ai")]
+[RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
 public sealed class AiController(LeaderboardFactsService facts) : Controller
 {
     [HttpGet("leaderboard.md")]
     public IActionResult GetLeaderboardFacts()
     {
         var document = facts.GetLeaderboardMarkdown();
+        var eTag = PublicGetCacheHeaders.BuildWeakContentETag(document.Markdown);
 
-        Response.Headers[HeaderNames.CacheControl] = "public, max-age=300, must-revalidate";
-        Response.Headers[HeaderNames.LastModified] = document.LastModifiedUtc.UtcDateTime.ToString("R");
+        PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AiFactsCacheControl, PublicGetCacheHeaders.AiFactsMaxAgeSeconds, eTag, document.LastModifiedUtc);
         Response.Headers["X-Robots-Tag"] = "index, follow";
+        if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
+            return StatusCode(StatusCodes.Status304NotModified);
 
         return Content(document.Markdown, "text/markdown; charset=utf-8");
     }
@@ -24,10 +28,12 @@ public sealed class AiController(LeaderboardFactsService facts) : Controller
     public IActionResult GetAthleteNames()
     {
         var document = facts.GetAthleteNamesMarkdown();
+        var eTag = PublicGetCacheHeaders.BuildWeakContentETag(document.Markdown);
 
-        Response.Headers[HeaderNames.CacheControl] = "public, max-age=300, must-revalidate";
-        Response.Headers[HeaderNames.LastModified] = document.LastModifiedUtc.UtcDateTime.ToString("R");
+        PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AiFactsCacheControl, PublicGetCacheHeaders.AiFactsMaxAgeSeconds, eTag, document.LastModifiedUtc);
         Response.Headers["X-Robots-Tag"] = "index, follow";
+        if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
+            return StatusCode(StatusCodes.Status304NotModified);
 
         return Content(document.Markdown, "text/markdown; charset=utf-8");
     }

@@ -1,4 +1,6 @@
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
+using Microsoft.AspNetCore.Http.Timeouts;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +18,7 @@ namespace LongevityWorldCup.Website.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
     public partial class ApplicationController(
         IWebHostEnvironment environment,
         ILogger<HomeController> logger,
@@ -166,7 +169,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("application")]
-        public async Task<IActionResult> Application([FromBody] ApplicantData applicantData)
+        public async Task<IActionResult> Application([FromBody] ApplicantData applicantData, CancellationToken ct)
         {
             if (!ModelState.IsValid)
             {
@@ -304,7 +307,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             var athleteJson = JsonSerializer.Serialize(athleteJsonObject, CachedJsonSerializerOptions);
-            await System.IO.File.WriteAllTextAsync(Path.Combine(athleteFolder, "athlete.json"), athleteJson);
+            await System.IO.File.WriteAllTextAsync(Path.Combine(athleteFolder, "athlete.json"), athleteJson, ct);
 
             // 1b) Save profile picture
             var hasSubmittedProfileImage = IsSubmittedImageData(applicantData.ProfilePic);
@@ -334,7 +337,7 @@ namespace LongevityWorldCup.Website.Controllers
                 if (!profileImage.Success)
                     return BadRequest(profileImage.ErrorMessage);
 
-                await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, $"{folderKey}.{profileImage.Extension}"), profileImage.Bytes!);
+                await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, $"{folderKey}.{profileImage.Extension}"), profileImage.Bytes!, ct);
             }
 
             // 1c) Save each proof
@@ -361,7 +364,7 @@ namespace LongevityWorldCup.Website.Controllers
                     if (proofImage.Bytes != null)
                     {
                         var proofName = $"proof_{idx}.{proofImage.Extension}";
-                        await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, proofName), proofImage.Bytes!);
+                        await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, proofName), proofImage.Bytes!, ct);
                         idx++;
                     }
                 }
@@ -382,7 +385,7 @@ namespace LongevityWorldCup.Website.Controllers
             // 3) Attach the ZIP
             var attachmentFilename = $"{folderKey}.zip";
             builder.Attachments.Add(attachmentFilename,
-                                    await System.IO.File.ReadAllBytesAsync(zipPath),
+                                    await System.IO.File.ReadAllBytesAsync(zipPath, ct),
                                     new ContentType("application", "zip"));
 
             // 3a) Prepare email body based on submission type
@@ -421,7 +424,7 @@ namespace LongevityWorldCup.Website.Controllers
                     string email = accountEmail.Trim();
 
                     // Call the static subscription method
-                    var error = await NewsletterService.SubscribeAsync(email, _logger, _environment);
+                    var error = await NewsletterService.SubscribeAsync(email, _logger, _environment, ct);
 
                     if (error != null)
                     {
@@ -443,7 +446,7 @@ namespace LongevityWorldCup.Website.Controllers
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Log and ignore any other errors silently
                 _logger.LogWarning(ex, "Failed to subscribe applicant email {Email} to the newsletter.", accountEmail);
@@ -452,7 +455,7 @@ namespace LongevityWorldCup.Website.Controllers
             // Send the email
             try
             {
-                await SendEmailThroughSmtpAsync(config, message);
+                await SendEmailThroughSmtpAsync(config, message, ct);
 
                 try
                 {
@@ -468,7 +471,8 @@ namespace LongevityWorldCup.Website.Controllers
                         accountEmail,
                         displayNameOrName,
                         isResultSubmissionOnly,
-                        isEditSubmissionOnly);
+                        isEditSubmissionOnly,
+                        ct: ct);
 
                     await TryRecordDiscountSignupAsync(
                         applicantData,
@@ -480,7 +484,8 @@ namespace LongevityWorldCup.Website.Controllers
                         paymentCurrency,
                         paymentRequired: false,
                         invoiceId: null,
-                        checkoutLink: null);
+                        checkoutLink: null,
+                        ct);
 
                     _logger.LogInformation(
                         "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
@@ -505,7 +510,8 @@ namespace LongevityWorldCup.Website.Controllers
                     requestedAmountUsd,
                     accountEmail,
                     isResultSubmissionOnly,
-                    isEditSubmissionOnly);
+                    isEditSubmissionOnly,
+                    ct);
 
                 if (!invoiceResult.Success)
                 {
@@ -528,7 +534,8 @@ namespace LongevityWorldCup.Website.Controllers
                     paymentCurrency,
                     paymentRequired: true,
                     invoiceResult.InvoiceId,
-                    invoiceResult.CheckoutLink);
+                    invoiceResult.CheckoutLink,
+                    ct);
 
                 await TrySendApplicationConfirmationEmailAsync(
                     config,
@@ -536,7 +543,8 @@ namespace LongevityWorldCup.Website.Controllers
                     displayNameOrName,
                     isResultSubmissionOnly,
                     isEditSubmissionOnly,
-                    invoiceResult.CheckoutLink);
+                    invoiceResult.CheckoutLink,
+                    ct);
 
                 _logger.LogInformation(
                     "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
@@ -554,7 +562,7 @@ namespace LongevityWorldCup.Website.Controllers
                     invoiceId = invoiceResult.InvoiceId
                 });
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogError(
                     ex,
@@ -579,7 +587,8 @@ namespace LongevityWorldCup.Website.Controllers
             string paymentCurrency,
             bool paymentRequired,
             string? invoiceId,
-            string? checkoutLink)
+            string? checkoutLink,
+            CancellationToken ct)
         {
             if (_discountSignupReports is null)
                 return;
@@ -603,9 +612,9 @@ namespace LongevityWorldCup.Website.Controllers
                         PaymentRequired: paymentRequired,
                         InvoiceId: invoiceId,
                         CheckoutLink: checkoutLink),
-                    HttpContext?.RequestAborted ?? CancellationToken.None);
+                    ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to record discount signup attribution. SubmissionId={SubmissionId} DiscountCode={DiscountCode}", submissionId, applicantData.Discount);
             }
@@ -667,7 +676,8 @@ namespace LongevityWorldCup.Website.Controllers
             string? applicantName,
             bool isResultSubmissionOnly,
             bool isEditSubmissionOnly,
-            string? checkoutLink = null)
+            string? checkoutLink = null,
+            CancellationToken ct = default)
         {
             if (isResultSubmissionOnly || isEditSubmissionOnly)
                 return;
@@ -693,9 +703,9 @@ namespace LongevityWorldCup.Website.Controllers
                     TextBody = BuildApplicationConfirmationBody(applicantName, checkoutLink)
                 }.ToMessageBody();
 
-                await SendEmailThroughSmtpAsync(config, message);
+                await SendEmailThroughSmtpAsync(config, message, ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to send application confirmation email to {Email}", trimmedEmail);
             }
@@ -727,7 +737,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("interview-request")]
-        public async Task<IActionResult> InterviewRequest([FromBody] InterviewRequestData requestData)
+        public async Task<IActionResult> InterviewRequest([FromBody] InterviewRequestData requestData, CancellationToken ct)
         {
             if (!ModelState.IsValid)
             {
@@ -762,24 +772,24 @@ namespace LongevityWorldCup.Website.Controllers
 
             try
             {
-                var subscribeError = await NewsletterService.SubscribeAsync(email, _logger, _environment);
+                var subscribeError = await NewsletterService.SubscribeAsync(email, _logger, _environment, ct);
                 if (subscribeError != null
                     && !subscribeError.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogWarning("Failed to subscribe interview request email {Email}: {Error}", email, subscribeError);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to subscribe interview request email {Email}", email);
             }
 
             try
             {
-                await SendEmailThroughSmtpAsync(config, message);
+                await SendEmailThroughSmtpAsync(config, message, ct);
                 return Ok(new { success = true });
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogError(ex, "Failed to send interview request email for {Email}", email);
                 return StatusCode(500, "Failed to send interview request.");
@@ -787,7 +797,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("payment-status")]
-        public async Task<IActionResult> PaymentStatus([FromBody] PaymentStatusRequest request)
+        public async Task<IActionResult> PaymentStatus([FromBody] PaymentStatusRequest request, CancellationToken ct)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.InvoiceId))
             {
@@ -805,7 +815,7 @@ namespace LongevityWorldCup.Website.Controllers
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
             }
 
-            var invoiceResult = await GetBtcpayInvoiceAsync(config, request.InvoiceId.Trim());
+            var invoiceResult = await GetBtcpayInvoiceAsync(config, request.InvoiceId.Trim(), ct);
             if (!invoiceResult.Success)
             {
                 return Ok(new
@@ -818,7 +828,7 @@ namespace LongevityWorldCup.Website.Controllers
                 });
             }
 
-            await TryUpdateDiscountSignupPaymentStatusAsync(request.InvoiceId.Trim(), invoiceResult);
+            await TryUpdateDiscountSignupPaymentStatusAsync(request.InvoiceId.Trim(), invoiceResult, ct);
 
             var notificationSent = false;
             var alreadyNotified = false;
@@ -843,7 +853,8 @@ namespace LongevityWorldCup.Website.Controllers
                         invoiceResult.AmountText,
                         invoiceResult.Currency,
                         invoiceResult.PaidAmountText,
-                        invoiceResult.CheckoutLink);
+                        invoiceResult.CheckoutLink,
+                        ct);
                     if (paymentEmailResult.Success)
                     {
                         await MarkInvoiceNotificationAsSentAsync(request.InvoiceId.Trim(), _environment);
@@ -863,7 +874,7 @@ namespace LongevityWorldCup.Website.Controllers
             });
         }
 
-        private async Task TryUpdateDiscountSignupPaymentStatusAsync(string invoiceId, BtcpayInvoiceLookupResult invoiceResult)
+        private async Task TryUpdateDiscountSignupPaymentStatusAsync(string invoiceId, BtcpayInvoiceLookupResult invoiceResult, CancellationToken ct)
         {
             if (_discountSignupReports is null)
                 return;
@@ -874,9 +885,9 @@ namespace LongevityWorldCup.Website.Controllers
                     invoiceId,
                     invoiceResult,
                     DateTimeOffset.UtcNow,
-                    HttpContext?.RequestAborted ?? CancellationToken.None);
+                    ct);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to update discount signup payment attribution for invoice {InvoiceId}", invoiceId);
             }
@@ -888,7 +899,8 @@ namespace LongevityWorldCup.Website.Controllers
             decimal requestedAmountUsd,
             string? accountEmail,
             bool isResultSubmissionOnly,
-            bool isEditSubmissionOnly)
+            bool isEditSubmissionOnly,
+            CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(config.BTCPayBaseUrl))
                 return (false, null, null, "BTCPayBaseUrl is missing in config.");
@@ -942,8 +954,8 @@ namespace LongevityWorldCup.Website.Controllers
 
             var body = JsonSerializer.Serialize(invoicePayload);
             using var content = new StringContent(body, Encoding.UTF8, "application/json");
-            using var response = await client.PostAsync(endpoint, content);
-            var responseBody = await response.Content.ReadAsStringAsync();
+            using var response = await client.PostAsync(endpoint, content, ct);
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -972,10 +984,11 @@ namespace LongevityWorldCup.Website.Controllers
 
         private async Task<BtcpayInvoiceLookupResult> GetBtcpayInvoiceAsync(
             Config config,
-            string invoiceId)
+            string invoiceId,
+            CancellationToken ct)
         {
             if (_btcpayInvoices is not null)
-                return await _btcpayInvoices.GetInvoiceAsync(config, invoiceId, HttpContext?.RequestAborted ?? CancellationToken.None);
+                return await _btcpayInvoices.GetInvoiceAsync(config, invoiceId, ct);
 
             if (string.IsNullOrWhiteSpace(config.BTCPayBaseUrl))
                 return BtcpayInvoiceLookupResult.Failure("BTCPayBaseUrl is missing in config.");
@@ -989,8 +1002,8 @@ namespace LongevityWorldCup.Website.Controllers
             var endpoint = $"{baseUrl}/api/v1/stores/{Uri.EscapeDataString(config.BTCPayStoreId!)}/invoices/{Uri.EscapeDataString(invoiceId)}";
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("token", config.BTCPayGreenfieldApiKey);
 
-            using var response = await client.GetAsync(endpoint);
-            var responseBody = await response.Content.ReadAsStringAsync();
+            using var response = await client.GetAsync(endpoint, ct);
+            var responseBody = await response.Content.ReadAsStringAsync(ct);
             if (!response.IsSuccessStatusCode)
             {
                 return BtcpayInvoiceLookupResult.Failure(BuildBtcpayFailureMessage(response.StatusCode));
@@ -1010,7 +1023,8 @@ namespace LongevityWorldCup.Website.Controllers
             string? amount,
             string? currency,
             string? paidAmount,
-            string? checkoutLink)
+            string? checkoutLink,
+            CancellationToken ct)
         {
             var subject = BuildApplicationSubject(request.ApplicantName);
             var textBody = string.Join("\n", new[]
@@ -1033,10 +1047,10 @@ namespace LongevityWorldCup.Website.Controllers
                 message.Subject = subject; // exact subject for thread grouping
                 message.Body = new BodyBuilder { TextBody = textBody }.ToMessageBody();
 
-                await SendEmailThroughSmtpAsync(config, message);
+                await SendEmailThroughSmtpAsync(config, message, ct);
                 return (true, null);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger.LogWarning(ex, "Failed to send payment follow-up email for invoice {InvoiceId}", request.InvoiceId);
                 return (false, ex.Message);
@@ -1462,7 +1476,7 @@ namespace LongevityWorldCup.Website.Controllers
                 : trimmed.Replace('-', '_');
         }
 
-        private static async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message)
+        private static async Task SendEmailThroughSmtpAsync(Config config, MimeMessage message, CancellationToken ct = default)
         {
             var smtpServer = RequireConfiguredValue(config.SmtpServer, nameof(config.SmtpServer));
             var smtpUser = RequireConfiguredValue(config.SmtpUser, nameof(config.SmtpUser));
@@ -1470,11 +1484,11 @@ namespace LongevityWorldCup.Website.Controllers
             var smtpPassword = GetConfiguredSecret(config.SmtpPassword, "LWC_SMTP_PASSWORD");
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls);
+            await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls, ct);
 
             if (!string.IsNullOrWhiteSpace(smtpPassword))
             {
-                await client.AuthenticateAsync(smtpUser, smtpPassword);
+                await client.AuthenticateAsync(smtpUser, smtpPassword, ct);
             }
             else
             {
@@ -1482,11 +1496,11 @@ namespace LongevityWorldCup.Website.Controllers
                 client.AuthenticationMechanisms.Remove("LOGIN");
                 client.AuthenticationMechanisms.Remove("PLAIN");
                 var oauth2 = new SaslMechanismOAuth2(smtpUser, accessTok);
-                await client.AuthenticateAsync(oauth2);
+                await client.AuthenticateAsync(oauth2, ct);
             }
 
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
+            await client.SendAsync(message, ct);
+            await client.DisconnectAsync(true, ct);
         }
 
         private static MailboxAddress CreateConfiguredFromAddress(Config config, string? displayName)

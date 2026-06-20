@@ -22,7 +22,7 @@ namespace LongevityWorldCup.Website.Business
             _log = log;
         }
 
-        public async Task<decimal> GetBtcUsdAsync()
+        public async Task<decimal> GetBtcUsdAsync(CancellationToken ct = default)
         {
             const string cacheKey = "btcToUsdRate";
             if (_cache.TryGetValue(cacheKey, out decimal cachedUsdRate))
@@ -31,10 +31,10 @@ namespace LongevityWorldCup.Website.Business
             var client = _httpClientFactory.CreateClient();
             try
             {
-                var response = await client.GetAsync("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
+                var response = await client.GetAsync("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", ct);
                 if (response.IsSuccessStatusCode)
                 {
-                    var jsonString = await response.Content.ReadAsStringAsync();
+                    var jsonString = await response.Content.ReadAsStringAsync(ct);
                     using var doc = JsonDocument.Parse(jsonString);
                     var usd = doc.RootElement.GetProperty("bitcoin").GetProperty("usd").GetDecimal();
                     _cache.Set(cacheKey, usd, TimeSpan.FromMinutes(1));
@@ -43,21 +43,21 @@ namespace LongevityWorldCup.Website.Business
 
                 throw new HttpRequestException($"Primary API returned status {response.StatusCode}");
             }
-            catch
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 try
                 {
-                    var fallbackResponse = await client.GetAsync("https://blockchain.info/ticker");
+                    var fallbackResponse = await client.GetAsync("https://blockchain.info/ticker", ct);
                     if (fallbackResponse.IsSuccessStatusCode)
                     {
-                        var jsonString = await fallbackResponse.Content.ReadAsStringAsync();
+                        var jsonString = await fallbackResponse.Content.ReadAsStringAsync(ct);
                         using var doc = JsonDocument.Parse(jsonString);
                         var usd = doc.RootElement.GetProperty("USD").GetProperty("last").GetDecimal();
                         _cache.Set(cacheKey, usd, TimeSpan.FromMinutes(1));
                         return usd;
                     }
                 }
-                catch
+                catch (Exception fallbackEx) when (fallbackEx is not OperationCanceledException)
                 {
                 }
             }
@@ -67,7 +67,7 @@ namespace LongevityWorldCup.Website.Business
 
         public string GetDonationAddress() => DonationAddress;
 
-        public async Task<long> GetTotalReceivedSatoshisAsync()
+        public async Task<long> GetTotalReceivedSatoshisAsync(CancellationToken ct = default)
         {
             var cacheExpiration = TimeSpan.FromMinutes(3);
             var cacheKey = $"balance_{MinConfirmations}conf_{DonationAddress}";
@@ -82,13 +82,13 @@ namespace LongevityWorldCup.Website.Business
                 try
                 {
                     var url = $"https://blockchain.info/q/addressbalance/{DonationAddress}?confirmations={MinConfirmations}";
-                    using var resp = await client.GetAsync(url);
+                    using var resp = await client.GetAsync(url, ct);
                     if (!resp.IsSuccessStatusCode) return null;
 
-                    var s = (await resp.Content.ReadAsStringAsync()).Trim();
+                    var s = (await resp.Content.ReadAsStringAsync(ct)).Trim();
                     return long.TryParse(s, out var sats) ? sats : null;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _log.LogDebug(ex, "addressbalance primary failed");
                     return null;
@@ -102,10 +102,10 @@ namespace LongevityWorldCup.Website.Business
                 {
                     // If you have a BlockCypher token, append &token=YOURTOKEN
                     var url = $"https://api.blockcypher.com/v1/btc/main/addrs/{DonationAddress}/balance?confirmations={MinConfirmations}";
-                    using var resp = await client.GetAsync(url);
+                    using var resp = await client.GetAsync(url, ct);
                     if (!resp.IsSuccessStatusCode) return null;
 
-                    var json = await resp.Content.ReadAsStringAsync();
+                    var json = await resp.Content.ReadAsStringAsync(ct);
                     using var doc = JsonDocument.Parse(json);
 
                     if (doc.RootElement.TryGetProperty("balance", out var balEl) &&
@@ -116,7 +116,7 @@ namespace LongevityWorldCup.Website.Business
 
                     return null;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _log.LogDebug(ex, "BlockCypher balance fallback failed");
                     return null;

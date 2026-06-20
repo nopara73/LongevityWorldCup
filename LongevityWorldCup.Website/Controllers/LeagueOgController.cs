@@ -1,10 +1,13 @@
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LongevityWorldCup.Website.Controllers;
 
 [ApiController]
 [Route("og/league")]
+[RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
 public sealed class LeagueOgController(LeagueOgImageService leagueOgImages) : ControllerBase
 {
     private readonly LeagueOgImageService _leagueOgImages = leagueOgImages;

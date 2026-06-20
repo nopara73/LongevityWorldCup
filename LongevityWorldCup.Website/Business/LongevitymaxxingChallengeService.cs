@@ -270,7 +270,7 @@ public sealed class LongevitymaxxingChallengeService
 
         try
         {
-            var newsletterError = await NewsletterService.SubscribeAsync(participant!.Email, _logger, _environment).ConfigureAwait(false);
+            var newsletterError = await NewsletterService.SubscribeAsync(participant!.Email, _logger, _environment, ct).ConfigureAwait(false);
             if (!string.IsNullOrWhiteSpace(newsletterError) &&
                 !newsletterError.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
             {

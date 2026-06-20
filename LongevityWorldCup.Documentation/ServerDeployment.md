@@ -54,8 +54,8 @@ sudo find /var/www/LongevityWorldCup/publish/wwwroot/generated -type f -exec chm
 sudo systemctl start longevityworldcup.service
 service_stopped=0
 
-health_url="https://www.longevityworldcup.com/about"
-health_body="/tmp/longevityworldcup-health.html"
+health_url="https://www.longevityworldcup.com/health"
+health_body="/tmp/longevityworldcup-health.json"
 for attempt in $(seq 1 24); do
   if curl -fsS --max-time 10 "$health_url" -o "$health_body"; then
     break
@@ -70,7 +70,7 @@ for attempt in $(seq 1 24); do
   sleep 5
 done
 
-grep -q "About Longevity World Cup" "$health_body"
+grep -q '"status":"Healthy"' "$health_body"
 rm -f "$health_body"
 
 git status --short

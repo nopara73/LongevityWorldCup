@@ -121,8 +121,8 @@ jobs:
             sudo systemctl start longevityworldcup.service
             service_stopped=0
 
-            health_url="https://www.longevityworldcup.com/about"
-            health_body="/tmp/longevityworldcup-health.html"
+            health_url="https://www.longevityworldcup.com/health"
+            health_body="/tmp/longevityworldcup-health.json"
             for attempt in $(seq 1 24); do
               if curl -fsS --max-time 10 "$health_url" -o "$health_body"; then
                 break
@@ -137,8 +137,9 @@ jobs:
               sleep 5
             done
 
-            if ! grep -q "About Longevity World Cup" "$health_body"; then
+            if ! grep -q '"status":"Healthy"' "$health_body"; then
               echo "Production health check returned unexpected content."
+              cat "$health_body"
               exit 1
             fi
             rm -f "$health_body"
