@@ -106,6 +106,21 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationDivisionSelect_UsesFallbackWhenApiFailsOrReturnsEmpty()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("const fallbackDivisions = [\"Men's\", \"Women's\", \"Open\"];", html);
+        Assert.Contains("function populateDivisionSelect(divisions)", html);
+        Assert.Contains("const availableDivisions = Array.isArray(divisions) && divisions.length ? divisions : fallbackDivisions;", html);
+        Assert.Contains(".then(populateDivisionSelect)", html);
+        Assert.Contains("populateDivisionSelect(fallbackDivisions);", html);
+    }
+
+    [Fact]
     public async Task ProfilePhotoSelection_ClearsInputAfterCapturingFile()
     {
         using var factory = new TestWebApplicationFactory();
