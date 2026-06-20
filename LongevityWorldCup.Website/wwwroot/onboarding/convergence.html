@@ -1159,11 +1159,16 @@
             athletesPromise
                 .then(athletes => {
                     // Extract athlete names into a list
-                    existingAthleteNames = athletes.map(athlete => athlete.Name);
+                    existingAthleteNames = Array.isArray(athletes) ? athletes.map(athlete => athlete.Name) : [];
                 });
 
             Promise.all([
-                fetch('/api/data/flags').then(response => response.json()),
+                fetch('/api/data/flags')
+                    .then(response => response.ok ? response.json() : [])
+                    .catch(error => {
+                        console.error('Error fetching flags:', error);
+                        return [];
+                    }),
                 athletesPromise
             ])
                 .then(([flags, athletes]) => {
@@ -1286,9 +1291,6 @@
                     document.addEventListener('click', function (e) {
                         closeAllLists(e.target);
                     });
-                })
-                .catch(error => {
-                    console.error('Error fetching flags:', error);
                 });
 
             const fallbackDivisions = ["Men's", "Women's", "Open"];

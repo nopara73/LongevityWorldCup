@@ -153,6 +153,21 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationFlagAutocomplete_StillInitializesWhenFlagApiFails()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("existingAthleteNames = Array.isArray(athletes) ? athletes.map(athlete => athlete.Name) : [];", html);
+        Assert.Contains(".then(response => response.ok ? response.json() : [])", html);
+        Assert.Contains("console.error('Error fetching flags:', error);", html);
+        Assert.Contains("return [];", html);
+        Assert.Contains("const flagOptions = window.LwcFlags.buildFlagOptions(flags, athletes);", html);
+    }
+
+    [Fact]
     public async Task ProfilePhotoSelection_ClearsInputAfterCapturingFile()
     {
         using var factory = new TestWebApplicationFactory();
