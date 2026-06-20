@@ -479,10 +479,8 @@ namespace LongevityWorldCup.Website
             return JsonSerializer.SerializeAsync(context.Response.Body, response, HealthCheckJsonOptions);
         }
 
-        private static void InitializeDefaultConfig()
+        internal static void InitializeDefaultConfig(string configFilePath = "config.json")
         {
-            string configFilePath = "config.json";
-
             // Check if the config file already exists
             if (File.Exists(configFilePath))
                 return;
