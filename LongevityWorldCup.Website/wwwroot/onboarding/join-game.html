@@ -844,7 +844,13 @@
           : window.applyFreePassToPaymentOffer
             ? window.applyFreePassToPaymentOffer(offer)
             : offer;
-        sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
+        try {
+          sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
+          return true;
+        } catch (_) {
+          customAlert('Browser storage is unavailable. Enable storage and try again.');
+          return false;
+        }
       }
 
       function getCheckoutQuerySuffix() {
@@ -867,12 +873,13 @@
       }
 
       function startAmateurApplication() {
-        setPendingPaymentOffer({
+        const stored = setPendingPaymentOffer({
           source: "join-game",
           offerType: "amateur",
           currency: "USD",
           amountUsd: 10
         });
+        if (!stored) return;
         window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;
       }
 
@@ -887,7 +894,7 @@
           currency: "USD",
           amountUsd
         }, result);
-        setPendingPaymentOffer(paymentOffer);
+        if (!setPendingPaymentOffer(paymentOffer)) return;
         window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;
       }
 
