@@ -1002,8 +1002,10 @@
         });
 
         function handleProfilePictureSelection(e) {
-            const file = e.target.files[0];
+            const input = e.target;
+            const file = input.files[0];
             if (!file) return;
+            input.value = '';
             const reader = new FileReader();
             reader.onload = (evt) => {
                 const cropperModal = document.getElementById('changeProfileCropperModal');

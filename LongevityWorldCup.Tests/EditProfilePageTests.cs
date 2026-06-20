@@ -41,4 +41,23 @@ public sealed class EditProfilePageTests
         Assert.Contains("window.readApplicationErrorMessage(response).then(txt =>", html);
         Assert.DoesNotContain("response.text().then(txt =>", html);
     }
+
+    [Fact]
+    public async Task ProfilePictureSelection_ClearsInputAfterCapturingFile()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var selectionStart = html.IndexOf("function handleProfilePictureSelection(e)", StringComparison.Ordinal);
+        var selectionEnd = html.IndexOf("changeProfileInput.addEventListener('change', handleProfilePictureSelection);", selectionStart, StringComparison.Ordinal);
+
+        Assert.True(selectionStart >= 0);
+        Assert.True(selectionEnd > selectionStart);
+
+        var selectionBody = html[selectionStart..selectionEnd];
+        Assert.Contains("const input = e.target;", selectionBody);
+        Assert.Contains("const file = input.files[0];", selectionBody);
+        Assert.Contains("input.value = '';", selectionBody);
+    }
 }
