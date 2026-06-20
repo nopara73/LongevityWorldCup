@@ -68,4 +68,23 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("window.readApplicationErrorMessage(response).then(badResponse =>", html);
         Assert.DoesNotContain("response.text().then(badResponse =>", html);
     }
+
+    [Fact]
+    public async Task ProfilePhotoSelection_ClearsInputAfterCapturingFile()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var selectionStart = html.IndexOf("function handleProfileUploadChange(event)", StringComparison.Ordinal);
+        var selectionEnd = html.IndexOf("if (profilePicInput && !profilePicInput.hasAttribute('data-listener'))", selectionStart, StringComparison.Ordinal);
+
+        Assert.True(selectionStart >= 0);
+        Assert.True(selectionEnd > selectionStart);
+
+        var selectionBody = html[selectionStart..selectionEnd];
+        Assert.Contains("const input = event.target;", selectionBody);
+        Assert.Contains("const file = input.files[0];", selectionBody);
+        Assert.Contains("input.value = '';", selectionBody);
+    }
 }
