@@ -5,8 +5,15 @@ namespace LongevityWorldCup.Website.Tools;
 
 public sealed class AssetVersionProvider
 {
+    private static readonly StringComparison PathComparison = OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
+    private static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
+
     private readonly string _webRootPath;
-    private readonly ConcurrentDictionary<string, CacheEntry> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, CacheEntry> _cache = new(PathComparer);
 
     public AssetVersionProvider(IWebHostEnvironment environment)
     {
@@ -53,7 +60,7 @@ public sealed class AssetVersionProvider
             ? _webRootPath
             : _webRootPath + Path.DirectorySeparatorChar;
 
-        return fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase);
+        return fullPath.StartsWith(root, PathComparison);
     }
 
     private static string ComputeHash(string fullPath)
