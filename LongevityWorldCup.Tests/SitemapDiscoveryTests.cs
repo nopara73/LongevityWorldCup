@@ -1,6 +1,8 @@
+using System.Net;
 using System.Xml.Linq;
 using System.Runtime.CompilerServices;
 using LongevityWorldCup.Website.Business;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -93,6 +95,26 @@ public class SitemapDiscoveryTests
         Assert.Equal("2026-05-30", leaderboard.LastModified);
         var amateur = Assert.Single(urls, url => url.Loc == "https://longevityworldcup.com/league/amateur");
         Assert.Equal("2026-05-21", amateur.LastModified);
+    }
+
+    [Fact]
+    public async Task SitemapEndpoint_ReturnsXmlWithShortPublicCacheHeaders()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.GetAsync("/sitemap.xml");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/xml", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("utf-8", response.Content.Headers.ContentType?.CharSet);
+        Assert.True(response.Headers.CacheControl?.Public);
+        Assert.Equal(TimeSpan.FromMinutes(5), response.Headers.CacheControl?.MaxAge);
+        Assert.True(response.Headers.CacheControl?.MustRevalidate);
+
+        var xml = await response.Content.ReadAsStringAsync();
+        Assert.Contains("<urlset", xml, StringComparison.Ordinal);
+        Assert.Contains("https://longevityworldcup.com/", xml, StringComparison.Ordinal);
     }
 
     [Fact]
