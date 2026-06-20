@@ -516,9 +516,28 @@ namespace LongevityWorldCup.Website
                 LongevitymaxxingChallenge = new LongevitymaxxingChallengeConfig()
             };
 
-            // Serialize to JSON and save to file
+            // Serialize to JSON and atomically publish it so parallel test hosts do not see a partial file.
             string json = JsonSerializer.Serialize(defaultConfig, JsonOptions); // Use cached options
-            File.WriteAllText(configFilePath, json);
+            string configDirectory = Path.GetDirectoryName(Path.GetFullPath(configFilePath))
+                ?? Directory.GetCurrentDirectory();
+            string tempConfigFilePath = Path.Combine(
+                configDirectory,
+                $"config.{Guid.NewGuid():N}.tmp");
+
+            try
+            {
+                File.WriteAllText(tempConfigFilePath, json);
+                File.Move(tempConfigFilePath, configFilePath);
+            }
+            catch (IOException) when (File.Exists(configFilePath))
+            {
+                // Another startup path created the config first.
+            }
+            finally
+            {
+                if (File.Exists(tempConfigFilePath))
+                    File.Delete(tempConfigFilePath);
+            }
         }
     }
 }
