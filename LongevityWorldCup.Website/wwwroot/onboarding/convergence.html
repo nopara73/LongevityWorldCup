@@ -825,8 +825,13 @@
 
             // Use the global variables `profilePic` and `proofPics` directly
             // Get the biomarker data from sessionStorage
-            const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
-            if (!biomarkerData) {
+            let biomarkerData = null;
+            try {
+                biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
+            } catch (_) {
+                biomarkerData = null;
+            }
+            if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length) {
                 customAlert('Biomarker data is missing. Please complete the biomarker form.');
                 return;
             }

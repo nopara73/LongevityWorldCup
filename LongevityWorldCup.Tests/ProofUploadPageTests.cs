@@ -94,4 +94,27 @@ public sealed class ProofUploadPageTests
         Assert.Contains("customAlert(`An error occurred:\\n\\n${displayError}`)", html);
         Assert.DoesNotContain("customAlert(`An error occurred:\\n\\n${error}`)", html);
     }
+
+    [Fact]
+    public async Task ResultUpload_TreatsMalformedBiomarkerStorageAsMissing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+        var parseStart = html.IndexOf("let biomarkerData = null;", StringComparison.Ordinal);
+        var parseEnd = html.IndexOf("const submissionId = window.createApplicationSubmissionId();", parseStart, StringComparison.Ordinal);
+
+        Assert.True(parseStart >= 0);
+        Assert.True(parseEnd > parseStart);
+
+        var parseBody = html[parseStart..parseEnd];
+        Assert.Contains("try {", parseBody);
+        Assert.Contains("biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));", parseBody);
+        Assert.Contains("} catch (_) {", parseBody);
+        Assert.Contains("biomarkerData = null;", parseBody);
+        Assert.Contains("!Array.isArray(biomarkerData.Biomarkers)", parseBody);
+        Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
+        Assert.Contains("customAlert('Biomarker data is missing. Please fill out the biomarker form first.');", parseBody);
+    }
 }
