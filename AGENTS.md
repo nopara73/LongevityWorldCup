@@ -18,6 +18,12 @@ When producing temporary files that are only for agent-side inspection or delive
 
 Do not place disposable outputs in tracked project folders such as `output/`, `wwwroot/`, `docs/`, or test fixture directories unless the user explicitly asks for a committed artifact there.
 
+## Dependency Upgrade Constraints
+
+Do not merge major upgrades for `SixLabors.ImageSharp` or `SixLabors.ImageSharp.Drawing` unless the project has intentionally adopted the Six Labors v4+/Drawing v3+ licensing path or replaced those direct dependencies. Those major versions enforce a build-time Six Labors license for direct package consumers, and this repository currently has no license key/file configured in GitHub Actions or Dependabot.
+
+Patch and minor updates on the current major line are acceptable when CI and dependency review pass. The long-term preferred direction is to remove the direct Six Labors dependency instead of adding a commercial license requirement.
+
 ## Production Server Access
 
 Agents working in this repository may have direct SSH access to the production server through the local SSH alias `lwc-server`. When a task needs production inspection, logs, database checks, service status, or deployment verification, check whether `ssh lwc-server` is available before inventing indirect workarounds or asking the user to run server commands.

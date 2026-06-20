@@ -9,6 +9,13 @@ updates:
       time: "06:00"
       timezone: "Europe/Budapest"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "SixLabors.ImageSharp"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "SixLabors.ImageSharp.Drawing"
+        update-types:
+          - "version-update:semver-major"
     groups:
       nuget-minor-patch:
         patterns:
