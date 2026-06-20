@@ -52,6 +52,27 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task StartedSubmissionReports_DoNotDelayPrimarySubmission()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        foreach (var path in new[]
+        {
+            "/onboarding/convergence.html",
+            "/play/proof-upload.html",
+            "/play/edit-profile.html"
+        })
+        {
+            var html = await client.GetStringAsync(path);
+
+            Assert.DoesNotContain("await window.sendApplicationSubmissionReport(", html);
+            Assert.Contains("void window.sendApplicationSubmissionReport(", html);
+            Assert.Contains("window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)", html);
+        }
+    }
+
+    [Fact]
     public async Task ApplicationFailures_UseReadableErrorExtractor()
     {
         using var factory = new TestWebApplicationFactory();
