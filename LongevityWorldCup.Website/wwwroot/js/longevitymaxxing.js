@@ -1506,9 +1506,9 @@
         button.classList.toggle("lmx-hidden", rows.inactive.length === 0);
         button.setAttribute("aria-pressed", showInactiveLeaderboard ? "true" : "false");
         button.setAttribute("aria-label", showInactiveLeaderboard
-            ? "Hide inactive participants"
-            : `Show inactive participants (${rows.inactive.length})`);
-        button.textContent = showInactiveLeaderboard ? "Hide inactive" : `Show inactive (${rows.inactive.length})`;
+            ? "Hide resting participants"
+            : `Show resting participants (${rows.inactive.length})`);
+        button.textContent = showInactiveLeaderboard ? "Hide resting" : `Show resting (${rows.inactive.length})`;
     }
 
     function scrollBoardToLatestDay() {
@@ -2158,7 +2158,7 @@
         const alt = hasProfileImage ? `${row.displayName || "Participant"} profile picture` : "";
         const badges = [
             row.commitmentStatus === "commitment-due" ? "Commitment due" : "",
-            row.challengeInactive ? "Inactive" : ""
+            row.challengeInactive ? "Resting" : ""
         ].filter(Boolean);
         const rankNumber = Number.isFinite(Number(rank)) ? Math.trunc(Number(rank)) : null;
         const rankHtml = rankNumber && rankNumber > 0
