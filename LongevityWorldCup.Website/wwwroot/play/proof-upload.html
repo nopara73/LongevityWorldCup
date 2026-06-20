@@ -478,7 +478,16 @@
             }
         }
 
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
         function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
         function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
@@ -541,7 +550,7 @@
 
                 let biomarkerData = null;
                 try {
-                    biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
+                    biomarkerData = JSON.parse(getSessionItem('biomarkerData'));
                 } catch (_) {
                     biomarkerData = null;
                 }
@@ -554,15 +563,15 @@
                 const submissionKind = 'result-upload';
                 const applicantData = {
                     name: athlete.Name,
-                    accountEmail: sessionStorage.getItem('contactEmail') || null,
-                    chronoPhenoDifference: sessionStorage.getItem('chronoPhenoDifference') || null,
-                    chronoBortzDifference: sessionStorage.getItem('chronoBortzDifference') || null,
+                    accountEmail: getSessionItem('contactEmail') || null,
+                    chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null,
+                    chronoBortzDifference: getSessionItem('chronoBortzDifference') || null,
                     submissionId: submissionId,
                     biomarkers: biomarkerData.Biomarkers,
                     proofPics: proofPics,
                     paymentOffer: (() => {
                         try {
-                            const paymentOffer = JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
+                            const paymentOffer = JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
                             return window.applyPaymentAdjustmentsToPaymentOffer
                                 ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
                                 : window.applyFreePassToPaymentOffer
