@@ -324,105 +324,142 @@
                 window.location.href = '/dashboard';
             });
 
+            const athleteError = document.getElementById('athleteError');
+            let athleteAutocompleteReady = false;
+            let athleteLoadPromise = null;
+
+            function retryAthleteLoad() {
+                if (!athleteAutocompleteReady) {
+                    loadAthletes().catch(() => {});
+                }
+            }
+
+            athleteInput.addEventListener('focus', retryAthleteLoad);
+            athleteInput.addEventListener('input', retryAthleteLoad);
+
+            function loadAthletes() {
+                if (athleteAutocompleteReady) return Promise.resolve();
+                if (athleteLoadPromise) return athleteLoadPromise;
+                athleteError.textContent = '';
+                athleteLoadPromise = fetch('/api/data/athletes')
+                    .then(r => r.ok ? r.json() : Promise.reject(new Error('Athlete list request failed')))
+                    .then(data => {
+                        if (!Array.isArray(data)) {
+                            throw new Error('Athlete list response was invalid');
+                        }
+                        initializeAthleteAutocomplete(data);
+                        athleteAutocompleteReady = true;
+                        athleteInput.dispatchEvent(new Event('input'));
+                    })
+                    .catch(error => {
+                        console.error('Error fetching athletes:', error);
+                        athleteError.textContent = 'Athlete list could not load. Check your connection and try again.';
+                        throw error;
+                    })
+                    .finally(() => {
+                        athleteLoadPromise = null;
+                    });
+                return athleteLoadPromise;
+            }
+
+            loadAthletes().catch(() => {});
+
             // — ATHLETE AUTOCOMPLETE —
-            fetch('/api/data/athletes')
-                .then(r => r.json())
-                .then(data => {
-                    const athletes = data;
+            function initializeAthleteAutocomplete(data) {
+                const athletes = data;
 
-                    let currentFocus = -1;
+                let currentFocus = -1;
 
-                    // Inside your DOMContentLoaded listener, replace the loop in your input handler with this:
-                    athleteInput.addEventListener('input', function () {
-                        // split on spaces and match all terms anywhere in the name
-                        const query = this.value.trim().toLowerCase();
-                        const terms = query.split(/\s+/).filter(t => t);
+                // Inside your DOMContentLoaded listener, replace the loop in your input handler with this:
+                athleteInput.addEventListener('input', function () {
+                    // split on spaces and match all terms anywhere in the name
+                    const query = this.value.trim().toLowerCase();
+                    const terms = query.split(/\s+/).filter(t => t);
 
-                        closeAllLists();
-                        if (!terms.length) return false;
+                    closeAllLists();
+                    if (!terms.length) return false;
 
-                        // create the dropdown container
-                        const list = document.createElement('div');
-                        list.setAttribute('id', this.id + '-autocomplete-list');
-                        list.setAttribute('class', 'autocomplete-items');
-                        this.parentNode.appendChild(list);
+                    // create the dropdown container
+                    const list = document.createElement('div');
+                    list.setAttribute('id', this.id + '-autocomplete-list');
+                    list.setAttribute('class', 'autocomplete-items');
+                    this.parentNode.appendChild(list);
 
-                        // limit to at most 5 items
-                        const maxItems = 5;
-                        let count = 0;
+                    // limit to at most 5 items
+                    const maxItems = 5;
+                    let count = 0;
 
-                        athletes.forEach(a => {
-                            if (count >= maxItems) return;
-                            const name = a.Name.toLowerCase();
-                            // only match if every term appears somewhere
-                            if (terms.every(term => name.includes(term))) {
-                                // highlight the first search term
-                                const first = terms[0];
-                                const idx = name.indexOf(first);
-                                const item = document.createElement('div');
-                                item.innerHTML =
-                                    a.Name.substr(0, idx) +
-                                    '<strong>' + a.Name.substr(idx, first.length) + '</strong>' +
-                                    a.Name.substr(idx + first.length);
-                                item.dataset.value = a.Name;
-                                item.dataset.profilePic = a.ProfilePic;
+                    athletes.forEach(a => {
+                        if (count >= maxItems) return;
+                        const name = a.Name.toLowerCase();
+                        // only match if every term appears somewhere
+                        if (terms.every(term => name.includes(term))) {
+                            // highlight the first search term
+                            const first = terms[0];
+                            const idx = name.indexOf(first);
+                            const item = document.createElement('div');
+                            item.innerHTML =
+                                a.Name.substr(0, idx) +
+                                '<strong>' + a.Name.substr(idx, first.length) + '</strong>' +
+                                a.Name.substr(idx + first.length);
+                            item.dataset.value = a.Name;
+                            item.dataset.profilePic = a.ProfilePic;
 
-                                item.addEventListener('mousedown', e => {
-                                    e.preventDefault();
-                                    selectAthlete(a);
-                                    closeAllLists();
-                                });
+                            item.addEventListener('mousedown', e => {
+                                e.preventDefault();
+                                selectAthlete(a);
+                                closeAllLists();
+                            });
 
-                                list.appendChild(item);
-                                count++;
-                            }
-                        });
-                    });
-
-                    athleteInput.addEventListener('keydown', function (e) {
-                        let list = document.getElementById(this.id + '-autocomplete-list');
-                        if (list) list = list.getElementsByTagName('div');
-                        if (e.keyCode === 40) {          // down
-                            currentFocus++;
-                            addActive(list);
-                        } else if (e.keyCode === 38) {   // up
-                            currentFocus--;
-                            addActive(list);
-                        } else if (e.keyCode === 13) {   // enter
-                            e.preventDefault();
-                            if (currentFocus > -1 && list) {
-                                list[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
-                            }
+                            list.appendChild(item);
+                            count++;
                         }
                     });
+                });
 
-                    function addActive(items) {
-                        if (!items) return;
-                        removeActive(items);
-                        if (currentFocus >= items.length) currentFocus = 0;
-                        if (currentFocus < 0) currentFocus = items.length - 1;
-                        items[currentFocus].classList.add('autocomplete-active');
-                        items[currentFocus].scrollIntoView({ block: 'nearest' });
-                    }
-                    function removeActive(items) {
-                        Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
-                    }
-                    function closeAllLists() {
-                        document.querySelectorAll('.autocomplete-items')
-                            .forEach(list => list.remove());
-                        currentFocus = -1;
-                    }
-                    document.addEventListener('click', () => closeAllLists());
-
-                    const saved = getLocalItem('selectedAthleteName');
-                    if (saved) {
-                        const match = athletes.find(a => a.Name === saved);
-                        if (match) {
-                            selectAthlete(match);
+                athleteInput.addEventListener('keydown', function (e) {
+                    let list = document.getElementById(this.id + '-autocomplete-list');
+                    if (list) list = list.getElementsByTagName('div');
+                    if (e.keyCode === 40) {          // down
+                        currentFocus++;
+                        addActive(list);
+                    } else if (e.keyCode === 38) {   // up
+                        currentFocus--;
+                        addActive(list);
+                    } else if (e.keyCode === 13) {   // enter
+                        e.preventDefault();
+                        if (currentFocus > -1 && list) {
+                            list[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
                         }
                     }
-                })
-                .catch(console.error);
+                });
+
+                function addActive(items) {
+                    if (!items) return;
+                    removeActive(items);
+                    if (currentFocus >= items.length) currentFocus = 0;
+                    if (currentFocus < 0) currentFocus = items.length - 1;
+                    items[currentFocus].classList.add('autocomplete-active');
+                    items[currentFocus].scrollIntoView({ block: 'nearest' });
+                }
+                function removeActive(items) {
+                    Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
+                }
+                function closeAllLists() {
+                    document.querySelectorAll('.autocomplete-items')
+                        .forEach(list => list.remove());
+                    currentFocus = -1;
+                }
+                document.addEventListener('click', () => closeAllLists());
+
+                const saved = getLocalItem('selectedAthleteName');
+                if (saved) {
+                    const match = athletes.find(a => a.Name === saved);
+                    if (match) {
+                        selectAthlete(match);
+                    }
+                }
+            }
 
         });
 

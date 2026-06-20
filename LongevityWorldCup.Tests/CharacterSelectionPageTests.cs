@@ -33,4 +33,22 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("const saved = getLocalItem('selectedAthleteName');", html);
         Assert.Contains("localStorage.setItem('selectedAthleteName', currentAthlete.Name);", html);
     }
+
+    [Fact]
+    public async Task AthleteSelection_AthleteListFailureShowsRetryableInputError()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-selection.html");
+
+        Assert.Contains("let athleteLoadPromise = null;", html);
+        Assert.Contains("function retryAthleteLoad()", html);
+        Assert.Contains("athleteInput.addEventListener('focus', retryAthleteLoad);", html);
+        Assert.Contains("athleteInput.addEventListener('input', retryAthleteLoad);", html);
+        Assert.Contains("console.error('Error fetching athletes:', error);", html);
+        Assert.Contains("athleteError.textContent = 'Athlete list could not load. Check your connection and try again.';", html);
+        Assert.Contains("loadAthletes().catch(() => {});", html);
+        Assert.DoesNotContain(".catch(console.error);", html);
+    }
 }
