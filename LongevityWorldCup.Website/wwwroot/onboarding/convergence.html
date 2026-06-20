@@ -1398,7 +1398,7 @@
                     applyButton.textContent = 'Submitting...';
                     showLoading();
 
-                    await window.sendApplicationSubmissionReport(
+                    void window.sendApplicationSubmissionReport(
                         window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)
                     );
 
