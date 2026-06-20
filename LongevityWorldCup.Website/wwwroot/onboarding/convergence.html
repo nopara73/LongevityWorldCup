@@ -1286,45 +1286,49 @@
                     console.error('Error fetching flags:', error);
                 });
 
+            const fallbackDivisions = ["Men's", "Women's", "Open"];
+            function populateDivisionSelect(divisions) {
+                const divisionSelect = document.getElementById('division');
+                const availableDivisions = Array.isArray(divisions) && divisions.length ? divisions : fallbackDivisions;
+
+                // Clear existing options (if any)
+                divisionSelect.innerHTML = '';
+
+                // Populate divisions into the select element
+                availableDivisions.forEach(function (division) {
+                    const option = document.createElement('option');
+                    option.value = division; // Use lowercase or any appropriate value
+                    option.textContent = `${window.TryGetDivisionIcon(division)} ${division}`;
+                    divisionSelect.appendChild(option);
+                });
+
+                // Optionally, set a default value or prompt
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '-- Select division --';
+                defaultOption.disabled = true;
+                defaultOption.selected = true;
+                divisionSelect.insertBefore(defaultOption, divisionSelect.firstChild);
+
+                if (currentStage === 1) {
+                    divisionSelect.addEventListener('change', checkFormValidityStage1);
+                    checkFormValidityStage1(); // Check validity in case other fields are already filled
+                }
+
+                applyFakeDataIfNeeded();
+
+                document.getElementById('division').addEventListener('change', function () {
+                    document.getElementById('flag').focus();
+                });
+            }
+
             // Fetch divisions and populate the division select element
             fetch('/api/data/divisions')
                 .then(response => response.json())
-                .then(divisions => {
-                    const divisionSelect = document.getElementById('division');
-
-                    // Clear existing options (if any)
-                    divisionSelect.innerHTML = '';
-
-                    // Populate divisions into the select element
-                    divisions.forEach(function (division) {
-                        const option = document.createElement('option');
-                        option.value = division; // Use lowercase or any appropriate value
-                        option.textContent = `${window.TryGetDivisionIcon(division)} ${division}`;
-                        divisionSelect.appendChild(option);
-                    });
-
-                    // Optionally, set a default value or prompt
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = '';
-                    defaultOption.textContent = '-- Select division --';
-                    defaultOption.disabled = true;
-                    defaultOption.selected = true;
-                    divisionSelect.insertBefore(defaultOption, divisionSelect.firstChild);
-
-                    if (currentStage === 1) {
-                        divisionSelect.addEventListener('change', checkFormValidityStage1);
-                        checkFormValidityStage1(); // Check validity in case other fields are already filled
-                    }
-
-                    applyFakeDataIfNeeded();
-
-                    document.getElementById('division').addEventListener('change', function () {
-                        document.getElementById('flag').focus();
-                    });
-
-                })
+                .then(populateDivisionSelect)
                 .catch(error => {
                     console.error('Error fetching divisions:', error);
+                    populateDivisionSelect(fallbackDivisions);
                 });
 
             const mainProofInstructions = document.getElementById('mainProofInstructions');
