@@ -26,6 +26,8 @@ public sealed class LongevitymaxxingChallengeService
     private const int CommitmentAverageWindowDays = 7;
     private const int LeaderboardScoringWindowDays = 14;
     private const string CommitmentPaymentReminderKind = "commitment-payment";
+    private const string ChallengeInactiveReasonMissedScoredDays = "missed-scored-days";
+    private const string ChallengeInactiveReasonCommitmentPayment = "commitment-payment";
     private const string PublicParticipantNotesStartAtUtc = "2026-06-19T12:50:40.4598757+00:00";
     private const double FinalDayScoreMultiplier = 1.4d;
     public const int MaxProfilePictureUploadBytes = 32 * 1024 * 1024;
@@ -519,7 +521,7 @@ public sealed class LongevitymaxxingChallengeService
             update.ExecuteNonQuery();
 
             if (invoicePaid)
-                ReactivateParticipantEmails(sqlite, participant.Id, now);
+                ReactivateParticipantChallenge(sqlite, participant.Id, now);
         });
 
         return GetParticipantState(accessToken, now);
@@ -712,9 +714,6 @@ public sealed class LongevitymaxxingChallengeService
         });
     }
 
-    private void StopParticipantEmails(string participantId, DateTimeOffset now)
-        => _db.Run(sqlite => StopParticipantEmails(sqlite, participantId, now, tokenIsParticipantId: true));
-
     private static bool StopParticipantEmails(SqliteConnection sqlite, string participantIdOrToken, DateTimeOffset now, bool tokenIsParticipantId)
     {
         using var update = sqlite.CreateCommand();
@@ -737,13 +736,35 @@ public sealed class LongevitymaxxingChallengeService
         return update.ExecuteNonQuery() > 0;
     }
 
-    private static void ReactivateParticipantEmails(SqliteConnection sqlite, string participantId, DateTimeOffset now)
+    private void MarkParticipantInactive(string participantId, DateTimeOffset now, string reason)
+        => _db.Run(sqlite => MarkParticipantInactive(sqlite, participantId, now, reason));
+
+    private static void MarkParticipantInactive(SqliteConnection sqlite, string participantId, DateTimeOffset now, string reason)
     {
         using var update = sqlite.CreateCommand();
         update.CommandText =
             """
             UPDATE LongevitymaxxingParticipants
-            SET StoppedEmailsAtUtc = NULL,
+            SET ChallengeInactiveAtUtc = COALESCE(ChallengeInactiveAtUtc, @inactive),
+                ChallengeInactiveReason = COALESCE(ChallengeInactiveReason, @reason),
+                UpdatedAtUtc = @updated
+            WHERE Id = @participantId;
+            """;
+        Add(update, "@inactive", now.ToString("o"));
+        Add(update, "@reason", reason);
+        Add(update, "@updated", now.ToString("o"));
+        Add(update, "@participantId", participantId);
+        update.ExecuteNonQuery();
+    }
+
+    private static void ReactivateParticipantChallenge(SqliteConnection sqlite, string participantId, DateTimeOffset now)
+    {
+        using var update = sqlite.CreateCommand();
+        update.CommandText =
+            """
+            UPDATE LongevitymaxxingParticipants
+            SET ChallengeInactiveAtUtc = NULL,
+                ChallengeInactiveReason = NULL,
                 UpdatedAtUtc = @updated
             WHERE Id = @participantId;
             """;
@@ -763,6 +784,7 @@ public sealed class LongevitymaxxingChallengeService
         var calls = GetUpcomingParticipantCalls(selectedCalls, now);
         var participants = GetConfirmedParticipants()
             .Where(p => p.StoppedEmailsAtUtc is null)
+            .Where(p => p.ChallengeInactiveAtUtc is null)
             .ToList();
         var checkIns = GetCheckInsFor(participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
         var candidates = new List<LongevitymaxxingReminderCandidate>();
@@ -845,7 +867,7 @@ public sealed class LongevitymaxxingChallengeService
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var settings = BuildSettings(now);
         var participants = GetConfirmedParticipants()
-            .Where(p => p.StoppedEmailsAtUtc is null)
+            .Where(p => p.ChallengeInactiveAtUtc is null)
             .ToList();
         var checkIns = GetCheckInsFor(participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
 
@@ -871,7 +893,7 @@ public sealed class LongevitymaxxingChallengeService
             if (activeObligation is not null)
             {
                 if (!IsCommitmentTriggerEditable(settings, participant, activeObligation, now, byDay))
-                    StopParticipantEmails(participant.Id, now);
+                    MarkParticipantInactive(participant.Id, now, ChallengeInactiveReasonCommitmentPayment);
                 continue;
             }
 
@@ -879,7 +901,7 @@ public sealed class LongevitymaxxingChallengeService
                 continue;
 
             if (CountConsecutiveMissedScoredDays(settings, participant, byDay, targetDate) >= MaxConsecutiveMissedScoredDaysForDailyReminders)
-                StopParticipantEmails(participant.Id, now);
+                MarkParticipantInactive(participant.Id, now, ChallengeInactiveReasonMissedScoredDays);
         }
     }
 
@@ -912,6 +934,7 @@ public sealed class LongevitymaxxingChallengeService
 
         return GetConfirmedParticipants()
             .Where(participant => participant.StoppedEmailsAtUtc is null)
+            .Where(participant => participant.ChallengeInactiveAtUtc is null)
             .Where(participant => !WasChallengeStartEmailSent(participant.Id))
             .Select(participant => new LongevitymaxxingChallengeStartCandidate(
                 participant.Id,
@@ -956,6 +979,7 @@ public sealed class LongevitymaxxingChallengeService
 
         var participants = GetConfirmedParticipants()
             .Where(p => p.StoppedEmailsAtUtc is null)
+            .Where(p => p.ChallengeInactiveAtUtc is null)
             .ToList();
         var candidates = new List<LongevitymaxxingCallReminderCandidate>();
 
@@ -1068,6 +1092,8 @@ public sealed class LongevitymaxxingChallengeService
                     StopToken TEXT NOT NULL UNIQUE,
                     ConfirmedAtUtc TEXT NULL,
                     StoppedEmailsAtUtc TEXT NULL,
+                    ChallengeInactiveAtUtc TEXT NULL,
+                    ChallengeInactiveReason TEXT NULL,
                     CommitmentAmountUsd TEXT NULL,
                     CreatedAtUtc TEXT NOT NULL,
                     UpdatedAtUtc TEXT NOT NULL
@@ -1156,6 +1182,8 @@ public sealed class LongevitymaxxingChallengeService
             cmd.ExecuteNonQuery();
 
             TryAddLongevitymaxxingParticipantsColumn(sqlite, "CommitmentAmountUsd TEXT NULL");
+            TryAddLongevitymaxxingParticipantsColumn(sqlite, "ChallengeInactiveAtUtc TEXT NULL");
+            TryAddLongevitymaxxingParticipantsColumn(sqlite, "ChallengeInactiveReason TEXT NULL");
         });
     }
 
@@ -1321,6 +1349,7 @@ public sealed class LongevitymaxxingChallengeService
                     badges,
                     latest?.ToString("o"),
                     p.StoppedEmailsAtUtc is not null,
+                    p.ChallengeInactiveAtUtc is not null,
                     activePaymentObligations.ContainsKey(p.Id) ? "commitment-due" : null),
                 TieBreak: GetAthleteTieBreak(athleteTieBreaks, p.AthleteSlug));
         })
@@ -2331,7 +2360,8 @@ public sealed class LongevitymaxxingChallengeService
             cmd.CommandText =
                 """
                 SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                       ConfirmedAtUtc, StoppedEmailsAtUtc, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
+                       ConfirmedAtUtc, StoppedEmailsAtUtc, ChallengeInactiveAtUtc, ChallengeInactiveReason,
+                       CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
                 FROM LongevitymaxxingParticipants
                 WHERE ConfirmedAtUtc IS NOT NULL;
                 """;
@@ -2485,7 +2515,8 @@ public sealed class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, ChallengeInactiveAtUtc, ChallengeInactiveReason,
+                   CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE Email = @email
             LIMIT 1;
@@ -2500,7 +2531,8 @@ public sealed class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, ChallengeInactiveAtUtc, ChallengeInactiveReason,
+                   CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE AccessToken = @token
             LIMIT 1;
@@ -2515,7 +2547,8 @@ public sealed class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, ChallengeInactiveAtUtc, ChallengeInactiveReason,
+                   CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
             WHERE ConfirmationToken = @token
             LIMIT 1;
@@ -2541,9 +2574,11 @@ public sealed class LongevitymaxxingChallengeService
                 reader.GetString(7),
                 reader.IsDBNull(8) ? null : ParseNullableDateTimeOffset(reader.GetString(8)),
                 reader.IsDBNull(9) ? null : ParseNullableDateTimeOffset(reader.GetString(9)),
-                reader.IsDBNull(10) ? null : ParseDecimal(reader.GetString(10)),
-                ParseNullableDateTimeOffset(reader.GetString(11))!.Value,
-                ParseNullableDateTimeOffset(reader.GetString(12))!.Value));
+                reader.IsDBNull(10) ? null : ParseNullableDateTimeOffset(reader.GetString(10)),
+                reader.IsDBNull(11) ? null : reader.GetString(11),
+                reader.IsDBNull(12) ? null : ParseDecimal(reader.GetString(12)),
+                ParseNullableDateTimeOffset(reader.GetString(13))!.Value,
+                ParseNullableDateTimeOffset(reader.GetString(14))!.Value));
         }
 
         return rows;
@@ -3241,6 +3276,7 @@ public sealed class LongevitymaxxingChallengeService
             BuildAthleteUrl(participant.AthleteSlug),
             BuildCachedProfilePictureUrl(participant),
             participant.StoppedEmailsAtUtc is not null,
+            participant.ChallengeInactiveAtUtc is not null,
             participant.CommitmentAmountUsd,
             daysIn);
     }
@@ -3363,6 +3399,8 @@ public sealed class LongevitymaxxingChallengeService
         string StopToken,
         DateTimeOffset? ConfirmedAtUtc,
         DateTimeOffset? StoppedEmailsAtUtc,
+        DateTimeOffset? ChallengeInactiveAtUtc,
+        string? ChallengeInactiveReason,
         decimal? CommitmentAmountUsd,
         DateTimeOffset CreatedAtUtc,
         DateTimeOffset UpdatedAtUtc);

@@ -54,6 +54,7 @@ Use this as a compact guardrail for terms agents often misuse.
 - **Longevitymaxxing Challenge** call times are fixed by the generated weekly community-call schedule; participants do not vote on call availability.
 - **Longevitymaxxing Challenge** daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - **Longevitymaxxing Challenge** daily reminder emails continue indefinitely and stop after 3 consecutive missed scored days. Practice does not count, and days before a participant's local signup date do not count.
+- **Longevitymaxxing Challenge** Stop challenge emails is only a notification preference. It must not remove the participant from the live leaderboard; inactive status comes from missed scored days, unresolved commitment payments after the edit window, or another explicit exit trigger.
 - **Longevitymaxxing Challenge** commitment payments require each participant to configure a USD amount of at least `$1`.
 - **Longevitymaxxing Challenge** existing participants without a commitment amount do not see or get blocked by commitment setup until the original 14-day challenge has concluded. On Day 15 and later, they must configure an amount before continuing.
 - **Longevitymaxxing Challenge** commitment payments trigger only when a submitted scored check-in scores below the exact average of the participant's previous scored check-ins: the 4th scored check-in uses the previous 3, then later checks use up to the previous 7.

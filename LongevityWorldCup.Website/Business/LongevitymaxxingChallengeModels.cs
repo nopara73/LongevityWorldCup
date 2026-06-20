@@ -65,6 +65,7 @@ public sealed record LongevitymaxxingParticipantSummary(
     string? AthleteUrl,
     string? ProfileImageUrl,
     bool ChallengeEmailsStopped,
+    bool ChallengeInactive,
     decimal? CommitmentAmountUsd,
     int DaysIn);
 
@@ -82,6 +83,7 @@ public sealed record LongevitymaxxingLeaderboardRow(
     IReadOnlyList<string> Badges,
     string? LatestCheckInAtUtc,
     bool ChallengeEmailsStopped,
+    bool ChallengeInactive,
     string? CommitmentStatus);
 
 public sealed record LongevitymaxxingCommitmentState(
