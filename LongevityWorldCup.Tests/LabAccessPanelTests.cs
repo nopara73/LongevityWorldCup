@@ -85,6 +85,21 @@ public sealed class LabAccessPanelTests
         Assert.DoesNotContain("{{REQUEST_COUNTRY_CODE}}", html);
     }
 
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void LabAccessGeoLookup_IsTimeBounded(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("function fetchLabGeoWithTimeout()", html);
+        Assert.Contains("const timeoutMs = 3500;", html);
+        Assert.Contains("const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;", html);
+        Assert.Contains("window.setTimeout(() => controller.abort(), timeoutMs)", html);
+        Assert.Contains("...(controller ? { signal: controller.signal } : {})", html);
+        Assert.Contains("fetchLabGeoWithTimeout()", html);
+    }
+
     private static string GetPagePath(string fileName)
     {
         var repoRoot = FindRepoRoot();

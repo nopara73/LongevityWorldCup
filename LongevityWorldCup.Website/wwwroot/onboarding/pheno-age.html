@@ -1281,6 +1281,20 @@
                 } catch (_) { /* ignore */ }
             }
 
+            function fetchLabGeoWithTimeout() {
+                const timeoutMs = 3500;
+                const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const timer = controller
+                    ? window.setTimeout(() => controller.abort(), timeoutMs)
+                    : null;
+                return fetch('https://ipapi.co/json/', {
+                    cache: 'no-store',
+                    ...(controller ? { signal: controller.signal } : {})
+                }).finally(() => {
+                    if (timer) window.clearTimeout(timer);
+                });
+            }
+
             const previewGeo = getLocalPreviewGeo();
             if (previewGeo) {
                 revealIfEligible(previewGeo.countryCode);
@@ -1303,7 +1317,7 @@
                 return;
             }
 
-            fetch('https://ipapi.co/json/', { cache: 'no-store' })
+            fetchLabGeoWithTimeout()
                 .then(response => response.ok ? response.json() : null)
                 .then(location => {
                     if (!location) return;
