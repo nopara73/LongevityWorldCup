@@ -83,6 +83,7 @@ public sealed class ApplicationOnboardingPageTests
 
         Assert.Contains("window.readApplicationErrorMessage = async function (response)", javascript);
         Assert.Contains("window.extractApplicationErrorMessage = function (text, fallback)", javascript);
+        Assert.Contains("return fallback;", javascript);
         Assert.Contains("if (data && typeof data.message === 'string' && data.message.trim())", javascript);
         Assert.Contains("if (data && data.errors && typeof data.errors === 'object')", javascript);
         Assert.Contains("return messages.join('\\n');", javascript);
