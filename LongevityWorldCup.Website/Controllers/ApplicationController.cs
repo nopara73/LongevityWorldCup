@@ -173,7 +173,7 @@ namespace LongevityWorldCup.Website.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return ValidationProblem(ModelState);
             }
 
             // Load SMTP configuration
@@ -741,7 +741,7 @@ namespace LongevityWorldCup.Website.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return ValidationProblem(ModelState);
             }
 
             var email = requestData.Email?.Trim();
