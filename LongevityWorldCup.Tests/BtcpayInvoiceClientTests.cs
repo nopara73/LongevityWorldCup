@@ -136,6 +136,55 @@ public sealed class BtcpayInvoiceClientTests
         Assert.DoesNotContain("user@example.test", lookup.Error);
     }
 
+    [Fact]
+    public void ParseInvoiceJson_TreatsSettledInvoiceAsPaidWithoutPaidAmount()
+    {
+        var result = BtcpayInvoiceClient.ParseInvoiceJson(
+            """
+            {
+              "status": "Settled",
+              "additionalStatus": "None",
+              "amount": "25.50",
+              "currency": "USD",
+              "checkoutLink": "https://btcpay.example.test/i/invoice-1"
+            }
+            """);
+
+        Assert.True(result.Success);
+        Assert.True(result.IsPaid);
+        Assert.Equal("Settled", result.Status);
+        Assert.Null(result.PaidAmount);
+    }
+
+    [Fact]
+    public void ParseInvoiceJson_ParsesNumericAndCaseInsensitiveProviderFields()
+    {
+        var result = BtcpayInvoiceClient.ParseInvoiceJson(
+            """
+            {
+              "STATUS": "Processing",
+              "ADDITIONALSTATUS": "PaidPartial",
+              "AMOUNT": 25.50,
+              "CURRENCY": "usd",
+              "PAIDAMOUNT": 1.25,
+              "CHECKOUTLINK": "https://btcpay.example.test/i/invoice-1",
+              "BUYER": { "EMAIL": "buyer@example.test" },
+              "METADATA": { "ATHLETENAME": "Alice Athlete" }
+            }
+            """);
+
+        Assert.True(result.Success);
+        Assert.True(result.IsPaid);
+        Assert.Equal("Processing", result.Status);
+        Assert.Equal("PaidPartial", result.AdditionalStatus);
+        Assert.Equal(25.50m, result.Amount);
+        Assert.Equal(1.25m, result.PaidAmount);
+        Assert.Equal("usd", result.Currency);
+        Assert.Equal("https://btcpay.example.test/i/invoice-1", result.CheckoutLink);
+        Assert.Equal("buyer@example.test", result.BuyerEmail);
+        Assert.Equal("Alice Athlete", result.AthleteNameFromMetadata);
+    }
+
     private sealed class StaticHttpClientFactory(HttpStatusCode statusCode, string body) : IHttpClientFactory
     {
         public HttpClient CreateClient(string name)
