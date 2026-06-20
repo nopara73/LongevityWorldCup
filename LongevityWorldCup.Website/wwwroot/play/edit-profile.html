@@ -1100,14 +1100,10 @@
             const regex = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\s'(),.\-]{2,99}$/;
             if (trimmed.length < 3) {
                 customAlert('Flag must be at least 3 characters long.');
-                restoreFlagToOriginal();
-
                 return false;
             }
             if (!regex.test(trimmed)) {
                 customAlert('Flag contains invalid characters.');
-                restoreFlagToOriginal();
-
                 return false;
             }
             return true;
@@ -1127,8 +1123,6 @@
             const v = value.trim();
             if (!v) {
                 customAlert('Media contact is required.');
-                restoreMediaContactToOriginal();
-
                 return false;
             }
             return true;                                    // any non-empty string OK
@@ -1138,7 +1132,6 @@
             const v = value.trim();
             if (!v) {
                 customAlert('Your why is the light. Don’t leave us in the dark.');
-                restoreWhyDisplayToOriginal();
                 return false;
             }
             return true;
