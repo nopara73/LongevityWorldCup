@@ -67,7 +67,7 @@ jobs:
 
       - name: Deploy via SSH
         if: steps.freshness.outputs.deploy == 'true'
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
