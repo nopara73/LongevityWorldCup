@@ -21,6 +21,7 @@ public sealed class PublicPostRateLimitingTests
 
         using var limitedResponse = await PostEmptyPhenoAgeRequest(client);
         Assert.Equal(HttpStatusCode.TooManyRequests, limitedResponse.StatusCode);
+        Assert.True(limitedResponse.Headers.RetryAfter?.Delta > TimeSpan.Zero);
     }
 
     [Fact]

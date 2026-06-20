@@ -47,7 +47,8 @@ public sealed class DatabaseManager : IDisposable
             DataSource = DbPath,
             Mode = SqliteOpenMode.ReadWriteCreate,
             Cache = SqliteCacheMode.Shared,
-            DefaultTimeout = defaultTimeoutSeconds
+            DefaultTimeout = defaultTimeoutSeconds,
+            Pooling = false
         };
 
         _sqlite = new SqliteConnection(csb.ToString());
@@ -135,7 +136,7 @@ public sealed class DatabaseManager : IDisposable
 
         Directory.CreateDirectory(backupDir);
 
-        var backupFile = Path.Combine(backupDir, $"{filePrefix}{DateTime.UtcNow:yyyyMMdd_HHmmss}.db");
+        var backupFile = Path.Combine(backupDir, $"{filePrefix}{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.db");
 
         Run(sqlite =>
         {
@@ -145,7 +146,13 @@ public sealed class DatabaseManager : IDisposable
                 chk.ExecuteNonQuery();
             }
 
-            using var dest = new SqliteConnection($"Data Source={backupFile}");
+            var backupConnectionString = new SqliteConnectionStringBuilder
+            {
+                DataSource = backupFile,
+                Pooling = false
+            }.ToString();
+
+            using var dest = new SqliteConnection(backupConnectionString);
             dest.Open();
             sqlite.BackupDatabase(dest);
         });
@@ -154,7 +161,10 @@ public sealed class DatabaseManager : IDisposable
         {
             var files = new List<FileInfo>();
             foreach (var f in Directory.GetFiles(backupDir, "*.db"))
-                files.Add(new FileInfo(f));
+            {
+                if (Path.GetFileName(f).StartsWith(filePrefix, StringComparison.Ordinal))
+                    files.Add(new FileInfo(f));
+            }
 
             files.Sort((a, b) => b.CreationTimeUtc.CompareTo(a.CreationTimeUtc));
 

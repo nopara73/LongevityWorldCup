@@ -16,6 +16,7 @@ public sealed class HealthCheckEndpointTests
         using var response = await client.GetAsync("/health");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.CacheControl?.NoStore);
         Assert.Equal("application/json; charset=utf-8", response.Content.Headers.ContentType?.ToString());
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

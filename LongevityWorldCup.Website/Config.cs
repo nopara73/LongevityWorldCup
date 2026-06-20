@@ -111,7 +111,16 @@ namespace LongevityWorldCup.Website
                 return;
 
             var json = await File.ReadAllTextAsync(RuntimeConfigFilePath);
-            var runtimeConfig = JsonSerializer.Deserialize<RuntimeConfig>(json);
+            RuntimeConfig? runtimeConfig;
+            try
+            {
+                runtimeConfig = JsonSerializer.Deserialize<RuntimeConfig>(json);
+            }
+            catch (JsonException)
+            {
+                return;
+            }
+
             if (runtimeConfig is null)
                 return;
 
