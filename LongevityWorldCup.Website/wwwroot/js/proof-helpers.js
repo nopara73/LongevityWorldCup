@@ -190,11 +190,11 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     }
                 }
             }
-            // Reset the file input's value to allow re-uploading the same file if needed
-            input.value = "";
         } catch (error) {
             customAlert(error && error.message ? error.message : 'Proof upload failed.');
         } finally {
+            // Reset the file input's value to allow re-uploading the same file if needed.
+            if (input) input.value = "";
             hideLoading();
         }
     };

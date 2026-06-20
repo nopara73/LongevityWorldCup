@@ -32,4 +32,23 @@ public sealed class ProofUploadPageTests
         Assert.Contains("if (proofPics.length >= 9)", javascript);
         Assert.DoesNotContain("const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });", javascript);
     }
+
+    [Fact]
+    public async Task ProofHelper_ClearsFileInputAfterFailedProofProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+
+        var catchIndex = javascript.IndexOf("} catch (error) {", StringComparison.Ordinal);
+        var finallyIndex = javascript.IndexOf("} finally {", StringComparison.Ordinal);
+        var resetIndex = javascript.IndexOf("if (input) input.value = \"\";", StringComparison.Ordinal);
+        var hideLoadingIndex = javascript.IndexOf("hideLoading();", resetIndex, StringComparison.Ordinal);
+
+        Assert.True(catchIndex >= 0);
+        Assert.True(finallyIndex > catchIndex);
+        Assert.True(resetIndex > finallyIndex);
+        Assert.True(hideLoadingIndex > resetIndex);
+    }
 }
