@@ -326,8 +326,11 @@
         }
 
         if (!athlete || typeof athlete !== 'object' || !athlete.Name) {
-            sessionStorage.removeItem('selectedAthlete');
-            sessionStorage.removeItem('tempAthlete');
+            try {
+                sessionStorage.removeItem('selectedAthlete');
+                sessionStorage.removeItem('tempAthlete');
+            } catch (_) {
+            }
             window.location.replace('/select-athlete');
             athlete = {};
         }

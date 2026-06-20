@@ -1189,8 +1189,11 @@
 
         const hasSelectedAthlete = athlete && typeof athlete === 'object' && athlete.Name && athlete.DateOfBirth;
         if (isUpdate && !hasSelectedAthlete) {
-            sessionStorage.removeItem('selectedAthlete');
-            sessionStorage.removeItem('tempAthlete');
+            try {
+                sessionStorage.removeItem('selectedAthlete');
+                sessionStorage.removeItem('tempAthlete');
+            } catch (_) {
+            }
             window.location.replace('/select-athlete');
             athlete = null;
         }
