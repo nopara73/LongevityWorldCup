@@ -609,6 +609,9 @@
                         <button type="button" id="cropButton" class="option-button">
                             Crop and save
                         </button>
+                        <button type="button" id="cancelProfileCropButton" class="option-button grey">
+                            Cancel
+                        </button>
                     </div>
                 </div>
             </fieldset>
@@ -1587,6 +1590,20 @@
                         nextButton.disabled = false;
                         updateUploadButtons();
                     }
+                });
+
+                document.getElementById('cancelProfileCropButton').addEventListener('click', function () {
+                    if (cropper) {
+                        cropper.destroy();
+                        cropper = null;
+                    }
+
+                    document.getElementById('uploadPart').style.display = '';
+                    document.getElementById('croppingPart').style.display = 'none';
+
+                    const nextButton = document.getElementById('nextButton');
+                    nextButton.disabled = !profilePic;
+                    updateUploadButtons();
                 });
 
                 profilePicInput.setAttribute('data-listener', 'true');
