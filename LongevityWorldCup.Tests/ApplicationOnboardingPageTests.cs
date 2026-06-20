@@ -107,6 +107,8 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const input = event.target;", selectionBody);
         Assert.Contains("const file = input.files[0];", selectionBody);
         Assert.Contains("input.value = '';", selectionBody);
+        Assert.Contains("reader.onerror = function ()", selectionBody);
+        Assert.Contains("customAlert('Profile picture upload failed.');", selectionBody);
     }
 
     [Fact]
