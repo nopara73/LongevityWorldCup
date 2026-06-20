@@ -42,6 +42,32 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
+    public async Task ChallengeProfilePicturePreparation_IsCoveredByUploadRetryHandling()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+        var uploadStart = javascript.IndexOf("async function uploadProfilePicture(file, input)", StringComparison.Ordinal);
+        var uploadEnd = javascript.IndexOf("async function prepareProfilePictureFile(file)", uploadStart, StringComparison.Ordinal);
+
+        Assert.True(uploadStart >= 0);
+        Assert.True(uploadEnd > uploadStart);
+
+        var uploadBody = javascript[uploadStart..uploadEnd];
+        var tryIndex = uploadBody.IndexOf("try {", StringComparison.Ordinal);
+        var prepareIndex = uploadBody.IndexOf("const uploadFile = await prepareProfilePictureFile(file);", StringComparison.Ordinal);
+        var catchIndex = uploadBody.IndexOf("} catch (err) {", StringComparison.Ordinal);
+        var resetIndex = uploadBody.IndexOf("input.value = \"\";", StringComparison.Ordinal);
+
+        Assert.Contains("setStatus(\"lmxProfilePictureStatus\", \"Uploading...\", false);", uploadBody);
+        Assert.True(tryIndex >= 0);
+        Assert.True(prepareIndex > tryIndex);
+        Assert.True(catchIndex > prepareIndex);
+        Assert.True(resetIndex > catchIndex);
+    }
+
+    [Fact]
     public async Task LongevitymaxxingPage_RendersProductCopyAndVersionedAssets()
     {
         using var factory = CreateFactory();
