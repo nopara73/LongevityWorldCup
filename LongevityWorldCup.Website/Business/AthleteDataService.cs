@@ -17,6 +17,22 @@ public interface IAthleteSnapshotProvider
     JsonArray GetAthletesSnapshot();
 }
 
+public sealed record CrowdAgeLeaderboardEntry(
+    string Slug,
+    string Name,
+    int Rank,
+    double CrowdAge,
+    double CrowdAgeDifference,
+    int CrowdCount);
+
+public sealed record AgeImprovementLeaderboardEntry(
+    string Slug,
+    string Name,
+    string Clock,
+    int Rank,
+    double Improvement,
+    double AgeReduction);
+
 public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 {
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
@@ -985,6 +1001,70 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             .Take(3)
             .Select(t => (t.Slug, t.CrowdAge))
             .ToList();
+    }
+
+    public bool TryGetCrowdAgeLeaderboardEntry(string athleteSlug, out CrowdAgeLeaderboardEntry entry)
+    {
+        entry = null!;
+        var normalized = NormalizeAthleteSlug(athleteSlug);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return false;
+
+        var sorted = CompetitionRanking.SortByCrowdAgeRules(GetCrowdAgeRankCandidates()).ToList();
+        var index = sorted.FindIndex(t => string.Equals(NormalizeAthleteSlug(t.Slug), normalized, StringComparison.Ordinal));
+        if (index < 0)
+            return false;
+
+        var candidate = sorted[index];
+        entry = new CrowdAgeLeaderboardEntry(
+            NormalizeAthleteSlug(candidate.Slug),
+            candidate.Name,
+            index + 1,
+            candidate.CrowdAge,
+            candidate.CrowdAgeReduction,
+            candidate.CrowdCount);
+        return true;
+    }
+
+    public bool TryGetAgeImprovementLeaderboardEntry(string athleteSlug, string clock, out AgeImprovementLeaderboardEntry entry)
+    {
+        entry = null!;
+        var normalized = NormalizeAthleteSlug(athleteSlug);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return false;
+
+        if (string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
+        {
+            var sorted = CompetitionRanking.SortByBortzAgeImprovementRules(GetBortzAgeImprovementRankCandidates()).ToList();
+            var index = sorted.FindIndex(t => string.Equals(NormalizeAthleteSlug(t.Slug), normalized, StringComparison.Ordinal));
+            if (index < 0)
+                return false;
+
+            var candidate = sorted[index];
+            entry = new AgeImprovementLeaderboardEntry(
+                NormalizeAthleteSlug(candidate.Slug),
+                candidate.Name,
+                "bortz",
+                index + 1,
+                candidate.BortzAgeImprovement,
+                candidate.BortzAgeReduction);
+            return true;
+        }
+
+        var phenoSorted = CompetitionRanking.SortByPhenoAgeImprovementRules(GetPhenoAgeImprovementRankCandidates()).ToList();
+        var phenoIndex = phenoSorted.FindIndex(t => string.Equals(NormalizeAthleteSlug(t.Slug), normalized, StringComparison.Ordinal));
+        if (phenoIndex < 0)
+            return false;
+
+        var phenoCandidate = phenoSorted[phenoIndex];
+        entry = new AgeImprovementLeaderboardEntry(
+            NormalizeAthleteSlug(phenoCandidate.Slug),
+            phenoCandidate.Name,
+            "pheno",
+            phenoIndex + 1,
+            phenoCandidate.PhenoAgeImprovement,
+            phenoCandidate.PhenoAgeReduction);
+        return true;
     }
 
     private IReadOnlyList<CrowdAgeRankCandidate> GetCrowdAgeRankCandidates()
@@ -2721,5 +2801,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         var sb = new StringBuilder(hash.Length * 2);
         foreach (var b in hash) sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
         return sb.ToString();
+    }
+
+    private static string NormalizeAthleteSlug(string? slug)
+    {
+        return (slug ?? string.Empty).Trim().Replace('-', '_').ToLowerInvariant();
     }
 }

@@ -97,6 +97,28 @@ public sealed class SocialImageRenderingTests
         }
     }
 
+    [Fact]
+    public async Task AthleteCrowdAgeSharePreviewImage_UsesCrowdAgeMetrics()
+    {
+        using var factory = CreateFactory();
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
+
+        for (var i = 0; i < 100; i++)
+            athletes.AddAgeGuess("ron_lugbill", 68);
+
+        Assert.True(athleteImages.TryGetCurrentPayload("ron-lugbill", "crowd", out var payload));
+        Assert.Equal("crowd", payload.LeagueSlug);
+        Assert.Equal(1, payload.Rank);
+        Assert.Equal("Crowd Age leaderboard", payload.LeagueName);
+        Assert.Equal("Crowd Age rank", payload.RankLabel);
+        Assert.Equal("68", payload.MetricValue);
+        Assert.Equal("Crowd Age", payload.MetricLabel);
+        Assert.Contains("100 guesses", payload.Description);
+
+        await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(payload), 1200, 630);
+    }
+
     private static async Task AssertPngCanvasAsync(Stream? stream)
     {
         Assert.NotNull(stream);

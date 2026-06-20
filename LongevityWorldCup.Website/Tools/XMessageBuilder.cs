@@ -133,7 +133,7 @@ public static class XMessageBuilder
             EventHelpers.TryExtractPrev(rawText, out var prevSlug);
             var athlete = slugToName(crowdSlug);
             var prev = !string.IsNullOrWhiteSpace(prevSlug) ? slugToName(prevSlug) : null;
-            return RejectIfTooLong(BuildCrowdAgeTop10Line(athlete, crowdPlace, previousPlace, prev, crowdAge, crowdCount, AthleteUrl(crowdSlug, "crowd")));
+            return RejectIfTooLong(BuildCrowdAgeTop10Line(athlete, crowdPlace, previousPlace, prev, crowdAge, crowdCount, getChronoAgeForSlug?.Invoke(crowdSlug), AthleteUrl(crowdSlug, "crowd")));
         }
 
         if (type == EventType.AgeImprovementTop10Change)
@@ -800,20 +800,46 @@ public static class XMessageBuilder
         string? previousAthlete,
         double crowdAge,
         int crowdCount,
+        double? chronologicalAge,
         string athleteUrl)
     {
-        var placeText = CrowdOrdinal(place);
         var crowdAgeText = crowdAge.ToString("0.#", CultureInfo.InvariantCulture);
         var countText = crowdCount.ToString("N0", CultureInfo.InvariantCulture);
-        var movement = previousPlace.HasValue
-            ? previousPlace.Value > place ? $"climbed from {CrowdOrdinal(previousPlace.Value)} to {placeText}" : $"moved from {CrowdOrdinal(previousPlace.Value)} to {placeText}"
-            : $"entered the top 10 at {placeText}";
+        var movement = BuildCrowdAgeMovement(place, previousPlace);
+        var signal = BuildCrowdAgeSignal(crowdAge, chronologicalAge);
+        var metricLine = !string.IsNullOrWhiteSpace(signal)
+            ? $"{athleteName}'s Crowd Age is {crowdAgeText}, {signal}."
+            : $"{athleteName}'s Crowd Age is {crowdAgeText}.";
 
-        var lead = !string.IsNullOrWhiteSpace(previousAthlete)
-            ? $"{athleteName} {movement} in the Crowd Age leaderboard, ahead of {previousAthlete}."
-            : $"{athleteName} {movement} in the Crowd Age leaderboard.";
+        return $"{athleteName} {movement} in Crowd Age with {countText} guesses.\n{metricLine}\n\n{athleteUrl}";
+    }
 
-        return $"{lead}\n\nCrowd Age: {crowdAgeText} years from {countText} guesses.\n\n{athleteUrl}";
+    private static string BuildCrowdAgeMovement(int place, int? previousPlace)
+    {
+        var placeText = CrowdOrdinal(place);
+        return previousPlace.HasValue
+            ? previousPlace.Value > place
+                ? $"climbed from {CrowdOrdinal(previousPlace.Value)} to {placeText}"
+                : $"moved from {CrowdOrdinal(previousPlace.Value)} to {placeText}"
+            : $"just entered the top 10 at {placeText}";
+    }
+
+    private static string? BuildCrowdAgeSignal(double crowdAge, double? chronologicalAge)
+    {
+        if (!chronologicalAge.HasValue || !double.IsFinite(chronologicalAge.Value))
+            return null;
+
+        var difference = crowdAge - chronologicalAge.Value;
+        if (!double.IsFinite(difference))
+            return null;
+
+        if (Math.Abs(difference) < 0.05)
+            return "about the same age as their chronological age";
+
+        var years = Math.Abs(difference).ToString("0.#", CultureInfo.InvariantCulture);
+        return difference < 0
+            ? $"{years} years below chronological age"
+            : $"{years} years above chronological age";
     }
 
     private static string BuildAgeImprovementTop10Line(

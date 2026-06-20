@@ -11,7 +11,8 @@ public static class SlackMessageBuilder
         EventType type,
         string rawText,
         Func<string, string> slugToName,
-        Func<string, string?>? getPodcastLinkForSlug = null)
+        Func<string, string?>? getPodcastLinkForSlug = null,
+        Func<string, double?>? getChronoAgeForSlug = null)
     {
         var (slug, rank, prev) = ParseTokens(rawText);
         return type switch
@@ -20,7 +21,7 @@ public static class SlackMessageBuilder
             EventType.Joined => BuildJoined(slug, slugToName),
             EventType.BecamePro => BuildBecamePro(slug, slugToName),
             EventType.BiologicalAgeImproved => BuildBiologicalAgeImprovement(slug, rawText, slugToName),
-            EventType.CrowdAgeTop10Change => BuildCrowdAgeTop10Change(slug, rawText, slugToName),
+            EventType.CrowdAgeTop10Change => BuildCrowdAgeTop10Change(slug, rawText, slugToName, getChronoAgeForSlug),
             EventType.AgeImprovementTop10Change => BuildAgeImprovementTop10Change(slug, rawText, slugToName),
             EventType.DonationReceived => BuildDonation(rawText),
             EventType.AthleteCountMilestone => BuildAthleteCountMilestone(rawText),
@@ -367,7 +368,7 @@ public static class SlackMessageBuilder
         return $"{nameLink} improved their {clockLabel} from {fromText} to {toText} years";
     }
 
-    private static string BuildCrowdAgeTop10Change(string? slug, string rawText, Func<string, string> slugToName)
+    private static string BuildCrowdAgeTop10Change(string? slug, string rawText, Func<string, string> slugToName, Func<string, double?>? getChronoAgeForSlug)
     {
         if (slug is null ||
             !EventHelpers.TryExtractCrowdAgeTop10Change(rawText, out var place, out var previousPlace, out var crowdAge, out var crowdCount))
@@ -377,17 +378,42 @@ public static class SlackMessageBuilder
 
         var name = slugToName(slug);
         var nameLink = Link(AthleteUrl(slug), name);
-        EventHelpers.TryExtractPrev(rawText, out var prevSlug);
-        var prevText = !string.IsNullOrWhiteSpace(prevSlug)
-            ? $", ahead of {Link(AthleteUrl(prevSlug), slugToName(prevSlug))}"
-            : "";
         var crowdAgeText = crowdAge.ToString("0.#", CultureInfo.InvariantCulture);
         var countText = crowdCount.ToString("N0", CultureInfo.InvariantCulture);
-        var movement = previousPlace.HasValue
-            ? previousPlace.Value > place ? $"climbed from {Ordinal(previousPlace.Value)} to {Ordinal(place)}" : $"moved from {Ordinal(previousPlace.Value)} to {Ordinal(place)}"
-            : $"entered the top 10 at {Ordinal(place)}";
+        var movement = BuildCrowdAgeMovement(place, previousPlace);
+        var signal = BuildCrowdAgeSignal(crowdAge, getChronoAgeForSlug?.Invoke(slug));
+        if (!string.IsNullOrWhiteSpace(signal))
+            return $"{nameLink} {movement} in Crowd Age with {countText} guesses. {nameLink}'s Crowd Age is {crowdAgeText}, {signal}.";
 
-        return $"{nameLink} {movement} in Crowd Age{prevText} ({crowdAgeText} years, {countText} guesses)";
+        return $"{nameLink} {movement} in Crowd Age with {countText} guesses. {nameLink}'s Crowd Age is {crowdAgeText}.";
+    }
+
+    private static string BuildCrowdAgeMovement(int place, int? previousPlace)
+    {
+        var placeText = Ordinal(place);
+        return previousPlace.HasValue
+            ? previousPlace.Value > place
+                ? $"climbed from {Ordinal(previousPlace.Value)} to {placeText}"
+                : $"moved from {Ordinal(previousPlace.Value)} to {placeText}"
+            : $"just entered the top 10 at {placeText}";
+    }
+
+    private static string? BuildCrowdAgeSignal(double crowdAge, double? chronologicalAge)
+    {
+        if (!chronologicalAge.HasValue || !double.IsFinite(chronologicalAge.Value))
+            return null;
+
+        var difference = crowdAge - chronologicalAge.Value;
+        if (!double.IsFinite(difference))
+            return null;
+
+        if (Math.Abs(difference) < 0.05)
+            return "about the same age as their chronological age";
+
+        var years = Math.Abs(difference).ToString("0.#", CultureInfo.InvariantCulture);
+        return difference < 0
+            ? $"{years} years below chronological age"
+            : $"{years} years above chronological age";
     }
 
     private static string BuildAgeImprovementTop10Change(string? slug, string rawText, Func<string, string> slugToName)

@@ -69,6 +69,10 @@ public sealed class AthleteOgImageService
         string LeagueName,
         int Rank,
         double AgeReduction,
+        string RankLabel,
+        string MetricValue,
+        string MetricLabel,
+        string Description,
         string? ProfilePicUrl,
         string Signature);
 
@@ -100,6 +104,14 @@ public sealed class AthleteOgImageService
             return false;
         var athlete = athleteJson;
 
+        var athleteName = athlete["DisplayName"]?.GetValue<string>() ?? athlete["Name"]?.GetValue<string>();
+        var name = !string.IsNullOrWhiteSpace(athleteName)
+            ? athleteName!.Trim()
+            : ToDisplayName(rawSlug);
+
+        if (TryBuildSpecialLeaderboardPayload(normalized, rawLeagueContext, athlete, name, out payload))
+            return true;
+
         if (!TryGetRankRowForLeague(normalized, leagueSlug, rankings, snapshot, out var rankingRow, out var rank))
         {
             // Robust fallback for invalid/mismatched context links.
@@ -109,12 +121,8 @@ public sealed class AthleteOgImageService
         }
 
         var nameFromRanking = rankingRow["Name"]?.GetValue<string>();
-        var nameFromAthlete = athlete["DisplayName"]?.GetValue<string>() ?? athlete["Name"]?.GetValue<string>();
-        var name = !string.IsNullOrWhiteSpace(nameFromAthlete)
-            ? nameFromAthlete!.Trim()
-            : !string.IsNullOrWhiteSpace(nameFromRanking)
-                ? nameFromRanking!.Trim()
-                : ToDisplayName(rawSlug);
+        if (string.IsNullOrWhiteSpace(athleteName) && !string.IsNullOrWhiteSpace(nameFromRanking))
+            name = nameFromRanking!.Trim();
 
         var ageReductionFromRanking = GetDouble(rankingRow, "AgeDifference") ?? 0d;
         var stats = PhenoStatsCalculator.Compute(athlete, DateTime.UtcNow.Date);
@@ -124,7 +132,9 @@ public sealed class AthleteOgImageService
             : stats.AgeReduction ?? ageReductionFromRanking;
         var leagueName = ResolveLeagueDisplayName(leagueSlug);
         var profilePicUrl = athlete["ProfilePic"]?.GetValue<string>();
-        var signature = ComputeSignature(normalized, leagueSlug, rank, ageReduction, name, leagueName, profilePicUrl);
+        var metricValue = FormatReduction(ageReduction);
+        var description = $"{leagueName} rank #{rank}. {metricValue} years.";
+        var signature = ComputeSignature(normalized, leagueSlug, rank, ageReduction, name, leagueName, "Current rank", metricValue, "Age Reduction", description, profilePicUrl);
 
         payload = new AthleteOgPayload(
             InternalSlug: normalized,
@@ -134,6 +144,10 @@ public sealed class AthleteOgImageService
             LeagueName: leagueName,
             Rank: rank,
             AgeReduction: ageReduction,
+            RankLabel: "Current rank",
+            MetricValue: metricValue,
+            MetricLabel: "Age Reduction",
+            Description: description,
             ProfilePicUrl: profilePicUrl,
             Signature: signature);
 
@@ -209,7 +223,6 @@ public sealed class AthleteOgImageService
         var labelFont = fontFamily.CreateFont(28f, FontStyle.Bold);
 
         var rankText = $"#{payload.Rank}";
-        var reductionText = FormatReduction(payload.AgeReduction);
 
         image.Mutate(ctx =>
         {
@@ -230,8 +243,8 @@ public sealed class AthleteOgImageService
                 name.Text,
                 NameColor);
 
-            DrawScoreboardMetricRow(ctx, rankText, "Current rank", valueFont, labelFont, RankColor, MetricRowX, RankRowY, MetricRowWidth, MetricRowHeight);
-            DrawScoreboardMetricRow(ctx, reductionText, "Age Reduction", valueFont, labelFont, ReductionColor, MetricRowX, ReductionRowY, MetricRowWidth, MetricRowHeight);
+            DrawScoreboardMetricRow(ctx, rankText, payload.RankLabel, valueFont, labelFont, RankColor, MetricRowX, RankRowY, MetricRowWidth, MetricRowHeight);
+            DrawScoreboardMetricRow(ctx, payload.MetricValue, payload.MetricLabel, valueFont, labelFont, ReductionColor, MetricRowX, ReductionRowY, MetricRowWidth, MetricRowHeight);
         });
 
         await image.SaveAsPngAsync(outputPath, ct);
@@ -456,6 +469,10 @@ public sealed class AthleteOgImageService
         double ageReduction,
         string name,
         string leagueName,
+        string rankLabel,
+        string metricValue,
+        string metricLabel,
+        string description,
         string? profilePicUrl)
     {
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
@@ -466,13 +483,17 @@ public sealed class AthleteOgImageService
             : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v32",
+            "athlete-og-v33",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
             ageReduction.ToString("0.0000", CultureInfo.InvariantCulture),
             name,
             leagueName,
+            rankLabel,
+            metricValue,
+            metricLabel,
+            description,
             profilePicUrl ?? "",
             logoTicks.ToString(CultureInfo.InvariantCulture),
             fontTicks.ToString(CultureInfo.InvariantCulture),
@@ -480,6 +501,110 @@ public sealed class AthleteOgImageService
 
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(bytes).ToLowerInvariant()[..12];
+    }
+
+    private bool TryBuildSpecialLeaderboardPayload(
+        string normalizedSlug,
+        string? rawLeagueContext,
+        JsonObject athlete,
+        string name,
+        out AthleteOgPayload payload)
+    {
+        payload = null!;
+        var context = NormalizeContextSlug(rawLeagueContext);
+        if (string.IsNullOrWhiteSpace(context))
+            return false;
+
+        var profilePicUrl = athlete["ProfilePic"]?.GetValue<string>();
+
+        if (string.Equals(context, "crowd", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!_athletes.TryGetCrowdAgeLeaderboardEntry(normalizedSlug, out var entry))
+                return false;
+
+            var metricValue = entry.CrowdAge.ToString("0.#", CultureInfo.InvariantCulture);
+            var countText = entry.CrowdCount.ToString("N0", CultureInfo.InvariantCulture);
+            var crowdLeagueName = "Crowd Age leaderboard";
+            var crowdDescription = $"{crowdLeagueName} rank #{entry.Rank}. Crowd Age {metricValue} years from {countText} guesses.";
+            var signature = ComputeSignature(
+                normalizedSlug,
+                "crowd",
+                entry.Rank,
+                entry.CrowdAgeDifference,
+                name,
+                crowdLeagueName,
+                "Crowd Age rank",
+                metricValue,
+                "Crowd Age",
+                crowdDescription,
+                profilePicUrl);
+
+            payload = new AthleteOgPayload(
+                InternalSlug: normalizedSlug,
+                RouteSlug: ToRouteSlug(normalizedSlug),
+                LeagueSlug: "crowd",
+                Name: name,
+                LeagueName: crowdLeagueName,
+                Rank: entry.Rank,
+                AgeReduction: entry.CrowdAgeDifference,
+                RankLabel: "Crowd Age rank",
+                MetricValue: metricValue,
+                MetricLabel: "Crowd Age",
+                Description: crowdDescription,
+                ProfilePicUrl: profilePicUrl,
+                Signature: signature);
+            return true;
+        }
+
+        var improvementClock = context switch
+        {
+            "improvement" => "pheno",
+            "pheno-improvement" => "pheno",
+            "bortz-improvement" => "bortz",
+            _ => null
+        };
+        if (improvementClock is null)
+            return false;
+
+        if (!_athletes.TryGetAgeImprovementLeaderboardEntry(normalizedSlug, improvementClock, out var improvementEntry))
+            return false;
+
+        var leagueSlug = string.Equals(improvementClock, "bortz", StringComparison.OrdinalIgnoreCase)
+            ? "bortz-improvement"
+            : "improvement";
+        var improvementLeagueName = string.Equals(improvementClock, "bortz", StringComparison.OrdinalIgnoreCase)
+            ? "Bortz Improvement leaderboard"
+            : "Pheno Improvement leaderboard";
+        var metric = FormatReduction(improvementEntry.Improvement);
+        var improvementDescription = $"{improvementLeagueName} rank #{improvementEntry.Rank}. Improvement {metric} years from worst to latest eligible result.";
+        var improvementSignature = ComputeSignature(
+            normalizedSlug,
+            leagueSlug,
+            improvementEntry.Rank,
+            improvementEntry.Improvement,
+            name,
+            improvementLeagueName,
+            "Improvement rank",
+            metric,
+            "Improvement",
+            improvementDescription,
+            profilePicUrl);
+
+        payload = new AthleteOgPayload(
+            InternalSlug: normalizedSlug,
+            RouteSlug: ToRouteSlug(normalizedSlug),
+            LeagueSlug: leagueSlug,
+            Name: name,
+            LeagueName: improvementLeagueName,
+            Rank: improvementEntry.Rank,
+            AgeReduction: improvementEntry.Improvement,
+            RankLabel: "Improvement rank",
+            MetricValue: metric,
+            MetricLabel: "Improvement",
+            Description: improvementDescription,
+            ProfilePicUrl: profilePicUrl,
+            Signature: improvementSignature);
+        return true;
     }
 
     private string? ResolveProfilePath(string? profilePicUrl)
@@ -656,6 +781,20 @@ public sealed class AthleteOgImageService
     private static string NormalizeSlug(string? slug)
     {
         return (slug ?? "").Trim().Replace('-', '_').ToLowerInvariant();
+    }
+
+    private static string NormalizeContextSlug(string? context)
+    {
+        var normalized = (context ?? string.Empty).Trim().ToLowerInvariant();
+        for (var i = 0; i < 2; i++)
+        {
+            var decoded = Uri.UnescapeDataString(normalized);
+            if (string.Equals(decoded, normalized, StringComparison.Ordinal))
+                break;
+            normalized = decoded;
+        }
+
+        return normalized.Replace('_', '-');
     }
 
     private static string ToRouteSlug(string normalizedSlug)

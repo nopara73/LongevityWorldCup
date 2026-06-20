@@ -1,5 +1,7 @@
 using LongevityWorldCup.Website;
+using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -51,6 +53,22 @@ public sealed class SharePreviewMetadataTests
 
         Assert.Contains("property=\"og:image\" content=\"https://longevityworldcup.com/og/athlete/ron-lugbill.png?v=", html);
         Assert.Contains("name=\"twitter:image\" content=\"https://longevityworldcup.com/og/athlete/ron-lugbill.png?v=", html);
+    }
+
+    [Fact]
+    public async Task AthleteProfile_CrowdContextUsesCrowdAgeSharePreviewMetadata()
+    {
+        using var factory = CreateFactory();
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        for (var i = 0; i < 100; i++)
+            athletes.AddAgeGuess("ron_lugbill", 68);
+
+        using var client = factory.CreateClient();
+        var html = await client.GetStringAsync("/athlete/ron-lugbill?ctx=crowd");
+
+        Assert.Contains("Crowd Age 68 years from 100 guesses.", html);
+        Assert.Contains("property=\"og:image\" content=\"https://longevityworldcup.com/og/athlete/ron-lugbill.png?v=", html);
+        Assert.Contains("&amp;ctx=crowd", html);
     }
 
     [Fact]

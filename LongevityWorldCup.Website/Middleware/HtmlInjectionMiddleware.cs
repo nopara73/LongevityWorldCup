@@ -671,14 +671,12 @@ $@"<script type=""module"">
 
             var canonicalPath = $"/athlete/{payload.RouteSlug}";
             var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
-            var signedReduction = payload.AgeReduction.ToString("+#0.0;-#0.0;0.0", CultureInfo.InvariantCulture);
             var title = $"{payload.Name} | #{payload.Rank} {payload.LeagueName}";
-            var description = $"{payload.LeagueName} rank #{payload.Rank}. {signedReduction} years.";
             var ogImageUrl = _athleteOgImages.BuildVersionedImageUrl(SiteBaseUrl, payload);
 
             seo = new SeoMeta(
                 canonicalPath,
-                description,
+                payload.Description,
                 "index, follow",
                 canonicalUrl,
                 title,
