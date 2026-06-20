@@ -355,7 +355,13 @@
                 : window.applyFreePassToPaymentOffer
                     ? window.applyFreePassToPaymentOffer(offer)
                     : offer;
-            sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
+            try {
+                sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
+                return true;
+            } catch (_) {
+                customAlert('Browser storage is unavailable. Enable storage and try again.');
+                return false;
+            }
         }
 
         function clearPendingPaymentOffer() {
@@ -401,7 +407,7 @@
                     button.className = className;
                     button.innerHTML = label;
                     button.addEventListener('click', () => {
-                        if (typeof beforeNavigate === 'function') beforeNavigate();
+                        if (typeof beforeNavigate === 'function' && beforeNavigate() === false) return;
                         window.location.href = href;
                     });
                     return button;
@@ -479,7 +485,7 @@
                                 && window.addActiveDiscountMetadataToPaymentOffer) {
                                 paymentOffer = window.addActiveDiscountMetadataToPaymentOffer(paymentOffer);
                             }
-                            setPendingPaymentOffer(paymentOffer);
+                            return setPendingPaymentOffer(paymentOffer);
                         }
                     );
                     optionsContainer.insertBefore(submitButton, backButton);
