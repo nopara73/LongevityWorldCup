@@ -27,14 +27,14 @@ public static class SocialContactParser
     public static string? TryExtractXHandle(string? mediaContact)
     {
         return TryExtractHandle(mediaContact, isSupportedHost: host =>
-            host.EndsWith("x.com", StringComparison.OrdinalIgnoreCase) ||
-            host.EndsWith("twitter.com", StringComparison.OrdinalIgnoreCase));
+            IsHostOrSubdomain(host, "x.com") ||
+            IsHostOrSubdomain(host, "twitter.com"));
     }
 
     public static string? TryExtractThreadsHandle(string? mediaContact)
     {
         return TryExtractHandle(mediaContact, isSupportedHost: host =>
-            host.EndsWith("threads.com", StringComparison.OrdinalIgnoreCase));
+            IsHostOrSubdomain(host, "threads.com"));
     }
 
     private static string? TryExtractHandle(string? mediaContact, Func<string, bool> isSupportedHost)
@@ -69,6 +69,12 @@ public static class SocialContactParser
             return true;
 
         return Uri.TryCreate("https://" + value, UriKind.Absolute, out uri!);
+    }
+
+    private static bool IsHostOrSubdomain(string host, string domain)
+    {
+        return string.Equals(host, domain, StringComparison.OrdinalIgnoreCase) ||
+               host.EndsWith("." + domain, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string? NormalizeHandle(string? value)
