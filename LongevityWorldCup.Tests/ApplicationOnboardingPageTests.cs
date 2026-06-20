@@ -50,4 +50,22 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("window.setTimeout(() => controller.abort(), timeoutMs)", javascript);
         Assert.Contains("...(controller ? { signal: controller.signal } : {})", javascript);
     }
+
+    [Fact]
+    public async Task ApplicationFailures_UseReadableErrorExtractor()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/misc.js");
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("window.readApplicationErrorMessage = async function (response)", javascript);
+        Assert.Contains("window.extractApplicationErrorMessage = function (text, fallback)", javascript);
+        Assert.Contains("if (data && typeof data.message === 'string' && data.message.trim())", javascript);
+        Assert.Contains("if (data && data.errors && typeof data.errors === 'object')", javascript);
+        Assert.Contains("return messages.join('\\n');", javascript);
+        Assert.Contains("window.readApplicationErrorMessage(response).then(badResponse =>", html);
+        Assert.DoesNotContain("response.text().then(badResponse =>", html);
+    }
 }

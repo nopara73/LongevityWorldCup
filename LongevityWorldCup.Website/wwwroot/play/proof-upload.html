@@ -599,7 +599,7 @@
                                 });
                             });
                         } else {
-                            response.text().then(badResponse => {
+                            window.readApplicationErrorMessage(response).then(badResponse => {
                                 window.sendApplicationSubmissionReport(
                                     window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                         type: `HTTP ${response.status}`,
