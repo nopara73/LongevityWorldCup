@@ -87,4 +87,26 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const file = input.files[0];", selectionBody);
         Assert.Contains("input.value = '';", selectionBody);
     }
+
+    [Fact]
+    public async Task ProfilePhotoCrop_CanBeCanceledBackToUploadMode()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var cancelStart = html.IndexOf("document.getElementById('cancelProfileCropButton').addEventListener('click'", StringComparison.Ordinal);
+        var cancelEnd = html.IndexOf("profilePicInput.setAttribute('data-listener', 'true');", cancelStart, StringComparison.Ordinal);
+
+        Assert.Contains("id=\"cancelProfileCropButton\"", html);
+        Assert.True(cancelStart >= 0);
+        Assert.True(cancelEnd > cancelStart);
+
+        var cancelBody = html[cancelStart..cancelEnd];
+        Assert.Contains("cropper.destroy();", cancelBody);
+        Assert.Contains("cropper = null;", cancelBody);
+        Assert.Contains("document.getElementById('uploadPart').style.display = '';", cancelBody);
+        Assert.Contains("document.getElementById('croppingPart').style.display = 'none';", cancelBody);
+        Assert.Contains("nextButton.disabled = !profilePic;", cancelBody);
+    }
 }
