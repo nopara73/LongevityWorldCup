@@ -1661,6 +1661,14 @@
         }
 
         //–– keep track of which fields the user actually edits (or clears)
+        function readStoredBiomarkerData() {
+            try {
+                return JSON.parse(sessionStorage.getItem('biomarkerData'));
+            } catch (_) {
+                return null;
+            }
+        }
+
         const touchedBiomarkers = new Set();
         const bortzFieldIds = ['lymphocyte_percentage', 'neutrophil_percentage', 'monocyte_percentage', 'rbc', 'mcv', 'mch', 'rdw', 'albumin', 'urea', 'creatinine', 'cystatin_c', 'glucose', 'hba1c', 'cholesterol', 'apoa1', 'alt', 'alp', 'ggt', 'crp', 'shbg', 'vitamin_d'];
         [...bortzFieldIds, 'wbc'].forEach(id => {
@@ -1687,7 +1695,7 @@
             });
 
         //–– seed from stored data
-        const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
+        const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
             const latest = stored.Biomarkers[0];
             if (latest.Date && bloodDrawDateInput) {
@@ -2675,7 +2683,7 @@
             overwriteBortzFormFromUrlParams();
 
             // refill only saved biomarkers
-            const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
+            const stored = readStoredBiomarkerData();
             const entry = stored?.Biomarkers?.[0];
             if (entry) {
                 if (bloodDrawDateInput) {

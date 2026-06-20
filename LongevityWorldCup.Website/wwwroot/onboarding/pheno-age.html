@@ -1393,6 +1393,14 @@
         }
 
         //–– keep track of which fields the user actually edits (or clears)
+        function readStoredBiomarkerData() {
+            try {
+                return JSON.parse(sessionStorage.getItem('biomarkerData'));
+            } catch (_) {
+                return null;
+            }
+        }
+
         const touchedBiomarkers = new Set();
         ['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']
             .forEach(id => {
@@ -1418,7 +1426,7 @@
             });
 
         //–– seed from stored data
-        const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
+        const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
             const latest = stored.Biomarkers[0];
             if (latest.Date && bloodDrawDateInput) {
@@ -2198,7 +2206,7 @@
             overwritePhenoFormFromUrlParams();
 
             // refill only saved biomarkers
-            const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
+            const stored = readStoredBiomarkerData();
             const entry = stored?.Biomarkers?.[0];
             if (entry) {
                 if (bloodDrawDateInput) {
