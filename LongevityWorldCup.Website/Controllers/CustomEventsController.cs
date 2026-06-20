@@ -1,11 +1,13 @@
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LongevityWorldCup.Website.Controllers;
 
 [ApiController]
 [Route("api/custom-events")]
+[RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
 public sealed class CustomEventsController(EventDataService events, Config config, ILogger<CustomEventsController> log) : ControllerBase
 {
     private const int MaxRequestBytes = 16 * 1024;

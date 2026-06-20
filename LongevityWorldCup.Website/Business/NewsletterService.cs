@@ -4,7 +4,7 @@ namespace LongevityWorldCup.Website.Business
     {
         private static readonly object FileLock = new();
 
-        public static async Task<string?> SubscribeAsync(string email, ILogger logger, IWebHostEnvironment environment)
+        public static async Task<string?> SubscribeAsync(string email, ILogger logger, IWebHostEnvironment environment, CancellationToken ct = default)
         {
             string contentRootPath = environment.ContentRootPath;
             string dataDir = Path.Combine(contentRootPath, "AppData");
@@ -65,14 +65,14 @@ namespace LongevityWorldCup.Website.Business
                     }
 
                     // Wait before retrying
-                    await Task.Delay(100);
+                    await Task.Delay(100, ct);
                 }
             }
 
             return null; // Success
         }
 
-        public static async Task<string?> UnsubscribeAsync(string email, ILogger logger, IWebHostEnvironment environment)
+        public static async Task<string?> UnsubscribeAsync(string email, ILogger logger, IWebHostEnvironment environment, CancellationToken ct = default)
         {
             string contentRootPath = environment.ContentRootPath;
             string dataDir = Path.Combine(contentRootPath, "AppData");
@@ -123,7 +123,7 @@ namespace LongevityWorldCup.Website.Business
                         return "An error occurred while removing your subscription. Please try again later.";
                     }
 
-                    await Task.Delay(100);
+                    await Task.Delay(100, ct);
                 }
             }
 

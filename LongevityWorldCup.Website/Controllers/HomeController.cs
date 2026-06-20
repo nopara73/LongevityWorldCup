@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Concurrent;
 using LongevityWorldCup.Website.Business; // Add this namespace
+using LongevityWorldCup.Website.Tools;
+using Microsoft.AspNetCore.Http.Timeouts;
 
 namespace LongevityWorldCup.Website.Controllers
 {
@@ -14,6 +16,7 @@ namespace LongevityWorldCup.Website.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
+    [RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
     public class HomeController(IWebHostEnvironment environment, ILogger<HomeController> logger) : Controller
     {
         private readonly IWebHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
@@ -23,7 +26,7 @@ namespace LongevityWorldCup.Website.Controllers
         private const int MaxRequestsPerMinute = 5; // Max allowed requests per email/IP in the time window
 
         [HttpPost("subscribe")]
-        public async Task<IActionResult> SubscribeNewsletter([FromBody] NewsletterSubscriptionModel model)
+        public async Task<IActionResult> SubscribeNewsletter([FromBody] NewsletterSubscriptionModel model, CancellationToken ct)
         {
             if (!ModelState.IsValid)
             {
@@ -46,7 +49,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             // Call the static function
-            var error = await NewsletterService.SubscribeAsync(email, _logger, _environment);
+            var error = await NewsletterService.SubscribeAsync(email, _logger, _environment, ct);
 
             if (error != null)
             {
@@ -57,7 +60,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("unsubscribe")]
-        public async Task<IActionResult> UnsubscribeNewsletter([FromBody] NewsletterSubscriptionModel model)
+        public async Task<IActionResult> UnsubscribeNewsletter([FromBody] NewsletterSubscriptionModel model, CancellationToken ct)
         {
             if (!ModelState.IsValid)
             {
@@ -79,7 +82,7 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("Too many newsletter attempts. Please try again later.");
             }
 
-            var error = await NewsletterService.UnsubscribeAsync(email, _logger, _environment);
+            var error = await NewsletterService.UnsubscribeAsync(email, _logger, _environment, ct);
 
             if (error != null)
             {

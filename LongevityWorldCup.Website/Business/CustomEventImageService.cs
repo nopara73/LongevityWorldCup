@@ -67,12 +67,12 @@ public sealed class CustomEventImageService
         File.Exists(_regularFontPath) &&
         File.Exists(_boldFontPath);
 
-    public async Task<(string FullPath, string PublicUrl)?> RenderAsync(string eventId, string rawText, Func<string, string>? mentionResolver = null)
+    public async Task<(string FullPath, string PublicUrl)?> RenderAsync(string eventId, string rawText, Func<string, string>? mentionResolver = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(eventId) || !IsConfigured)
             return null;
 
-        await _renderLock.WaitAsync();
+        await _renderLock.WaitAsync(ct);
         try
         {
             Directory.CreateDirectory(_outputDir);
@@ -81,12 +81,12 @@ public sealed class CustomEventImageService
             var fileName = $"{SanitizeFileName(eventId)}.png";
             var outputPath = IOPath.Combine(_outputDir, fileName);
 
-            using (var image = await BuildImageAsync(rawText, mentionResolver))
-                await image.SaveAsPngAsync(outputPath);
+            using (var image = await BuildImageAsync(rawText, mentionResolver, ct))
+                await image.SaveAsPngAsync(outputPath, ct);
 
             return (outputPath, $"{SiteBaseUrl}/generated/custom-events/{Uri.EscapeDataString(fileName)}");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _log.LogError(ex, "Failed to render custom event image for event {EventId}", eventId);
             return null;
@@ -97,22 +97,22 @@ public sealed class CustomEventImageService
         }
     }
 
-    public async Task<MemoryStream?> RenderToStreamAsync(string rawText, Func<string, string>? mentionResolver = null)
+    public async Task<MemoryStream?> RenderToStreamAsync(string rawText, Func<string, string>? mentionResolver = null, CancellationToken ct = default)
     {
         if (!IsConfigured)
             return null;
 
-        await _renderLock.WaitAsync();
+        await _renderLock.WaitAsync(ct);
         try
         {
             EnsureFontsLoaded();
-            using var image = await BuildImageAsync(rawText, mentionResolver);
+            using var image = await BuildImageAsync(rawText, mentionResolver, ct);
             var stream = new MemoryStream();
-            await image.SaveAsPngAsync(stream);
+            await image.SaveAsPngAsync(stream, ct);
             stream.Position = 0;
             return stream;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _log.LogError(ex, "Failed to render custom event image stream.");
             return null;
@@ -123,14 +123,16 @@ public sealed class CustomEventImageService
         }
     }
 
-    private async Task<Image<Rgba32>> BuildImageAsync(string rawText, Func<string, string>? mentionResolver)
+    private async Task<Image<Rgba32>> BuildImageAsync(string rawText, Func<string, string>? mentionResolver, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+
         var (_, contentRaw) = CustomEventMarkup.SplitTitleAndContent(rawText);
         var contentSource = string.IsNullOrWhiteSpace(contentRaw) ? rawText : contentRaw;
         var segments = CustomEventMarkup.ParseSegments(contentSource, keepHyperlinkLabels: true, mentionResolver);
         var layout = FindBestLayout(segments);
 
-        var image = await Image.LoadAsync<Rgba32>(_templatePath);
+        var image = await Image.LoadAsync<Rgba32>(_templatePath, ct);
         if (image.Width != CanvasWidth || image.Height != CanvasHeight)
             image.Mutate(ctx => ctx.Resize(CanvasWidth, CanvasHeight));
 

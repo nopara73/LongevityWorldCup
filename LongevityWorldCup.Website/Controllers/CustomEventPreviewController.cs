@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 
@@ -8,6 +9,7 @@ namespace LongevityWorldCup.Website.Controllers;
 
 [ApiController]
 [Route("api/custom-event-preview")]
+[RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
 public sealed class CustomEventPreviewController(CustomEventImageService images, AthleteDataService athletes) : ControllerBase
 {
     private readonly CustomEventImageService _images = images;
@@ -16,7 +18,7 @@ public sealed class CustomEventPreviewController(CustomEventImageService images,
     public sealed record ImagePreviewRequest(string? Title, string? Content, string? Platform);
 
     [HttpPost("image")]
-    public async Task<IActionResult> RenderImagePreview([FromBody] ImagePreviewRequest request)
+    public async Task<IActionResult> RenderImagePreview([FromBody] ImagePreviewRequest request, CancellationToken ct)
     {
         var title = request.Title?.Trim() ?? "";
         var content = request.Content?.Trim() ?? "";
@@ -30,7 +32,7 @@ public sealed class CustomEventPreviewController(CustomEventImageService images,
             ? title
             : $"{title}\n\n{content}";
         var platform = ParsePlatform(request.Platform);
-        var stream = await _images.RenderToStreamAsync(rawText, slug => ResolveMention(slug, platform));
+        var stream = await _images.RenderToStreamAsync(rawText, slug => ResolveMention(slug, platform), ct);
         if (stream is null)
             return StatusCode(StatusCodes.Status500InternalServerError, "Custom event image preview could not be rendered.");
 

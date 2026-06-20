@@ -1,10 +1,10 @@
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Net.Http.Headers;
 using System.ComponentModel.DataAnnotations;
-using System.Security.Cryptography;
-using System.Text;
+using System.Text.Json;
 
 namespace LongevityWorldCup.Website.Controllers
 {
@@ -15,11 +15,9 @@ namespace LongevityWorldCup.Website.Controllers
     [Route("api/data")]
     [ApiExplorerSettings(GroupName = "public-v1")]
     [Produces("application/json")]
+    [RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
     public class DataController(AthleteDataService svc) : Controller
     {
-        private const int AthletesCacheMaxAgeSeconds = 60;
-        private const string AthletesCacheControl = "public,max-age=60,must-revalidate";
-
         private readonly AthleteDataService _svc = svc;
 
         /// <summary>
@@ -31,8 +29,14 @@ namespace LongevityWorldCup.Website.Controllers
         /// <response code="200">The ordered list of selectable flag names.</response>
         [HttpGet("flags")]
         [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IActionResult GetFlags()
         {
+            var eTag = PublicGetCacheHeaders.BuildWeakContentETag(JsonSerializer.Serialize(Flags.Flag));
+            PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.StaticReferenceCacheControl, PublicGetCacheHeaders.StaticReferenceMaxAgeSeconds, eTag);
+            if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
+                return StatusCode(StatusCodes.Status304NotModified);
+
             return Ok(Flags.Flag);
         }
 
@@ -45,8 +49,14 @@ namespace LongevityWorldCup.Website.Controllers
         /// <response code="200">The ordered list of division names.</response>
         [HttpGet("divisions")]
         [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status304NotModified)]
         public IActionResult GetDivisions()
         {
+            var eTag = PublicGetCacheHeaders.BuildWeakContentETag(JsonSerializer.Serialize(Divisions.Division));
+            PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.StaticReferenceCacheControl, PublicGetCacheHeaders.StaticReferenceMaxAgeSeconds, eTag);
+            if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
+                return StatusCode(StatusCodes.Status304NotModified);
+
             return Ok(Divisions.Division);
         }
 
@@ -63,13 +73,11 @@ namespace LongevityWorldCup.Website.Controllers
         public IActionResult GetAthletes()
         {
             var snapshot = _svc.GetAthletesSnapshot();
-            var eTag = BuildWeakContentETag(snapshot.ToJsonString());
+            var eTag = PublicGetCacheHeaders.BuildWeakContentETag(snapshot.ToJsonString());
 
-            Response.Headers[HeaderNames.CacheControl] = AthletesCacheControl;
-            Response.Headers[HeaderNames.ETag] = eTag;
-            Response.Headers[HeaderNames.Expires] = DateTimeOffset.UtcNow.AddSeconds(AthletesCacheMaxAgeSeconds).ToString("R");
+            PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AthleteSnapshotCacheControl, PublicGetCacheHeaders.AthleteSnapshotMaxAgeSeconds, eTag);
 
-            if (RequestHasMatchingETag(Request.Headers, eTag))
+            if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
                 return StatusCode(StatusCodes.Status304NotModified);
 
             return Ok(snapshot);
@@ -199,37 +207,6 @@ namespace LongevityWorldCup.Website.Controllers
             return Ok(result);
         }
 
-        private static string BuildWeakContentETag(string content)
-        {
-            var bytes = Encoding.UTF8.GetBytes(content);
-            var hash = SHA256.HashData(bytes);
-            return $"W/\"sha256-{Convert.ToHexString(hash).ToLowerInvariant()}\"";
-        }
-
-        private static bool RequestHasMatchingETag(IHeaderDictionary headers, string eTag)
-        {
-            if (!headers.TryGetValue(HeaderNames.IfNoneMatch, out var ifNoneMatchValues))
-                return false;
-
-            var strongTag = StripWeakPrefix(eTag);
-            foreach (var headerValue in ifNoneMatchValues)
-            {
-                foreach (var candidate in headerValue?.Split(',') ?? [])
-                {
-                    var trimmed = candidate.Trim();
-                    if (trimmed == "*")
-                        return true;
-
-                    if (string.Equals(StripWeakPrefix(trimmed), strongTag, StringComparison.Ordinal))
-                        return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static string StripWeakPrefix(string tag)
-            => tag.StartsWith("W/", StringComparison.Ordinal) ? tag[2..] : tag;
     }
 
     /// <summary>

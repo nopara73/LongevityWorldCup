@@ -10,12 +10,20 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using LongevityWorldCup.Website.Controllers;
+using System.Globalization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http.Timeouts;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace LongevityWorldCup.Website
 {
     public class Program
     {
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true }; // Cached options
+        private static readonly JsonSerializerOptions HealthCheckJsonOptions = new(JsonSerializerDefaults.Web);
+        private static readonly TimeSpan PublicPostRateLimitWindow = TimeSpan.FromMinutes(1);
+        private const int PublicPostRateLimitPermitLimit = 120;
 
         public static void Main(string[] args)
         {
@@ -95,6 +103,54 @@ namespace LongevityWorldCup.Website
 
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
+            builder.Services
+                .AddHealthChecks()
+                .AddCheck<WebsiteHealthCheck>("website");
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                {
+                    if (!HttpMethods.IsPost(context.Request.Method))
+                        return RateLimitPartition.GetNoLimiter("non-post");
+
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        $"post:{ClientIdentifier.From(context)}",
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = PublicPostRateLimitPermitLimit,
+                            Window = PublicPostRateLimitWindow,
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0,
+                            AutoReplenishment = true
+                        });
+                });
+                options.OnRejected = (context, _) =>
+                {
+                    if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                    {
+                        context.HttpContext.Response.Headers.RetryAfter =
+                            Math.Ceiling(retryAfter.TotalSeconds).ToString(CultureInfo.InvariantCulture);
+                    }
+
+                    return ValueTask.CompletedTask;
+                };
+            });
+            builder.Services.AddRequestTimeouts(options =>
+            {
+                options.AddPolicy(PublicRequestTimeoutPolicies.PublicWork, new RequestTimeoutPolicy
+                {
+                    Timeout = PublicRequestTimeoutPolicies.PublicWorkTimeout,
+                    TimeoutStatusCode = StatusCodes.Status504GatewayTimeout,
+                    WriteTimeoutResponse = static context =>
+                    {
+                        context.Response.ContentType = "application/json; charset=utf-8";
+                        return context.Response.WriteAsync(
+                            "{\"message\":\"The request took too long and was canceled.\"}",
+                            CancellationToken.None);
+                    }
+                });
+            });
 
             builder.Services.AddSingleton<AssetVersionProvider>();
             builder.Services.AddSingleton<DatabaseManager>();
@@ -294,6 +350,8 @@ namespace LongevityWorldCup.Website
                 app.UseHsts();
             }
 
+            app.UseMiddleware<BrowserSecurityHeadersMiddleware>();
+
             app.UseHttpsRedirection();
             app.UseResponseCompression();
             app.UseSwagger(options =>
@@ -339,6 +397,10 @@ namespace LongevityWorldCup.Website
             app.UseStatusCodePagesWithReExecute("/error/{0}");
 
             app.UseRouting();
+
+            app.UseRateLimiter();
+
+            app.UseRequestTimeouts();
 
             app.UseMiddleware<CleanPathMiddleware>();
 
@@ -388,7 +450,33 @@ namespace LongevityWorldCup.Website
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
+            app.MapHealthChecks("/health", new HealthCheckOptions
+            {
+                ResponseWriter = WriteHealthCheckResponse
+            });
+
             app.Run();
+        }
+
+        private static Task WriteHealthCheckResponse(HttpContext context, HealthReport report)
+        {
+            context.Response.ContentType = "application/json; charset=utf-8";
+            context.Response.Headers.CacheControl = "no-store";
+
+            var response = new
+            {
+                status = report.Status.ToString(),
+                checks = report.Entries.Select(entry => new
+                {
+                    name = entry.Key,
+                    status = entry.Value.Status.ToString(),
+                    description = entry.Value.Description,
+                    durationMilliseconds = entry.Value.Duration.TotalMilliseconds,
+                    data = entry.Value.Data
+                })
+            };
+
+            return JsonSerializer.SerializeAsync(context.Response.Body, response, HealthCheckJsonOptions);
         }
 
         private static void InitializeDefaultConfig()

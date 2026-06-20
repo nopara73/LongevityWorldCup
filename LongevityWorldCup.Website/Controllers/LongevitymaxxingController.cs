@@ -1,11 +1,14 @@
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LongevityWorldCup.Website.Controllers;
 
 [ApiController]
 [Route("api/longevitymaxxing")]
+[RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
 public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService challenge) : ControllerBase
 {
     private readonly LongevitymaxxingChallengeService _challenge = challenge;
