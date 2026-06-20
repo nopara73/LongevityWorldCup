@@ -198,6 +198,26 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationSubmit_DoesNotBlockOnRememberedAthleteStorage()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var submitStart = html.IndexOf("const applicantData = collectApplicantData();", StringComparison.Ordinal);
+        var submitEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", submitStart, StringComparison.Ordinal);
+
+        Assert.True(submitStart >= 0);
+        Assert.True(submitEnd > submitStart);
+
+        var submitBody = html[submitStart..submitEnd];
+
+        Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
+        Assert.Contains("setLocalItem('selectedAthleteName', applicantData.name);", submitBody);
+        Assert.DoesNotContain("localStorage.setItem('selectedAthleteName', applicantData.name);", submitBody);
+    }
+
+    [Fact]
     public async Task ProfilePhotoSelection_ClearsInputAfterCapturingFile()
     {
         using var factory = new TestWebApplicationFactory();

@@ -1419,7 +1419,7 @@
                     applicantData.submissionId = submissionId;
 
                     // remember this athlete for next time
-                    localStorage.setItem('selectedAthleteName', applicantData.name);
+                    setLocalItem('selectedAthleteName', applicantData.name);
 
                     // Disable the Apply button and change its text
                     const applyButton = document.getElementById('nextButton');
