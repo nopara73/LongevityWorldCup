@@ -51,4 +51,16 @@ public sealed class ProofUploadPageTests
         Assert.True(resetIndex > finallyIndex);
         Assert.True(hideLoadingIndex > resetIndex);
     }
+
+    [Fact]
+    public async Task ResultUploadFailures_UseReadableErrorExtractor()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+
+        Assert.Contains("window.readApplicationErrorMessage(response).then(badResponse =>", html);
+        Assert.DoesNotContain("response.text().then(badResponse =>", html);
+    }
 }

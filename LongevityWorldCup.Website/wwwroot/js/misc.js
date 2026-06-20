@@ -501,6 +501,44 @@ window.createApplicationSubmissionId = function () {
 window.APPLICATION_SUBMISSION_TIMEOUT_MS = 65000;
 window.APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS = 2500;
 
+window.readApplicationErrorMessage = async function (response) {
+    const fallback = response && response.statusText ? response.statusText : 'Request failed';
+    const text = response ? await response.text() : '';
+    return window.extractApplicationErrorMessage(text, fallback);
+};
+
+window.extractApplicationErrorMessage = function (text, fallback) {
+    const raw = String(text || '').trim();
+    if (!raw) return fallback || 'Request failed';
+
+    try {
+        const data = JSON.parse(raw);
+        if (data && typeof data.message === 'string' && data.message.trim()) {
+            return data.message.trim();
+        }
+
+        if (data && typeof data.detail === 'string' && data.detail.trim()) {
+            return data.detail.trim();
+        }
+
+        if (data && data.errors && typeof data.errors === 'object') {
+            const messages = Object.values(data.errors)
+                .flatMap(value => Array.isArray(value) ? value : [value])
+                .map(value => String(value || '').trim())
+                .filter(Boolean);
+            if (messages.length) return messages.join('\n');
+        }
+
+        if (data && typeof data.title === 'string' && data.title.trim()) {
+            return data.title.trim();
+        }
+    } catch (_) {
+        return raw;
+    }
+
+    return fallback || raw || 'Request failed';
+};
+
 window.buildApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error) {
     applicantData = applicantData || {};
     const proofs = Array.isArray(applicantData.proofPics) ? applicantData.proofPics : [];

@@ -21,4 +21,16 @@ public sealed class EditProfilePageTests
         Assert.Contains("customAlert('Please enter a valid URL for your personal link.');", validationBody);
         Assert.DoesNotContain("restorePersonalLinkToOriginal();", validationBody);
     }
+
+    [Fact]
+    public async Task EditProfileFailures_UseReadableErrorExtractor()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("window.readApplicationErrorMessage(response).then(txt =>", html);
+        Assert.DoesNotContain("response.text().then(txt =>", html);
+    }
 }
