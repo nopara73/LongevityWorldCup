@@ -60,6 +60,22 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task FlagInput_KeepsCurrentFlagWhenOptionsRequestFails()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);", html);
+        Assert.Contains("let availableFlags = currentFlag ? [currentFlag] : [];", html);
+        Assert.Contains("flagInput.value = athlete.Flag;", html);
+        Assert.Contains("fetch('/api/data/flags').then(r => r.ok ? r.json() : [])", html);
+        Assert.Contains("if (currentFlag && !availableFlags.includes(currentFlag)) availableFlags.push(currentFlag);", html);
+        Assert.Contains("console.error('Error fetching flags:', error);", html);
+    }
+
+    [Fact]
     public async Task ProfilePictureSelection_ClearsInputAfterCapturingFile()
     {
         using var factory = new TestWebApplicationFactory();

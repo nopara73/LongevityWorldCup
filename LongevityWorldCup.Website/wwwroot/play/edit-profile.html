@@ -632,25 +632,28 @@
             const restoreFlagBtn = document.getElementById('restoreFlagBtn');
 
             // Fetch and prepare flag list
-            let availableFlags = [];
+            const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);
+            let availableFlags = currentFlag ? [currentFlag] : [];
+            flagInput.value = athlete.Flag;
+            if (athlete.Flag !== originalAthlete.Flag) {
+                restoreFlagBtn.style.display = 'inline-flex';
+            }
+
             const athletesForFlagOptions = window.getSharedAthletes
                 ? window.getSharedAthletes()
                 : fetch('/api/data/athletes').then(r => r.json());
             Promise.all([
-                fetch('/api/data/flags').then(r => r.json()),
+                fetch('/api/data/flags').then(r => r.ok ? r.json() : []),
                 Promise.resolve(athletesForFlagOptions).catch(() => [])
             ])
                 .then(([flags, athletes]) => {
                     availableFlags = window.LwcFlags
                         .buildFlagOptions(flags, athletes)
                         .map(option => option.name);
-                    const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);
                     if (currentFlag && !availableFlags.includes(currentFlag)) availableFlags.push(currentFlag);
-                    flagInput.value = athlete.Flag;
-                    if (athlete.Flag !== originalAthlete.Flag) {
-                        restoreFlagBtn.style.display = 'inline-flex';
-                        updateSubmitButtonState();
-                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching flags:', error);
                 });
 
             // Autocomplete dropdown
@@ -938,6 +941,7 @@
             restorePersonalLinkBtn.addEventListener('click', restorePersonalLinkToOriginal);
             restoreWhyDisplayBtn.addEventListener('click', restoreWhyDisplayToOriginal);
             restoreMediaContactBtn.addEventListener('click', restoreMediaContactToOriginal);
+            updateSubmitButtonState();
 
         });
 
