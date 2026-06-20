@@ -92,6 +92,20 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationNetworkFailures_ShowNormalizedErrorMessage()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
+        Assert.Contains("message: displayError", html);
+        Assert.Contains("customAlert(`An error occurred while submitting your application:\\n\\n${displayError}`)", html);
+        Assert.DoesNotContain("customAlert(`An error occurred while submitting your application:\\n\\n${error}`)", html);
+    }
+
+    [Fact]
     public async Task ProfilePhotoSelection_ClearsInputAfterCapturingFile()
     {
         using var factory = new TestWebApplicationFactory();

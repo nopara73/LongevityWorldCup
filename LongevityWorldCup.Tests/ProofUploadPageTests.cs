@@ -80,4 +80,18 @@ public sealed class ProofUploadPageTests
         Assert.Contains("window.readApplicationErrorMessage(response).then(badResponse =>", html);
         Assert.DoesNotContain("response.text().then(badResponse =>", html);
     }
+
+    [Fact]
+    public async Task ResultUploadNetworkFailures_ShowNormalizedErrorMessage()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+
+        Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
+        Assert.Contains("message: displayError", html);
+        Assert.Contains("customAlert(`An error occurred:\\n\\n${displayError}`)", html);
+        Assert.DoesNotContain("customAlert(`An error occurred:\\n\\n${error}`)", html);
+    }
 }
