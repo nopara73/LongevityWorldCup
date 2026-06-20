@@ -1557,6 +1557,9 @@
                             });
                         }
                     };
+                    reader.onerror = function () {
+                        customAlert('Profile picture upload failed.');
+                    };
                     reader.readAsDataURL(file);
                 }
             }
