@@ -39,6 +39,9 @@ on:
       - LongevityWorldCup.Documentation/MediaKit.zip
       - LongevityWorldCup.Documentation/pheno-age.pdf
 
+permissions:
+  contents: read
+
 concurrency:
   group: production-deploy
   cancel-in-progress: false
