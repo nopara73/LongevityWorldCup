@@ -176,6 +176,11 @@ namespace LongevityWorldCup.Website.Controllers
                 return ValidationProblem(ModelState);
             }
 
+            if (applicantData == null)
+            {
+                return BadRequest("Applicant data is null.");
+            }
+
             // Load SMTP configuration
             Config config;
             try
@@ -186,11 +191,6 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 _logger.LogError(ex, "Application submission failed before processing because configuration could not be loaded.");
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
-            }
-
-            if (applicantData == null)
-            {
-                return BadRequest("Applicant data is null.");
             }
 
             // Handle result submissions: only biomarkers and proofs provided
