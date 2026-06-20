@@ -582,24 +582,36 @@
             // — DIVISION PREFILL & CHANGE/RESTORE LOGIC —
             const divisionSelect = document.getElementById('divisionDisplaySelect');
             const restoreDivisionBtn = document.getElementById('restoreDivisionBtn');
+            const fallbackDivisions = ["Men's", "Women's", "Open"];
+
+            function populateDivisionSelect(divs) {
+                const divisionOptions = [...(Array.isArray(divs) && divs.length ? divs : fallbackDivisions)];
+                if (athlete.Division && !divisionOptions.includes(athlete.Division)) {
+                    divisionOptions.unshift(athlete.Division);
+                }
+
+                divisionSelect.innerHTML = '';
+                divisionOptions.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d;
+                    opt.textContent = `${window.TryGetDivisionIcon(d)} ${d}`;
+                    divisionSelect.appendChild(opt);
+                });
+                divisionSelect.value = athlete.Division;
+
+                if (athlete.Division !== originalAthlete.Division) {
+                    restoreDivisionBtn.style.display = 'inline-flex';
+                    updateSubmitButtonState();
+                }
+            }
 
             // Populate the dropdown
             fetch('/api/data/divisions')
-                .then(r => r.json())
-                .then(divs => {
-                    divisionSelect.innerHTML = '';
-                    divs.forEach(d => {
-                        const opt = document.createElement('option');
-                        opt.value = d;
-                        opt.textContent = `${window.TryGetDivisionIcon(d)} ${d}`;
-                        divisionSelect.appendChild(opt);
-                    });
-                    divisionSelect.value = athlete.Division;
-
-                    if (athlete.Division !== originalAthlete.Division) {
-                        restoreDivisionBtn.style.display = 'inline-flex';
-                        updateSubmitButtonState();
-                    }
+                .then(r => r.ok ? r.json() : fallbackDivisions)
+                .then(populateDivisionSelect)
+                .catch(error => {
+                    console.error('Error fetching divisions:', error);
+                    populateDivisionSelect(fallbackDivisions);
                 });
 
             // When the user picks a different division…

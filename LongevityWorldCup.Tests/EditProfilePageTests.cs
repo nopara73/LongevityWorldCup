@@ -43,6 +43,23 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task DivisionSelect_UsesFallbackWhenApiFailsOrReturnsEmpty()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("const fallbackDivisions = [\"Men's\", \"Women's\", \"Open\"];", html);
+        Assert.Contains("function populateDivisionSelect(divs)", html);
+        Assert.Contains("const divisionOptions = [...(Array.isArray(divs) && divs.length ? divs : fallbackDivisions)];", html);
+        Assert.Contains("divisionOptions.unshift(athlete.Division);", html);
+        Assert.Contains(".then(r => r.ok ? r.json() : fallbackDivisions)", html);
+        Assert.Contains(".then(populateDivisionSelect)", html);
+        Assert.Contains("populateDivisionSelect(fallbackDivisions);", html);
+    }
+
+    [Fact]
     public async Task ProfilePictureSelection_ClearsInputAfterCapturingFile()
     {
         using var factory = new TestWebApplicationFactory();
