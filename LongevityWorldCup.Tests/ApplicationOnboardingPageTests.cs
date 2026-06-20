@@ -110,6 +110,29 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationSubmission_TreatsMalformedBiomarkerStorageAsMissing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var parseStart = html.IndexOf("let biomarkerData = null;", StringComparison.Ordinal);
+        var parseEnd = html.IndexOf("let paymentOffer = null;", parseStart, StringComparison.Ordinal);
+
+        Assert.True(parseStart >= 0);
+        Assert.True(parseEnd > parseStart);
+
+        var parseBody = html[parseStart..parseEnd];
+        Assert.Contains("try {", parseBody);
+        Assert.Contains("biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));", parseBody);
+        Assert.Contains("} catch (_) {", parseBody);
+        Assert.Contains("biomarkerData = null;", parseBody);
+        Assert.Contains("!Array.isArray(biomarkerData.Biomarkers)", parseBody);
+        Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
+        Assert.Contains("customAlert('Biomarker data is missing. Please complete the biomarker form.');", parseBody);
+    }
+
+    [Fact]
     public async Task ApplicationDivisionSelect_UsesFallbackWhenApiFailsOrReturnsEmpty()
     {
         using var factory = new TestWebApplicationFactory();

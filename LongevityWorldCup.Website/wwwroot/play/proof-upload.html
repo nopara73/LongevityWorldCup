@@ -517,8 +517,13 @@
                     return;
                 }
 
-                const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
-                if (!biomarkerData || !biomarkerData.Biomarkers || !biomarkerData.Biomarkers.length) {
+                let biomarkerData = null;
+                try {
+                    biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
+                } catch (_) {
+                    biomarkerData = null;
+                }
+                if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length) {
                     customAlert('Biomarker data is missing. Please fill out the biomarker form first.');
                     return;
                 }
