@@ -515,6 +515,15 @@
     <script>
         let currentFlagFocus = -1;
 
+        function setBrowserStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+            } catch (_) {
+            }
+        }
+
+        function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+
         let originalAthlete = null;
         let tempAthlete = null;
 
@@ -808,7 +817,7 @@
                         hideLoading();
                         if (response.ok) {
                             customAlert('Change request submitted!').then(() => {
-                                sessionStorage.setItem("came-from", "edit-profile");
+                                setSessionItem("came-from", "edit-profile");
                                 window.location.href = '/review';
                             });
                         } else {
