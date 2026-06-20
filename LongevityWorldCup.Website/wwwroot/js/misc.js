@@ -515,6 +515,7 @@ window.readApplicationErrorMessage = async function (response) {
 window.extractApplicationErrorMessage = function (text, fallback) {
     const raw = String(text || '').trim();
     if (!raw) return fallback || 'Request failed';
+    if (/^(?:<!doctype\s+html\b|<html[\s>])/i.test(raw)) return fallback || 'Request failed';
     const collectMessages = function (values) {
         return values
             .flatMap(value => Array.isArray(value) ? value : [value])
