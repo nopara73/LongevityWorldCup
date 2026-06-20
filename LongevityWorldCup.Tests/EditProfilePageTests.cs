@@ -162,4 +162,27 @@ public sealed class EditProfilePageTests
         Assert.DoesNotContain("sessionStorage.getItem('contactEmail')", submitBody);
         Assert.DoesNotContain("localStorage.getItem('contactEmail')", submitBody);
     }
+
+    [Fact]
+    public async Task EditProfileDraftPersistence_UsesSafeStorageHelpers()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var stateStart = html.IndexOf("function updateSubmitButtonState()", StringComparison.Ordinal);
+        var stateEnd = html.IndexOf("function validateFlagDisplay(value)", stateStart, StringComparison.Ordinal);
+
+        Assert.True(stateStart >= 0);
+        Assert.True(stateEnd > stateStart);
+
+        var stateBody = html[stateStart..stateEnd];
+
+        Assert.Contains("function removeBrowserStorageItem(storageName, key)", html);
+        Assert.Contains("function removeSessionItem(key)", html);
+        Assert.Contains("setSessionItem('tempAthlete', JSON.stringify(athlete));", stateBody);
+        Assert.Contains("removeSessionItem('tempAthlete');", stateBody);
+        Assert.DoesNotContain("sessionStorage.setItem('tempAthlete'", stateBody);
+        Assert.DoesNotContain("sessionStorage.removeItem('tempAthlete'", stateBody);
+    }
 }
