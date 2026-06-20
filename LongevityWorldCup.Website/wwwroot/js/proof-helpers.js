@@ -144,6 +144,15 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     r.readAsDataURL(file);
                 });
 
+                const optimizeProofImageOrFallback = async raw => {
+                    try {
+                        const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
+                        return dataUrl || raw;
+                    } catch (_) {
+                        return raw;
+                    }
+                };
+
                 // process one by one to preserve order
                 for (const file of Array.from(files)) {
                     if (file.type === 'application/pdf') {
@@ -167,7 +176,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                             const context = canvas.getContext('2d');
                             await page.render({ canvasContext: context, viewport }).promise;
                             const rawPage = canvas.toDataURL();
-                            const { dataUrl: optimizedPage } = await window.optimizeImageClient(rawPage, proofOptimizationOptions);
+                            const optimizedPage = await optimizeProofImageOrFallback(rawPage);
                             if (optimizedPage) {
                                 proofPics.push(optimizedPage);
                             }
@@ -182,7 +191,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                         break;
                     }
                     const raw = await readDataURL(file);
-                    const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
+                    const dataUrl = await optimizeProofImageOrFallback(raw);
                     if (dataUrl) {
                         proofPics.push(dataUrl);
                         updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
