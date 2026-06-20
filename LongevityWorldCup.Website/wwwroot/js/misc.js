@@ -502,7 +502,11 @@ window.APPLICATION_SUBMISSION_TIMEOUT_MS = 65000;
 window.APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS = 2500;
 
 window.readApplicationErrorMessage = async function (response) {
-    const fallback = response && response.statusText ? response.statusText : 'Request failed';
+    const fallback = response && response.statusText
+        ? response.statusText
+        : response && Number.isFinite(response.status)
+            ? `HTTP ${response.status}`
+            : 'Request failed';
     let text = '';
     try {
         text = response ? await response.text() : '';
