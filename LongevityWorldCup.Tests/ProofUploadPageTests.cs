@@ -117,4 +117,33 @@ public sealed class ProofUploadPageTests
         Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
         Assert.Contains("customAlert('Biomarker data is missing. Please fill out the biomarker form first.');", parseBody);
     }
+
+    [Fact]
+    public async Task ResultUploadSuccessHandoff_UsesSafeStorageBeforeNavigation()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+        var successStart = html.IndexOf("customAlert(nextStepMessage).then(() =>", StringComparison.Ordinal);
+        var successEnd = html.IndexOf("window.location.href = '/review';", successStart, StringComparison.Ordinal);
+
+        Assert.True(successStart >= 0);
+        Assert.True(successEnd > successStart);
+
+        var successBody = html[successStart..successEnd];
+
+        Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
+        Assert.Contains("function removeBrowserStorageItem(storageName, key)", html);
+        Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", successBody);
+        Assert.Contains("setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);", successBody);
+        Assert.Contains("setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);", successBody);
+        Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", successBody);
+        Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", successBody);
+        Assert.Contains("setSessionItem(\"came-from\", \"proof-upload\");", successBody);
+        Assert.DoesNotContain("sessionStorage.setItem(", successBody);
+        Assert.DoesNotContain("localStorage.setItem(", successBody);
+        Assert.DoesNotContain("sessionStorage.removeItem(", successBody);
+        Assert.DoesNotContain("localStorage.removeItem(", successBody);
+    }
 }

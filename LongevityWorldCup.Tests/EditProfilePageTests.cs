@@ -117,4 +117,25 @@ public sealed class EditProfilePageTests
         Assert.Contains("newSrc = raw;", cropBody);
         Assert.Contains("athlete.ProfilePic = newSrc;", cropBody);
     }
+
+    [Fact]
+    public async Task EditProfileSuccessHandoff_UsesSafeStorageBeforeNavigation()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var successStart = html.IndexOf("customAlert('Change request submitted!').then(() =>", StringComparison.Ordinal);
+        var successEnd = html.IndexOf("window.location.href = '/review';", successStart, StringComparison.Ordinal);
+
+        Assert.True(successStart >= 0);
+        Assert.True(successEnd > successStart);
+
+        var successBody = html[successStart..successEnd];
+
+        Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
+        Assert.Contains("function setSessionItem(key, value)", html);
+        Assert.Contains("setSessionItem(\"came-from\", \"edit-profile\");", successBody);
+        Assert.DoesNotContain("sessionStorage.setItem(", successBody);
+    }
 }

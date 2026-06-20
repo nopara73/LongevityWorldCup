@@ -461,6 +461,25 @@
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
 
+        function setBrowserStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+            } catch (_) {
+            }
+        }
+
+        function removeBrowserStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
+        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
+
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
@@ -582,7 +601,7 @@
                                         : 'Your results were received';
                                 customAlert(nextStepMessage).then(() => {
                                     proofPics = [];
-                                    sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+                                    removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
                                     if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
                                         if (submitResult.invoiceId) {
                                             const pendingInvoiceInfo = JSON.stringify({
@@ -590,16 +609,16 @@
                                                 applicantName: athlete.Name || null,
                                                 accountEmail: applicantData.accountEmail || null
                                             });
-                                            sessionStorage.setItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
-                                            localStorage.setItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
+                                            setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
+                                            setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
                                         }
                                         window.location.href = submitResult.checkoutLink;
                                         return;
                                     }
 
-                                    sessionStorage.removeItem(PENDING_PAYMENT_INVOICE_KEY);
-                                    localStorage.removeItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
-                                    sessionStorage.setItem("came-from", "proof-upload");
+                                    removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                                    removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                    setSessionItem("came-from", "proof-upload");
                                     window.location.href = '/review';
                                 });
                             });

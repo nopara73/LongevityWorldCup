@@ -168,6 +168,36 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationSuccessHandoff_UsesSafeStorageBeforeNavigation()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var successStart = html.IndexOf("customAlert(nextStepMessage).then(() =>", StringComparison.Ordinal);
+        var successEnd = html.IndexOf("window.location.href = '/review';", successStart, StringComparison.Ordinal);
+
+        Assert.True(successStart >= 0);
+        Assert.True(successEnd > successStart);
+
+        var successBody = html[successStart..successEnd];
+
+        Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
+        Assert.Contains("function removeBrowserStorageItem(storageName, key)", html);
+        Assert.Contains("setSessionItem('contactEmail', applicantData.accountEmail);", successBody);
+        Assert.Contains("setLocalItem('contactEmail', applicantData.accountEmail);", successBody);
+        Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", successBody);
+        Assert.Contains("setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);", successBody);
+        Assert.Contains("setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);", successBody);
+        Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", successBody);
+        Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", successBody);
+        Assert.DoesNotContain("sessionStorage.setItem(", successBody);
+        Assert.DoesNotContain("localStorage.setItem(", successBody);
+        Assert.DoesNotContain("sessionStorage.removeItem(", successBody);
+        Assert.DoesNotContain("localStorage.removeItem(", successBody);
+    }
+
+    [Fact]
     public async Task ProfilePhotoSelection_ClearsInputAfterCapturingFile()
     {
         using var factory = new TestWebApplicationFactory();
