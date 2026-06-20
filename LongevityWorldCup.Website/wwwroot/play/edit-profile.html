@@ -530,7 +530,15 @@
             }
         }
 
+        function removeBrowserStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
         function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
         function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
 
@@ -1139,9 +1147,9 @@
 
             // save or clear draft
             if (anyChanged) {
-                sessionStorage.setItem('tempAthlete', JSON.stringify(athlete));
+                setSessionItem('tempAthlete', JSON.stringify(athlete));
             } else {
-                sessionStorage.removeItem('tempAthlete');
+                removeSessionItem('tempAthlete');
             }
 
         }
