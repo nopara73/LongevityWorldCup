@@ -1207,6 +1207,34 @@
             window.captureDiscountFromUrl();
         }
 
+        function storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference) {
+            try {
+                sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
+                sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
+
+                if (!isUpdate && !sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
+                    const paymentOffer = {
+                        source: 'direct-pheno-age',
+                        offerType: 'amateur',
+                        currency: 'USD',
+                        amountUsd: 10
+                    };
+                    sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
+                        window.applyPaymentAdjustmentsToPaymentOffer
+                            ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                            : window.applyFreePassToPaymentOffer
+                                ? window.applyFreePassToPaymentOffer(paymentOffer)
+                                : paymentOffer
+                    ));
+                }
+
+                return true;
+            } catch (_) {
+                customAlert('Browser storage is unavailable. Enable storage and try again.');
+                return false;
+            }
+        }
+
         function initializePhenoLabAccessGate() {
             const panel = document.getElementById('phenoLabAccessPanel');
             if (!panel) return;
@@ -2343,28 +2371,11 @@
             const chronoAgeAtTimeOfTest = window.calculateAgeAtDate(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));
             const phenoAge = parseFloat(document.getElementById('animatedAge').innerText);
             const chronoPhenoDifference = phenoAge - chronoAgeAtTimeOfTest;
-            sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
-
-            sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
+            if (!storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)) return;
 
              if (isUpdate) {
                  window.location.href = '/proofs';
              } else {
-                 if (!sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
-                     const paymentOffer = {
-                         source: 'direct-pheno-age',
-                         offerType: 'amateur',
-                         currency: 'USD',
-                         amountUsd: 10
-                     };
-                     sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
-                         window.applyPaymentAdjustmentsToPaymentOffer
-                             ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
-                             : window.applyFreePassToPaymentOffer
-                                 ? window.applyFreePassToPaymentOffer(paymentOffer)
-                                 : paymentOffer
-                     ));
-                 }
                  window.location.href = '/apply';
              }
         }

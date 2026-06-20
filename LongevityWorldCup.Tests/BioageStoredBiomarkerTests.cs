@@ -20,6 +20,33 @@ public sealed class BioageStoredBiomarkerTests
         Assert.DoesNotContain("const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));", html);
     }
 
+    [Fact]
+    public void PhenoPage_GuardsStorageHandoffBeforeRedirecting()
+    {
+        var html = File.ReadAllText(GetPagePath("pheno-age.html"));
+
+        Assert.Contains("function storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)", html);
+        Assert.Contains("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);
+        Assert.Contains("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
+        Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
+        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
+        Assert.Contains("if (!storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)) return;", html);
+    }
+
+    [Fact]
+    public void BortzPage_GuardsStorageHandoffBeforeRedirecting()
+    {
+        var html = File.ReadAllText(GetPagePath("bortz-age.html"));
+
+        Assert.Contains("function storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)", html);
+        Assert.Contains("sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));", html);
+        Assert.Contains("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);
+        Assert.Contains("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
+        Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
+        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
+        Assert.Contains("if (!storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)) return;", html);
+    }
+
     private static string GetPagePath(string fileName)
     {
         var repoRoot = FindRepoRoot();

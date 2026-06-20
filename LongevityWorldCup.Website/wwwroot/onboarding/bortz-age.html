@@ -1408,6 +1408,31 @@
             }, result);
         }
 
+        function storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference) {
+            try {
+                sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));
+                sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
+                sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
+                try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+
+                if (!isUpdate && !sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
+                    const paymentOffer = buildDirectBortzPaymentOffer();
+                    sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
+                        window.applyPaymentAdjustmentsToPaymentOffer
+                            ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                            : window.applyFreePassToPaymentOffer
+                                ? window.applyFreePassToPaymentOffer(paymentOffer)
+                                : paymentOffer
+                    ));
+                }
+
+                return true;
+            } catch (_) {
+                customAlert('Browser storage is unavailable. Enable storage and try again.');
+                return false;
+            }
+        }
+
         function initializeBortzLabAccessGate() {
             const panel = document.getElementById('bortzLabAccessPanel');
             const description = document.getElementById('bortzLabAccessDescription');
@@ -2893,25 +2918,11 @@
             const chronoBortzDifference = bortzAge - chronoAgeAtTimeOfTest;
             const phenoAge = lastCalculatedPhenoAge;
             const chronoPhenoDifference = phenoAge - chronoAgeAtTimeOfTest;
-            sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));
-            sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
-
-            sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
-            try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+            if (!storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)) return;
             
              if (isUpdate) {
                  window.location.href = '/proofs';
              } else {
-                 if (!sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
-                     const paymentOffer = buildDirectBortzPaymentOffer();
-                     sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
-                         window.applyPaymentAdjustmentsToPaymentOffer
-                             ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
-                             : window.applyFreePassToPaymentOffer
-                                 ? window.applyFreePassToPaymentOffer(paymentOffer)
-                                 : paymentOffer
-                     ));
-                 }
                  window.location.href = '/apply';
              }
         }
