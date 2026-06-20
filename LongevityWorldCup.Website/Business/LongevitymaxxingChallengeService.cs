@@ -290,13 +290,18 @@ public sealed class LongevitymaxxingChallengeService
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var participant = RequireParticipantByAccessToken(accessToken);
         QueueProfilePictureWarmups([participant]);
-        var participantSummary = ToParticipantSummary(participant, now);
         var publicState = GetPublicState(now);
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
         checkIns.TryGetValue(participant.Id, out var byDay);
         byDay ??= [];
         var settings = BuildSettings(now);
         var eligibleDays = BuildEligibleDays(settings, participant, checkIns, now);
+        var participantSummary = ToParticipantSummary(
+            settings,
+            participant,
+            byDay,
+            GetActivePaymentObligation(participant.Id),
+            now);
 
         return new LongevitymaxxingParticipantState(
             publicState,
@@ -1322,6 +1327,8 @@ public sealed class LongevitymaxxingChallengeService
                 .OrderByDescending(x => x)
                 .FirstOrDefault();
             var badges = BuildBadges(settings, p, p.Id, performanceByDay, currentStreak, categoryLeaders);
+            activePaymentObligations.TryGetValue(p.Id, out var activePaymentObligation);
+            var challengeInactive = IsParticipantInactive(settings, p, byDay, now, activePaymentObligation);
             var cells = Enumerable.Range(1, visibleDayCount)
                 .Select(day => includedByDay.TryGetValue(day, out var checkIn)
                     ? new LongevitymaxxingDayCell(
@@ -1349,8 +1356,8 @@ public sealed class LongevitymaxxingChallengeService
                     badges,
                     latest?.ToString("o"),
                     p.StoppedEmailsAtUtc is not null,
-                    p.ChallengeInactiveAtUtc is not null,
-                    activePaymentObligations.ContainsKey(p.Id) ? "commitment-due" : null),
+                    challengeInactive,
+                    activePaymentObligation is not null ? "commitment-due" : null),
                 TieBreak: GetAthleteTieBreak(athleteTieBreaks, p.AthleteSlug));
         })
         .OrderByDescending(r => r.Row.TotalPoints)
@@ -1512,6 +1519,51 @@ public sealed class LongevitymaxxingChallengeService
             average,
             needed,
             $"Next scored day: need at least {needed} points; {allowance}.");
+    }
+
+    private bool IsParticipantInactive(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        DateTimeOffset now,
+        PaymentObligation? activeObligation)
+        => GetParticipantInactiveReason(settings, participant, byDay, now, activeObligation) is not null;
+
+    private string? GetParticipantInactiveReason(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        DateTimeOffset now,
+        PaymentObligation? activeObligation)
+    {
+        if (participant.ChallengeInactiveAtUtc is not null)
+            return participant.ChallengeInactiveReason ?? ChallengeInactiveReasonMissedScoredDays;
+
+        if (activeObligation is not null &&
+            !IsCommitmentTriggerEditable(settings, participant, activeObligation, now, byDay))
+        {
+            return ChallengeInactiveReasonCommitmentPayment;
+        }
+
+        return HasMissedScoredDayInactiveThreshold(settings, participant, byDay, now)
+            ? ChallengeInactiveReasonMissedScoredDays
+            : null;
+    }
+
+    private bool HasMissedScoredDayInactiveThreshold(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        DateTimeOffset now)
+    {
+        var tz = ResolveTimeZone(participant.TimeZoneId);
+        var localNow = TimeZoneInfo.ConvertTime(now, tz);
+        var targetDate = DateOnly.FromDateTime(localNow.DateTime).AddDays(-1);
+        if (targetDate < GetJoinedLocalDate(participant))
+            return false;
+
+        return CountConsecutiveMissedScoredDays(settings, participant, byDay, targetDate) >=
+            MaxConsecutiveMissedScoredDaysForDailyReminders;
     }
 
     private static int GetNextCommitmentGuidanceDay(
@@ -3262,10 +3314,16 @@ public sealed class LongevitymaxxingChallengeService
         }
     }
 
-    private LongevitymaxxingParticipantSummary ToParticipantSummary(ParticipantRecord participant, DateTimeOffset now)
+    private LongevitymaxxingParticipantSummary ToParticipantSummary(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        PaymentObligation? activeObligation,
+        DateTimeOffset now)
     {
         var localToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, ResolveTimeZone(participant.TimeZoneId)).DateTime);
         var daysIn = Math.Max(0, localToday.DayNumber - GetJoinedLocalDate(participant).DayNumber);
+        var challengeInactive = IsParticipantInactive(settings, participant, byDay, now, activeObligation);
 
         return new LongevitymaxxingParticipantSummary(
             participant.Id,
@@ -3276,7 +3334,7 @@ public sealed class LongevitymaxxingChallengeService
             BuildAthleteUrl(participant.AthleteSlug),
             BuildCachedProfilePictureUrl(participant),
             participant.StoppedEmailsAtUtc is not null,
-            participant.ChallengeInactiveAtUtc is not null,
+            challengeInactive,
             participant.CommitmentAmountUsd,
             daysIn);
     }
