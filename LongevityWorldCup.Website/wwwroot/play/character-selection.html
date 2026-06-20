@@ -414,7 +414,7 @@
                     }
                     document.addEventListener('click', () => closeAllLists());
 
-                    const saved = localStorage.getItem('selectedAthleteName');
+                    const saved = getLocalItem('selectedAthleteName');
                     if (saved) {
                         const match = athletes.find(a => a.Name === saved);
                         if (match) {
@@ -425,6 +425,14 @@
                 .catch(console.error);
 
         });
+
+        function getLocalItem(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
 
         function selectAthlete(a) {
             athleteInput.value = a.Name;
