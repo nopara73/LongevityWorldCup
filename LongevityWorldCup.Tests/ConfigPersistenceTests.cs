@@ -100,6 +100,29 @@ public sealed class ConfigPersistenceTests
     }
 
     [Fact]
+    public async Task LoadAsync_IgnoresMalformedRuntimeTokenConfig_WhenPrimaryConfigIsValid()
+    {
+        using var temp = new TempDirectory();
+        var configPath = Path.Combine(temp.Path, "config.json");
+        var runtimeConfigPath = Path.Combine(temp.Path, "runtime-config.json");
+
+        await WriteConfigAsync(configPath, new Config
+        {
+            XAccessToken = "primary-x-access",
+            ThreadsAccessToken = "primary-threads"
+        });
+        await File.WriteAllTextAsync(runtimeConfigPath, "{ malformed");
+
+        File.SetLastWriteTimeUtc(configPath, DateTime.UtcNow.AddMinutes(-10));
+        File.SetLastWriteTimeUtc(runtimeConfigPath, DateTime.UtcNow);
+
+        var config = await Config.LoadAsync(configPath, runtimeConfigPath);
+
+        Assert.Equal("primary-x-access", config.XAccessToken);
+        Assert.Equal("primary-threads", config.ThreadsAccessToken);
+    }
+
+    [Fact]
     public async Task SaveAsync_FallsBackToRuntimeTokenConfig_WhenPrimaryConfigIsReadOnly()
     {
         using var temp = new TempDirectory();

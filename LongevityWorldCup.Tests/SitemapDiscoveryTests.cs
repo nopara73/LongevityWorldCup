@@ -1,6 +1,8 @@
+using System.Net;
 using System.Xml.Linq;
 using System.Runtime.CompilerServices;
 using LongevityWorldCup.Website.Business;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -66,6 +68,53 @@ public class SitemapDiscoveryTests
         Assert.Contains("https://longevityworldcup.com/", locs);
         Assert.Contains("https://longevityworldcup.com/league/amateur", locs);
         Assert.Contains("https://longevityworldcup.com/athlete/michael-lustgarten", locs);
+    }
+
+    [Fact]
+    public void BuildXml_NormalizesAndDeduplicatesRoutesUsingNewestLastModified()
+    {
+        var xml = SitemapService.BuildXml(
+        [
+            new SitemapUrlEntry("/Leaderboard/", new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc), "weekly", 0.1m),
+            new SitemapUrlEntry("leaderboard", new DateTime(2026, 5, 30, 0, 0, 0, DateTimeKind.Utc), "daily", 0.9m),
+            new SitemapUrlEntry("/league/Amateur/", new DateTime(2026, 5, 20, 0, 0, 0, DateTimeKind.Utc), "daily", 0.8m),
+            new SitemapUrlEntry("/league/amateur", new DateTime(2026, 5, 21, 0, 0, 0, DateTimeKind.Utc), "daily", 0.8m)
+        ]);
+
+        var doc = XDocument.Parse(xml);
+        XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
+        var urls = doc.Descendants(ns + "url")
+            .Select(url => new
+            {
+                Loc = url.Element(ns + "loc")?.Value,
+                LastModified = url.Element(ns + "lastmod")?.Value
+            })
+            .ToList();
+
+        var leaderboard = Assert.Single(urls, url => url.Loc == "https://longevityworldcup.com/leaderboard");
+        Assert.Equal("2026-05-30", leaderboard.LastModified);
+        var amateur = Assert.Single(urls, url => url.Loc == "https://longevityworldcup.com/league/amateur");
+        Assert.Equal("2026-05-21", amateur.LastModified);
+    }
+
+    [Fact]
+    public async Task SitemapEndpoint_ReturnsXmlWithShortPublicCacheHeaders()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.GetAsync("/sitemap.xml");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/xml", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("utf-8", response.Content.Headers.ContentType?.CharSet);
+        Assert.True(response.Headers.CacheControl?.Public);
+        Assert.Equal(TimeSpan.FromMinutes(5), response.Headers.CacheControl?.MaxAge);
+        Assert.True(response.Headers.CacheControl?.MustRevalidate);
+
+        var xml = await response.Content.ReadAsStringAsync();
+        Assert.Contains("<urlset", xml, StringComparison.Ordinal);
+        Assert.Contains("https://longevityworldcup.com/", xml, StringComparison.Ordinal);
     }
 
     [Fact]
