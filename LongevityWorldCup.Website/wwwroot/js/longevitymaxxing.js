@@ -486,7 +486,7 @@
 
         const participant = participantState.participant || {};
         const leaderboardRows = splitLeaderboardRows(state);
-        const leaderboard = participant.challengeEmailsStopped ? (state.leaderboard || []) : leaderboardRows.active;
+        const leaderboard = participant.challengeInactive ? (state.leaderboard || []) : leaderboardRows.active;
         const rowIndex = leaderboard.findIndex(row => row.participantId === participant.id);
         const row = rowIndex >= 0 ? leaderboard[rowIndex] : null;
         const daysIn = Math.max(0, Math.trunc(Number(participant.daysIn) || 0));
@@ -1360,7 +1360,7 @@
                 }
                 return scoredDayCellHtml(cell);
             }).join("");
-            return `<div class="lmx-board-row${row.challengeEmailsStopped ? " inactive" : ""}" role="row">
+            return `<div class="lmx-board-row${row.challengeInactive ? " inactive" : ""}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-number" role="cell" data-label="Score">${row.totalPoints}</div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${cells}</div>
@@ -1460,7 +1460,7 @@
                 : `<span>${esc(row.displayName)}</span>`;
             const participant = participantNameHtml(row, name, index + 1);
             const cells = (row.cells || state.days || []).map(cell => `<div class="lmx-cell empty" data-day="${escAttr(cell.challengeDay)}" title="Day ${cell.challengeDay}"></div>`).join("");
-            return `<div class="lmx-board-row lmx-roster-row${row.challengeEmailsStopped ? " inactive" : ""}" role="row">
+            return `<div class="lmx-board-row lmx-roster-row${row.challengeInactive ? " inactive" : ""}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${cells}</div>
             </div>`;
@@ -1485,8 +1485,8 @@
 
     function splitLeaderboardRows(state) {
         const all = (state && state.leaderboard) || [];
-        const active = all.filter(row => !row.challengeEmailsStopped);
-        const inactive = all.filter(row => row.challengeEmailsStopped);
+        const active = all.filter(row => !row.challengeInactive);
+        const inactive = all.filter(row => row.challengeInactive);
         return {
             active,
             inactive,
@@ -2158,7 +2158,7 @@
         const alt = hasProfileImage ? `${row.displayName || "Participant"} profile picture` : "";
         const badges = [
             row.commitmentStatus === "commitment-due" ? "Commitment due" : "",
-            row.challengeEmailsStopped ? "Inactive" : ""
+            row.challengeInactive ? "Inactive" : ""
         ].filter(Boolean);
         const rankNumber = Number.isFinite(Number(rank)) ? Math.trunc(Number(rank)) : null;
         const rankHtml = rankNumber && rankNumber > 0

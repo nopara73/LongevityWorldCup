@@ -937,6 +937,11 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         fixture.Service.StopChallengeEmails(access, reminderTime.AddMinutes(30));
         Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-10T08:05:00Z")));
+        var stoppedEmails = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-10T08:06:00Z"));
+        Assert.True(stoppedEmails.Participant.ChallengeEmailsStopped);
+        Assert.False(stoppedEmails.Participant.ChallengeInactive);
+        Assert.True(stoppedEmails.Public.Leaderboard.Single().ChallengeEmailsStopped);
+        Assert.False(stoppedEmails.Public.Leaderboard.Single().ChallengeInactive);
     }
 
     [Fact]
@@ -955,8 +960,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-12T08:05:00Z"));
         var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T08:06:00Z"));
-        Assert.True(stopped.Participant.ChallengeEmailsStopped);
-        Assert.True(stopped.Public.Leaderboard.Single().ChallengeEmailsStopped);
+        Assert.False(stopped.Participant.ChallengeEmailsStopped);
+        Assert.True(stopped.Participant.ChallengeInactive);
+        Assert.False(stopped.Public.Leaderboard.Single().ChallengeEmailsStopped);
+        Assert.True(stopped.Public.Leaderboard.Single().ChallengeInactive);
     }
 
     [Fact]
@@ -987,7 +994,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-12T08:05:00Z")));
         fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-12T08:05:00Z"));
         var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T08:06:00Z"));
-        Assert.True(stopped.Participant.ChallengeEmailsStopped);
+        Assert.True(stopped.Participant.ChallengeInactive);
 
         fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
             access,
@@ -1688,7 +1695,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Equal("clear", paid.Commitment.Status);
         Assert.False(paid.Commitment.BlocksParticipant);
-        Assert.False(paid.Participant.ChallengeEmailsStopped);
+        Assert.True(paid.Participant.ChallengeEmailsStopped);
+        Assert.False(paid.Participant.ChallengeInactive);
     }
 
     [Fact]
@@ -1802,8 +1810,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-15T08:05:00Z"));
         var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-15T08:06:00Z"));
-        Assert.True(stopped.Participant.ChallengeEmailsStopped);
-        Assert.True(stopped.Public.Leaderboard.Single().ChallengeEmailsStopped);
+        Assert.False(stopped.Participant.ChallengeEmailsStopped);
+        Assert.True(stopped.Participant.ChallengeInactive);
+        Assert.False(stopped.Public.Leaderboard.Single().ChallengeEmailsStopped);
+        Assert.True(stopped.Public.Leaderboard.Single().ChallengeInactive);
     }
 
     private static string ReadQueryToken(string url, string key)

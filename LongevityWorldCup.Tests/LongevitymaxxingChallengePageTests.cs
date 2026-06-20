@@ -319,7 +319,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-tab:disabled", css);
         Assert.Contains(".lmx-call-when small", css);
         Assert.Contains("const leaderboardRows = splitLeaderboardRows(state);", javascript);
-        Assert.Contains("const leaderboard = participant.challengeEmailsStopped ? (state.leaderboard || []) : leaderboardRows.active;", javascript);
+        Assert.Contains("const leaderboard = participant.challengeInactive ? (state.leaderboard || []) : leaderboardRows.active;", javascript);
         Assert.Contains("toggle(\"lmxTitlePanel\", !checkInOnly);", javascript);
         Assert.Contains("toggle(\"lmxAccessTabs\", !hasParticipant && !isAccessLoading);", javascript);
         Assert.Contains("toggle(\"lmxResendPanel\", !hasParticipant && !isAccessLoading && accessTab === \"signin\");", javascript);
