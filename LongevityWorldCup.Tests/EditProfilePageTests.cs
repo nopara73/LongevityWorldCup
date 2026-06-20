@@ -5,21 +5,29 @@ namespace LongevityWorldCup.Tests;
 public sealed class EditProfilePageTests
 {
     [Fact]
-    public async Task InvalidPersonalLink_RemainsEditableAfterValidationFailure()
+    public async Task InvalidProfileFields_RemainEditableAfterValidationFailure()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
-        var validationStart = html.IndexOf("function validatePersonalLink(value)", StringComparison.Ordinal);
-        var validationEnd = html.IndexOf("function validateMediaContact(value)", StringComparison.Ordinal);
+
+        AssertValidatorDoesNotRestore(html, "function validateFlagDisplay(value)", "function validatePersonalLink(value)", "restoreFlagToOriginal();");
+        AssertValidatorDoesNotRestore(html, "function validatePersonalLink(value)", "function validateMediaContact(value)", "restorePersonalLinkToOriginal();");
+        AssertValidatorDoesNotRestore(html, "function validateMediaContact(value)", "function validateWhyDisplay(value)", "restoreMediaContactToOriginal();");
+        AssertValidatorDoesNotRestore(html, "function validateWhyDisplay(value)", "</script>", "restoreWhyDisplayToOriginal();");
+    }
+
+    private static void AssertValidatorDoesNotRestore(string html, string startMarker, string endMarker, string restoreCall)
+    {
+        var validationStart = html.IndexOf(startMarker, StringComparison.Ordinal);
+        var validationEnd = html.IndexOf(endMarker, validationStart, StringComparison.Ordinal);
 
         Assert.True(validationStart >= 0);
         Assert.True(validationEnd > validationStart);
 
         var validationBody = html[validationStart..validationEnd];
-        Assert.Contains("customAlert('Please enter a valid URL for your personal link.');", validationBody);
-        Assert.DoesNotContain("restorePersonalLinkToOriginal();", validationBody);
+        Assert.DoesNotContain(restoreCall, validationBody);
     }
 
     [Fact]
