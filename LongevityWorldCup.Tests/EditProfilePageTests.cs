@@ -138,4 +138,28 @@ public sealed class EditProfilePageTests
         Assert.Contains("setSessionItem(\"came-from\", \"edit-profile\");", successBody);
         Assert.DoesNotContain("sessionStorage.setItem(", successBody);
     }
+
+    [Fact]
+    public async Task EditProfileSubmit_DoesNotBlockOnStoredContactEmailRead()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var submitStart = html.IndexOf("const applicantData = {", StringComparison.Ordinal);
+        var submitEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", submitStart, StringComparison.Ordinal);
+
+        Assert.True(submitStart >= 0);
+        Assert.True(submitEnd > submitStart);
+
+        var submitBody = html[submitStart..submitEnd];
+
+        Assert.Contains("function getBrowserStorageItem(storageName, key)", html);
+        Assert.Contains("return window[storageName].getItem(key);", html);
+        Assert.Contains("return null;", html);
+        Assert.Contains("|| getSessionItem('contactEmail')", submitBody);
+        Assert.Contains("|| getLocalItem('contactEmail')", submitBody);
+        Assert.DoesNotContain("sessionStorage.getItem('contactEmail')", submitBody);
+        Assert.DoesNotContain("localStorage.getItem('contactEmail')", submitBody);
+    }
 }
