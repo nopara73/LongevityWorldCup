@@ -412,7 +412,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("No active participants", javascript);
         Assert.DoesNotContain("inactive participant${hiddenInactiveCount === 1 ? \" is\" : \"s are\"} hidden", javascript);
         Assert.Contains("id=\"lmxInactiveToggle\" class=\"lmx-inactive-toggle lmx-hidden\"", html);
-        Assert.Contains("button.textContent = showInactiveLeaderboard ? \"Hide inactive\" : `Show inactive (${rows.inactive.length})`;", javascript);
+        Assert.Contains("button.textContent = showInactiveLeaderboard ? \"Hide resting\" : `Show resting (${rows.inactive.length})`;", javascript);
         Assert.Contains(".lmx-inactive-toggle", css);
         Assert.DoesNotContain("fa-users-slash", javascript);
         Assert.Contains("const LEADERBOARD_SCORING_WINDOW_DAYS = 14;", javascript);
