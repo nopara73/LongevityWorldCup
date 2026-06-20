@@ -945,6 +945,23 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task StoppedEmailsParticipantWithoutCheckInsIsInactiveAfterMissThreshold()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("legacy-stop@example.com", "Guilherme Schwarz");
+
+        fixture.Service.StopChallengeEmails(access, DateTimeOffset.Parse("2026-06-19T12:57:59Z"));
+
+        var state = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-20T09:00:00Z"));
+
+        Assert.True(state.Participant.ChallengeEmailsStopped);
+        Assert.True(state.Participant.ChallengeInactive);
+        var row = Assert.Single(state.Public.Leaderboard);
+        Assert.True(row.ChallengeEmailsStopped);
+        Assert.True(row.ChallengeInactive);
+    }
+
+    [Fact]
     public async Task DailyReminderCandidatesStopAfterThreeConsecutiveMissedScoredDays()
     {
         using var fixture = TestChallengeFixture.Create();
