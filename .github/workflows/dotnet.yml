@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -37,5 +38,78 @@ jobs:
         -p:WarningsAsErrors=NU1900%3BNU1901%3BNU1902%3BNU1903%3BNU1904%3BNU1905
     - name: Build
       run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+    - name: Test with coverage
+      run: >
+        dotnet test
+        --no-build
+        --verbosity normal
+        -p:CollectCoverage=true
+        -p:CoverletOutput=TestResults/Coverage/
+        -p:CoverletOutputFormat=cobertura
+    - name: Summarize .NET coverage
+      id: coverage
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        coverage_file="$(find . -name coverage.cobertura.xml -print | head -n 1)"
+        if [[ -z "$coverage_file" ]]; then
+          echo "coverage.cobertura.xml was not produced." >&2
+          exit 1
+        fi
+
+        python3 - "$coverage_file" <<'PY' | tee coverage-summary.md
+        import sys
+        import xml.etree.ElementTree as ET
+
+        root = ET.parse(sys.argv[1]).getroot()
+        line_coverage = float(root.attrib.get("line-rate", "0")) * 100
+        branch_coverage = float(root.attrib.get("branch-rate", "0")) * 100
+
+        print("## .NET test coverage")
+        print()
+        print(f"- Line coverage: {line_coverage:.1f}%")
+        print(f"- Branch coverage: {branch_coverage:.1f}%")
+        PY
+
+        cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
+        {
+          echo "markdown<<DOTNET_COVERAGE_SUMMARY"
+          cat coverage-summary.md
+          echo "DOTNET_COVERAGE_SUMMARY"
+        } >> "$GITHUB_OUTPUT"
+    - name: Comment .NET coverage on PR
+      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+      uses: actions/github-script@v9
+      env:
+        COVERAGE_MARKDOWN: ${{ steps.coverage.outputs.markdown }}
+      with:
+        script: |
+          const marker = '<!-- dotnet-coverage-summary -->';
+          const body = [marker, process.env.COVERAGE_MARKDOWN].join('\n');
+          const { owner, repo } = context.repo;
+          const issue_number = context.issue.number;
+          const { data: comments } = await github.rest.issues.listComments({
+            owner,
+            repo,
+            issue_number,
+            per_page: 100
+          });
+          const existing = comments.find(comment =>
+            comment.user?.type === 'Bot' && comment.body?.includes(marker));
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner,
+              repo,
+              comment_id: existing.id,
+              body
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body
+            });
+          }
