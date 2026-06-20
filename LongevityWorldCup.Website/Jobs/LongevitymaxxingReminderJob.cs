@@ -3,6 +3,7 @@ using Quartz;
 
 namespace LongevityWorldCup.Website.Jobs;
 
+[DisallowConcurrentExecution]
 public sealed class LongevitymaxxingReminderJob(
     LongevitymaxxingChallengeService challenge,
     EventDataService events,

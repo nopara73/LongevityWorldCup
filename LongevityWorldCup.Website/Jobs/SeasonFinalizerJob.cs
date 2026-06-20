@@ -4,6 +4,7 @@ using LongevityWorldCup.Website.Business;
 
 namespace LongevityWorldCup.Website.Jobs
 {
+    [DisallowConcurrentExecution]
     public sealed class SeasonFinalizerJob : IJob
     {
         private readonly SeasonFinalizerService _seasonFinalizer;
