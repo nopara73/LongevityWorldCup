@@ -95,8 +95,9 @@ public static class EnvironmentHelpers
             fileName = callerFilePath[lastSeparatorIndex..]; // From lastSeparatorIndex until the end of the string.
         }
 
-        var fileNameWithoutExtension = fileName.TrimEnd(".cs", StringComparison.InvariantCultureIgnoreCase);
-        return fileNameWithoutExtension;
+        return fileName.EndsWith(".cs", StringComparison.InvariantCultureIgnoreCase)
+            ? fileName[..^3]
+            : fileName;
     }
 
     public static bool IsFileTypeAssociated(string fileExtension)
