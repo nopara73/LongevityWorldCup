@@ -1572,8 +1572,13 @@
                         });
 
                         const raw = croppedCanvas.toDataURL('image/png');
-                        const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
-                        const croppedImageDataURL = dataUrl || raw;
+                        let croppedImageDataURL = raw;
+                        try {
+                            const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
+                            croppedImageDataURL = dataUrl || raw;
+                        } catch {
+                            croppedImageDataURL = raw;
+                        }
                         document.getElementById('illustrationPicture').style.display = 'none';
                         document.getElementById('profileImage').style.display = '';
                         document.getElementById('profileImage').src = croppedImageDataURL;

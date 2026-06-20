@@ -109,4 +109,26 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("document.getElementById('croppingPart').style.display = 'none';", cancelBody);
         Assert.Contains("nextButton.disabled = !profilePic;", cancelBody);
     }
+
+    [Fact]
+    public async Task ProfilePhotoCrop_FallsBackToRawCropWhenOptimizationFails()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var cropStart = html.IndexOf("document.getElementById('cropButton').addEventListener('click'", StringComparison.Ordinal);
+        var cropEnd = html.IndexOf("document.getElementById('cancelProfileCropButton').addEventListener('click'", cropStart, StringComparison.Ordinal);
+
+        Assert.True(cropStart >= 0);
+        Assert.True(cropEnd > cropStart);
+
+        var cropBody = html[cropStart..cropEnd];
+        Assert.Contains("let croppedImageDataURL = raw;", cropBody);
+        Assert.Contains("try {", cropBody);
+        Assert.Contains("await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);", cropBody);
+        Assert.Contains("} catch {", cropBody);
+        Assert.Contains("croppedImageDataURL = raw;", cropBody);
+        Assert.Contains("profilePic = croppedImageDataURL;", cropBody);
+    }
 }
