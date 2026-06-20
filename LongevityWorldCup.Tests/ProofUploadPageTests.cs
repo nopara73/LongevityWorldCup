@@ -110,12 +110,40 @@ public sealed class ProofUploadPageTests
 
         var parseBody = html[parseStart..parseEnd];
         Assert.Contains("try {", parseBody);
-        Assert.Contains("biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));", parseBody);
+        Assert.Contains("biomarkerData = JSON.parse(getSessionItem('biomarkerData'));", parseBody);
         Assert.Contains("} catch (_) {", parseBody);
         Assert.Contains("biomarkerData = null;", parseBody);
         Assert.Contains("!Array.isArray(biomarkerData.Biomarkers)", parseBody);
         Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
         Assert.Contains("customAlert('Biomarker data is missing. Please fill out the biomarker form first.');", parseBody);
+    }
+
+    [Fact]
+    public async Task ResultUploadSubmit_UsesSafeStorageForStoredMetadata()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+        var submitStart = html.IndexOf("const applicantData = {", StringComparison.Ordinal);
+        var submitEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", submitStart, StringComparison.Ordinal);
+
+        Assert.True(submitStart >= 0);
+        Assert.True(submitEnd > submitStart);
+
+        var submitBody = html[submitStart..submitEnd];
+
+        Assert.Contains("function getBrowserStorageItem(storageName, key)", html);
+        Assert.Contains("return window[storageName].getItem(key);", html);
+        Assert.Contains("return null;", html);
+        Assert.Contains("accountEmail: getSessionItem('contactEmail') || null", submitBody);
+        Assert.Contains("chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null", submitBody);
+        Assert.Contains("chronoBortzDifference: getSessionItem('chronoBortzDifference') || null", submitBody);
+        Assert.Contains("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", submitBody);
+        Assert.DoesNotContain("sessionStorage.getItem('contactEmail')", submitBody);
+        Assert.DoesNotContain("sessionStorage.getItem('chronoPhenoDifference')", submitBody);
+        Assert.DoesNotContain("sessionStorage.getItem('chronoBortzDifference')", submitBody);
+        Assert.DoesNotContain("sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)", submitBody);
     }
 
     [Fact]
