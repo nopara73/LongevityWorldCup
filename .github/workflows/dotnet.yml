@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   issues: write
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
@@ -89,27 +90,35 @@ jobs:
           const body = [marker, process.env.COVERAGE_MARKDOWN].join('\n');
           const { owner, repo } = context.repo;
           const issue_number = context.issue.number;
-          const { data: comments } = await github.rest.issues.listComments({
-            owner,
-            repo,
-            issue_number,
-            per_page: 100
-          });
-          const existing = comments.find(comment =>
-            comment.user?.type === 'Bot' && comment.body?.includes(marker));
-
-          if (existing) {
-            await github.rest.issues.updateComment({
-              owner,
-              repo,
-              comment_id: existing.id,
-              body
-            });
-          } else {
-            await github.rest.issues.createComment({
+          try {
+            const { data: comments } = await github.rest.issues.listComments({
               owner,
               repo,
               issue_number,
-              body
+              per_page: 100
             });
+            const existing = comments.find(comment =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body
+              });
+            }
+          } catch (error) {
+            if (error.status === 403) {
+              core.warning('Could not update the PR coverage comment with GITHUB_TOKEN; the coverage report is still available in the job summary.');
+            } else {
+              throw error;
+            }
           }
