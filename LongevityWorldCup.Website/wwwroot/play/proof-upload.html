@@ -617,13 +617,14 @@
                     })
                     .catch(error => {
                         hideLoading();
+                        const displayError = error && error.message ? error.message : String(error);
                         window.sendApplicationSubmissionReport(
                             window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                 type: error && error.name || 'Error',
-                                message: error && error.message || String(error)
+                                message: displayError
                             })
                         );
-                        customAlert(`An error occurred:\n\n${error}`).then(() => {
+                        customAlert(`An error occurred:\n\n${displayError}`).then(() => {
                             submitButton.disabled = false;
                             uploadProofButton.disabled = false;
                             if (takeProofPhotoButton) takeProofPhotoButton.disabled = false;
