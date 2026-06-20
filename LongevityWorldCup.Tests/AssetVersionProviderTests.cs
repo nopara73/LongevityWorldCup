@@ -69,6 +69,21 @@ public sealed class AssetVersionProviderTests
         Assert.Equal("/../secret.txt", provider.AppendVersion("/../secret.txt"));
     }
 
+    [Fact]
+    public void AppendVersion_DoesNotHashCaseVariantSiblingOnCaseSensitiveFileSystems()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+
+        using var temp = new TempDirectory();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "wwwroot"));
+        Directory.CreateDirectory(Path.Combine(temp.Path, "WWWROOT"));
+        File.WriteAllText(Path.Combine(temp.Path, "WWWROOT", "secret.txt"), "not a public asset");
+        var provider = CreateProvider(webRootPath: Path.Combine(temp.Path, "wwwroot"));
+
+        Assert.Equal("/../WWWROOT/secret.txt", provider.AppendVersion("/../WWWROOT/secret.txt"));
+    }
+
     private static AssetVersionProvider CreateProvider(string webRootPath, string? contentRootPath = null)
     {
         return new AssetVersionProvider(new TestWebHostEnvironment
