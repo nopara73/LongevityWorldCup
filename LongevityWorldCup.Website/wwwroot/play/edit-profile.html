@@ -1037,8 +1037,13 @@
                 height: 1024,
             });
             const raw = canvas.toDataURL('image/png');
-            const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
-            const newSrc = dataUrl || raw;
+            let newSrc = raw;
+            try {
+                const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
+                newSrc = dataUrl || raw;
+            } catch {
+                newSrc = raw;
+            }
             const imgEl = document.querySelector('.illustration');
             imgEl.src = newSrc;
             imgEl.alt = getAthleteDisplayName() + ' headshot';

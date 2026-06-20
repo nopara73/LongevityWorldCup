@@ -60,4 +60,26 @@ public sealed class EditProfilePageTests
         Assert.Contains("const file = input.files[0];", selectionBody);
         Assert.Contains("input.value = '';", selectionBody);
     }
+
+    [Fact]
+    public async Task ProfilePictureCrop_FallsBackToRawCropWhenOptimizationFails()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var cropStart = html.IndexOf("cropBtn.addEventListener('click', async function ()", StringComparison.Ordinal);
+        var cropEnd = html.IndexOf("cancelBtn.addEventListener('click', () =>", cropStart, StringComparison.Ordinal);
+
+        Assert.True(cropStart >= 0);
+        Assert.True(cropEnd > cropStart);
+
+        var cropBody = html[cropStart..cropEnd];
+        Assert.Contains("let newSrc = raw;", cropBody);
+        Assert.Contains("try {", cropBody);
+        Assert.Contains("await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);", cropBody);
+        Assert.Contains("} catch {", cropBody);
+        Assert.Contains("newSrc = raw;", cropBody);
+        Assert.Contains("athlete.ProfilePic = newSrc;", cropBody);
+    }
 }
