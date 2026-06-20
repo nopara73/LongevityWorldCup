@@ -7,6 +7,25 @@ namespace LongevityWorldCup.Tests;
 public sealed class ConfigPersistenceTests
 {
     [Fact]
+    public async Task InitializeDefaultConfig_CanRunConcurrentlyForSameMissingFile()
+    {
+        using var temp = new TempDirectory();
+        var configPath = Path.Combine(temp.Path, "config.json");
+
+        var tasks = Enumerable.Range(0, 32)
+            .Select(_ => Task.Run(() => Program.InitializeDefaultConfig(configPath)))
+            .ToArray();
+
+        await Task.WhenAll(tasks);
+
+        var config = await Config.LoadAsync(configPath, Path.Combine(temp.Path, "runtime-config.json"));
+        Assert.Equal("hi@longevityworldcup.com", config.EmailFrom);
+        Assert.Equal("smtp.gmail.com", config.SmtpServer);
+        Assert.NotNull(config.LongevitymaxxingChallenge);
+        Assert.Empty(Directory.EnumerateFiles(temp.Path, "*.tmp"));
+    }
+
+    [Fact]
     public async Task LoadAsync_AppliesRuntimeTokenConfig_WhenRuntimeConfigIsCurrent()
     {
         using var temp = new TempDirectory();
