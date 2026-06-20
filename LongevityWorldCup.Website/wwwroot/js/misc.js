@@ -499,6 +499,7 @@ window.createApplicationSubmissionId = function () {
 };
 
 window.APPLICATION_SUBMISSION_TIMEOUT_MS = 65000;
+window.APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS = 2500;
 
 window.buildApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error) {
     applicantData = applicantData || {};
@@ -539,15 +540,24 @@ window.sendApplicationSubmissionReport = async function (report) {
         return;
     }
 
+    const timeoutMs = window.APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS || 2500;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller
+        ? window.setTimeout(() => controller.abort(), timeoutMs)
+        : null;
+
     try {
         await fetch('/api/application/submission-report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body,
-            keepalive: body.length < 60000
+            keepalive: body.length < 60000,
+            ...(controller ? { signal: controller.signal } : {})
         });
     } catch (_) {
         // Best-effort diagnostics must never block an application attempt.
+    } finally {
+        if (timer) window.clearTimeout(timer);
     }
 };
 
