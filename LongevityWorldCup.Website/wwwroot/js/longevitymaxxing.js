@@ -3505,7 +3505,15 @@
         }
 
         if (!response.ok) {
-            const err = new Error(data.message || response.statusText || "Request failed");
+            const fallback = response.statusText || (response.status ? `HTTP ${response.status}` : "Request failed");
+            const message = typeof data === "string" && data.trim()
+                ? data.trim()
+                : data && typeof data.message === "string" && data.message.trim()
+                    ? data.message.trim()
+                    : Array.isArray(data)
+                        ? data.filter(value => typeof value === "string").map(value => value.trim()).filter(Boolean).join("\n")
+                        : "";
+            const err = new Error(message || fallback);
             err.status = response.status;
             throw err;
         }

@@ -26,6 +26,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("...(controller ? { signal: controller.signal } : {})", javascript);
         Assert.Contains("if (err && err.name === \"AbortError\") throw new Error(\"Request timed out\");", javascript);
         Assert.Contains("const response = await requestJson(url, {", javascript);
+        Assert.Contains("const fallback = response.statusText || (response.status ? `HTTP ${response.status}` : \"Request failed\");", javascript);
+        Assert.Contains("typeof data === \"string\" && data.trim()", javascript);
+        Assert.Contains("Array.isArray(data)", javascript);
+        Assert.Contains("const err = new Error(message || fallback);", javascript);
     }
 
     [Fact]
