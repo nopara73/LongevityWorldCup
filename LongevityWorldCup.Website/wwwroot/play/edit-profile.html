@@ -522,7 +522,17 @@
             }
         }
 
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
         function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
+        function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
 
         let originalAthlete = null;
         let tempAthlete = null;
@@ -794,8 +804,8 @@
                     name: athlete.Name,
                     accountEmail: athlete.AccountEmail
                         || originalAthlete.AccountEmail
-                        || sessionStorage.getItem('contactEmail')
-                        || localStorage.getItem('contactEmail')
+                        || getSessionItem('contactEmail')
+                        || getLocalItem('contactEmail')
                         || null,
                     submissionId: submissionId,
                     profilePic: athlete.ProfilePic,
