@@ -20,4 +20,17 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("window.location.href = '/dashboard';", html);
     }
+
+    [Fact]
+    public async Task AthleteSelection_RememberedAthletePrefillUsesOptionalStorageRead()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-selection.html");
+
+        Assert.Contains("function getLocalItem(key)", html);
+        Assert.Contains("const saved = getLocalItem('selectedAthleteName');", html);
+        Assert.Contains("localStorage.setItem('selectedAthleteName', currentAthlete.Name);", html);
+    }
 }
