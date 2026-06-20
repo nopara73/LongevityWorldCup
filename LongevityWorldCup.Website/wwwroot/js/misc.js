@@ -637,11 +637,18 @@ window.updateHypotheticalRankResult = async function (options) {
     container.setAttribute('aria-busy', 'true');
     container.innerHTML = '<div class="bioage-rank-pending">Checking the current leaderboard...</div>';
 
+    const timeoutMs = 10000;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller
+        ? window.setTimeout(() => controller.abort(), timeoutMs)
+        : null;
+
     try {
         const response = await fetch('/api/data/hypothetical-rank', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            ...(controller ? { signal: controller.signal } : {})
         });
 
         if (!response.ok) throw new Error('Rank lookup failed.');
@@ -654,6 +661,7 @@ window.updateHypotheticalRankResult = async function (options) {
             container.hidden = true;
         }
     } finally {
+        if (timer) window.clearTimeout(timer);
         if (isCurrentRequest()) {
             container.removeAttribute('aria-busy');
         }
