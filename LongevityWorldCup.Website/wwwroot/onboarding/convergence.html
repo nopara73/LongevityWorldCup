@@ -1521,8 +1521,10 @@
             let cropper; // Declare Cropper instance at a higher scope
 
             function handleProfileUploadChange(event) {
-                if (!event.target.files.length) return; // Reset if no file selected
-                const file = event.target.files[0];
+                const input = event.target;
+                if (!input.files.length) return; // Reset if no file selected
+                const file = input.files[0];
+                input.value = '';
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function (e) {
