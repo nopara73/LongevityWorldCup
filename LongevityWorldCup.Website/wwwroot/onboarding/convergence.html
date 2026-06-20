@@ -1451,7 +1451,7 @@
                                     );
                                     customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
                                         applyButton.disabled = false;
-                                        accountEmailInput.setAttribute("disabled", "false");
+                                        accountEmailInput.disabled = false;
                                         setNextButtonToApply();
                                     });
                                 });
@@ -1467,7 +1467,7 @@
                             );
                             customAlert(`An error occurred while submitting your application:\n\n${error}`).then(() => {
                                 applyButton.disabled = false;
-                                accountEmailInput.setAttribute("disabled", "false");
+                                accountEmailInput.disabled = false;
                                 setNextButtonToApply();
                             });
                         });
