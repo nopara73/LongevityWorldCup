@@ -109,17 +109,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
         targetMaxBytes: 1.5 * 1024 * 1024
     };
 
-    // ——— Load PDF.js if not already loaded ———
-    if (!window.pdfjsLib) {
-        const pdfScript = document.createElement('script');
-        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
-        pdfScript.onload = () => {
-            // point to the worker
-            pdfjsLib.GlobalWorkerOptions.workerSrc =
-                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
-        };
-        document.head.appendChild(pdfScript);
-    }
+    ensurePdfJsReady().catch(() => {});
 
     // Attach event listener to the Upload Proof button
     if (uploadProofButton && !uploadProofButton.hasAttribute('data-listener')) {
@@ -156,15 +146,19 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
                 // process one by one to preserve order
                 for (const file of Array.from(files)) {
-                    const raw = await readDataURL(file);
                     if (file.type === 'application/pdf') {
+                        const pdfLib = await ensurePdfJsReady();
                         // read file as arrayBuffer
                         const arrayBuffer = await file.arrayBuffer();
                         // load PDF
-                        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                        const loadingTask = pdfLib.getDocument({ data: arrayBuffer });
                         const pdfDoc = await loadingTask.promise;
                         // render each page
                         for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                            if (proofPics.length >= 9) {
+                                customAlert('You can upload a maximum of 9 images.');
+                                break;
+                            }
                             const page = await pdfDoc.getPage(pageNum);
                             const viewport = page.getViewport({ scale: 1.5 });
                             const canvas = document.createElement('canvas');
@@ -183,6 +177,11 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                         continue;
                     }
 
+                    if (proofPics.length >= 9) {
+                        customAlert('You can upload a maximum of 9 images.');
+                        break;
+                    }
+                    const raw = await readDataURL(file);
                     const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
                     if (dataUrl) {
                         proofPics.push(dataUrl);
@@ -193,6 +192,8 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
             }
             // Reset the file input's value to allow re-uploading the same file if needed
             input.value = "";
+        } catch (error) {
+            customAlert(error && error.message ? error.message : 'Proof upload failed.');
         } finally {
             hideLoading();
         }
@@ -222,6 +223,44 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
     // Check if proof images already exist
     checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+}
+
+function ensurePdfJsReady() {
+    if (window.pdfjsLib && typeof window.pdfjsLib.getDocument === 'function') {
+        setPdfWorker(window.pdfjsLib);
+        return Promise.resolve(window.pdfjsLib);
+    }
+
+    if (window.__lwcPdfJsReady) return window.__lwcPdfJsReady;
+
+    window.__lwcPdfJsReady = new Promise((resolve, reject) => {
+        const pdfScript = document.createElement('script');
+        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
+        pdfScript.async = true;
+        pdfScript.dataset.lwcPdfjs = 'true';
+        pdfScript.onload = () => {
+            if (!window.pdfjsLib || typeof window.pdfjsLib.getDocument !== 'function') {
+                window.__lwcPdfJsReady = null;
+                reject(new Error('PDF renderer failed to load.'));
+                return;
+            }
+
+            setPdfWorker(window.pdfjsLib);
+            resolve(window.pdfjsLib);
+        };
+        pdfScript.onerror = () => {
+            window.__lwcPdfJsReady = null;
+            reject(new Error('PDF renderer failed to load.'));
+        };
+        document.head.appendChild(pdfScript);
+    });
+
+    return window.__lwcPdfJsReady;
+}
+
+function setPdfWorker(pdfLib) {
+    if (!pdfLib || !pdfLib.GlobalWorkerOptions) return;
+    pdfLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
 }
 
 function updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton) {
