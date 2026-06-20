@@ -1118,8 +1118,6 @@
             if (!v) return true;                            // empty OK
             if (!validator.isURL(v)) {
                 customAlert('Please enter a valid URL for your personal link.');
-                restorePersonalLinkToOriginal();
-
                 return false;
             }
             return true;
