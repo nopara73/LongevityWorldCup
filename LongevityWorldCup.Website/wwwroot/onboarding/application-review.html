@@ -222,11 +222,13 @@
             if (!value) return null;
 
             try {
-                return JSON.parse(value);
+                const parsed = JSON.parse(value);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
             } catch (_) {
-                clearMalformedInvoice();
-                return null;
             }
+
+            clearMalformedInvoice();
+            return null;
         }
 
         function readPendingPaymentInvoice() {

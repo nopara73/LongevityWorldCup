@@ -48,7 +48,8 @@ public sealed class ApplicationReviewPageTests
         Assert.True(pendingParseEnd > pendingParseStart);
         var pendingParseBody = script[pendingParseStart..pendingParseEnd];
         Assert.Contains("if (!value) return null;", pendingParseBody);
-        Assert.Contains("return JSON.parse(value);", pendingParseBody);
+        Assert.Contains("const parsed = JSON.parse(value);", pendingParseBody);
+        Assert.Contains("if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;", pendingParseBody);
         Assert.Contains("clearMalformedInvoice();", pendingParseBody);
         Assert.Contains("return null;", pendingParseBody);
         var pendingReadStart = script.IndexOf("function readPendingPaymentInvoice()", StringComparison.Ordinal);
