@@ -212,6 +212,43 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Theory]
+    [InlineData("02/02/2026")]
+    [InlineData("2026-02-31")]
+    public async Task ResultSubmissionInvalidBiomarkerDateReturnsBadRequestBeforeProcessing(string biomarkerDate)
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            Biomarkers = [new BiomarkerData { Date = biomarkerDate }],
+            ProofPics = ["data:image/png;base64,AA=="]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Biomarker date is invalid.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task ResultSubmissionFutureBiomarkerDateReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+        var tomorrow = DateTime.UtcNow.Date.AddDays(1);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            Biomarkers = [new BiomarkerData { Date = tomorrow.ToString("yyyy-MM-dd") }],
+            ProofPics = ["data:image/png;base64,AA=="]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Biomarker date is invalid.", badRequest.Value);
+    }
+
+    [Theory]
     [InlineData("division", "Division is required.")]
     [InlineData("flag", "Flag is required.")]
     [InlineData("why", "Why is required.")]
