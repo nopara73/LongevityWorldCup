@@ -1011,6 +1011,19 @@
                 && biomarkerData.Biomarkers.every(entry => hasStoredBiomarkerDate(entry && entry.Date));
         }
 
+        function hasStoredBiomarkerValues(biomarkerData) {
+            return biomarkerData
+                && Array.isArray(biomarkerData.Biomarkers)
+                && biomarkerData.Biomarkers.every(entry => entry
+                    && Object.keys(entry).some(key => key !== 'Date' && hasStoredBiomarkerValue(entry[key])));
+        }
+
+        function hasStoredBiomarkerValue(value) {
+            if (value === null || value === undefined) return false;
+            if (typeof value === 'string' && !value.trim()) return false;
+            return Number.isFinite(Number(value));
+        }
+
         function hasStoredBiomarkerDate(value) {
             if (typeof value !== 'string') return false;
             const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
@@ -1065,7 +1078,7 @@
             } catch (_) {
                 biomarkerData = null;
             }
-            if (!biomarkerData || !hasStoredDateOfBirth(biomarkerData) || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData)) {
+            if (!biomarkerData || !hasStoredDateOfBirth(biomarkerData) || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasStoredBiomarkerValues(biomarkerData)) {
                 clearStoredBiomarkerHandoff();
                 customAlert('Biomarker data is missing. Please complete the biomarker form.');
                 return;
