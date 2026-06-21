@@ -163,6 +163,42 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationContactEmail_ReusesEmailShapedMediaContact()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var helperStart = html.IndexOf("function prefillAccountEmailFromMediaContact()", StringComparison.Ordinal);
+        var helperEnd = html.IndexOf("function clearStoredBiomarkerHandoff()", helperStart, StringComparison.Ordinal);
+
+        Assert.True(helperStart >= 0);
+        Assert.True(helperEnd > helperStart);
+
+        var helperBody = html[helperStart..helperEnd];
+
+        Assert.Contains("const accountEmailInput = document.getElementById('accountEmail');", helperBody);
+        Assert.Contains("const mediaContactInput = document.getElementById('mediaContact');", helperBody);
+        Assert.Contains("accountEmailInput.value.trim()", helperBody);
+        Assert.Contains("const mediaContact = mediaContactInput.value.trim();", helperBody);
+        Assert.Contains("if (isEmailAddress(mediaContact))", helperBody);
+        Assert.Contains("accountEmailInput.value = mediaContact;", helperBody);
+
+        var stage7Start = html.IndexOf("case 7:", StringComparison.Ordinal);
+        var stage7End = html.IndexOf("break;", stage7Start, StringComparison.Ordinal);
+
+        Assert.True(stage7Start >= 0);
+        Assert.True(stage7End > stage7Start);
+
+        var stage7Body = html[stage7Start..stage7End];
+        var prefillIndex = stage7Body.IndexOf("prefillAccountEmailFromMediaContact();", StringComparison.Ordinal);
+        var validateIndex = stage7Body.IndexOf("checkFormValidityStage7();", StringComparison.Ordinal);
+
+        Assert.True(prefillIndex >= 0);
+        Assert.True(validateIndex > prefillIndex);
+    }
+
+    [Fact]
     public async Task ApplicationSubmission_TreatsMalformedBiomarkerStorageAsMissing()
     {
         using var factory = new TestWebApplicationFactory();

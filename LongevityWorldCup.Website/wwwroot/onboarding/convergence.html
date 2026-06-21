@@ -864,6 +864,17 @@
             return input.checkValidity();
         }
 
+        function prefillAccountEmailFromMediaContact() {
+            const accountEmailInput = document.getElementById('accountEmail');
+            const mediaContactInput = document.getElementById('mediaContact');
+            if (!accountEmailInput || !mediaContactInput || accountEmailInput.value.trim()) return;
+
+            const mediaContact = mediaContactInput.value.trim();
+            if (isEmailAddress(mediaContact)) {
+                accountEmailInput.value = mediaContact;
+            }
+        }
+
         function clearStoredBiomarkerHandoff() {
             removeSessionItem('biomarkerData');
             removeSessionItem('chronoPhenoDifference');
@@ -1207,6 +1218,7 @@
                     updateSubProgress(99);
 
                     const accountEmailInput = document.getElementById('accountEmail');
+                    prefillAccountEmailFromMediaContact();
                     accountEmailInput.addEventListener('input', checkFormValidityStage7);
 
                     // Run checkFormValidityStage7 initially
