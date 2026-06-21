@@ -36,6 +36,10 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("if (!storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)) return;", html);
+
+        var failureBody = GetStoreFailureBody(html, "function storePhenoResultForNextStep");
+        Assert.Contains("clearStoredBiomarkerHandoff();", failureBody);
+        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", failureBody);
     }
 
     [Fact]
@@ -197,12 +201,29 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("if (!storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)) return;", html);
+
+        var failureBody = GetStoreFailureBody(html, "function storeBortzResultForNextStep");
+        Assert.Contains("clearStoredBiomarkerHandoff();", failureBody);
+        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", failureBody);
     }
 
     private static string GetPagePath(string fileName)
     {
         var repoRoot = FindRepoRoot();
         return Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "onboarding", fileName);
+    }
+
+    private static string GetStoreFailureBody(string html, string storeFunctionMarker)
+    {
+        var storeStart = html.IndexOf(storeFunctionMarker, StringComparison.Ordinal);
+        var catchStart = html.IndexOf("} catch (_) {", storeStart, StringComparison.Ordinal);
+        var returnFalse = html.IndexOf("return false;", catchStart, StringComparison.Ordinal);
+
+        Assert.True(storeStart >= 0);
+        Assert.True(catchStart > storeStart);
+        Assert.True(returnFalse > catchStart);
+
+        return html[catchStart..returnFalse];
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

@@ -1278,6 +1278,7 @@
 
                 return true;
             } catch (_) {
+                clearStoredBiomarkerHandoff();
                 customAlert('Browser storage is unavailable. Enable storage and try again.');
                 return false;
             }
