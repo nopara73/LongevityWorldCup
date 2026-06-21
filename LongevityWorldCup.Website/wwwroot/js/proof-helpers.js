@@ -1,5 +1,5 @@
 window.getMainProofInstructionsInnerHTML = function () {
-    return "Upload <strong>proofs</strong> of your biomarkers (e.g., screenshots of PDF results or photos of physical documents)";
+    return "Upload <strong>proofs</strong> showing each submitted biomarker, the collection date, and the lab or report source (e.g., screenshots of PDF results or photos of physical documents)";
 }
 
 window.getSubProofInstructionsInnerHTML = function () {

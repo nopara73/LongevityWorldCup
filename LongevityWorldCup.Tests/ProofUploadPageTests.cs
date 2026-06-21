@@ -70,6 +70,18 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ProofHelper_InstructionsAskForDateAndSource()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+
+        Assert.Contains("showing each submitted biomarker, the collection date, and the lab or report source", javascript);
+        Assert.Contains("These images will be <strong>public</strong>", javascript);
+    }
+
+    [Fact]
     public async Task ResultUploadFailures_UseReadableErrorExtractor()
     {
         using var factory = new TestWebApplicationFactory();
