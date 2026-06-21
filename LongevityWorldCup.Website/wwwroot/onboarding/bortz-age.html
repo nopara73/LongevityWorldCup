@@ -2685,7 +2685,7 @@
             // Restore step 2 after refresh if user had navigated there and step 1 is valid
             let restoredStep = false;
             try {
-                if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1(true)) {
+                if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true)) {
                     lwcSetStep(2);
                     restoredStep = true;
                 }
