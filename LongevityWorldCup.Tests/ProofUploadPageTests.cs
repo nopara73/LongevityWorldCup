@@ -43,7 +43,7 @@ public sealed class ProofUploadPageTests
 
         var catchIndex = javascript.IndexOf("} catch (error) {", StringComparison.Ordinal);
         var finallyIndex = javascript.IndexOf("} finally {", StringComparison.Ordinal);
-        var resetIndex = javascript.IndexOf("if (input) input.value = \"\";", StringComparison.Ordinal);
+        var resetIndex = javascript.IndexOf("if (input) input.value = \"\";", finallyIndex, StringComparison.Ordinal);
         var hideLoadingIndex = javascript.IndexOf("hideLoading();", resetIndex, StringComparison.Ordinal);
 
         Assert.True(catchIndex >= 0);
@@ -67,6 +67,39 @@ public sealed class ProofUploadPageTests
         Assert.Contains("const optimizedPage = await optimizeProofImageOrFallback(rawPage);", javascript);
         Assert.Contains("const dataUrl = await optimizeProofImageOrFallback(raw);", javascript);
         Assert.DoesNotContain("await window.optimizeImageClient(rawPage, proofOptimizationOptions);", javascript);
+    }
+
+    [Fact]
+    public async Task ProofHelper_RejectsUnsupportedFilesBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input)", StringComparison.Ordinal);
+        var loadingStart = javascript.IndexOf("showLoading();", handlerStart, StringComparison.Ordinal);
+
+        Assert.True(handlerStart >= 0);
+        Assert.True(loadingStart > handlerStart);
+
+        var beforeLoading = javascript[handlerStart..loadingStart];
+
+        Assert.Contains("function isSupportedProofFile(file)", javascript);
+        Assert.Contains("type === 'application/pdf'", javascript);
+        Assert.Contains("type === 'image/jpeg'", javascript);
+        Assert.Contains("type === 'image/png'", javascript);
+        Assert.Contains("type === 'image/webp'", javascript);
+        Assert.Contains("extension === 'jpg'", javascript);
+        Assert.Contains("extension === 'jpeg'", javascript);
+        Assert.Contains("extension === 'png'", javascript);
+        Assert.Contains("extension === 'webp'", javascript);
+        Assert.Contains("const selectedFiles = Array.from(files || []);", beforeLoading);
+        Assert.Contains("const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));", beforeLoading);
+        Assert.Contains("if (input) input.value = \"\";", beforeLoading);
+        Assert.Contains("customAlert('Proof files must be JPG, PNG, WebP, or PDF.');", beforeLoading);
+        Assert.Contains("return;", beforeLoading);
+        Assert.Contains("if (isProofPdfFile(file))", javascript);
+        Assert.DoesNotContain("if (file.type === 'application/pdf')", javascript);
     }
 
     [Fact]

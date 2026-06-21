@@ -99,6 +99,33 @@ window.getProofChecklistLabelsFromSession = function () {
     }
 };
 
+function getProofFileExtension(file) {
+    const name = file && typeof file.name === 'string' ? file.name.toLowerCase() : '';
+    const dotIndex = name.lastIndexOf('.');
+    return dotIndex >= 0 ? name.slice(dotIndex + 1) : '';
+}
+
+function isProofPdfFile(file) {
+    const type = file && typeof file.type === 'string' ? file.type.toLowerCase() : '';
+    return type === 'application/pdf' || getProofFileExtension(file) === 'pdf';
+}
+
+function isSupportedProofFile(file) {
+    if (!file) return false;
+
+    const type = typeof file.type === 'string' ? file.type.toLowerCase() : '';
+    const extension = getProofFileExtension(file);
+    return type === 'application/pdf'
+        || type === 'image/jpeg'
+        || type === 'image/png'
+        || type === 'image/webp'
+        || extension === 'pdf'
+        || extension === 'jpg'
+        || extension === 'jpeg'
+        || extension === 'png'
+        || extension === 'webp';
+}
+
 window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers, options) {
     nextButton.disabled = true;
     const cameraButton = options && options.cameraButton;
@@ -127,76 +154,88 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
     }
 
     const handleProofFiles = async function (files, input) {
+        const selectedFiles = Array.from(files || []);
+        const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));
+        if (unsupportedFiles.length > 0) {
+            if (input) input.value = "";
+            customAlert('Proof files must be JPG, PNG, WebP, or PDF.');
+            return;
+        }
+
+        if (selectedFiles.length === 0) {
+            if (input) input.value = "";
+            return;
+        }
+
         showLoading();
         try {
-            if (files.length > 0) {
-                // Limit the total number of images to 9
-                if (proofPics.length + files.length > 9) {
-                    customAlert('You can upload a maximum of 9 images.');
-                    return;
+            // Limit the total number of selected files before processing. PDFs may still stop
+            // at the image cap below if they contain multiple pages.
+            if (proofPics.length + selectedFiles.length > 9) {
+                customAlert('You can upload a maximum of 9 images.');
+                return;
+            }
+
+            // helper to read a File as dataURL
+            const readDataURL = file => new Promise((res, rej) => {
+                const r = new FileReader();
+                r.onload = e => res(e.target.result);
+                r.onerror = rej;
+                r.readAsDataURL(file);
+            });
+
+            const optimizeProofImageOrFallback = async raw => {
+                try {
+                    const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
+                    return dataUrl || raw;
+                } catch (_) {
+                    return raw;
+                }
+            };
+
+            // process one by one to preserve order
+            for (const file of selectedFiles) {
+                if (isProofPdfFile(file)) {
+                    const pdfLib = await ensurePdfJsReady();
+                    // read file as arrayBuffer
+                    const arrayBuffer = await file.arrayBuffer();
+                    // load PDF
+                    const loadingTask = pdfLib.getDocument({ data: arrayBuffer });
+                    const pdfDoc = await loadingTask.promise;
+                    // render each page
+                    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                        if (proofPics.length >= 9) {
+                            customAlert('You can upload a maximum of 9 images.');
+                            break;
+                        }
+                        const page = await pdfDoc.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        const context = canvas.getContext('2d');
+                        await page.render({ canvasContext: context, viewport }).promise;
+                        const rawPage = canvas.toDataURL();
+                        const optimizedPage = await optimizeProofImageOrFallback(rawPage);
+                        if (optimizedPage) {
+                            proofPics.push(optimizedPage);
+                        }
+                    }
+                    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                    continue;
                 }
 
-                // helper to read a File as dataURL
-                const readDataURL = file => new Promise((res, rej) => {
-                    const r = new FileReader();
-                    r.onload = e => res(e.target.result);
-                    r.onerror = rej;
-                    r.readAsDataURL(file);
-                });
-
-                const optimizeProofImageOrFallback = async raw => {
-                    try {
-                        const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
-                        return dataUrl || raw;
-                    } catch (_) {
-                        return raw;
-                    }
-                };
-
-                // process one by one to preserve order
-                for (const file of Array.from(files)) {
-                    if (file.type === 'application/pdf') {
-                        const pdfLib = await ensurePdfJsReady();
-                        // read file as arrayBuffer
-                        const arrayBuffer = await file.arrayBuffer();
-                        // load PDF
-                        const loadingTask = pdfLib.getDocument({ data: arrayBuffer });
-                        const pdfDoc = await loadingTask.promise;
-                        // render each page
-                        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                            if (proofPics.length >= 9) {
-                                customAlert('You can upload a maximum of 9 images.');
-                                break;
-                            }
-                            const page = await pdfDoc.getPage(pageNum);
-                            const viewport = page.getViewport({ scale: 1.5 });
-                            const canvas = document.createElement('canvas');
-                            canvas.width = viewport.width;
-                            canvas.height = viewport.height;
-                            const context = canvas.getContext('2d');
-                            await page.render({ canvasContext: context, viewport }).promise;
-                            const rawPage = canvas.toDataURL();
-                            const optimizedPage = await optimizeProofImageOrFallback(rawPage);
-                            if (optimizedPage) {
-                                proofPics.push(optimizedPage);
-                            }
-                        }
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                        continue;
-                    }
-
-                    if (proofPics.length >= 9) {
-                        customAlert('You can upload a maximum of 9 images.');
-                        break;
-                    }
-                    const raw = await readDataURL(file);
-                    const dataUrl = await optimizeProofImageOrFallback(raw);
-                    if (dataUrl) {
-                        proofPics.push(dataUrl);
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                    }
+                if (proofPics.length >= 9) {
+                    customAlert('You can upload a maximum of 9 images.');
+                    break;
+                }
+                const raw = await readDataURL(file);
+                const dataUrl = await optimizeProofImageOrFallback(raw);
+                if (dataUrl) {
+                    proofPics.push(dataUrl);
+                    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                 }
             }
         } catch (error) {
