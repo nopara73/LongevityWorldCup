@@ -42,6 +42,15 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("document.getElementById(\"whatAreWeReviewing\").textContent = \"your new results\";", script);
         Assert.Contains("setLocalItem('hasApplication', 'true');", script);
         Assert.Contains("const pendingPaymentInvoice = readPendingPaymentInvoice();", script);
+        var pendingReadStart = script.IndexOf("function readPendingPaymentInvoice()", StringComparison.Ordinal);
+        var pendingReadEnd = script.IndexOf("function readStoredContactEmail()", pendingReadStart, StringComparison.Ordinal);
+        Assert.True(pendingReadStart >= 0);
+        Assert.True(pendingReadEnd > pendingReadStart);
+        var pendingReadBody = script[pendingReadStart..pendingReadEnd];
+        Assert.Contains("} catch (_) {", pendingReadBody);
+        Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", pendingReadBody);
+        Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", pendingReadBody);
+        Assert.Contains("return null;", pendingReadBody);
         Assert.Contains("const contactEmail = readStoredContactEmail();", script);
         Assert.Contains("accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null", script);
         Assert.Contains("submissionType: pending.submissionType || null", script);

@@ -223,6 +223,8 @@
                     || "null"
                 );
             } catch (_) {
+                removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
                 return null;
             }
         }
