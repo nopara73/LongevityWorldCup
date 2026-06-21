@@ -239,18 +239,23 @@
             return null;
         }
 
+        const PENDING_PAYMENT_INVOICE_KEY = "pendingPaymentInvoice";
+        const PENDING_PAYMENT_INVOICE_STORAGE_KEY = "pendingPaymentInvoicePersistent";
+        const pendingPaymentInvoice = readPendingPaymentInvoice();
+
+        function normalizeReviewSource(value) {
+            return value === "proof-upload" || value === "edit-profile" ? value : null;
+        }
+
         function readReviewSource() {
-            const querySource = new URLSearchParams(window.location.search).get("from");
-            if (querySource === "proof-upload" || querySource === "edit-profile") return querySource;
-            return getSessionItem("came-from");
+            return normalizeReviewSource(new URLSearchParams(window.location.search).get("from"))
+                || normalizeReviewSource(getSessionItem("came-from"))
+                || normalizeReviewSource(pendingPaymentInvoice && pendingPaymentInvoice.reviewSource);
         }
 
         const reviewSource = readReviewSource();
         const isNewResultsUploaded = reviewSource === "proof-upload";
         const isEditRequest = reviewSource === "edit-profile";
-        const PENDING_PAYMENT_INVOICE_KEY = "pendingPaymentInvoice";
-        const PENDING_PAYMENT_INVOICE_STORAGE_KEY = "pendingPaymentInvoicePersistent";
-        const pendingPaymentInvoice = readPendingPaymentInvoice();
         removeSessionItem("came-from");
 
         document.addEventListener('DOMContentLoaded', function () {

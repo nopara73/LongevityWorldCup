@@ -633,7 +633,8 @@
                                             const pendingInvoiceInfo = JSON.stringify({
                                                 invoiceId: submitResult.invoiceId,
                                                 applicantName: athlete.Name || null,
-                                                accountEmail: applicantData.accountEmail || null
+                                                accountEmail: applicantData.accountEmail || null,
+                                                reviewSource: 'proof-upload'
                                             });
                                             setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
                                             setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
