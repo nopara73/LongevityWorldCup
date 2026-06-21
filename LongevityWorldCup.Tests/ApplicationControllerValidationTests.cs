@@ -383,9 +383,9 @@ public sealed class ApplicationControllerValidationTests
     [InlineData("https://example.test/athlete", null)]
     [InlineData("not-an-email", null)]
     [InlineData(null, null)]
-    public void ResolveExistingAthleteResultContactEmail_UsesOnlyValidPublicMediaContact(string? mediaContact, string? expected)
+    public void ResolveExistingAthleteContactEmail_UsesOnlyValidPublicMediaContact(string? mediaContact, string? expected)
     {
-        var method = typeof(ApplicationController).GetMethod("ResolveExistingAthleteResultContactEmail", BindingFlags.Static | BindingFlags.NonPublic);
+        var method = typeof(ApplicationController).GetMethod("ResolveExistingAthleteContactEmail", BindingFlags.Static | BindingFlags.NonPublic);
         var existingFields = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
             ["MediaContact"] = mediaContact
