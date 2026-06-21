@@ -378,6 +378,44 @@ public sealed class ApplicationControllerValidationTests
         Assert.Equal(expected, normalized);
     }
 
+    [Fact]
+    public void SubmissionConfirmationSubject_UsesResultUploadCopyForResultSubmissions()
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationSubject", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var subject = (string?)method!.Invoke(null, [true]);
+
+        Assert.Equal("Your Longevity World Cup result upload was received", subject);
+    }
+
+    [Fact]
+    public void SubmissionConfirmationBody_UsesResultUploadCopyForResultSubmissions()
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, "https://pay.example.test/invoice"]);
+
+        Assert.NotNull(body);
+        Assert.Contains("Hi Athlete Ada,", body);
+        Assert.Contains("result upload and proof", body);
+        Assert.Contains("update your athlete profile", body);
+        Assert.Contains("https://pay.example.test/invoice", body);
+        Assert.DoesNotContain("application, which usually takes a day or two", body);
+    }
+
+    [Fact]
+    public void SubmissionConfirmationBody_PreservesApplicationCopyForFullApplications()
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, null]);
+
+        Assert.NotNull(body);
+        Assert.Contains("Hi Applicant Ada,", body);
+        Assert.Contains("application, which usually takes a day or two", body);
+        Assert.DoesNotContain("result upload and proof", body);
+    }
+
     private static ApplicationController CreateController(TestWebApplicationFactory factory)
     {
         return new ApplicationController(
