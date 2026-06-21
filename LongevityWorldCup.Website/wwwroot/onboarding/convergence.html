@@ -758,6 +758,13 @@
             }
         }
 
+        function addStageListenerOnce(element, type, listener, key) {
+            if (!element || element.dataset[key] === 'true') return;
+
+            element.addEventListener(type, listener);
+            element.dataset[key] = 'true';
+        }
+
         function setFakeDivisionValue() {
             const divisionSelect = document.getElementById('division');
             if (!divisionSelect) return;
@@ -1043,14 +1050,14 @@
                     const flagInput = document.getElementById('flag');
                     const divisionSelect = document.getElementById('division');
 
-                    nameInput.addEventListener('input', checkFormValidityStage1);
-                    flagInput.addEventListener('input', checkFormValidityStage1);
+                    addStageListenerOnce(nameInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');
+                    addStageListenerOnce(flagInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');
 
-                    nameInput.addEventListener('blur', validateStage1Inputs);
-                    flagInput.addEventListener('blur', validateStage1Inputs);
+                    addStageListenerOnce(nameInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');
+                    addStageListenerOnce(flagInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');
 
-                    divisionSelect.addEventListener('click', validateStage1Inputs);
-                    flagInput.addEventListener('input', validateStage1Inputs);
+                    addStageListenerOnce(divisionSelect, 'click', validateStage1Inputs, 'stage1ValidateOnClick');
+                    addStageListenerOnce(flagInput, 'input', validateStage1Inputs, 'stage1ValidateOnInput');
 
                     function validateStage1Inputs() {
                         const nameValue = nameInput.value.trim();
@@ -1101,7 +1108,7 @@
 
                     // Add event listener for validation
                     const whyInput = document.getElementById('why');
-                    whyInput.addEventListener('input', checkFormValidityStage2);
+                    addStageListenerOnce(whyInput, 'input', checkFormValidityStage2, 'stage2ValidityListener');
                     checkFormValidityStage2(); // Initialize character counter
 
                     // Run checkFormValidityStage2 initially
@@ -1205,8 +1212,8 @@
                     const mediaContactInput = document.getElementById('mediaContact');
                     const personalLinkInput = document.getElementById('personalLink');
 
-                    mediaContactInput.addEventListener('input', checkFormValidityStage6);
-                    personalLinkInput.addEventListener('input', checkFormValidityStage6);
+                    addStageListenerOnce(mediaContactInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');
+                    addStageListenerOnce(personalLinkInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');
 
                     // Run checkFormValidityStage6 initially
                     checkFormValidityStage6();
@@ -1230,7 +1237,7 @@
 
                     const accountEmailInput = document.getElementById('accountEmail');
                     prefillAccountEmailFromMediaContact();
-                    accountEmailInput.addEventListener('input', handleAccountEmailInput);
+                    addStageListenerOnce(accountEmailInput, 'input', handleAccountEmailInput, 'stage7ValidityListener');
 
                     // Run checkFormValidityStage7 initially
                     checkFormValidityStage7();

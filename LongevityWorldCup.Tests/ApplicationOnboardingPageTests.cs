@@ -163,6 +163,30 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationStageValidationListeners_AreRegisteredOnce()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("function addStageListenerOnce(element, type, listener, key)", html);
+        Assert.Contains("if (!element || element.dataset[key] === 'true') return;", html);
+        Assert.Contains("element.addEventListener(type, listener);", html);
+        Assert.Contains("element.dataset[key] = 'true';", html);
+        Assert.Contains("addStageListenerOnce(nameInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');", html);
+        Assert.Contains("addStageListenerOnce(flagInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');", html);
+        Assert.Contains("addStageListenerOnce(nameInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');", html);
+        Assert.Contains("addStageListenerOnce(flagInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');", html);
+        Assert.Contains("addStageListenerOnce(divisionSelect, 'click', validateStage1Inputs, 'stage1ValidateOnClick');", html);
+        Assert.Contains("addStageListenerOnce(flagInput, 'input', validateStage1Inputs, 'stage1ValidateOnInput');", html);
+        Assert.Contains("addStageListenerOnce(whyInput, 'input', checkFormValidityStage2, 'stage2ValidityListener');", html);
+        Assert.Contains("addStageListenerOnce(mediaContactInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');", html);
+        Assert.Contains("addStageListenerOnce(personalLinkInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');", html);
+        Assert.Contains("addStageListenerOnce(accountEmailInput, 'input', handleAccountEmailInput, 'stage7ValidityListener');", html);
+    }
+
+    [Fact]
     public async Task ApplicationContactEmail_ReusesEmailShapedMediaContact()
     {
         using var factory = new TestWebApplicationFactory();
@@ -200,7 +224,7 @@ public sealed class ApplicationOnboardingPageTests
 
         var stage7Body = html[stage7Start..stage7End];
         var prefillIndex = stage7Body.IndexOf("prefillAccountEmailFromMediaContact();", StringComparison.Ordinal);
-        var listenerIndex = stage7Body.IndexOf("accountEmailInput.addEventListener('input', handleAccountEmailInput);", StringComparison.Ordinal);
+        var listenerIndex = stage7Body.IndexOf("addStageListenerOnce(accountEmailInput, 'input', handleAccountEmailInput, 'stage7ValidityListener');", StringComparison.Ordinal);
         var validateIndex = stage7Body.IndexOf("checkFormValidityStage7();", StringComparison.Ordinal);
 
         Assert.True(prefillIndex >= 0);
