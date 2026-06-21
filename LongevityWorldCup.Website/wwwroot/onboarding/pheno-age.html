@@ -1201,6 +1201,12 @@
             return value && typeof value === 'object' && !Array.isArray(value) && value.Name && value.DateOfBirth;
         }
 
+        function clearStoredBiomarkerHandoff() {
+            removeSessionItem('biomarkerData');
+            removeSessionItem('chronoPhenoDifference');
+            removeSessionItem('chronoBortzDifference');
+        }
+
         let athlete = null;
 
         try {
@@ -1460,11 +1466,9 @@
         //–– keep track of which fields the user actually edits (or clears)
         function readStoredBiomarkerData() {
             try {
-                return JSON.parse(sessionStorage.getItem('biomarkerData'));
+                return JSON.parse(getSessionItem('biomarkerData'));
             } catch (_) {
-                sessionStorage.removeItem('biomarkerData');
-                sessionStorage.removeItem('chronoPhenoDifference');
-                sessionStorage.removeItem('chronoBortzDifference');
+                clearStoredBiomarkerHandoff();
                 return null;
             }
         }

@@ -13,11 +13,13 @@ public sealed class BioageStoredBiomarkerTests
         var html = File.ReadAllText(GetPagePath(fileName));
 
         Assert.Contains("function readStoredBiomarkerData()", html);
-        Assert.Contains("return JSON.parse(sessionStorage.getItem('biomarkerData'));", html);
+        Assert.Contains("return JSON.parse(getSessionItem('biomarkerData'));", html);
         Assert.Contains("} catch (_) {", html);
-        Assert.Contains("sessionStorage.removeItem('biomarkerData');", html);
-        Assert.Contains("sessionStorage.removeItem('chronoPhenoDifference');", html);
-        Assert.Contains("sessionStorage.removeItem('chronoBortzDifference');", html);
+        Assert.Contains("function clearStoredBiomarkerHandoff()", html);
+        Assert.Contains("removeSessionItem('biomarkerData');", html);
+        Assert.Contains("removeSessionItem('chronoPhenoDifference');", html);
+        Assert.Contains("removeSessionItem('chronoBortzDifference');", html);
+        Assert.Contains("clearStoredBiomarkerHandoff();", html);
         Assert.Contains("return null;", html);
         Assert.Contains("const stored = readStoredBiomarkerData();", html);
         Assert.DoesNotContain("const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));", html);
