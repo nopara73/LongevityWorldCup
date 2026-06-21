@@ -150,9 +150,13 @@ public sealed class ProofUploadPageTests
         Assert.Contains("accountEmail: readResultUploadContactEmail()", submitBody);
         Assert.Contains("chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null", submitBody);
         Assert.Contains("chronoBortzDifference: getSessionItem('chronoBortzDifference') || null", submitBody);
-        Assert.Contains("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", submitBody);
+        Assert.Contains("function readPendingPaymentOffer()", html);
+        Assert.Contains("const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
+        Assert.Contains("const paymentOffer = JSON.parse(rawOffer);", html);
+        Assert.Contains("if (paymentOffer && typeof paymentOffer === 'object' && !Array.isArray(paymentOffer))", html);
         Assert.Contains("function clearPendingPaymentOffer()", html);
-        Assert.Contains("clearPendingPaymentOffer();", submitBody);
+        Assert.Contains("clearPendingPaymentOffer();", html);
+        Assert.Contains("const paymentOffer = readPendingPaymentOffer();", submitBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.DoesNotContain("accountEmail: readStoredContactEmail()", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('contactEmail')", submitBody);
@@ -160,6 +164,7 @@ public sealed class ProofUploadPageTests
         Assert.DoesNotContain("sessionStorage.getItem('chronoPhenoDifference')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('chronoBortzDifference')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)", submitBody);
+        Assert.DoesNotContain("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", submitBody);
     }
 
     [Fact]

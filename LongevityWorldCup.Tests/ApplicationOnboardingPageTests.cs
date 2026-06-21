@@ -145,7 +145,7 @@ public sealed class ApplicationOnboardingPageTests
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
         var parseStart = html.IndexOf("let biomarkerData = null;", StringComparison.Ordinal);
-        var parseEnd = html.IndexOf("let paymentOffer = null;", parseStart, StringComparison.Ordinal);
+        var parseEnd = html.IndexOf("let paymentOffer = readPendingPaymentOffer();", parseStart, StringComparison.Ordinal);
 
         Assert.True(parseStart >= 0);
         Assert.True(parseEnd > parseStart);
@@ -185,13 +185,18 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("return null;", html);
         Assert.Contains("const chronoPhenoDifference = getSessionItem('chronoPhenoDifference');", collectBody);
         Assert.Contains("const chronoBortzDifference = getSessionItem('chronoBortzDifference');", collectBody);
-        Assert.Contains("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", collectBody);
+        Assert.Contains("function readPendingPaymentOffer()", html);
+        Assert.Contains("const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
+        Assert.Contains("const paymentOffer = JSON.parse(rawOffer);", html);
+        Assert.Contains("if (paymentOffer && typeof paymentOffer === 'object' && !Array.isArray(paymentOffer))", html);
         Assert.Contains("function clearPendingPaymentOffer()", html);
-        Assert.Contains("clearPendingPaymentOffer();", collectBody);
+        Assert.Contains("clearPendingPaymentOffer();", html);
+        Assert.Contains("let paymentOffer = readPendingPaymentOffer();", collectBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.DoesNotContain("sessionStorage.getItem('chronoPhenoDifference')", collectBody);
         Assert.DoesNotContain("sessionStorage.getItem('chronoBortzDifference')", collectBody);
         Assert.DoesNotContain("sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)", collectBody);
+        Assert.DoesNotContain("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", collectBody);
     }
 
     [Fact]
