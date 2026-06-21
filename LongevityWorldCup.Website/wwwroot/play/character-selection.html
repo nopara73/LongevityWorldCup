@@ -299,6 +299,8 @@
                         sessionStorage.removeItem('biomarkerData');
                         sessionStorage.removeItem('chronoPhenoDifference');
                         sessionStorage.removeItem('chronoBortzDifference');
+                        sessionStorage.removeItem('contactEmail');
+                        removeLocalItem('contactEmail');
                     }
 
                     sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));
@@ -474,6 +476,13 @@
         function setLocalItem(key, value) {
             try {
                 localStorage.setItem(key, value);
+            } catch (_) {
+            }
+        }
+
+        function removeLocalItem(key) {
+            try {
+                localStorage.removeItem(key);
             } catch (_) {
             }
         }
