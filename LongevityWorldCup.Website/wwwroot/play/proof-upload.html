@@ -536,7 +536,23 @@
         function hasStoredBiomarkerDates(biomarkerData) {
             return biomarkerData
                 && Array.isArray(biomarkerData.Biomarkers)
-                && biomarkerData.Biomarkers.every(entry => entry && typeof entry.Date === 'string' && entry.Date.trim());
+                && biomarkerData.Biomarkers.every(entry => hasStoredBiomarkerDate(entry && entry.Date));
+        }
+
+        function hasStoredBiomarkerDate(value) {
+            if (typeof value !== 'string') return false;
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+            if (!match) return false;
+
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            const parsedDate = new Date(Date.UTC(year, month - 1, day));
+            if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) return false;
+
+            const todayUtc = new Date();
+            todayUtc.setUTCHours(0, 0, 0, 0);
+            return parsedDate <= todayUtc;
         }
 
         function readPendingPaymentOffer() {

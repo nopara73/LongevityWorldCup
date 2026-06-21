@@ -267,6 +267,9 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
         Assert.Contains("function hasStoredBiomarkerDates(biomarkerData)", html);
         Assert.Contains("!hasStoredBiomarkerDates(biomarkerData)", parseBody);
+        Assert.Contains("function hasStoredBiomarkerDate(value)", html);
+        Assert.Contains("const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value.trim());", html);
+        Assert.Contains("return parsedDate <= todayUtc;", html);
         Assert.Contains("clearStoredBiomarkerHandoff();", parseBody);
         Assert.Contains("function clearStoredBiomarkerHandoff()", html);
         Assert.Contains("removeSessionItem('biomarkerData');", html);
