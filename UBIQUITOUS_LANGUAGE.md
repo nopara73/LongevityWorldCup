@@ -50,6 +50,7 @@ Use this as a compact guardrail for terms agents often misuse.
 - **Longevitymaxxing Challenge** habit points use a small day-weight ramp after practice: Day 2 starts at the raw 8-point maximum, the original Day 14 peak is 11 points, and later days stay capped at that peak unless scoring is explicitly redesigned.
 - **Longevitymaxxing Challenge** habit points allow one daily slip only after an actually perfect previous check-in: either one `No` territory or one/two `Somewhat` territories still score that day's maximum, but a saved slip is not perfect for saving the next day.
 - **Longevitymaxxing Challenge** community calls happen every Sunday at 08:30 GMT+2 / 06:30 UTC. The ongoing challenge generates future Sunday calls automatically; do not model calls as a finite kickoff/midpoint/finale schedule.
+- **Longevitymaxxing Challenge** community call reminder emails include a calendar invite for the reminded call.
 - **Longevitymaxxing Challenge** leaderboard ties after challenge performance metrics prefer participants linked to a currently placed Longevity athlete profile, then better current placement, then older linked athletes by date of birth.
 - **Longevitymaxxing Challenge** call times are fixed by the generated weekly community-call schedule; participants do not vote on call availability.
 - **Longevitymaxxing Challenge** daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
