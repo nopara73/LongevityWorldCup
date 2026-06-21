@@ -1304,6 +1304,8 @@
     }
 
     async function withStandaloneButton(button, busyText, work, onError) {
+        if (button && (button.disabled || button.getAttribute("aria-busy") === "true")) return;
+
         const original = button ? button.innerHTML : "";
         if (button) {
             button.disabled = true;
