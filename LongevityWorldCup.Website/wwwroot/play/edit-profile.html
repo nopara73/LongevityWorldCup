@@ -571,38 +571,36 @@
                 || readStoredContactEmail();
         }
 
+        function isValidSelectedAthlete(value) {
+            return value && typeof value === 'object' && !Array.isArray(value) && value.Name;
+        }
+
         let originalAthlete = null;
         let tempAthlete = null;
 
         try {
-            const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');
+            const selectedAthleteJson = getSessionItem('selectedAthlete');
             originalAthlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
         } catch {
             originalAthlete = null;
         }
 
-        if (!originalAthlete || typeof originalAthlete !== 'object') {
-            try {
-                sessionStorage.removeItem('selectedAthlete');
-                sessionStorage.removeItem('tempAthlete');
-            } catch (_) {
-            }
+        if (!isValidSelectedAthlete(originalAthlete)) {
+            removeSessionItem('selectedAthlete');
+            removeSessionItem('tempAthlete');
             window.location.replace('/select-athlete');
             originalAthlete = {};
         }
 
         try {
-            const tempAthleteJson = sessionStorage.getItem('tempAthlete');
+            const tempAthleteJson = getSessionItem('tempAthlete');
             tempAthlete = tempAthleteJson ? JSON.parse(tempAthleteJson) : null;
         } catch {
-            try {
-                sessionStorage.removeItem('tempAthlete');
-            } catch (_) {
-            }
+            removeSessionItem('tempAthlete');
             tempAthlete = null;
         }
 
-        const athlete = tempAthlete && typeof tempAthlete === 'object'
+        const athlete = isValidSelectedAthlete(tempAthlete)
             ? tempAthlete
             : JSON.parse(JSON.stringify(originalAthlete));  // ← deep‐clone here
 
