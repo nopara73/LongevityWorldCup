@@ -265,6 +265,11 @@ namespace LongevityWorldCup.Website.Controllers
                 }
             }
 
+            if (applicantData.Biomarkers?.Any() is true && !HasRequiredBiomarkerDates(applicantData.Biomarkers))
+            {
+                return BadRequest("Biomarker date is required.");
+            }
+
             // Load SMTP configuration
             Config config;
             try
@@ -1859,6 +1864,11 @@ namespace LongevityWorldCup.Website.Controllers
                 && dateOfBirth.Day >= 1
                 && dateOfBirth.Day <= DateTime.DaysInMonth(dateOfBirth.Year, dateOfBirth.Month)
                 && new DateTime(dateOfBirth.Year, dateOfBirth.Month, dateOfBirth.Day, 0, 0, 0, DateTimeKind.Utc) <= DateTime.UtcNow.Date;
+        }
+
+        private static bool HasRequiredBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
+        {
+            return biomarkers.All(biomarker => !string.IsNullOrWhiteSpace(biomarker.Date));
         }
 
         private sealed record ImageOptimizationResult(bool Success, byte[]? Bytes, string? ContentType, string? Extension, string ErrorMessage)
