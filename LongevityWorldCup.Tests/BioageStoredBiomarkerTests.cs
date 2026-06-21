@@ -37,6 +37,37 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Fact]
+    public void PhenoPage_PersistsAndRestoresWizardStep()
+    {
+        var html = File.ReadAllText(GetPagePath("pheno-age.html"));
+
+        Assert.Contains("function lwcValidateStep1(silent)", html);
+        Assert.Contains("if (!silent) customAlert('Please select your birth year.');", html);
+        Assert.Contains("try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {}", html);
+        Assert.Contains("function activateDot1() { lwcSetStep(1); try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {} }", html);
+        Assert.Contains("function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {} } }", html);
+        Assert.Contains("if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
+        Assert.Contains("let restoredStep = false;", html);
+        Assert.Contains("if (!restoredStep) {", html);
+        Assert.Contains("try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}", html);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BioagePages_SuppressDateAlertsDuringWizardStepRestore(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("function getValidatedBloodDrawDate(silent)", html);
+        Assert.Contains("if (!silent) {", html);
+        Assert.Contains("customAlert('Please enter the date when your blood was drawn.');", html);
+        Assert.Contains("customAlert('Blood draw date cannot be in the future.');", html);
+        Assert.Contains("const bd = getValidatedBloodDrawDate(silent);", html);
+        Assert.Contains("if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
+    }
+
+    [Fact]
     public void BortzPage_GuardsStorageHandoffBeforeRedirecting()
     {
         var html = File.ReadAllText(GetPagePath("bortz-age.html"));

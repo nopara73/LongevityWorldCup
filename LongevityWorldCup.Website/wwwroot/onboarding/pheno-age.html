@@ -1485,13 +1485,15 @@
             });
         }
 
-        function getValidatedBloodDrawDate() {
+        function getValidatedBloodDrawDate(silent) {
             if (!bloodDrawDateInput) return null;
 
             const rawValue = bloodDrawDateInput.value;
             if (!rawValue) {
-                customAlert('Please enter the date when your blood was drawn.');
-                bloodDrawDateInput.focus();
+                if (!silent) {
+                    customAlert('Please enter the date when your blood was drawn.');
+                    bloodDrawDateInput.focus();
+                }
                 return null;
             }
 
@@ -1499,8 +1501,10 @@
             const maxDate = bloodDrawDateInput.max ? new Date(`${bloodDrawDateInput.max}T00:00:00`) : null;
 
             if (maxDate && selectedDate > maxDate) {
-                customAlert('Blood draw date cannot be in the future.');
-                bloodDrawDateInput.focus();
+                if (!silent) {
+                    customAlert('Blood draw date cannot be in the future.');
+                    bloodDrawDateInput.focus();
+                }
                 return null;
             }
 
@@ -2051,14 +2055,14 @@
                 });
         }
 
-        function lwcValidateStep1() {
+        function lwcValidateStep1(silent) {
             // validate DOB year + blood draw date (reuse existing validation)
             const yearVal = document.getElementById('dob-year').value;
             if (!yearVal) {
-                customAlert('Please select your birth year.');
+                if (!silent) customAlert('Please select your birth year.');
                 return false;
             }
-            const bd = getValidatedBloodDrawDate();
+            const bd = getValidatedBloodDrawDate(silent);
             if (!bd) return false;
             return true;
         }
@@ -2073,6 +2077,7 @@
                 toStep2Btn.addEventListener('click', () => {
                     if (!lwcValidateStep1()) return;
                     lwcSetStep(2);
+                    try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {}
                 });
             }
             if (toStep1Btn) {
@@ -2086,8 +2091,8 @@
             const dot1 = document.getElementById('lwcDot1');
             const dot2 = document.getElementById('lwcDot2');
 
-            function activateDot1() { lwcSetStep(1); }
-            function activateDot2() { if (lwcValidateStep1()) lwcSetStep(2); }
+            function activateDot1() { lwcSetStep(1); try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {} }
+            function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {} } }
 
             if (dot1) {
                 dot1.addEventListener('click', activateDot1);
@@ -2187,7 +2192,18 @@
 
             updateModeFormInitializerUnique();
 
-            lwcSetStep(1);
+            // Restore step 2 after refresh if user had navigated there and step 1 is valid.
+            let restoredStep = false;
+            try {
+                if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1(true)) {
+                    lwcSetStep(2);
+                    restoredStep = true;
+                }
+            } catch (e) {}
+            if (!restoredStep) {
+                lwcSetStep(1);
+                try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+            }
         });
 
         function updateModeFormInitializerUnique() {
