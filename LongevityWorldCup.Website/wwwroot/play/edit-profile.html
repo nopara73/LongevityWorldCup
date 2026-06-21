@@ -1168,10 +1168,23 @@
             return true;
         }
 
+        function isOptionalUrl(value) {
+            const v = value.trim();
+            if (!v) return true;
+            if (window.validator && typeof window.validator.isURL === 'function') {
+                return window.validator.isURL(v);
+            }
+
+            const input = document.createElement('input');
+            input.type = 'url';
+            input.value = v;
+            return input.checkValidity();
+        }
+
         function validatePersonalLink(value) {
             const v = value.trim();
             if (!v) return true;                            // empty OK
-            if (!validator.isURL(v)) {
+            if (!isOptionalUrl(v)) {
                 customAlert('Please enter a valid URL for your personal link.');
                 return false;
             }

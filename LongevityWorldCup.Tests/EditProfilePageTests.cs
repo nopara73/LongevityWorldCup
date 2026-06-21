@@ -164,6 +164,31 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task EditProfileValidation_FallsBackWhenValidatorScriptIsUnavailable()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var validatorStart = html.IndexOf("function isOptionalUrl(value)", StringComparison.Ordinal);
+        var validatorEnd = html.IndexOf("function validatePersonalLink(value)", validatorStart, StringComparison.Ordinal);
+        var personalLinkEnd = html.IndexOf("function validateMediaContact(value)", validatorEnd, StringComparison.Ordinal);
+
+        Assert.True(validatorStart >= 0);
+        Assert.True(validatorEnd > validatorStart);
+        Assert.True(personalLinkEnd > validatorEnd);
+
+        var helperBody = html[validatorStart..validatorEnd];
+        var validateBody = html[validatorEnd..personalLinkEnd];
+
+        Assert.Contains("window.validator && typeof window.validator.isURL === 'function'", helperBody);
+        Assert.Contains("input.type = 'url';", helperBody);
+        Assert.Contains("return input.checkValidity();", helperBody);
+        Assert.Contains("if (!isOptionalUrl(v))", validateBody);
+        Assert.DoesNotContain("!validator.isURL(v)", validateBody);
+    }
+
+    [Fact]
     public async Task EditProfileDraftPersistence_UsesSafeStorageHelpers()
     {
         using var factory = new TestWebApplicationFactory();
