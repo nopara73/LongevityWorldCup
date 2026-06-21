@@ -32,6 +32,8 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("const reviewSource = readReviewSource();", script);
         Assert.Contains("const isNewResultsUploaded = reviewSource === \"proof-upload\";", script);
         Assert.Contains("const isEditRequest = reviewSource === \"edit-profile\";", script);
+        Assert.Contains("document.getElementById(\"appReviewText\").textContent = \"Result review\";", script);
+        Assert.Contains("document.getElementById(\"whatAreWeReviewing\").textContent = \"your new results\";", script);
         Assert.Contains("setLocalItem('hasApplication', 'true');", script);
         Assert.Contains("const pendingPaymentInvoice = readPendingPaymentInvoice();", script);
         Assert.Contains("const contactEmail = readStoredContactEmail();", script);
@@ -70,6 +72,8 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("normalizeContactEmail(pendingPaymentInvoice && pendingPaymentInvoice.accountEmail)", script);
         Assert.Contains("removeSessionItem('contactEmail');", script);
         Assert.Contains("removeLocalItem('contactEmail');", script);
+        Assert.Contains("? 'the email address you provided'", script);
+        Assert.Contains(": 'the email address you provided with your application';", script);
         Assert.Contains("accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null", script);
     }
 }

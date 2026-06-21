@@ -260,8 +260,8 @@
             }, 500);
 
             if (isNewResultsUploaded) {
-                document.getElementById("appReviewText").textContent = "Test review";
-                document.getElementById("whatAreWeReviewing").textContent = "your new test results";
+                document.getElementById("appReviewText").textContent = "Result review";
+                document.getElementById("whatAreWeReviewing").textContent = "your new results";
             }
             else if (isEditRequest) {
                 document.getElementById("appReviewText").textContent = "Edit review";
@@ -278,7 +278,9 @@
             document.getElementById('contactEmailPlaceholder').textContent = contactEmail;
         } else {
             // If no email is found, use a default message
-            document.getElementById('contactEmailPlaceholder').textContent = 'the email address you provided with your application';
+            document.getElementById('contactEmailPlaceholder').textContent = isNewResultsUploaded || isEditRequest
+                ? 'the email address you provided'
+                : 'the email address you provided with your application';
         }
 
         // mark that they’ve submitted an application
