@@ -26,6 +26,25 @@ public sealed class PageOgImageServiceTests
         Assert.Equal($"https://longevityworldcup.com/og/page/view-crowd.png?v={payload.Signature}", url);
     }
 
+    [Fact]
+    public void TryGetCurrentPayload_IncludesLongevitymaxxingPage()
+    {
+        using var factory = CreateFactory();
+        var pages = factory.Services.GetRequiredService<PageOgImageService>();
+
+        var found = pages.TryGetCurrentPayload("longevitymaxxing", out var payload);
+        var url = pages.BuildVersionedImageUrl("https://longevityworldcup.com", payload);
+
+        Assert.True(found);
+        Assert.Equal("longevitymaxxing", payload.Slug);
+        Assert.Equal("Longevitymaxxing Challenge", payload.Kicker);
+        Assert.Equal("The first muscle to train is your mind", payload.Title);
+        Assert.Equal("Start longevitymaxxing today", payload.Description);
+        Assert.Contains("Join anytime", payload.Stats);
+        Assert.Matches("^[0-9a-f]{12}$", payload.Signature);
+        Assert.Equal($"https://longevityworldcup.com/og/page/longevitymaxxing.png?v={payload.Signature}", url);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("missing")]
