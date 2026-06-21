@@ -14,6 +14,7 @@
 - **Proof** is evidence for an athlete, profile, or result. **Profile picture** is the public display image.
 - **Event** is persisted public/social output; **Custom Event** is admin-created. **Badge** is a computed award.
 - **Social post** is generated copy for X, Threads, Facebook, Slack, or future integrations.
+- **Resting** means a Challenge participant is inactive: no new check-ins or check-in edits are accepted unless an explicit reactivation path clears the inactive state.
 
 ## Naming
 
