@@ -294,14 +294,13 @@
 
                 try {
                     // if we had a different athlete before, clear any PhenoAge data
-                    const prevName = localStorage.getItem('selectedAthleteName');
+                    const prevName = getLocalItem('selectedAthleteName');
                     if (!prevName || prevName !== currentAthlete.Name) {
                         sessionStorage.removeItem('biomarkerData');
                         sessionStorage.removeItem('chronoPhenoDifference');
                         sessionStorage.removeItem('chronoBortzDifference');
                     }
 
-                    localStorage.setItem('selectedAthleteName', currentAthlete.Name);
                     sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));
 
                     const tempJson = sessionStorage.getItem('tempAthlete');
@@ -321,6 +320,7 @@
                     return;
                 }
 
+                setLocalItem('selectedAthleteName', currentAthlete.Name);
                 window.location.href = '/dashboard';
             });
 
@@ -468,6 +468,13 @@
                 return localStorage.getItem(key);
             } catch (_) {
                 return null;
+            }
+        }
+
+        function setLocalItem(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (_) {
             }
         }
 
