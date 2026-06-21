@@ -863,6 +863,12 @@
             return input.checkValidity();
         }
 
+        function clearStoredBiomarkerHandoff() {
+            removeSessionItem('biomarkerData');
+            removeSessionItem('chronoPhenoDifference');
+            removeSessionItem('chronoBortzDifference');
+        }
+
         function collectApplicantData() {
             // Get the data from the form fields
             const name = document.getElementById('name').value.trim();
@@ -886,6 +892,7 @@
                 biomarkerData = null;
             }
             if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length) {
+                clearStoredBiomarkerHandoff();
                 customAlert('Biomarker data is missing. Please complete the biomarker form.');
                 return;
             }
