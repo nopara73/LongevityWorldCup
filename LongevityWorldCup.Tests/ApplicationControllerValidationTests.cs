@@ -103,6 +103,23 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task FullApplicationInvalidDateOfBirthReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            AccountEmail = "athlete@example.test",
+            DateOfBirth = new DateOfBirthData { Year = 1980, Month = 2, Day = 31 }
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Date of birth is invalid.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task InterviewRequestInvalidModelStateReturnsValidationProblemDetails()
     {
         using var factory = new TestWebApplicationFactory();
