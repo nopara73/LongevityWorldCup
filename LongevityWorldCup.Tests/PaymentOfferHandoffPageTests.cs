@@ -33,8 +33,11 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("return true;", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("return false;", html);
+        Assert.Contains("function setSessionItem(key, value)", html);
+        Assert.Contains("if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer)))", html);
         Assert.Contains("if (typeof beforeNavigate === 'function' && beforeNavigate() === false) return;", html);
         Assert.Contains("return setPendingPaymentOffer(paymentOffer);", html);
+        Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", html);
     }
 
     [Fact]
@@ -52,9 +55,8 @@ public sealed class PaymentOfferHandoffPageTests
 
         var clearBody = html[clearStart..clearEnd];
 
-        Assert.Contains("try {", clearBody);
-        Assert.Contains("sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);", clearBody);
-        Assert.Contains("} catch (_) {", clearBody);
+        Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", clearBody);
+        Assert.DoesNotContain("sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);", clearBody);
         Assert.Contains("() => clearPendingPaymentOffer()", html);
     }
 }

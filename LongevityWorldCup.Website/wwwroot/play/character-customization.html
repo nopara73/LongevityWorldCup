@@ -323,6 +323,15 @@
             }
         }
 
+        function setBrowserStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
         function getBrowserStorageItem(storageName, key) {
             try {
                 return window[storageName].getItem(key);
@@ -331,6 +340,7 @@
             }
         }
 
+        function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
         function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
 
@@ -377,20 +387,16 @@
                 : window.applyFreePassToPaymentOffer
                     ? window.applyFreePassToPaymentOffer(offer)
                     : offer;
-            try {
-                sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
+            if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))) {
                 return true;
-            } catch (_) {
-                customAlert('Browser storage is unavailable. Enable storage and try again.');
-                return false;
             }
+
+            customAlert('Browser storage is unavailable. Enable storage and try again.');
+            return false;
         }
 
         function clearPendingPaymentOffer() {
-            try {
-                sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
-            } catch (_) {
-            }
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
         }
 
         document.addEventListener('DOMContentLoaded', function () {
