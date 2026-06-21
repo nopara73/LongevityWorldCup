@@ -1857,7 +1857,8 @@ namespace LongevityWorldCup.Website.Controllers
             return dateOfBirth.Year is >= 1 and <= 9999
                 && dateOfBirth.Month is >= 1 and <= 12
                 && dateOfBirth.Day >= 1
-                && dateOfBirth.Day <= DateTime.DaysInMonth(dateOfBirth.Year, dateOfBirth.Month);
+                && dateOfBirth.Day <= DateTime.DaysInMonth(dateOfBirth.Year, dateOfBirth.Month)
+                && new DateTime(dateOfBirth.Year, dateOfBirth.Month, dateOfBirth.Day, 0, 0, 0, DateTimeKind.Utc) <= DateTime.UtcNow.Date;
         }
 
         private sealed record ImageOptimizationResult(bool Success, byte[]? Bytes, string? ContentType, string? Extension, string ErrorMessage)
