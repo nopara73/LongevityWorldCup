@@ -115,6 +115,11 @@ public sealed class ProofUploadPageTests
         Assert.Contains("biomarkerData = null;", parseBody);
         Assert.Contains("!Array.isArray(biomarkerData.Biomarkers)", parseBody);
         Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
+        Assert.Contains("clearStoredBiomarkerHandoff();", parseBody);
+        Assert.Contains("function clearStoredBiomarkerHandoff()", html);
+        Assert.Contains("removeSessionItem('biomarkerData');", html);
+        Assert.Contains("removeSessionItem('chronoPhenoDifference');", html);
+        Assert.Contains("removeSessionItem('chronoBortzDifference');", html);
         Assert.Contains("customAlert('Biomarker data is missing. Please fill out the biomarker form first.');", parseBody);
     }
 

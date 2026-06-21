@@ -518,6 +518,12 @@
                 || readStoredContactEmail();
         }
 
+        function clearStoredBiomarkerHandoff() {
+            removeSessionItem('biomarkerData');
+            removeSessionItem('chronoPhenoDifference');
+            removeSessionItem('chronoBortzDifference');
+        }
+
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
@@ -581,6 +587,7 @@
                     biomarkerData = null;
                 }
                 if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length) {
+                    clearStoredBiomarkerHandoff();
                     customAlert('Biomarker data is missing. Please fill out the biomarker form first.');
                     return;
                 }
