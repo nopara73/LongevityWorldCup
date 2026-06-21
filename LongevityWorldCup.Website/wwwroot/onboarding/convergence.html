@@ -837,6 +837,32 @@
             fillFakeData();
         }
 
+        function isEmailAddress(value) {
+            const trimmed = (value || '').trim();
+            if (!trimmed) return false;
+            if (window.validator && typeof window.validator.isEmail === 'function') {
+                return window.validator.isEmail(trimmed);
+            }
+
+            const input = document.createElement('input');
+            input.type = 'email';
+            input.value = trimmed;
+            return input.checkValidity();
+        }
+
+        function isOptionalUrl(value) {
+            const trimmed = (value || '').trim();
+            if (!trimmed) return true;
+            if (window.validator && typeof window.validator.isURL === 'function') {
+                return window.validator.isURL(trimmed);
+            }
+
+            const input = document.createElement('input');
+            input.type = 'url';
+            input.value = trimmed;
+            return input.checkValidity();
+        }
+
         function collectApplicantData() {
             // Get the data from the form fields
             const name = document.getElementById('name').value.trim();
@@ -1409,12 +1435,12 @@
                 if (!accountEmail) {
                     isValid = false;
                     customAlert('Please enter your email.');
-                } else if (!validator.isEmail(accountEmail)) {
+                } else if (!isEmailAddress(accountEmail)) {
                     isValid = false;
                     customAlert('Please enter a valid email address.');
                 }
 
-                if (personalLink && !validator.isURL(personalLink)) {
+                if (!isOptionalUrl(personalLink)) {
                     isValid = false;
                     customAlert('Please enter a valid URL for your personal link.');
                 }
@@ -1755,7 +1781,7 @@
                 isValid = false;
             }
 
-            if (personalLinkValue && !validator.isURL(personalLinkValue)) {
+            if (!isOptionalUrl(personalLinkValue)) {
                 isValid = false;
                 personalLinkInput.setCustomValidity('Please enter a valid URL.');
             } else {
@@ -1775,9 +1801,7 @@
             const accountEmailInput = document.getElementById('accountEmail');
             const nextButton = document.getElementById('nextButton');
 
-            const emailFilled = accountEmailInput.value.trim() !== '';
-
-            if (emailFilled) {
+            if (isEmailAddress(accountEmailInput.value)) {
                 nextButton.disabled = false;
             } else {
                 nextButton.disabled = true;

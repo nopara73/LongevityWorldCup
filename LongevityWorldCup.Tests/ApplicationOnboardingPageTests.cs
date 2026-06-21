@@ -115,6 +115,29 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationValidation_FallsBackWhenValidatorScriptIsUnavailable()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("function isEmailAddress(value)", html);
+        Assert.Contains("function isOptionalUrl(value)", html);
+        Assert.Contains("window.validator && typeof window.validator.isEmail === 'function'", html);
+        Assert.Contains("window.validator && typeof window.validator.isURL === 'function'", html);
+        Assert.Contains("input.type = 'email';", html);
+        Assert.Contains("input.type = 'url';", html);
+        Assert.Contains("} else if (!isEmailAddress(accountEmail)) {", html);
+        Assert.Contains("if (!isOptionalUrl(personalLink)) {", html);
+        Assert.Contains("if (!isOptionalUrl(personalLinkValue)) {", html);
+        Assert.Contains("if (isEmailAddress(accountEmailInput.value)) {", html);
+        Assert.DoesNotContain("!validator.isEmail(accountEmail)", html);
+        Assert.DoesNotContain("!validator.isURL(personalLink)", html);
+        Assert.DoesNotContain("!validator.isURL(personalLinkValue)", html);
+    }
+
+    [Fact]
     public async Task ApplicationSubmission_TreatsMalformedBiomarkerStorageAsMissing()
     {
         using var factory = new TestWebApplicationFactory();
