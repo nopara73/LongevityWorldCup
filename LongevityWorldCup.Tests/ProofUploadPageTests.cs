@@ -137,7 +137,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("return window[storageName].getItem(key);", html);
         Assert.Contains("return null;", html);
         Assert.Contains("function getLocalItem(key)", html);
-        Assert.Contains("accountEmail: getSessionItem('contactEmail') || getLocalItem('contactEmail') || null", submitBody);
+        Assert.Contains("accountEmail: readStoredContactEmail()", submitBody);
         Assert.Contains("chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null", submitBody);
         Assert.Contains("chronoBortzDifference: getSessionItem('chronoBortzDifference') || null", submitBody);
         Assert.Contains("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", submitBody);
@@ -146,6 +146,23 @@ public sealed class ProofUploadPageTests
         Assert.DoesNotContain("sessionStorage.getItem('chronoPhenoDifference')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('chronoBortzDifference')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)", submitBody);
+    }
+
+    [Fact]
+    public async Task ResultUploadSubmit_IgnoresMalformedStoredContactEmail()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+
+        Assert.Contains("function readStoredContactEmail()", html);
+        Assert.Contains("(getSessionItem('contactEmail') || getLocalItem('contactEmail') || '').trim()", html);
+        Assert.Contains("emailInput.type = 'email';", html);
+        Assert.Contains("if (emailInput.checkValidity()) return contactEmail;", html);
+        Assert.Contains("removeSessionItem('contactEmail');", html);
+        Assert.Contains("removeLocalItem('contactEmail');", html);
+        Assert.Contains("accountEmail: readStoredContactEmail()", html);
     }
 
     [Fact]

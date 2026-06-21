@@ -492,6 +492,19 @@
         function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
         function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
+        function readStoredContactEmail() {
+            const contactEmail = (getSessionItem('contactEmail') || getLocalItem('contactEmail') || '').trim();
+            if (!contactEmail) return null;
+
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.value = contactEmail;
+            if (emailInput.checkValidity()) return contactEmail;
+
+            removeSessionItem('contactEmail');
+            removeLocalItem('contactEmail');
+            return null;
+        }
 
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
@@ -564,7 +577,7 @@
                 const submissionKind = 'result-upload';
                 const applicantData = {
                     name: athlete.Name,
-                    accountEmail: getSessionItem('contactEmail') || getLocalItem('contactEmail') || null,
+                    accountEmail: readStoredContactEmail(),
                     chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null,
                     chronoBortzDifference: getSessionItem('chronoBortzDifference') || null,
                     submissionId: submissionId,
