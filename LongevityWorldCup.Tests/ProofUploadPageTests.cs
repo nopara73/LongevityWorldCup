@@ -173,7 +173,7 @@ public sealed class ProofUploadPageTests
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
         var successStart = html.IndexOf("customAlert(nextStepMessage).then(() =>", StringComparison.Ordinal);
-        var successEnd = html.IndexOf("window.location.href = '/review';", successStart, StringComparison.Ordinal);
+        var successEnd = html.IndexOf("});", html.IndexOf("window.location.href = '/review?from=proof-upload';", successStart, StringComparison.Ordinal), StringComparison.Ordinal);
 
         Assert.True(successStart >= 0);
         Assert.True(successEnd > successStart);
@@ -188,6 +188,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", successBody);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", successBody);
         Assert.Contains("setSessionItem(\"came-from\", \"proof-upload\");", successBody);
+        Assert.Contains("window.location.href = '/review?from=proof-upload';", successBody);
         Assert.DoesNotContain("sessionStorage.setItem(", successBody);
         Assert.DoesNotContain("localStorage.setItem(", successBody);
         Assert.DoesNotContain("sessionStorage.removeItem(", successBody);

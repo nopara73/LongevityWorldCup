@@ -842,7 +842,7 @@
                         if (response.ok) {
                             customAlert('Change request submitted!').then(() => {
                                 setSessionItem("came-from", "edit-profile");
-                                window.location.href = '/review';
+                                window.location.href = '/review?from=edit-profile';
                             });
                         } else {
                             return window.readApplicationErrorMessage(response).then(txt => {

@@ -645,7 +645,7 @@
                                     removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
                                     removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
                                     setSessionItem("came-from", "proof-upload");
-                                    window.location.href = '/review';
+                                    window.location.href = '/review?from=proof-upload';
                                 });
                             });
                         } else {
