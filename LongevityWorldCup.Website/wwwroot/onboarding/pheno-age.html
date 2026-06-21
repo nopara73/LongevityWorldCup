@@ -1210,12 +1210,26 @@
             window.captureDiscountFromUrl();
         }
 
+        function hasUsablePendingPaymentOffer() {
+            const rawOffer = sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY);
+            if (!rawOffer) return false;
+
+            try {
+                const parsedOffer = JSON.parse(rawOffer);
+                if (parsedOffer && typeof parsedOffer === 'object') return true;
+            } catch (_) {
+            }
+
+            sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+            return false;
+        }
+
         function storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference) {
             try {
                 sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
                 sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
 
-                if (!isUpdate && !sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
+                if (!isUpdate && !hasUsablePendingPaymentOffer()) {
                     const paymentOffer = {
                         source: 'direct-pheno-age',
                         offerType: 'amateur',

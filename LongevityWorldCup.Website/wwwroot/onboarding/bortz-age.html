@@ -1411,6 +1411,20 @@
             }, result);
         }
 
+        function hasUsablePendingPaymentOffer() {
+            const rawOffer = sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY);
+            if (!rawOffer) return false;
+
+            try {
+                const parsedOffer = JSON.parse(rawOffer);
+                if (parsedOffer && typeof parsedOffer === 'object') return true;
+            } catch (_) {
+            }
+
+            sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+            return false;
+        }
+
         function storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference) {
             try {
                 sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));
@@ -1418,7 +1432,7 @@
                 sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
                 try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
 
-                if (!isUpdate && !sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
+                if (!isUpdate && !hasUsablePendingPaymentOffer()) {
                     const paymentOffer = buildDirectBortzPaymentOffer();
                     sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
                         window.applyPaymentAdjustmentsToPaymentOffer
