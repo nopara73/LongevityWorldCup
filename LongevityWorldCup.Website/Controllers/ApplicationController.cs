@@ -211,8 +211,9 @@ namespace LongevityWorldCup.Website.Controllers
                 && applicantData.ProofPics is null
                 && applicantData.DateOfBirth is null;
 
-            string? accountEmail = applicantData.AccountEmail?.Trim();
-            if (!isEditSubmissionOnly && !string.IsNullOrWhiteSpace(accountEmail) && !new EmailAddressAttribute().IsValid(accountEmail))
+            var submittedAccountEmail = applicantData.AccountEmail?.Trim();
+            string? accountEmail = NormalizeOptionalAccountEmail(submittedAccountEmail);
+            if (!isEditSubmissionOnly && !string.IsNullOrWhiteSpace(submittedAccountEmail) && accountEmail is null)
             {
                 return BadRequest("Account email is invalid.");
             }
@@ -899,6 +900,8 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("invoiceId is required.");
             }
 
+            request.AccountEmail = NormalizeOptionalAccountEmail(request.AccountEmail);
+
             Config config;
             try
             {
@@ -934,7 +937,7 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     if (string.IsNullOrWhiteSpace(request.AccountEmail))
                     {
-                        request.AccountEmail = invoiceResult.BuyerEmail;
+                        request.AccountEmail = NormalizeOptionalAccountEmail(invoiceResult.BuyerEmail);
                     }
                     if (string.IsNullOrWhiteSpace(request.ApplicantName))
                     {
@@ -1109,6 +1112,14 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static string BuildBtcpayFailureMessage(System.Net.HttpStatusCode statusCode)
             => $"BTCPay API returned HTTP {(int)statusCode}.";
+
+        private static string? NormalizeOptionalAccountEmail(string? accountEmail)
+        {
+            var trimmed = accountEmail?.Trim();
+            return !string.IsNullOrWhiteSpace(trimmed) && new EmailAddressAttribute().IsValid(trimmed)
+                ? trimmed
+                : null;
+        }
 
         private async Task<(bool Success, string? Error)> SendPaymentFollowupEmailAsync(
             Config config,

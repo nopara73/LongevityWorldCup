@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Reflection;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -361,6 +362,20 @@ public sealed class ApplicationControllerValidationTests
         Assert.Equal(StatusCodes.Status400BadRequest, objectResult.StatusCode);
         var details = Assert.IsType<ValidationProblemDetails>(objectResult.Value);
         Assert.True(details.Errors.ContainsKey(nameof(InterviewRequestData.Email)));
+    }
+
+    [Theory]
+    [InlineData(" athlete@example.test ", "athlete@example.test")]
+    [InlineData("not-an-email", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void NormalizeOptionalAccountEmail_TrimsValidEmailAndDropsInvalidEmail(string? accountEmail, string? expected)
+    {
+        var method = typeof(ApplicationController).GetMethod("NormalizeOptionalAccountEmail", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var normalized = (string?)method!.Invoke(null, [accountEmail]);
+
+        Assert.Equal(expected, normalized);
     }
 
     private static ApplicationController CreateController(TestWebApplicationFactory factory)
