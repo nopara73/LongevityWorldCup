@@ -1266,7 +1266,11 @@
             athletesPromise
                 .then(athletes => {
                     // Extract athlete names into a list
-                    existingAthleteNames = Array.isArray(athletes) ? athletes.map(athlete => athlete.Name) : [];
+                    existingAthleteNames = Array.isArray(athletes)
+                        ? athletes.flatMap(athlete => [athlete.Name, athlete.DisplayName])
+                            .map(name => (name || '').trim())
+                            .filter(Boolean)
+                        : [];
                 });
 
             Promise.all([
