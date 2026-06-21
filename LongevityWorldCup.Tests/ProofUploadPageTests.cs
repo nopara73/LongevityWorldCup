@@ -151,6 +151,9 @@ public sealed class ProofUploadPageTests
         Assert.Contains("chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null", submitBody);
         Assert.Contains("chronoBortzDifference: getSessionItem('chronoBortzDifference') || null", submitBody);
         Assert.Contains("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", submitBody);
+        Assert.Contains("function clearPendingPaymentOffer()", html);
+        Assert.Contains("clearPendingPaymentOffer();", submitBody);
+        Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.DoesNotContain("accountEmail: readStoredContactEmail()", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('contactEmail')", submitBody);
         Assert.DoesNotContain("localStorage.getItem('contactEmail')", submitBody);

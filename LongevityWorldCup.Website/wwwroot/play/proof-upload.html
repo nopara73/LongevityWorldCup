@@ -524,6 +524,10 @@
             removeSessionItem('chronoBortzDifference');
         }
 
+        function clearPendingPaymentOffer() {
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+        }
+
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
@@ -611,6 +615,7 @@
                                     ? window.applyFreePassToPaymentOffer(paymentOffer)
                                     : paymentOffer;
                         } catch (_) {
+                            clearPendingPaymentOffer();
                             return null;
                         }
                     })(),

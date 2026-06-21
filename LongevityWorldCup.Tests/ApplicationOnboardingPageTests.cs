@@ -186,6 +186,9 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const chronoPhenoDifference = getSessionItem('chronoPhenoDifference');", collectBody);
         Assert.Contains("const chronoBortzDifference = getSessionItem('chronoBortzDifference');", collectBody);
         Assert.Contains("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", collectBody);
+        Assert.Contains("function clearPendingPaymentOffer()", html);
+        Assert.Contains("clearPendingPaymentOffer();", collectBody);
+        Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.DoesNotContain("sessionStorage.getItem('chronoPhenoDifference')", collectBody);
         Assert.DoesNotContain("sessionStorage.getItem('chronoBortzDifference')", collectBody);
         Assert.DoesNotContain("sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)", collectBody);
