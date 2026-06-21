@@ -218,6 +218,11 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     return BadRequest("Account email is invalid.");
                 }
+
+                if (applicantData.DateOfBirth is null)
+                {
+                    return BadRequest("Date of birth is required.");
+                }
             }
 
             // Load SMTP configuration
