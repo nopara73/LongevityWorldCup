@@ -17,6 +17,8 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("if (!currentAthlete || !currentAthlete.Name) return;", html);
         Assert.Contains("const prevName = getLocalItem('selectedAthleteName');", html);
         Assert.Contains("sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));", html);
+        Assert.Contains("sessionStorage.removeItem('contactEmail');", html);
+        Assert.Contains("removeLocalItem('contactEmail');", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("setLocalItem('selectedAthleteName', currentAthlete.Name);", html);
         Assert.Contains("window.location.href = '/dashboard';", html);
@@ -32,6 +34,7 @@ public sealed class CharacterSelectionPageTests
 
         Assert.Contains("function getLocalItem(key)", html);
         Assert.Contains("function setLocalItem(key, value)", html);
+        Assert.Contains("function removeLocalItem(key)", html);
         Assert.Contains("const saved = getLocalItem('selectedAthleteName');", html);
         Assert.Contains("setLocalItem('selectedAthleteName', currentAthlete.Name);", html);
         Assert.DoesNotContain("const prevName = localStorage.getItem('selectedAthleteName');", html);
