@@ -1271,7 +1271,67 @@
             };
         }
 
+        function getMetaContent(documentRoot, selector) {
+            return documentRoot.querySelector(selector)?.getAttribute("content")?.trim() || "";
+        }
+
+        function toAbsolutePreviewUrl(value, baseUrl) {
+            if (!value) {
+                return "";
+            }
+
+            try {
+                return new URL(value, baseUrl).href;
+            } catch {
+                return value;
+            }
+        }
+
+        function isSameOriginPreviewUrl(url) {
+            try {
+                const parsed = new URL(url, window.location.href);
+                return parsed.origin === window.location.origin;
+            } catch {
+                return false;
+            }
+        }
+
+        async function fetchSameOriginOgPreview(url) {
+            const response = await fetch(url, {
+                headers: { accept: "text/html" },
+                cache: "reload"
+            });
+            if (!response.ok) {
+                throw new Error(`Same-origin OG fetch failed: ${response.status}`);
+            }
+
+            const html = await response.text();
+            const documentRoot = new DOMParser().parseFromString(html, "text/html");
+            const title =
+                getMetaContent(documentRoot, 'meta[property="og:title"]') ||
+                getMetaContent(documentRoot, 'meta[name="twitter:title"]') ||
+                documentRoot.querySelector("title")?.textContent?.trim() ||
+                getUrlDomain(url);
+            const description =
+                getMetaContent(documentRoot, 'meta[property="og:description"]') ||
+                getMetaContent(documentRoot, 'meta[name="twitter:description"]') ||
+                "";
+            const image = toAbsolutePreviewUrl(
+                getMetaContent(documentRoot, 'meta[property="og:image"]') ||
+                getMetaContent(documentRoot, 'meta[name="twitter:image"]'),
+                url);
+            const domain =
+                getMetaContent(documentRoot, 'meta[property="og:site_name"]') ||
+                getUrlDomain(url);
+
+            return { url, domain, title, description, image };
+        }
+
         async function fetchOgPreview(url) {
+            if (isSameOriginPreviewUrl(url)) {
+                return await fetchSameOriginOgPreview(url);
+            }
+
             const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(url)}&audio=false&video=false&screenshot=false&force=true`;
             const response = await fetch(endpoint, { headers: { accept: "application/json" } });
             if (!response.ok) {
