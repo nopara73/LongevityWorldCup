@@ -223,6 +223,11 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     return BadRequest("Date of birth is required.");
                 }
+
+                if (!IsValidDateOfBirth(applicantData.DateOfBirth))
+                {
+                    return BadRequest("Date of birth is invalid.");
+                }
             }
 
             // Load SMTP configuration
@@ -1811,6 +1816,14 @@ namespace LongevityWorldCup.Website.Controllers
 
         [GeneratedRegex(@"data:(?<type>.+?);base64,(?<data>.+)")]
         protected static partial Regex DataUriRegex();
+
+        private static bool IsValidDateOfBirth(DateOfBirthData dateOfBirth)
+        {
+            return dateOfBirth.Year is >= 1 and <= 9999
+                && dateOfBirth.Month is >= 1 and <= 12
+                && dateOfBirth.Day >= 1
+                && dateOfBirth.Day <= DateTime.DaysInMonth(dateOfBirth.Year, dateOfBirth.Month);
+        }
 
         private sealed record ImageOptimizationResult(bool Success, byte[]? Bytes, string? ContentType, string? Extension, string ErrorMessage)
         {
