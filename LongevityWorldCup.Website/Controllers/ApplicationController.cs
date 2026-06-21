@@ -775,16 +775,13 @@ namespace LongevityWorldCup.Website.Controllers
             string? checkoutLink = null,
             CancellationToken ct = default)
         {
-            if (isEditSubmissionOnly)
-                return;
-
             if (string.IsNullOrWhiteSpace(accountEmail))
                 return;
 
             var trimmedEmail = accountEmail.Trim();
             if (!new EmailAddressAttribute().IsValid(trimmedEmail))
             {
-                _logger.LogWarning("Skipping application confirmation email because applicant email is invalid: {Email}", trimmedEmail);
+                _logger.LogWarning("Skipping submission confirmation email because applicant email is invalid: {Email}", trimmedEmail);
                 return;
             }
 
@@ -793,10 +790,10 @@ namespace LongevityWorldCup.Website.Controllers
                 var message = new MimeMessage();
                 message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
                 message.To.Add(new MailboxAddress(applicantName?.Trim() ?? "", trimmedEmail));
-                message.Subject = BuildSubmissionConfirmationSubject(isResultSubmissionOnly);
+                message.Subject = BuildSubmissionConfirmationSubject(isResultSubmissionOnly, isEditSubmissionOnly);
                 message.Body = new BodyBuilder
                 {
-                    TextBody = BuildSubmissionConfirmationBody(applicantName, isResultSubmissionOnly, checkoutLink)
+                    TextBody = BuildSubmissionConfirmationBody(applicantName, isResultSubmissionOnly, isEditSubmissionOnly, checkoutLink)
                 }.ToMessageBody();
 
                 await SendEmailThroughSmtpAsync(config, message, ct);
@@ -807,15 +804,27 @@ namespace LongevityWorldCup.Website.Controllers
             }
         }
 
-        private static string BuildSubmissionConfirmationSubject(bool isResultSubmissionOnly)
-            => isResultSubmissionOnly
-                ? "Your Longevity World Cup result upload was received"
-                : "Your Longevity World Cup application was received";
+        private static string BuildSubmissionConfirmationSubject(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
+        {
+            if (isResultSubmissionOnly)
+                return "Your Longevity World Cup result upload was received";
+            if (isEditSubmissionOnly)
+                return "Your Longevity World Cup change request was received";
+            return "Your Longevity World Cup application was received";
+        }
 
-        private static string BuildSubmissionConfirmationBody(string? applicantName, bool isResultSubmissionOnly, string? checkoutLink)
-            => isResultSubmissionOnly
-                ? BuildResultUploadConfirmationBody(applicantName, checkoutLink)
-                : BuildApplicationConfirmationBody(applicantName, checkoutLink);
+        private static string BuildSubmissionConfirmationBody(
+            string? applicantName,
+            bool isResultSubmissionOnly,
+            bool isEditSubmissionOnly,
+            string? checkoutLink)
+        {
+            if (isResultSubmissionOnly)
+                return BuildResultUploadConfirmationBody(applicantName, checkoutLink);
+            if (isEditSubmissionOnly)
+                return BuildChangeRequestConfirmationBody(applicantName);
+            return BuildApplicationConfirmationBody(applicantName, checkoutLink);
+        }
 
         private static string BuildApplicationConfirmationBody(string? applicantName, string? checkoutLink)
         {
@@ -860,6 +869,21 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             return body
+                .AppendLine()
+                .AppendLine("Questions or corrections? Reply to this email.")
+                .AppendLine()
+                .AppendLine("Longevity World Cup")
+                .ToString();
+        }
+
+        private static string BuildChangeRequestConfirmationBody(string? applicantName)
+        {
+            var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
+            return new StringBuilder()
+                .AppendLine($"Hi {greetingName},")
+                .AppendLine()
+                .AppendLine("We received your Longevity World Cup profile change request.")
+                .AppendLine("We'll review it and update your athlete profile if the changes are accepted.")
                 .AppendLine()
                 .AppendLine("Questions or corrections? Reply to this email.")
                 .AppendLine()
