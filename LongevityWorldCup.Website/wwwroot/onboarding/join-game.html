@@ -838,19 +838,31 @@
         window.captureDiscountFromUrl();
       }
 
+      function setBrowserStorageItem(storageName, key, value) {
+        try {
+          window[storageName].setItem(key, value);
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function setSessionItem(key, value) {
+        return setBrowserStorageItem("sessionStorage", key, value);
+      }
+
       function setPendingPaymentOffer(offer) {
         const effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
           ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
           : window.applyFreePassToPaymentOffer
             ? window.applyFreePassToPaymentOffer(offer)
             : offer;
-        try {
-          sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
+        if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))) {
           return true;
-        } catch (_) {
-          customAlert('Browser storage is unavailable. Enable storage and try again.');
-          return false;
         }
+
+        customAlert('Browser storage is unavailable. Enable storage and try again.');
+        return false;
       }
 
       function getCheckoutQuerySuffix() {
