@@ -27,10 +27,14 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("window[storageName].removeItem(key);", script);
         Assert.Contains("function normalizeReviewSource(value)", script);
         Assert.Contains("return value === \"proof-upload\" || value === \"edit-profile\" ? value : null;", script);
+        Assert.Contains("function normalizeSubmissionTypeReviewSource(value)", script);
+        Assert.Contains("if (value === \"result\") return \"proof-upload\";", script);
+        Assert.Contains("if (value === \"edit\") return \"edit-profile\";", script);
         Assert.Contains("function readReviewSource()", script);
         Assert.Contains("normalizeReviewSource(new URLSearchParams(window.location.search).get(\"from\"))", script);
         Assert.Contains("|| normalizeReviewSource(getSessionItem(\"came-from\"))", script);
-        Assert.Contains("|| normalizeReviewSource(pendingPaymentInvoice && pendingPaymentInvoice.reviewSource);", script);
+        Assert.Contains("|| normalizeReviewSource(pendingPaymentInvoice && pendingPaymentInvoice.reviewSource)", script);
+        Assert.Contains("|| normalizeSubmissionTypeReviewSource(pendingPaymentInvoice && pendingPaymentInvoice.submissionType);", script);
         Assert.Contains("const reviewSource = readReviewSource();", script);
         Assert.Contains("const isNewResultsUploaded = reviewSource === \"proof-upload\";", script);
         Assert.Contains("const isEditRequest = reviewSource === \"edit-profile\";", script);

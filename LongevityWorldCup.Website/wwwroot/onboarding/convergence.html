@@ -1496,7 +1496,8 @@
                                                 const pendingInvoiceInfo = JSON.stringify({
                                                     invoiceId: submitResult.invoiceId,
                                                     applicantName: applicantData.name || null,
-                                                    accountEmail: applicantData.accountEmail || null
+                                                    accountEmail: applicantData.accountEmail || null,
+                                                    submissionType: 'application'
                                                 });
                                                 setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
                                                 setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
