@@ -1165,7 +1165,7 @@ namespace LongevityWorldCup.Website.Controllers
         {
             if (isResultSubmissionOnly)
             {
-                sb.AppendLine("Someone’s been bullying Father Time again...")
+                sb.AppendLine("New biological age result posted.")
                     .AppendLine($"Payment due: {paymentDueText}");
             }
             else if (isEditSubmissionOnly)
