@@ -247,10 +247,17 @@
             return value === "proof-upload" || value === "edit-profile" ? value : null;
         }
 
+        function normalizeSubmissionTypeReviewSource(value) {
+            if (value === "result") return "proof-upload";
+            if (value === "edit") return "edit-profile";
+            return null;
+        }
+
         function readReviewSource() {
             return normalizeReviewSource(new URLSearchParams(window.location.search).get("from"))
                 || normalizeReviewSource(getSessionItem("came-from"))
-                || normalizeReviewSource(pendingPaymentInvoice && pendingPaymentInvoice.reviewSource);
+                || normalizeReviewSource(pendingPaymentInvoice && pendingPaymentInvoice.reviewSource)
+                || normalizeSubmissionTypeReviewSource(pendingPaymentInvoice && pendingPaymentInvoice.submissionType);
         }
 
         const reviewSource = readReviewSource();

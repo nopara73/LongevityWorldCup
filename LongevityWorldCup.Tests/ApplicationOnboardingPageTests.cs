@@ -238,6 +238,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", successBody);
         Assert.Contains("setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);", successBody);
         Assert.Contains("setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);", successBody);
+        Assert.Contains("submissionType: 'application'", successBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", successBody);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", successBody);
         Assert.DoesNotContain("sessionStorage.setItem(", successBody);
