@@ -135,6 +135,8 @@ public sealed class EditProfilePageTests
 
         Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
         Assert.Contains("function setSessionItem(key, value)", html);
+        Assert.Contains("const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);", successBody);
+        Assert.Contains("setSessionItem('contactEmail', reviewContactEmail);", successBody);
         Assert.Contains("setSessionItem(\"came-from\", \"edit-profile\");", successBody);
         Assert.Contains("window.location.href = '/review?from=edit-profile';", successBody);
         Assert.DoesNotContain("sessionStorage.setItem(", successBody);
@@ -158,8 +160,14 @@ public sealed class EditProfilePageTests
         Assert.Contains("function getBrowserStorageItem(storageName, key)", html);
         Assert.Contains("return window[storageName].getItem(key);", html);
         Assert.Contains("return null;", html);
-        Assert.Contains("|| getSessionItem('contactEmail')", submitBody);
-        Assert.Contains("|| getLocalItem('contactEmail')", submitBody);
+        Assert.Contains("function normalizeContactEmail(value)", html);
+        Assert.Contains("function readEditProfileContactEmail()", html);
+        Assert.Contains("|| normalizeContactEmail(athlete && athlete.MediaContact)", html);
+        Assert.Contains("|| normalizeContactEmail(originalAthlete && originalAthlete.MediaContact)", html);
+        Assert.Contains("|| normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'))", html);
+        Assert.Contains("accountEmail: readEditProfileContactEmail(),", submitBody);
+        Assert.DoesNotContain("|| getSessionItem('contactEmail')", submitBody);
+        Assert.DoesNotContain("|| getLocalItem('contactEmail')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('contactEmail')", submitBody);
         Assert.DoesNotContain("localStorage.getItem('contactEmail')", submitBody);
     }
