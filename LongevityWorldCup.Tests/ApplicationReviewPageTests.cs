@@ -93,7 +93,8 @@ public sealed class ApplicationReviewPageTests
         var script = html[scriptStart..scriptEnd];
 
         Assert.Contains("function normalizeContactEmail(value)", script);
-        Assert.Contains("const contactEmail = (value || '').trim();", script);
+        Assert.Contains("let contactEmail = (value || '').trim();", script);
+        Assert.Contains("contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();", script);
         Assert.Contains("emailInput.type = 'email';", script);
         Assert.Contains("return emailInput.checkValidity() ? contactEmail : null;", script);
         Assert.Contains("function readStoredContactEmail()", script);

@@ -278,6 +278,7 @@ public sealed class ProofUploadPageTests
         var html = await client.GetStringAsync("/play/proof-upload.html");
 
         Assert.Contains("function normalizeContactEmail(value)", html);
+        Assert.Contains("contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();", html);
         Assert.Contains("function readStoredContactEmail()", html);
         Assert.Contains("const contactEmail = normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));", html);
         Assert.Contains("emailInput.type = 'email';", html);
