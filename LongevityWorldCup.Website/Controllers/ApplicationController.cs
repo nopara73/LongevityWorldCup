@@ -362,6 +362,11 @@ namespace LongevityWorldCup.Website.Controllers
 
             // 1) Build a temp folder with profile + proofs + athlete.json
             var folderKey = SanitizeFileName(applicantData.Name ?? "noname");
+            if (isResultSubmissionOnly && string.IsNullOrWhiteSpace(accountEmail))
+            {
+                accountEmail = ResolveExistingAthleteResultContactEmail(TryReadExistingAthleteFields(_environment, folderKey, applicantData.Name));
+            }
+
             var tempRoot = Path.Combine(Path.GetTempPath(), "LWC", folderKey);
             var athleteFolder = Path.Combine(tempRoot, folderKey);
             Directory.CreateDirectory(athleteFolder);
@@ -1179,6 +1184,11 @@ namespace LongevityWorldCup.Website.Controllers
                 ? trimmed
                 : null;
         }
+
+        private static string? ResolveExistingAthleteResultContactEmail(IReadOnlyDictionary<string, string?> existingFields)
+            => existingFields.TryGetValue("MediaContact", out var mediaContact)
+                ? NormalizeOptionalAccountEmail(mediaContact)
+                : null;
 
         private async Task<(bool Success, string? Error)> SendPaymentFollowupEmailAsync(
             Config config,
