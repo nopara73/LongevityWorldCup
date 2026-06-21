@@ -46,6 +46,29 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
+    public async Task ChallengeSubmitHelper_IgnoresDuplicateBusySubmissions()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+        var helperStart = javascript.IndexOf("async function withButton(button, work, busyText)", StringComparison.Ordinal);
+        var helperEnd = javascript.IndexOf("function fillTimeZones(select)", helperStart, StringComparison.Ordinal);
+
+        Assert.True(helperStart >= 0);
+        Assert.True(helperEnd > helperStart);
+
+        var helperBody = javascript[helperStart..helperEnd];
+        var guardIndex = helperBody.IndexOf("if (button.disabled || button.getAttribute(\"aria-busy\") === \"true\") return;", StringComparison.Ordinal);
+        var originalIndex = helperBody.IndexOf("const original = button.innerHTML;", StringComparison.Ordinal);
+
+        Assert.True(guardIndex >= 0);
+        Assert.True(originalIndex > guardIndex);
+        Assert.Contains("button.setAttribute(\"aria-busy\", \"true\");", helperBody);
+        Assert.Contains("button.removeAttribute(\"aria-busy\");", helperBody);
+    }
+
+    [Fact]
     public async Task ChallengeProfilePicturePreparation_IsCoveredByUploadRetryHandling()
     {
         using var factory = CreateFactory();
