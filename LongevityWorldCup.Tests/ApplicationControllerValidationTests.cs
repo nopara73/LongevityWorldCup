@@ -383,9 +383,19 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationSubject", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var subject = (string?)method!.Invoke(null, [true]);
+        var subject = (string?)method!.Invoke(null, [true, false]);
 
         Assert.Equal("Your Longevity World Cup result upload was received", subject);
+    }
+
+    [Fact]
+    public void SubmissionConfirmationSubject_UsesChangeRequestCopyForEditSubmissions()
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationSubject", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var subject = (string?)method!.Invoke(null, [false, true]);
+
+        Assert.Equal("Your Longevity World Cup change request was received", subject);
     }
 
     [Fact]
@@ -393,7 +403,7 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, "https://pay.example.test/invoice"]);
+        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, false, "https://pay.example.test/invoice"]);
 
         Assert.NotNull(body);
         Assert.Contains("Hi Athlete Ada,", body);
@@ -404,11 +414,26 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public void SubmissionConfirmationBody_UsesChangeRequestCopyForEditSubmissions()
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var body = (string?)method!.Invoke(null, ["Athlete Ada", false, true, null]);
+
+        Assert.NotNull(body);
+        Assert.Contains("Hi Athlete Ada,", body);
+        Assert.Contains("profile change request", body);
+        Assert.Contains("update your athlete profile", body);
+        Assert.DoesNotContain("result upload and proof", body);
+        Assert.DoesNotContain("application, which usually takes a day or two", body);
+    }
+
+    [Fact]
     public void SubmissionConfirmationBody_PreservesApplicationCopyForFullApplications()
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, null]);
+        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, false, null]);
 
         Assert.NotNull(body);
         Assert.Contains("Hi Applicant Ada,", body);
