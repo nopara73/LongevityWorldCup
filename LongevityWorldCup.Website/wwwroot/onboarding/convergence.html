@@ -685,6 +685,7 @@
         var currentStage = 1;
         let profilePic = null;
         let proofPics = [];
+        let isApplicationSubmitting = false;
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
@@ -1437,6 +1438,8 @@
         // "Next" Button Click Event Handler
         document.getElementById('nextButton').addEventListener('click', async function (event) {
             event.preventDefault(); // Prevent default button action
+            const nextButton = document.getElementById('nextButton');
+            if (isApplicationSubmitting || nextButton.disabled) return;
 
             // Scroll the heading into view
             document.querySelector('h1').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1479,7 +1482,8 @@
                     setLocalItem('selectedAthleteName', applicantData.name);
 
                     // Disable the Apply button and change its text
-                    const applyButton = document.getElementById('nextButton');
+                    const applyButton = nextButton;
+                    isApplicationSubmitting = true;
                     applyButton.disabled = true;
                     accountEmailInput.setAttribute("disabled", "true");
                     applyButton.textContent = 'Submitting...';
@@ -1541,6 +1545,7 @@
                                         })
                                     );
                                     customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
+                                        isApplicationSubmitting = false;
                                         applyButton.disabled = false;
                                         accountEmailInput.disabled = false;
                                         setNextButtonToApply();
@@ -1558,6 +1563,7 @@
                                 })
                             );
                             customAlert(`An error occurred while submitting your application:\n\n${displayError}`).then(() => {
+                                isApplicationSubmitting = false;
                                 applyButton.disabled = false;
                                 accountEmailInput.disabled = false;
                                 setNextButtonToApply();

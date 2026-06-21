@@ -115,6 +115,31 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationSubmit_GuardsAgainstDuplicateClicks()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var handlerStart = html.IndexOf("document.getElementById('nextButton').addEventListener('click', async function (event)", StringComparison.Ordinal);
+        var handlerEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", handlerStart, StringComparison.Ordinal);
+
+        Assert.True(handlerStart >= 0);
+        Assert.True(handlerEnd > handlerStart);
+
+        var handlerBeforeFetch = html[handlerStart..handlerEnd];
+
+        Assert.Contains("let isApplicationSubmitting = false;", html);
+        Assert.Contains("const nextButton = document.getElementById('nextButton');", handlerBeforeFetch);
+        Assert.Contains("if (isApplicationSubmitting || nextButton.disabled) return;", handlerBeforeFetch);
+        Assert.Contains("const applyButton = nextButton;", handlerBeforeFetch);
+        Assert.Contains("isApplicationSubmitting = true;", handlerBeforeFetch);
+        Assert.Contains("applyButton.disabled = true;", handlerBeforeFetch);
+        Assert.Contains("customAlert(`Failed to submit application. Please try again later.\\n\\n${badResponse}`).then(() => {\n                                        isApplicationSubmitting = false;", html);
+        Assert.Contains("customAlert(`An error occurred while submitting your application:\\n\\n${displayError}`).then(() => {\n                                isApplicationSubmitting = false;", html);
+    }
+
+    [Fact]
     public async Task ApplicationValidation_FallsBackWhenValidatorScriptIsUnavailable()
     {
         using var factory = new TestWebApplicationFactory();
