@@ -922,14 +922,7 @@ namespace LongevityWorldCup.Website.Controllers
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
             }
 
-            var message = new MimeMessage();
-            message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
-            message.To.Add(CreateConfiguredToAddress(config));
-            message.Subject = "LWC Interview Request";
-            message.Body = new BodyBuilder
-            {
-                TextBody = $"Interview contact email: {email}"
-            }.ToMessageBody();
+            var message = BuildInterviewRequestEmail(config, email);
 
             try
             {
@@ -955,6 +948,22 @@ namespace LongevityWorldCup.Website.Controllers
                 _logger.LogError(ex, "Failed to send interview request email for {Email}", email);
                 return StatusCode(500, "Failed to send interview request.");
             }
+        }
+
+        private static MimeMessage BuildInterviewRequestEmail(Config config, string email)
+        {
+            var trimmedEmail = email.Trim();
+            var message = new MimeMessage();
+            message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
+            message.To.Add(CreateConfiguredToAddress(config));
+            AddReplyToIfValid(message, trimmedEmail, trimmedEmail);
+            message.Subject = "LWC Interview Request";
+            message.Body = new BodyBuilder
+            {
+                TextBody = $"Interview contact email: {trimmedEmail}"
+            }.ToMessageBody();
+
+            return message;
         }
 
         [HttpPost("payment-status")]
