@@ -181,8 +181,8 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                                 proofPics.push(optimizedPage);
                             }
                         }
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
-                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                         continue;
                     }
 
@@ -194,8 +194,8 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     const dataUrl = await optimizeProofImageOrFallback(raw);
                     if (dataUrl) {
                         proofPics.push(dataUrl);
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
-                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                     }
                 }
             }
@@ -226,12 +226,12 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
     proofImageContainer.style.display = 'block';
 
     // Display any existing proof images
-    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
+    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
 
-    generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers);
+    generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nextButton, proofPics, uploadProofButton, cameraButton);
 
     // Check if proof images already exist
-    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
 }
 
 function ensurePdfJsReady() {
@@ -272,7 +272,7 @@ function setPdfWorker(pdfLib) {
     pdfLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
 }
 
-function updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton) {
+function updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer) {
     container.innerHTML = '';
     // Use the global `proofPics` variable directly
     if (proofPics.length > 0) {
@@ -291,9 +291,9 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
             removeButton.style = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: var(--light-text-color); border: none; border-radius: 3px; cursor: pointer;';
             removeButton.addEventListener('click', function () {
                 proofPics.splice(i, 1);
-                updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton);
+                updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                 // Check proof images
-                checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+                checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
             });
 
             imgContainer.appendChild(img);
@@ -303,14 +303,11 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
     }
 }
 
-function checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton) {
-    if (proofPics.length > 0) {
-        nextButton.disabled = false;
-        updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
-    } else {
-        nextButton.disabled = true;
-        updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
-    }
+function checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer) {
+    const hasProofs = proofPics.length > 0;
+    const checklistComplete = areRequiredProofChecklistItemsChecked(biomarkerChecklistContainer);
+    nextButton.disabled = !(hasProofs && checklistComplete);
+    updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
 }
 
 window.updateProofUploadButtons = function (nextButton, uploadProofButton, cameraButton) {
@@ -320,7 +317,13 @@ window.updateProofUploadButtons = function (nextButton, uploadProofButton, camer
     if (cameraButton) cameraButton.classList.toggle('green', nextButton.disabled);
 }
 
-function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
+function areRequiredProofChecklistItemsChecked(biomarkerChecklistContainer) {
+    if (!biomarkerChecklistContainer) return true;
+    const checkboxes = Array.from(biomarkerChecklistContainer.querySelectorAll('.biomarker-checkbox'));
+    return checkboxes.length === 0 || checkboxes.every(input => input.checked);
+}
+
+function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nextButton, proofPics, uploadProofButton, cameraButton) {
     if (!biomarkerChecklistContainer) return;
 
     // Clear any existing content
@@ -333,7 +336,7 @@ function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
     biomarkerChecklistContainer.appendChild(title);
 
     const instructions = document.createElement('p');
-    instructions.textContent = "Check each biomarker you've already uploaded proof for:";
+    instructions.textContent = "Check each biomarker once your proof shows it:";
     instructions.style.marginTop = '1px';
     instructions.style.marginBottom = '4px';
     instructions.classList.add('smaller-text');
@@ -353,6 +356,9 @@ function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
         input.className = 'biomarker-checkbox';
         // generate an ID like "biomarker-Albumin" or "biomarker-CReactiveProtein"
         input.id = 'biomarker-' + name.replace(/[^a-z0-9]/gi, '');
+        input.addEventListener('change', function () {
+            checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+        });
 
         // span with the visible name
         const span = document.createElement('span');
