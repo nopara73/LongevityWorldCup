@@ -51,6 +51,39 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task FullApplicationMissingAccountEmailReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            DateOfBirth = new DateOfBirthData { Year = 1980, Month = 1, Day = 2 }
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Account email is required.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task FullApplicationInvalidAccountEmailReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            AccountEmail = "not-an-email",
+            DateOfBirth = new DateOfBirthData { Year = 1980, Month = 1, Day = 2 }
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Account email is invalid.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task InterviewRequestInvalidModelStateReturnsValidationProblemDetails()
     {
         using var factory = new TestWebApplicationFactory();
