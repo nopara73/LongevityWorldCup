@@ -317,11 +317,35 @@ public sealed class ApplicationOnboardingPageTests
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
 
-        Assert.Contains("existingAthleteNames = Array.isArray(athletes) ? athletes.map(athlete => athlete.Name) : [];", html);
+        Assert.Contains("athletes.flatMap(athlete => [athlete.Name, athlete.DisplayName])", html);
+        Assert.Contains(".map(name => (name || '').trim())", html);
+        Assert.Contains(".filter(Boolean)", html);
         Assert.Contains(".then(response => response.ok ? response.json() : [])", html);
         Assert.Contains("console.error('Error fetching flags:', error);", html);
         Assert.Contains("return [];", html);
         Assert.Contains("const flagOptions = window.LwcFlags.buildFlagOptions(flags, athletes);", html);
+    }
+
+    [Fact]
+    public async Task ApplicationNameValidation_ChecksExistingDisplayNames()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var fetchStart = html.IndexOf("const athletesPromise = fetch('/api/data/athletes')", StringComparison.Ordinal);
+        var validateStart = html.IndexOf("function validateName(name)", StringComparison.Ordinal);
+
+        Assert.True(fetchStart >= 0);
+        Assert.True(validateStart > fetchStart);
+
+        var fetchBody = html[fetchStart..validateStart];
+
+        Assert.Contains("athletes.flatMap(athlete => [athlete.Name, athlete.DisplayName])", fetchBody);
+        Assert.Contains(".filter(Boolean)", fetchBody);
+        Assert.Contains("const athleteNames = Array.isArray(existingAthleteNames) ? existingAthleteNames : [];", html);
+        Assert.Contains("existingName.toLowerCase() === name.toLowerCase()", html);
+        Assert.Contains("An athlete with that name is already registered.", html);
     }
 
     [Fact]
