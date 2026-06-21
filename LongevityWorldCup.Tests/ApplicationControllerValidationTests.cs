@@ -39,6 +39,18 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task ApplicationMissingNameReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData { AccountEmail = "athlete@example.test" }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Applicant name is required.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task InterviewRequestInvalidModelStateReturnsValidationProblemDetails()
     {
         using var factory = new TestWebApplicationFactory();

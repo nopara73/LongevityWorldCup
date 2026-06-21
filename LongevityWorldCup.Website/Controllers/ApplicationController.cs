@@ -181,6 +181,11 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("Applicant data is null.");
             }
 
+            if (string.IsNullOrWhiteSpace(applicantData.Name))
+            {
+                return BadRequest("Applicant name is required.");
+            }
+
             // Load SMTP configuration
             Config config;
             try
