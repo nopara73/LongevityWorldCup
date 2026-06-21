@@ -94,6 +94,34 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
+    public void BioagePages_AllowManualBloodDrawDateEntry(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+        var dateInputStart = html.IndexOf("id=\"blood-draw-date\"", StringComparison.Ordinal);
+
+        Assert.True(dateInputStart >= 0);
+
+        var dateInputEnd = html.IndexOf('>', dateInputStart);
+
+        Assert.True(dateInputEnd > dateInputStart);
+
+        var dateInputHtml = html[dateInputStart..dateInputEnd];
+
+        Assert.DoesNotContain("inputmode=\"none\"", dateInputHtml);
+        Assert.DoesNotContain("onkeydown=\"return false\"", dateInputHtml);
+        Assert.DoesNotContain("onkeypress=\"return false\"", dateInputHtml);
+        Assert.DoesNotContain("onkeyup=\"return false\"", dateInputHtml);
+        Assert.DoesNotContain("onpaste=\"return false\"", dateInputHtml);
+        Assert.DoesNotContain("ondrop=\"return false\"", dateInputHtml);
+        Assert.Contains("bloodDrawDateInput.addEventListener('focus', lwcOpenDatePickerGuarded);", html);
+        Assert.Contains("bloodDrawDateInput.addEventListener('click', lwcOpenDatePickerGuarded);", html);
+        Assert.DoesNotContain("Block manual edits", html);
+        Assert.DoesNotContain("bloodDrawDateInput.addEventListener('beforeinput'", html);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
     public void BioagePages_ReplaceMalformedPendingPaymentOfferBeforeHandoff(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
