@@ -949,7 +949,7 @@
                         <legend>Blood draw date:</legend>
                         <p class="privacy-note">When did you get your blood test done?</p>
                         <div class="input-group lwc-date-flex">
-                            <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
+                            <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
                         </div>
                     </fieldset>
                     <div class="lwc-step-actions">
@@ -1693,15 +1693,6 @@
             };
             bloodDrawDateInput.addEventListener('focus', lwcOpenDatePickerGuarded);
             bloodDrawDateInput.addEventListener('click', lwcOpenDatePickerGuarded);
-
-            // Block manual edits (typing/paste/drop), but keep control mutable so showPicker works
-            ['keypress', 'keydown', 'keyup', 'paste', 'drop'].forEach(evt =>
-                bloodDrawDateInput.addEventListener(evt, e => e.preventDefault())
-            );
-            bloodDrawDateInput.addEventListener('beforeinput', e => {
-                // Allow programmatic changes only
-                if (!e.inputType || e.inputType !== 'insertReplacementText') e.preventDefault();
-            });
         }
 
         function overwriteBortzFormFromUrlParams() {
