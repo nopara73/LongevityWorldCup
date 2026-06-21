@@ -533,6 +533,12 @@
             removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
         }
 
+        function hasStoredBiomarkerDates(biomarkerData) {
+            return biomarkerData
+                && Array.isArray(biomarkerData.Biomarkers)
+                && biomarkerData.Biomarkers.every(entry => entry && typeof entry.Date === 'string' && entry.Date.trim());
+        }
+
         function readPendingPaymentOffer() {
             const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
             if (!rawOffer) return null;
@@ -614,7 +620,7 @@
                 } catch (_) {
                     biomarkerData = null;
                 }
-                if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length) {
+                if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData)) {
                     clearStoredBiomarkerHandoff();
                     customAlert('Biomarker data is missing. Please fill out the biomarker form first.')
                         .then(() => window.location.href = '/dashboard');
