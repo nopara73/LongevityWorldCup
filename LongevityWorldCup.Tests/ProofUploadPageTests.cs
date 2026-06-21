@@ -137,10 +137,14 @@ public sealed class ProofUploadPageTests
         Assert.Contains("return window[storageName].getItem(key);", html);
         Assert.Contains("return null;", html);
         Assert.Contains("function getLocalItem(key)", html);
-        Assert.Contains("accountEmail: readStoredContactEmail()", submitBody);
+        Assert.Contains("function normalizeContactEmail(value)", html);
+        Assert.Contains("function readResultUploadContactEmail()", html);
+        Assert.Contains("return normalizeContactEmail(athlete && athlete.AccountEmail) || readStoredContactEmail();", html);
+        Assert.Contains("accountEmail: readResultUploadContactEmail()", submitBody);
         Assert.Contains("chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null", submitBody);
         Assert.Contains("chronoBortzDifference: getSessionItem('chronoBortzDifference') || null", submitBody);
         Assert.Contains("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", submitBody);
+        Assert.DoesNotContain("accountEmail: readStoredContactEmail()", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('contactEmail')", submitBody);
         Assert.DoesNotContain("localStorage.getItem('contactEmail')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('chronoPhenoDifference')", submitBody);
@@ -156,13 +160,14 @@ public sealed class ProofUploadPageTests
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
 
+        Assert.Contains("function normalizeContactEmail(value)", html);
         Assert.Contains("function readStoredContactEmail()", html);
-        Assert.Contains("(getSessionItem('contactEmail') || getLocalItem('contactEmail') || '').trim()", html);
+        Assert.Contains("const contactEmail = normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));", html);
         Assert.Contains("emailInput.type = 'email';", html);
-        Assert.Contains("if (emailInput.checkValidity()) return contactEmail;", html);
+        Assert.Contains("return emailInput.checkValidity() ? contactEmail : null;", html);
         Assert.Contains("removeSessionItem('contactEmail');", html);
         Assert.Contains("removeLocalItem('contactEmail');", html);
-        Assert.Contains("accountEmail: readStoredContactEmail()", html);
+        Assert.Contains("accountEmail: readResultUploadContactEmail()", html);
     }
 
     [Fact]

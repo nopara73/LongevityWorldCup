@@ -492,18 +492,28 @@
         function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
         function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
-        function readStoredContactEmail() {
-            const contactEmail = (getSessionItem('contactEmail') || getLocalItem('contactEmail') || '').trim();
+
+        function normalizeContactEmail(value) {
+            const contactEmail = (value || '').trim();
             if (!contactEmail) return null;
 
             const emailInput = document.createElement('input');
             emailInput.type = 'email';
             emailInput.value = contactEmail;
-            if (emailInput.checkValidity()) return contactEmail;
+            return emailInput.checkValidity() ? contactEmail : null;
+        }
+
+        function readStoredContactEmail() {
+            const contactEmail = normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));
+            if (contactEmail) return contactEmail;
 
             removeSessionItem('contactEmail');
             removeLocalItem('contactEmail');
             return null;
+        }
+
+        function readResultUploadContactEmail() {
+            return normalizeContactEmail(athlete && athlete.AccountEmail) || readStoredContactEmail();
         }
 
         if (window.captureFreePassFromUrl) {
@@ -577,7 +587,7 @@
                 const submissionKind = 'result-upload';
                 const applicantData = {
                     name: athlete.Name,
-                    accountEmail: readStoredContactEmail(),
+                    accountEmail: readResultUploadContactEmail(),
                     chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null,
                     chronoBortzDifference: getSessionItem('chronoBortzDifference') || null,
                     submissionId: submissionId,
