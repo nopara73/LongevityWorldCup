@@ -16,9 +16,12 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("return true;", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("return false;", html);
+        Assert.Contains("function setSessionItem(key, value)", html);
+        Assert.Contains("if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer)))", html);
         Assert.Contains("const stored = setPendingPaymentOffer({", html);
         Assert.Contains("if (!stored) return;", html);
         Assert.Contains("if (!setPendingPaymentOffer(paymentOffer)) return;", html);
+        Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", html);
     }
 
     [Fact]
