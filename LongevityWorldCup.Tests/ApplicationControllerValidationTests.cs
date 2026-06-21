@@ -176,6 +176,39 @@ public sealed class ApplicationControllerValidationTests
         Assert.Equal("Profile picture is required.", badRequest.Value);
     }
 
+    [Theory]
+    [InlineData("division", "Division is required.")]
+    [InlineData("flag", "Flag is required.")]
+    [InlineData("why", "Why is required.")]
+    [InlineData("mediaContact", "Media contact is required.")]
+    public async Task FullApplicationMissingRequiredProfileFieldReturnsBadRequestBeforeProcessing(string missingField, string expectedError)
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+        var applicantData = CreateValidFullApplication();
+
+        switch (missingField)
+        {
+            case "division":
+                applicantData.Division = null;
+                break;
+            case "flag":
+                applicantData.Flag = null;
+                break;
+            case "why":
+                applicantData.Why = null;
+                break;
+            case "mediaContact":
+                applicantData.MediaContact = null;
+                break;
+        }
+
+        var result = await controller.Application(applicantData, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(expectedError, badRequest.Value);
+    }
+
     [Fact]
     public async Task InterviewRequestInvalidModelStateReturnsValidationProblemDetails()
     {
@@ -204,6 +237,23 @@ public sealed class ApplicationControllerValidationTests
                     RequestServices = factory.Services
                 }
             }
+        };
+    }
+
+    private static ApplicantData CreateValidFullApplication()
+    {
+        return new ApplicantData
+        {
+            Name = "Applicant Ada",
+            AccountEmail = "athlete@example.test",
+            DateOfBirth = new DateOfBirthData { Year = 1980, Month = 1, Day = 2 },
+            Biomarkers = [new BiomarkerData()],
+            ProfilePic = "data:image/png;base64,AA==",
+            ProofPics = ["data:image/png;base64,AA=="],
+            Division = "Open",
+            Flag = "Cyberspace",
+            Why = "I want to compete, learn, and improve my healthspan.",
+            MediaContact = "media@example.test"
         };
     }
 }
