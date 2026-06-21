@@ -609,7 +609,8 @@
                 }
                 if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length) {
                     clearStoredBiomarkerHandoff();
-                    customAlert('Biomarker data is missing. Please fill out the biomarker form first.');
+                    customAlert('Biomarker data is missing. Please fill out the biomarker form first.')
+                        .then(() => window.location.href = '/dashboard');
                     return;
                 }
 

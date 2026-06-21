@@ -120,7 +120,8 @@ public sealed class ProofUploadPageTests
         Assert.Contains("removeSessionItem('biomarkerData');", html);
         Assert.Contains("removeSessionItem('chronoPhenoDifference');", html);
         Assert.Contains("removeSessionItem('chronoBortzDifference');", html);
-        Assert.Contains("customAlert('Biomarker data is missing. Please fill out the biomarker form first.');", parseBody);
+        Assert.Contains("customAlert('Biomarker data is missing. Please fill out the biomarker form first.')", parseBody);
+        Assert.Contains(".then(() => window.location.href = '/dashboard');", parseBody);
     }
 
     [Fact]
