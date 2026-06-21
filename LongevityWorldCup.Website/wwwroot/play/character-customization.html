@@ -316,21 +316,40 @@
     </main>
     <!--FOOTER-->
     <script>
+        function removeBrowserStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
+        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+
+        function isValidSelectedAthlete(value) {
+            return value && typeof value === 'object' && !Array.isArray(value) && value.Name;
+        }
+
         let athlete = null;
 
         try {
-            const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');
+            const selectedAthleteJson = getSessionItem('selectedAthlete');
             athlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
         } catch {
             athlete = null;
         }
 
-        if (!athlete || typeof athlete !== 'object' || !athlete.Name) {
-            try {
-                sessionStorage.removeItem('selectedAthlete');
-                sessionStorage.removeItem('tempAthlete');
-            } catch (_) {
-            }
+        if (!isValidSelectedAthlete(athlete)) {
+            removeSessionItem('selectedAthlete');
+            removeSessionItem('tempAthlete');
             window.location.replace('/select-athlete');
             athlete = {};
         }
