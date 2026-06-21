@@ -5,11 +5,9 @@ namespace LongevityWorldCup.Tests;
 public sealed class SelectedAthleteBootstrapPageTests
 {
     [Theory]
-    [InlineData("/play/proof-upload.html")]
-    [InlineData("/play/character-customization.html")]
     [InlineData("/onboarding/pheno-age.html")]
     [InlineData("/onboarding/bortz-age.html")]
-    public async Task SelectedAthleteRecovery_IgnoresCleanupStorageFailures(string path)
+    public async Task OnboardingSelectedAthleteRecovery_IgnoresCleanupStorageFailures(string path)
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -32,15 +30,18 @@ public sealed class SelectedAthleteBootstrapPageTests
         Assert.Contains("} catch (_) {", recoveryBody);
     }
 
-    [Fact]
-    public async Task EditProfileSelectedAthleteRecovery_UsesSafeStorageCleanup()
+    [Theory]
+    [InlineData("/play/proof-upload.html", "if (!isValidSelectedAthlete(athlete))")]
+    [InlineData("/play/character-customization.html", "if (!isValidSelectedAthlete(athlete))")]
+    [InlineData("/play/edit-profile.html", "if (!isValidSelectedAthlete(originalAthlete))")]
+    public async Task PlaySelectedAthleteRecovery_UsesSafeStorageCleanup(string path, string guard)
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var html = await client.GetStringAsync(path);
         var redirectIndex = html.IndexOf("window.location.replace('/select-athlete');", StringComparison.Ordinal);
-        var recoveryStart = html.LastIndexOf("if (!isValidSelectedAthlete(originalAthlete))", redirectIndex, StringComparison.Ordinal);
+        var recoveryStart = html.LastIndexOf(guard, redirectIndex, StringComparison.Ordinal);
 
         Assert.True(recoveryStart >= 0);
         Assert.True(redirectIndex > recoveryStart);
@@ -50,6 +51,21 @@ public sealed class SelectedAthleteBootstrapPageTests
         Assert.Contains("function removeSessionItem(key)", html);
         Assert.Contains("removeSessionItem('selectedAthlete');", recoveryBody);
         Assert.Contains("removeSessionItem('tempAthlete');", recoveryBody);
+    }
+
+    [Theory]
+    [InlineData("/play/proof-upload.html")]
+    [InlineData("/play/character-customization.html")]
+    [InlineData("/play/edit-profile.html")]
+    public async Task PlaySelectedAthleteValidation_RejectsArrays(string path)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains("function isValidSelectedAthlete(value)", html);
+        Assert.Contains("!Array.isArray(value)", html);
     }
 
     [Fact]
