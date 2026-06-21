@@ -5,36 +5,12 @@ namespace LongevityWorldCup.Tests;
 public sealed class SelectedAthleteBootstrapPageTests
 {
     [Theory]
-    [InlineData("/onboarding/pheno-age.html")]
-    [InlineData("/onboarding/bortz-age.html")]
-    public async Task OnboardingSelectedAthleteRecovery_IgnoresCleanupStorageFailures(string path)
-    {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
-
-        var html = await client.GetStringAsync(path);
-        var redirectIndex = html.IndexOf("window.location.replace('/select-athlete');", StringComparison.Ordinal);
-
-        Assert.True(redirectIndex >= 0);
-
-        var recoveryStart = html.LastIndexOf("try {", redirectIndex, StringComparison.Ordinal);
-        var recoveryEnd = html.IndexOf("}", redirectIndex, StringComparison.Ordinal);
-
-        Assert.True(recoveryStart >= 0);
-        Assert.True(recoveryEnd > redirectIndex);
-
-        var recoveryBody = html[recoveryStart..recoveryEnd];
-
-        Assert.Contains("sessionStorage.removeItem('selectedAthlete');", recoveryBody);
-        Assert.Contains("sessionStorage.removeItem('tempAthlete');", recoveryBody);
-        Assert.Contains("} catch (_) {", recoveryBody);
-    }
-
-    [Theory]
+    [InlineData("/onboarding/pheno-age.html", "if (isUpdate && !hasSelectedAthlete)")]
+    [InlineData("/onboarding/bortz-age.html", "if (isUpdate && !hasSelectedAthlete)")]
     [InlineData("/play/proof-upload.html", "if (!isValidSelectedAthlete(athlete))")]
     [InlineData("/play/character-customization.html", "if (!isValidSelectedAthlete(athlete))")]
     [InlineData("/play/edit-profile.html", "if (!isValidSelectedAthlete(originalAthlete))")]
-    public async Task PlaySelectedAthleteRecovery_UsesSafeStorageCleanup(string path, string guard)
+    public async Task SelectedAthleteRecovery_UsesSafeStorageCleanup(string path, string guard)
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -54,10 +30,12 @@ public sealed class SelectedAthleteBootstrapPageTests
     }
 
     [Theory]
+    [InlineData("/onboarding/pheno-age.html")]
+    [InlineData("/onboarding/bortz-age.html")]
     [InlineData("/play/proof-upload.html")]
     [InlineData("/play/character-customization.html")]
     [InlineData("/play/edit-profile.html")]
-    public async Task PlaySelectedAthleteValidation_RejectsArrays(string path)
+    public async Task SelectedAthleteValidation_RejectsArrays(string path)
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();

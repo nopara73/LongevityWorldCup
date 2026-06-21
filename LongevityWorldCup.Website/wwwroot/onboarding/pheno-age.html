@@ -1178,22 +1178,42 @@
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
         const isUpdate = urlParams.get('update') === '1';
+
+        function removeBrowserStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
+        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+
+        function isValidSelectedAthlete(value) {
+            return value && typeof value === 'object' && !Array.isArray(value) && value.Name && value.DateOfBirth;
+        }
+
         let athlete = null;
 
         try {
-            const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');
+            const selectedAthleteJson = getSessionItem('selectedAthlete');
             athlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
         } catch {
             athlete = null;
         }
 
-        const hasSelectedAthlete = athlete && typeof athlete === 'object' && athlete.Name && athlete.DateOfBirth;
+        const hasSelectedAthlete = isValidSelectedAthlete(athlete);
         if (isUpdate && !hasSelectedAthlete) {
-            try {
-                sessionStorage.removeItem('selectedAthlete');
-                sessionStorage.removeItem('tempAthlete');
-            } catch (_) {
-            }
+            removeSessionItem('selectedAthlete');
+            removeSessionItem('tempAthlete');
             window.location.replace('/select-athlete');
             athlete = null;
         }
