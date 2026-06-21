@@ -20,6 +20,18 @@ public sealed class CustomEventDirectQueueWordingTests
     }
 
     [Fact]
+    public void Designer_FetchesSameOriginPreviewMetadataDirectly()
+    {
+        var html = File.ReadAllText(FindRepoFile("LongevityWorldCup.Website", "wwwroot", "internal", "custom-event-designer.html"));
+
+        Assert.Contains("isSameOriginPreviewUrl(url)", html);
+        Assert.Contains("fetchSameOriginOgPreview(url)", html);
+        Assert.Contains("new DOMParser().parseFromString(html, \"text/html\")", html);
+        Assert.Contains("meta[property=\"og:image\"]", html);
+        Assert.Contains("cache: \"reload\"", html);
+    }
+
+    [Fact]
     public void Api_ResponseExposesQueuedTargets()
     {
         var source = File.ReadAllText(FindRepoFile("LongevityWorldCup.Website", "Controllers", "CustomEventsController.cs"));
