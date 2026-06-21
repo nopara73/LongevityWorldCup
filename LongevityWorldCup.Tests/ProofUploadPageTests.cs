@@ -221,6 +221,12 @@ public sealed class ProofUploadPageTests
         Assert.Contains("function hasStoredBiomarkerDate(value)", html);
         Assert.Contains("const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value.trim());", html);
         Assert.Contains("return parsedDate <= todayUtc;", html);
+        Assert.Contains("function hasStoredBiomarkerValues(biomarkerData)", html);
+        Assert.Contains("!hasStoredBiomarkerValues(biomarkerData)", parseBody);
+        Assert.Contains("function hasStoredBiomarkerValue(value)", html);
+        Assert.Contains("Object.keys(entry).some(key => key !== 'Date' && hasStoredBiomarkerValue(entry[key]))", html);
+        Assert.Contains("if (value === null || value === undefined) return false;", html);
+        Assert.Contains("return Number.isFinite(Number(value));", html);
         Assert.Contains("clearStoredBiomarkerHandoff();", parseBody);
         Assert.Contains("function clearStoredBiomarkerHandoff()", html);
         Assert.Contains("removeSessionItem('biomarkerData');", html);
