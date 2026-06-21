@@ -327,6 +327,25 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationNameFetch_RevalidatesStageOneWhenAthletesLoad()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var fetchStart = html.IndexOf("athletesPromise\n                .then(athletes =>", StringComparison.Ordinal);
+        var flagStart = html.IndexOf("Promise.all([", fetchStart, StringComparison.Ordinal);
+
+        Assert.True(fetchStart >= 0);
+        Assert.True(flagStart > fetchStart);
+
+        var fetchBody = html[fetchStart..flagStart];
+
+        Assert.Contains("existingAthleteNames = Array.isArray(athletes)", fetchBody);
+        Assert.Contains("checkFormValidityStage1();", fetchBody);
+    }
+
+    [Fact]
     public async Task ApplicationNameValidation_ChecksExistingDisplayNames()
     {
         using var factory = new TestWebApplicationFactory();
@@ -346,6 +365,32 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const athleteNames = Array.isArray(existingAthleteNames) ? existingAthleteNames : [];", html);
         Assert.Contains("existingName.toLowerCase() === name.toLowerCase()", html);
         Assert.Contains("An athlete with that name is already registered.", html);
+    }
+
+    [Fact]
+    public async Task ApplicationSubmit_RevalidatesIdentityBeforePosting()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var handlerStart = html.IndexOf("document.getElementById('nextButton').addEventListener('click', async function (event)", StringComparison.Ordinal);
+        var collectStart = html.IndexOf("const applicantData = collectApplicantData();", handlerStart, StringComparison.Ordinal);
+
+        Assert.True(handlerStart >= 0);
+        Assert.True(collectStart > handlerStart);
+
+        var handlerBeforeCollect = html[handlerStart..collectStart];
+
+        Assert.Contains("function validateApplicationIdentity()", html);
+        Assert.Contains("function showApplicationIdentityIssue(validationResult)", html);
+        Assert.Contains("const nameValidationResult = validateName(document.getElementById('name').value);", html);
+        Assert.Contains("const flagValidationResult = validateFlag(document.getElementById('flag').value);", html);
+        Assert.Contains("error: 'Please select a division.'", html);
+        Assert.Contains("const identityValidationResult = validateApplicationIdentity();", handlerBeforeCollect);
+        Assert.Contains("if (!identityValidationResult.valid)", handlerBeforeCollect);
+        Assert.Contains("showApplicationIdentityIssue(identityValidationResult);", handlerBeforeCollect);
+        Assert.Contains("return;", handlerBeforeCollect);
     }
 
     [Fact]

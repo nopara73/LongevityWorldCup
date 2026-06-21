@@ -893,6 +893,55 @@
             checkFormValidityStage7();
         }
 
+        function validateApplicationIdentity() {
+            const nameValidationResult = validateName(document.getElementById('name').value);
+            if (!nameValidationResult.valid) {
+                return {
+                    valid: false,
+                    stage: 1,
+                    inputId: 'name',
+                    errorId: 'nameError',
+                    error: nameValidationResult.error
+                };
+            }
+
+            const flagValidationResult = validateFlag(document.getElementById('flag').value);
+            if (!flagValidationResult.valid) {
+                return {
+                    valid: false,
+                    stage: 1,
+                    inputId: 'flag',
+                    errorId: 'flagError',
+                    error: flagValidationResult.error
+                };
+            }
+
+            const divisionSelect = document.getElementById('division');
+            if (!divisionSelect || !divisionSelect.value.trim()) {
+                return {
+                    valid: false,
+                    stage: 1,
+                    inputId: 'division',
+                    error: 'Please select a division.'
+                };
+            }
+
+            return { valid: true };
+        }
+
+        function showApplicationIdentityIssue(validationResult) {
+            currentStage = validationResult.stage;
+            goToStage(validationResult.stage);
+
+            if (validationResult.errorId) {
+                const errorElement = document.getElementById(validationResult.errorId);
+                if (errorElement) errorElement.textContent = validationResult.error;
+            }
+
+            const input = document.getElementById(validationResult.inputId);
+            if (input) input.focus();
+        }
+
         function clearStoredBiomarkerHandoff() {
             removeSessionItem('biomarkerData');
             removeSessionItem('chronoPhenoDifference');
@@ -1271,6 +1320,7 @@
                             .map(name => (name || '').trim())
                             .filter(Boolean)
                         : [];
+                    checkFormValidityStage1();
                 });
 
             Promise.all([
@@ -1485,6 +1535,14 @@
                 currentStage++;
                 goToStage(currentStage);
             } else {
+                const identityValidationResult = validateApplicationIdentity();
+                if (!identityValidationResult.valid) {
+                    customAlert(identityValidationResult.error).then(() => {
+                        showApplicationIdentityIssue(identityValidationResult);
+                    });
+                    return;
+                }
+
                 // Final stage requires accountEmail
                 let isValid = true;
                 const accountEmailInput = document.getElementById('accountEmail');
