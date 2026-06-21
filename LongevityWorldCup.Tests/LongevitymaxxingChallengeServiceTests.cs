@@ -1783,6 +1783,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             "https://btcpay.example.test/i/lmx-invoice-2",
             null,
             null,
+            null,
             null);
 
         var paid = await fixture.Service.RefreshCommitmentPaymentStatusAsync(access, DateTimeOffset.Parse("2026-06-13T09:06:00Z"));
@@ -2234,6 +2235,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
                         25m,
                         0m,
                         $"https://btcpay.example.test/i/{invoiceId}",
+                        null,
                         null,
                         null,
                         null));

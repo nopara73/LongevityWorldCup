@@ -114,6 +114,7 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
         TryGetPropertyString(document.RootElement, "checkoutLink", out var checkoutLink);
         TryGetNestedPropertyString(document.RootElement, "buyer", "email", out var buyerEmail);
         TryGetNestedPropertyString(document.RootElement, "metadata", "athleteName", out var athleteNameFromMetadata);
+        TryGetNestedPropertyString(document.RootElement, "metadata", "submissionType", out var submissionTypeFromMetadata);
 
         var amount = ParseDecimal(amountText);
         var paidAmount = ParseDecimal(paidAmountText);
@@ -133,6 +134,7 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
             CheckoutLink: checkoutLink,
             BuyerEmail: buyerEmail,
             AthleteNameFromMetadata: athleteNameFromMetadata,
+            SubmissionTypeFromMetadata: submissionTypeFromMetadata,
             Error: null);
     }
 
@@ -220,8 +222,9 @@ public sealed record BtcpayInvoiceLookupResult(
     string? CheckoutLink,
     string? BuyerEmail,
     string? AthleteNameFromMetadata,
+    string? SubmissionTypeFromMetadata,
     string? Error)
 {
     public static BtcpayInvoiceLookupResult Failure(string error) =>
-        new(false, false, null, null, null, null, null, null, null, null, null, null, error);
+        new(false, false, null, null, null, null, null, null, null, null, null, null, null, error);
 }

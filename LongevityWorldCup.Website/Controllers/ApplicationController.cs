@@ -966,6 +966,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             request.AccountEmail = NormalizeOptionalAccountEmail(request.AccountEmail);
+            request.SubmissionType = NormalizePaymentSubmissionType(request.SubmissionType);
 
             Config config;
             try
@@ -1007,6 +1008,10 @@ namespace LongevityWorldCup.Website.Controllers
                     if (string.IsNullOrWhiteSpace(request.ApplicantName))
                     {
                         request.ApplicantName = invoiceResult.AthleteNameFromMetadata;
+                    }
+                    if (string.IsNullOrWhiteSpace(request.SubmissionType))
+                    {
+                        request.SubmissionType = NormalizePaymentSubmissionType(invoiceResult.SubmissionTypeFromMetadata);
                     }
                     var paymentEmailResult = await SendPaymentFollowupEmailAsync(
                         config,
@@ -1215,14 +1220,14 @@ namespace LongevityWorldCup.Website.Controllers
             var subject = BuildApplicationSubject(request.ApplicantName);
             var textBody = string.Join("\n", new[]
             {
-                "Payment detected for submitted application.",
+                BuildPaymentFollowupIntro(request.SubmissionType),
                 $"Invoice ID: {request.InvoiceId}",
                 $"Status: {status ?? "unknown"}",
                 $"Additional status: {additionalStatus ?? "unknown"}",
                 $"Amount: {amount ?? "?"} {currency ?? "?"}",
                 $"Paid amount: {paidAmount ?? "?"} {currency ?? "?"}",
                 $"Checkout link: {checkoutLink ?? "n/a"}",
-                $"Applicant email: {request.AccountEmail ?? "n/a"}"
+                $"{BuildPaymentFollowupContactLabel(request.SubmissionType)}: {request.AccountEmail ?? "n/a"}"
             });
 
             try
@@ -1248,6 +1253,25 @@ namespace LongevityWorldCup.Website.Controllers
         {
             return $"[LWC26] Application: {applicantName?.Trim() ?? "Unknown"}";
         }
+
+        private static string? NormalizePaymentSubmissionType(string? submissionType)
+        {
+            var normalized = submissionType?.Trim().ToLowerInvariant();
+            return normalized is "application" or "result" or "edit" ? normalized : null;
+        }
+
+        private static string BuildPaymentFollowupIntro(string? submissionType)
+            => NormalizePaymentSubmissionType(submissionType) switch
+            {
+                "result" => "Payment detected for result upload.",
+                "edit" => "Payment detected for profile change request.",
+                _ => "Payment detected for submitted application."
+            };
+
+        private static string BuildPaymentFollowupContactLabel(string? submissionType)
+            => NormalizePaymentSubmissionType(submissionType) is "result" or "edit"
+                ? "Athlete email"
+                : "Applicant email";
 
         private static string BuildApplicationAuditEmailBody(
             ApplicantData applicantData,
@@ -2029,6 +2053,7 @@ namespace LongevityWorldCup.Website.Controllers
         public string? InvoiceId { get; set; }
         public string? ApplicantName { get; set; }
         public string? AccountEmail { get; set; }
+        public string? SubmissionType { get; set; }
     }
 
     public sealed class InterviewRequestData

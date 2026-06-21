@@ -486,6 +486,37 @@ public sealed class ApplicationControllerValidationTests
         Assert.DoesNotContain("result upload and proof", body);
     }
 
+    [Theory]
+    [InlineData("result", "Payment detected for result upload.")]
+    [InlineData(" RESULT ", "Payment detected for result upload.")]
+    [InlineData("edit", "Payment detected for profile change request.")]
+    [InlineData("application", "Payment detected for submitted application.")]
+    [InlineData("unknown", "Payment detected for submitted application.")]
+    [InlineData(null, "Payment detected for submitted application.")]
+    public void PaymentFollowupIntro_UsesSubmissionSpecificCopy(string? submissionType, string expected)
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildPaymentFollowupIntro", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var intro = (string?)method!.Invoke(null, [submissionType]);
+
+        Assert.Equal(expected, intro);
+    }
+
+    [Theory]
+    [InlineData("result", "Athlete email")]
+    [InlineData("edit", "Athlete email")]
+    [InlineData("application", "Applicant email")]
+    [InlineData("unknown", "Applicant email")]
+    [InlineData(null, "Applicant email")]
+    public void PaymentFollowupContactLabel_UsesSubmissionSpecificLabel(string? submissionType, string expected)
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildPaymentFollowupContactLabel", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var label = (string?)method!.Invoke(null, [submissionType]);
+
+        Assert.Equal(expected, label);
+    }
+
     private static ApplicationController CreateController(TestWebApplicationFactory factory)
     {
         return new ApplicationController(

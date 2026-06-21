@@ -309,7 +309,8 @@
                 body: JSON.stringify({
                     invoiceId: pending.invoiceId,
                     applicantName: pending.applicantName || null,
-                    accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null
+                    accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null,
+                    submissionType: pending.submissionType || null
                 })
             }, 12000)
                 .then(response => response.ok ? response.json() : null)
