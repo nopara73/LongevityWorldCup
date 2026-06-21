@@ -48,7 +48,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {}", html);
         Assert.Contains("function activateDot1() { lwcSetStep(1); try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {} }", html);
         Assert.Contains("function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {} } }", html);
-        Assert.Contains("if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
+        Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
         Assert.Contains("let restoredStep = false;", html);
         Assert.Contains("if (!restoredStep) {", html);
         Assert.Contains("try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}", html);
@@ -66,7 +66,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("customAlert('Please enter the date when your blood was drawn.');", html);
         Assert.Contains("customAlert('Blood draw date cannot be in the future.');", html);
         Assert.Contains("const bd = getValidatedBloodDrawDate(silent);", html);
-        Assert.Contains("if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
+        Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
     }
 
     [Theory]
