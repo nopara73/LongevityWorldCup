@@ -254,6 +254,15 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("biomarkerData = null;", parseBody);
         Assert.Contains("function hasStoredDateOfBirth(biomarkerData)", html);
         Assert.Contains("!hasStoredDateOfBirth(biomarkerData)", parseBody);
+        var dateOfBirthGuardStart = html.IndexOf("function hasStoredDateOfBirth(biomarkerData)", StringComparison.Ordinal);
+        var dateOfBirthGuardEnd = html.IndexOf("function hasStoredBiomarkerDates(biomarkerData)", dateOfBirthGuardStart, StringComparison.Ordinal);
+        Assert.True(dateOfBirthGuardStart >= 0);
+        Assert.True(dateOfBirthGuardEnd > dateOfBirthGuardStart);
+        var dateOfBirthGuardBody = html[dateOfBirthGuardStart..dateOfBirthGuardEnd];
+        Assert.Contains("const parsedDate = new Date(Date.UTC(year, month - 1, day));", dateOfBirthGuardBody);
+        Assert.Contains("parsedDate.getUTCFullYear() !== year", dateOfBirthGuardBody);
+        Assert.Contains("todayUtc.setUTCHours(0, 0, 0, 0);", dateOfBirthGuardBody);
+        Assert.Contains("return parsedDate <= todayUtc;", dateOfBirthGuardBody);
         Assert.Contains("!Array.isArray(biomarkerData.Biomarkers)", parseBody);
         Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
         Assert.Contains("function hasStoredBiomarkerDates(biomarkerData)", html);
