@@ -457,6 +457,7 @@
         }
 
         let proofPics = [];
+        let isResultUploadSubmitting = false;
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
@@ -596,6 +597,8 @@
             });
 
             submitButton.addEventListener('click', async function () {
+                if (isResultUploadSubmitting || submitButton.disabled) return;
+
                 if (!athlete || !athlete.Name) {
                     customAlert('No athlete selected. Please return and choose your athlete.')
                         .then(() => window.location.href = '/select-athlete');
@@ -640,6 +643,7 @@
                 const submitButton = document.getElementById('submitButton');
                 const uploadProofButton = document.getElementById('uploadProofButton');
                 const takeProofPhotoButton = document.getElementById('takeProofPhotoButton');
+                isResultUploadSubmitting = true;
                 submitButton.disabled = true;
                 uploadProofButton.disabled = true;
                 if (takeProofPhotoButton) takeProofPhotoButton.disabled = true;
@@ -702,6 +706,7 @@
                                     })
                                 );
                                 customAlert(`Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {
+                                    isResultUploadSubmitting = false;
                                     submitButton.disabled = false;
                                     uploadProofButton.disabled = false;
                                     if (takeProofPhotoButton) takeProofPhotoButton.disabled = false;
@@ -720,6 +725,7 @@
                             })
                         );
                         customAlert(`An error occurred:\n\n${displayError}`).then(() => {
+                            isResultUploadSubmitting = false;
                             submitButton.disabled = false;
                             uploadProofButton.disabled = false;
                             if (takeProofPhotoButton) takeProofPhotoButton.disabled = false;

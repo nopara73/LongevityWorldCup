@@ -125,6 +125,29 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ResultUploadSubmit_GuardsAgainstDuplicateClicks()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+        var handlerStart = html.IndexOf("submitButton.addEventListener('click', async function ()", StringComparison.Ordinal);
+        var handlerEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", handlerStart, StringComparison.Ordinal);
+
+        Assert.True(handlerStart >= 0);
+        Assert.True(handlerEnd > handlerStart);
+
+        var handlerBeforeFetch = html[handlerStart..handlerEnd];
+
+        Assert.Contains("let isResultUploadSubmitting = false;", html);
+        Assert.Contains("if (isResultUploadSubmitting || submitButton.disabled) return;", handlerBeforeFetch);
+        Assert.Contains("isResultUploadSubmitting = true;", handlerBeforeFetch);
+        Assert.Contains("submitButton.disabled = true;", handlerBeforeFetch);
+        Assert.Contains("customAlert(`Failed to submit results. Please try again later.\\n\\n${badResponse}`).then(() => {\n                                    isResultUploadSubmitting = false;", html);
+        Assert.Contains("customAlert(`An error occurred:\\n\\n${displayError}`).then(() => {\n                            isResultUploadSubmitting = false;", html);
+    }
+
+    [Fact]
     public async Task ResultUpload_TreatsMalformedBiomarkerStorageAsMissing()
     {
         using var factory = new TestWebApplicationFactory();
