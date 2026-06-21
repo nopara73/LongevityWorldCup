@@ -126,7 +126,7 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
         var successStart = html.IndexOf("customAlert('Change request submitted!').then(() =>", StringComparison.Ordinal);
-        var successEnd = html.IndexOf("window.location.href = '/review';", successStart, StringComparison.Ordinal);
+        var successEnd = html.IndexOf("});", html.IndexOf("window.location.href = '/review?from=edit-profile';", successStart, StringComparison.Ordinal), StringComparison.Ordinal);
 
         Assert.True(successStart >= 0);
         Assert.True(successEnd > successStart);
@@ -136,6 +136,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
         Assert.Contains("function setSessionItem(key, value)", html);
         Assert.Contains("setSessionItem(\"came-from\", \"edit-profile\");", successBody);
+        Assert.Contains("window.location.href = '/review?from=edit-profile';", successBody);
         Assert.DoesNotContain("sessionStorage.setItem(", successBody);
     }
 

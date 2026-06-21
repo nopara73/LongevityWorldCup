@@ -239,8 +239,15 @@
             return null;
         }
 
-        const isNewResultsUploaded = getSessionItem("came-from") === "proof-upload";
-        const isEditRequest = getSessionItem("came-from") === "edit-profile";
+        function readReviewSource() {
+            const querySource = new URLSearchParams(window.location.search).get("from");
+            if (querySource === "proof-upload" || querySource === "edit-profile") return querySource;
+            return getSessionItem("came-from");
+        }
+
+        const reviewSource = readReviewSource();
+        const isNewResultsUploaded = reviewSource === "proof-upload";
+        const isEditRequest = reviewSource === "edit-profile";
         const PENDING_PAYMENT_INVOICE_KEY = "pendingPaymentInvoice";
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = "pendingPaymentInvoicePersistent";
         const pendingPaymentInvoice = readPendingPaymentInvoice();

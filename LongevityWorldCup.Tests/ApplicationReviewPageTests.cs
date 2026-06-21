@@ -25,8 +25,13 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("window[storageName].setItem(key, value);", script);
         Assert.Contains("function removeStorageItem(storageName, key)", script);
         Assert.Contains("window[storageName].removeItem(key);", script);
-        Assert.Contains("const isNewResultsUploaded = getSessionItem(\"came-from\") === \"proof-upload\";", script);
-        Assert.Contains("const isEditRequest = getSessionItem(\"came-from\") === \"edit-profile\";", script);
+        Assert.Contains("function readReviewSource()", script);
+        Assert.Contains("new URLSearchParams(window.location.search).get(\"from\")", script);
+        Assert.Contains("if (querySource === \"proof-upload\" || querySource === \"edit-profile\") return querySource;", script);
+        Assert.Contains("return getSessionItem(\"came-from\");", script);
+        Assert.Contains("const reviewSource = readReviewSource();", script);
+        Assert.Contains("const isNewResultsUploaded = reviewSource === \"proof-upload\";", script);
+        Assert.Contains("const isEditRequest = reviewSource === \"edit-profile\";", script);
         Assert.Contains("setLocalItem('hasApplication', 'true');", script);
         Assert.Contains("const pendingPaymentInvoice = readPendingPaymentInvoice();", script);
         Assert.Contains("const contactEmail = readStoredContactEmail();", script);
