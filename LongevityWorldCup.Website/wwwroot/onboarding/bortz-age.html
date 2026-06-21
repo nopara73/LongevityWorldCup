@@ -1958,14 +1958,49 @@
         function calculateResult() {
             syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
 
-            // In update mode, ensure all Bortz biomarkers were entered
-            if (isUpdate) {
-                const requiredCount = window.BortzAge.features.length - 1; // exclude age
-                if (touchedBiomarkers.size < requiredCount) {
-                    document.getElementById('continueButton').classList.remove('show');
-                    customAlert(`😱 Need to submit all ${requiredCount} biomarkers!`);
-                    return;
-                }
+            // Fill missing biomarker fields on update
+            if (isUpdate && athlete?.Biomarkers?.length) {
+                const latestBiomarkerSet = athlete.Biomarkers.reduce((latest, current) => {
+                    return new Date(current.Date) > new Date(latest.Date) ? current : latest;
+                });
+                const biomarkerDefaults = {
+                    lymphocyte_percentage: { val: latestBiomarkerSet.LymPc, unit: '1' },
+                    neutrophil_percentage: { val: latestBiomarkerSet.NeutrophilPc, unit: '1' },
+                    monocyte_percentage: { val: latestBiomarkerSet.MonocytePc, unit: '1' },
+                    rbc: { val: latestBiomarkerSet.Rbc10e12L ?? latestBiomarkerSet.Rbc, unit: '1' },
+                    mcv: { val: latestBiomarkerSet.McvFL, unit: '1' },
+                    mch: { val: latestBiomarkerSet.MchPg ?? latestBiomarkerSet.Mch, unit: '1' },
+                    rdw: { val: latestBiomarkerSet.RdwPc, unit: '1' },
+                    albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
+                    urea: { val: latestBiomarkerSet.UreaMmolL ?? latestBiomarkerSet.Urea, unit: '1' },
+                    creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
+                    cystatin_c: { val: latestBiomarkerSet.CystatinCMgL ?? latestBiomarkerSet.CystatinC, unit: '1' },
+                    glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
+                    hba1c: { val: latestBiomarkerSet.Hba1cMmolMol ?? latestBiomarkerSet.Hba1c, unit: '1' },
+                    cholesterol: { val: latestBiomarkerSet.CholesterolMmolL ?? latestBiomarkerSet.Cholesterol, unit: '1' },
+                    apoa1: { val: latestBiomarkerSet.ApoA1GL ?? latestBiomarkerSet.ApoA1, unit: '1' },
+                    alt: { val: latestBiomarkerSet.AltUL ?? latestBiomarkerSet.Alt, unit: '1' },
+                    alp: { val: latestBiomarkerSet.AlpUL, unit: '1' },
+                    ggt: { val: latestBiomarkerSet.GgtUL ?? latestBiomarkerSet.Ggt, unit: '1' },
+                    crp: { val: latestBiomarkerSet.CrpMgL, unit: '1' },
+                    shbg: { val: latestBiomarkerSet.ShbgNmolL ?? latestBiomarkerSet.Shbg, unit: '1' },
+                    vitamin_d: { val: latestBiomarkerSet.VitaminDNmolL ?? latestBiomarkerSet.VitaminD, unit: '1' },
+                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' }
+                };
+                Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
+                    const input = document.getElementById(id);
+                    const unitEl = document.getElementById(id + 'Unit');
+                    if (input && unitEl && val != null && !isNaN(val) && !input.value) {
+                        input.value = val;
+                        unitEl.value = unit;
+                    }
+                });
+            }
+
+            if (isUpdate && touchedBiomarkers.size === 0) {
+                document.getElementById('continueButton').classList.remove('show');
+                customAlert('😱 No new biomarker data entered! Cannot proceed!');
+                return;
             }
 
             const bloodDrawDate = getValidatedBloodDrawDate();
@@ -2020,45 +2055,6 @@
 
             // Add age as the first marker value
             markerValues.push(chronologicalAgeAtTimeOfTest);
-
-            // Fill missing biomarker fields on update
-            if (isUpdate && athlete?.Biomarkers?.length) {
-                const latestBiomarkerSet = athlete.Biomarkers.reduce((latest, current) => {
-                    return new Date(current.Date) > new Date(latest.Date) ? current : latest;
-                });
-                const biomarkerDefaults = {
-                    lymphocyte_percentage: { val: latestBiomarkerSet.LymPc, unit: '1' },
-                    neutrophil_percentage: { val: latestBiomarkerSet.NeutrophilPc, unit: '1' },
-                    monocyte_percentage: { val: latestBiomarkerSet.MonocytePc, unit: '1' },
-                    rbc: { val: latestBiomarkerSet.Rbc10e12L ?? latestBiomarkerSet.Rbc, unit: '1' },
-                    mcv: { val: latestBiomarkerSet.McvFL, unit: '1' },
-                    mch: { val: latestBiomarkerSet.MchPg ?? latestBiomarkerSet.Mch, unit: '1' },
-                    rdw: { val: latestBiomarkerSet.RdwPc, unit: '1' },
-                    albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
-                    urea: { val: latestBiomarkerSet.UreaMmolL ?? latestBiomarkerSet.Urea, unit: '1' },
-                    creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
-                    cystatin_c: { val: latestBiomarkerSet.CystatinCMgL ?? latestBiomarkerSet.CystatinC, unit: '1' },
-                    glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
-                    hba1c: { val: latestBiomarkerSet.Hba1cMmolMol ?? latestBiomarkerSet.Hba1c, unit: '1' },
-                    cholesterol: { val: latestBiomarkerSet.CholesterolMmolL ?? latestBiomarkerSet.Cholesterol, unit: '1' },
-                    apoa1: { val: latestBiomarkerSet.ApoA1GL ?? latestBiomarkerSet.ApoA1, unit: '1' },
-                    alt: { val: latestBiomarkerSet.AltUL ?? latestBiomarkerSet.Alt, unit: '1' },
-                    alp: { val: latestBiomarkerSet.AlpUL, unit: '1' },
-                    ggt: { val: latestBiomarkerSet.GgtUL ?? latestBiomarkerSet.Ggt, unit: '1' },
-                    crp: { val: latestBiomarkerSet.CrpMgL, unit: '1' },
-                    shbg: { val: latestBiomarkerSet.ShbgNmolL ?? latestBiomarkerSet.Shbg, unit: '1' },
-                    vitamin_d: { val: latestBiomarkerSet.VitaminDNmolL ?? latestBiomarkerSet.VitaminD, unit: '1' },
-                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' }
-                };
-                Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
-                    const input = document.getElementById(id);
-                    const unitEl = document.getElementById(id + 'Unit');
-                    if (input && unitEl && val != null && !isNaN(val) && !input.value) {
-                        input.value = val;
-                        unitEl.value = unit;
-                    }
-                });
-            }
 
             correctCorrectableUnits();
 
