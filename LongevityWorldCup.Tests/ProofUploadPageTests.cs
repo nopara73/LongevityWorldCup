@@ -136,11 +136,13 @@ public sealed class ProofUploadPageTests
         Assert.Contains("function getBrowserStorageItem(storageName, key)", html);
         Assert.Contains("return window[storageName].getItem(key);", html);
         Assert.Contains("return null;", html);
-        Assert.Contains("accountEmail: getSessionItem('contactEmail') || null", submitBody);
+        Assert.Contains("function getLocalItem(key)", html);
+        Assert.Contains("accountEmail: getSessionItem('contactEmail') || getLocalItem('contactEmail') || null", submitBody);
         Assert.Contains("chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null", submitBody);
         Assert.Contains("chronoBortzDifference: getSessionItem('chronoBortzDifference') || null", submitBody);
         Assert.Contains("JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('contactEmail')", submitBody);
+        Assert.DoesNotContain("localStorage.getItem('contactEmail')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('chronoPhenoDifference')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('chronoBortzDifference')", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)", submitBody);
