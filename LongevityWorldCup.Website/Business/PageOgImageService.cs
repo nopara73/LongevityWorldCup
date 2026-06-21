@@ -70,6 +70,13 @@ public sealed class PageOgImageService
                 "Seasons, tracks, valid submissions, rankings, proof requirements, prizes, and payouts.",
                 "FFB020",
                 ["Pro before Amateur", "Valid submissions", "Prize pool"]),
+            ["longevitymaxxing"] = new(
+                "longevitymaxxing",
+                "Longevitymaxxing Challenge",
+                "The first muscle to train is your mind",
+                "Start longevitymaxxing today",
+                "78DA3B",
+                ["Daily check-ins", "Join anytime", "No finish line"]),
             ["view-bortz"] = new(
                 "view-bortz",
                 "Pro clock view",
@@ -223,12 +230,12 @@ public sealed class PageOgImageService
         using var image = new Image<Rgba32>(CanvasWidth, CanvasHeight);
         DrawBackground(image, ParseHex(payload.AccentHex));
 
-        var (boldFamily, _) = GetFontFamilies();
+        var (boldFamily, regularFamily) = GetFontFamilies();
         var accent = ParseHex(payload.AccentHex);
 
         await DrawLogoMarksAsync(image, ct);
         DrawHeaderText(image, boldFamily);
-        DrawTextContent(image, payload, boldFamily, accent);
+        DrawTextContent(image, payload, boldFamily, regularFamily, accent);
 
         await image.SaveAsPngAsync(outputPath, ct);
     }
@@ -337,17 +344,27 @@ public sealed class PageOgImageService
         });
     }
 
-    private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, Color accent)
+    private static void DrawTextContent(Image<Rgba32> image, PageOgPayload payload, FontFamily boldFamily, FontFamily regularFamily, Color accent)
     {
         var titleFont = FitFontToWidth(boldFamily, payload.Title, 74f, 50f, TitleWidth);
+        var subtitleFont = regularFamily.CreateFont(32, FontStyle.Regular);
 
         image.Mutate(ctx =>
         {
             ctx.Fill(new Rgba32(accent.ToPixel<Rgba32>().R, accent.ToPixel<Rgba32>().G, accent.ToPixel<Rgba32>().B, 220),
                 new RectangularPolygon(ContentX, AccentY, 126f, 5f));
 
-            DrawTextShadow(ctx, payload.Title, titleFont, new PointF(ContentX, TitleY), HorizontalAlignment.Left, 3f);
+            DrawWrappedText(ctx, payload.Title, titleFont, ShadowColor, new PointF(ContentX, TitleY + 3f), TitleWidth, 2, 78f);
             DrawWrappedText(ctx, payload.Title, titleFont, TitleColor, new PointF(ContentX, TitleY), TitleWidth, 2, 78f);
+            if (string.Equals(payload.Slug, "longevitymaxxing", StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.DrawText(new RichTextOptions(subtitleFont)
+                {
+                    Origin = new PointF(ContentX, TitleY + 174f),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                }, payload.Description, accent);
+            }
         });
     }
 
@@ -408,7 +425,7 @@ public sealed class PageOgImageService
         var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v8",
+            "page-og-v9",
             definition.Slug,
             definition.Kicker,
             definition.Title,
@@ -562,22 +579,6 @@ public sealed class PageOgImageService
         }
 
         return lines;
-    }
-
-    private static void DrawTextShadow(
-        IImageProcessingContext ctx,
-        string text,
-        Font font,
-        PointF origin,
-        HorizontalAlignment alignment,
-        float offset)
-    {
-        ctx.DrawText(new RichTextOptions(font)
-        {
-            Origin = new PointF(origin.X, origin.Y + offset),
-            HorizontalAlignment = alignment,
-            VerticalAlignment = VerticalAlignment.Top
-        }, text, ShadowColor);
     }
 
     private static int Lerp(byte a, byte b, float t)

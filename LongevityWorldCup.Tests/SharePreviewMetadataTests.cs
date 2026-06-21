@@ -15,6 +15,7 @@ public sealed class SharePreviewMetadataTests
     [InlineData("/about", "/og/page/about.png?v=")]
     [InlineData("/history", "/og/page/history.png?v=")]
     [InlineData("/ruleset", "/og/page/ruleset.png?v=")]
+    [InlineData("/longevitymaxxing", "/og/page/longevitymaxxing.png?v=")]
     [InlineData("/league/bortz", "/og/page/view-bortz.png?v=")]
     [InlineData("/league/pheno", "/og/page/view-pheno.png?v=")]
     [InlineData("/league/improvement", "/og/page/view-improvement.png?v=")]
