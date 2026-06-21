@@ -44,6 +44,7 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("const pendingPaymentInvoice = readPendingPaymentInvoice();", script);
         Assert.Contains("const contactEmail = readStoredContactEmail();", script);
         Assert.Contains("accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null", script);
+        Assert.Contains("submissionType: pending.submissionType || null", script);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", script);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", script);
         Assert.DoesNotContain("sessionStorage.getItem(", script);

@@ -80,7 +80,7 @@ public sealed class BtcpayInvoiceClientTests
                   "paidAmount": "1.25",
                   "checkoutLink": "https://btcpay.example.test/i/invoice-1",
                   "buyer": { "email": "buyer@example.test" },
-                  "metadata": { "athleteName": "Alice Athlete" }
+                  "metadata": { "athleteName": "Alice Athlete", "submissionType": "result" }
                 }
                 """)
         });
@@ -102,6 +102,7 @@ public sealed class BtcpayInvoiceClientTests
         Assert.Equal(1.25m, result.PaidAmount);
         Assert.Equal("buyer@example.test", result.BuyerEmail);
         Assert.Equal("Alice Athlete", result.AthleteNameFromMetadata);
+        Assert.Equal("result", result.SubmissionTypeFromMetadata);
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Get, request.Method);
@@ -169,7 +170,7 @@ public sealed class BtcpayInvoiceClientTests
               "PAIDAMOUNT": 1.25,
               "CHECKOUTLINK": "https://btcpay.example.test/i/invoice-1",
               "BUYER": { "EMAIL": "buyer@example.test" },
-              "METADATA": { "ATHLETENAME": "Alice Athlete" }
+              "METADATA": { "ATHLETENAME": "Alice Athlete", "SUBMISSIONTYPE": "edit" }
             }
             """);
 
@@ -183,6 +184,7 @@ public sealed class BtcpayInvoiceClientTests
         Assert.Equal("https://btcpay.example.test/i/invoice-1", result.CheckoutLink);
         Assert.Equal("buyer@example.test", result.BuyerEmail);
         Assert.Equal("Alice Athlete", result.AthleteNameFromMetadata);
+        Assert.Equal("edit", result.SubmissionTypeFromMetadata);
     }
 
     private sealed class StaticHttpClientFactory(HttpStatusCode statusCode, string body) : IHttpClientFactory
