@@ -122,6 +122,21 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Theory]
+    [InlineData("pheno-age.html", "if (touchedBiomarkers.size < 9)", "customAlert('😱 Need to submit all 9 biomarkers!');")]
+    [InlineData("bortz-age.html", "if (touchedBiomarkers.size < requiredCount)", "customAlert(`😱 Need to submit all ${requiredCount} biomarkers!`);")]
+    public void BioageUpdateCalculations_AllowPartialBiomarkerUpdates(string fileName, string oldGuard, string oldAlert)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+        var calculateBody = GetFunctionBody(html, "function calculateResult()", "const bloodDrawDate = getValidatedBloodDrawDate();");
+
+        Assert.Contains("if (isUpdate && athlete?.Biomarkers?.length)", calculateBody);
+        Assert.Contains("if (isUpdate && touchedBiomarkers.size === 0)", calculateBody);
+        Assert.Contains("customAlert('😱 No new biomarker data entered! Cannot proceed!');", calculateBody);
+        Assert.DoesNotContain(oldGuard, calculateBody);
+        Assert.DoesNotContain(oldAlert, calculateBody);
+    }
+
+    [Theory]
     [InlineData("pheno-age.html", "phenoAgeForm")]
     [InlineData("bortz-age.html", "bortzAgeForm")]
     public void BioagePages_ReportRequiredFieldValidityBeforeCalculating(string fileName, string formId)
@@ -224,6 +239,17 @@ public sealed class BioageStoredBiomarkerTests
         Assert.True(returnFalse > catchStart);
 
         return html[catchStart..returnFalse];
+    }
+
+    private static string GetFunctionBody(string html, string functionMarker, string endMarker)
+    {
+        var functionStart = html.IndexOf(functionMarker, StringComparison.Ordinal);
+        var functionEnd = html.IndexOf(endMarker, functionStart, StringComparison.Ordinal);
+
+        Assert.True(functionStart >= 0);
+        Assert.True(functionEnd > functionStart);
+
+        return html[functionStart..functionEnd];
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

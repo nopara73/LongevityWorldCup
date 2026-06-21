@@ -1594,13 +1594,36 @@
         function calculateResult() {
             syncFilledBiomarkersForNewApplication(['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']);
 
-            // In update mode, ensure at least one new biomarker was entered
-            if (isUpdate) {
-                if (touchedBiomarkers.size < 9) {
-                    document.getElementById('continueButton').classList.remove('show');
-                    customAlert('😱 Need to submit all 9 biomarkers!');
-                    return;
-                }
+            // Fill missing biomarker fields on update
+            if (isUpdate && athlete?.Biomarkers?.length) {
+                const latestBiomarkerSet = athlete.Biomarkers.reduce((latest, current) => {
+                    return new Date(current.Date) > new Date(latest.Date) ? current : latest;
+                });
+                const biomarkerDefaults = {
+                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' },
+                    lymphocyte: { val: latestBiomarkerSet.LymPc, unit: '1' },
+                    mcv: { val: latestBiomarkerSet.McvFL, unit: '1' },
+                    rcdw: { val: latestBiomarkerSet.RdwPc, unit: '1' },
+                    albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
+                    ap: { val: latestBiomarkerSet.AlpUL, unit: '1' },
+                    creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
+                    glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
+                    crp: { val: latestBiomarkerSet.CrpMgL, unit: '10' }
+                };
+
+                Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
+                    const input = document.getElementById(id);
+                    if (!input.value) {
+                        input.value = val;
+                        document.getElementById(id + 'Unit').value = unit;
+                    }
+                });
+            }
+
+            if (isUpdate && touchedBiomarkers.size === 0) {
+                document.getElementById('continueButton').classList.remove('show');
+                customAlert('😱 No new biomarker data entered! Cannot proceed!');
+                return;
             }
 
             const bloodDrawDate = getValidatedBloodDrawDate();
@@ -1640,32 +1663,6 @@
 
             // Add age as the first marker value
             markerValues.push(chronologicalAgeAtTimeOfTest);
-
-            // Fill missing biomarker fields on update
-            if (isUpdate && athlete?.Biomarkers?.length) {
-                const latestBiomarkerSet = athlete.Biomarkers.reduce((latest, current) => {
-                    return new Date(current.Date) > new Date(latest.Date) ? current : latest;
-                });
-                const biomarkerDefaults = {
-                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' },
-                    lymphocyte: { val: latestBiomarkerSet.LymPc, unit: '1' },
-                    mcv: { val: latestBiomarkerSet.McvFL, unit: '1' },
-                    rcdw: { val: latestBiomarkerSet.RdwPc, unit: '1' },
-                    albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
-                    ap: { val: latestBiomarkerSet.AlpUL, unit: '1' },
-                    creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
-                    glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
-                    crp: { val: latestBiomarkerSet.CrpMgL, unit: '10' }
-                };
-
-                Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
-                    const input = document.getElementById(id);
-                    if (!input.value) {
-                        input.value = val;
-                        document.getElementById(id + 'Unit').value = unit;
-                    }
-                });
-            }
 
             correctCorrectableUnits();
 
