@@ -179,10 +179,18 @@ public sealed class ApplicationOnboardingPageTests
 
         Assert.Contains("const accountEmailInput = document.getElementById('accountEmail');", helperBody);
         Assert.Contains("const mediaContactInput = document.getElementById('mediaContact');", helperBody);
-        Assert.Contains("accountEmailInput.value.trim()", helperBody);
+        Assert.Contains("accountEmailInput.value.trim() && accountEmailInput.dataset.prefilledFrom !== 'mediaContact'", helperBody);
         Assert.Contains("const mediaContact = mediaContactInput.value.trim();", helperBody);
         Assert.Contains("if (isEmailAddress(mediaContact))", helperBody);
         Assert.Contains("accountEmailInput.value = mediaContact;", helperBody);
+        Assert.Contains("accountEmailInput.dataset.prefilledFrom = 'mediaContact';", helperBody);
+        Assert.Contains("} else if (accountEmailInput.dataset.prefilledFrom === 'mediaContact') {", helperBody);
+        Assert.Contains("accountEmailInput.value = '';", helperBody);
+        Assert.Contains("delete accountEmailInput.dataset.prefilledFrom;", helperBody);
+
+        Assert.Contains("function handleAccountEmailInput()", html);
+        Assert.Contains("delete accountEmailInput.dataset.prefilledFrom;", html);
+        Assert.Contains("checkFormValidityStage7();", html);
 
         var stage7Start = html.IndexOf("case 7:", StringComparison.Ordinal);
         var stage7End = html.IndexOf("break;", stage7Start, StringComparison.Ordinal);
@@ -192,9 +200,11 @@ public sealed class ApplicationOnboardingPageTests
 
         var stage7Body = html[stage7Start..stage7End];
         var prefillIndex = stage7Body.IndexOf("prefillAccountEmailFromMediaContact();", StringComparison.Ordinal);
+        var listenerIndex = stage7Body.IndexOf("accountEmailInput.addEventListener('input', handleAccountEmailInput);", StringComparison.Ordinal);
         var validateIndex = stage7Body.IndexOf("checkFormValidityStage7();", StringComparison.Ordinal);
 
         Assert.True(prefillIndex >= 0);
+        Assert.True(listenerIndex > prefillIndex);
         Assert.True(validateIndex > prefillIndex);
     }
 
