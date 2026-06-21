@@ -243,6 +243,26 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     return BadRequest("Profile picture is required.");
                 }
+
+                if (string.IsNullOrWhiteSpace(applicantData.Division))
+                {
+                    return BadRequest("Division is required.");
+                }
+
+                if (string.IsNullOrWhiteSpace(applicantData.Flag))
+                {
+                    return BadRequest("Flag is required.");
+                }
+
+                if (string.IsNullOrWhiteSpace(applicantData.Why))
+                {
+                    return BadRequest("Why is required.");
+                }
+
+                if (string.IsNullOrWhiteSpace(applicantData.MediaContact))
+                {
+                    return BadRequest("Media contact is required.");
+                }
             }
 
             // Load SMTP configuration
