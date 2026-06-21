@@ -596,7 +596,8 @@
 
             submitButton.addEventListener('click', async function () {
                 if (!athlete || !athlete.Name) {
-                    customAlert('No athlete selected. Please return and choose your athlete.');
+                    customAlert('No athlete selected. Please return and choose your athlete.')
+                        .then(() => window.location.href = '/select-athlete');
                     return;
                 }
 

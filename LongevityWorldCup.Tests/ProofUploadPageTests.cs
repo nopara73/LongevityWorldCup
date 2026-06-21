@@ -187,6 +187,25 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ResultUploadNoAthleteGuard_ReturnsToAthleteSelection()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+        var guardStart = html.IndexOf("if (!athlete || !athlete.Name)", StringComparison.Ordinal);
+        var guardEnd = html.IndexOf("let biomarkerData = null;", guardStart, StringComparison.Ordinal);
+
+        Assert.True(guardStart >= 0);
+        Assert.True(guardEnd > guardStart);
+
+        var guardBody = html[guardStart..guardEnd];
+
+        Assert.Contains("customAlert('No athlete selected. Please return and choose your athlete.')", guardBody);
+        Assert.Contains(".then(() => window.location.href = '/select-athlete');", guardBody);
+    }
+
+    [Fact]
     public async Task ResultUploadSuccessHandoff_UsesSafeStorageBeforeNavigation()
     {
         using var factory = new TestWebApplicationFactory();
