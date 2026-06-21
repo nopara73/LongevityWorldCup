@@ -180,6 +180,27 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task EditProfileSelectionHandoff_RejectsIncompleteStoredAthlete()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("function isValidSelectedAthlete(value)", html);
+        Assert.Contains("return value && typeof value === 'object' && !Array.isArray(value) && value.Name;", html);
+        Assert.Contains("const selectedAthleteJson = getSessionItem('selectedAthlete');", html);
+        Assert.Contains("if (!isValidSelectedAthlete(originalAthlete))", html);
+        Assert.Contains("removeSessionItem('selectedAthlete');", html);
+        Assert.Contains("removeSessionItem('tempAthlete');", html);
+        Assert.Contains("window.location.replace('/select-athlete');", html);
+        Assert.Contains("const tempAthleteJson = getSessionItem('tempAthlete');", html);
+        Assert.Contains("const athlete = isValidSelectedAthlete(tempAthlete)", html);
+        Assert.DoesNotContain("const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');", html);
+        Assert.DoesNotContain("const tempAthleteJson = sessionStorage.getItem('tempAthlete');", html);
+    }
+
+    [Fact]
     public async Task EditProfileValidation_FallsBackWhenValidatorScriptIsUnavailable()
     {
         using var factory = new TestWebApplicationFactory();

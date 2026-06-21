@@ -6,7 +6,6 @@ public sealed class SelectedAthleteBootstrapPageTests
 {
     [Theory]
     [InlineData("/play/proof-upload.html")]
-    [InlineData("/play/edit-profile.html")]
     [InlineData("/play/character-customization.html")]
     [InlineData("/onboarding/pheno-age.html")]
     [InlineData("/onboarding/bortz-age.html")]
@@ -34,19 +33,39 @@ public sealed class SelectedAthleteBootstrapPageTests
     }
 
     [Fact]
-    public async Task EditProfileTempAthleteFallback_IgnoresCleanupStorageFailures()
+    public async Task EditProfileSelectedAthleteRecovery_UsesSafeStorageCleanup()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
-        var tempReadIndex = html.IndexOf("const tempAthleteJson = sessionStorage.getItem('tempAthlete');", StringComparison.Ordinal);
+        var redirectIndex = html.IndexOf("window.location.replace('/select-athlete');", StringComparison.Ordinal);
+        var recoveryStart = html.LastIndexOf("if (!isValidSelectedAthlete(originalAthlete))", redirectIndex, StringComparison.Ordinal);
+
+        Assert.True(recoveryStart >= 0);
+        Assert.True(redirectIndex > recoveryStart);
+
+        var recoveryBody = html[recoveryStart..redirectIndex];
+
+        Assert.Contains("function removeSessionItem(key)", html);
+        Assert.Contains("removeSessionItem('selectedAthlete');", recoveryBody);
+        Assert.Contains("removeSessionItem('tempAthlete');", recoveryBody);
+    }
+
+    [Fact]
+    public async Task EditProfileTempAthleteFallback_UsesSafeStorageCleanup()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var tempReadIndex = html.IndexOf("const tempAthleteJson = getSessionItem('tempAthlete');", StringComparison.Ordinal);
         var tempCatchIndex = html.IndexOf("tempAthlete = null;", tempReadIndex, StringComparison.Ordinal);
 
         Assert.True(tempReadIndex >= 0);
         Assert.True(tempCatchIndex >= 0);
 
-        var fallbackStart = html.LastIndexOf("try {", tempCatchIndex, StringComparison.Ordinal);
+        var fallbackStart = html.LastIndexOf("} catch {", tempCatchIndex, StringComparison.Ordinal);
         var fallbackEnd = html.IndexOf("tempAthlete = null;", fallbackStart, StringComparison.Ordinal);
 
         Assert.True(fallbackStart >= 0);
@@ -54,7 +73,7 @@ public sealed class SelectedAthleteBootstrapPageTests
 
         var fallbackBody = html[fallbackStart..fallbackEnd];
 
-        Assert.Contains("sessionStorage.removeItem('tempAthlete');", fallbackBody);
-        Assert.Contains("} catch (_) {", fallbackBody);
+        Assert.Contains("function removeSessionItem(key)", html);
+        Assert.Contains("removeSessionItem('tempAthlete');", fallbackBody);
     }
 }
