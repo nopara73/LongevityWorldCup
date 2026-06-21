@@ -3525,6 +3525,8 @@
     }
 
     async function withButton(button, work, busyText) {
+        if (button.disabled || button.getAttribute("aria-busy") === "true") return;
+
         const original = button.innerHTML;
         button.disabled = true;
         button.setAttribute("aria-busy", "true");
