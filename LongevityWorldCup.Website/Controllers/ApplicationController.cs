@@ -533,25 +533,25 @@ namespace LongevityWorldCup.Website.Controllers
                         if (error.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
                         {
                             // Explicitly ignore "already subscribed" errors
-                            _logger.LogInformation("The applicant's email {Email} is already subscribed to the newsletter.", email);
+                            _logger.LogInformation("The applicant email is already subscribed to the newsletter.");
                         }
                         else
                         {
                             // Log and ignore any other errors silently
-                            _logger.LogWarning("Failed to subscribe applicant email {Email} to the newsletter. Error: {Error}", email, error);
+                            _logger.LogWarning("Failed to subscribe applicant email to the newsletter. Error: {Error}", error);
                         }
                     }
                     else
                     {
                         // Subscription successful
-                        _logger.LogInformation("Successfully subscribed applicant email {Email} to the newsletter.", email);
+                        _logger.LogInformation("Successfully subscribed applicant email to the newsletter.");
                     }
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Log and ignore any other errors silently
-                _logger.LogWarning(ex, "Failed to subscribe applicant email {Email} to the newsletter.", accountEmail);
+                _logger.LogWarning(ex, "Failed to subscribe applicant email to the newsletter.");
             }
 
             // Send the email
@@ -787,7 +787,7 @@ namespace LongevityWorldCup.Website.Controllers
             var trimmedEmail = accountEmail.Trim();
             if (!new EmailAddressAttribute().IsValid(trimmedEmail))
             {
-                _logger.LogWarning("Skipping submission confirmation email because applicant email is invalid: {Email}", trimmedEmail);
+                _logger.LogWarning("Skipping submission confirmation email because applicant email is invalid.");
                 return;
             }
 
@@ -806,7 +806,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogWarning(ex, "Failed to send submission confirmation email to {Email}", trimmedEmail);
+                _logger.LogWarning(ex, "Failed to send submission confirmation email.");
             }
         }
 
@@ -1109,8 +1109,7 @@ namespace LongevityWorldCup.Website.Controllers
                     ["discountCode"] = applicantData.Discount,
                     ["discountPercent"] = applicantData.PaymentOffer?.DiscountPercent,
                     ["submissionType"] = isEditSubmissionOnly ? "edit" : isResultSubmissionOnly ? "result" : "application",
-                    ["athleteName"] = applicantData.Name?.Trim(),
-                    ["accountEmail"] = accountEmail
+                    ["athleteName"] = applicantData.Name?.Trim()
                 }
             };
 
