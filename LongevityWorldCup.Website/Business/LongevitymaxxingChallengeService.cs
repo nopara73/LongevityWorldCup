@@ -28,6 +28,7 @@ public sealed class LongevitymaxxingChallengeService
     private const string CommitmentPaymentReminderKind = "commitment-payment";
     private const string ChallengeInactiveReasonMissedScoredDays = "missed-scored-days";
     private const string ChallengeInactiveReasonCommitmentPayment = "commitment-payment";
+    private const string ChallengeInactiveCheckInMessage = "Your Challenge is resting, so check-ins are closed.";
     private const string PublicParticipantNotesStartAtUtc = "2026-06-19T12:50:40.4598757+00:00";
     private const double FinalDayScoreMultiplier = 1.4d;
     public const int MaxProfilePictureUploadBytes = 32 * 1024 * 1024;
@@ -294,13 +295,22 @@ public sealed class LongevitymaxxingChallengeService
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
         checkIns.TryGetValue(participant.Id, out var byDay);
         byDay ??= [];
+        byDay = FilterPostInactiveCheckIns(participant, byDay);
+        checkIns = new Dictionary<string, Dictionary<int, CheckInRecord>>(StringComparer.Ordinal)
+        {
+            [participant.Id] = byDay
+        };
         var settings = BuildSettings(now);
-        var eligibleDays = BuildEligibleDays(settings, participant, checkIns, now);
+        var activePaymentObligation = GetActivePaymentObligation(participant.Id);
+        var challengeInactive = IsParticipantInactive(settings, participant, byDay, now, activePaymentObligation);
+        var eligibleDays = challengeInactive
+            ? []
+            : BuildEligibleDays(settings, participant, checkIns, now);
         var participantSummary = ToParticipantSummary(
             settings,
             participant,
             byDay,
-            GetActivePaymentObligation(participant.Id),
+            activePaymentObligation,
             now);
 
         return new LongevitymaxxingParticipantState(
@@ -588,12 +598,23 @@ public sealed class LongevitymaxxingChallengeService
         var participant = RequireParticipantByAccessToken(request.AccessToken);
         var values = ValidateAnswers(request.Sleep, request.Exercise, request.Nutrition, request.Vices);
         var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
+        checkIns.TryGetValue(participant.Id, out var byDay);
+        byDay ??= [];
+        var activePaymentObligation = GetActivePaymentObligation(participant.Id);
+        var inactiveReason = GetParticipantInactiveReason(settings, participant, byDay, now, activePaymentObligation);
+        if (inactiveReason is not null)
+        {
+            throw new InvalidOperationException(inactiveReason == ChallengeInactiveReasonCommitmentPayment
+                ? "Pay the commitment due before continuing."
+                : ChallengeInactiveCheckInMessage);
+        }
+
         var eligible = BuildEligibleDays(settings, participant, checkIns, now).FirstOrDefault(x => x.ChallengeDay == request.ChallengeDay);
         if (eligible is null)
             throw new InvalidOperationException("That challenge day is not open for check-in.");
         if (participant.CommitmentAmountUsd is null && IsCommitmentAmountRequired(settings, now))
             throw new InvalidOperationException("Configure your commitment amount before continuing.");
-        if (GetActivePaymentObligation(participant.Id) is not null && eligible.Existing is null)
+        if (activePaymentObligation is not null && eligible.Existing is null)
             throw new InvalidOperationException("Pay the commitment due or fix an existing eligible check-in before continuing.");
 
         var note = NormalizeNote(request.Note);
@@ -1309,12 +1330,21 @@ public sealed class LongevitymaxxingChallengeService
         int? maxChallengeDay = null)
     {
         var leaderboardWindowStartDay = GetLeaderboardWindowStartDay(visibleDayCount, maxChallengeDay);
-        var categoryLeaders = BuildCategoryLeaders(settings, participants, checkIns, maxChallengeDay, leaderboardWindowStartDay);
+        var leaderboardCheckIns = participants.ToDictionary(
+            p => p.Id,
+            p =>
+            {
+                checkIns.TryGetValue(p.Id, out var byDay);
+                byDay ??= [];
+                return FilterPostInactiveCheckIns(p, byDay);
+            },
+            StringComparer.Ordinal);
+        var categoryLeaders = BuildCategoryLeaders(settings, participants, leaderboardCheckIns, maxChallengeDay, leaderboardWindowStartDay);
         var athleteTieBreaks = BuildAthleteTieBreaks();
         var activePaymentObligations = GetActivePaymentObligations(participants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
         var rows = participants.Select(p =>
         {
-            checkIns.TryGetValue(p.Id, out var byDay);
+            leaderboardCheckIns.TryGetValue(p.Id, out var byDay);
             byDay ??= [];
             var includedByDay = FilterChallengeDays(byDay, maxChallengeDay);
             var performanceByDay = FilterLeaderboardPerformanceDays(includedByDay, leaderboardWindowStartDay);
@@ -1398,6 +1428,18 @@ public sealed class LongevitymaxxingChallengeService
         => byDay
             .Where(kv => kv.Key >= minChallengeDay)
             .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+    private static Dictionary<int, CheckInRecord> FilterPostInactiveCheckIns(
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay)
+    {
+        if (participant.ChallengeInactiveAtUtc is null)
+            return new Dictionary<int, CheckInRecord>(byDay);
+
+        return byDay
+            .Where(kv => kv.Value.CheckedInAtUtc <= participant.ChallengeInactiveAtUtc.Value)
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+    }
 
     private LongevitymaxxingCommitmentState BuildCommitmentState(
         ParticipantRecord participant,
@@ -2254,6 +2296,7 @@ public sealed class LongevitymaxxingChallengeService
                 FROM LongevitymaxxingCheckIns c
                 JOIN LongevitymaxxingParticipants p ON p.Id = c.ParticipantId
                 WHERE p.ConfirmedAtUtc IS NOT NULL
+                  AND (p.ChallengeInactiveAtUtc IS NULL OR c.CheckedInAtUtc <= p.ChallengeInactiveAtUtc)
                   {(publicOnly ? "AND c.CheckedInAtUtc >= @publicNotesStart" : "")}
                   AND (
                     (c.Note IS NOT NULL AND TRIM(c.Note) <> '')
