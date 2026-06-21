@@ -2702,15 +2702,15 @@
                 return;
             }
 
-            // calculate
-            calculateResult();
-
-            // let browser show validation bubbles (invalid events expand cards)
+            // Block submit if any required field is missing; show validation bubbles first
             if (!this.reportValidity()) {
                 return;
             }
 
-            // all valid → scroll the Calculate button into view
+            // calculate (only reached when form is valid)
+            calculateResult();
+
+            // scroll the Calculate button into view
             const calculateButton = this.querySelector('button[type="submit"]');
             if (calculateButton) {
                 calculateButton.scrollIntoView({ behavior: 'smooth', block: 'start' });

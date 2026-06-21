@@ -70,6 +70,28 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Theory]
+    [InlineData("pheno-age.html", "phenoAgeForm")]
+    [InlineData("bortz-age.html", "bortzAgeForm")]
+    public void BioagePages_ReportRequiredFieldValidityBeforeCalculating(string fileName, string formId)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+        var formStart = html.IndexOf($"const form = document.getElementById('{formId}');", StringComparison.Ordinal);
+
+        Assert.True(formStart >= 0);
+
+        var submitStart = html.IndexOf("form.addEventListener('submit', function (e)", formStart, StringComparison.Ordinal);
+
+        Assert.True(submitStart > formStart);
+
+        var calculateIndex = html.IndexOf("calculateResult();", submitStart, StringComparison.Ordinal);
+        var validityIndex = html.IndexOf("if (!this.reportValidity())", submitStart, StringComparison.Ordinal);
+
+        Assert.True(validityIndex > submitStart);
+        Assert.True(calculateIndex > submitStart);
+        Assert.True(validityIndex < calculateIndex);
+    }
+
+    [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
     public void BioagePages_ReplaceMalformedPendingPaymentOfferBeforeHandoff(string fileName)
