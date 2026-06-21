@@ -1130,7 +1130,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task CallReminderEmailIncludesTimeLinkAndParticipantPageOnly()
+    public async Task CallReminderEmailIncludesTimeLinkParticipantPageAndCalendarInvite()
     {
         using var fixture = TestChallengeFixture.Create();
         await fixture.ConfirmParticipantAsync(
@@ -1153,8 +1153,14 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.DoesNotContain("UTC+02:00", content.TextBody);
         Assert.DoesNotContain("Full call schedule:", content.TextBody);
         Assert.DoesNotContain("- Midpoint:", content.TextBody);
-        Assert.DoesNotContain("calendar invite", content.TextBody, StringComparison.OrdinalIgnoreCase);
-        Assert.Empty(content.Attachments);
+        var attachment = Assert.Single(content.Attachments);
+        Assert.Equal("longevitymaxxing-community-call.ics", attachment.FileName);
+        Assert.Equal("text/calendar; charset=utf-8", attachment.ContentType);
+        Assert.Equal(1, CountOccurrences(attachment.Text, "BEGIN:VEVENT"));
+        Assert.Contains("SUMMARY:Longevitymaxxing Community call", attachment.Text);
+        Assert.Contains("DTSTART:20260607T063000Z", attachment.Text);
+        Assert.Contains("LOCATION:https://meet.example.test", attachment.Text);
+        Assert.Contains("Participant page: https://example.test/longevitymaxxing?", attachment.Text);
     }
 
     [Fact]

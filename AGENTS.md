@@ -45,6 +45,7 @@ Use its canonical terms when naming UI text, code concepts, issues, and docs. If
 - Each participant's first eligible Longevitymaxxing Challenge check-in is practice: it counts for checked-in days and streak, but not habit points, category leader badges, point tie-breaks, or missed-scored-day reminder stops.
 - Longevitymaxxing Challenge call times are fixed by the generated weekly community-call schedule; participants do not vote on call availability.
 - Longevitymaxxing Challenge community calls happen every Sunday at 08:30 GMT+2 / 06:30 UTC. The ongoing challenge generates future Sunday calls automatically; do not model calls as a finite kickoff/midpoint/finale schedule.
+- Longevitymaxxing Challenge community call reminder emails include a calendar invite for the reminded call.
 - Longevitymaxxing Challenge daily reminder emails default to 07:00 in each participant's local timezone and may catch up later that same local day if the exact hour is missed.
 - Longevitymaxxing Challenge daily reminder emails continue indefinitely and stop after 3 consecutive missed scored days. Practice does not count, and days before a participant's local signup date do not count.
 - Longevitymaxxing Challenge Stop challenge emails is only a notification preference. It must not remove the participant from the live leaderboard; inactive status comes from missed scored days, unresolved commitment payments after the edit window, or another explicit exit trigger.

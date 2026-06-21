@@ -145,7 +145,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         return new LongevitymaxxingEmailContent(
             $"Longevitymaxxing {callLabel} reminder",
             body,
-            []);
+            BuildCalendarAttachmentForCallReminder(reminder, challengeUrl));
     }
 
     internal static LongevitymaxxingEmailContent BuildChallengeStartEmailContent(
@@ -350,6 +350,27 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
                 "text/calendar; charset=utf-8",
                 builder.ToString())
         ];
+    }
+
+    private static IReadOnlyList<LongevitymaxxingEmailAttachment> BuildCalendarAttachmentForCallReminder(
+        LongevitymaxxingCallReminderCandidate reminder,
+        string challengeUrl)
+    {
+        var call = reminder.Calls.FirstOrDefault(call => string.Equals(call.Key, reminder.CallKey, StringComparison.OrdinalIgnoreCase));
+        if (call is null)
+        {
+            call = new LongevitymaxxingParticipantCall(
+                reminder.CallKey,
+                reminder.CallLabel,
+                new LongevitymaxxingCallSlot(reminder.CallKey, reminder.StartsAtUtc),
+                reminder.VideoCallUrl);
+        }
+
+        return BuildCalendarAttachment(
+            "longevitymaxxing-community-call.ics",
+            $"Longevitymaxxing {FormatCallLabelForSentence(reminder.CallLabel)}",
+            [call],
+            challengeUrl);
     }
 
     private static string BuildCalendarUid(LongevitymaxxingParticipantCall call, DateTimeOffset startsAt)
