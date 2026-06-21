@@ -513,7 +513,9 @@
         }
 
         function readResultUploadContactEmail() {
-            return normalizeContactEmail(athlete && athlete.AccountEmail) || readStoredContactEmail();
+            return normalizeContactEmail(athlete && athlete.AccountEmail)
+                || normalizeContactEmail(athlete && athlete.MediaContact)
+                || readStoredContactEmail();
         }
 
         if (window.captureFreePassFromUrl) {
@@ -636,6 +638,11 @@
                                         ? 'You\'ll be redirected to the payment page'
                                         : 'Your results were received';
                                 customAlert(nextStepMessage).then(() => {
+                                    const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
+                                    if (reviewContactEmail) {
+                                        setSessionItem('contactEmail', reviewContactEmail);
+                                        setLocalItem('contactEmail', reviewContactEmail);
+                                    }
                                     proofPics = [];
                                     removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
                                     if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
@@ -643,7 +650,7 @@
                                             const pendingInvoiceInfo = JSON.stringify({
                                                 invoiceId: submitResult.invoiceId,
                                                 applicantName: athlete.Name || null,
-                                                accountEmail: applicantData.accountEmail || null,
+                                                accountEmail: reviewContactEmail || null,
                                                 submissionType: 'result',
                                                 reviewSource: 'proof-upload'
                                             });

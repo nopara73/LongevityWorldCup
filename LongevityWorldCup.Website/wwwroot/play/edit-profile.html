@@ -542,6 +542,24 @@
         function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
 
+        function normalizeContactEmail(value) {
+            const contactEmail = (value || '').trim();
+            if (!contactEmail) return null;
+
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.value = contactEmail;
+            return emailInput.checkValidity() ? contactEmail : null;
+        }
+
+        function readEditProfileContactEmail() {
+            return normalizeContactEmail(athlete && athlete.AccountEmail)
+                || normalizeContactEmail(originalAthlete && originalAthlete.AccountEmail)
+                || normalizeContactEmail(athlete && athlete.MediaContact)
+                || normalizeContactEmail(originalAthlete && originalAthlete.MediaContact)
+                || normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));
+        }
+
         let originalAthlete = null;
         let tempAthlete = null;
 
@@ -810,11 +828,7 @@
                 const submissionKind = 'edit-request';
                 const applicantData = {
                     name: athlete.Name,
-                    accountEmail: athlete.AccountEmail
-                        || originalAthlete.AccountEmail
-                        || getSessionItem('contactEmail')
-                        || getLocalItem('contactEmail')
-                        || null,
+                    accountEmail: readEditProfileContactEmail(),
                     submissionId: submissionId,
                     profilePic: athlete.ProfilePic,
                     division: athlete.Division,
@@ -841,6 +855,10 @@
                         hideLoading();
                         if (response.ok) {
                             customAlert('Change request submitted!').then(() => {
+                                const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
+                                if (reviewContactEmail) {
+                                    setSessionItem('contactEmail', reviewContactEmail);
+                                }
                                 setSessionItem("came-from", "edit-profile");
                                 window.location.href = '/review?from=edit-profile';
                             });
