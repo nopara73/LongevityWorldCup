@@ -216,6 +216,8 @@ public sealed class ProofUploadPageTests
         Assert.Contains("biomarkerData = null;", parseBody);
         Assert.Contains("!Array.isArray(biomarkerData.Biomarkers)", parseBody);
         Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
+        Assert.Contains("function hasStoredBiomarkerDates(biomarkerData)", html);
+        Assert.Contains("!hasStoredBiomarkerDates(biomarkerData)", parseBody);
         Assert.Contains("clearStoredBiomarkerHandoff();", parseBody);
         Assert.Contains("function clearStoredBiomarkerHandoff()", html);
         Assert.Contains("removeSessionItem('biomarkerData');", html);
