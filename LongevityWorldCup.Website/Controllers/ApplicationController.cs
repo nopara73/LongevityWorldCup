@@ -275,6 +275,11 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("Biomarker date is invalid.");
             }
 
+            if (applicantData.Biomarkers?.Any() is true && !HasRequiredBiomarkerValues(applicantData.Biomarkers))
+            {
+                return BadRequest("Biomarker result value is required.");
+            }
+
             // Load SMTP configuration
             Config config;
             try
@@ -1887,6 +1892,16 @@ namespace LongevityWorldCup.Website.Controllers
                     DateTimeStyles.None,
                     out var resultDate)
                 && resultDate <= today);
+        }
+
+        private static bool HasRequiredBiomarkerValues(IEnumerable<BiomarkerData> biomarkers)
+        {
+            return biomarkers.All(biomarker => typeof(BiomarkerData)
+                .GetProperties()
+                .Where(property => !string.Equals(property.Name, nameof(BiomarkerData.Date), StringComparison.Ordinal))
+                .Select(property => property.GetValue(biomarker))
+                .OfType<double>()
+                .Any(double.IsFinite));
         }
 
         private sealed record ImageOptimizationResult(bool Success, byte[]? Bytes, string? ContentType, string? Extension, string ErrorMessage)
