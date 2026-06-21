@@ -986,43 +986,45 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task DailyReminderMissThresholdBlocksRestingCheckIn()
+    public async Task DailyReminderMissThresholdCanBeClearedByEligibleCatchUpCheckIns()
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await fixture.ConfirmParticipantAsync("resume@example.com", "Resume Rae");
+        SubmitChallengeDays(fixture, access, 10, 2, 2, 2, 2);
 
-        Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-12T08:05:00Z")));
-        fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-12T08:05:00Z"));
-        var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T08:06:00Z"));
+        Assert.Empty(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-21T08:05:00Z")));
+        fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-21T08:05:00Z"));
+        var stopped = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-21T08:06:00Z"));
         Assert.True(stopped.Participant.ChallengeInactive);
-        Assert.Empty(stopped.EligibleDays);
+        Assert.Contains(stopped.EligibleDays, day => day.ChallengeDay == 12);
+        Assert.Contains(stopped.EligibleDays, day => day.ChallengeDay == 13);
 
-        InsertLegacyCheckInAfterResting(
-            fixture,
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
             access,
-            4,
-            "2026-06-11",
-            DateTimeOffset.Parse("2026-06-12T09:00:00Z"));
-
-        var legacyState = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T09:30:00Z"));
-        var legacyRow = Assert.Single(legacyState.Public.Leaderboard);
-        Assert.True(legacyRow.ChallengeInactive);
-        Assert.Equal(0, legacyRow.CheckedInDays);
-        Assert.False(legacyRow.Cells.Single(cell => cell.ChallengeDay == 4).CheckedIn);
-        Assert.DoesNotContain(legacyState.Notes, note => note.Note == "legacy post-rest check-in");
-
-        var error = Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            12,
+            2,
+            2,
+            2,
+            2,
+            "catch-up day 12"), DateTimeOffset.Parse("2026-06-21T08:40:00Z"));
+        var caughtUp = fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
             access,
-            4,
-            1,
-            1,
-            1,
-            1,
-            null), DateTimeOffset.Parse("2026-06-12T09:00:00Z")));
-        Assert.Contains("resting", error.Message, StringComparison.OrdinalIgnoreCase);
+            13,
+            2,
+            2,
+            2,
+            2,
+            "catch-up day 13"), DateTimeOffset.Parse("2026-06-21T08:45:00Z"));
 
-        var resumed = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-13T08:05:00Z"));
+        var row = Assert.Single(caughtUp.Public.Leaderboard);
+        Assert.False(caughtUp.Participant.ChallengeInactive);
+        Assert.False(row.ChallengeInactive);
+        Assert.True(row.Cells.Single(cell => cell.ChallengeDay == 12).CheckedIn);
+        Assert.True(row.Cells.Single(cell => cell.ChallengeDay == 13).CheckedIn);
+        Assert.Contains(caughtUp.Notes, note => note.Note == "catch-up day 12");
+        Assert.Contains(caughtUp.Notes, note => note.Note == "catch-up day 13");
 
+        var resumed = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-22T08:05:00Z"));
         Assert.Empty(resumed);
     }
 
@@ -1878,38 +1880,6 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 vices,
                 null), DateTimeOffset.Parse("2026-06-09T08:00:00Z").AddDays(day - 1));
         }
-    }
-
-    private static void InsertLegacyCheckInAfterResting(
-        TestChallengeFixture fixture,
-        string accessToken,
-        int challengeDay,
-        string challengeDate,
-        DateTimeOffset checkedInAtUtc)
-    {
-        fixture.Db.Run(sqlite =>
-        {
-            using var findParticipant = sqlite.CreateCommand();
-            findParticipant.CommandText = "SELECT Id FROM LongevitymaxxingParticipants WHERE AccessToken = @accessToken;";
-            findParticipant.Parameters.AddWithValue("@accessToken", accessToken);
-            var participantId = findParticipant.ExecuteScalar()?.ToString()
-                ?? throw new InvalidOperationException("Test participant not found.");
-
-            using var insert = sqlite.CreateCommand();
-            insert.CommandText =
-                """
-                INSERT INTO LongevitymaxxingCheckIns
-                (ParticipantId, ChallengeDay, ChallengeDate, Sleep, Exercise, Nutrition, Vices, Note, CheckedInAtUtc, UpdatedAtUtc)
-                VALUES (@participantId, @day, @date, 1, 1, 1, 1, @note, @checked, @updated);
-                """;
-            insert.Parameters.AddWithValue("@participantId", participantId);
-            insert.Parameters.AddWithValue("@day", challengeDay);
-            insert.Parameters.AddWithValue("@date", challengeDate);
-            insert.Parameters.AddWithValue("@note", "legacy post-rest check-in");
-            insert.Parameters.AddWithValue("@checked", checkedInAtUtc.ToString("o"));
-            insert.Parameters.AddWithValue("@updated", checkedInAtUtc.ToString("o"));
-            insert.ExecuteNonQuery();
-        });
     }
 
     private static async Task<string> CreateCommitmentDueParticipantAsync(TestChallengeFixture fixture, string email, string name)
