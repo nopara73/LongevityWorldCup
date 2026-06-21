@@ -1272,7 +1272,7 @@
         }
 
         async function fetchOgPreview(url) {
-            const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(url)}&audio=false&video=false&screenshot=false`;
+            const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(url)}&audio=false&video=false&screenshot=false&force=true`;
             const response = await fetch(endpoint, { headers: { accept: "application/json" } });
             if (!response.ok) {
                 throw new Error(`OG fetch failed: ${response.status}`);
