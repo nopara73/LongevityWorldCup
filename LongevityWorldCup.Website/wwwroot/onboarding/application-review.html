@@ -206,8 +206,11 @@
         function removeLocalItem(key) { removeStorageItem('localStorage', key); }
 
         function normalizeContactEmail(value) {
-            const contactEmail = (value || '').trim();
+            let contactEmail = (value || '').trim();
             if (!contactEmail) return null;
+            if (/^mailto:/i.test(contactEmail)) {
+                contactEmail = contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();
+            }
 
             const emailInput = document.createElement('input');
             emailInput.type = 'email';

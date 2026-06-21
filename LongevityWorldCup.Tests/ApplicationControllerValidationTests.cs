@@ -368,6 +368,8 @@ public sealed class ApplicationControllerValidationTests
 
     [Theory]
     [InlineData(" athlete@example.test ", "athlete@example.test")]
+    [InlineData("mailto:athlete@example.test", "athlete@example.test")]
+    [InlineData("mailto:athlete@example.test?subject=Longevity", "athlete@example.test")]
     [InlineData("not-an-email", null)]
     [InlineData("", null)]
     [InlineData(null, null)]
@@ -382,6 +384,8 @@ public sealed class ApplicationControllerValidationTests
 
     [Theory]
     [InlineData(" athlete@example.test ", "athlete@example.test")]
+    [InlineData("mailto:athlete@example.test", "athlete@example.test")]
+    [InlineData("mailto:athlete@example.test?subject=Longevity", "athlete@example.test")]
     [InlineData("https://example.test/athlete", null)]
     [InlineData("not-an-email", null)]
     [InlineData(null, null)]

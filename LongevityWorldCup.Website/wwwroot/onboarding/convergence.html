@@ -858,6 +858,16 @@
             return input.checkValidity();
         }
 
+        function normalizeContactEmail(value) {
+            let contactEmail = (value || '').trim();
+            if (!contactEmail) return null;
+            if (/^mailto:/i.test(contactEmail)) {
+                contactEmail = contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();
+            }
+
+            return isEmailAddress(contactEmail) ? contactEmail : null;
+        }
+
         function isOptionalUrl(value) {
             const trimmed = (value || '').trim();
             if (!trimmed) return true;
@@ -877,8 +887,8 @@
             if (!accountEmailInput || !mediaContactInput) return;
             if (accountEmailInput.value.trim() && accountEmailInput.dataset.prefilledFrom !== 'mediaContact') return;
 
-            const mediaContact = mediaContactInput.value.trim();
-            if (isEmailAddress(mediaContact)) {
+            const mediaContact = normalizeContactEmail(mediaContactInput.value);
+            if (mediaContact) {
                 accountEmailInput.value = mediaContact;
                 accountEmailInput.dataset.prefilledFrom = 'mediaContact';
             } else if (accountEmailInput.dataset.prefilledFrom === 'mediaContact') {

@@ -204,13 +204,15 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const accountEmailInput = document.getElementById('accountEmail');", helperBody);
         Assert.Contains("const mediaContactInput = document.getElementById('mediaContact');", helperBody);
         Assert.Contains("accountEmailInput.value.trim() && accountEmailInput.dataset.prefilledFrom !== 'mediaContact'", helperBody);
-        Assert.Contains("const mediaContact = mediaContactInput.value.trim();", helperBody);
-        Assert.Contains("if (isEmailAddress(mediaContact))", helperBody);
+        Assert.Contains("const mediaContact = normalizeContactEmail(mediaContactInput.value);", helperBody);
+        Assert.Contains("if (mediaContact)", helperBody);
         Assert.Contains("accountEmailInput.value = mediaContact;", helperBody);
         Assert.Contains("accountEmailInput.dataset.prefilledFrom = 'mediaContact';", helperBody);
         Assert.Contains("} else if (accountEmailInput.dataset.prefilledFrom === 'mediaContact') {", helperBody);
         Assert.Contains("accountEmailInput.value = '';", helperBody);
         Assert.Contains("delete accountEmailInput.dataset.prefilledFrom;", helperBody);
+        Assert.Contains("function normalizeContactEmail(value)", html);
+        Assert.Contains("contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();", html);
 
         Assert.Contains("function handleAccountEmailInput()", html);
         Assert.Contains("delete accountEmailInput.dataset.prefilledFrom;", html);

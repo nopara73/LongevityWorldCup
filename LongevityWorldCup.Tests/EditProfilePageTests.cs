@@ -195,6 +195,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("return window[storageName].getItem(key);", html);
         Assert.Contains("return null;", html);
         Assert.Contains("function normalizeContactEmail(value)", html);
+        Assert.Contains("contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();", html);
         Assert.Contains("function readEditProfileContactEmail()", html);
         Assert.Contains("|| normalizeContactEmail(athlete && athlete.MediaContact)", html);
         Assert.Contains("|| normalizeContactEmail(originalAthlete && originalAthlete.MediaContact)", html);
