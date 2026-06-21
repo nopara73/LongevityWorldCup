@@ -180,6 +180,28 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task EditProfileSubmit_GuardsAgainstDuplicateClicks()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var handlerStart = html.IndexOf("submitButton.addEventListener('click', async function ()", StringComparison.Ordinal);
+        var handlerEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", handlerStart, StringComparison.Ordinal);
+
+        Assert.True(handlerStart >= 0);
+        Assert.True(handlerEnd > handlerStart);
+
+        var handlerBeforeFetch = html[handlerStart..handlerEnd];
+
+        Assert.Contains("let isEditProfileSubmitting = false;", html);
+        Assert.Contains("if (isEditProfileSubmitting || submitButton.disabled) return;", handlerBeforeFetch);
+        Assert.Contains("isEditProfileSubmitting = true;", handlerBeforeFetch);
+        Assert.Contains("submitButton.disabled = true;", handlerBeforeFetch);
+        Assert.Contains("customAlert(`Submission failed:\\n\\n${displayError}`).then(() => {\n                            isEditProfileSubmitting = false;", html);
+    }
+
+    [Fact]
     public async Task EditProfileNoAthleteGuard_ReturnsToAthleteSelection()
     {
         using var factory = new TestWebApplicationFactory();
