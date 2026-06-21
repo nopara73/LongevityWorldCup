@@ -265,6 +265,38 @@ public sealed class ApplicationControllerValidationTests
         Assert.Equal("Biomarker result value is required.", badRequest.Value);
     }
 
+    [Fact]
+    public async Task ResultSubmissionMissingProofReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Proof attachment is required.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task ResultSubmissionMissingBiomarkersReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            ProofPics = ["data:image/png;base64,AA=="]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Biomarker data is required.", badRequest.Value);
+    }
+
     [Theory]
     [InlineData("division", "Division is required.")]
     [InlineData("flag", "Flag is required.")]

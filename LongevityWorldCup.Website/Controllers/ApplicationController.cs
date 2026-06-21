@@ -186,11 +186,10 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("Applicant name is required.");
             }
 
-            // Handle result submissions: only biomarkers and proofs provided
-            var isResultSubmissionOnly =
+            var hasSubmittedBiomarkers = applicantData.Biomarkers?.Any() is true;
+            var hasSubmittedProofs = applicantData.ProofPics?.Any() is true;
+            var hasOnlyResultSubmissionProfileFields =
                    !string.IsNullOrWhiteSpace(applicantData.Name)
-                && applicantData.Biomarkers?.Any() is true
-                && applicantData.ProofPics?.Any() is true
                 && applicantData.ProfilePic is null
                 && applicantData.DateOfBirth is null
                 && string.IsNullOrWhiteSpace(applicantData.MediaContact)
@@ -198,6 +197,12 @@ namespace LongevityWorldCup.Website.Controllers
                 && string.IsNullOrWhiteSpace(applicantData.Flag)
                 && string.IsNullOrWhiteSpace(applicantData.Why)
                 && string.IsNullOrWhiteSpace(applicantData.PersonalLink);
+
+            // Handle result submissions: only biomarkers and proofs provided
+            var isResultSubmissionOnly =
+                   hasOnlyResultSubmissionProfileFields
+                && hasSubmittedBiomarkers
+                && hasSubmittedProofs;
 
             // Handle edit submissions: when biomarkers and proofs are NOT provided
             var isEditSubmissionOnly =
@@ -207,6 +212,19 @@ namespace LongevityWorldCup.Website.Controllers
                 && applicantData.DateOfBirth is null;
 
             string? accountEmail = applicantData.AccountEmail?.Trim();
+            if (!isResultSubmissionOnly && hasOnlyResultSubmissionProfileFields && (hasSubmittedBiomarkers || hasSubmittedProofs))
+            {
+                if (!hasSubmittedBiomarkers)
+                {
+                    return BadRequest("Biomarker data is required.");
+                }
+
+                if (!hasSubmittedProofs)
+                {
+                    return BadRequest("Proof attachment is required.");
+                }
+            }
+
             if (!isResultSubmissionOnly && !isEditSubmissionOnly)
             {
                 if (string.IsNullOrWhiteSpace(accountEmail))
@@ -229,12 +247,12 @@ namespace LongevityWorldCup.Website.Controllers
                     return BadRequest("Date of birth is invalid.");
                 }
 
-                if (applicantData.Biomarkers?.Any() is not true)
+                if (!hasSubmittedBiomarkers)
                 {
                     return BadRequest("Biomarker data is required.");
                 }
 
-                if (applicantData.ProofPics?.Any() is not true)
+                if (!hasSubmittedProofs)
                 {
                     return BadRequest("Proof attachment is required.");
                 }
