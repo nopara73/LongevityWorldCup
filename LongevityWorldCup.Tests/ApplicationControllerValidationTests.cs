@@ -211,6 +211,24 @@ public sealed class ApplicationControllerValidationTests
         Assert.Equal("Biomarker date is required.", badRequest.Value);
     }
 
+    [Fact]
+    public async Task ResultSubmissionInvalidAccountEmailReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            AccountEmail = "not-an-email",
+            Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }],
+            ProofPics = ["data:image/png;base64,AA=="]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Account email is invalid.", badRequest.Value);
+    }
+
     [Theory]
     [InlineData("02/02/2026")]
     [InlineData("2026-02-31")]

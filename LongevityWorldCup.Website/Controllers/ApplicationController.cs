@@ -212,6 +212,11 @@ namespace LongevityWorldCup.Website.Controllers
                 && applicantData.DateOfBirth is null;
 
             string? accountEmail = applicantData.AccountEmail?.Trim();
+            if (!isEditSubmissionOnly && !string.IsNullOrWhiteSpace(accountEmail) && !new EmailAddressAttribute().IsValid(accountEmail))
+            {
+                return BadRequest("Account email is invalid.");
+            }
+
             if (!isResultSubmissionOnly && hasOnlyResultSubmissionProfileFields && (hasSubmittedBiomarkers || hasSubmittedProofs))
             {
                 if (!hasSubmittedBiomarkers)
@@ -230,11 +235,6 @@ namespace LongevityWorldCup.Website.Controllers
                 if (string.IsNullOrWhiteSpace(accountEmail))
                 {
                     return BadRequest("Account email is required.");
-                }
-
-                if (!new EmailAddressAttribute().IsValid(accountEmail))
-                {
-                    return BadRequest("Account email is invalid.");
                 }
 
                 if (applicantData.DateOfBirth is null)
