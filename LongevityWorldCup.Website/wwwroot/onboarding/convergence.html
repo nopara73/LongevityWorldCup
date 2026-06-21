@@ -982,6 +982,17 @@
             removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
         }
 
+        function hasStoredDateOfBirth(biomarkerData) {
+            const dateOfBirth = biomarkerData && biomarkerData.DateOfBirth;
+            return dateOfBirth
+                && dateOfBirth.Year !== null && dateOfBirth.Year !== undefined
+                && dateOfBirth.Month !== null && dateOfBirth.Month !== undefined
+                && dateOfBirth.Day !== null && dateOfBirth.Day !== undefined
+                && Number.isInteger(Number(dateOfBirth.Year))
+                && Number.isInteger(Number(dateOfBirth.Month))
+                && Number.isInteger(Number(dateOfBirth.Day));
+        }
+
         function readPendingPaymentOffer() {
             const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
             if (!rawOffer) return null;
@@ -1020,7 +1031,7 @@
             } catch (_) {
                 biomarkerData = null;
             }
-            if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length) {
+            if (!biomarkerData || !hasStoredDateOfBirth(biomarkerData) || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length) {
                 clearStoredBiomarkerHandoff();
                 customAlert('Biomarker data is missing. Please complete the biomarker form.');
                 return;

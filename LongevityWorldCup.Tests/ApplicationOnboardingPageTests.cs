@@ -252,6 +252,8 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("biomarkerData = JSON.parse(getSessionItem('biomarkerData'));", parseBody);
         Assert.Contains("} catch (_) {", parseBody);
         Assert.Contains("biomarkerData = null;", parseBody);
+        Assert.Contains("function hasStoredDateOfBirth(biomarkerData)", html);
+        Assert.Contains("!hasStoredDateOfBirth(biomarkerData)", parseBody);
         Assert.Contains("!Array.isArray(biomarkerData.Biomarkers)", parseBody);
         Assert.Contains("!biomarkerData.Biomarkers.length", parseBody);
         Assert.Contains("clearStoredBiomarkerHandoff();", parseBody);
