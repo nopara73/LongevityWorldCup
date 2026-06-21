@@ -368,7 +368,10 @@
         }
 
         function clearPendingPaymentOffer() {
-            sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+            try {
+                sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+            } catch (_) {
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function () {

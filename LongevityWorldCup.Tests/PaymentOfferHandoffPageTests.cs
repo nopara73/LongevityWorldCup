@@ -36,4 +36,25 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("if (typeof beforeNavigate === 'function' && beforeNavigate() === false) return;", html);
         Assert.Contains("return setPendingPaymentOffer(paymentOffer);", html);
     }
+
+    [Fact]
+    public async Task CharacterCustomizationPaymentOfferClear_DoesNotBlockResultNavigation()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-customization.html");
+        var clearStart = html.IndexOf("function clearPendingPaymentOffer()", StringComparison.Ordinal);
+        var clearEnd = html.IndexOf("document.addEventListener('DOMContentLoaded'", clearStart, StringComparison.Ordinal);
+
+        Assert.True(clearStart >= 0);
+        Assert.True(clearEnd > clearStart);
+
+        var clearBody = html[clearStart..clearEnd];
+
+        Assert.Contains("try {", clearBody);
+        Assert.Contains("sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);", clearBody);
+        Assert.Contains("} catch (_) {", clearBody);
+        Assert.Contains("() => clearPendingPaymentOffer()", html);
+    }
 }
