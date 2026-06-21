@@ -984,13 +984,25 @@
 
         function hasStoredDateOfBirth(biomarkerData) {
             const dateOfBirth = biomarkerData && biomarkerData.DateOfBirth;
-            return dateOfBirth
-                && dateOfBirth.Year !== null && dateOfBirth.Year !== undefined
-                && dateOfBirth.Month !== null && dateOfBirth.Month !== undefined
-                && dateOfBirth.Day !== null && dateOfBirth.Day !== undefined
-                && Number.isInteger(Number(dateOfBirth.Year))
-                && Number.isInteger(Number(dateOfBirth.Month))
-                && Number.isInteger(Number(dateOfBirth.Day));
+            if (!dateOfBirth
+                || dateOfBirth.Year === null || dateOfBirth.Year === undefined
+                || dateOfBirth.Month === null || dateOfBirth.Month === undefined
+                || dateOfBirth.Day === null || dateOfBirth.Day === undefined) {
+                return false;
+            }
+
+            const year = Number(dateOfBirth.Year);
+            const month = Number(dateOfBirth.Month);
+            const day = Number(dateOfBirth.Day);
+            if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
+            if (year < 1 || year > 9999 || month < 1 || month > 12 || day < 1) return false;
+
+            const parsedDate = new Date(Date.UTC(year, month - 1, day));
+            if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) return false;
+
+            const todayUtc = new Date();
+            todayUtc.setUTCHours(0, 0, 0, 0);
+            return parsedDate <= todayUtc;
         }
 
         function hasStoredBiomarkerDates(biomarkerData) {
