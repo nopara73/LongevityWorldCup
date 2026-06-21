@@ -358,6 +358,32 @@
 
                 let currentFocus = -1;
 
+                function getAthleteDisplayName(athlete) {
+                    if (athlete && athlete.DisplayName && athlete.DisplayName.trim()) {
+                        return athlete.DisplayName.trim();
+                    }
+
+                    return athlete && athlete.Name || '';
+                }
+
+                function getAthleteSearchText(athlete) {
+                    return `${athlete.Name || ''} ${getAthleteDisplayName(athlete)}`.toLowerCase();
+                }
+
+                function appendHighlightedText(container, text, query) {
+                    const lowerText = text.toLowerCase();
+                    const idx = lowerText.indexOf(query);
+                    if (idx < 0) {
+                        container.textContent = text;
+                        return;
+                    }
+
+                    container.append(document.createTextNode(text.slice(0, idx)));
+                    const strong = document.createElement('strong');
+                    strong.textContent = text.slice(idx, idx + query.length);
+                    container.append(strong, document.createTextNode(text.slice(idx + query.length)));
+                }
+
                 // Inside your DOMContentLoaded listener, replace the loop in your input handler with this:
                 athleteInput.addEventListener('input', function () {
                     // split on spaces and match all terms anywhere in the name
@@ -379,17 +405,14 @@
 
                     athletes.forEach(a => {
                         if (count >= maxItems) return;
-                        const name = a.Name.toLowerCase();
+                        const searchText = getAthleteSearchText(a);
                         // only match if every term appears somewhere
-                        if (terms.every(term => name.includes(term))) {
+                        if (terms.every(term => searchText.includes(term))) {
                             // highlight the first search term
                             const first = terms[0];
-                            const idx = name.indexOf(first);
+                            const displayName = getAthleteDisplayName(a);
                             const item = document.createElement('div');
-                            item.innerHTML =
-                                a.Name.substr(0, idx) +
-                                '<strong>' + a.Name.substr(idx, first.length) + '</strong>' +
-                                a.Name.substr(idx + first.length);
+                            appendHighlightedText(item, displayName, first);
                             item.dataset.value = a.Name;
                             item.dataset.profilePic = a.ProfilePic;
 
@@ -513,13 +536,15 @@
         }
 
         function selectAthlete(a) {
-            athleteInput.value = a.Name;
-            document.getElementById('character-title').textContent = a.Name;
-            document.querySelector('picture').innerHTML = `
-                                                                                                            <img src="${a.ProfilePic}"
-                                                                                                                    alt="${a.Name} headshot"
-                                                                                                                    class="illustration"
-                                                                                                                    loading="lazy">`;
+            const displayName = (a.DisplayName && a.DisplayName.trim()) ? a.DisplayName.trim() : a.Name;
+            athleteInput.value = displayName;
+            document.getElementById('character-title').textContent = displayName;
+            const image = document.createElement('img');
+            image.src = a.ProfilePic;
+            image.alt = `${displayName} headshot`;
+            image.className = 'illustration';
+            image.loading = 'lazy';
+            document.querySelector('picture').replaceChildren(image);
             confirmBtn.style.display = 'inline-block';
             confirmBtn.disabled = false;
             currentAthlete = a;
