@@ -869,6 +869,10 @@
             removeSessionItem('chronoBortzDifference');
         }
 
+        function clearPendingPaymentOffer() {
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+        }
+
         function collectApplicantData() {
             // Get the data from the form fields
             const name = document.getElementById('name').value.trim();
@@ -901,6 +905,7 @@
             try {
                 paymentOffer = JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
             } catch (_) {
+                clearPendingPaymentOffer();
                 paymentOffer = null;
             }
             if (window.applyPaymentAdjustmentsToPaymentOffer) {
