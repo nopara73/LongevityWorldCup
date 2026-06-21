@@ -186,18 +186,6 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("Applicant name is required.");
             }
 
-            // Load SMTP configuration
-            Config config;
-            try
-            {
-                config = await Config.LoadAsync() ?? throw new InvalidOperationException("Loaded configuration is null.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Application submission failed before processing because configuration could not be loaded.");
-                return StatusCode(500, $"Failed to load configuration: {ex.Message}");
-            }
-
             // Handle result submissions: only biomarkers and proofs provided
             var isResultSubmissionOnly =
                    !string.IsNullOrWhiteSpace(applicantData.Name)
@@ -218,6 +206,32 @@ namespace LongevityWorldCup.Website.Controllers
                 && applicantData.ProofPics is null
                 && applicantData.DateOfBirth is null;
 
+            string? accountEmail = applicantData.AccountEmail?.Trim();
+            if (!isResultSubmissionOnly && !isEditSubmissionOnly)
+            {
+                if (string.IsNullOrWhiteSpace(accountEmail))
+                {
+                    return BadRequest("Account email is required.");
+                }
+
+                if (!new EmailAddressAttribute().IsValid(accountEmail))
+                {
+                    return BadRequest("Account email is invalid.");
+                }
+            }
+
+            // Load SMTP configuration
+            Config config;
+            try
+            {
+                config = await Config.LoadAsync() ?? throw new InvalidOperationException("Loaded configuration is null.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Application submission failed before processing because configuration could not be loaded.");
+                return StatusCode(500, $"Failed to load configuration: {ex.Message}");
+            }
+
             var submissionId = NormalizeSubmissionId(applicantData.SubmissionId);
             applicantData.SubmissionId = submissionId;
             var submissionKind = GetSubmissionKind(isResultSubmissionOnly, isEditSubmissionOnly);
@@ -232,8 +246,6 @@ namespace LongevityWorldCup.Website.Controllers
                 string.Join(",", proofLengths),
                 profilePicLength);
 
-            // Get AccountEmail from the json and trim it
-            string? accountEmail = applicantData.AccountEmail?.Trim();
             string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
             string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
             applicantData.FreePass = NormalizeFreePassValue(applicantData.FreePass);
