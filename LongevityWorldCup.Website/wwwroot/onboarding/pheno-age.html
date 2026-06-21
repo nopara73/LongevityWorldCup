@@ -1493,6 +1493,15 @@
                 });
             });
 
+        function syncFilledBiomarkersForNewApplication(fieldIds) {
+            if (isUpdate) return;
+
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value.trim() !== '') touchedBiomarkers.add(id);
+            });
+        }
+
         //–– seed from stored data
         const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
@@ -1582,6 +1591,8 @@
         let isFirstTimeAnimation = true; // Flag to control the first-time animation
 
         function calculateResult() {
+            syncFilledBiomarkersForNewApplication(['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']);
+
             // In update mode, ensure at least one new biomarker was entered
             if (isUpdate) {
                 if (touchedBiomarkers.size < 9) {
@@ -2338,6 +2349,8 @@
         }
 
         function proceedToNextPage() {
+            syncFilledBiomarkersForNewApplication(['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']);
+
             if (isUpdate && touchedBiomarkers.size === 0) {
                 customAlert('😱 No new biomarker data entered! Cannot proceed!');
                 return;
