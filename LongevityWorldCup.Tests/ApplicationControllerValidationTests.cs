@@ -1,3 +1,4 @@
+using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Controllers;
 using Microsoft.AspNetCore.Hosting;
@@ -421,6 +422,26 @@ public sealed class ApplicationControllerValidationTests
         var mailbox = Assert.IsType<MailboxAddress>(message.ReplyTo[0]);
         Assert.Equal(expectedEmail, mailbox.Address);
         Assert.Equal(expectedName, mailbox.Name);
+    }
+
+    [Fact]
+    public void InterviewRequestEmail_UsesRequesterAsReplyTo()
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildInterviewRequestEmail", BindingFlags.Static | BindingFlags.NonPublic);
+        var config = new Config
+        {
+            EmailFrom = "lwc@example.test",
+            EmailTo = "admin@example.test"
+        };
+
+        var message = Assert.IsType<MimeMessage>(method!.Invoke(null, [config, " athlete@example.test "]));
+
+        Assert.Equal("LWC Interview Request", message.Subject);
+        Assert.Equal("admin@example.test", Assert.IsType<MailboxAddress>(message.To[0]).Address);
+        var replyTo = Assert.IsType<MailboxAddress>(message.ReplyTo[0]);
+        Assert.Equal("athlete@example.test", replyTo.Address);
+        Assert.Equal("athlete@example.test", replyTo.Name);
+        Assert.Contains("Interview contact email: athlete@example.test", message.TextBody);
     }
 
     [Fact]
