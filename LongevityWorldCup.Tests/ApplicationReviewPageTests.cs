@@ -28,7 +28,9 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("const isNewResultsUploaded = getSessionItem(\"came-from\") === \"proof-upload\";", script);
         Assert.Contains("const isEditRequest = getSessionItem(\"came-from\") === \"edit-profile\";", script);
         Assert.Contains("setLocalItem('hasApplication', 'true');", script);
-        Assert.Contains("accountEmail: pending.accountEmail || contactEmail || null", script);
+        Assert.Contains("const pendingPaymentInvoice = readPendingPaymentInvoice();", script);
+        Assert.Contains("const contactEmail = readStoredContactEmail();", script);
+        Assert.Contains("accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null", script);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", script);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", script);
         Assert.DoesNotContain("sessionStorage.getItem(", script);
@@ -37,5 +39,32 @@ public sealed class ApplicationReviewPageTests
         Assert.DoesNotContain("localStorage.getItem(", script);
         Assert.DoesNotContain("localStorage.setItem(", script);
         Assert.DoesNotContain("localStorage.removeItem(", script);
+    }
+
+    [Fact]
+    public async Task ApplicationReview_NormalizesStoredContactEmailBeforeDisplayAndPaymentCheck()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/application-review.html");
+        var scriptStart = html.IndexOf("function normalizeContactEmail(value)", StringComparison.Ordinal);
+        var scriptEnd = html.IndexOf("</script>", scriptStart, StringComparison.Ordinal);
+
+        Assert.True(scriptStart >= 0);
+        Assert.True(scriptEnd > scriptStart);
+
+        var script = html[scriptStart..scriptEnd];
+
+        Assert.Contains("function normalizeContactEmail(value)", script);
+        Assert.Contains("const contactEmail = (value || '').trim();", script);
+        Assert.Contains("emailInput.type = 'email';", script);
+        Assert.Contains("return emailInput.checkValidity() ? contactEmail : null;", script);
+        Assert.Contains("function readStoredContactEmail()", script);
+        Assert.Contains("normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'))", script);
+        Assert.Contains("normalizeContactEmail(pendingPaymentInvoice && pendingPaymentInvoice.accountEmail)", script);
+        Assert.Contains("removeSessionItem('contactEmail');", script);
+        Assert.Contains("removeLocalItem('contactEmail');", script);
+        Assert.Contains("accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null", script);
     }
 }

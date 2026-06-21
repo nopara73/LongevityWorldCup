@@ -205,10 +205,45 @@
         function removeSessionItem(key) { removeStorageItem('sessionStorage', key); }
         function removeLocalItem(key) { removeStorageItem('localStorage', key); }
 
+        function normalizeContactEmail(value) {
+            const contactEmail = (value || '').trim();
+            if (!contactEmail) return null;
+
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.value = contactEmail;
+            return emailInput.checkValidity() ? contactEmail : null;
+        }
+
+        function readPendingPaymentInvoice() {
+            try {
+                return JSON.parse(
+                    getSessionItem(PENDING_PAYMENT_INVOICE_KEY)
+                    || getLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
+                    || "null"
+                );
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function readStoredContactEmail() {
+            const storedContactEmail = normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));
+            if (storedContactEmail) return storedContactEmail;
+
+            const pendingContactEmail = normalizeContactEmail(pendingPaymentInvoice && pendingPaymentInvoice.accountEmail);
+            if (pendingContactEmail) return pendingContactEmail;
+
+            removeSessionItem('contactEmail');
+            removeLocalItem('contactEmail');
+            return null;
+        }
+
         const isNewResultsUploaded = getSessionItem("came-from") === "proof-upload";
         const isEditRequest = getSessionItem("came-from") === "edit-profile";
         const PENDING_PAYMENT_INVOICE_KEY = "pendingPaymentInvoice";
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = "pendingPaymentInvoicePersistent";
+        const pendingPaymentInvoice = readPendingPaymentInvoice();
         removeSessionItem("came-from");
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -230,21 +265,7 @@
         });
 
         // Retrieve the contact email
-        const contactEmail =
-            getSessionItem('contactEmail')
-            || getLocalItem('contactEmail')
-            || (() => {
-                try {
-                    const pending = JSON.parse(
-                        getSessionItem(PENDING_PAYMENT_INVOICE_KEY)
-                        || getLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
-                        || "null"
-                    );
-                    return pending && pending.accountEmail ? pending.accountEmail : null;
-                } catch (_) {
-                    return null;
-                }
-            })();
+        const contactEmail = readStoredContactEmail();
         if (contactEmail) {
             // Insert it into the placeholder
             document.getElementById('contactEmailPlaceholder').textContent = contactEmail;
@@ -257,16 +278,7 @@
         setLocalItem('hasApplication', 'true');
 
         function maybeNotifyPaidInvoice() {
-            let pending;
-            try {
-                pending = JSON.parse(
-                    getSessionItem(PENDING_PAYMENT_INVOICE_KEY)
-                    || getLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
-                    || "null"
-                );
-            } catch (_) {
-                pending = null;
-            }
+            const pending = pendingPaymentInvoice;
 
             if (!pending || !pending.invoiceId) return;
 
@@ -276,7 +288,7 @@
                 body: JSON.stringify({
                     invoiceId: pending.invoiceId,
                     applicantName: pending.applicantName || null,
-                    accountEmail: pending.accountEmail || contactEmail || null
+                    accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null
                 })
             }, 12000)
                 .then(response => response.ok ? response.json() : null)
