@@ -1216,7 +1216,7 @@
 
             try {
                 const parsedOffer = JSON.parse(rawOffer);
-                if (parsedOffer && typeof parsedOffer === 'object') return true;
+                if (parsedOffer && typeof parsedOffer === 'object' && !Array.isArray(parsedOffer)) return true;
             } catch (_) {
             }
 
