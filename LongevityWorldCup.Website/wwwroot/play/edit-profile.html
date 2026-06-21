@@ -441,8 +441,8 @@
                     <i class="fa fa-image"></i>
                     Change profile picture
                 </button>
-                <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
-                <input type="file" id="profileCameraInputModal" accept="image/*" capture="user" style="display: none;">
+                <input type="file" id="profilePicInputModal" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" style="display: none;">
+                <input type="file" id="profileCameraInputModal" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="user" style="display: none;">
                 <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture">
                     <i class="fa fa-undo"></i>
                 </button>
@@ -1084,11 +1084,36 @@
             profileCameraInput.click();
         });
 
+        function getProfilePictureFileExtension(file) {
+            const name = file && typeof file.name === 'string' ? file.name.toLowerCase() : '';
+            const dotIndex = name.lastIndexOf('.');
+            return dotIndex >= 0 ? name.slice(dotIndex + 1) : '';
+        }
+
+        function isSupportedProfilePictureFile(file) {
+            if (!file) return false;
+
+            const type = typeof file.type === 'string' ? file.type.toLowerCase() : '';
+            const extension = getProfilePictureFileExtension(file);
+            return type === 'image/jpeg'
+                || type === 'image/png'
+                || type === 'image/webp'
+                || extension === 'jpg'
+                || extension === 'jpeg'
+                || extension === 'png'
+                || extension === 'webp';
+        }
+
         function handleProfilePictureSelection(e) {
             const input = e.target;
             const file = input.files[0];
             if (!file) return;
             input.value = '';
+            if (!isSupportedProfilePictureFile(file)) {
+                customAlert('Profile picture must be JPG, PNG, or WebP.');
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = (evt) => {
                 const cropperModal = document.getElementById('changeProfileCropperModal');

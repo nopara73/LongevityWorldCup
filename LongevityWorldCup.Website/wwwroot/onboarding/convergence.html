@@ -588,8 +588,8 @@
                         <li>Include head and shoulders.</li>
                     </ol>
                     <div class="convergence-upload-action">
-                        <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
-                        <input type="file" id="profileCameraInput" accept="image/*" capture="user" style="display: none;">
+                        <input type="file" id="profilePicInput" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" style="display: none;">
+                        <input type="file" id="profileCameraInput" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="user" style="display: none;">
                         <button type="button" id="takeProfileSelfieButton" class="option-button grey">
                             <i class="fa fa-camera"></i>
                             Take selfie
@@ -891,6 +891,26 @@
             const accountEmailInput = document.getElementById('accountEmail');
             delete accountEmailInput.dataset.prefilledFrom;
             checkFormValidityStage7();
+        }
+
+        function getProfilePictureFileExtension(file) {
+            const name = file && typeof file.name === 'string' ? file.name.toLowerCase() : '';
+            const dotIndex = name.lastIndexOf('.');
+            return dotIndex >= 0 ? name.slice(dotIndex + 1) : '';
+        }
+
+        function isSupportedProfilePictureFile(file) {
+            if (!file) return false;
+
+            const type = typeof file.type === 'string' ? file.type.toLowerCase() : '';
+            const extension = getProfilePictureFileExtension(file);
+            return type === 'image/jpeg'
+                || type === 'image/png'
+                || type === 'image/webp'
+                || extension === 'jpg'
+                || extension === 'jpeg'
+                || extension === 'png'
+                || extension === 'webp';
         }
 
         function validateApplicationIdentity() {
@@ -1716,6 +1736,11 @@
                 const file = input.files[0];
                 input.value = '';
                 if (file) {
+                    if (!isSupportedProfilePictureFile(file)) {
+                        customAlert('Profile picture must be JPG, PNG, or WebP.');
+                        return;
+                    }
+
                     const reader = new FileReader();
                     reader.onload = function (e) {
                         // Disable "Next" button while cropping
