@@ -88,6 +88,36 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Theory]
+    [InlineData("pheno-age.html", "syncFilledBiomarkersForNewApplication(['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']);")]
+    [InlineData("bortz-age.html", "syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);")]
+    public void BioagePages_CaptureFilledNewApplicationFieldsBeforeCalculationAndHandoff(string fileName, string syncCall)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("function syncFilledBiomarkersForNewApplication(fieldIds)", html);
+        Assert.Contains("if (isUpdate) return;", html);
+        Assert.Contains("if (el && el.value.trim() !== '') touchedBiomarkers.add(id);", html);
+
+        var calculateStart = html.IndexOf("function calculateResult()", StringComparison.Ordinal);
+        var updateGuardStart = html.IndexOf("if (isUpdate)", calculateStart, StringComparison.Ordinal);
+        var proceedStart = html.IndexOf("function proceedToNextPage()", StringComparison.Ordinal);
+        var handoffGuardStart = html.IndexOf("if (isUpdate && touchedBiomarkers.size === 0)", proceedStart, StringComparison.Ordinal);
+
+        Assert.True(calculateStart >= 0);
+        Assert.True(updateGuardStart > calculateStart);
+        Assert.True(proceedStart >= 0);
+        Assert.True(handoffGuardStart > proceedStart);
+
+        var calculateBodyStart = html.IndexOf(syncCall, calculateStart, StringComparison.Ordinal);
+        var proceedBodyStart = html.IndexOf(syncCall, proceedStart, StringComparison.Ordinal);
+
+        Assert.True(calculateBodyStart > calculateStart);
+        Assert.True(calculateBodyStart < updateGuardStart);
+        Assert.True(proceedBodyStart > proceedStart);
+        Assert.True(proceedBodyStart < handoffGuardStart);
+    }
+
+    [Theory]
     [InlineData("pheno-age.html", "phenoAgeForm")]
     [InlineData("bortz-age.html", "bortzAgeForm")]
     public void BioagePages_ReportRequiredFieldValidityBeforeCalculating(string fileName, string formId)

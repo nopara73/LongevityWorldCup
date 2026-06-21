@@ -1758,6 +1758,15 @@
                 });
             });
 
+        function syncFilledBiomarkersForNewApplication(fieldIds) {
+            if (isUpdate) return;
+
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value.trim() !== '') touchedBiomarkers.add(id);
+            });
+        }
+
         //–– seed from stored data
         const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
@@ -1946,6 +1955,8 @@
         let isFirstTimeAnimation = true; // Flag to control the first-time animation
 
         function calculateResult() {
+            syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
+
             // In update mode, ensure all Bortz biomarkers were entered
             if (isUpdate) {
                 const requiredCount = window.BortzAge.features.length - 1; // exclude age
@@ -2821,6 +2832,8 @@
         }
 
         function proceedToNextPage() {
+            syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
+
             if (isUpdate && touchedBiomarkers.size === 0) {
                 customAlert('😱 No new biomarker data entered! Cannot proceed!');
                 return;
