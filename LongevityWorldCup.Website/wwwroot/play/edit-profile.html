@@ -540,6 +540,7 @@
         function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
         function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
         function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
 
@@ -553,12 +554,21 @@
             return emailInput.checkValidity() ? contactEmail : null;
         }
 
+        function readStoredContactEmail() {
+            const contactEmail = normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));
+            if (contactEmail) return contactEmail;
+
+            removeSessionItem('contactEmail');
+            removeLocalItem('contactEmail');
+            return null;
+        }
+
         function readEditProfileContactEmail() {
             return normalizeContactEmail(athlete && athlete.AccountEmail)
                 || normalizeContactEmail(originalAthlete && originalAthlete.AccountEmail)
                 || normalizeContactEmail(athlete && athlete.MediaContact)
                 || normalizeContactEmail(originalAthlete && originalAthlete.MediaContact)
-                || normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));
+                || readStoredContactEmail();
         }
 
         let originalAthlete = null;
