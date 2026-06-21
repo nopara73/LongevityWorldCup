@@ -238,6 +238,11 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     return BadRequest("Proof attachment is required.");
                 }
+
+                if (string.IsNullOrWhiteSpace(applicantData.ProfilePic))
+                {
+                    return BadRequest("Profile picture is required.");
+                }
             }
 
             // Load SMTP configuration
