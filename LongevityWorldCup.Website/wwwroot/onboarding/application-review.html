@@ -215,18 +215,25 @@
             return emailInput.checkValidity() ? contactEmail : null;
         }
 
-        function readPendingPaymentInvoice() {
+        function parsePendingPaymentInvoice(value, clearMalformedInvoice) {
+            if (!value) return null;
+
             try {
-                return JSON.parse(
-                    getSessionItem(PENDING_PAYMENT_INVOICE_KEY)
-                    || getLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
-                    || "null"
-                );
+                return JSON.parse(value);
             } catch (_) {
-                removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
-                removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                clearMalformedInvoice();
                 return null;
             }
+        }
+
+        function readPendingPaymentInvoice() {
+            return parsePendingPaymentInvoice(
+                getSessionItem(PENDING_PAYMENT_INVOICE_KEY),
+                () => removeSessionItem(PENDING_PAYMENT_INVOICE_KEY)
+            ) || parsePendingPaymentInvoice(
+                getLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY),
+                () => removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY)
+            );
         }
 
         function readStoredContactEmail() {
