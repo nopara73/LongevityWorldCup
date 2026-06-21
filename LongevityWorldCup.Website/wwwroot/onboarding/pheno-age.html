@@ -1207,6 +1207,10 @@
             removeSessionItem('chronoBortzDifference');
         }
 
+        function clearPendingPaymentOffer() {
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+        }
+
         let athlete = null;
 
         try {
@@ -1237,7 +1241,7 @@
         }
 
         function hasUsablePendingPaymentOffer() {
-            const rawOffer = sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY);
+            const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
             if (!rawOffer) return false;
 
             try {
@@ -1246,7 +1250,7 @@
             } catch (_) {
             }
 
-            sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
+            clearPendingPaymentOffer();
             return false;
         }
 
