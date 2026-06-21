@@ -873,6 +873,22 @@
             removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
         }
 
+        function readPendingPaymentOffer() {
+            const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
+            if (!rawOffer) return null;
+
+            try {
+                const paymentOffer = JSON.parse(rawOffer);
+                if (paymentOffer && typeof paymentOffer === 'object' && !Array.isArray(paymentOffer)) {
+                    return paymentOffer;
+                }
+            } catch (_) {
+            }
+
+            clearPendingPaymentOffer();
+            return null;
+        }
+
         function collectApplicantData() {
             // Get the data from the form fields
             const name = document.getElementById('name').value.trim();
@@ -901,13 +917,7 @@
                 return;
             }
 
-            let paymentOffer = null;
-            try {
-                paymentOffer = JSON.parse(getSessionItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
-            } catch (_) {
-                clearPendingPaymentOffer();
-                paymentOffer = null;
-            }
+            let paymentOffer = readPendingPaymentOffer();
             if (window.applyPaymentAdjustmentsToPaymentOffer) {
                 paymentOffer = window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer);
             } else if (window.applyFreePassToPaymentOffer) {
