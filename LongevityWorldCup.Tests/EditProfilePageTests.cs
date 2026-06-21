@@ -135,11 +135,14 @@ public sealed class EditProfilePageTests
 
         Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
         Assert.Contains("function setSessionItem(key, value)", html);
+        Assert.Contains("function setLocalItem(key, value)", html);
         Assert.Contains("const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);", successBody);
         Assert.Contains("setSessionItem('contactEmail', reviewContactEmail);", successBody);
+        Assert.Contains("setLocalItem('contactEmail', reviewContactEmail);", successBody);
         Assert.Contains("setSessionItem(\"came-from\", \"edit-profile\");", successBody);
         Assert.Contains("window.location.href = '/review?from=edit-profile';", successBody);
         Assert.DoesNotContain("sessionStorage.setItem(", successBody);
+        Assert.DoesNotContain("localStorage.setItem(", successBody);
     }
 
     [Fact]

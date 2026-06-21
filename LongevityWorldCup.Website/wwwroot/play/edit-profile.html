@@ -538,6 +538,7 @@
         }
 
         function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
         function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
@@ -858,6 +859,7 @@
                                 const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
                                 if (reviewContactEmail) {
                                     setSessionItem('contactEmail', reviewContactEmail);
+                                    setLocalItem('contactEmail', reviewContactEmail);
                                 }
                                 setSessionItem("came-from", "edit-profile");
                                 window.location.href = '/review?from=edit-profile';
