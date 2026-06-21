@@ -292,36 +292,22 @@
             confirmBtn.addEventListener('click', () => {
                 if (!currentAthlete || !currentAthlete.Name) return;
 
-                try {
-                    // if we had a different athlete before, clear any PhenoAge data
-                    const prevName = getLocalItem('selectedAthleteName');
-                    if (!prevName || prevName !== currentAthlete.Name) {
-                        sessionStorage.removeItem('biomarkerData');
-                        sessionStorage.removeItem('chronoPhenoDifference');
-                        sessionStorage.removeItem('chronoBortzDifference');
-                        sessionStorage.removeItem('contactEmail');
-                        removeLocalItem('contactEmail');
-                    }
+                // if we had a different athlete before, clear any PhenoAge data
+                const prevName = getLocalItem('selectedAthleteName');
+                if (!prevName || prevName !== currentAthlete.Name) {
+                    removeSessionItem('biomarkerData');
+                    removeSessionItem('chronoPhenoDifference');
+                    removeSessionItem('chronoBortzDifference');
+                    removeSessionItem('contactEmail');
+                    removeLocalItem('contactEmail');
+                }
 
-                    sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));
-
-                    const tempJson = sessionStorage.getItem('tempAthlete');
-                    if (tempJson) {
-                        try {
-                            const tempAthlete = JSON.parse(tempJson);
-                            if (tempAthlete.Name !== currentAthlete.Name) {
-                                sessionStorage.removeItem('tempAthlete');
-                            }
-                        } catch (e) {
-                            // if it wasn't valid JSON, just drop it
-                            sessionStorage.removeItem('tempAthlete');
-                        }
-                    }
-                } catch (_) {
+                if (!setRequiredSessionItem('selectedAthlete', JSON.stringify(currentAthlete))) {
                     customAlert('Browser storage is unavailable. Enable storage and try again.');
                     return;
                 }
 
+                clearStaleTempAthlete(currentAthlete.Name);
                 setLocalItem('selectedAthleteName', currentAthlete.Name);
                 window.location.href = '/dashboard';
             });
@@ -464,6 +450,45 @@
             }
 
         });
+
+        function getSessionItem(key) {
+            try {
+                return sessionStorage.getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function removeSessionItem(key) {
+            try {
+                sessionStorage.removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function setRequiredSessionItem(key, value) {
+            try {
+                sessionStorage.setItem(key, value);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function clearStaleTempAthlete(selectedAthleteName) {
+            const tempJson = getSessionItem('tempAthlete');
+            if (!tempJson) return;
+
+            try {
+                const tempAthlete = JSON.parse(tempJson);
+                if (tempAthlete && typeof tempAthlete === 'object' && tempAthlete.Name === selectedAthleteName) {
+                    return;
+                }
+            } catch (_) {
+            }
+
+            removeSessionItem('tempAthlete');
+        }
 
         function getLocalItem(key) {
             try {

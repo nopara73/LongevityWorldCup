@@ -16,8 +16,8 @@ public sealed class CharacterSelectionPageTests
         Assert.DoesNotContain("onclick=\"window.location.href='/dashboard'\"", html);
         Assert.Contains("if (!currentAthlete || !currentAthlete.Name) return;", html);
         Assert.Contains("const prevName = getLocalItem('selectedAthleteName');", html);
-        Assert.Contains("sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));", html);
-        Assert.Contains("sessionStorage.removeItem('contactEmail');", html);
+        Assert.Contains("if (!setRequiredSessionItem('selectedAthlete', JSON.stringify(currentAthlete)))", html);
+        Assert.Contains("removeSessionItem('contactEmail');", html);
         Assert.Contains("removeLocalItem('contactEmail');", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("setLocalItem('selectedAthleteName', currentAthlete.Name);", html);
@@ -56,5 +56,31 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("athleteError.textContent = 'Athlete list could not load. Check your connection and try again.';", html);
         Assert.Contains("loadAthletes().catch(() => {});", html);
         Assert.DoesNotContain(".catch(console.error);", html);
+    }
+
+    [Fact]
+    public async Task AthleteSelection_TempDraftCleanupDoesNotBlockSelection()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-selection.html");
+        var clickStart = html.IndexOf("confirmBtn.addEventListener('click'", StringComparison.Ordinal);
+        var clickEnd = html.IndexOf("window.location.href = '/dashboard';", clickStart, StringComparison.Ordinal);
+
+        Assert.True(clickStart >= 0);
+        Assert.True(clickEnd > clickStart);
+
+        var clickBody = html[clickStart..clickEnd];
+
+        Assert.Contains("function setRequiredSessionItem(key, value)", html);
+        Assert.Contains("sessionStorage.setItem(key, value);", html);
+        Assert.Contains("return false;", html);
+        Assert.Contains("function getSessionItem(key)", html);
+        Assert.Contains("function removeSessionItem(key)", html);
+        Assert.Contains("function clearStaleTempAthlete(selectedAthleteName)", html);
+        Assert.Contains("clearStaleTempAthlete(currentAthlete.Name);", clickBody);
+        Assert.DoesNotContain("sessionStorage.getItem('tempAthlete')", clickBody);
+        Assert.DoesNotContain("sessionStorage.removeItem('tempAthlete')", clickBody);
     }
 }
