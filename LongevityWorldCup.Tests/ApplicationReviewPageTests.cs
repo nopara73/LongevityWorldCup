@@ -28,6 +28,7 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("const isNewResultsUploaded = getSessionItem(\"came-from\") === \"proof-upload\";", script);
         Assert.Contains("const isEditRequest = getSessionItem(\"came-from\") === \"edit-profile\";", script);
         Assert.Contains("setLocalItem('hasApplication', 'true');", script);
+        Assert.Contains("accountEmail: pending.accountEmail || contactEmail || null", script);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", script);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", script);
         Assert.DoesNotContain("sessionStorage.getItem(", script);
