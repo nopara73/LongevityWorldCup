@@ -562,7 +562,7 @@ namespace LongevityWorldCup.Website.Controllers
                 var paymentRequired = requestedAmountUsd > 0m;
                 if (!paymentRequired)
                 {
-                    await TrySendApplicationConfirmationEmailAsync(
+                    await TrySendSubmissionConfirmationEmailAsync(
                         config,
                         accountEmail,
                         displayNameOrName,
@@ -633,7 +633,7 @@ namespace LongevityWorldCup.Website.Controllers
                     invoiceResult.CheckoutLink,
                     ct);
 
-                await TrySendApplicationConfirmationEmailAsync(
+                await TrySendSubmissionConfirmationEmailAsync(
                     config,
                     accountEmail,
                     displayNameOrName,
@@ -766,7 +766,7 @@ namespace LongevityWorldCup.Website.Controllers
             return Ok(new { success = true });
         }
 
-        private async Task TrySendApplicationConfirmationEmailAsync(
+        private async Task TrySendSubmissionConfirmationEmailAsync(
             Config config,
             string? accountEmail,
             string? applicantName,
@@ -775,7 +775,7 @@ namespace LongevityWorldCup.Website.Controllers
             string? checkoutLink = null,
             CancellationToken ct = default)
         {
-            if (isResultSubmissionOnly || isEditSubmissionOnly)
+            if (isEditSubmissionOnly)
                 return;
 
             if (string.IsNullOrWhiteSpace(accountEmail))
@@ -793,19 +793,29 @@ namespace LongevityWorldCup.Website.Controllers
                 var message = new MimeMessage();
                 message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
                 message.To.Add(new MailboxAddress(applicantName?.Trim() ?? "", trimmedEmail));
-                message.Subject = "Your Longevity World Cup application was received";
+                message.Subject = BuildSubmissionConfirmationSubject(isResultSubmissionOnly);
                 message.Body = new BodyBuilder
                 {
-                    TextBody = BuildApplicationConfirmationBody(applicantName, checkoutLink)
+                    TextBody = BuildSubmissionConfirmationBody(applicantName, isResultSubmissionOnly, checkoutLink)
                 }.ToMessageBody();
 
                 await SendEmailThroughSmtpAsync(config, message, ct);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogWarning(ex, "Failed to send application confirmation email to {Email}", trimmedEmail);
+                _logger.LogWarning(ex, "Failed to send submission confirmation email to {Email}", trimmedEmail);
             }
         }
+
+        private static string BuildSubmissionConfirmationSubject(bool isResultSubmissionOnly)
+            => isResultSubmissionOnly
+                ? "Your Longevity World Cup result upload was received"
+                : "Your Longevity World Cup application was received";
+
+        private static string BuildSubmissionConfirmationBody(string? applicantName, bool isResultSubmissionOnly, string? checkoutLink)
+            => isResultSubmissionOnly
+                ? BuildResultUploadConfirmationBody(applicantName, checkoutLink)
+                : BuildApplicationConfirmationBody(applicantName, checkoutLink);
 
         private static string BuildApplicationConfirmationBody(string? applicantName, string? checkoutLink)
         {
@@ -821,6 +831,31 @@ namespace LongevityWorldCup.Website.Controllers
                 body
                     .AppendLine()
                     .AppendLine("Your application also has a payment step. If you were not redirected automatically, you can continue here:")
+                    .AppendLine(checkoutLink.Trim());
+            }
+
+            return body
+                .AppendLine()
+                .AppendLine("Questions or corrections? Reply to this email.")
+                .AppendLine()
+                .AppendLine("Longevity World Cup")
+                .ToString();
+        }
+
+        private static string BuildResultUploadConfirmationBody(string? applicantName, string? checkoutLink)
+        {
+            var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
+            var body = new StringBuilder()
+                .AppendLine($"Hi {greetingName},")
+                .AppendLine()
+                .AppendLine("We received your Longevity World Cup result upload and proof.")
+                .AppendLine("We'll review it and update your athlete profile if the result is accepted.");
+
+            if (!string.IsNullOrWhiteSpace(checkoutLink))
+            {
+                body
+                    .AppendLine()
+                    .AppendLine("Your upload also has a payment step. If you were not redirected automatically, you can continue here:")
                     .AppendLine(checkoutLink.Trim());
             }
 
