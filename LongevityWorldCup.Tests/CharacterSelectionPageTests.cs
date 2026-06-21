@@ -5,7 +5,7 @@ namespace LongevityWorldCup.Tests;
 public sealed class CharacterSelectionPageTests
 {
     [Fact]
-    public async Task AthleteSelection_NavigatesOnlyAfterStorageSucceeds()
+    public async Task AthleteSelection_NavigatesOnlyAfterRequiredSessionStorageSucceeds()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -15,9 +15,10 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("<button disabled id=\"confirmBtn\" class=\"option-button green\">", html);
         Assert.DoesNotContain("onclick=\"window.location.href='/dashboard'\"", html);
         Assert.Contains("if (!currentAthlete || !currentAthlete.Name) return;", html);
-        Assert.Contains("localStorage.setItem('selectedAthleteName', currentAthlete.Name);", html);
+        Assert.Contains("const prevName = getLocalItem('selectedAthleteName');", html);
         Assert.Contains("sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
+        Assert.Contains("setLocalItem('selectedAthleteName', currentAthlete.Name);", html);
         Assert.Contains("window.location.href = '/dashboard';", html);
     }
 
@@ -30,8 +31,10 @@ public sealed class CharacterSelectionPageTests
         var html = await client.GetStringAsync("/play/character-selection.html");
 
         Assert.Contains("function getLocalItem(key)", html);
+        Assert.Contains("function setLocalItem(key, value)", html);
         Assert.Contains("const saved = getLocalItem('selectedAthleteName');", html);
-        Assert.Contains("localStorage.setItem('selectedAthleteName', currentAthlete.Name);", html);
+        Assert.Contains("setLocalItem('selectedAthleteName', currentAthlete.Name);", html);
+        Assert.DoesNotContain("const prevName = localStorage.getItem('selectedAthleteName');", html);
     }
 
     [Fact]
