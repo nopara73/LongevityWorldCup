@@ -366,6 +366,7 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 accountEmail = ResolveExistingAthleteContactEmail(TryReadExistingAthleteFields(_environment, folderKey, applicantData.Name));
             }
+            AddReplyToIfValid(message, accountEmail, displayNameOrName);
 
             var tempRoot = Path.Combine(Path.GetTempPath(), "LWC", folderKey);
             var athleteFolder = Path.Combine(tempRoot, folderKey);
@@ -1190,6 +1191,16 @@ namespace LongevityWorldCup.Website.Controllers
                 ? NormalizeOptionalAccountEmail(mediaContact)
                 : null;
 
+        private static void AddReplyToIfValid(MimeMessage message, string? accountEmail, string? displayName)
+        {
+            var normalizedEmail = NormalizeOptionalAccountEmail(accountEmail);
+            if (normalizedEmail is null)
+                return;
+
+            message.ReplyTo.Clear();
+            message.ReplyTo.Add(new MailboxAddress(displayName?.Trim() ?? string.Empty, normalizedEmail));
+        }
+
         private async Task<(bool Success, string? Error)> SendPaymentFollowupEmailAsync(
             Config config,
             PaymentStatusRequest request,
@@ -1219,6 +1230,7 @@ namespace LongevityWorldCup.Website.Controllers
                 var message = new MimeMessage();
                 message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
                 message.To.Add(CreateConfiguredToAddress(config));
+                AddReplyToIfValid(message, request.AccountEmail, request.ApplicantName);
                 message.Subject = subject; // exact subject for thread grouping
                 message.Body = new BodyBuilder { TextBody = textBody }.ToMessageBody();
 
