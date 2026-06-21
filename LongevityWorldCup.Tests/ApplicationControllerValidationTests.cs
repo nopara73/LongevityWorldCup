@@ -139,6 +139,25 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task FullApplicationMissingProofReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            AccountEmail = "athlete@example.test",
+            DateOfBirth = new DateOfBirthData { Year = 1980, Month = 1, Day = 2 },
+            Biomarkers = [new BiomarkerData()],
+            ProfilePic = "data:image/png;base64,AA=="
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Proof attachment is required.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task InterviewRequestInvalidModelStateReturnsValidationProblemDetails()
     {
         using var factory = new TestWebApplicationFactory();

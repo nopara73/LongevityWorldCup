@@ -233,6 +233,11 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     return BadRequest("Biomarker data is required.");
                 }
+
+                if (applicantData.ProofPics?.Any() is not true)
+                {
+                    return BadRequest("Proof attachment is required.");
+                }
             }
 
             // Load SMTP configuration
