@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using MimeKit;
 using System.Reflection;
 using Xunit;
 
@@ -394,6 +395,32 @@ public sealed class ApplicationControllerValidationTests
         var resolved = (string?)method!.Invoke(null, [existingFields]);
 
         Assert.Equal(expected, resolved);
+    }
+
+    [Theory]
+    [InlineData(" athlete@example.test ", "Applicant Ada", 1, "athlete@example.test", "Applicant Ada")]
+    [InlineData("athlete@example.test", " Applicant Ada ", 1, "athlete@example.test", "Applicant Ada")]
+    [InlineData("https://example.test/athlete", "Applicant Ada", 0, null, null)]
+    [InlineData(null, "Applicant Ada", 0, null, null)]
+    public void AddReplyToIfValid_UsesOnlyValidContactEmail(
+        string? accountEmail,
+        string? displayName,
+        int expectedCount,
+        string? expectedEmail,
+        string? expectedName)
+    {
+        var method = typeof(ApplicationController).GetMethod("AddReplyToIfValid", BindingFlags.Static | BindingFlags.NonPublic);
+        var message = new MimeMessage();
+
+        method!.Invoke(null, [message, accountEmail, displayName]);
+
+        Assert.Equal(expectedCount, message.ReplyTo.Count);
+        if (expectedCount == 0)
+            return;
+
+        var mailbox = Assert.IsType<MailboxAddress>(message.ReplyTo[0]);
+        Assert.Equal(expectedEmail, mailbox.Address);
+        Assert.Equal(expectedName, mailbox.Name);
     }
 
     [Fact]
