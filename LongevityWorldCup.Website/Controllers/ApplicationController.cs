@@ -228,6 +228,11 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     return BadRequest("Date of birth is invalid.");
                 }
+
+                if (applicantData.Biomarkers?.Any() is not true)
+                {
+                    return BadRequest("Biomarker data is required.");
+                }
             }
 
             // Load SMTP configuration
