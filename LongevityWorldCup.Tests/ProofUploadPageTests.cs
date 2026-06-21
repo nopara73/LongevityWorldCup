@@ -18,6 +18,22 @@ public sealed class ProofUploadPageTests
         Assert.DoesNotContain("{{ASSET_PROOF_HELPERS_JS}}", html);
     }
 
+    [Theory]
+    [InlineData("/onboarding/convergence.html")]
+    [InlineData("/play/proof-upload.html")]
+    public async Task ProofUploadPages_AdvertiseSupportedProofFileFormats(string path)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains("id=\"proofPicInput\" accept=\"image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf\"", html);
+        Assert.Contains("id=\"proofCameraInput\" accept=\"image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp\"", html);
+        Assert.DoesNotContain("id=\"proofPicInput\" accept=\"image/*,application/pdf\"", html);
+        Assert.DoesNotContain("id=\"proofCameraInput\" accept=\"image/*\"", html);
+    }
+
     [Fact]
     public async Task ProofHelper_WaitsForPdfRendererBeforeProcessingPdfUploads()
     {
