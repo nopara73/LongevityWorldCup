@@ -70,6 +70,24 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Theory]
+    [InlineData("pheno-age.html", "function storePhenoResultForNextStep")]
+    [InlineData("bortz-age.html", "function storeBortzResultForNextStep")]
+    public void BioagePages_ResetWizardStepBeforeHandoff(string fileName, string storeFunctionMarker)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+        var storeStart = html.IndexOf(storeFunctionMarker, StringComparison.Ordinal);
+        var storeEnd = html.IndexOf("return true;", storeStart, StringComparison.Ordinal);
+
+        Assert.True(storeStart >= 0);
+        Assert.True(storeEnd > storeStart);
+
+        var storeBody = html[storeStart..storeEnd];
+
+        Assert.Contains("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", storeBody);
+        Assert.Contains("try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}", storeBody);
+    }
+
+    [Theory]
     [InlineData("pheno-age.html", "phenoAgeForm")]
     [InlineData("bortz-age.html", "bortzAgeForm")]
     public void BioagePages_ReportRequiredFieldValidityBeforeCalculating(string fileName, string formId)
