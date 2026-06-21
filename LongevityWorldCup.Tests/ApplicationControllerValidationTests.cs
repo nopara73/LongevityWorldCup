@@ -248,6 +248,23 @@ public sealed class ApplicationControllerValidationTests
         Assert.Equal("Biomarker date is invalid.", badRequest.Value);
     }
 
+    [Fact]
+    public async Task ResultSubmissionMissingBiomarkerValuesReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            Biomarkers = [new BiomarkerData { Date = "2026-02-02" }],
+            ProofPics = ["data:image/png;base64,AA=="]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Biomarker result value is required.", badRequest.Value);
+    }
+
     [Theory]
     [InlineData("division", "Division is required.")]
     [InlineData("flag", "Flag is required.")]
@@ -319,7 +336,7 @@ public sealed class ApplicationControllerValidationTests
             Name = "Applicant Ada",
             AccountEmail = "athlete@example.test",
             DateOfBirth = new DateOfBirthData { Year = 1980, Month = 1, Day = 2 },
-            Biomarkers = [new BiomarkerData { Date = "2026-02-02" }],
+            Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }],
             ProfilePic = "data:image/png;base64,AA==",
             ProofPics = ["data:image/png;base64,AA=="],
             Division = "Open",
