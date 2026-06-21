@@ -1693,6 +1693,9 @@
             try {
                 return JSON.parse(sessionStorage.getItem('biomarkerData'));
             } catch (_) {
+                sessionStorage.removeItem('biomarkerData');
+                sessionStorage.removeItem('chronoPhenoDifference');
+                sessionStorage.removeItem('chronoBortzDifference');
                 return null;
             }
         }
