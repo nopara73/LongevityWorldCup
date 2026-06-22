@@ -303,6 +303,23 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task ResultSubmissionBlankProofReturnsProofRequiredBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }],
+            ProofPics = [" "]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Proof attachment is required.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task ResultSubmissionMissingBiomarkersReturnsBadRequestBeforeProcessing()
     {
         using var factory = new TestWebApplicationFactory();
