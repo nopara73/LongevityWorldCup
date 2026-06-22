@@ -648,6 +648,49 @@ public sealed class ApplicationControllerValidationTests
         Assert.DoesNotContain("result upload and proof", body);
     }
 
+    [Fact]
+    public void ApplicationSubmit_TreatsPostEmailInvoiceFailureAsAcceptedSubmission()
+    {
+        string? sourcePath = null;
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(
+                directory.FullName,
+                "LongevityWorldCup.Website",
+                "Controllers",
+                "ApplicationController.cs");
+            if (File.Exists(candidate))
+            {
+                sourcePath = candidate;
+                break;
+            }
+
+            directory = directory.Parent;
+        }
+
+        Assert.NotNull(sourcePath);
+
+        var source = File.ReadAllText(sourcePath);
+        var failureStart = source.IndexOf("Application submission email was sent but BTCPay invoice creation failed.", StringComparison.Ordinal);
+        var acceptedReturn = source.IndexOf("return Ok(new", failureStart, StringComparison.Ordinal);
+        var failureEnd = source.IndexOf("await TryRecordDiscountSignupAsync(", acceptedReturn + 1, StringComparison.Ordinal);
+
+        Assert.True(failureStart >= 0);
+        Assert.True(acceptedReturn > failureStart);
+        Assert.True(failureEnd > failureStart);
+
+        var failureBody = source[failureStart..failureEnd];
+
+        Assert.Contains("paymentRequired: true", failureBody);
+        Assert.Contains("invoiceId: null", failureBody);
+        Assert.Contains("checkoutLink: null", failureBody);
+        Assert.Contains("await TrySendSubmissionConfirmationEmailAsync(", failureBody);
+        Assert.Contains("return Ok(new", failureBody);
+        Assert.Contains("paymentUnavailable = true", failureBody);
+        Assert.DoesNotContain("return StatusCode(500, $\"Application sent, but failed to create BTCPay invoice:", failureBody);
+    }
+
     [Theory]
     [InlineData("result", "Payment detected for result upload.")]
     [InlineData(" RESULT ", "Payment detected for result upload.")]
