@@ -263,6 +263,23 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationIdentityFields_AdvertiseExistingLengthRequirements()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("<input type=\"text\" id=\"name\" name=\"name\" required aria-required=\"true\" minlength=\"3\" maxlength=\"100\" autocomplete=\"name\"", html);
+        Assert.Contains("<input type=\"text\" id=\"flag\" name=\"flag\" required aria-required=\"true\" minlength=\"3\" maxlength=\"100\" autocomplete=\"off\"", html);
+        Assert.Contains("Name must be at least 3 characters long.", html);
+        Assert.Contains("Flag must be at least 3 characters long.", html);
+        Assert.Contains("const nameRegex = /^", html);
+        Assert.Contains("const flagRegex = /^", html);
+        Assert.Contains("{2,99}$/;", html);
+    }
+
+    [Fact]
     public async Task ApplicationMotivationField_AdvertisesExistingLengthRequirement()
     {
         using var factory = new TestWebApplicationFactory();
