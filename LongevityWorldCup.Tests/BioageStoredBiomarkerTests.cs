@@ -204,6 +204,19 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
+    public void BioagePages_RenderResultLabelsAndUpdateInstructionsAsText(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("yearsTextElement.textContent = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);", html);
+        Assert.Contains("document.getElementById('mainInstructions').textContent = 'Submit your latest test results. All fields are required and must be from the same day.';", html);
+        Assert.DoesNotContain("yearsTextElement.innerHTML =", html);
+        Assert.DoesNotContain("document.getElementById('mainInstructions').innerHTML = 'Submit your latest test results. All fields are required and must be from the same day.';", html);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
     public void BioagePages_ReplaceMalformedPendingPaymentOfferBeforeHandoff(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
