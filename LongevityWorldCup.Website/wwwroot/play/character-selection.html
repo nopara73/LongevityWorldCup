@@ -298,7 +298,7 @@
 
                 // if we had a different athlete before, clear any PhenoAge data
                 const prevName = getLocalItem('selectedAthleteName');
-                if (!prevName || prevName !== currentAthlete.Name) {
+                if (!isAthleteInputValue(currentAthlete, prevName)) {
                     removeSessionItem('biomarkerData');
                     removeSessionItem('chronoPhenoDifference');
                     removeSessionItem('chronoBortzDifference');
@@ -364,15 +364,6 @@
 
                 function getAthleteSearchText(athlete) {
                     return `${getAthleteCanonicalName(athlete)} ${getAthleteDisplayName(athlete)}`.toLowerCase();
-                }
-
-                function isAthleteInputValue(athlete, value) {
-                    const query = (value || '').trim().toLowerCase();
-                    const canonicalName = getAthleteCanonicalName(athlete);
-                    if (!query || !canonicalName) return false;
-
-                    return canonicalName.toLowerCase() === query
-                        || getAthleteDisplayName(athlete).toLowerCase() === query;
                 }
 
                 function clearCurrentAthleteSelectionIfInputChanged(value) {
@@ -589,6 +580,15 @@
 
         function getAthleteCanonicalName(athlete) {
             return athlete && typeof athlete.Name === 'string' ? athlete.Name.trim() : '';
+        }
+
+        function isAthleteInputValue(athlete, value) {
+            const query = (value || '').trim().toLowerCase();
+            const canonicalName = getAthleteCanonicalName(athlete);
+            if (!query || !canonicalName) return false;
+
+            return canonicalName.toLowerCase() === query
+                || getAthleteDisplayName(athlete).toLowerCase() === query;
         }
 
         function selectAthlete(a) {
