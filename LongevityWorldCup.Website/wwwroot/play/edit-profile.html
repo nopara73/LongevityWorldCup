@@ -1325,11 +1325,13 @@
             const trimmed = value.trim();
             const regex = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\s'(),.\-]{2,99}$/;
             if (trimmed.length < 3) {
-                customAlert('Flag must be at least 3 characters long.');
+                customAlert('Flag must be at least 3 characters long.')
+                    .then(() => document.getElementById('flagDisplayInput')?.focus());
                 return false;
             }
             if (!regex.test(trimmed)) {
-                customAlert('Flag contains invalid characters.');
+                customAlert('Flag contains invalid characters.')
+                    .then(() => document.getElementById('flagDisplayInput')?.focus());
                 return false;
             }
             return true;
