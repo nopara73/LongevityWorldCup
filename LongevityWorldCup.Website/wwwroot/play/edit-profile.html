@@ -1220,6 +1220,10 @@
                 width: 1024,
                 height: 1024,
             });
+            if (!canvas) {
+                customAlert('Profile picture crop failed. Please try another image.');
+                return;
+            }
             const raw = canvas.toDataURL('image/png');
             let newSrc = raw;
             try {

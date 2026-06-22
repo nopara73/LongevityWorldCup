@@ -198,6 +198,9 @@ public sealed class EditProfilePageTests
         Assert.True(cropEnd > cropStart);
 
         var cropBody = html[cropStart..cropEnd];
+        Assert.Contains("if (!canvas)", cropBody);
+        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.');", cropBody);
+        Assert.Contains("return;", cropBody);
         Assert.Contains("let newSrc = raw;", cropBody);
         Assert.Contains("try {", cropBody);
         Assert.Contains("await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);", cropBody);
