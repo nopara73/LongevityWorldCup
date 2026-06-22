@@ -241,7 +241,7 @@ public sealed class EditProfilePageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
-        var guardStart = html.IndexOf("if (!athlete || !athlete.Name)", StringComparison.Ordinal);
+        var guardStart = html.IndexOf("if (!isValidSelectedAthlete(athlete))", StringComparison.Ordinal);
         var guardEnd = html.IndexOf("const submissionId = window.createApplicationSubmissionId();", guardStart, StringComparison.Ordinal);
 
         Assert.True(guardStart >= 0);
@@ -249,6 +249,7 @@ public sealed class EditProfilePageTests
 
         var guardBody = html[guardStart..guardEnd];
 
+        Assert.Contains("function isValidSelectedAthlete(value)", html);
         Assert.Contains("customAlert('No athlete selected. Please return and choose your athlete.')", guardBody);
         Assert.Contains(".then(() => window.location.href = '/select-athlete');", guardBody);
     }
