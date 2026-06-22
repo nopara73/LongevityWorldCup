@@ -722,6 +722,23 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Theory]
+    [InlineData(false, false, "https://submit.example.test/review")]
+    [InlineData(true, false, "https://submit.example.test/review?from=proof-upload")]
+    [InlineData(false, true, "https://submit.example.test/review?from=edit-profile")]
+    public void ReviewRedirectUrl_PreservesSubmissionReviewSource(bool isResultSubmissionOnly, bool isEditSubmissionOnly, string expected)
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+        controller.ControllerContext.HttpContext.Request.Scheme = "https";
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("submit.example.test");
+        var method = typeof(ApplicationController).GetMethod("BuildReviewRedirectUrlForCurrentRequest", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        var redirectUrl = (string?)method!.Invoke(controller, [isResultSubmissionOnly, isEditSubmissionOnly]);
+
+        Assert.Equal(expected, redirectUrl);
+    }
+
+    [Theory]
     [InlineData("result", "Payment detected for result upload.")]
     [InlineData(" RESULT ", "Payment detected for result upload.")]
     [InlineData("edit", "Payment detected for profile change request.")]

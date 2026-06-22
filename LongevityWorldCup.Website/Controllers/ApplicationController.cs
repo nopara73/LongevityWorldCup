@@ -1151,7 +1151,7 @@ namespace LongevityWorldCup.Website.Controllers
                 },
                 ["checkout"] = new Dictionary<string, object?>
                 {
-                    ["redirectURL"] = BuildReviewRedirectUrlForCurrentRequest(),
+                    ["redirectURL"] = BuildReviewRedirectUrlForCurrentRequest(isResultSubmissionOnly, isEditSubmissionOnly),
                     ["redirectAutomatically"] = true
                 },
                 ["metadata"] = new Dictionary<string, object?>
@@ -1196,9 +1196,13 @@ namespace LongevityWorldCup.Website.Controllers
             return (true, checkoutLink, invoiceId, null);
         }
 
-        private string BuildReviewRedirectUrlForCurrentRequest()
+        private string BuildReviewRedirectUrlForCurrentRequest(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
         {
             var origin = $"{Request.Scheme}://{Request.Host.Value}".TrimEnd('/');
+            if (isResultSubmissionOnly)
+                return $"{origin}/review?from=proof-upload";
+            if (isEditSubmissionOnly)
+                return $"{origin}/review?from=edit-profile";
             return $"{origin}/review";
         }
 
