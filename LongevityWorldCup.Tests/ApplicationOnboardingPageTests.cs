@@ -135,8 +135,9 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const applyButton = nextButton;", handlerBeforeFetch);
         Assert.Contains("isApplicationSubmitting = true;", handlerBeforeFetch);
         Assert.Contains("applyButton.disabled = true;", handlerBeforeFetch);
-        Assert.Contains("customAlert(`Failed to submit application. Please try again later.\\n\\n${badResponse}`).then(() => {\n                                        isApplicationSubmitting = false;", html);
-        Assert.Contains("customAlert(`An error occurred while submitting your application:\\n\\n${displayError}`).then(() => {\n                                isApplicationSubmitting = false;", html);
+        Assert.Contains("customAlert(`Failed to submit application. Please try again later.\\n\\n${badResponse}`).then(() => {", html);
+        Assert.Contains("customAlert(`An error occurred while submitting your application:\\n\\n${displayError}`).then(() => {", html);
+        Assert.Contains("isApplicationSubmitting = false;", html);
     }
 
     [Fact]
@@ -166,6 +167,38 @@ public sealed class ApplicationOnboardingPageTests
         Assert.DoesNotContain("!validator.isEmail(accountEmail)", html);
         Assert.DoesNotContain("!validator.isURL(personalLink)", html);
         Assert.DoesNotContain("!validator.isURL(personalLinkValue)", html);
+    }
+
+    [Fact]
+    public async Task ApplicationFinalValidation_StopsAfterFirstInvalidField()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var finalValidationStart = html.IndexOf("// Final stage requires accountEmail", StringComparison.Ordinal);
+        var submitStart = html.IndexOf("accountEmailInput.value = accountEmail;", finalValidationStart, StringComparison.Ordinal);
+
+        Assert.True(finalValidationStart >= 0);
+        Assert.True(submitStart > finalValidationStart);
+
+        var validationBody = html[finalValidationStart..submitStart];
+        var missingEmailAlert = validationBody.IndexOf("customAlert('Please enter your email.');", StringComparison.Ordinal);
+        var invalidEmailAlert = validationBody.IndexOf("customAlert('Please enter a valid email address.');", StringComparison.Ordinal);
+        var invalidUrlAlert = validationBody.IndexOf("customAlert('Please enter a valid URL for your personal link.');", StringComparison.Ordinal);
+        var missingEmailReturn = validationBody.IndexOf("return;", missingEmailAlert, StringComparison.Ordinal);
+        var invalidEmailReturn = validationBody.IndexOf("return;", invalidEmailAlert, StringComparison.Ordinal);
+        var invalidUrlReturn = validationBody.IndexOf("return;", invalidUrlAlert, StringComparison.Ordinal);
+
+        Assert.True(missingEmailAlert >= 0);
+        Assert.True(invalidEmailAlert > missingEmailAlert);
+        Assert.True(invalidUrlAlert > invalidEmailAlert);
+        Assert.True(missingEmailReturn > missingEmailAlert);
+        Assert.True(missingEmailReturn < invalidEmailAlert);
+        Assert.True(invalidEmailReturn > invalidEmailAlert);
+        Assert.True(invalidEmailReturn < invalidUrlAlert);
+        Assert.True(invalidUrlReturn > invalidUrlAlert);
+        Assert.DoesNotContain("let isValid = true;", validationBody);
     }
 
     [Fact]
