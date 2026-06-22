@@ -667,12 +667,23 @@
             return undefined;
         }
 
+        function normalizeCheckoutLink(value) {
+            if (typeof value !== 'string') return null;
+            const trimmed = value.trim();
+            if (!trimmed) return null;
+            try {
+                const checkoutUrl = new URL(trimmed, window.location.origin);
+                return checkoutUrl.protocol === 'http:' || checkoutUrl.protocol === 'https:'
+                    ? checkoutUrl.href
+                    : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
         function getCheckoutLink(submitResult) {
-            return submitResult
-                && submitResult.paymentRequired
-                && typeof submitResult.checkoutLink === 'string'
-                && submitResult.checkoutLink.trim()
-                ? submitResult.checkoutLink.trim()
+            return submitResult && submitResult.paymentRequired
+                ? normalizeCheckoutLink(submitResult.checkoutLink)
                 : null;
         }
 

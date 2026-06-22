@@ -611,8 +611,11 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("function getAthleteContactEmailStorageKey(athleteName)", html);
         Assert.Contains("return name ? 'contactEmailFor:' + name : null;", html);
         Assert.Contains("function rememberAthleteContactEmail(athleteName, email)", html);
+        Assert.Contains("function normalizeCheckoutLink(value)", html);
+        Assert.Contains("const checkoutUrl = new URL(trimmed, window.location.origin);", html);
+        Assert.Contains("return checkoutUrl.protocol === 'http:' || checkoutUrl.protocol === 'https:'", html);
+        Assert.Contains("? normalizeCheckoutLink(submitResult.checkoutLink)", html);
         Assert.Contains("function getCheckoutLink(submitResult)", html);
-        Assert.Contains("typeof submitResult.checkoutLink === 'string'", html);
         Assert.Contains("function getInvoiceId(submitResult)", html);
         Assert.Contains("typeof submitResult.invoiceId === 'string'", html);
         Assert.Contains("const checkoutLink = getCheckoutLink(submitResult);", html);
