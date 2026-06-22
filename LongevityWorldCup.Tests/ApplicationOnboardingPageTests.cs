@@ -193,6 +193,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("customAlert(`Failed to submit application. Please try again later.\\n\\n${badResponse}`).then(() => {", html);
         Assert.Contains("customAlert(alertMessage).then(() => {", html);
         Assert.Contains("isApplicationSubmitting = false;", html);
+        Assert.Equal(2, Regex.Matches(html, "setNextButtonToApply\\(\\);\\s+applyButton\\.focus\\(\\);").Count);
     }
 
     [Fact]

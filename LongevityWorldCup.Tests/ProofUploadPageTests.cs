@@ -369,6 +369,8 @@ public sealed class ProofUploadPageTests
         Assert.Contains("submitButton.disabled = true;", handlerBeforeFetch);
         Assert.Contains("customAlert(`Failed to submit results. Please try again later.\\n\\n${badResponse}`).then(() => {\n                                    isResultUploadSubmitting = false;", html);
         Assert.Contains("customAlert(alertMessage).then(() => {\n                            isResultUploadSubmitting = false;", html);
+        Assert.Contains("setSubmitButtonLabel();\n                                    submitButton.focus();", html);
+        Assert.Contains("setSubmitButtonLabel();\n                            submitButton.focus();", html);
     }
 
     [Fact]
