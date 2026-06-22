@@ -975,7 +975,7 @@
 
             const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');
             personalLinkInput.value = athlete.PersonalLink || '';
-            if (athlete.PersonalLink !== originalAthlete.PersonalLink) {
+            if (normalizeOptionalUrl(athlete.PersonalLink) !== normalizeOptionalUrl(originalAthlete.PersonalLink)) {
                 restorePersonalLinkBtn.style.display = 'inline-flex';
                 updateSubmitButtonState();
             }
@@ -988,8 +988,9 @@
             }
 
             personalLinkInput.addEventListener('input', () => {
-                athlete.PersonalLink = personalLinkInput.value.trim();
-                if (personalLinkInput.value.trim() !== originalAthlete.PersonalLink) {
+                const currentPersonalLink = personalLinkInput.value.trim();
+                athlete.PersonalLink = currentPersonalLink;
+                if (normalizeOptionalUrl(currentPersonalLink) !== normalizeOptionalUrl(originalAthlete.PersonalLink)) {
                     restorePersonalLinkBtn.style.display = 'inline-flex';
                 } else {
                     restorePersonalLinkBtn.style.display = 'none';
@@ -1291,14 +1292,14 @@
             const currentPicSrc = document.querySelector('.illustration').getAttribute('src');
             const currentDivision = document.getElementById('divisionDisplaySelect').value;
             const currentFlag = document.getElementById('flagDisplayInput').value.trim();
-            const currentPersonalLink = document.getElementById('personalLinkInput').value.trim();
+            const currentPersonalLink = normalizeOptionalUrl(document.getElementById('personalLinkInput').value);
             const currentMediaContact = document.getElementById('mediaContactInput').value.trim();
             const currentWhyDisplay = document.getElementById('whyDisplayInput').value.trim();
 
             const picChanged = currentPicSrc !== originalAthlete.ProfilePic;
             const divChanged = currentDivision !== originalAthlete.Division;
             const flagChanged = currentFlag !== originalAthlete.Flag;
-            const personalLinkChanged = currentPersonalLink !== originalAthlete.PersonalLink;
+            const personalLinkChanged = currentPersonalLink !== normalizeOptionalUrl(originalAthlete.PersonalLink);
             const mediaContactChanged = currentMediaContact !== originalAthlete.MediaContact;
             const whyChanged = currentWhyDisplay !== originalAthlete.Why;
 

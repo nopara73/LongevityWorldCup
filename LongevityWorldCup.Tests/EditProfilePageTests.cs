@@ -331,6 +331,41 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task EditProfilePersonalLinkChangeState_UsesNormalizedComparison()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var personalLinkSetupStart = html.IndexOf("const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');", StringComparison.Ordinal);
+        var mediaContactSetupStart = html.IndexOf("const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');", personalLinkSetupStart, StringComparison.Ordinal);
+        var listenerStart = html.IndexOf("personalLinkInput.addEventListener('input', () =>", StringComparison.Ordinal);
+        var listenerEnd = html.IndexOf("mediaContactInput.addEventListener('input', () =>", listenerStart, StringComparison.Ordinal);
+        var stateStart = html.IndexOf("function updateSubmitButtonState()", StringComparison.Ordinal);
+        var stateEnd = html.IndexOf("function validateFlagDisplay(value)", stateStart, StringComparison.Ordinal);
+
+        Assert.True(personalLinkSetupStart >= 0);
+        Assert.True(mediaContactSetupStart > personalLinkSetupStart);
+        Assert.True(listenerStart >= 0);
+        Assert.True(listenerEnd > listenerStart);
+        Assert.True(stateStart >= 0);
+        Assert.True(stateEnd > stateStart);
+
+        var setupBody = html[personalLinkSetupStart..mediaContactSetupStart];
+        var listenerBody = html[listenerStart..listenerEnd];
+        var stateBody = html[stateStart..stateEnd];
+
+        Assert.Contains("if (normalizeOptionalUrl(athlete.PersonalLink) !== normalizeOptionalUrl(originalAthlete.PersonalLink))", setupBody);
+        Assert.Contains("const currentPersonalLink = personalLinkInput.value.trim();", listenerBody);
+        Assert.Contains("athlete.PersonalLink = currentPersonalLink;", listenerBody);
+        Assert.Contains("if (normalizeOptionalUrl(currentPersonalLink) !== normalizeOptionalUrl(originalAthlete.PersonalLink))", listenerBody);
+        Assert.Contains("const currentPersonalLink = normalizeOptionalUrl(document.getElementById('personalLinkInput').value);", stateBody);
+        Assert.Contains("const personalLinkChanged = currentPersonalLink !== normalizeOptionalUrl(originalAthlete.PersonalLink);", stateBody);
+        Assert.DoesNotContain("const currentPersonalLink = document.getElementById('personalLinkInput').value.trim();", stateBody);
+        Assert.DoesNotContain("const personalLinkChanged = currentPersonalLink !== originalAthlete.PersonalLink;", stateBody);
+    }
+
+    [Fact]
     public async Task EditProfileSubmit_GuardsAgainstDuplicateClicks()
     {
         using var factory = new TestWebApplicationFactory();
