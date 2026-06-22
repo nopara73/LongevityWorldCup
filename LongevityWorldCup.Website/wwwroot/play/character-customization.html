@@ -430,9 +430,9 @@
 
             const optionsContainer = document.querySelector('.options-container');
             const backButton = document.getElementById('characterBackButton');
-            const ready = window.modulesReady || Promise.resolve();
+            const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});
 
-            ready.then(() => ensureProDiscountsLoaded()).then(() => {
+            ready.then(() => ensureProDiscountsLoaded()).catch(() => {}).then(() => {
                 if (!optionsContainer || !backButton) return;
 
                 const urlParams = new URLSearchParams(window.location.search || '');
