@@ -359,14 +359,15 @@
                 let currentFocus = -1;
 
                 function getAthleteSearchText(athlete) {
-                    return `${athlete.Name || ''} ${getAthleteDisplayName(athlete)}`.toLowerCase();
+                    return `${getAthleteCanonicalName(athlete)} ${getAthleteDisplayName(athlete)}`.toLowerCase();
                 }
 
                 function isAthleteInputValue(athlete, value) {
                     const query = (value || '').trim().toLowerCase();
-                    if (!query || !athlete) return false;
+                    const canonicalName = getAthleteCanonicalName(athlete);
+                    if (!query || !canonicalName) return false;
 
-                    return (athlete.Name || '').trim().toLowerCase() === query
+                    return canonicalName.toLowerCase() === query
                         || getAthleteDisplayName(athlete).toLowerCase() === query;
                 }
 
@@ -436,6 +437,7 @@
 
                     athletes.forEach(a => {
                         if (count >= maxItems) return;
+                        if (!getAthleteCanonicalName(a)) return;
                         const searchText = getAthleteSearchText(a);
                         // only match if every term appears somewhere
                         if (terms.every(term => searchText.includes(term))) {
@@ -579,6 +581,10 @@
             }
 
             return athlete && typeof athlete.Name === 'string' ? athlete.Name : '';
+        }
+
+        function getAthleteCanonicalName(athlete) {
+            return athlete && typeof athlete.Name === 'string' ? athlete.Name.trim() : '';
         }
 
         function selectAthlete(a) {
