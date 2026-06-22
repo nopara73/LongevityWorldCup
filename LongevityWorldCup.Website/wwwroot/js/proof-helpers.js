@@ -432,7 +432,7 @@ function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nex
     biomarkerChecklistContainer.appendChild(title);
 
     const instructions = document.createElement('p');
-    instructions.textContent = "Check each item once your proof shows it:";
+    instructions.textContent = "Check each item only when an uploaded proof shows its marker name and submitted value:";
     instructions.style.marginTop = '1px';
     instructions.style.marginBottom = '4px';
     instructions.classList.add('smaller-text');
