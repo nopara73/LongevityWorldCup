@@ -1604,16 +1604,41 @@
         }
 
         function correctCorrectableUnits() {
+            const parse = (id) => parseFloat(document.getElementById(id).value);
+            const setUnit = (id, val) => { document.getElementById(id).value = String(val); };
+
             // Albumin
-            const albuminValue = parseFloat(document.getElementById('albumin').value);
+            const albuminValue = parse('albumin');
             const albuminUnit = parseFloat(document.getElementById('albuminUnit').value);
             if (albuminUnit != 0.1 && albuminValue < 6) {
                 console.warn("Albumin is too low. Correcting the unit.");
-                document.getElementById('albuminUnit').value = 0.1;
+                setUnit('albuminUnit', 0.1);
             }
             else if (albuminUnit != 1 && albuminValue > 10 && albuminValue < 60) {
                 console.warn("Albumin range suggests g/L.");
-                document.getElementById('albuminUnit').value = 1;
+                setUnit('albuminUnit', 1);
+            }
+
+            // Creatinine
+            const creatinineValue = parse('creatinine');
+            const creatinineUnit = parseFloat(document.getElementById('creatinineUnit').value);
+            if (!isNaN(creatinineValue) && creatinineUnit === 0.0113 && creatinineValue > 200) {
+                console.warn("Creatinine value suggests µmol/L. Correcting the unit.");
+                setUnit('creatinineUnit', 1);
+            } else if (!isNaN(creatinineValue) && creatinineUnit === 1 && creatinineValue < 2 && creatinineValue > 0) {
+                console.warn("Creatinine value suggests mg/dL. Correcting the unit.");
+                setUnit('creatinineUnit', 0.0113);
+            }
+
+            // Glucose
+            const glucoseValue = parse('glucose');
+            const glucoseUnit = parseFloat(document.getElementById('glucoseUnit').value);
+            if (!isNaN(glucoseValue) && glucoseUnit === 1 && glucoseValue > 30) {
+                console.warn("Glucose value suggests mg/dL. Correcting the unit.");
+                setUnit('glucoseUnit', 18.016);
+            } else if (!isNaN(glucoseValue) && glucoseUnit === 18.016 && glucoseValue < 2 && glucoseValue > 0) {
+                console.warn("Glucose value suggests mmol/L. Correcting the unit.");
+                setUnit('glucoseUnit', 1);
             }
         }
 
