@@ -1032,6 +1032,19 @@
             return Number.isFinite(Number(value));
         }
 
+        function readStoredAgeDifference(key) {
+            const value = getSessionItem(key);
+            if (value === null || value === undefined) return null;
+
+            const text = String(value).trim();
+            if (text && Number.isFinite(Number(text))) {
+                return text;
+            }
+
+            removeSessionItem(key);
+            return null;
+        }
+
         function hasStoredBiomarkerDate(value) {
             if (typeof value !== 'string') return false;
             const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
@@ -1091,8 +1104,8 @@
             const personalLink = document.getElementById('personalLink').value.trim();
 
             // Get the differences from sessionStorage
-            const chronoPhenoDifference = getSessionItem('chronoPhenoDifference');
-            const chronoBortzDifference = getSessionItem('chronoBortzDifference');
+            const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');
+            const chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');
 
             // Use the global variables `profilePic` and `proofPics` directly
             // Get the biomarker data from sessionStorage
