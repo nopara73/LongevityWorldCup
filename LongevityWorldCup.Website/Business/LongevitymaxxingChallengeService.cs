@@ -662,6 +662,7 @@ public sealed class LongevitymaxxingChallengeService
         });
 
         UpdateCommitmentAfterCheckIn(checkIn);
+        ReactivateMissedDayInactiveParticipantIfCaughtUp(checkIn.Participant, checkIn.NowUtc);
         return GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc);
     }
 
@@ -880,6 +881,7 @@ public sealed class LongevitymaxxingChallengeService
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var settings = BuildSettings(now);
+        ReactivateMissedDayInactiveParticipantsIfCaughtUp(settings, now);
         var participants = GetConfirmedParticipants()
             .Where(p => p.ChallengeInactiveAtUtc is null)
             .ToList();
@@ -917,6 +919,53 @@ public sealed class LongevitymaxxingChallengeService
             if (CountConsecutiveMissedScoredDays(settings, participant, byDay, targetDate) >= MaxConsecutiveMissedScoredDaysForDailyReminders)
                 MarkParticipantInactive(participant.Id, now, ChallengeInactiveReasonMissedScoredDays);
         }
+    }
+
+    private void ReactivateMissedDayInactiveParticipantIfCaughtUp(ParticipantRecord participant, DateTimeOffset now)
+    {
+        if (participant.ChallengeInactiveAtUtc is null ||
+            participant.ChallengeInactiveReason == ChallengeInactiveReasonCommitmentPayment)
+        {
+            return;
+        }
+
+        var settings = BuildSettings(now);
+        var checkIns = GetCheckInsFor(new HashSet<string>(StringComparer.Ordinal) { participant.Id });
+        checkIns.TryGetValue(participant.Id, out var byDay);
+        byDay ??= [];
+        if (HasMissedScoredDayInactiveThreshold(settings, participant, byDay, now))
+            return;
+
+        _db.Run(sqlite => ReactivateParticipantChallenge(sqlite, participant.Id, now));
+    }
+
+    private void ReactivateMissedDayInactiveParticipantsIfCaughtUp(ChallengeSettings settings, DateTimeOffset now)
+    {
+        var inactiveParticipants = GetConfirmedParticipants()
+            .Where(p => p.ChallengeInactiveAtUtc is not null)
+            .Where(p => p.ChallengeInactiveReason != ChallengeInactiveReasonCommitmentPayment)
+            .ToList();
+        if (inactiveParticipants.Count == 0)
+            return;
+
+        var checkIns = GetCheckInsFor(inactiveParticipants.Select(p => p.Id).ToHashSet(StringComparer.Ordinal));
+        var caughtUpIds = inactiveParticipants
+            .Where(participant =>
+            {
+                checkIns.TryGetValue(participant.Id, out var byDay);
+                byDay ??= [];
+                return !HasMissedScoredDayInactiveThreshold(settings, participant, byDay, now);
+            })
+            .Select(participant => participant.Id)
+            .ToList();
+        if (caughtUpIds.Count == 0)
+            return;
+
+        _db.Run(sqlite =>
+        {
+            foreach (var participantId in caughtUpIds)
+                ReactivateParticipantChallenge(sqlite, participantId, now);
+        });
     }
 
     public void MarkDailyReminderSent(string participantId, int challengeDay, DateTimeOffset? nowUtc = null)

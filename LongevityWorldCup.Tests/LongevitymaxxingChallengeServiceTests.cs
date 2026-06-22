@@ -1024,8 +1024,57 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Contains(caughtUp.Notes, note => note.Note == "catch-up day 12");
         Assert.Contains(caughtUp.Notes, note => note.Note == "catch-up day 13");
 
-        var resumed = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-22T08:05:00Z"));
-        Assert.Empty(resumed);
+        var resumed = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-22T08:05:00Z")));
+        Assert.Equal(caughtUp.Participant.Id, resumed.ParticipantId);
+        Assert.Equal(14, resumed.ChallengeDay);
+    }
+
+    [Fact]
+    public async Task DailyReminderStopRulesRepairStaleMissedDayInactiveAfterCatchUp()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("stale-resume@example.com", "Stale Rae");
+        SubmitChallengeDays(fixture, access, 10, 2, 2, 2, 2);
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            12,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-21T08:40:00Z"));
+        var caughtUp = fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            13,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-21T08:45:00Z"));
+
+        fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                UPDATE LongevitymaxxingParticipants
+                SET ChallengeInactiveAtUtc = @inactive,
+                    ChallengeInactiveReason = @reason,
+                    UpdatedAtUtc = @inactive
+                WHERE Id = @participantId;
+                """;
+            cmd.Parameters.AddWithValue("@inactive", DateTimeOffset.Parse("2026-06-21T05:00:00Z").ToString("o"));
+            cmd.Parameters.AddWithValue("@reason", "missed-scored-days");
+            cmd.Parameters.AddWithValue("@participantId", caughtUp.Participant.Id);
+            cmd.ExecuteNonQuery();
+        });
+
+        fixture.Service.ApplyDailyReminderStopRules(DateTimeOffset.Parse("2026-06-22T08:04:00Z"));
+
+        var resumed = Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-22T08:05:00Z")));
+        Assert.Equal(caughtUp.Participant.Id, resumed.ParticipantId);
+        Assert.Equal(14, resumed.ChallengeDay);
     }
 
     [Fact]
