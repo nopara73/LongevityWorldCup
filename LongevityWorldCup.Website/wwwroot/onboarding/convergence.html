@@ -1157,6 +1157,11 @@
             return !!(submitResult && submitResult.paymentRequired);
         }
 
+        function isSubmissionAcceptedPaymentFailure(message) {
+            return typeof message === 'string'
+                && /^Application sent, but failed to create BTCPay invoice:/i.test(message.trim());
+        }
+
         function getInvoiceId(submitResult) {
             return submitResult
                 && typeof submitResult.invoiceId === 'string'
@@ -1829,6 +1834,24 @@
                         } else {
                             const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
                             window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
+                                if (isSubmissionAcceptedPaymentFailure(badResponse)) {
+                                    void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'payment-unavailable', submissionKind, {
+                                        type: `HTTP ${response.status}`,
+                                        message: badResponse
+                                    });
+                                    customAlert('Your application was received, but the payment page could not be created. We will follow up by email.').then(() => {
+                                        rememberAthleteContactEmail(applicantData.name, applicantData.accountEmail);
+                                        setSessionItem('contactEmail', applicantData.accountEmail);
+                                        setLocalItem('contactEmail', applicantData.accountEmail);
+                                        removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                        profilePic = null;
+                                        proofPics = [];
+                                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                        window.location.href = '/review';
+                                    });
+                                    return;
+                                }
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                     type: `HTTP ${response.status}`,
                                     message: badResponse

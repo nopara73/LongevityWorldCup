@@ -691,6 +691,11 @@
             return !!(submitResult && submitResult.paymentRequired);
         }
 
+        function isSubmissionAcceptedPaymentFailure(message) {
+            return typeof message === 'string'
+                && /^Application sent, but failed to create BTCPay invoice:/i.test(message.trim());
+        }
+
         function getInvoiceId(submitResult) {
             return submitResult
                 && typeof submitResult.invoiceId === 'string'
@@ -853,6 +858,27 @@
                         } else {
                             const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
                             window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
+                                if (isSubmissionAcceptedPaymentFailure(badResponse)) {
+                                    void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'payment-unavailable', submissionKind, {
+                                        type: `HTTP ${response.status}`,
+                                        message: badResponse
+                                    });
+                                    customAlert('Your results were received, but the payment page could not be created. We will follow up by email.').then(() => {
+                                        const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
+                                        if (reviewContactEmail) {
+                                            rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);
+                                            setSessionItem('contactEmail', reviewContactEmail);
+                                            setLocalItem('contactEmail', reviewContactEmail);
+                                        }
+                                        proofPics = [];
+                                        removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                        setSessionItem("came-from", "proof-upload");
+                                        window.location.href = '/review?from=proof-upload';
+                                    });
+                                    return;
+                                }
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                     type: `HTTP ${response.status}`,
                                     message: badResponse
