@@ -56,7 +56,7 @@ public sealed class ProofUploadPageTests
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/proof-helpers.js");
-        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input)", StringComparison.Ordinal);
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input, retryButton)", StringComparison.Ordinal);
         var readerStart = javascript.IndexOf("const readDataURL = file =>", handlerStart, StringComparison.Ordinal);
         var imageCapStart = javascript.IndexOf("if (proofPics.length >= 9)", readerStart, StringComparison.Ordinal);
 
@@ -68,7 +68,8 @@ public sealed class ProofUploadPageTests
 
         Assert.DoesNotContain("proofPics.length + selectedFiles.length > 9", beforeReader);
         Assert.Contains("if (proofPics.length >= 9)", javascript);
-        Assert.Contains("customAlert('You can upload a maximum of 9 images.');", javascript);
+        Assert.Contains("customAlert('You can upload a maximum of 9 images.')\n                                    .then(() => focusProofRetryButton(retryButton));", javascript);
+        Assert.Contains("customAlert('You can upload a maximum of 9 images.')\n                            .then(() => focusProofRetryButton(retryButton));", javascript);
     }
 
     [Fact]
@@ -90,7 +91,7 @@ public sealed class ProofUploadPageTests
         Assert.True(hideLoadingIndex > resetIndex);
 
         var catchBody = javascript[catchIndex..finallyIndex];
-        Assert.Contains("customAlert('Proof upload failed. Please try again with a JPG, PNG, WebP, or PDF file.');", catchBody);
+        Assert.Contains("customAlert('Proof upload failed. Please try again with a JPG, PNG, WebP, or PDF file.')\n                .then(() => focusProofRetryButton(retryButton));", catchBody);
         Assert.DoesNotContain("error.message", catchBody);
     }
 
@@ -101,7 +102,7 @@ public sealed class ProofUploadPageTests
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/proof-helpers.js");
-        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input)", StringComparison.Ordinal);
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input, retryButton)", StringComparison.Ordinal);
         var finallyIndex = javascript.IndexOf("} finally {", handlerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
@@ -114,6 +115,9 @@ public sealed class ProofUploadPageTests
         Assert.Contains("if (isProofUploadProcessing) return;", javascript);
         Assert.Contains("if (isProofUploadProcessing)", handlerBody);
         Assert.Contains("if (input) input.value = \"\";", handlerBody);
+        Assert.Contains("const focusProofRetryButton = retryButton =>", javascript);
+        Assert.Contains("await handleProofFiles(event.target.files, proofPicInput, uploadProofButton);", javascript);
+        Assert.Contains("await handleProofFiles(event.target.files, cameraInput, cameraButton || uploadProofButton);", javascript);
         Assert.Contains("isProofUploadProcessing = true;", handlerBody);
         Assert.Contains("uploadProofButton.disabled = true;", handlerBody);
         Assert.Contains("proofPicInput.disabled = true;", handlerBody);
@@ -152,7 +156,7 @@ public sealed class ProofUploadPageTests
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/proof-helpers.js");
-        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input)", StringComparison.Ordinal);
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input, retryButton)", StringComparison.Ordinal);
         var loadingStart = javascript.IndexOf("showLoading();", handlerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
@@ -175,7 +179,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));", beforeLoading);
         Assert.Contains("if (supportedFiles.length === 0)", beforeLoading);
         Assert.Contains("if (input) input.value = \"\";", beforeLoading);
-        Assert.Contains("customAlert('Proof files must be JPG, PNG, WebP, or PDF.');", beforeLoading);
+        Assert.Contains("customAlert('Proof files must be JPG, PNG, WebP, or PDF.')\n                .then(() => focusProofRetryButton(retryButton));", beforeLoading);
         Assert.Contains("return;", beforeLoading);
         Assert.Contains("if (isProofPdfFile(file))", javascript);
         Assert.DoesNotContain("if (file.type === 'application/pdf')", javascript);
@@ -188,7 +192,7 @@ public sealed class ProofUploadPageTests
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/proof-helpers.js");
-        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input)", StringComparison.Ordinal);
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input, retryButton)", StringComparison.Ordinal);
         var loopStart = javascript.IndexOf("for (const file of supportedFiles)", handlerStart, StringComparison.Ordinal);
         var catchStart = javascript.IndexOf("} catch (error)", loopStart, StringComparison.Ordinal);
 
@@ -202,7 +206,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("for (const file of supportedFiles)", processingBody);
         Assert.DoesNotContain("for (const file of selectedFiles)", processingBody);
         Assert.Contains("if (unsupportedFiles.length > 0)", processingBody);
-        Assert.Contains("customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.');", processingBody);
+        Assert.Contains("customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.')\n                    .then(() => focusProofRetryButton(retryButton));", processingBody);
     }
 
     [Fact]
@@ -230,7 +234,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", processingBody);
         Assert.Contains("nextButton.disabled = true;", processingBody);
         Assert.Contains("if (failedFiles > 0)", javascript);
-        Assert.Contains("customAlert('Some proof files could not be processed. Please try them again as JPG, PNG, WebP, or PDF.');", javascript);
+        Assert.Contains("customAlert('Some proof files could not be processed. Please try them again as JPG, PNG, WebP, or PDF.')\n                    .then(() => focusProofRetryButton(retryButton));", javascript);
     }
 
     [Fact]
