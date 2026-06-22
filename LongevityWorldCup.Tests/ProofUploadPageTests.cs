@@ -266,6 +266,33 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ProofHelper_UsesSafeStorageForChecklistBiomarkerHandoff()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var helperStart = javascript.IndexOf("function getProofSessionItem(key)", StringComparison.Ordinal);
+        var helperEnd = javascript.IndexOf("window.getProofChecklistLabelsFromSession = function ()", helperStart, StringComparison.Ordinal);
+        var checklistStart = helperEnd;
+        var checklistEnd = javascript.IndexOf("function getProofFileExtension(file)", checklistStart, StringComparison.Ordinal);
+
+        Assert.True(helperStart >= 0);
+        Assert.True(helperEnd > helperStart);
+        Assert.True(checklistEnd > checklistStart);
+
+        var helperBody = javascript[helperStart..helperEnd];
+        var checklistBody = javascript[checklistStart..checklistEnd];
+
+        Assert.Contains("try {", helperBody);
+        Assert.Contains("return window.sessionStorage.getItem(key);", helperBody);
+        Assert.Contains("} catch (_) {", helperBody);
+        Assert.Contains("return null;", helperBody);
+        Assert.Contains("var raw = getProofSessionItem('biomarkerData');", checklistBody);
+        Assert.DoesNotContain("sessionStorage.getItem('biomarkerData')", javascript);
+    }
+
+    [Fact]
     public async Task ProofHelper_IgnoresBlankStoredBiomarkerValuesInChecklist()
     {
         using var factory = new TestWebApplicationFactory();
