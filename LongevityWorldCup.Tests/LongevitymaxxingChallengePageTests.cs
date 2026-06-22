@@ -134,6 +134,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Sign up", html);
         Assert.Contains("Sign in", html);
         Assert.DoesNotContain("signup for free", html);
+        Assert.Contains("<input id=\"lmxSignupEmail\" name=\"email\" type=\"text\" inputmode=\"email\" autocomplete=\"email\" autocapitalize=\"none\" spellcheck=\"false\" required>", html);
+        Assert.Contains("<input id=\"lmxResendEmail\" type=\"text\" inputmode=\"email\" autocomplete=\"email\" autocapitalize=\"none\" spellcheck=\"false\" required>", html);
+        Assert.DoesNotContain("id=\"lmxSignupEmail\" name=\"email\" type=\"email\"", html);
+        Assert.DoesNotContain("id=\"lmxResendEmail\" type=\"email\"", html);
         Assert.Contains("<label for=\"lmxSignupName\">Username</label>", html);
         Assert.DoesNotContain("<label for=\"lmxEditName\">Username</label>", html);
         Assert.Contains("id=\"lmxProfileIdentity\"", html);
