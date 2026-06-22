@@ -869,7 +869,7 @@
         }
 
         function isOptionalUrl(value) {
-            const trimmed = (value || '').trim();
+            const trimmed = normalizeOptionalUrl(value);
             if (!trimmed) return true;
             if (window.validator && typeof window.validator.isURL === 'function') {
                 return window.validator.isURL(trimmed);
@@ -879,6 +879,12 @@
             input.type = 'url';
             input.value = trimmed;
             return input.checkValidity();
+        }
+
+        function normalizeOptionalUrl(value) {
+            const trimmed = (value || '').trim();
+            if (!trimmed) return '';
+            return /^www\./i.test(trimmed) ? `https://${trimmed}` : trimmed;
         }
 
         function prefillAccountEmailFromMediaContact() {

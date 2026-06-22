@@ -292,6 +292,9 @@ public sealed class EditProfilePageTests
         var validateBody = html[validatorEnd..personalLinkEnd];
 
         Assert.Contains("window.validator && typeof window.validator.isURL === 'function'", helperBody);
+        Assert.Contains("const v = normalizeOptionalUrl(value);", helperBody);
+        Assert.Contains("function normalizeOptionalUrl(value)", html);
+        Assert.Contains("return /^www\\./i.test(v) ? `https://${v}` : v;", html);
         Assert.Contains("input.type = 'url';", helperBody);
         Assert.Contains("return input.checkValidity();", helperBody);
         Assert.Contains("if (!isOptionalUrl(v))", validateBody);
