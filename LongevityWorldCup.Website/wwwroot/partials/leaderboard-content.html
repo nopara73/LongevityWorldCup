@@ -2785,6 +2785,299 @@
         return window.LwcFlags.renderFlagLabel(flag);
     }
 
+    function hasBortzRankData(athlete) {
+        return athlete && athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
+    }
+
+    function buildFiltersHref(filters) {
+        const cleanFilters = (Array.isArray(filters) ? filters : [filters])
+            .map(filter => String(filter || '').trim())
+            .filter(Boolean);
+        return cleanFilters.length > 0
+            ? `/?filters=${serializeFiltersParam(cleanFilters)}`
+            : '/leaderboard';
+    }
+
+    function buildViewHref(view) {
+        return `/league/${encodeURIComponent(String(view || '').trim())}`;
+    }
+
+    function addBestRankCandidate(athlete, candidate) {
+        if (!athlete || !candidate) return;
+
+        const rank = Number(candidate.rank);
+        if (!Number.isFinite(rank) || rank < 1) return;
+
+        const normalized = {
+            rank,
+            leagueName: String(candidate.leagueName || candidate.leagueLabel || '').trim(),
+            leagueLabel: String(candidate.leagueLabel || candidate.leagueName || '').trim(),
+            leagueLabelHtml: candidate.leagueLabelHtml || null,
+            leagueType: String(candidate.leagueType || 'other').trim(),
+            href: candidate.href || null,
+            targetBlank: !!candidate.targetBlank,
+            tiePriority: Number.isFinite(candidate.tiePriority) ? candidate.tiePriority : 100
+        };
+
+        if (!normalized.leagueName && !normalized.leagueLabel) return;
+
+        if (!Array.isArray(athlete.bestRankCandidates)) {
+            athlete.bestRankCandidates = [];
+        }
+
+        const key = `${normalized.leagueType}|${normalized.leagueName || normalized.leagueLabel}`;
+        const existingIndex = athlete.bestRankCandidates.findIndex(item => item.key === key);
+        if (existingIndex >= 0) {
+            const existing = athlete.bestRankCandidates[existingIndex];
+            if (compareBestRankCandidates(normalized, existing) < 0) {
+                athlete.bestRankCandidates[existingIndex] = { ...normalized, key };
+            }
+            return;
+        }
+
+        athlete.bestRankCandidates.push({ ...normalized, key });
+    }
+
+    function compareBestRankCandidates(a, b) {
+        if (!a) return 1;
+        if (!b) return -1;
+
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        if (a.tiePriority !== b.tiePriority) return a.tiePriority - b.tiePriority;
+        return String(a.leagueLabel || a.leagueName || '').localeCompare(String(b.leagueLabel || b.leagueName || ''));
+    }
+
+    function assignRankedBestCandidates(items, candidateFactory) {
+        (Array.isArray(items) ? items : []).forEach((athlete, index) => {
+            const candidate = candidateFactory(athlete, index);
+            addBestRankCandidate(athlete, {
+                ...candidate,
+                rank: index + 1
+            });
+        });
+    }
+
+    function sortedRankableAthletes(athletes, predicate, comparator) {
+        return (Array.isArray(athletes) ? athletes : [])
+            .filter(predicate || (() => true))
+            .slice()
+            .sort(comparator);
+    }
+
+    function assignBestRankCandidates(athletes) {
+        const rows = Array.isArray(athletes) ? athletes : [];
+        rows.forEach(athlete => {
+            athlete.bestRankCandidates = [];
+            if (Number.isFinite(athlete.rank)) {
+                addBestRankCandidate(athlete, {
+                    rank: athlete.rank,
+                    leagueName: 'Ultimate League',
+                    leagueLabel: 'Ultimate League',
+                    leagueType: 'ultimate',
+                    href: '/leaderboard',
+                    targetBlank: true,
+                    tiePriority: 0
+                });
+            }
+        });
+
+        assignRankedBestCandidates(
+            sortedRankableAthletes(rows, hasBortzRankData, window.compareAthleteRank),
+            () => ({
+                leagueName: 'Bortz Age',
+                leagueLabel: 'Bortz Age leaderboard',
+                leagueType: 'bortz',
+                href: buildViewHref('bortz'),
+                tiePriority: 10
+            })
+        );
+
+        assignRankedBestCandidates(
+            sortedRankableAthletes(rows, athlete => Number.isFinite(athlete.ageReduction), window.compareAthleteRankPhenoOnly),
+            () => ({
+                leagueName: 'Pheno Age',
+                leagueLabel: 'Pheno Age leaderboard',
+                leagueType: 'pheno',
+                href: buildViewHref('pheno'),
+                tiePriority: 11
+            })
+        );
+
+        assignRankedBestCandidates(
+            sortedRankableAthletes(rows, athlete => !hasBortzRankData(athlete), window.compareAthleteRankPhenoOnly),
+            () => ({
+                leagueName: 'Amateur League',
+                leagueLabel: 'Amateur League',
+                leagueType: 'amateur',
+                href: buildFiltersHref('Amateur'),
+                targetBlank: true,
+                tiePriority: -1
+            })
+        );
+
+        assignRankedBestCandidates(
+            sortedRankableAthletes(rows, athlete => Number.isFinite(athlete.phenoAgeImprovement), window.compareAthleteRankPhenoImprovement),
+            () => ({
+                leagueName: 'Pheno Improvement',
+                leagueLabel: 'Pheno Improvement leaderboard',
+                leagueType: 'pheno-improvement',
+                href: buildViewHref('improvement'),
+                tiePriority: 12
+            })
+        );
+
+        assignRankedBestCandidates(
+            sortedRankableAthletes(rows, athlete => Number.isFinite(athlete.bortzAgeImprovement), window.compareAthleteRankBortzImprovement),
+            () => ({
+                leagueName: 'Bortz Improvement',
+                leagueLabel: 'Bortz Improvement leaderboard',
+                leagueType: 'bortz-improvement',
+                href: buildViewHref('bortz-improvement'),
+                tiePriority: 12
+            })
+        );
+
+        assignRankedBestCandidates(
+            sortedRankableAthletes(
+                rows,
+                athlete => athlete.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(athlete.crowdAgeReduction),
+                window.compareAthleteRankCrowdAge),
+            () => ({
+                leagueName: 'Crowd Age',
+                leagueLabel: 'Crowd Age leaderboard',
+                leagueType: 'crowd',
+                href: buildViewHref('crowd'),
+                tiePriority: 13
+            })
+        );
+
+        assignRankedBestCandidates(
+            orderByNumberDesc(
+                rows.filter(athlete => Number.isFinite(athlete.ageReductionPercent)),
+                athlete => athlete.ageReductionPercent),
+            () => ({
+                leagueName: 'Pheno pace of aging',
+                leagueLabel: 'Pheno pace of aging ranking',
+                leagueType: 'pheno-pace',
+                tiePriority: 14
+            })
+        );
+
+        assignRankedBestCandidates(
+            orderByNumberAsc(
+                rows.filter(athlete =>
+                    athlete.lowestBortzAge != null &&
+                    athlete.chronoAtLowestBortzAge != null &&
+                    Number.isFinite(athlete.lowestBortzAge / athlete.chronoAtLowestBortzAge)),
+                athlete => athlete.lowestBortzAge / athlete.chronoAtLowestBortzAge),
+            () => ({
+                leagueName: 'Bortz pace of aging',
+                leagueLabel: 'Bortz pace of aging ranking',
+                leagueType: 'bortz-pace',
+                tiePriority: 14
+            })
+        );
+
+        const addGroupedRanks = (values, predicate, comparator, candidateFactory) => {
+            values.filter(Boolean).forEach(value => {
+                assignRankedBestCandidates(
+                    sortedRankableAthletes(rows, athlete => predicate(athlete, value), comparator),
+                    athlete => candidateFactory(athlete, value)
+                );
+            });
+        };
+
+        const divisions = [...new Set(rows.map(athlete => athlete.division).filter(Boolean))];
+        addGroupedRanks(
+            divisions,
+            (athlete, division) => athlete.division === division,
+            window.compareAthleteRank,
+            (_athlete, division) => ({
+                leagueName: division,
+                leagueLabel: `${division} League`,
+                leagueType: 'division',
+                href: `/league/${window.slugifyName(division, true)}`,
+                tiePriority: 20
+            })
+        );
+
+        const generations = [...new Set(rows.map(athlete => athlete.generation).filter(Boolean))];
+        addGroupedRanks(
+            generations,
+            (athlete, generation) => athlete.generation === generation,
+            window.compareAthleteRank,
+            (_athlete, generation) => ({
+                leagueName: generation,
+                leagueLabel: `${generation} League`,
+                leagueType: 'generation',
+                href: `/league/${window.slugifyName(generation, true)}`,
+                tiePriority: 21
+            })
+        );
+
+        divisions.forEach(division => {
+            generations.forEach(generation => {
+                assignRankedBestCandidates(
+                    sortedRankableAthletes(
+                        rows,
+                        athlete => athlete.division === division && athlete.generation === generation,
+                        window.compareAthleteRank),
+                    () => ({
+                        leagueName: `${generation}_${division}`,
+                        leagueLabel: `${generation} ${division} League`,
+                        leagueType: 'combination',
+                        href: buildFiltersHref([generation, division]),
+                        tiePriority: 22
+                    })
+                );
+            });
+        });
+
+        const exclusiveLeagues = [...new Set(rows.map(athlete => athlete.exclusiveLeague).filter(Boolean))];
+        addGroupedRanks(
+            exclusiveLeagues,
+            (athlete, exclusiveLeague) => athlete.exclusiveLeague === exclusiveLeague,
+            window.compareAthleteRank,
+            (_athlete, exclusiveLeague) => ({
+                leagueName: exclusiveLeague,
+                leagueLabel: `${exclusiveLeague} League`,
+                leagueType: 'exclusive',
+                href: exclusiveLeague === 'Prosperan'
+                    ? '/league/prosperan'
+                    : buildFiltersHref(exclusiveLeague),
+                tiePriority: 23
+            })
+        );
+
+    }
+
+    function renderBestRankLink(bestRankCandidate) {
+        const candidate = bestRankCandidate || {
+            rank: null,
+            leagueLabel: 'Ultimate League',
+            href: '/leaderboard'
+        };
+        const rank = Number(candidate.rank);
+        if (!Number.isFinite(rank)) return '';
+
+        const label = candidate.leagueLabel || candidate.leagueName || 'Ultimate League';
+        const labelHtml = candidate.leagueLabelHtml || escapeHtml(label);
+        if (!candidate.href) {
+            return `#${rank} in the ${labelHtml}`;
+        }
+
+        const targetAttrs = candidate.targetBlank ? ' target="_blank" rel="noopener noreferrer"' : '';
+        return `#${rank} in the <a href="${escapeHtml(candidate.href)}" class="league-link"${targetAttrs}>${labelHtml}</a>`;
+    }
+
+    window.LwcLeaderboardBestRank = {
+        addBestRankCandidate,
+        assignBestRankCandidates,
+        compareBestRankCandidates,
+        computeBestLeagueRank,
+        renderBestRankLink
+    };
+
     function getAthletePortraitUrl(athlete) {
         return (athlete && (athlete.profilePicThumb || athlete.profilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic)) || defaultProfilePic;
     }
@@ -3727,6 +4020,7 @@
                 );
                 athletesOrderedByPhenoAgeReduction = athleteResults.slice();
                 athletesOrderedByPhenoAgeReduction.sort(window.compareAthleteRankPhenoOnly);
+                assignBestRankCandidates(athleteResults);
 
                 const podiumCount = includePodium ? 3 : 0;
 
@@ -6123,12 +6417,12 @@
                     return;
                 }
 
-                const { ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType } = computeBestLeagueRank(athleteData);
+                const rankSummary = computeBestLeagueRank(athleteData);
 
                 // Populate the modal with athlete data
-                populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType);
+                populateModal(fullAthleteData, athleteData, rankSummary);
 
-                updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, ultimateRank);
+                updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, rankSummary.ultimateRank);
 
                 // Age visualization (radar + center) and biomarker chart are created after modal is shown so canvases have layout dimensions.
                 const bioAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
@@ -6310,76 +6604,40 @@
     }
 
     function computeBestLeagueRank(athleteData) {
-        // Arrays of divisions and generations for league type detection.
-        const divisions = [...new Set(athleteResults.map(athlete => athlete.division))];
-        const generations = [...new Set(athleteResults.map(athlete => athlete.generation))];
-
-        const getLeagueType = (league) => {
-            if (league === 'Ultimate League') return 'ultimate';
-            if (league === 'Amateur League') return 'amateur';
-            if (divisions.includes(league)) return 'division';
-            if (generations.includes(league)) return 'generation';
-            if (league.includes('_')) return 'combination';
-            return 'other';
-        };
-
-        const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
-        let amateurRank = null;
-        if (!isPro) {
-            const amateurAthletes = athleteResults.filter(a => !(a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction)));
-            amateurAthletes.sort(window.compareAthleteRankPhenoOnly);
-            const idx = amateurAthletes.findIndex(a => (a.name || a.Name) === (athleteData.name || athleteData.Name));
-            amateurRank = idx >= 0 ? idx + 1 : null;
+        if (!athleteData) {
+            return {
+                ultimateRank: null,
+                bestCandidate: null,
+                bestLeagueRank: null,
+                bestLeagueName: 'Ultimate League',
+                bestLeagueType: 'ultimate'
+            };
         }
 
-        const candidates = [];
-        const ultimateRank = athleteData.rank;
-        if (Number.isFinite(ultimateRank)) {
-            candidates.push({
+        if (!Array.isArray(athleteData.bestRankCandidates) || athleteData.bestRankCandidates.length === 0) {
+            assignBestRankCandidates(athleteResults);
+        }
+
+        const ultimateRank = Number.isFinite(athleteData.rank) ? athleteData.rank : null;
+        let candidates = Array.isArray(athleteData.bestRankCandidates)
+            ? athleteData.bestRankCandidates
+            : [];
+        if (candidates.length === 0 && Number.isFinite(ultimateRank)) {
+            candidates = [{
                 rank: ultimateRank,
                 leagueName: 'Ultimate League',
+                leagueLabel: 'Ultimate League',
                 leagueType: 'ultimate',
-                // Tie-break only: Amateur #N wins over Ultimate #N.
-                tiePriority: 1
-            });
-        }
-
-        for (const [league, rank] of Object.entries(athleteData.ranks || {})) {
-            if (!Number.isFinite(rank)) continue;
-            candidates.push({
-                rank,
-                leagueName: league,
-                leagueType: getLeagueType(league),
-                tiePriority: 1
-            });
-        }
-
-        if (Number.isFinite(amateurRank)) {
-            candidates.push({
-                rank: amateurRank,
-                leagueName: 'Amateur League',
-                leagueType: 'amateur',
+                href: '/leaderboard',
+                targetBlank: true,
                 tiePriority: 0
-            });
+            }];
         }
-
-        let best = null;
-        candidates.forEach(candidate => {
-            if (!best) {
-                best = candidate;
-                return;
-            }
-            if (candidate.rank < best.rank) {
-                best = candidate;
-                return;
-            }
-            if (candidate.rank === best.rank && candidate.tiePriority < best.tiePriority) {
-                best = candidate;
-            }
-        });
+        const best = candidates.slice().sort(compareBestRankCandidates)[0] || null;
 
         return {
             ultimateRank,
+            bestCandidate: best,
             bestLeagueRank: best ? best.rank : ultimateRank,
             bestLeagueName: best ? best.leagueName : 'Ultimate League',
             bestLeagueType: best ? best.leagueType : 'ultimate'
@@ -6398,7 +6656,8 @@
         return Math.floor(athleteData.chronologicalAge);
     }
 
-    function populateModal(fullAthleteData, athleteData, ultimateRank, bestLeagueRank, bestLeagueName, bestLeagueType) {
+    function populateModal(fullAthleteData, athleteData, rankSummary) {
+        const ultimateRank = rankSummary ? rankSummary.ultimateRank : athleteData.rank;
         const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
         const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
         const shareSlugSource = String(fullAthleteData.AthleteSlug || athleteData.athleteSlug || athleteData.slug || modalDisplayName).replace(/_/g, '-');
@@ -6436,25 +6695,7 @@
 
         document.getElementById('athleteBio').textContent = fullAthleteData.Why;
 
-        let rankText;
-        const leagueLabel = (bestLeagueName || '').replace('_', ' ');
-        if (bestLeagueType === 'ultimate') {
-            rankText = `#${bestLeagueRank} in the <a href="/leaderboard" class="league-link" target="_blank" rel="noopener noreferrer">Ultimate League</a>`;
-        } else if (bestLeagueType === 'amateur') {
-            rankText = `#${bestLeagueRank} in the <a href="/?filters=${encodeURIComponent('Amateur')}" class="league-link" target="_blank" rel="noopener noreferrer">Amateur League</a>`;
-        } else if (bestLeagueType === 'division' || bestLeagueType === 'generation') {
-            const slug = window.slugifyName(bestLeagueName, true);
-            rankText = `#${bestLeagueRank} in the <a href="/league/${slug}" class="league-link">${leagueLabel} League</a>`;
-        } else if (bestLeagueType === 'combination') {
-            const filters = bestLeagueName.split('_').map(f => encodeURIComponent(f)).join('%2C');
-            rankText = `#${bestLeagueRank} in the <a href="/?filters=${filters}" class="league-link">${leagueLabel} League</a>`;
-        } else if (bestLeagueType === 'other') {
-            rankText = `#${bestLeagueRank} in the <a href="/leaderboard?filters=${encodeURIComponent(bestLeagueName)}" class="league-link" target="_blank" rel="noopener noreferrer">${leagueLabel} League</a>`;
-        } else {
-            rankText = `#${bestLeagueRank} in the ${leagueLabel} League`;
-        }
-
-        document.getElementById('athleteRank').innerHTML = rankText;
+        document.getElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary && rankSummary.bestCandidate);
         document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
         document.getElementById('athleteFlag').innerHTML = renderFlagLabel(fullAthleteData.Flag);
