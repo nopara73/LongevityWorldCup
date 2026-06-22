@@ -35,9 +35,20 @@ public sealed class BioageStoredBiomarkerTests
         var html = File.ReadAllText(GetPagePath("pheno-age.html"));
 
         Assert.Contains("function storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)", html);
+        Assert.Contains("function serializePendingPaymentOffer(offer)", html);
+        Assert.Contains("if (!offer || typeof offer !== 'object' || Array.isArray(offer)) return null;", html);
+        Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
+        Assert.Contains("let serializedPaymentOffer = null;", html);
+        Assert.Contains("try {", html);
+        Assert.Contains("const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer", html);
+        Assert.Contains("serializedPaymentOffer = serializePendingPaymentOffer(adjustedPaymentOffer);", html);
+        Assert.Contains("} catch (_) {", html);
+        Assert.Contains("serializedPaymentOffer = null;", html);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
         Assert.Contains("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);
         Assert.Contains("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
-        Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
+        Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);", html);
+        Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("if (!storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)) return;", html);
 
@@ -274,10 +285,21 @@ public sealed class BioageStoredBiomarkerTests
         var html = File.ReadAllText(GetPagePath("bortz-age.html"));
 
         Assert.Contains("function storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)", html);
+        Assert.Contains("function serializePendingPaymentOffer(offer)", html);
+        Assert.Contains("if (!offer || typeof offer !== 'object' || Array.isArray(offer)) return null;", html);
+        Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
+        Assert.Contains("let serializedPaymentOffer = null;", html);
+        Assert.Contains("try {", html);
+        Assert.Contains("const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer", html);
+        Assert.Contains("serializedPaymentOffer = serializePendingPaymentOffer(adjustedPaymentOffer);", html);
+        Assert.Contains("} catch (_) {", html);
+        Assert.Contains("serializedPaymentOffer = null;", html);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
         Assert.Contains("sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));", html);
         Assert.Contains("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);
         Assert.Contains("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
-        Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
+        Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);", html);
+        Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("if (!storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)) return;", html);
 
@@ -339,11 +361,13 @@ public sealed class BioageStoredBiomarkerTests
     private static string GetStoreFailureBody(string html, string storeFunctionMarker)
     {
         var storeStart = html.IndexOf(storeFunctionMarker, StringComparison.Ordinal);
-        var catchStart = html.IndexOf("} catch (_) {", storeStart, StringComparison.Ordinal);
+        var successReturn = html.IndexOf("return true;", storeStart, StringComparison.Ordinal);
+        var catchStart = html.IndexOf("} catch (_) {", successReturn, StringComparison.Ordinal);
         var returnFalse = html.IndexOf("return false;", catchStart, StringComparison.Ordinal);
 
         Assert.True(storeStart >= 0);
-        Assert.True(catchStart > storeStart);
+        Assert.True(successReturn > storeStart);
+        Assert.True(catchStart > successReturn);
         Assert.True(returnFalse > catchStart);
 
         return html[catchStart..returnFalse];
