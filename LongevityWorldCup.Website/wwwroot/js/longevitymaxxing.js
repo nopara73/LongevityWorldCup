@@ -3288,6 +3288,7 @@
                 const message = "Select an athlete from the list or clear this field.";
                 input.setCustomValidity?.(message);
                 input.reportValidity?.();
+                input.focus();
                 throw new Error(message);
             },
             getSelectedName() {
@@ -3437,6 +3438,7 @@
         const message = "Select an athlete from the list or clear this field.";
         input.setCustomValidity?.(message);
         input.reportValidity?.();
+        input.focus();
         throw new Error(message);
     }
 
@@ -3448,6 +3450,7 @@
         const message = "Select your athlete profile.";
         input?.setCustomValidity?.(message);
         input?.reportValidity?.();
+        input?.focus();
         throw new Error(message);
     }
 
