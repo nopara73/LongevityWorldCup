@@ -1732,12 +1732,19 @@
 
         //–– keep track of which fields the user actually edits (or clears)
         function readStoredBiomarkerData() {
+            const raw = getSessionItem('biomarkerData');
+            if (!raw) return null;
+
             try {
-                return JSON.parse(getSessionItem('biomarkerData'));
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.Biomarkers)) {
+                    return parsed;
+                }
             } catch (_) {
-                clearStoredBiomarkerHandoff();
-                return null;
             }
+
+            clearStoredBiomarkerHandoff();
+            return null;
         }
 
         const touchedBiomarkers = new Set();
