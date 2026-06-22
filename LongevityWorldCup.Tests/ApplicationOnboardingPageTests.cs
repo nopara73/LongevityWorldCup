@@ -659,7 +659,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const file = input.files[0];", selectionBody);
         Assert.Contains("input.value = '';", selectionBody);
         Assert.Contains("reader.onerror = function ()", selectionBody);
-        Assert.Contains("customAlert('Profile picture upload failed.');", selectionBody);
+        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.');", selectionBody);
     }
 
     [Fact]
@@ -713,6 +713,12 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("cropper = null;", loadBody);
         Assert.Contains("document.getElementById('cropperImage').src = e.target.result;", loadBody);
         Assert.Contains("cropper = new Cropper(document.getElementById('cropperImage'),", loadBody);
+        Assert.Contains("} catch (_) {", loadBody);
+        Assert.Contains("try { cropper.destroy(); } catch (_) { }", loadBody);
+        Assert.Contains("document.getElementById('uploadPart').style.display = '';", loadBody);
+        Assert.Contains("document.getElementById('croppingPart').style.display = 'none';", loadBody);
+        Assert.Contains("nextButton.disabled = !profilePic;", loadBody);
+        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.');", loadBody);
         Assert.DoesNotContain("if (!cropper)", loadBody);
     }
 

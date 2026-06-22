@@ -1907,36 +1907,48 @@
 
                     const reader = new FileReader();
                     reader.onload = function (e) {
-                        // Disable "Next" button while cropping
                         const nextButton = document.getElementById('nextButton');
-                        nextButton.disabled = true;
-                        updateUploadButtons();
+                        try {
+                            // Disable "Next" button while cropping
+                            nextButton.disabled = true;
+                            updateUploadButtons();
 
-                        if (cropper) {
-                            cropper.destroy();
-                            cropper = null;
+                            if (cropper) {
+                                cropper.destroy();
+                                cropper = null;
+                            }
+
+                            document.getElementById('cropperImage').src = e.target.result;
+
+                            document.getElementById('uploadPart').style.display = 'none';
+                            document.getElementById('croppingPart').style.display = 'block';
+
+                            cropper = new Cropper(document.getElementById('cropperImage'), {
+                                aspectRatio: 1,
+                                viewMode: 1,
+                                autoCropArea: 1,
+                                movable: true,
+                                zoomable: true,
+                                rotatable: false,
+                                scalable: false,
+                                cropBoxResizable: true,
+                                minCropBoxWidth: 200,
+                                minCropBoxHeight: 150,
+                            });
+                        } catch (_) {
+                            if (cropper) {
+                                try { cropper.destroy(); } catch (_) { }
+                                cropper = null;
+                            }
+                            document.getElementById('uploadPart').style.display = '';
+                            document.getElementById('croppingPart').style.display = 'none';
+                            nextButton.disabled = !profilePic;
+                            updateUploadButtons();
+                            customAlert('Profile picture upload failed. Please try another image.');
                         }
-
-                        document.getElementById('cropperImage').src = e.target.result;
-
-                        document.getElementById('uploadPart').style.display = 'none';
-                        document.getElementById('croppingPart').style.display = 'block';
-
-                        cropper = new Cropper(document.getElementById('cropperImage'), {
-                            aspectRatio: 1,
-                            viewMode: 1,
-                            autoCropArea: 1,
-                            movable: true,
-                            zoomable: true,
-                            rotatable: false,
-                            scalable: false,
-                            cropBoxResizable: true,
-                            minCropBoxWidth: 200,
-                            minCropBoxHeight: 150,
-                        });
                     };
                     reader.onerror = function () {
-                        customAlert('Profile picture upload failed.');
+                        customAlert('Profile picture upload failed. Please try another image.');
                     };
                     reader.readAsDataURL(file);
                 }
