@@ -259,9 +259,11 @@
                        id="athlete"
                        name="athlete"
                        required
+                       aria-required="true"
+                       aria-describedby="athleteError"
                        autocomplete="off"
                        placeholder="Start typing your athlete name…">
-                <span id="athleteError" class="error-message"></span>
+                <span id="athleteError" class="error-message" aria-live="polite"></span>
             </div>
         </div>
         <div class="options-container character-selection-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
