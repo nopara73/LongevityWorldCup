@@ -709,7 +709,7 @@
 
             const athletesForFlagOptions = window.getSharedAthletes
                 ? window.getSharedAthletes()
-                : fetch('/api/data/athletes').then(r => r.json());
+                : fetch('/api/data/athletes').then(r => r.ok ? r.json() : []);
             Promise.all([
                 fetch('/api/data/flags').then(r => r.ok ? r.json() : []),
                 Promise.resolve(athletesForFlagOptions).catch(() => [])
