@@ -1475,6 +1475,8 @@
 
                     addStageListenerOnce(mediaContactInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');
                     addStageListenerOnce(personalLinkInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');
+                    addStageListenerOnce(mediaContactInput, 'blur', normalizeStage6MediaContact, 'stage6NormalizeMediaContactOnBlur');
+                    addStageListenerOnce(personalLinkInput, 'blur', normalizeStage6PersonalLink, 'stage6NormalizePersonalLinkOnBlur');
 
                     // Run checkFormValidityStage6 initially
                     checkFormValidityStage6();
@@ -2198,6 +2200,26 @@
             } else {
                 nextButton.disabled = true;
             }
+        }
+
+        function normalizeStage6MediaContact() {
+            const mediaContactInput = document.getElementById('mediaContact');
+            if (!mediaContactInput) return;
+
+            mediaContactInput.value = normalizeMediaContact(mediaContactInput.value);
+            prefillAccountEmailFromMediaContact();
+            checkFormValidityStage6();
+        }
+
+        function normalizeStage6PersonalLink() {
+            const personalLinkInput = document.getElementById('personalLink');
+            if (!personalLinkInput) return;
+
+            const normalized = normalizeOptionalUrl(personalLinkInput.value);
+            if (isOptionalUrl(normalized)) {
+                personalLinkInput.value = normalized;
+            }
+            checkFormValidityStage6();
         }
 
         function checkFormValidityStage7() {
