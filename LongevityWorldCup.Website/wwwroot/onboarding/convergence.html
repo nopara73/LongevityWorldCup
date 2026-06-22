@@ -1984,7 +1984,7 @@
 
                         profilePic = croppedImageDataURL;
 
-                        activeCropper.destroy(); // Clean up the Cropper instance
+                        try { activeCropper.destroy(); } catch (_) { }
                         if (cropper === activeCropper) {
                             cropper = null; // Reset the Cropper instance
                         }
