@@ -69,10 +69,20 @@ window.isAthletePro = function (athlete) {
     for (var i = 0; i < BORTZ_ONLY_BIOMARKER_KEYS.length; i++) {
         var key = BORTZ_ONLY_BIOMARKER_KEYS[i];
         var val = latest[key];
-        if (val !== undefined && val !== null && !isNaN(val)) return true;
+        if (hasFiniteBiomarkerValue(val)) return true;
     }
     return false;
 };
+
+function hasFiniteBiomarkerValue(value) {
+    if (value === null || value === undefined || typeof value === 'boolean') return false;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value === 'string') {
+        var trimmed = value.trim();
+        return trimmed !== '' && Number.isFinite(Number(trimmed));
+    }
+    return false;
+}
 
 /**
  * Build Proof Tracker checklist labels from sessionStorage.biomarkerData.
@@ -90,7 +100,7 @@ window.getProofChecklistLabelsFromSession = function () {
         for (var i = 0; i < PROOF_CHECKLIST_ORDER.length; i++) {
             var prop = PROOF_CHECKLIST_ORDER[i];
             var val = latest[prop];
-            if (val !== undefined && val !== null && !isNaN(val)) {
+            if (hasFiniteBiomarkerValue(val)) {
                 var label = PROOF_CHECKLIST_PROPERTY_TO_LABEL[prop];
                 if (label) labels.push(label);
             }
