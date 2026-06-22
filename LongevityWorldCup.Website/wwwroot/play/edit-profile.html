@@ -644,11 +644,11 @@
             : JSON.parse(JSON.stringify(originalAthlete));  // ← deep‐clone here
 
         function getAthleteDisplayName() {
-            if (athlete?.DisplayName && athlete.DisplayName.trim()) {
+            if (typeof athlete?.DisplayName === 'string' && athlete.DisplayName.trim()) {
                 return athlete.DisplayName.trim();
             }
 
-            return athlete?.Name || '';
+            return typeof athlete?.Name === 'string' ? athlete.Name : '';
         }
 
         // now that athlete is chosen, normalize PersonalLink on each

@@ -85,6 +85,8 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
 
+        Assert.Contains("typeof athlete?.DisplayName === 'string'", html);
+        Assert.Contains("return typeof athlete?.Name === 'string' ? athlete.Name : '';", html);
         Assert.Contains("const athleteImage = document.createElement('img');", html);
         Assert.Contains("athleteImage.src = athlete.ProfilePic;", html);
         Assert.Contains("athleteImage.alt = `${athleteDisplayName} headshot`;", html);
