@@ -1403,7 +1403,7 @@
             applyFakeDataIfNeeded();
 
             const athletesPromise = fetch('/api/data/athletes')
-                .then(response => response.json())
+                .then(response => response.ok ? response.json() : [])
                 .catch(error => {
                     console.error('Error fetching athlete names:', error);
                     return [];
@@ -1589,7 +1589,7 @@
 
             // Fetch divisions and populate the division select element
             fetch('/api/data/divisions')
-                .then(response => response.json())
+                .then(response => response.ok ? response.json() : fallbackDivisions)
                 .then(populateDivisionSelect)
                 .catch(error => {
                     console.error('Error fetching divisions:', error);
