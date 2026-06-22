@@ -232,6 +232,18 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Theory]
+    [InlineData("pheno-age.html", "phenoAgeRankPreview")]
+    [InlineData("bortz-age.html", "bortzAgeRankPreview")]
+    public void BioageRankPreview_WaitsForModulesDefensively(string fileName, string previewElementId)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains($"if (window.LwcBioAgeRankPreview) window.LwcBioAgeRankPreview.render('{previewElementId}'", html);
+        Assert.Contains("Promise.resolve(window.modulesReady).catch(() => {}).then(() => {", html);
+        Assert.DoesNotContain("window.modulesReady.then(() => {", html);
+    }
+
+    [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
     public void BioagePages_ReplaceMalformedPendingPaymentOfferBeforeHandoff(string fileName)

@@ -1851,7 +1851,7 @@
                 if (window.LwcBioAgeRankPreview) {
                     window.LwcBioAgeRankPreview.render('phenoAgeRankPreview', phenoRankPreview);
                 } else if (window.modulesReady) {
-                    window.modulesReady.then(() => {
+                    Promise.resolve(window.modulesReady).catch(() => {}).then(() => {
                         if (window.LwcBioAgeRankPreview) window.LwcBioAgeRankPreview.render('phenoAgeRankPreview', phenoRankPreview);
                     });
                 }
