@@ -1796,6 +1796,16 @@
             });
         }
 
+        function hasStoredFiniteBiomarkerValue(value) {
+            if (value === null || value === undefined || typeof value === 'boolean') return false;
+            if (typeof value === 'number') return Number.isFinite(value);
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed !== '' && Number.isFinite(Number(trimmed));
+            }
+            return false;
+        }
+
         //–– seed from stored data
         const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
@@ -1831,7 +1841,7 @@
 
             Object.entries(propMap).forEach(([id, prop]) => {
                 const val = latest[prop] ?? (legacyStoredKeys[prop] != null ? latest[legacyStoredKeys[prop]] : undefined);
-                if (val != null && !isNaN(val)) touchedBiomarkers.add(id);
+                if (hasStoredFiniteBiomarkerValue(val)) touchedBiomarkers.add(id);
             });
         }
 
@@ -2030,7 +2040,7 @@
                 Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
                     const input = document.getElementById(id);
                     const unitEl = document.getElementById(id + 'Unit');
-                    if (input && unitEl && val != null && !isNaN(val) && !input.value) {
+                    if (input && unitEl && hasStoredFiniteBiomarkerValue(val) && !input.value) {
                         input.value = val;
                         unitEl.value = unit;
                     }
@@ -2810,13 +2820,13 @@
                     const lymphUnitEl = document.getElementById('lymphocyte_percentageUnit');
                     if (lymphUnitEl) lymphUnitEl.value = '1';
                 }
-                if (entry.NeutrophilPc != null) {
+                if (hasStoredFiniteBiomarkerValue(entry.NeutrophilPc)) {
                     document.getElementById('neutrophil_percentage').value = entry.NeutrophilPc;
                     const neuUnitEl = document.getElementById('neutrophil_percentageUnit');
                     if (neuUnitEl) neuUnitEl.value = '1';
                     expandFieldCard('neutrophil_percentage');
                 }
-                if (entry.MonocytePc != null) {
+                if (hasStoredFiniteBiomarkerValue(entry.MonocytePc)) {
                     document.getElementById('monocyte_percentage').value = entry.MonocytePc;
                     const monoUnitEl = document.getElementById('monocyte_percentageUnit');
                     if (monoUnitEl) monoUnitEl.value = '1';
@@ -2826,12 +2836,14 @@
                     const id = idMapUnique[prop];
                     if (id) {
                         const val = entry[prop] ?? (legacyRefillKeys[prop] != null ? entry[legacyRefillKeys[prop]] : undefined);
-                        if (val != null && !isNaN(val)) document.getElementById(id).value = val;
-                        if (prop === 'Wbc1000cellsuL') {
-                            const wbcUnitEl = document.getElementById('wbcUnit');
-                            if (wbcUnitEl) wbcUnitEl.value = '1';
+                        if (hasStoredFiniteBiomarkerValue(val)) {
+                            document.getElementById(id).value = val;
+                            if (prop === 'Wbc1000cellsuL') {
+                                const wbcUnitEl = document.getElementById('wbcUnit');
+                                if (wbcUnitEl) wbcUnitEl.value = '1';
+                            }
+                            expandFieldCard(id);
                         }
-                        expandFieldCard(id);
                     }
                 });
                 // hide toggle icons on expanded cards

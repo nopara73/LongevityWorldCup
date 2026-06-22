@@ -1531,6 +1531,16 @@
             });
         }
 
+        function hasStoredFiniteBiomarkerValue(value) {
+            if (value === null || value === undefined || typeof value === 'boolean') return false;
+            if (typeof value === 'number') return Number.isFinite(value);
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed !== '' && Number.isFinite(Number(trimmed));
+            }
+            return false;
+        }
+
         //–– seed from stored data
         const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
@@ -1551,7 +1561,7 @@
             };
 
             Object.entries(propMap).forEach(([id, prop]) => {
-                if (latest[prop] != null && !isNaN(latest[prop])) {
+                if (hasStoredFiniteBiomarkerValue(latest[prop])) {
                     touchedBiomarkers.add(id);
                 }
             });
