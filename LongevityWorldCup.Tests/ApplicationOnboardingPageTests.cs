@@ -276,6 +276,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("Object.keys(entry).some(key => key !== 'Date' && hasStoredBiomarkerValue(entry[key]))", html);
         Assert.Contains("if (value === null || value === undefined) return false;", html);
         Assert.Contains("if (typeof value === 'boolean') return false;", html);
+        Assert.Contains("if (typeof value !== 'number' && typeof value !== 'string') return false;", html);
         Assert.Contains("return Number.isFinite(Number(value));", html);
         Assert.Contains("clearStoredBiomarkerHandoff();", parseBody);
         Assert.Contains("function clearStoredBiomarkerHandoff()", html);
