@@ -187,6 +187,24 @@ public sealed class BtcpayInvoiceClientTests
         Assert.Equal("edit", result.SubmissionTypeFromMetadata);
     }
 
+    [Fact]
+    public void ParseInvoiceJson_UsesMetadataBuyerEmailWhenBuyerEmailIsMissing()
+    {
+        var result = BtcpayInvoiceClient.ParseInvoiceJson(
+            """
+            {
+              "status": "Settled",
+              "amount": "80",
+              "currency": "USD",
+              "metadata": { "buyerEmail": "applicant@example.test" }
+            }
+            """);
+
+        Assert.True(result.Success);
+        Assert.True(result.IsPaid);
+        Assert.Equal("applicant@example.test", result.BuyerEmail);
+    }
+
     private sealed class StaticHttpClientFactory(HttpStatusCode statusCode, string body) : IHttpClientFactory
     {
         public HttpClient CreateClient(string name)

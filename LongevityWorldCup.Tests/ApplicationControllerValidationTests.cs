@@ -680,27 +680,7 @@ public sealed class ApplicationControllerValidationTests
     [Fact]
     public void ApplicationSubmit_TreatsPostEmailInvoiceFailureAsAcceptedSubmission()
     {
-        string? sourcePath = null;
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            var candidate = Path.Combine(
-                directory.FullName,
-                "LongevityWorldCup.Website",
-                "Controllers",
-                "ApplicationController.cs");
-            if (File.Exists(candidate))
-            {
-                sourcePath = candidate;
-                break;
-            }
-
-            directory = directory.Parent;
-        }
-
-        Assert.NotNull(sourcePath);
-
-        var source = File.ReadAllText(sourcePath);
+        var source = ReadApplicationControllerSource();
         var failureStart = source.IndexOf("Application submission email was sent but BTCPay invoice creation failed.", StringComparison.Ordinal);
         var acceptedReturn = source.IndexOf("return Ok(new", failureStart, StringComparison.Ordinal);
         var failureEnd = source.IndexOf("await TryRecordDiscountSignupAsync(", acceptedReturn + 1, StringComparison.Ordinal);
@@ -738,6 +718,21 @@ public sealed class ApplicationControllerValidationTests
         Assert.Equal(expected, redirectUrl);
     }
 
+    [Fact]
+    public void BtcpayInvoicePayload_PreservesAccountEmailInMetadata()
+    {
+        var source = ReadApplicationControllerSource();
+        var metadataStart = source.IndexOf("[\"metadata\"] = new Dictionary<string, object?>", StringComparison.Ordinal);
+        var payloadEnd = source.IndexOf("using var client = new HttpClient();", metadataStart, StringComparison.Ordinal);
+
+        Assert.True(metadataStart >= 0);
+        Assert.True(payloadEnd > metadataStart);
+
+        var metadataBody = source[metadataStart..payloadEnd];
+
+        Assert.Contains("[\"buyerEmail\"] = accountEmail", metadataBody);
+    }
+
     [Theory]
     [InlineData("result", "Payment detected for result upload.")]
     [InlineData(" RESULT ", "Payment detected for result upload.")]
@@ -767,6 +762,27 @@ public sealed class ApplicationControllerValidationTests
         var label = (string?)method!.Invoke(null, [submissionType]);
 
         Assert.Equal(expected, label);
+    }
+
+    private static string ReadApplicationControllerSource()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(
+                directory.FullName,
+                "LongevityWorldCup.Website",
+                "Controllers",
+                "ApplicationController.cs");
+            if (File.Exists(candidate))
+            {
+                return File.ReadAllText(candidate);
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new FileNotFoundException("ApplicationController.cs was not found.");
     }
 
     private static ApplicationController CreateController(TestWebApplicationFactory factory)
