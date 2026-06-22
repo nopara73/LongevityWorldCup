@@ -575,7 +575,7 @@ public sealed class ApplicationOnboardingPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
-        var cancelStart = html.IndexOf("document.getElementById('cancelProfileCropButton').addEventListener('click'", StringComparison.Ordinal);
+        var cancelStart = html.IndexOf("cancelProfileCropButton.addEventListener('click'", StringComparison.Ordinal);
         var cancelEnd = html.IndexOf("profilePicInput.setAttribute('data-listener', 'true');", cancelStart, StringComparison.Ordinal);
 
         Assert.Contains("id=\"cancelProfileCropButton\"", html);
@@ -583,6 +583,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.True(cancelEnd > cancelStart);
 
         var cancelBody = html[cancelStart..cancelEnd];
+        Assert.Contains("if (isProfileCropProcessing) return;", cancelBody);
         Assert.Contains("cropper.destroy();", cancelBody);
         Assert.Contains("cropper = null;", cancelBody);
         Assert.Contains("document.getElementById('uploadPart').style.display = '';", cancelBody);
@@ -597,18 +598,30 @@ public sealed class ApplicationOnboardingPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
-        var cropStart = html.IndexOf("document.getElementById('cropButton').addEventListener('click'", StringComparison.Ordinal);
-        var cropEnd = html.IndexOf("document.getElementById('cancelProfileCropButton').addEventListener('click'", cropStart, StringComparison.Ordinal);
+        var cropStart = html.IndexOf("cropButton.addEventListener('click'", StringComparison.Ordinal);
+        var cropEnd = html.IndexOf("cancelProfileCropButton.addEventListener('click'", cropStart, StringComparison.Ordinal);
 
         Assert.True(cropStart >= 0);
         Assert.True(cropEnd > cropStart);
 
         var cropBody = html[cropStart..cropEnd];
+        Assert.Contains("let isProfileCropProcessing = false;", html);
+        Assert.Contains("const activeCropper = cropper;", cropBody);
+        Assert.Contains("if (isProfileCropProcessing || !activeCropper) return;", cropBody);
+        Assert.Contains("isProfileCropProcessing = true;", cropBody);
+        Assert.Contains("cropButton.disabled = true;", cropBody);
+        Assert.Contains("cancelProfileCropButton.disabled = true;", cropBody);
+        Assert.Contains("activeCropper.getCroppedCanvas({", cropBody);
         Assert.Contains("let croppedImageDataURL = raw;", cropBody);
         Assert.Contains("try {", cropBody);
         Assert.Contains("await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);", cropBody);
         Assert.Contains("} catch {", cropBody);
         Assert.Contains("croppedImageDataURL = raw;", cropBody);
         Assert.Contains("profilePic = croppedImageDataURL;", cropBody);
+        Assert.Contains("activeCropper.destroy();", cropBody);
+        Assert.Contains("if (cropper === activeCropper)", cropBody);
+        Assert.Contains("isProfileCropProcessing = false;", cropBody);
+        Assert.Contains("cropButton.disabled = false;", cropBody);
+        Assert.Contains("cancelProfileCropButton.disabled = false;", cropBody);
     }
 }
