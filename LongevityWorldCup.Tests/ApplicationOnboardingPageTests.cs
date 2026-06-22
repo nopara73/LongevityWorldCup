@@ -137,8 +137,10 @@ public sealed class ApplicationOnboardingPageTests
         var html = await client.GetStringAsync("/onboarding/convergence.html");
 
         Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
+        Assert.Contains("const alertMessage = 'Application could not be submitted. Please check your connection and try again.';", html);
         Assert.Contains("message: displayError", html);
-        Assert.Contains("customAlert(`An error occurred while submitting your application:\\n\\n${displayError}`)", html);
+        Assert.Contains("customAlert(alertMessage)", html);
+        Assert.DoesNotContain("customAlert(`An error occurred while submitting your application:\\n\\n${displayError}`)", html);
         Assert.DoesNotContain("customAlert(`An error occurred while submitting your application:\\n\\n${error}`)", html);
     }
 
@@ -164,7 +166,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("isApplicationSubmitting = true;", handlerBeforeFetch);
         Assert.Contains("applyButton.disabled = true;", handlerBeforeFetch);
         Assert.Contains("customAlert(`Failed to submit application. Please try again later.\\n\\n${badResponse}`).then(() => {", html);
-        Assert.Contains("customAlert(`An error occurred while submitting your application:\\n\\n${displayError}`).then(() => {", html);
+        Assert.Contains("customAlert(alertMessage).then(() => {", html);
         Assert.Contains("isApplicationSubmitting = false;", html);
     }
 

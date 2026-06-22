@@ -276,8 +276,10 @@ public sealed class ProofUploadPageTests
         var html = await client.GetStringAsync("/play/proof-upload.html");
 
         Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
+        Assert.Contains("const alertMessage = 'Results could not be submitted. Please check your connection and try again.';", html);
         Assert.Contains("message: displayError", html);
-        Assert.Contains("customAlert(`An error occurred:\\n\\n${displayError}`)", html);
+        Assert.Contains("customAlert(alertMessage)", html);
+        Assert.DoesNotContain("customAlert(`An error occurred:\\n\\n${displayError}`)", html);
         Assert.DoesNotContain("customAlert(`An error occurred:\\n\\n${error}`)", html);
     }
 
@@ -301,7 +303,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("isResultUploadSubmitting = true;", handlerBeforeFetch);
         Assert.Contains("submitButton.disabled = true;", handlerBeforeFetch);
         Assert.Contains("customAlert(`Failed to submit results. Please try again later.\\n\\n${badResponse}`).then(() => {\n                                    isResultUploadSubmitting = false;", html);
-        Assert.Contains("customAlert(`An error occurred:\\n\\n${displayError}`).then(() => {\n                            isResultUploadSubmitting = false;", html);
+        Assert.Contains("customAlert(alertMessage).then(() => {\n                            isResultUploadSubmitting = false;", html);
     }
 
     [Fact]

@@ -1826,13 +1826,14 @@
                     .catch(error => {
                         hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
+                        const alertMessage = 'Application could not be submitted. Please check your connection and try again.';
                         void window.sendApplicationSubmissionReport(
                             window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                 type: error && error.name || 'Error',
                                 message: displayError
                             })
                         );
-                        customAlert(`An error occurred while submitting your application:\n\n${displayError}`).then(() => {
+                        customAlert(alertMessage).then(() => {
                             isApplicationSubmitting = false;
                             applyButton.disabled = false;
                             accountEmailInput.disabled = false;

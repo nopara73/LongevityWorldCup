@@ -949,7 +949,9 @@
                                 })
                             );
                         }
-                        const displayError = typeof err === 'string' ? err : (err && err.message || String(err));
+                        const displayError = typeof err === 'string'
+                            ? err
+                            : 'Change request could not be submitted. Please check your connection and try again.';
                         customAlert(`Submission failed:\n\n${displayError}`).then(() => {
                             isEditProfileSubmitting = false;
                             submitButton.disabled = false;
