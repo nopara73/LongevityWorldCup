@@ -386,7 +386,7 @@
         }
 
         function serializePendingPaymentOffer(offer) {
-            if (!offer || typeof offer !== 'object' || Array.isArray(offer)) return null;
+            if (!isUsablePaymentOffer(offer)) return null;
 
             try {
                 const serializedOffer = JSON.stringify(offer);
@@ -396,6 +396,21 @@
             } catch (_) {
                 return null;
             }
+        }
+
+        function isUsablePaymentOffer(paymentOffer) {
+            return paymentOffer
+                && typeof paymentOffer === 'object'
+                && !Array.isArray(paymentOffer)
+                && typeof paymentOffer.source === 'string'
+                && paymentOffer.source.trim()
+                && typeof paymentOffer.offerType === 'string'
+                && paymentOffer.offerType.trim()
+                && typeof paymentOffer.currency === 'string'
+                && paymentOffer.currency.trim()
+                && typeof paymentOffer.amountUsd === 'number'
+                && Number.isFinite(paymentOffer.amountUsd)
+                && paymentOffer.amountUsd >= 0;
         }
 
         function setPendingPaymentOffer(offer) {
