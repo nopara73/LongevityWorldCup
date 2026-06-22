@@ -216,6 +216,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
             let failedFiles = 0;
             // process one by one to preserve order
             for (const file of supportedFiles) {
+                const proofCountBeforeFile = proofPics.length;
                 try {
                     if (isProofPdfFile(file)) {
                         const pdfLib = await ensurePdfJsReady();
@@ -266,6 +267,11 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     }
                 } catch (_) {
                     failedFiles++;
+                    if (proofPics.length > proofCountBeforeFile) {
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        nextButton.disabled = true;
+                    }
                 }
             }
             if (unsupportedFiles.length > 0) {

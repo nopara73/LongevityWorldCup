@@ -220,9 +220,14 @@ public sealed class ProofUploadPageTests
         var processingBody = javascript[loopStart..unsupportedAlertStart];
 
         Assert.Contains("let failedFiles = 0;", javascript);
+        Assert.Contains("const proofCountBeforeFile = proofPics.length;", processingBody);
         Assert.Contains("try {", processingBody);
         Assert.Contains("if (!context) throw new Error('Canvas context unavailable.');", processingBody);
         Assert.Contains("failedFiles++;", processingBody);
+        Assert.Contains("if (proofPics.length > proofCountBeforeFile)", processingBody);
+        Assert.Contains("updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", processingBody);
+        Assert.Contains("checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", processingBody);
+        Assert.Contains("nextButton.disabled = true;", processingBody);
         Assert.Contains("if (failedFiles > 0)", javascript);
         Assert.Contains("customAlert('Some proof files could not be processed. Please try them again as JPG, PNG, WebP, or PDF.');", javascript);
     }
