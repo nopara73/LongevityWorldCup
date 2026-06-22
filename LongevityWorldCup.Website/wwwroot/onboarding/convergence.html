@@ -1119,6 +1119,14 @@
                 : null;
         }
 
+        function getInvoiceId(submitResult) {
+            return submitResult
+                && typeof submitResult.invoiceId === 'string'
+                && submitResult.invoiceId.trim()
+                ? submitResult.invoiceId.trim()
+                : null;
+        }
+
         function collectApplicantData() {
             // Get the data from the form fields
             const name = document.getElementById('name').value.trim();
@@ -1749,6 +1757,7 @@
                         if (response.ok) {
                             response.json().catch(() => ({})).then(submitResult => {
                                 const checkoutLink = getCheckoutLink(submitResult);
+                                const invoiceId = getInvoiceId(submitResult);
                                 const nextStepMessage =
                                     checkoutLink
                                         ? 'You\'ll be redirected to the payment page'
@@ -1763,9 +1772,9 @@
                                     proofPics = [];
                                     // Redirect to BTCPay invoice if required, otherwise to review.
                                     if (checkoutLink) {
-                                        if (submitResult.invoiceId) {
+                                        if (invoiceId) {
                                             const pendingInvoiceInfo = JSON.stringify({
-                                                invoiceId: submitResult.invoiceId,
+                                                invoiceId: invoiceId,
                                                 applicantName: applicantData.name || null,
                                                 accountEmail: applicantData.accountEmail || null,
                                                 submissionType: 'application'

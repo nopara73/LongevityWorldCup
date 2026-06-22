@@ -531,8 +531,13 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("function rememberAthleteContactEmail(athleteName, email)", html);
         Assert.Contains("function getCheckoutLink(submitResult)", html);
         Assert.Contains("typeof submitResult.checkoutLink === 'string'", html);
+        Assert.Contains("function getInvoiceId(submitResult)", html);
+        Assert.Contains("typeof submitResult.invoiceId === 'string'", html);
         Assert.Contains("const checkoutLink = getCheckoutLink(submitResult);", html);
+        Assert.Contains("const invoiceId = getInvoiceId(submitResult);", html);
         Assert.Contains("if (checkoutLink)", successBody);
+        Assert.Contains("if (invoiceId)", successBody);
+        Assert.Contains("invoiceId: invoiceId", successBody);
         Assert.Contains("window.location.href = checkoutLink;", successBody);
         Assert.Contains("rememberAthleteContactEmail(applicantData.name, applicantData.accountEmail);", successBody);
         Assert.Contains("setSessionItem('contactEmail', applicantData.accountEmail);", successBody);
@@ -544,6 +549,8 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", successBody);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", successBody);
         Assert.DoesNotContain("window.location.href = submitResult.checkoutLink;", successBody);
+        Assert.DoesNotContain("if (submitResult.invoiceId)", successBody);
+        Assert.DoesNotContain("invoiceId: submitResult.invoiceId", successBody);
         Assert.DoesNotContain("sessionStorage.setItem(", successBody);
         Assert.DoesNotContain("localStorage.setItem(", successBody);
         Assert.DoesNotContain("sessionStorage.removeItem(", successBody);
