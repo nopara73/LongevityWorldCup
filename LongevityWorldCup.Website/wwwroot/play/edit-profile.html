@@ -900,6 +900,9 @@
                     return;
                 }
 
+                athlete.PersonalLink = normalizeOptionalUrl(personalLinkInput.value) || '';
+                personalLinkInput.value = athlete.PersonalLink;
+
                 const submissionId = window.createApplicationSubmissionId();
                 const submissionKind = 'edit-request';
                 const applicantData = {
