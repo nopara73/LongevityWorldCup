@@ -730,7 +730,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("input.value = '';", selectionBody);
         Assert.Contains("reader.onerror = function ()", selectionBody);
         Assert.Contains("reader.onabort = reader.onerror;", selectionBody);
-        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.');", selectionBody);
+        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.')\n                            .then(() => uploadButton?.focus());", selectionBody);
     }
 
     [Fact]
@@ -760,7 +760,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("extension === 'webp'", html);
         Assert.Contains("input.value = '';", beforeReader);
         Assert.Contains("if (!isSupportedProfilePictureFile(file))", beforeReader);
-        Assert.Contains("customAlert('Profile picture must be JPG, PNG, or WebP.');", beforeReader);
+        Assert.Contains("customAlert('Profile picture must be JPG, PNG, or WebP.')\n                            .then(() => uploadButton?.focus());", beforeReader);
         Assert.Contains("return;", beforeReader);
     }
 
@@ -789,7 +789,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("document.getElementById('uploadPart').style.display = '';", loadBody);
         Assert.Contains("document.getElementById('croppingPart').style.display = 'none';", loadBody);
         Assert.Contains("nextButton.disabled = !profilePic;", loadBody);
-        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.');", loadBody);
+        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.')\n                                .then(() => uploadButton?.focus());", loadBody);
         Assert.DoesNotContain("if (!cropper)", loadBody);
     }
 

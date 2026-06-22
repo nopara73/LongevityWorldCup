@@ -1176,7 +1176,8 @@
             if (!file) return;
             input.value = '';
             if (!isSupportedProfilePictureFile(file)) {
-                customAlert('Profile picture must be JPG, PNG, or WebP.');
+                customAlert('Profile picture must be JPG, PNG, or WebP.')
+                    .then(() => changeProfileBtn.focus());
                 return;
             }
 
@@ -1209,11 +1210,13 @@
                     cropperModal.style.display = 'none';
                     modalOverlay.style.display = 'none';
                     document.body.classList.remove('no-scroll');
-                    customAlert('Profile picture upload failed. Please try another image.');
+                    customAlert('Profile picture upload failed. Please try another image.')
+                        .then(() => changeProfileBtn.focus());
                 }
             };
             reader.onerror = () => {
-                customAlert('Profile picture upload failed. Please try another image.');
+                customAlert('Profile picture upload failed. Please try another image.')
+                    .then(() => changeProfileBtn.focus());
             };
             reader.onabort = reader.onerror;
             reader.readAsDataURL(file);
