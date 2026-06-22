@@ -366,6 +366,65 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task EditProfileTextChangeState_IgnoresWhitespaceOnlyDifferences()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var flagSetupStart = html.IndexOf("const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);", StringComparison.Ordinal);
+        var flagSetupEnd = html.IndexOf("const athletesForFlagOptions", flagSetupStart, StringComparison.Ordinal);
+        var flagListenerStart = html.IndexOf("flagInput.addEventListener('input', function ()", StringComparison.Ordinal);
+        var flagListenerEnd = html.IndexOf("const terms = this.value.trim().split", flagListenerStart, StringComparison.Ordinal);
+        var whySetupStart = html.IndexOf("const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');", StringComparison.Ordinal);
+        var submitHandlerStart = html.IndexOf("// \u2014 SUBMIT CHANGE REQUEST \u2014", whySetupStart, StringComparison.Ordinal);
+        var mediaSetupStart = html.IndexOf("const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');", submitHandlerStart, StringComparison.Ordinal);
+        var personalLinkListenerStart = html.IndexOf("personalLinkInput.addEventListener('input', () =>", mediaSetupStart, StringComparison.Ordinal);
+        var mediaListenerStart = html.IndexOf("mediaContactInput.addEventListener('input', () =>", personalLinkListenerStart, StringComparison.Ordinal);
+        var whyListenerEnd = html.IndexOf("let skipFlagValidation = false;", mediaListenerStart, StringComparison.Ordinal);
+        var stateStart = html.IndexOf("function updateSubmitButtonState()", StringComparison.Ordinal);
+        var stateEnd = html.IndexOf("function validateFlagDisplay(value)", stateStart, StringComparison.Ordinal);
+
+        Assert.True(flagSetupStart >= 0);
+        Assert.True(flagSetupEnd > flagSetupStart);
+        Assert.True(flagListenerStart >= 0);
+        Assert.True(flagListenerEnd > flagListenerStart);
+        Assert.True(whySetupStart >= 0);
+        Assert.True(submitHandlerStart > whySetupStart);
+        Assert.True(mediaSetupStart > submitHandlerStart);
+        Assert.True(personalLinkListenerStart > mediaSetupStart);
+        Assert.True(mediaListenerStart > personalLinkListenerStart);
+        Assert.True(whyListenerEnd > mediaListenerStart);
+        Assert.True(stateStart >= 0);
+        Assert.True(stateEnd > stateStart);
+
+        var flagSetupBody = html[flagSetupStart..flagSetupEnd];
+        var flagListenerBody = html[flagListenerStart..flagListenerEnd];
+        var whySetupBody = html[whySetupStart..submitHandlerStart];
+        var mediaSetupBody = html[mediaSetupStart..personalLinkListenerStart];
+        var mediaAndWhyListenerBody = html[mediaListenerStart..whyListenerEnd];
+        var stateBody = html[stateStart..stateEnd];
+
+        Assert.Contains("function normalizeEditText(value)", html);
+        Assert.Contains("return typeof value === 'string' ? value.trim() : '';", html);
+        Assert.Contains("if (normalizeEditText(athlete.Flag) !== normalizeEditText(originalAthlete.Flag))", flagSetupBody);
+        Assert.Contains("if (normalizeEditText(flagInput.value) !== normalizeEditText(originalAthlete.Flag))", flagListenerBody);
+        Assert.Contains("if (normalizeEditText(athlete.Why) !== normalizeEditText(originalAthlete.Why))", whySetupBody);
+        Assert.Contains("if (normalizeEditText(athlete.MediaContact) !== normalizeEditText(originalAthlete.MediaContact))", mediaSetupBody);
+        Assert.Contains("if (normalizeEditText(mediaContactInput.value) !== normalizeEditText(originalAthlete.MediaContact))", mediaAndWhyListenerBody);
+        Assert.Contains("if (normalizeEditText(whyDisplayInput.value) !== normalizeEditText(originalAthlete.Why))", mediaAndWhyListenerBody);
+        Assert.Contains("const currentFlag = normalizeEditText(document.getElementById('flagDisplayInput').value);", stateBody);
+        Assert.Contains("const currentMediaContact = normalizeEditText(document.getElementById('mediaContactInput').value);", stateBody);
+        Assert.Contains("const currentWhyDisplay = normalizeEditText(document.getElementById('whyDisplayInput').value);", stateBody);
+        Assert.Contains("const flagChanged = currentFlag !== normalizeEditText(originalAthlete.Flag);", stateBody);
+        Assert.Contains("const mediaContactChanged = currentMediaContact !== normalizeEditText(originalAthlete.MediaContact);", stateBody);
+        Assert.Contains("const whyChanged = currentWhyDisplay !== normalizeEditText(originalAthlete.Why);", stateBody);
+        Assert.DoesNotContain("const flagChanged = currentFlag !== originalAthlete.Flag;", stateBody);
+        Assert.DoesNotContain("const mediaContactChanged = currentMediaContact !== originalAthlete.MediaContact;", stateBody);
+        Assert.DoesNotContain("const whyChanged = currentWhyDisplay !== originalAthlete.Why;", stateBody);
+    }
+
+    [Fact]
     public async Task EditProfileSubmit_GuardsAgainstDuplicateClicks()
     {
         using var factory = new TestWebApplicationFactory();
