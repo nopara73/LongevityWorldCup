@@ -106,6 +106,17 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
     }
 
+    [Fact]
+    public void BortzPage_FocusesWbcAfterWbcValidationAlerts()
+    {
+        var html = File.ReadAllText(GetPagePath("bortz-age.html"));
+
+        Assert.Contains("customAlert('Please enter a valid White Blood Cell Count (WBC).')\n                    .then(() => wbcInputEl.focus());", html);
+        Assert.Contains("customAlert('Enter White Blood Cell Count (WBC) to use Lymphocytes in absolute units.').then(() => {\n                                document.getElementById('wbc')?.focus();", html);
+        Assert.Contains("customAlert('Enter White Blood Cell Count (WBC) to use Neutrophils in %.').then(() => {\n                                document.getElementById('wbc')?.focus();", html);
+        Assert.Contains("customAlert('Enter White Blood Cell Count (WBC) to use Monocytes in %.').then(() => {\n                                document.getElementById('wbc')?.focus();", html);
+    }
+
     [Theory]
     [InlineData("pheno-age.html", "function storePhenoResultForNextStep")]
     [InlineData("bortz-age.html", "function storeBortzResultForNextStep")]

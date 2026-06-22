@@ -2145,7 +2145,8 @@
             const wbcUnit = parseFloat(wbcUnitInputEl.value);
             if (typeof wbcRaw !== 'number' || !Number.isFinite(wbcRaw) || wbcRaw <= 0 || !Number.isFinite(wbcUnit) || wbcUnit <= 0) {
                 expandFieldCard('wbc');
-                customAlert('Please enter a valid White Blood Cell Count (WBC).');
+                customAlert('Please enter a valid White Blood Cell Count (WBC).')
+                    .then(() => wbcInputEl.focus());
                 return;
             }
 
@@ -2238,6 +2239,7 @@
                         } else {
                             expandFieldCard('wbc');
                             customAlert('Enter White Blood Cell Count (WBC) to use Lymphocytes in absolute units.').then(() => {
+                                document.getElementById('wbc')?.focus();
                                 document.getElementById('continueButton').classList.remove('show');
                                 updateCalculateButton();
                             });
@@ -2257,6 +2259,7 @@
                         } else {
                             expandFieldCard('wbc');
                             customAlert('Enter White Blood Cell Count (WBC) to use Neutrophils in %.').then(() => {
+                                document.getElementById('wbc')?.focus();
                                 document.getElementById('continueButton').classList.remove('show');
                                 updateCalculateButton();
                             });
@@ -2278,6 +2281,7 @@
                         } else {
                             expandFieldCard('wbc');
                             customAlert('Enter White Blood Cell Count (WBC) to use Monocytes in %.').then(() => {
+                                document.getElementById('wbc')?.focus();
                                 document.getElementById('continueButton').classList.remove('show');
                                 updateCalculateButton();
                             });
