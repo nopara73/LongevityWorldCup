@@ -1959,6 +1959,10 @@
                             width: 1024,
                             height: 768,
                         });
+                        if (!croppedCanvas) {
+                            customAlert('Profile picture crop failed. Please try another image.');
+                            return;
+                        }
 
                         const raw = croppedCanvas.toDataURL('image/png');
                         let croppedImageDataURL = raw;
