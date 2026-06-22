@@ -771,6 +771,8 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("profilePic = croppedImageDataURL;", cropBody);
         Assert.Contains("activeCropper.destroy();", cropBody);
         Assert.Contains("if (cropper === activeCropper)", cropBody);
+        Assert.Contains("} catch (_) {", cropBody);
+        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.');", cropBody);
         Assert.Contains("isProfileCropProcessing = false;", cropBody);
         Assert.Contains("cropButton.disabled = false;", cropBody);
         Assert.Contains("cancelProfileCropButton.disabled = false;", cropBody);

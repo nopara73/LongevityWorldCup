@@ -1253,6 +1253,8 @@
                 document.getElementById('changeProfileCropperModal').style.display = 'none';
                 changeProfileInput.value = '';
                 profileCameraInput.value = '';
+            } catch (_) {
+                customAlert('Profile picture crop failed. Please try another image.');
             } finally {
                 isChangeProfileCropProcessing = false;
                 cropBtn.disabled = false;

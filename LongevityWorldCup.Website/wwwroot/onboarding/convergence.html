@@ -1989,6 +1989,8 @@
                         const nextButton = document.getElementById('nextButton');
                         nextButton.disabled = false;
                         updateUploadButtons();
+                    } catch (_) {
+                        customAlert('Profile picture crop failed. Please try another image.');
                     } finally {
                         isProfileCropProcessing = false;
                         cropButton.disabled = false;
