@@ -902,6 +902,8 @@
 
                 athlete.PersonalLink = normalizeOptionalUrl(personalLinkInput.value) || '';
                 personalLinkInput.value = athlete.PersonalLink;
+                athlete.MediaContact = normalizeMediaContact(mediaContactInput.value);
+                mediaContactInput.value = athlete.MediaContact;
 
                 const submissionId = window.createApplicationSubmissionId();
                 const submissionKind = 'edit-request';
@@ -1365,6 +1367,10 @@
                 return `https://${v}`;
             }
             return v;
+        }
+
+        function normalizeMediaContact(value) {
+            return normalizeContactEmail(value) || normalizeEditText(value);
         }
 
         function normalizeEditText(value) {

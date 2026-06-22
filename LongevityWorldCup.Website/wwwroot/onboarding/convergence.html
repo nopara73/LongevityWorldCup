@@ -873,6 +873,10 @@
             return isEmailAddress(contactEmail) ? contactEmail : null;
         }
 
+        function normalizeMediaContact(value) {
+            return normalizeContactEmail(value) || (typeof value === 'string' ? value.trim() : '');
+        }
+
         function getAthleteContactEmailStorageKey(athleteName) {
             const name = typeof athleteName === 'string' ? athleteName.trim() : '';
             return name ? 'contactEmailFor:' + name : null;
@@ -1182,7 +1186,9 @@
             const division = document.getElementById('division').value.trim();
             const flag = document.getElementById('flag').value.trim();
             const why = document.getElementById('why').value.trim();
-            const mediaContact = document.getElementById('mediaContact').value.trim();
+            const mediaContactInput = document.getElementById('mediaContact');
+            const mediaContact = normalizeMediaContact(mediaContactInput.value);
+            mediaContactInput.value = mediaContact;
             const accountEmailInput = document.getElementById('accountEmail');
             const accountEmail = normalizeContactEmail(accountEmailInput.value);
             const personalLink = normalizeOptionalUrl(document.getElementById('personalLink').value);
