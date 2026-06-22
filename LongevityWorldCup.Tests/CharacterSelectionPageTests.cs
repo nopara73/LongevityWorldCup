@@ -50,6 +50,8 @@ public sealed class CharacterSelectionPageTests
 
         Assert.Contains("let athleteLoadPromise = null;", html);
         Assert.Contains("function retryAthleteLoad()", html);
+        Assert.Contains("id=\"athlete\"\n                       name=\"athlete\"\n                       required\n                       aria-required=\"true\"\n                       aria-describedby=\"athleteError\"", html);
+        Assert.Contains("<span id=\"athleteError\" class=\"error-message\" aria-live=\"polite\"></span>", html);
         Assert.Contains("athleteInput.addEventListener('focus', retryAthleteLoad);", html);
         Assert.Contains("athleteInput.addEventListener('input', retryAthleteLoad);", html);
         Assert.Contains("console.error('Error fetching athletes:', error);", html);
