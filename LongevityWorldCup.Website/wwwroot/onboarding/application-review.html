@@ -277,6 +277,14 @@
             return value === "proof-upload" || value === "edit-profile" ? value : null;
         }
 
+        function normalizePaymentSubmissionType(value) {
+            return value === "application" || value === "result" || value === "edit" ? value : null;
+        }
+
+        function normalizeOptionalString(value) {
+            return typeof value === "string" && value.trim() ? value.trim() : null;
+        }
+
         function normalizeSubmissionTypeReviewSource(value) {
             if (value === "result") return "proof-upload";
             if (value === "edit") return "edit-profile";
@@ -338,9 +346,9 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     invoiceId: pending.invoiceId,
-                    applicantName: pending.applicantName || null,
+                    applicantName: normalizeOptionalString(pending.applicantName),
                     accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null,
-                    submissionType: pending.submissionType || null
+                    submissionType: normalizePaymentSubmissionType(pending.submissionType)
                 })
             }, 12000)
                 .then(response => response.ok ? response.json() : null)
