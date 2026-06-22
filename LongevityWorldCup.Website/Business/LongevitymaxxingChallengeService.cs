@@ -24,6 +24,7 @@ public sealed class LongevitymaxxingChallengeService
     private const decimal MinimumCommitmentAmountUsd = 1m;
     private const int CommitmentEnforcementPreviousScoredDays = 3;
     private const int CommitmentAverageWindowDays = 7;
+    private const int CommitmentPledgeAllowanceRawPoints = 2;
     private const int LeaderboardScoringWindowDays = 14;
     private const string CommitmentPaymentReminderKind = "commitment-payment";
     private const string ChallengeInactiveReasonMissedScoredDays = "missed-scored-days";
@@ -1516,7 +1517,7 @@ public sealed class LongevitymaxxingChallengeService
         var average = AverageScoredPoints(settings, participant, byDay, prior);
         var needed = (int)Math.Ceiling(average);
         var nextDay = GetNextCommitmentGuidanceDay(settings, participant, byDay, now);
-        var maxMissedUnits = GetMaximumPassingMissedUnits(settings, participant, byDay, nextDay, average);
+        var maxMissedUnits = GetMaximumPassingCommitmentMissedUnits(settings, participant, byDay, nextDay, average);
         var allowance = maxMissedUnits is null
             ? "you need a perfect day"
             : DescribeMissAllowance(maxMissedUnits.Value);
@@ -1526,7 +1527,7 @@ public sealed class LongevitymaxxingChallengeService
             prior.Count,
             average,
             needed,
-            $"Next scored day: need at least {needed} points; {allowance}.");
+            $"Pledge allowance: {allowance}.");
     }
 
     private bool IsParticipantInactive(
@@ -1607,13 +1608,14 @@ public sealed class LongevitymaxxingChallengeService
         return nextDay;
     }
 
-    private static int? GetMaximumPassingMissedUnits(
+    private static int? GetMaximumPassingCommitmentMissedUnits(
         ChallengeSettings settings,
         ParticipantRecord participant,
         IReadOnlyDictionary<int, CheckInRecord> byDay,
         int challengeDay,
         decimal average)
     {
+        var pledgeFloorRawScore = GetCommitmentPledgeFloorRawScore(settings, participant, byDay, challengeDay, average);
         int? maxMissedUnits = null;
         for (var sleep = 0; sleep <= 2; sleep++)
         for (var exercise = 0; exercise <= 2; exercise++)
@@ -1632,8 +1634,7 @@ public sealed class LongevitymaxxingChallengeService
                 null,
                 null,
                 []);
-            var points = GetScoredPoints(settings, participant, checkIn, byDay);
-            if (points < average)
+            if (checkIn.Score < pledgeFloorRawScore)
                 continue;
 
             var missedUnits = RawDailyMaxScore - checkIn.Score;
@@ -1644,14 +1645,17 @@ public sealed class LongevitymaxxingChallengeService
     }
 
     private static string DescribeMissAllowance(int missedUnits)
-        => missedUnits switch
+        => Math.Clamp(missedUnits, 0, RawDailyMaxScore) switch
         {
-            <= 0 => "no misses",
-            1 => "you can miss up to one somewhat",
-            2 => "you can miss one whole habit or two somewhat",
-            3 => "you can miss one whole habit and one somewhat",
+            0 => "you need a perfect check-in",
+            1 => "you can mark one habit somewhat",
+            2 => "you can miss one whole habit or mark two habits somewhat",
+            3 => "you can miss one whole habit and mark one habit somewhat",
             4 => "you can miss up to two whole habits",
-            _ => $"you can miss up to {missedUnits} habit-points"
+            5 => "you can miss two whole habits and mark one habit somewhat",
+            6 => "you can miss up to three whole habits",
+            7 => "you can miss three whole habits and mark one habit somewhat",
+            _ => "you can miss all four habits"
         };
 
     private void UpdateCommitmentAfterCheckIn(ValidatedCheckIn checkIn)
@@ -1669,7 +1673,7 @@ public sealed class LongevitymaxxingChallengeService
             if (activeObligation.TriggerChallengeDay == checkIn.Request.ChallengeDay)
             {
                 var triggerScore = GetScoredPoints(settings, checkIn.Participant, saved, byDay);
-                if (triggerScore >= activeObligation.ThresholdAverage)
+                if (!IsBelowCommitmentPledgeFloor(settings, checkIn.Participant, byDay, saved, activeObligation.ThresholdAverage))
                     ClearPaymentObligation(activeObligation.Id, checkIn.NowUtc);
                 else
                     UpdatePaymentObligationTriggerScore(activeObligation.Id, triggerScore, checkIn.NowUtc);
@@ -1682,7 +1686,7 @@ public sealed class LongevitymaxxingChallengeService
             return;
 
         var assessment = AssessCommitment(settings, checkIn.Participant, byDay, saved);
-        if (!assessment.IsEnforced || !assessment.IsBelowAverage || assessment.AveragePoints is null)
+        if (!assessment.IsEnforced || !assessment.IsBelowPledgeFloor || assessment.AveragePoints is null)
             return;
 
         CreatePaymentObligation(
@@ -1711,7 +1715,46 @@ public sealed class LongevitymaxxingChallengeService
             return new(false, previous.Count, null, score, false);
 
         var average = AverageScoredPoints(settings, participant, byDay, previous);
-        return new(true, previous.Count, average, score, score < average);
+        return new(true, previous.Count, average, score, IsBelowCommitmentPledgeFloor(settings, participant, byDay, checkIn, average));
+    }
+
+    private static bool IsBelowCommitmentPledgeFloor(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        CheckInRecord checkIn,
+        decimal average)
+        => checkIn.Score < GetCommitmentPledgeFloorRawScore(settings, participant, byDay, checkIn.ChallengeDay, average);
+
+    private static int GetCommitmentPledgeFloorRawScore(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        int challengeDay,
+        decimal average)
+    {
+        var requiredRawScore = GetMinimumRawScoreForAverage(settings, participant, byDay, challengeDay, average);
+        return Math.Max(0, requiredRawScore - CommitmentPledgeAllowanceRawPoints);
+    }
+
+    private static int GetMinimumRawScoreForAverage(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        IReadOnlyDictionary<int, CheckInRecord> byDay,
+        int challengeDay,
+        decimal average)
+    {
+        if (average <= 0m)
+            return 0;
+
+        var practiceDay = GetParticipantPracticeDay(settings, participant, byDay);
+        for (var rawScore = 0; rawScore <= RawDailyMaxScore; rawScore++)
+        {
+            if (GetScoredPoints(challengeDay, rawScore, settings.DurationDays, practiceDay) >= average)
+                return rawScore;
+        }
+
+        return RawDailyMaxScore;
     }
 
     private static IReadOnlyList<CheckInRecord> GetPreviousScoredCheckIns(
@@ -3513,7 +3556,7 @@ public sealed class LongevitymaxxingChallengeService
         int PriorScoredDays,
         decimal? AveragePoints,
         int Score,
-        bool IsBelowAverage);
+        bool IsBelowPledgeFloor);
 
     private sealed record GravatarAvatar(string Url, byte[] Bytes);
 
