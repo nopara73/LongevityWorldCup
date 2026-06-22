@@ -311,8 +311,11 @@ public sealed class ProofUploadPageTests
         Assert.Contains("|| normalizeContactEmail(athlete && athlete.MediaContact)", html);
         Assert.Contains("|| readStoredContactEmail();", html);
         Assert.Contains("accountEmail: readResultUploadContactEmail()", submitBody);
-        Assert.Contains("chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null", submitBody);
-        Assert.Contains("chronoBortzDifference: getSessionItem('chronoBortzDifference') || null", submitBody);
+        Assert.Contains("chronoPhenoDifference: readStoredAgeDifference('chronoPhenoDifference')", submitBody);
+        Assert.Contains("chronoBortzDifference: readStoredAgeDifference('chronoBortzDifference')", submitBody);
+        Assert.Contains("function readStoredAgeDifference(key)", html);
+        Assert.Contains("if (text && Number.isFinite(Number(text)))", html);
+        Assert.Contains("removeSessionItem(key);", html);
         Assert.Contains("function readPendingPaymentOffer()", html);
         Assert.Contains("const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.Contains("const paymentOffer = JSON.parse(rawOffer);", html);

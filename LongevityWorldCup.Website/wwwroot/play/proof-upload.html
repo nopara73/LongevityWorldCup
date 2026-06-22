@@ -558,6 +558,19 @@
             return Number.isFinite(Number(value));
         }
 
+        function readStoredAgeDifference(key) {
+            const value = getSessionItem(key);
+            if (value === null || value === undefined) return null;
+
+            const text = String(value).trim();
+            if (text && Number.isFinite(Number(text))) {
+                return text;
+            }
+
+            removeSessionItem(key);
+            return null;
+        }
+
         function hasStoredBiomarkerDate(value) {
             if (typeof value !== 'string') return false;
             const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
@@ -682,8 +695,8 @@
                 const applicantData = {
                     name: athlete.Name,
                     accountEmail: readResultUploadContactEmail(),
-                    chronoPhenoDifference: getSessionItem('chronoPhenoDifference') || null,
-                    chronoBortzDifference: getSessionItem('chronoBortzDifference') || null,
+                    chronoPhenoDifference: readStoredAgeDifference('chronoPhenoDifference'),
+                    chronoBortzDifference: readStoredAgeDifference('chronoBortzDifference'),
                     submissionId: submissionId,
                     biomarkers: biomarkerData.Biomarkers,
                     proofPics: proofPics,

@@ -310,8 +310,11 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("function getBrowserStorageItem(storageName, key)", html);
         Assert.Contains("return window[storageName].getItem(key);", html);
         Assert.Contains("return null;", html);
-        Assert.Contains("const chronoPhenoDifference = getSessionItem('chronoPhenoDifference');", collectBody);
-        Assert.Contains("const chronoBortzDifference = getSessionItem('chronoBortzDifference');", collectBody);
+        Assert.Contains("const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');", collectBody);
+        Assert.Contains("const chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');", collectBody);
+        Assert.Contains("function readStoredAgeDifference(key)", html);
+        Assert.Contains("if (text && Number.isFinite(Number(text)))", html);
+        Assert.Contains("removeSessionItem(key);", html);
         Assert.Contains("function readPendingPaymentOffer()", html);
         Assert.Contains("const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.Contains("const paymentOffer = JSON.parse(rawOffer);", html);
