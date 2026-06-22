@@ -1553,7 +1553,8 @@ namespace LongevityWorldCup.Website.Controllers
             var candidatePaths = new List<string>
             {
                 Path.Combine(athletesRoot, folderKey, "athlete.json"),
-                Path.Combine(athletesRoot, folderKey.Replace('_', '-'), "athlete.json")
+                Path.Combine(athletesRoot, folderKey.Replace('_', '-'), "athlete.json"),
+                Path.Combine(athletesRoot, folderKey.Replace('-', '_'), "athlete.json")
             };
 
             foreach (var path in candidatePaths.Distinct(StringComparer.OrdinalIgnoreCase))
