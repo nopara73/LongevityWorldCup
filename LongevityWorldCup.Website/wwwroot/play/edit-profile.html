@@ -583,6 +583,11 @@
             return name ? 'contactEmailFor:' + name : null;
         }
 
+        function readStoredAthleteContactEmail(athleteName) {
+            const key = getAthleteContactEmailStorageKey(athleteName);
+            return key ? normalizeContactEmail(getLocalItem(key)) : null;
+        }
+
         function rememberAthleteContactEmail(athleteName, email) {
             const key = getAthleteContactEmailStorageKey(athleteName);
             const contactEmail = normalizeContactEmail(email);
@@ -596,6 +601,8 @@
                 || normalizeContactEmail(originalAthlete && originalAthlete.AccountEmail)
                 || normalizeContactEmail(athlete && athlete.MediaContact)
                 || normalizeContactEmail(originalAthlete && originalAthlete.MediaContact)
+                || readStoredAthleteContactEmail(originalAthlete && originalAthlete.Name)
+                || readStoredAthleteContactEmail(athlete && athlete.Name)
                 || readStoredContactEmail();
         }
 

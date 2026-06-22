@@ -245,10 +245,14 @@ public sealed class EditProfilePageTests
         Assert.Contains("const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));", html);
         Assert.Contains("if (localContactEmail)", html);
         Assert.Contains("return localContactEmail;", html);
+        Assert.Contains("function readStoredAthleteContactEmail(athleteName)", html);
+        Assert.Contains("return key ? normalizeContactEmail(getLocalItem(key)) : null;", html);
         Assert.Contains("function rememberAthleteContactEmail(athleteName, email)", html);
         Assert.Contains("return name ? 'contactEmailFor:' + name : null;", html);
         Assert.Contains("removeSessionItem('contactEmail');", html);
         Assert.Contains("removeLocalItem('contactEmail');", html);
+        Assert.Contains("|| readStoredAthleteContactEmail(originalAthlete && originalAthlete.Name)", html);
+        Assert.Contains("|| readStoredAthleteContactEmail(athlete && athlete.Name)", html);
         Assert.Contains("|| readStoredContactEmail();", html);
         Assert.Contains("accountEmail: readEditProfileContactEmail(),", submitBody);
         Assert.DoesNotContain("|| getSessionItem('contactEmail')", submitBody);
