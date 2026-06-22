@@ -2147,11 +2147,12 @@
             let chronologicalAgeAtTimeOfTest;
             try {
                 chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
-                if (chronologicalAgeAtTimeOfTest < 0) {
-                    throw new Error("Invalid date of birth: you cannot be born in the future.");
-                }
             } catch (error) {
-                customAlert(error.message);
+                customAlert('Date of birth could not be read. Please check it and try again.');
+                return;
+            }
+            if (chronologicalAgeAtTimeOfTest < 0) {
+                customAlert('Date of birth cannot be after the blood draw date.');
                 return;
             }
 

@@ -193,6 +193,22 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
+    public void BioagePages_ShowStableDateOfBirthCalculationErrors(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+        var calculateBody = GetFunctionBody(html, "function calculateResult()", "// Add age as the first marker value");
+
+        Assert.Contains("chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate", calculateBody);
+        Assert.Contains("customAlert('Date of birth could not be read. Please check it and try again.');", calculateBody);
+        Assert.Contains("if (chronologicalAgeAtTimeOfTest < 0)", calculateBody);
+        Assert.Contains("customAlert('Date of birth cannot be after the blood draw date.');", calculateBody);
+        Assert.DoesNotContain("customAlert(error.message)", calculateBody);
+        Assert.DoesNotContain("throw new Error(\"Invalid date of birth", calculateBody);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
     public void BioagePages_AllowManualBloodDrawDateEntry(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
