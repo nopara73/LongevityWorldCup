@@ -66,15 +66,25 @@ public sealed class SelectedAthleteBootstrapPageTests
     [Theory]
     [InlineData("/onboarding/pheno-age.html")]
     [InlineData("/onboarding/bortz-age.html")]
-    public async Task UpdateBioageSelectedAthleteValidation_RejectsBlankDatesOfBirth(string path)
+    public async Task UpdateBioageSelectedAthleteValidation_RequiresUsableDateOfBirthParts(string path)
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
 
-        Assert.Contains("typeof value.DateOfBirth === 'string'", html);
-        Assert.Contains("value.DateOfBirth.trim()", html);
+        Assert.Contains("hasSelectedAthleteDateOfBirth(value.DateOfBirth)", html);
+        Assert.Contains("function hasSelectedAthleteDateOfBirth(value)", html);
+        Assert.Contains("typeof value === 'object'", html);
+        Assert.Contains("!Array.isArray(value)", html);
+        Assert.Contains("hasSelectedAthleteDatePart(value.Year, 1, 9999)", html);
+        Assert.Contains("hasSelectedAthleteDatePart(value.Month, 1, 12)", html);
+        Assert.Contains("hasSelectedAthleteDatePart(value.Day, 1, 31)", html);
+        Assert.Contains("function hasSelectedAthleteDatePart(value, min, max)", html);
+        Assert.Contains("if (typeof value === 'boolean' || value === null || value === undefined) return false;", html);
+        Assert.Contains("return Number.isInteger(number) && number >= min && number <= max;", html);
+        Assert.DoesNotContain("typeof value.DateOfBirth === 'string'", html);
+        Assert.DoesNotContain("value.DateOfBirth.trim()", html);
     }
 
     [Fact]
