@@ -93,10 +93,13 @@ public sealed class CharacterSelectionPageTests
         var html = await client.GetStringAsync("/play/character-selection.html");
 
         Assert.Contains("function getAthleteDisplayName(athlete)", html);
-        Assert.Contains("return `${athlete.Name || ''} ${getAthleteDisplayName(athlete)}`.toLowerCase();", html);
+        Assert.Contains("function getAthleteCanonicalName(athlete)", html);
+        Assert.Contains("return `${getAthleteCanonicalName(athlete)} ${getAthleteDisplayName(athlete)}`.toLowerCase();", html);
         Assert.Contains("typeof athlete.DisplayName === 'string'", html);
         Assert.Contains("return athlete && typeof athlete.Name === 'string' ? athlete.Name : '';", html);
+        Assert.Contains("return athlete && typeof athlete.Name === 'string' ? athlete.Name.trim() : '';", html);
         Assert.Contains("if (terms.every(term => searchText.includes(term)))", html);
+        Assert.Contains("if (!getAthleteCanonicalName(a)) return;", html);
         Assert.Contains("const displayName = getAthleteDisplayName(a);", html);
         Assert.Contains("appendHighlightedText(item, displayName, first);", html);
         Assert.Contains("item.dataset.value = a.Name;", html);
@@ -127,7 +130,9 @@ public sealed class CharacterSelectionPageTests
         var keydownBody = html[keydownStart..keydownEnd];
 
         Assert.Contains("const query = (value || '').trim().toLowerCase();", html);
-        Assert.Contains("return (athlete.Name || '').trim().toLowerCase() === query", html);
+        Assert.Contains("const canonicalName = getAthleteCanonicalName(athlete);", html);
+        Assert.Contains("if (!query || !canonicalName) return false;", html);
+        Assert.Contains("return canonicalName.toLowerCase() === query", html);
         Assert.Contains("|| getAthleteDisplayName(athlete).toLowerCase() === query", html);
         Assert.Contains("return athletes.find(a => isAthleteInputValue(a, value)) || null;", html);
         Assert.Contains("const exactMatch = findExactAthleteMatch(this.value);", keydownBody);
@@ -156,7 +161,9 @@ public sealed class CharacterSelectionPageTests
 
         Assert.Contains("function isAthleteInputValue(athlete, value)", html);
         Assert.Contains("const query = (value || '').trim().toLowerCase();", html);
-        Assert.Contains("return (athlete.Name || '').trim().toLowerCase() === query", html);
+        Assert.Contains("const canonicalName = getAthleteCanonicalName(athlete);", html);
+        Assert.Contains("if (!query || !canonicalName) return false;", html);
+        Assert.Contains("return canonicalName.toLowerCase() === query", html);
         Assert.Contains("|| getAthleteDisplayName(athlete).toLowerCase() === query;", html);
         Assert.Contains("function clearCurrentAthleteSelectionIfInputChanged(value)", html);
         Assert.Contains("if (!currentAthlete || isAthleteInputValue(currentAthlete, value)) return;", html);
