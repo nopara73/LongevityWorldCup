@@ -1065,7 +1065,8 @@
             const flag = document.getElementById('flag').value.trim();
             const why = document.getElementById('why').value.trim();
             const mediaContact = document.getElementById('mediaContact').value.trim();
-            const accountEmail = document.getElementById('accountEmail').value.trim();
+            const accountEmailInput = document.getElementById('accountEmail');
+            const accountEmail = normalizeContactEmail(accountEmailInput.value) || accountEmailInput.value.trim();
             const personalLink = document.getElementById('personalLink').value.trim();
 
             // Get the differences from sessionStorage
@@ -1636,13 +1637,14 @@
                 // Final stage requires accountEmail
                 let isValid = true;
                 const accountEmailInput = document.getElementById('accountEmail');
-                const accountEmail = accountEmailInput.value.trim();
+                const rawAccountEmail = accountEmailInput.value.trim();
+                const accountEmail = normalizeContactEmail(accountEmailInput.value);
                 const personalLink = document.getElementById('personalLink').value.trim();
 
-                if (!accountEmail) {
+                if (!rawAccountEmail) {
                     isValid = false;
                     customAlert('Please enter your email.');
-                } else if (!isEmailAddress(accountEmail)) {
+                } else if (!accountEmail) {
                     isValid = false;
                     customAlert('Please enter a valid email address.');
                 }
@@ -1653,6 +1655,8 @@
                 }
 
                 if (isValid) {
+                    accountEmailInput.value = accountEmail;
+
                     // Collect all the data and send it to the backend via an API call
                     const applicantData = collectApplicantData();
                     if (!applicantData) return;
@@ -2017,7 +2021,7 @@
             const accountEmailInput = document.getElementById('accountEmail');
             const nextButton = document.getElementById('nextButton');
 
-            if (isEmailAddress(accountEmailInput.value)) {
+            if (normalizeContactEmail(accountEmailInput.value)) {
                 nextButton.disabled = false;
             } else {
                 nextButton.disabled = true;

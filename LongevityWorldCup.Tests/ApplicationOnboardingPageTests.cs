@@ -153,10 +153,13 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("window.validator && typeof window.validator.isURL === 'function'", html);
         Assert.Contains("input.type = 'email';", html);
         Assert.Contains("input.type = 'url';", html);
-        Assert.Contains("} else if (!isEmailAddress(accountEmail)) {", html);
+        Assert.Contains("const rawAccountEmail = accountEmailInput.value.trim();", html);
+        Assert.Contains("const accountEmail = normalizeContactEmail(accountEmailInput.value);", html);
+        Assert.Contains("} else if (!accountEmail) {", html);
+        Assert.Contains("accountEmailInput.value = accountEmail;", html);
         Assert.Contains("if (!isOptionalUrl(personalLink)) {", html);
         Assert.Contains("if (!isOptionalUrl(personalLinkValue)) {", html);
-        Assert.Contains("if (isEmailAddress(accountEmailInput.value)) {", html);
+        Assert.Contains("if (normalizeContactEmail(accountEmailInput.value)) {", html);
         Assert.DoesNotContain("!validator.isEmail(accountEmail)", html);
         Assert.DoesNotContain("!validator.isURL(personalLink)", html);
         Assert.DoesNotContain("!validator.isURL(personalLinkValue)", html);
@@ -467,6 +470,8 @@ public sealed class ApplicationOnboardingPageTests
 
         Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
         Assert.Contains("setLocalItem('selectedAthleteName', applicantData.name);", submitBody);
+        Assert.Contains("const accountEmail = normalizeContactEmail(accountEmailInput.value) || accountEmailInput.value.trim();", html);
+        Assert.Contains("accountEmail: accountEmail,", html);
         Assert.DoesNotContain("localStorage.setItem('selectedAthleteName', applicantData.name);", submitBody);
     }
 
