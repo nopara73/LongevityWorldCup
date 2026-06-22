@@ -409,6 +409,24 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Fact]
+    public void BortzPage_CorrectsHba1cPercentEnteredWithMmolMolUnit()
+    {
+        var html = File.ReadAllText(GetPagePath("bortz-age.html"));
+
+        Assert.Contains("const hba1cEl = document.getElementById('hba1c');", html);
+        Assert.Contains("const hba1cUnitEl = document.getElementById('hba1cUnit');", html);
+        Assert.Contains("if (!isNaN(v) && !isPct && !isEAG && u === 1 && v > 0 && v < 15)", html);
+        Assert.Contains("setUnit(hba1cUnitEl, 0.0915);", html);
+
+        var proceedBody = GetFunctionBody(html, "function proceedToNextPage()", "const biomarkerData = {");
+        var correctionIndex = proceedBody.IndexOf("correctCorrectableUnits();", StringComparison.Ordinal);
+        var storeIndex = proceedBody.IndexOf("store('hba1c', 'Hba1cMmolMol'", StringComparison.Ordinal);
+
+        Assert.True(correctionIndex >= 0);
+        Assert.True(storeIndex > correctionIndex);
+    }
+
+    [Fact]
     public void PhenoPage_AppliesCorrectableUnitsBeforeHandoff()
     {
         var html = File.ReadAllText(GetPagePath("pheno-age.html"));

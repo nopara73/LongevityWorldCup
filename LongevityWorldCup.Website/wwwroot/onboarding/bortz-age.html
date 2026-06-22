@@ -2057,7 +2057,7 @@
                 }
             }
 
-            // HbA1c: mmol/mol typical 20–50, max plausible ~140 (≈15%); % 4–6 (so % rarely > 15); eAG uses value 1
+            // HbA1c: mmol/mol typical 20-50, max plausible ~140 (~15%); % commonly lands around 4-6; eAG uses value 1.
             const hba1cEl = document.getElementById('hba1c');
             const hba1cUnitEl = document.getElementById('hba1cUnit');
             if (hba1cEl && hba1cUnitEl) {
@@ -2066,7 +2066,7 @@
                 const unitText = hba1cUnitEl.options[hba1cUnitEl.selectedIndex].text;
                 const isPct = unitText.indexOf('%') !== -1;
                 const isEAG = unitText.indexOf('eAG') !== -1;
-                if (!isNaN(v) && !isPct && !isEAG && u === 1 && v > 150) {
+                if (!isNaN(v) && !isPct && !isEAG && u === 1 && v > 0 && v < 15) {
                     console.warn("HbA1c value suggests %. Correcting the unit.");
                     setUnit(hba1cUnitEl, 0.0915);
                 } else if (!isNaN(v) && isPct && v > 15) {
