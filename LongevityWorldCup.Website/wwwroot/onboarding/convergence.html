@@ -1837,6 +1837,7 @@
             const profilePicInput = document.getElementById('profilePicInput');
             const profileCameraInput = document.getElementById('profileCameraInput');
             let cropper; // Declare Cropper instance at a higher scope
+            let isProfileCropProcessing = false;
 
             function handleProfileUploadChange(event) {
                 const input = event.target;
@@ -1888,10 +1889,18 @@
 
             if (profilePicInput && !profilePicInput.hasAttribute('data-listener')) {
                 profilePicInput.addEventListener('change', handleProfileUploadChange);
+                const cropButton = document.getElementById('cropButton');
+                const cancelProfileCropButton = document.getElementById('cancelProfileCropButton');
                 // Add the crop button event listener once
-                document.getElementById('cropButton').addEventListener('click', async function () {
-                    if (cropper) {
-                        const croppedCanvas = cropper.getCroppedCanvas({
+                cropButton.addEventListener('click', async function () {
+                    const activeCropper = cropper;
+                    if (isProfileCropProcessing || !activeCropper) return;
+
+                    isProfileCropProcessing = true;
+                    cropButton.disabled = true;
+                    cancelProfileCropButton.disabled = true;
+                    try {
+                        const croppedCanvas = activeCropper.getCroppedCanvas({
                             width: 1024,
                             height: 768,
                         });
@@ -1910,8 +1919,10 @@
 
                         profilePic = croppedImageDataURL;
 
-                        cropper.destroy(); // Clean up the Cropper instance
-                        cropper = null; // Reset the Cropper instance
+                        activeCropper.destroy(); // Clean up the Cropper instance
+                        if (cropper === activeCropper) {
+                            cropper = null; // Reset the Cropper instance
+                        }
 
                         document.getElementById('uploadPart').style.display = '';
                         document.getElementById('croppingPart').style.display = 'none';
@@ -1919,10 +1930,15 @@
                         const nextButton = document.getElementById('nextButton');
                         nextButton.disabled = false;
                         updateUploadButtons();
+                    } finally {
+                        isProfileCropProcessing = false;
+                        cropButton.disabled = false;
+                        cancelProfileCropButton.disabled = false;
                     }
                 });
 
-                document.getElementById('cancelProfileCropButton').addEventListener('click', function () {
+                cancelProfileCropButton.addEventListener('click', function () {
+                    if (isProfileCropProcessing) return;
                     if (cropper) {
                         cropper.destroy();
                         cropper = null;
