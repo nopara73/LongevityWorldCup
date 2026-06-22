@@ -492,6 +492,10 @@ public sealed class ApplicationOnboardingPageTests
 
         Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
         Assert.Contains("function removeBrowserStorageItem(storageName, key)", html);
+        Assert.Contains("function getAthleteContactEmailStorageKey(athleteName)", html);
+        Assert.Contains("return name ? 'contactEmailFor:' + name : null;", html);
+        Assert.Contains("function rememberAthleteContactEmail(athleteName, email)", html);
+        Assert.Contains("rememberAthleteContactEmail(applicantData.name, applicantData.accountEmail);", successBody);
         Assert.Contains("setSessionItem('contactEmail', applicantData.accountEmail);", successBody);
         Assert.Contains("setLocalItem('contactEmail', applicantData.accountEmail);", successBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", successBody);
