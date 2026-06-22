@@ -2391,6 +2391,8 @@
                 return;
             }
 
+            correctCorrectableUnits();
+
             const year = yearInput ? parseInt(yearInput) : null;
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
