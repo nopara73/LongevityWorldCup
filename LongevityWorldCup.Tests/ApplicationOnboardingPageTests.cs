@@ -275,6 +275,18 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationMediaContactField_AdvertisesFreeTextContactFormats()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("<input type=\"text\" id=\"mediaContact\" name=\"mediaContact\" required aria-required=\"true\" inputmode=\"email\" autocomplete=\"off\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"media@example.com or @handle\">", html);
+        Assert.DoesNotContain("id=\"mediaContact\" name=\"mediaContact\" type=\"email\"", html);
+    }
+
+    [Fact]
     public async Task ApplicationContactEmail_ReusesEmailShapedMediaContact()
     {
         using var factory = new TestWebApplicationFactory();
