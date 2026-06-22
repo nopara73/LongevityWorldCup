@@ -135,6 +135,20 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ClientImageOptimizer_FallsBackWhenCanvasContextIsUnavailable()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/misc.js");
+
+        Assert.Contains("const ctx = canvas.getContext('2d');", javascript);
+        Assert.Contains("if (!ctx) return null;", javascript);
+        Assert.Contains("if (!optimizedBlob) {", javascript);
+        Assert.Contains("return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };", javascript);
+    }
+
+    [Fact]
     public async Task ApplicationNetworkFailures_ShowNormalizedErrorMessage()
     {
         using var factory = new TestWebApplicationFactory();
