@@ -1548,7 +1548,8 @@
                     serializedPaymentOffer = null;
                 }
                 if (!serializedPaymentOffer) {
-                    customAlert('Payment details could not be saved. Enable browser storage and try again.');
+                    customAlert('Payment details could not be saved. Enable browser storage and try again.')
+                        .then(() => document.getElementById('continueButton')?.focus());
                     return false;
                 }
             }
@@ -1571,7 +1572,8 @@
             if (!stored) {
                 clearStoredBiomarkerHandoff();
                 if (!isUpdate) clearPendingPaymentOffer();
-                customAlert('Browser storage is unavailable. Enable storage and try again.');
+                customAlert('Browser storage is unavailable. Enable storage and try again.')
+                    .then(() => document.getElementById('continueButton')?.focus());
                 return false;
             }
 
