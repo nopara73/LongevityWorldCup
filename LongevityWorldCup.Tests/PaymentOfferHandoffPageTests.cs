@@ -46,6 +46,10 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("const stored = setPendingPaymentOffer({", html);
         Assert.Contains("if (!stored) return;", html);
         Assert.Contains("if (!setPendingPaymentOffer(paymentOffer)) return;", html);
+        Assert.Contains("function preserveAppliedDiscountMetadata(offer, result)", html);
+        Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", html);
+        Assert.Contains("return window.addActiveDiscountMetadataToPaymentOffer(offer);", html);
+        Assert.Contains("return null;", html);
         Assert.DoesNotContain("setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", html);
     }
@@ -105,7 +109,13 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("function setSessionItem(key, value)", html);
         Assert.Contains("if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer))", html);
         Assert.Contains("if (typeof beforeNavigate === 'function' && beforeNavigate() === false) return;", html);
+        Assert.Contains("function preserveAppliedDiscountMetadata(offer, result)", html);
+        Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", html);
+        Assert.Contains("return window.addActiveDiscountMetadataToPaymentOffer(offer);", html);
+        Assert.Contains("return null;", html);
+        Assert.Contains("const paymentOffer = preserveAppliedDiscountMetadata({", html);
         Assert.Contains("return setPendingPaymentOffer(paymentOffer);", html);
+        Assert.DoesNotContain("paymentOffer = window.addActiveDiscountMetadataToPaymentOffer(paymentOffer);", html);
         Assert.DoesNotContain("setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", html);
     }

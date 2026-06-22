@@ -413,6 +413,19 @@
                 && paymentOffer.amountUsd >= 0;
         }
 
+        function preserveAppliedDiscountMetadata(offer, result) {
+            const hasDiscountCode = result
+                && Array.isArray(result.components)
+                && result.components.some(component => component && component.kind === 'discountCode');
+            if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
+
+            try {
+                return window.addActiveDiscountMetadataToPaymentOffer(offer);
+            } catch (_) {
+                return null;
+            }
+        }
+
         function setPendingPaymentOffer(offer) {
             let effectiveOffer = offer;
             try {
@@ -545,18 +558,12 @@
                                 goProDiscountResult && Number.isFinite(goProDiscountResult.finalPriceUsd)
                                     ? goProDiscountResult.finalPriceUsd
                                     : 100;
-                            let paymentOffer = {
+                            const paymentOffer = preserveAppliedDiscountMetadata({
                                 source: 'go-pro-upgrade',
                                 offerType: 'pro',
                                 currency: 'USD',
                                 amountUsd
-                            };
-                            if (goProDiscountResult
-                                && Array.isArray(goProDiscountResult.components)
-                                && goProDiscountResult.components.some(component => component && component.kind === 'discountCode')
-                                && window.addActiveDiscountMetadataToPaymentOffer) {
-                                paymentOffer = window.addActiveDiscountMetadataToPaymentOffer(paymentOffer);
-                            }
+                            }, goProDiscountResult);
                             return setPendingPaymentOffer(paymentOffer);
                         }
                     );

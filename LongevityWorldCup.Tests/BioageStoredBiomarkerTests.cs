@@ -327,6 +327,10 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("Number.isFinite(paymentOffer.amountUsd)", html);
         Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
+        Assert.Contains("function preserveAppliedDiscountMetadata(offer, result)", html);
+        Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", html);
+        Assert.Contains("return window.addActiveDiscountMetadataToPaymentOffer(offer);", html);
+        Assert.Contains("return null;", html);
         Assert.Contains("let serializedPaymentOffer = null;", html);
         Assert.Contains("try {", html);
         Assert.Contains("const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer", html);
