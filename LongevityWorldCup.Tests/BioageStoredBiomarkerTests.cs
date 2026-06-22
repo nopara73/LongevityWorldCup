@@ -287,6 +287,34 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Theory]
+    [InlineData("pheno-age.html", "PHENO_LAB_GEO_CACHE_KEY")]
+    [InlineData("bortz-age.html", "BORTZ_LAB_GEO_CACHE_KEY")]
+    public void BioagePages_UseSafeStorageForLabGeoCache(string fileName, string cacheKey)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+        var accessGateStart = html.IndexOf("function initialize", StringComparison.Ordinal);
+        var accessGateEnd = html.IndexOf("if (bloodDrawDateInput)", accessGateStart, StringComparison.Ordinal);
+
+        Assert.True(accessGateStart >= 0);
+        Assert.True(accessGateEnd > accessGateStart);
+
+        var accessGateBody = html[accessGateStart..accessGateEnd];
+
+        Assert.Contains("function setLocalItem(key, value)", html);
+        Assert.Contains("function getLocalItem(key)", html);
+        Assert.Contains("function removeLocalItem(key)", html);
+        Assert.Contains("setBrowserStorageItem('localStorage', key, value)", html);
+        Assert.Contains("getBrowserStorageItem('localStorage', key)", html);
+        Assert.Contains("removeBrowserStorageItem('localStorage', key)", html);
+        Assert.Contains($"const raw = getLocalItem({cacheKey});", accessGateBody);
+        Assert.Contains($"setLocalItem({cacheKey}, JSON.stringify({{", accessGateBody);
+        Assert.Contains($"removeLocalItem({cacheKey});", accessGateBody);
+        Assert.DoesNotContain("localStorage.getItem", accessGateBody);
+        Assert.DoesNotContain("localStorage.setItem", accessGateBody);
+        Assert.DoesNotContain("localStorage.removeItem", accessGateBody);
+    }
+
+    [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
     public void BioagePages_ReplaceMalformedPendingPaymentOfferBeforeHandoff(string fileName)

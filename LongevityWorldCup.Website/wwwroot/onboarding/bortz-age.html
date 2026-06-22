@@ -1385,6 +1385,9 @@
         function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
         function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+        function setLocalItem(key, value) { return setBrowserStorageItem('localStorage', key, value); }
+        function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
+        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
 
         function isValidSelectedAthlete(value) {
             return value
@@ -1675,7 +1678,7 @@
 
             function readCachedEligibility() {
                 try {
-                    const raw = localStorage.getItem(BORTZ_LAB_GEO_CACHE_KEY);
+                    const raw = getLocalItem(BORTZ_LAB_GEO_CACHE_KEY);
                     if (!raw) return null;
                     const cached = JSON.parse(raw);
                     if (!cached || Date.now() - cached.timestamp > 24 * 60 * 60 * 1000) return null;
@@ -1687,7 +1690,7 @@
 
             function writeCachedEligibility(countryCode, regionCode) {
                 try {
-                    localStorage.setItem(BORTZ_LAB_GEO_CACHE_KEY, JSON.stringify({
+                    setLocalItem(BORTZ_LAB_GEO_CACHE_KEY, JSON.stringify({
                         countryCode,
                         regionCode,
                         timestamp: Date.now()
@@ -1763,9 +1766,7 @@
             window.lwcBortzLabAccess = {
                 refresh: initializeBortzLabAccessGate,
                 clearCache: function () {
-                    try {
-                        localStorage.removeItem(BORTZ_LAB_GEO_CACHE_KEY);
-                    } catch (_) { /* ignore */ }
+                    removeLocalItem(BORTZ_LAB_GEO_CACHE_KEY);
                 }
             };
         }

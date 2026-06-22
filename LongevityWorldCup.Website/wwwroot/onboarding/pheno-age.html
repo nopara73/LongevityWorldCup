@@ -1206,6 +1206,9 @@
         function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
         function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+        function setLocalItem(key, value) { return setBrowserStorageItem('localStorage', key, value); }
+        function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
+        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
 
         function isValidSelectedAthlete(value) {
             return value
@@ -1429,7 +1432,7 @@
 
             function readCachedEligibility() {
                 try {
-                    const raw = localStorage.getItem(PHENO_LAB_GEO_CACHE_KEY);
+                    const raw = getLocalItem(PHENO_LAB_GEO_CACHE_KEY);
                     if (!raw) return null;
                     const cached = JSON.parse(raw);
                     if (!cached || Date.now() - cached.timestamp > 24 * 60 * 60 * 1000) return null;
@@ -1441,7 +1444,7 @@
 
             function writeCachedEligibility(countryCode) {
                 try {
-                    localStorage.setItem(PHENO_LAB_GEO_CACHE_KEY, JSON.stringify({
+                    setLocalItem(PHENO_LAB_GEO_CACHE_KEY, JSON.stringify({
                         countryCode,
                         timestamp: Date.now()
                     }));
@@ -1503,9 +1506,7 @@
             window.lwcPhenoLabAccess = {
                 refresh: initializePhenoLabAccessGate,
                 clearCache: function () {
-                    try {
-                        localStorage.removeItem(PHENO_LAB_GEO_CACHE_KEY);
-                    } catch (_) { /* ignore */ }
+                    removeLocalItem(PHENO_LAB_GEO_CACHE_KEY);
                 }
             };
         }
