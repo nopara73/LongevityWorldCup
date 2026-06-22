@@ -84,6 +84,14 @@ function hasFiniteBiomarkerValue(value) {
     return false;
 }
 
+function getProofSessionItem(key) {
+    try {
+        return window.sessionStorage.getItem(key);
+    } catch (_) {
+        return null;
+    }
+}
+
 /**
  * Build Proof Tracker checklist labels from sessionStorage.biomarkerData.
  * Only includes biomarkers present in the latest entry (valid number).
@@ -92,7 +100,7 @@ function hasFiniteBiomarkerValue(value) {
  */
 window.getProofChecklistLabelsFromSession = function () {
     try {
-        var raw = sessionStorage.getItem('biomarkerData');
+        var raw = getProofSessionItem('biomarkerData');
         if (!raw) return [];
         var data = JSON.parse(raw);
         var latest = (data.Biomarkers && data.Biomarkers[0]) || {};
