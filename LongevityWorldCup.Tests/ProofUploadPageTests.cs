@@ -233,6 +233,24 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ProofHelper_IgnoresBlankStoredBiomarkerValuesInChecklist()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+
+        Assert.Contains("function hasFiniteBiomarkerValue(value)", javascript);
+        Assert.Contains("if (value === null || value === undefined || typeof value === 'boolean') return false;", javascript);
+        Assert.Contains("if (typeof value === 'number') return Number.isFinite(value);", javascript);
+        Assert.Contains("var trimmed = value.trim();", javascript);
+        Assert.Contains("return trimmed !== '' && Number.isFinite(Number(trimmed));", javascript);
+        Assert.Contains("if (hasFiniteBiomarkerValue(val)) return true;", javascript);
+        Assert.Contains("if (hasFiniteBiomarkerValue(val))", javascript);
+        Assert.DoesNotContain("val !== undefined && val !== null && !isNaN(val)", javascript);
+    }
+
+    [Fact]
     public async Task ResultUploadFailures_UseReadableErrorExtractor()
     {
         using var factory = new TestWebApplicationFactory();
