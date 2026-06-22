@@ -221,14 +221,45 @@ public sealed class ApplicationOnboardingPageTests
         Assert.DoesNotContain("<input type=\"email\" id=\"accountEmail\"", html);
         Assert.Contains("const rawAccountEmail = accountEmailInput.value.trim();", html);
         Assert.Contains("const accountEmail = normalizeContactEmail(accountEmailInput.value);", html);
+        Assert.Contains("const personalLinkInput = document.getElementById('personalLink');", html);
+        Assert.Contains("const personalLink = normalizeOptionalUrl(personalLinkInput.value);", html);
         Assert.Contains("} else if (!accountEmail) {", html);
         Assert.Contains("accountEmailInput.value = accountEmail;", html);
+        Assert.Contains("personalLinkInput.value = personalLink;", html);
         Assert.Contains("if (!isOptionalUrl(personalLink)) {", html);
         Assert.Contains("if (!isOptionalUrl(personalLinkValue)) {", html);
         Assert.Contains("if (normalizeContactEmail(accountEmailInput.value)) {", html);
         Assert.DoesNotContain("!validator.isEmail(accountEmail)", html);
         Assert.DoesNotContain("!validator.isURL(personalLink)", html);
         Assert.DoesNotContain("!validator.isURL(personalLinkValue)", html);
+    }
+
+    [Fact]
+    public async Task ApplicationSubmit_NormalizesPersonalLinkBeforePosting()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var finalValidationStart = html.IndexOf("// Final stage requires accountEmail", StringComparison.Ordinal);
+        var finalValidationEnd = html.IndexOf("const applicantData = collectApplicantData();", finalValidationStart, StringComparison.Ordinal);
+        var collectStart = html.IndexOf("function collectApplicantData()", StringComparison.Ordinal);
+        var collectEnd = html.IndexOf("return applicantData;", collectStart, StringComparison.Ordinal);
+
+        Assert.True(finalValidationStart >= 0);
+        Assert.True(finalValidationEnd > finalValidationStart);
+        Assert.True(collectStart >= 0);
+        Assert.True(collectEnd > collectStart);
+
+        var finalValidationBody = html[finalValidationStart..finalValidationEnd];
+        var collectBody = html[collectStart..collectEnd];
+
+        Assert.Contains("const personalLinkInput = document.getElementById('personalLink');", finalValidationBody);
+        Assert.Contains("const personalLink = normalizeOptionalUrl(personalLinkInput.value);", finalValidationBody);
+        Assert.Contains("personalLinkInput.value = personalLink;", finalValidationBody);
+        Assert.Contains("const personalLink = normalizeOptionalUrl(document.getElementById('personalLink').value);", collectBody);
+        Assert.Contains("personalLink: personalLink,", collectBody);
+        Assert.DoesNotContain("const personalLink = document.getElementById('personalLink').value.trim();", html);
     }
 
     [Fact]

@@ -1183,7 +1183,7 @@
             const mediaContact = document.getElementById('mediaContact').value.trim();
             const accountEmailInput = document.getElementById('accountEmail');
             const accountEmail = normalizeContactEmail(accountEmailInput.value) || accountEmailInput.value.trim();
-            const personalLink = document.getElementById('personalLink').value.trim();
+            const personalLink = normalizeOptionalUrl(document.getElementById('personalLink').value);
 
             // Get the differences from sessionStorage
             const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');
@@ -1747,9 +1747,10 @@
 
                 // Final stage requires accountEmail
                 const accountEmailInput = document.getElementById('accountEmail');
+                const personalLinkInput = document.getElementById('personalLink');
                 const rawAccountEmail = accountEmailInput.value.trim();
                 const accountEmail = normalizeContactEmail(accountEmailInput.value);
-                const personalLink = document.getElementById('personalLink').value.trim();
+                const personalLink = normalizeOptionalUrl(personalLinkInput.value);
 
                 if (!rawAccountEmail) {
                     customAlert('Please enter your email.');
@@ -1765,6 +1766,7 @@
                 }
 
                 accountEmailInput.value = accountEmail;
+                personalLinkInput.value = personalLink;
 
                 // Collect all the data and send it to the backend via an API call
                 const applicantData = collectApplicantData();

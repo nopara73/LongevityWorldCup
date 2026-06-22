@@ -308,6 +308,29 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task EditProfileSubmit_NormalizesPersonalLinkBeforePosting()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var submitStart = html.IndexOf("submitButton.addEventListener('click', async function ()", StringComparison.Ordinal);
+        var applicantDataStart = html.IndexOf("const applicantData = {", submitStart, StringComparison.Ordinal);
+        var fetchStart = html.IndexOf("fetchWithTimeout('/api/application/application'", applicantDataStart, StringComparison.Ordinal);
+
+        Assert.True(submitStart >= 0);
+        Assert.True(applicantDataStart > submitStart);
+        Assert.True(fetchStart > applicantDataStart);
+
+        var beforeApplicantData = html[submitStart..applicantDataStart];
+        var submitBody = html[applicantDataStart..fetchStart];
+
+        Assert.Contains("athlete.PersonalLink = normalizeOptionalUrl(personalLinkInput.value) || '';", beforeApplicantData);
+        Assert.Contains("personalLinkInput.value = athlete.PersonalLink;", beforeApplicantData);
+        Assert.Contains("personalLink: athlete.PersonalLink || null,", submitBody);
+    }
+
+    [Fact]
     public async Task EditProfileSubmit_GuardsAgainstDuplicateClicks()
     {
         using var factory = new TestWebApplicationFactory();
