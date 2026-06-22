@@ -817,6 +817,15 @@
             const personalLinkInput = document.getElementById('personalLinkInput');
             const whyDisplayInput = document.getElementById('whyDisplayInput');
 
+            [personalLinkInput, mediaContactInput].forEach(input => {
+                input.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        submitButton.click();
+                    }
+                });
+            });
+
             const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');
             whyDisplayInput.value = athlete.Why || '';
             if (athlete.Why !== originalAthlete.Why) {
