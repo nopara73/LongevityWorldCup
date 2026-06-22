@@ -249,6 +249,11 @@ namespace LongevityWorldCup.Website.Controllers
 
                 if (!IsValidDateOfBirth(applicantData.DateOfBirth))
                 {
+                    if (IsFutureDateOfBirth(applicantData.DateOfBirth))
+                    {
+                        return BadRequest("Date of birth cannot be in the future.");
+                    }
+
                     return BadRequest("Date of birth is invalid.");
                 }
 
@@ -295,6 +300,11 @@ namespace LongevityWorldCup.Website.Controllers
 
             if (applicantData.Biomarkers?.Any() is true && !HasValidBiomarkerDates(applicantData.Biomarkers))
             {
+                if (HasFutureBiomarkerDates(applicantData.Biomarkers))
+                {
+                    return BadRequest("Biomarker date cannot be in the future.");
+                }
+
                 return BadRequest("Biomarker date is invalid.");
             }
 
@@ -2028,6 +2038,19 @@ namespace LongevityWorldCup.Website.Controllers
                 && new DateTime(dateOfBirth.Year, dateOfBirth.Month, dateOfBirth.Day, 0, 0, 0, DateTimeKind.Utc) <= DateTime.UtcNow.Date;
         }
 
+        private static bool IsFutureDateOfBirth(DateOfBirthData dateOfBirth)
+        {
+            if (dateOfBirth.Year is < 1 or > 9999
+                || dateOfBirth.Month is < 1 or > 12
+                || dateOfBirth.Day < 1
+                || dateOfBirth.Day > DateTime.DaysInMonth(dateOfBirth.Year, dateOfBirth.Month))
+            {
+                return false;
+            }
+
+            return new DateTime(dateOfBirth.Year, dateOfBirth.Month, dateOfBirth.Day, 0, 0, 0, DateTimeKind.Utc) > DateTime.UtcNow.Date;
+        }
+
         private static bool HasRequiredBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
         {
             return biomarkers.All(biomarker => biomarker is not null && !string.IsNullOrWhiteSpace(biomarker.Date));
@@ -2045,6 +2068,20 @@ namespace LongevityWorldCup.Website.Controllers
                     DateTimeStyles.None,
                     out var resultDate)
                 && resultDate <= today);
+        }
+
+        private static bool HasFutureBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            return biomarkers.Any(biomarker =>
+                biomarker is not null &&
+                DateOnly.TryParseExact(
+                    biomarker.Date,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var resultDate)
+                && resultDate > today);
         }
 
         private static bool HasRequiredBiomarkerValues(IEnumerable<BiomarkerData> biomarkers)

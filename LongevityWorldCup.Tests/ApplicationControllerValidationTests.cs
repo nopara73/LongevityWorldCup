@@ -138,7 +138,7 @@ public sealed class ApplicationControllerValidationTests
         }, CancellationToken.None);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Date of birth is invalid.", badRequest.Value);
+        Assert.Equal("Date of birth cannot be in the future.", badRequest.Value);
     }
 
     [Fact]
@@ -284,7 +284,7 @@ public sealed class ApplicationControllerValidationTests
         }, CancellationToken.None);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Biomarker date is invalid.", badRequest.Value);
+        Assert.Equal("Biomarker date cannot be in the future.", badRequest.Value);
     }
 
     [Fact]
