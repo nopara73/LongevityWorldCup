@@ -270,8 +270,10 @@ public sealed class ApplicationOnboardingPageTests
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
 
-        Assert.Contains("<input type=\"text\" id=\"name\" name=\"name\" required aria-required=\"true\" minlength=\"3\" maxlength=\"100\" autocomplete=\"name\"", html);
-        Assert.Contains("<input type=\"text\" id=\"flag\" name=\"flag\" required aria-required=\"true\" minlength=\"3\" maxlength=\"100\" autocomplete=\"off\"", html);
+        Assert.Contains("<input type=\"text\" id=\"name\" name=\"name\" required aria-required=\"true\" aria-describedby=\"nameError\" minlength=\"3\" maxlength=\"100\" autocomplete=\"name\"", html);
+        Assert.Contains("<span id=\"nameError\" class=\"error-message\" aria-live=\"polite\"></span>", html);
+        Assert.Contains("<input type=\"text\" id=\"flag\" name=\"flag\" required aria-required=\"true\" aria-describedby=\"flagError\" minlength=\"3\" maxlength=\"100\" autocomplete=\"off\"", html);
+        Assert.Contains("<span id=\"flagError\" class=\"error-message\" aria-live=\"polite\"></span>", html);
         Assert.Contains("Name must be at least 3 characters long.", html);
         Assert.Contains("Flag must be at least 3 characters long.", html);
         Assert.Contains("const nameRegex = /^", html);
