@@ -154,6 +154,12 @@ public sealed class EditProfilePageTests
         Assert.Contains("window.changeProfileCropper = null;", loadBody);
         Assert.Contains("cropperImage.src = evt.target.result;", loadBody);
         Assert.Contains("window.changeProfileCropper = new Cropper(cropperImage,", loadBody);
+        Assert.Contains("const activeCropper = window.changeProfileCropper;", cropBody);
+        Assert.Contains("if (!activeCropper) return;", cropBody);
+        Assert.Contains("activeCropper.getCroppedCanvas({", cropBody);
+        Assert.Contains("activeCropper.destroy();", cropBody);
+        Assert.Contains("if (activeCropper)", cancelBody);
+        Assert.Contains("activeCropper.destroy();", cancelBody);
         Assert.Contains("window.changeProfileCropper = null;", cropBody);
         Assert.Contains("window.changeProfileCropper = null;", cancelBody);
     }
