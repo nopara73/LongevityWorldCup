@@ -627,6 +627,20 @@ window.sendApplicationSubmissionReport = async function (report) {
     }
 };
 
+window.trySendApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error) {
+    try {
+        if (typeof window.buildApplicationSubmissionReport !== 'function'
+            || typeof window.sendApplicationSubmissionReport !== 'function') {
+            return;
+        }
+
+        const report = window.buildApplicationSubmissionReport(applicantData, submissionId, phase, submissionKind, error);
+        void window.sendApplicationSubmissionReport(report);
+    } catch (_) {
+        // Best-effort diagnostics must never block or reset an application attempt.
+    }
+};
+
 window.updateHypotheticalRankResult = async function (options) {
     const container = document.getElementById(options && options.containerId);
     if (!container) return;

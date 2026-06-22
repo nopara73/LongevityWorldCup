@@ -49,6 +49,11 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;", javascript);
         Assert.Contains("window.setTimeout(() => controller.abort(), timeoutMs)", javascript);
         Assert.Contains("...(controller ? { signal: controller.signal } : {})", javascript);
+        Assert.Contains("window.trySendApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error)", javascript);
+        Assert.Contains("typeof window.buildApplicationSubmissionReport !== 'function'", javascript);
+        Assert.Contains("const report = window.buildApplicationSubmissionReport(applicantData, submissionId, phase, submissionKind, error);", javascript);
+        Assert.Contains("void window.sendApplicationSubmissionReport(report);", javascript);
+        Assert.Contains("// Best-effort diagnostics must never block or reset an application attempt.", javascript);
     }
 
     [Fact]
@@ -66,9 +71,10 @@ public sealed class ApplicationOnboardingPageTests
         {
             var html = await client.GetStringAsync(path);
 
-            Assert.DoesNotContain("await window.sendApplicationSubmissionReport(", html);
-            Assert.Contains("void window.sendApplicationSubmissionReport(", html);
-            Assert.Contains("window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)", html);
+            Assert.DoesNotContain("await window.trySendApplicationSubmissionReport(", html);
+            Assert.DoesNotContain("void window.sendApplicationSubmissionReport(", html);
+            Assert.DoesNotContain("window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)", html);
+            Assert.Contains("void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);", html);
         }
     }
 
@@ -89,10 +95,10 @@ public sealed class ApplicationOnboardingPageTests
 
             var guardedFailedReports = Regex.Matches(
                 html,
-                @"void window\.sendApplicationSubmissionReport\(\s*window\.buildApplicationSubmissionReport\(applicantData, submissionId, 'failed'");
+                @"void window\.trySendApplicationSubmissionReport\(applicantData, submissionId, 'failed'");
             var unguardedFailedReports = Regex.Matches(
                 html,
-                @"(?<!void )window\.sendApplicationSubmissionReport\(\s*window\.buildApplicationSubmissionReport\(applicantData, submissionId, 'failed'");
+                @"window\.sendApplicationSubmissionReport\(\s*window\.buildApplicationSubmissionReport\(applicantData, submissionId, 'failed'");
 
             Assert.Equal(2, guardedFailedReports.Count);
             Assert.Empty(unguardedFailedReports);

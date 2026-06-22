@@ -1760,9 +1760,7 @@
                 applyButton.textContent = 'Submitting...';
                 showLoading();
 
-                void window.sendApplicationSubmissionReport(
-                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)
-                );
+                void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 // Send the data via fetch POST request
                 fetchWithTimeout('/api/application/application', {
@@ -1813,12 +1811,10 @@
                         } else {
                             const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
                             window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
-                                void window.sendApplicationSubmissionReport(
-                                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                        type: `HTTP ${response.status}`,
-                                        message: badResponse
-                                    })
-                                );
+                                void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                    type: `HTTP ${response.status}`,
+                                    message: badResponse
+                                });
                                 customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
                                     isApplicationSubmitting = false;
                                     applyButton.disabled = false;
@@ -1832,12 +1828,10 @@
                         hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
                         const alertMessage = 'Application could not be submitted. Please check your connection and try again.';
-                        void window.sendApplicationSubmissionReport(
-                            window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                type: error && error.name || 'Error',
-                                message: displayError
-                            })
-                        );
+                        void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                            type: error && error.name || 'Error',
+                            message: displayError
+                        });
                         customAlert(alertMessage).then(() => {
                             isApplicationSubmitting = false;
                             applyButton.disabled = false;
