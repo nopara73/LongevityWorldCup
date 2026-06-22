@@ -46,13 +46,13 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task SignupAndResendNormalizeMailtoEmailLinks()
+    public async Task SignupAndResendNormalizeCopiedEmailLinks()
     {
         using var fixture = TestChallengeFixture.Create();
         var now = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
 
         await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
-            "mailto:linked@example.com?subject=Challenge",
+            "Linked Lee <linked@example.com>",
             "Linked Lee",
             "UTC",
             null,
@@ -62,7 +62,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal("linked@example.com", confirmation.Email);
 
         await fixture.Service.ResendAccessLinkAsync(
-            " mailto:linked@example.com?subject=Challenge ",
+            " Linked Lee <mailto:linked@example.com?subject=Challenge> ",
             now.AddMinutes(1));
 
         Assert.Equal(2, fixture.Email.Confirmations.Count);
