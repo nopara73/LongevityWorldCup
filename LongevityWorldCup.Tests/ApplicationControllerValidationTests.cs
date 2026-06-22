@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using MimeKit;
 using System.Reflection;
@@ -440,6 +441,37 @@ public sealed class ApplicationControllerValidationTests
         Assert.Equal(expected, resolved);
     }
 
+    [Fact]
+    public void TryReadExistingAthleteFields_ChecksUnderscoreSlugForHyphenatedFolderKey()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            var athleteFolder = Path.Combine(tempRoot, "athletes", "anna_maria");
+            Directory.CreateDirectory(athleteFolder);
+            File.WriteAllText(
+                Path.Combine(athleteFolder, "athlete.json"),
+                """
+                {
+                  "Name": "Stored Athlete",
+                  "MediaContact": "athlete@example.test"
+                }
+                """);
+
+            var environment = new TestWebHostEnvironment { WebRootPath = tempRoot };
+            var method = typeof(ApplicationController).GetMethod("TryReadExistingAthleteFields", BindingFlags.Static | BindingFlags.NonPublic);
+
+            var fields = Assert.IsType<Dictionary<string, string?>>(method!.Invoke(null, [environment, "anna-maria", "Submitted Athlete"]));
+
+            Assert.Equal("athlete@example.test", fields["MediaContact"]);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData(" athlete@example.test ", "Applicant Ada", 1, "athlete@example.test", "Applicant Ada")]
     [InlineData("Applicant Ada <athlete@example.test>", "Applicant Ada", 1, "athlete@example.test", "Applicant Ada")]
@@ -650,5 +682,15 @@ public sealed class ApplicationControllerValidationTests
             Why = "I want to compete, learn, and improve my healthspan.",
             MediaContact = "media@example.test"
         };
+    }
+
+    private sealed class TestWebHostEnvironment : IWebHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = "Test";
+        public string ApplicationName { get; set; } = "LongevityWorldCup.Tests";
+        public string WebRootPath { get; set; } = string.Empty;
+        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+        public string ContentRootPath { get; set; } = string.Empty;
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 }
