@@ -1211,6 +1211,7 @@
             reader.onerror = () => {
                 customAlert('Profile picture upload failed. Please try another image.');
             };
+            reader.onabort = reader.onerror;
             reader.readAsDataURL(file);
         }
 

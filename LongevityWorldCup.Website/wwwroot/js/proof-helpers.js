@@ -201,6 +201,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 const r = new FileReader();
                 r.onload = e => res(e.target.result);
                 r.onerror = rej;
+                r.onabort = rej;
                 r.readAsDataURL(file);
             });
 

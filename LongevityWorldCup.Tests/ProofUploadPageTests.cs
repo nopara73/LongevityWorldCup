@@ -169,6 +169,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("extension === 'jpeg'", javascript);
         Assert.Contains("extension === 'png'", javascript);
         Assert.Contains("extension === 'webp'", javascript);
+        Assert.Contains("r.onabort = rej;", javascript);
         Assert.Contains("const selectedFiles = Array.from(files || []);", beforeLoading);
         Assert.Contains("const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));", beforeLoading);
         Assert.Contains("const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));", beforeLoading);

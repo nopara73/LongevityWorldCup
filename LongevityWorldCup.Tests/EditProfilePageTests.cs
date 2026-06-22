@@ -116,6 +116,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("const file = input.files[0];", selectionBody);
         Assert.Contains("input.value = '';", selectionBody);
         Assert.Contains("reader.onerror = () =>", selectionBody);
+        Assert.Contains("reader.onabort = reader.onerror;", selectionBody);
         Assert.Contains("customAlert('Profile picture upload failed. Please try another image.');", selectionBody);
     }
 
