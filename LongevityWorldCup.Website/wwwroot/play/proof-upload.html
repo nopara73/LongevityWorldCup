@@ -648,6 +648,15 @@
                 && paymentOffer.amountUsd >= 0;
         }
 
+        function getCheckoutLink(submitResult) {
+            return submitResult
+                && submitResult.paymentRequired
+                && typeof submitResult.checkoutLink === 'string'
+                && submitResult.checkoutLink.trim()
+                ? submitResult.checkoutLink.trim()
+                : null;
+        }
+
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
@@ -765,8 +774,9 @@
                         hideLoading();
                         if (response.ok) {
                             response.json().catch(() => ({})).then(submitResult => {
+                                const checkoutLink = getCheckoutLink(submitResult);
                                 const nextStepMessage =
-                                    submitResult && submitResult.paymentRequired && submitResult.checkoutLink
+                                    checkoutLink
                                         ? 'You\'ll be redirected to the payment page'
                                         : 'Your results were received';
                                 customAlert(nextStepMessage).then(() => {
@@ -778,7 +788,7 @@
                                     }
                                     proofPics = [];
                                     removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
-                                    if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
+                                    if (checkoutLink) {
                                         if (submitResult.invoiceId) {
                                             const pendingInvoiceInfo = JSON.stringify({
                                                 invoiceId: submitResult.invoiceId,
@@ -790,7 +800,7 @@
                                             setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
                                             setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
                                         }
-                                        window.location.href = submitResult.checkoutLink;
+                                        window.location.href = checkoutLink;
                                         return;
                                     }
 

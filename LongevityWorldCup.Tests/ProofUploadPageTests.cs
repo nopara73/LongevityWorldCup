@@ -477,6 +477,11 @@ public sealed class ProofUploadPageTests
 
         Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
         Assert.Contains("function removeBrowserStorageItem(storageName, key)", html);
+        Assert.Contains("function getCheckoutLink(submitResult)", html);
+        Assert.Contains("typeof submitResult.checkoutLink === 'string'", html);
+        Assert.Contains("const checkoutLink = getCheckoutLink(submitResult);", html);
+        Assert.Contains("if (checkoutLink)", successBody);
+        Assert.Contains("window.location.href = checkoutLink;", successBody);
         Assert.Contains("const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);", successBody);
         Assert.Contains("rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);", successBody);
         Assert.Contains("setSessionItem('contactEmail', reviewContactEmail);", successBody);
@@ -491,6 +496,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", successBody);
         Assert.Contains("setSessionItem(\"came-from\", \"proof-upload\");", successBody);
         Assert.Contains("window.location.href = '/review?from=proof-upload';", successBody);
+        Assert.DoesNotContain("window.location.href = submitResult.checkoutLink;", successBody);
         Assert.DoesNotContain("sessionStorage.setItem(", successBody);
         Assert.DoesNotContain("localStorage.setItem(", successBody);
         Assert.DoesNotContain("sessionStorage.removeItem(", successBody);
