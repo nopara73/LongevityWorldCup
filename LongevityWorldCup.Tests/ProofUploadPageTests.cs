@@ -340,6 +340,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("return null;", html);
         Assert.Contains("function getLocalItem(key)", html);
         Assert.Contains("function normalizeContactEmail(value)", html);
+        Assert.Contains("if (typeof value !== 'string') return null;", html);
         Assert.Contains("function readResultUploadContactEmail()", html);
         Assert.Contains("return normalizeContactEmail(athlete && athlete.AccountEmail)", html);
         Assert.Contains("|| normalizeContactEmail(athlete && athlete.MediaContact)", html);
@@ -383,6 +384,7 @@ public sealed class ProofUploadPageTests
         var html = await client.GetStringAsync("/play/proof-upload.html");
 
         Assert.Contains("function normalizeContactEmail(value)", html);
+        Assert.Contains("if (typeof value !== 'string') return null;", html);
         Assert.Contains("contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();", html);
         Assert.Contains("function readStoredContactEmail()", html);
         Assert.Contains("const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));", html);

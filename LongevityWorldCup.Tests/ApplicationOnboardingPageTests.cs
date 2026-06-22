@@ -151,6 +151,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("function isEmailAddress(value)", html);
         Assert.Contains("function isOptionalUrl(value)", html);
         Assert.Contains("function normalizeOptionalUrl(value)", html);
+        Assert.Contains("if (typeof value !== 'string') return null;", html);
         Assert.Contains("window.validator && typeof window.validator.isEmail === 'function'", html);
         Assert.Contains("window.validator && typeof window.validator.isURL === 'function'", html);
         Assert.Contains("const trimmed = normalizeOptionalUrl(value);", html);
