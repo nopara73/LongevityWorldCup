@@ -676,6 +676,8 @@ public sealed class ApplicationOnboardingPageTests
 
         var selectionBody = html[selectionStart..selectionEnd];
         Assert.Contains("const input = event.target;", selectionBody);
+        Assert.Contains("if (!input.files || !input.files.length) return;", selectionBody);
+        Assert.DoesNotContain("if (!input.files.length) return;", selectionBody);
         Assert.Contains("const file = input.files[0];", selectionBody);
         Assert.Contains("input.value = '';", selectionBody);
         Assert.Contains("reader.onerror = function ()", selectionBody);

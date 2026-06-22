@@ -113,7 +113,8 @@ public sealed class EditProfilePageTests
 
         var selectionBody = html[selectionStart..selectionEnd];
         Assert.Contains("const input = e.target;", selectionBody);
-        Assert.Contains("const file = input.files[0];", selectionBody);
+        Assert.Contains("const file = input.files && input.files[0];", selectionBody);
+        Assert.DoesNotContain("const file = input.files[0];", selectionBody);
         Assert.Contains("input.value = '';", selectionBody);
         Assert.Contains("reader.onerror = () =>", selectionBody);
         Assert.Contains("reader.onabort = reader.onerror;", selectionBody);
