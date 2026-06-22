@@ -251,6 +251,19 @@ public sealed class BioageStoredBiomarkerTests
         Assert.True(storeIndex > correctionIndex);
     }
 
+    [Fact]
+    public void PhenoPage_AppliesCorrectableUnitsBeforeHandoff()
+    {
+        var html = File.ReadAllText(GetPagePath("pheno-age.html"));
+
+        var proceedBody = GetFunctionBody(html, "function proceedToNextPage()", "const biomarkerData = {");
+        var correctionIndex = proceedBody.IndexOf("correctCorrectableUnits();", StringComparison.Ordinal);
+        var albuminStoreIndex = proceedBody.IndexOf("entry.AlbGL = parseFloat", StringComparison.Ordinal);
+
+        Assert.True(correctionIndex >= 0);
+        Assert.True(albuminStoreIndex > correctionIndex);
+    }
+
     private static string GetPagePath(string fileName)
     {
         var repoRoot = FindRepoRoot();
