@@ -1213,42 +1213,54 @@
         // Crop & Cancel handlers for change-profile
         const cropBtn = document.getElementById('changeProfileCropButton');
         const cancelBtn = document.getElementById('changeProfileCancelButton');
+        let isChangeProfileCropProcessing = false;
         cropBtn.addEventListener('click', async function () {
             const activeCropper = window.changeProfileCropper;
-            if (!activeCropper) return;
-            const canvas = activeCropper.getCroppedCanvas({
-                width: 1024,
-                height: 1024,
-            });
-            if (!canvas) {
-                customAlert('Profile picture crop failed. Please try another image.');
-                return;
-            }
-            const raw = canvas.toDataURL('image/png');
-            let newSrc = raw;
-            try {
-                const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
-                newSrc = dataUrl || raw;
-            } catch {
-                newSrc = raw;
-            }
-            const imgEl = document.querySelector('.illustration');
-            imgEl.src = newSrc;
-            imgEl.alt = getAthleteDisplayName() + ' headshot';
-            athlete.ProfilePic = newSrc;
-            document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
+            if (isChangeProfileCropProcessing || !activeCropper) return;
 
-            // enable the “Submit Change Request” button now that there’s a new image
-            updateSubmitButtonState();
-            activeCropper.destroy();
-            window.changeProfileCropper = null;
-            document.getElementById('modalOverlay').style.display = 'none';
-            document.body.classList.remove('no-scroll');
-            document.getElementById('changeProfileCropperModal').style.display = 'none';
-            changeProfileInput.value = '';
-            profileCameraInput.value = '';
+            isChangeProfileCropProcessing = true;
+            cropBtn.disabled = true;
+            cancelBtn.disabled = true;
+            try {
+                const canvas = activeCropper.getCroppedCanvas({
+                    width: 1024,
+                    height: 1024,
+                });
+                if (!canvas) {
+                    customAlert('Profile picture crop failed. Please try another image.');
+                    return;
+                }
+                const raw = canvas.toDataURL('image/png');
+                let newSrc = raw;
+                try {
+                    const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
+                    newSrc = dataUrl || raw;
+                } catch {
+                    newSrc = raw;
+                }
+                const imgEl = document.querySelector('.illustration');
+                imgEl.src = newSrc;
+                imgEl.alt = getAthleteDisplayName() + ' headshot';
+                athlete.ProfilePic = newSrc;
+                document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
+
+                // enable the “Submit Change Request” button now that there’s a new image
+                updateSubmitButtonState();
+                activeCropper.destroy();
+                window.changeProfileCropper = null;
+                document.getElementById('modalOverlay').style.display = 'none';
+                document.body.classList.remove('no-scroll');
+                document.getElementById('changeProfileCropperModal').style.display = 'none';
+                changeProfileInput.value = '';
+                profileCameraInput.value = '';
+            } finally {
+                isChangeProfileCropProcessing = false;
+                cropBtn.disabled = false;
+                cancelBtn.disabled = false;
+            }
         });
         cancelBtn.addEventListener('click', () => {
+            if (isChangeProfileCropProcessing) return;
             const activeCropper = window.changeProfileCropper;
             if (activeCropper) {
                 activeCropper.destroy();
