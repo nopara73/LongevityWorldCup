@@ -809,7 +809,7 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 var message = new MimeMessage();
                 message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
-                message.To.Add(new MailboxAddress(applicantName?.Trim() ?? "", trimmedEmail));
+                message.To.Add(CreateSubmissionConfirmationRecipient(trimmedEmail));
                 message.Subject = BuildSubmissionConfirmationSubject(isResultSubmissionOnly, isEditSubmissionOnly);
                 message.Body = new BodyBuilder
                 {
@@ -822,6 +822,11 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 _logger.LogWarning(ex, "Failed to send submission confirmation email.");
             }
+        }
+
+        private static MailboxAddress CreateSubmissionConfirmationRecipient(string email)
+        {
+            return new MailboxAddress(string.Empty, email);
         }
 
         private static string BuildSubmissionConfirmationSubject(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
