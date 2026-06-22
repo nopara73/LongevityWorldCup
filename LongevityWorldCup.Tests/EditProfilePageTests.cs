@@ -400,6 +400,21 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task EditProfileFields_AdvertiseExistingRequiredValidation()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("id=\"flagDisplayInput\"\n                       name=\"flagDisplay\"\n                       required\n                       aria-required=\"true\"\n                       minlength=\"3\"\n                       maxlength=\"100\"", html);
+        Assert.Contains("id=\"mediaContactInput\"\n                       name=\"mediaContact\"\n                       required\n                       aria-required=\"true\"", html);
+        Assert.Contains("<textarea id=\"whyDisplayInput\"\n                          name=\"whyDisplay\"\n                          rows=\"3\"\n                          required\n                          aria-required=\"true\"", html);
+        Assert.Contains("customAlert('Media contact is required.');", html);
+        Assert.Contains("customAlert('Your why is the light. Don’t leave us in the dark.');", html);
+    }
+
+    [Fact]
     public async Task EditProfileDraftPersistence_UsesSafeStorageHelpers()
     {
         using var factory = new TestWebApplicationFactory();
