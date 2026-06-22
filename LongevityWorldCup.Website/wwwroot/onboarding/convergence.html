@@ -902,7 +902,11 @@
         function normalizeOptionalUrl(value) {
             const trimmed = (value || '').trim();
             if (!trimmed) return '';
-            return /^www\./i.test(trimmed) ? `https://${trimmed}` : trimmed;
+            if (/^[a-z][a-z\d+.-]*:/i.test(trimmed)) return trimmed;
+            if (/^www\./i.test(trimmed) || /^[^\s/:]+\.[^\s/]+(?:[/?#].*)?$/i.test(trimmed)) {
+                return `https://${trimmed}`;
+            }
+            return trimmed;
         }
 
         function prefillAccountEmailFromMediaContact() {

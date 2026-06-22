@@ -365,12 +365,7 @@ namespace LongevityWorldCup.Website.Controllers
 
             var builder = new BodyBuilder();
 
-            var correctedPersonalLink = applicantData.PersonalLink?.Trim();
-            correctedPersonalLink = string.IsNullOrWhiteSpace(correctedPersonalLink)
-                    ? null
-                    : (correctedPersonalLink.StartsWith("www.")
-                        ? "https://" + correctedPersonalLink
-                        : correctedPersonalLink);
+            var correctedPersonalLink = NormalizeSubmittedPersonalLink(applicantData.PersonalLink);
             var trimmedDisplayName = string.IsNullOrWhiteSpace(applicantData.DisplayName) ? null : applicantData.DisplayName.Trim();
             var displayNameOrName = trimmedDisplayName ?? applicantData.Name?.Trim();
 
@@ -1221,6 +1216,36 @@ namespace LongevityWorldCup.Website.Controllers
             return !string.IsNullOrWhiteSpace(trimmed) && new EmailAddressAttribute().IsValid(trimmed)
                 ? trimmed
                 : null;
+        }
+
+        private static string? NormalizeSubmittedPersonalLink(string? value)
+        {
+            var trimmed = value?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+                return null;
+
+            if (HasUriScheme(trimmed))
+                return trimmed;
+
+            if (LooksLikeSchemeLessDomain(trimmed))
+                return "https://" + trimmed;
+
+            return trimmed;
+        }
+
+        private static bool HasUriScheme(string value)
+            => value.IndexOf(':') is var separator
+               && separator > 0
+               && Uri.CheckSchemeName(value[..separator]);
+
+        private static bool LooksLikeSchemeLessDomain(string value)
+        {
+            if (value.Any(char.IsWhiteSpace) || value.StartsWith('/') || value.StartsWith('?') || value.StartsWith('#'))
+                return false;
+
+            var hostEnd = value.IndexOfAny(new[] { '/', '?', '#' });
+            var host = hostEnd >= 0 ? value[..hostEnd] : value;
+            return host.Contains('.') && !host.StartsWith('.') && !host.EndsWith('.');
         }
 
         private static string? ResolveExistingAthleteContactEmail(IReadOnlyDictionary<string, string?> existingFields)

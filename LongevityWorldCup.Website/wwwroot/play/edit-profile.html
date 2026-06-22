@@ -1306,7 +1306,11 @@
         function normalizeOptionalUrl(value) {
             const v = (value || '').trim();
             if (!v) return '';
-            return /^www\./i.test(v) ? `https://${v}` : v;
+            if (/^[a-z][a-z\d+.-]*:/i.test(v)) return v;
+            if (/^www\./i.test(v) || /^[^\s/:]+\.[^\s/]+(?:[/?#].*)?$/i.test(v)) {
+                return `https://${v}`;
+            }
+            return v;
         }
 
         function validatePersonalLink(value) {

@@ -520,6 +520,23 @@ public sealed class ApplicationControllerValidationTests
         Assert.DoesNotContain("athlete@example.test", message.TextBody);
     }
 
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("  ", null)]
+    [InlineData("www.example.test/athlete", "https://www.example.test/athlete")]
+    [InlineData("example.test/athlete", "https://example.test/athlete")]
+    [InlineData("instagram.com/athlete", "https://instagram.com/athlete")]
+    [InlineData("https://example.test/athlete", "https://example.test/athlete")]
+    [InlineData("not a url", "not a url")]
+    public void NormalizeSubmittedPersonalLink_AddsHttpsToDomainLinks(string? value, string? expected)
+    {
+        var method = typeof(ApplicationController).GetMethod("NormalizeSubmittedPersonalLink", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var normalized = (string?)method!.Invoke(null, [value]);
+
+        Assert.Equal(expected, normalized);
+    }
+
     [Fact]
     public void InterviewRequest_DoesNotPersistOrLogRawRequesterEmail()
     {

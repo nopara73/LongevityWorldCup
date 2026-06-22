@@ -390,7 +390,9 @@ public sealed class EditProfilePageTests
         Assert.Contains("window.validator && typeof window.validator.isURL === 'function'", helperBody);
         Assert.Contains("const v = normalizeOptionalUrl(value);", helperBody);
         Assert.Contains("function normalizeOptionalUrl(value)", html);
-        Assert.Contains("return /^www\\./i.test(v) ? `https://${v}` : v;", html);
+        Assert.Contains("if (/^[a-z][a-z\\d+.-]*:/i.test(v)) return v;", html);
+        Assert.Contains("if (/^www\\./i.test(v) || /^[^\\s/:]+\\.[^\\s/]+(?:[/?#].*)?$/i.test(v))", html);
+        Assert.Contains("return `https://${v}`;", html);
         Assert.Contains("input.type = 'url';", helperBody);
         Assert.Contains("return input.checkValidity();", helperBody);
         Assert.Contains("if (!isOptionalUrl(v))", validateBody);
