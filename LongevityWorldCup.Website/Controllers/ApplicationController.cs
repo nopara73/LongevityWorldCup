@@ -1185,6 +1185,19 @@ namespace LongevityWorldCup.Website.Controllers
         private static string? NormalizeOptionalAccountEmail(string? accountEmail)
         {
             var trimmed = accountEmail?.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmed))
+            {
+                var start = trimmed.IndexOf('<', StringComparison.Ordinal);
+                var end = start >= 0
+                    ? trimmed.IndexOf('>', start + 1)
+                    : -1;
+
+                if (end > start)
+                {
+                    trimmed = trimmed[(start + 1)..end].Trim();
+                }
+            }
+
             if (trimmed?.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) is true)
             {
                 trimmed = trimmed["mailto:".Length..].Split('?', 2)[0].Trim();

@@ -233,6 +233,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("return null;", html);
         Assert.Contains("function normalizeContactEmail(value)", html);
         Assert.Contains("if (typeof value !== 'string') return null;", html);
+        Assert.Contains("const bracketedEmail = /<([^<>]+)>/.exec(contactEmail);", html);
         Assert.Contains("contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();", html);
         Assert.Contains("function readEditProfileContactEmail()", html);
         Assert.Contains("|| normalizeContactEmail(athlete && athlete.MediaContact)", html);

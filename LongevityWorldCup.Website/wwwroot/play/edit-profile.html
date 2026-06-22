@@ -549,6 +549,10 @@
             if (typeof value !== 'string') return null;
             let contactEmail = (value || '').trim();
             if (!contactEmail) return null;
+            const bracketedEmail = /<([^<>]+)>/.exec(contactEmail);
+            if (bracketedEmail) {
+                contactEmail = bracketedEmail[1].trim();
+            }
             if (/^mailto:/i.test(contactEmail)) {
                 contactEmail = contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();
             }

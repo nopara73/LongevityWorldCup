@@ -104,6 +104,7 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("function normalizeContactEmail(value)", script);
         Assert.Contains("if (typeof value !== 'string') return null;", script);
         Assert.Contains("let contactEmail = (value || '').trim();", script);
+        Assert.Contains("const bracketedEmail = /<([^<>]+)>/.exec(contactEmail);", script);
         Assert.Contains("contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();", script);
         Assert.Contains("emailInput.type = 'email';", script);
         Assert.Contains("return emailInput.checkValidity() ? contactEmail : null;", script);
