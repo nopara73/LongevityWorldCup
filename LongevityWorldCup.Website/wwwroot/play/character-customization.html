@@ -385,17 +385,31 @@
             return typeof athlete?.Name === 'string' ? athlete.Name : '';
         }
 
+        function serializePendingPaymentOffer(offer) {
+            if (!offer || typeof offer !== 'object' || Array.isArray(offer)) return null;
+
+            try {
+                const serializedOffer = JSON.stringify(offer);
+                return typeof serializedOffer === 'string' && serializedOffer
+                    ? serializedOffer
+                    : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
         function setPendingPaymentOffer(offer) {
             const effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
                 ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
                 : window.applyFreePassToPaymentOffer
                     ? window.applyFreePassToPaymentOffer(offer)
                     : offer;
-            if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))) {
+            const serializedOffer = serializePendingPaymentOffer(effectiveOffer);
+            if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) {
                 return true;
             }
 
-            customAlert('Browser storage is unavailable. Enable storage and try again.');
+            customAlert('Payment details could not be saved. Enable browser storage and try again.');
             return false;
         }
 
