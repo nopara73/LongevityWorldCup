@@ -106,4 +106,33 @@ public sealed class CharacterSelectionPageTests
         Assert.DoesNotContain("const name = a.Name.toLowerCase();", html);
         Assert.DoesNotContain("item.innerHTML =", html);
     }
+
+    [Fact]
+    public async Task AthleteSelection_EnterSelectsExactTypedMatch()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-selection.html");
+        var helperStart = html.IndexOf("function findExactAthleteMatch(value)", StringComparison.Ordinal);
+        var keydownStart = html.IndexOf("athleteInput.addEventListener('keydown'", helperStart, StringComparison.Ordinal);
+        var keydownEnd = html.IndexOf("function addActive(items)", keydownStart, StringComparison.Ordinal);
+
+        Assert.True(helperStart >= 0);
+        Assert.True(keydownStart > helperStart);
+        Assert.True(keydownEnd > keydownStart);
+
+        var keydownBody = html[keydownStart..keydownEnd];
+
+        Assert.Contains("const query = (value || '').trim().toLowerCase();", html);
+        Assert.Contains("(a.Name || '').trim().toLowerCase() === query", html);
+        Assert.Contains("|| getAthleteDisplayName(a).toLowerCase() === query", html);
+        Assert.Contains("const exactMatch = findExactAthleteMatch(this.value);", keydownBody);
+        Assert.Contains("if (exactMatch)", keydownBody);
+        Assert.Contains("selectAthlete(exactMatch);", keydownBody);
+        Assert.Contains("closeAllLists();", keydownBody);
+        Assert.Contains("if (currentFocus > -1 && list)", keydownBody);
+        Assert.Contains("list[currentFocus].dispatchEvent(new MouseEvent('mousedown'));", keydownBody);
+        Assert.Contains("return;", keydownBody);
+    }
 }

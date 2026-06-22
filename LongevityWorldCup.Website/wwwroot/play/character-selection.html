@@ -370,6 +370,16 @@
                     return `${athlete.Name || ''} ${getAthleteDisplayName(athlete)}`.toLowerCase();
                 }
 
+                function findExactAthleteMatch(value) {
+                    const query = (value || '').trim().toLowerCase();
+                    if (!query) return null;
+
+                    return athletes.find(a =>
+                        (a.Name || '').trim().toLowerCase() === query
+                        || getAthleteDisplayName(a).toLowerCase() === query
+                    ) || null;
+                }
+
                 function appendHighlightedText(container, text, query) {
                     const lowerText = text.toLowerCase();
                     const idx = lowerText.indexOf(query);
@@ -441,6 +451,13 @@
                         e.preventDefault();
                         if (currentFocus > -1 && list) {
                             list[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
+                            return;
+                        }
+
+                        const exactMatch = findExactAthleteMatch(this.value);
+                        if (exactMatch) {
+                            selectAthlete(exactMatch);
+                            closeAllLists();
                         }
                     }
                 });
