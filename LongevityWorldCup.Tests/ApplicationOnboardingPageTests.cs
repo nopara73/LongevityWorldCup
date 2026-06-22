@@ -252,6 +252,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("accountEmailInput.value = '';", helperBody);
         Assert.Contains("delete accountEmailInput.dataset.prefilledFrom;", helperBody);
         Assert.Contains("function normalizeContactEmail(value)", html);
+        Assert.Contains("const bracketedEmail = /<([^<>]+)>/.exec(contactEmail);", html);
         Assert.Contains("contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();", html);
 
         Assert.Contains("function handleAccountEmailInput()", html);

@@ -402,6 +402,8 @@ public sealed class ApplicationControllerValidationTests
 
     [Theory]
     [InlineData(" athlete@example.test ", "athlete@example.test")]
+    [InlineData("Applicant Ada <athlete@example.test>", "athlete@example.test")]
+    [InlineData("Applicant Ada <mailto:athlete@example.test?subject=Longevity>", "athlete@example.test")]
     [InlineData("mailto:athlete@example.test", "athlete@example.test")]
     [InlineData("mailto:athlete@example.test?subject=Longevity", "athlete@example.test")]
     [InlineData("not-an-email", null)]
@@ -418,6 +420,8 @@ public sealed class ApplicationControllerValidationTests
 
     [Theory]
     [InlineData(" athlete@example.test ", "athlete@example.test")]
+    [InlineData("Applicant Ada <athlete@example.test>", "athlete@example.test")]
+    [InlineData("Applicant Ada <mailto:athlete@example.test?subject=Longevity>", "athlete@example.test")]
     [InlineData("mailto:athlete@example.test", "athlete@example.test")]
     [InlineData("mailto:athlete@example.test?subject=Longevity", "athlete@example.test")]
     [InlineData("https://example.test/athlete", null)]
@@ -438,6 +442,7 @@ public sealed class ApplicationControllerValidationTests
 
     [Theory]
     [InlineData(" athlete@example.test ", "Applicant Ada", 1, "athlete@example.test", "Applicant Ada")]
+    [InlineData("Applicant Ada <athlete@example.test>", "Applicant Ada", 1, "athlete@example.test", "Applicant Ada")]
     [InlineData("athlete@example.test", " Applicant Ada ", 1, "athlete@example.test", "Applicant Ada")]
     [InlineData("https://example.test/athlete", "Applicant Ada", 0, null, null)]
     [InlineData(null, "Applicant Ada", 0, null, null)]
