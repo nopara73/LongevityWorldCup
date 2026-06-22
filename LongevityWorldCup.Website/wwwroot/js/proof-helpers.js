@@ -213,55 +213,66 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 }
             };
 
+            let failedFiles = 0;
             // process one by one to preserve order
             for (const file of supportedFiles) {
-                if (isProofPdfFile(file)) {
-                    const pdfLib = await ensurePdfJsReady();
-                    // read file as arrayBuffer
-                    const arrayBuffer = await file.arrayBuffer();
-                    // load PDF
-                    const loadingTask = pdfLib.getDocument({ data: arrayBuffer });
-                    const pdfDoc = await loadingTask.promise;
-                    // render each page
-                    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                        if (proofPics.length >= 9) {
-                            customAlert('You can upload a maximum of 9 images.');
-                            break;
+                try {
+                    if (isProofPdfFile(file)) {
+                        const pdfLib = await ensurePdfJsReady();
+                        // read file as arrayBuffer
+                        const arrayBuffer = await file.arrayBuffer();
+                        // load PDF
+                        const loadingTask = pdfLib.getDocument({ data: arrayBuffer });
+                        const pdfDoc = await loadingTask.promise;
+                        // render each page
+                        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                            if (proofPics.length >= 9) {
+                                customAlert('You can upload a maximum of 9 images.');
+                                break;
+                            }
+                            const page = await pdfDoc.getPage(pageNum);
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            const canvas = document.createElement('canvas');
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            const context = canvas.getContext('2d');
+                            if (!context) throw new Error('Canvas context unavailable.');
+                            await page.render({ canvasContext: context, viewport }).promise;
+                            const rawPage = canvas.toDataURL();
+                            const optimizedPage = await optimizeProofImageOrFallback(rawPage);
+                            if (optimizedPage) {
+                                proofPics.push(optimizedPage);
+                            }
                         }
-                        const page = await pdfDoc.getPage(pageNum);
-                        const viewport = page.getViewport({ scale: 1.5 });
-                        const canvas = document.createElement('canvas');
-                        canvas.width = viewport.width;
-                        canvas.height = viewport.height;
-                        const context = canvas.getContext('2d');
-                        await page.render({ canvasContext: context, viewport }).promise;
-                        const rawPage = canvas.toDataURL();
-                        const optimizedPage = await optimizeProofImageOrFallback(rawPage);
-                        if (optimizedPage) {
-                            proofPics.push(optimizedPage);
-                        }
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        nextButton.disabled = true;
+                        continue;
                     }
-                    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                    nextButton.disabled = true;
-                    continue;
-                }
 
-                if (proofPics.length >= 9) {
-                    customAlert('You can upload a maximum of 9 images.');
-                    break;
-                }
-                const raw = await readDataURL(file);
-                const dataUrl = await optimizeProofImageOrFallback(raw);
-                if (dataUrl) {
-                    proofPics.push(dataUrl);
-                    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                    nextButton.disabled = true;
+                    if (proofPics.length >= 9) {
+                        customAlert('You can upload a maximum of 9 images.');
+                        break;
+                    }
+                    const raw = await readDataURL(file);
+                    const dataUrl = await optimizeProofImageOrFallback(raw);
+                    if (dataUrl) {
+                        proofPics.push(dataUrl);
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        nextButton.disabled = true;
+                    } else {
+                        failedFiles++;
+                    }
+                } catch (_) {
+                    failedFiles++;
                 }
             }
             if (unsupportedFiles.length > 0) {
                 customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.');
+            }
+            if (failedFiles > 0) {
+                customAlert('Some proof files could not be processed. Please try them again as JPG, PNG, WebP, or PDF.');
             }
         } catch (error) {
             customAlert('Proof upload failed. Please try again with a JPG, PNG, WebP, or PDF file.');

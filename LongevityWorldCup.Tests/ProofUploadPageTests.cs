@@ -205,6 +205,29 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ProofHelper_ContinuesAfterIndividualProofFileProcessingFailure()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var loopStart = javascript.IndexOf("for (const file of supportedFiles)", StringComparison.Ordinal);
+        var unsupportedAlertStart = javascript.IndexOf("if (unsupportedFiles.length > 0)", loopStart, StringComparison.Ordinal);
+
+        Assert.True(loopStart >= 0);
+        Assert.True(unsupportedAlertStart > loopStart);
+
+        var processingBody = javascript[loopStart..unsupportedAlertStart];
+
+        Assert.Contains("let failedFiles = 0;", javascript);
+        Assert.Contains("try {", processingBody);
+        Assert.Contains("if (!context) throw new Error('Canvas context unavailable.');", processingBody);
+        Assert.Contains("failedFiles++;", processingBody);
+        Assert.Contains("if (failedFiles > 0)", javascript);
+        Assert.Contains("customAlert('Some proof files could not be processed. Please try them again as JPG, PNG, WebP, or PDF.');", javascript);
+    }
+
+    [Fact]
     public async Task ProofHelper_InstructionsAskForDateAndSource()
     {
         using var factory = new TestWebApplicationFactory();
