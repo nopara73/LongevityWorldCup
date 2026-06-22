@@ -50,6 +50,28 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ProofHelper_ProcessesAllowedFilesUntilImageCap()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input)", StringComparison.Ordinal);
+        var readerStart = javascript.IndexOf("const readDataURL = file =>", handlerStart, StringComparison.Ordinal);
+        var imageCapStart = javascript.IndexOf("if (proofPics.length >= 9)", readerStart, StringComparison.Ordinal);
+
+        Assert.True(handlerStart >= 0);
+        Assert.True(readerStart > handlerStart);
+        Assert.True(imageCapStart > readerStart);
+
+        var beforeReader = javascript[handlerStart..readerStart];
+
+        Assert.DoesNotContain("proofPics.length + selectedFiles.length > 9", beforeReader);
+        Assert.Contains("if (proofPics.length >= 9)", javascript);
+        Assert.Contains("customAlert('You can upload a maximum of 9 images.');", javascript);
+    }
+
+    [Fact]
     public async Task ProofHelper_ClearsFileInputAfterFailedProofProcessing()
     {
         using var factory = new TestWebApplicationFactory();
