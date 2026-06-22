@@ -39,6 +39,8 @@ var PROOF_CHECKLIST_PROPERTY_TO_LABEL = {
     VitaminDNmolL: 'Vitamin D (25-OH)'
 };
 
+var PROOF_CONTEXT_CHECKLIST_LABELS = ['Collection date', 'Lab/report source'];
+
 // Bortz-only biomarkers (not required for PhenoAge).
 var BORTZ_ONLY_BIOMARKER_KEYS = [
     'NeutrophilPc', 'MonocytePc', 'Rbc10e12L', 'MchPg', 'UreaMmolL',
@@ -93,7 +95,7 @@ window.getProofChecklistLabelsFromSession = function () {
                 if (label) labels.push(label);
             }
         }
-        return labels;
+        return labels.length > 0 ? PROOF_CONTEXT_CHECKLIST_LABELS.concat(labels) : labels;
     } catch (e) {
         return [];
     }
@@ -394,7 +396,7 @@ function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nex
     biomarkerChecklistContainer.appendChild(title);
 
     const instructions = document.createElement('p');
-    instructions.textContent = "Check each biomarker once your proof shows it:";
+    instructions.textContent = "Check each item once your proof shows it:";
     instructions.style.marginTop = '1px';
     instructions.style.marginBottom = '4px';
     instructions.classList.add('smaller-text');
