@@ -509,7 +509,7 @@
 
                 const saved = getLocalItem('selectedAthleteName');
                 if (saved) {
-                    const match = athletes.find(a => a.Name === saved);
+                    const match = athletes.find(a => isAthleteInputValue(a, saved));
                     if (match) {
                         selectAthlete(match);
                     }
