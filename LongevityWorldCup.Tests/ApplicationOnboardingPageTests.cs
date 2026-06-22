@@ -615,11 +615,15 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const checkoutUrl = new URL(trimmed, window.location.origin);", html);
         Assert.Contains("return checkoutUrl.protocol === 'http:' || checkoutUrl.protocol === 'https:'", html);
         Assert.Contains("? normalizeCheckoutLink(submitResult.checkoutLink)", html);
+        Assert.Contains("function isPaymentRequired(submitResult)", html);
+        Assert.Contains("return !!(submitResult && submitResult.paymentRequired);", html);
         Assert.Contains("function getCheckoutLink(submitResult)", html);
         Assert.Contains("function getInvoiceId(submitResult)", html);
         Assert.Contains("typeof submitResult.invoiceId === 'string'", html);
         Assert.Contains("const checkoutLink = getCheckoutLink(submitResult);", html);
         Assert.Contains("const invoiceId = getInvoiceId(submitResult);", html);
+        Assert.Contains("const paymentRequired = isPaymentRequired(submitResult);", html);
+        Assert.Contains("? 'Your application was received, but the payment page could not be opened. Check your confirmation email.'", html);
         Assert.Contains("if (checkoutLink)", successBody);
         Assert.Contains("if (invoiceId)", successBody);
         Assert.Contains("invoiceId: invoiceId", successBody);

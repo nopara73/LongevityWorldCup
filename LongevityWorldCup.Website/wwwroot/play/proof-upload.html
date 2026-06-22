@@ -687,6 +687,10 @@
                 : null;
         }
 
+        function isPaymentRequired(submitResult) {
+            return !!(submitResult && submitResult.paymentRequired);
+        }
+
         function getInvoiceId(submitResult) {
             return submitResult
                 && typeof submitResult.invoiceId === 'string'
@@ -808,10 +812,13 @@
                             response.json().catch(() => ({})).then(submitResult => {
                                 const checkoutLink = getCheckoutLink(submitResult);
                                 const invoiceId = getInvoiceId(submitResult);
+                                const paymentRequired = isPaymentRequired(submitResult);
                                 const nextStepMessage =
                                     checkoutLink
                                         ? 'You\'ll be redirected to the payment page'
-                                        : 'Your results were received';
+                                        : paymentRequired
+                                            ? 'Your results were received, but the payment page could not be opened. Check your confirmation email.'
+                                            : 'Your results were received';
                                 customAlert(nextStepMessage).then(() => {
                                     const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
                                     if (reviewContactEmail) {
