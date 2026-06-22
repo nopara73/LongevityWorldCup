@@ -850,7 +850,7 @@
                 athlete.Flag = value;
                 flagInput.value = value;
 
-                if (value !== originalAthlete.Flag) {
+                if (normalizeEditText(value) !== normalizeEditText(originalAthlete.Flag)) {
                     restoreFlagBtn.style.display = 'inline-flex';
                 } else {
                     restoreFlagBtn.style.display = 'none';
