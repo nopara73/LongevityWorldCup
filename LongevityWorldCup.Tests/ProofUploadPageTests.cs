@@ -88,6 +88,10 @@ public sealed class ProofUploadPageTests
         Assert.True(finallyIndex > catchIndex);
         Assert.True(resetIndex > finallyIndex);
         Assert.True(hideLoadingIndex > resetIndex);
+
+        var catchBody = javascript[catchIndex..finallyIndex];
+        Assert.Contains("customAlert('Proof upload failed. Please try again with a JPG, PNG, WebP, or PDF file.');", catchBody);
+        Assert.DoesNotContain("error.message", catchBody);
     }
 
     [Fact]

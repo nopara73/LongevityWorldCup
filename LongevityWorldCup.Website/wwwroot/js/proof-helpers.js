@@ -264,7 +264,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.');
             }
         } catch (error) {
-            customAlert(error && error.message ? error.message : 'Proof upload failed.');
+            customAlert('Proof upload failed. Please try again with a JPG, PNG, WebP, or PDF file.');
         } finally {
             // Reset the file input's value to allow re-uploading the same file if needed.
             if (input) input.value = "";
