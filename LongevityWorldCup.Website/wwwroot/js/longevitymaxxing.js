@@ -817,27 +817,28 @@
         const commitmentBlocked = hasCommitmentBlock(participantState);
         const activeParticipantTab = hasParticipant ? ensureParticipantTab(participantState) : null;
         const checkInOnly = !commitmentBlocked && pendingCheckInDays.length > 0 && activeParticipantTab === "checkin";
+        const participantGateOnly = commitmentBlocked || checkInOnly;
         const dashboardMode = hasParticipant || !isPreStartSignup(state);
         const hero = document.getElementById("lmxHeroLayout");
         if (hero) {
-            hero.classList.toggle("checkin-only", checkInOnly);
+            hero.classList.toggle("checkin-only", participantGateOnly);
         }
 
-        toggle("lmxTitlePanel", !checkInOnly);
+        toggle("lmxTitlePanel", !participantGateOnly);
         toggle("lmxAccessTabs", !hasParticipant && !isAccessLoading);
         toggle("lmxSignupPanel", !hasParticipant && !isAccessLoading && accessTab === "signup");
         toggle("lmxAccessLoadingPanel", isAccessLoading);
         toggle("lmxParticipantPanel", hasParticipant);
         toggle("lmxResendPanel", !hasParticipant && !isAccessLoading && accessTab === "signin");
-        toggle("lmxNotesPanel", dashboardMode && !checkInOnly);
+        toggle("lmxNotesPanel", dashboardMode && !participantGateOnly);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
         toggle("lmxHabitHeading", !hasParticipant);
         toggle("lmxHabitGrid", !hasParticipant);
-        toggle("lmxQuestionPreview", !hasParticipant || pendingCheckInDays.length > 0);
-        toggle("lmxTrack", hasParticipant && dashboardMode && !checkInOnly);
-        toggle("lmxMetrics", hasParticipant && dashboardMode && !checkInOnly);
-        toggle("lmxBoardSection", !checkInOnly);
+        toggle("lmxQuestionPreview", !commitmentBlocked && (!hasParticipant || pendingCheckInDays.length > 0));
+        toggle("lmxTrack", hasParticipant && dashboardMode && !participantGateOnly);
+        toggle("lmxMetrics", hasParticipant && dashboardMode && !participantGateOnly);
+        toggle("lmxBoardSection", !participantGateOnly);
         toggle("lmxParticipantTabs", hasParticipant && !commitmentBlocked);
         toggle("lmxCommitmentPanel", hasParticipant && commitmentBlocked);
         toggle("lmxCheckinPanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "checkin");
@@ -908,7 +909,7 @@
         if (hasCommitmentBlock(participantState)) {
             return participantState.commitment?.status === "due"
                 ? `Commitment due, ${name}`
-                : `Pledge required, ${name}`;
+                : "Make a pledge to continue";
         }
         if (activeTab === "profile") return `Profile, ${name}`;
         if (activeTab === "home") {
@@ -1114,12 +1115,12 @@
                     <div class="lmx-commitment-main">
                         <i class="fas fa-lock" aria-hidden="true"></i>
                         <div>
-                            <strong>Set a pledge to keep checking in</strong>
-                            <span id="lmxBlockedCommitmentHelp">Your next check-in is locked until you choose a pledge amount. If a future scored day falls below your recent average, that amount becomes due.</span>
+                            <strong>Set a real stake</strong>
+                            <span id="lmxBlockedCommitmentHelp">Fall below your recent average and either pay it or stop. Choose an amount that would hurt.</span>
                         </div>
                     </div>
                     <div class="lmx-field">
-                        <label for="lmxBlockedCommitmentAmount">Pledge amount</label>
+                        <label for="lmxBlockedCommitmentAmount">Pledge</label>
                         <div class="lmx-money-input">
                             <span aria-hidden="true">$</span>
                             <input id="lmxBlockedCommitmentAmount" type="text" inputmode="decimal" required placeholder="300" aria-describedby="lmxBlockedCommitmentHelp">
@@ -1127,7 +1128,7 @@
                     </div>
                     <button class="lmx-button" type="submit">
                         <i class="fas fa-pen-nib" aria-hidden="true"></i>
-                        Set pledge and continue
+                        Make a pledge
                     </button>
                     <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                 </form>`;
