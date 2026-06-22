@@ -186,6 +186,10 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("Applicant name is required.");
             }
 
+            applicantData.ProofPics = applicantData.ProofPics?
+                .Where(proof => !string.IsNullOrWhiteSpace(proof))
+                .ToList();
+
             var hasSubmittedBiomarkers = applicantData.Biomarkers?.Any() is true;
             var hasSubmittedProofs = applicantData.ProofPics?.Any() is true;
             var hasOnlyResultSubmissionProfileFields =
