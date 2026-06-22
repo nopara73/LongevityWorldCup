@@ -1182,7 +1182,7 @@
             const why = document.getElementById('why').value.trim();
             const mediaContact = document.getElementById('mediaContact').value.trim();
             const accountEmailInput = document.getElementById('accountEmail');
-            const accountEmail = normalizeContactEmail(accountEmailInput.value) || accountEmailInput.value.trim();
+            const accountEmail = normalizeContactEmail(accountEmailInput.value);
             const personalLink = normalizeOptionalUrl(document.getElementById('personalLink').value);
 
             // Get the differences from sessionStorage
