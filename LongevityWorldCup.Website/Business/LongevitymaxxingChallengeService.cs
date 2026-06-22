@@ -339,7 +339,7 @@ public sealed class LongevitymaxxingChallengeService
         var settings = BuildSettings(now);
         var participant = RequireParticipantByAccessToken(request.AccessToken);
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
-        var commitmentAmountUsd = request.CommitmentAmountUsd is null && !IsCommitmentAmountRequired(settings, now)
+        var commitmentAmountUsd = request.CommitmentAmountUsd is null && !IsCommitmentSetupRequired(settings, participant, now)
             ? participant.CommitmentAmountUsd
             : NormalizeCommitmentAmount(request.CommitmentAmountUsd);
         if (GetActivePaymentObligation(participant.Id) is not null)
@@ -600,7 +600,7 @@ public sealed class LongevitymaxxingChallengeService
         var eligible = BuildEligibleDays(settings, participant, checkIns, now).FirstOrDefault(x => x.ChallengeDay == request.ChallengeDay);
         if (eligible is null)
             throw new InvalidOperationException("That challenge day is not open for check-in.");
-        if (participant.CommitmentAmountUsd is null && IsCommitmentAmountRequired(settings, now))
+        if (participant.CommitmentAmountUsd is null && IsCommitmentAmountRequiredForCheckIn(settings, request.ChallengeDay))
             throw new InvalidOperationException("Configure your commitment amount before continuing.");
         if (activePaymentObligation is not null && eligible.Existing is null)
             throw new InvalidOperationException("Pay the commitment due or fix an existing eligible check-in before continuing.");
@@ -1463,10 +1463,10 @@ public sealed class LongevitymaxxingChallengeService
         IReadOnlyList<LongevitymaxxingEligibleDay> eligibleDays,
         DateTimeOffset now)
     {
+        var settings = BuildSettings(now);
         var obligation = GetActivePaymentObligation(participant.Id);
         if (obligation is not null)
         {
-            var settings = BuildSettings(now);
             var triggerEditable = IsCommitmentTriggerEditable(settings, participant, obligation, now, byDay);
             var message = triggerEditable
                 ? $"Commitment due for Day {obligation.TriggerChallengeDay}. Pay USD {obligation.AmountUsd:0.##}, or fix an eligible check-in so Day {obligation.TriggerChallengeDay} reaches its baseline."
@@ -1489,7 +1489,13 @@ public sealed class LongevitymaxxingChallengeService
 
         if (participant.CommitmentAmountUsd is null)
         {
-            if (!IsCommitmentAmountRequired(BuildSettings(now), now))
+            var hasOriginalDurationCatchUp = eligibleDays.Any(day =>
+                day.ChallengeDay <= settings.DurationDays &&
+                day.Existing is null);
+            var hasPendingContinuationCheckIn = eligibleDays.Any(day =>
+                day.ChallengeDay > settings.DurationDays &&
+                day.Existing is null);
+            if (!IsCommitmentSetupRequired(settings, participant, now) && !hasPendingContinuationCheckIn)
             {
                 return new LongevitymaxxingCommitmentState(
                     "deferred",
@@ -1509,7 +1515,7 @@ public sealed class LongevitymaxxingChallengeService
 
             return new LongevitymaxxingCommitmentState(
                 "needs-amount",
-                true,
+                !hasOriginalDurationCatchUp,
                 true,
                 false,
                 null,
@@ -1520,7 +1526,7 @@ public sealed class LongevitymaxxingChallengeService
                 null,
                 null,
                 null,
-                "Configure an amount that'd hurt before continuing.");
+                "Configure an amount that'd hurt before continuing past Day 14.");
         }
 
         return new LongevitymaxxingCommitmentState(
@@ -1992,7 +1998,7 @@ public sealed class LongevitymaxxingChallengeService
     private void EnsureParticipantNotCommitmentBlocked(ParticipantRecord participant, DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        if (participant.CommitmentAmountUsd is null && IsCommitmentAmountRequired(BuildSettings(now), now))
+        if (participant.CommitmentAmountUsd is null && IsCommitmentSetupRequired(BuildSettings(now), participant, now))
             throw new InvalidOperationException("Configure your commitment amount before continuing.");
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before continuing.");
@@ -2247,8 +2253,17 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset now)
         => BuildEligibleDays(settings, participant, checkIns, now);
 
-    private static bool IsCommitmentAmountRequired(ChallengeSettings settings, DateTimeOffset now)
-        => DateOnly.FromDateTime(now.UtcDateTime) > settings.EndDate;
+    private static bool IsCommitmentSetupRequired(
+        ChallengeSettings settings,
+        ParticipantRecord participant,
+        DateTimeOffset now)
+    {
+        var localDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, ResolveTimeZone(participant.TimeZoneId)).DateTime);
+        return localDate > settings.EndDate.AddDays(1);
+    }
+
+    private static bool IsCommitmentAmountRequiredForCheckIn(ChallengeSettings settings, int challengeDay)
+        => challengeDay > settings.DurationDays;
 
     private static bool CountsForScore(
         ChallengeSettings settings,

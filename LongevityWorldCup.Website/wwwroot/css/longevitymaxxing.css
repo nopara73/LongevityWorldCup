@@ -2058,6 +2058,7 @@ body.lmx-quote-open {
 }
 
 .lmx-commitment-card > div > strong,
+.lmx-commitment-main > div > strong,
 .lmx-commitment-edit > strong {
     display: block;
     color: #0f172a;
@@ -2065,7 +2066,8 @@ body.lmx-quote-open {
     line-height: 1.2;
 }
 
-.lmx-commitment-card > div > span {
+.lmx-commitment-card > div > span,
+.lmx-commitment-main > div > span {
     display: block;
     margin-top: 0.18rem;
     color: #475569;
@@ -2074,6 +2076,11 @@ body.lmx-quote-open {
 
 .lmx-commitment-card.due {
     background: #fef2f2;
+}
+
+.lmx-commitment-card.setup {
+    border-color: rgba(217, 119, 6, 0.28);
+    background: #fffbeb;
 }
 
 .lmx-commitment-main {
@@ -2092,6 +2099,10 @@ body.lmx-quote-open {
     justify-content: center;
     background: #dc2626;
     color: #ffffff;
+}
+
+.lmx-commitment-card.setup .lmx-commitment-main > i {
+    background: #d97706;
 }
 
 .lmx-commitment-main b {

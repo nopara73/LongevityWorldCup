@@ -908,7 +908,7 @@
         if (hasCommitmentBlock(participantState)) {
             return participantState.commitment?.status === "due"
                 ? `Commitment due, ${name}`
-                : "Make a pledge";
+                : `Pledge required, ${name}`;
         }
         if (activeTab === "profile") return `Profile, ${name}`;
         if (activeTab === "home") {
@@ -1110,13 +1110,16 @@
 
         if (commitment.status === "needs-amount") {
             panel.innerHTML = `
-                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card">
-                    <div>
-                        <strong>Set a real stake</strong>
-                        <span id="lmxBlockedCommitmentHelp" class="lmx-commitment-copy">Fall below your recent average and either pay it or stop. Choose an amount that would hurt.</span>
+                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card setup">
+                    <div class="lmx-commitment-main">
+                        <i class="fas fa-lock" aria-hidden="true"></i>
+                        <div>
+                            <strong>Set a pledge to keep checking in</strong>
+                            <span id="lmxBlockedCommitmentHelp">Your next check-in is locked until you choose a pledge amount. If a future scored day falls below your recent average, that amount becomes due.</span>
+                        </div>
                     </div>
                     <div class="lmx-field">
-                        <label for="lmxBlockedCommitmentAmount">Pledge</label>
+                        <label for="lmxBlockedCommitmentAmount">Pledge amount</label>
                         <div class="lmx-money-input">
                             <span aria-hidden="true">$</span>
                             <input id="lmxBlockedCommitmentAmount" type="text" inputmode="decimal" required placeholder="300" aria-describedby="lmxBlockedCommitmentHelp">
@@ -1124,7 +1127,7 @@
                     </div>
                     <button class="lmx-button" type="submit">
                         <i class="fas fa-pen-nib" aria-hidden="true"></i>
-                        Make a pledge
+                        Set pledge and continue
                     </button>
                     <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
                 </form>`;
