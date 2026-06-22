@@ -452,7 +452,9 @@ public sealed class EditProfilePageTests
         Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
         Assert.Contains("const alertMessage = 'Change request could not be submitted. Please check your connection and try again.';", html);
         Assert.Contains("message: displayError", html);
+        Assert.Contains("submitButton.innerHTML = 'Submit change request <i class=\"fa fa-rocket\"></i>';\n                                    submitButton.focus();", html);
         Assert.Contains("customAlert(alertMessage).then(() => {\n                            isEditProfileSubmitting = false;", html);
+        Assert.Contains("submitButton.innerHTML = 'Submit change request <i class=\"fa fa-rocket\"></i>';\n                            submitButton.focus();", html);
         Assert.DoesNotContain("customAlert(`Submission failed:\\n\\n${displayError}`)", html);
     }
 
