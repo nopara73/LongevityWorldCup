@@ -1514,7 +1514,7 @@
         }
 
         function serializePendingPaymentOffer(offer) {
-            if (!offer || typeof offer !== 'object' || Array.isArray(offer)) return null;
+            if (!isUsablePaymentOffer(offer)) return null;
 
             try {
                 const serializedOffer = JSON.stringify(offer);

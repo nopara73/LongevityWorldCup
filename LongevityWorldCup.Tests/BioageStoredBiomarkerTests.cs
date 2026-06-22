@@ -36,7 +36,14 @@ public sealed class BioageStoredBiomarkerTests
 
         Assert.Contains("function storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)", html);
         Assert.Contains("function serializePendingPaymentOffer(offer)", html);
-        Assert.Contains("if (!offer || typeof offer !== 'object' || Array.isArray(offer)) return null;", html);
+        Assert.Contains("if (!isUsablePaymentOffer(offer)) return null;", html);
+        Assert.Contains("function isUsablePaymentOffer(paymentOffer)", html);
+        Assert.Contains("typeof paymentOffer.source === 'string'", html);
+        Assert.Contains("typeof paymentOffer.offerType === 'string'", html);
+        Assert.Contains("typeof paymentOffer.currency === 'string'", html);
+        Assert.Contains("typeof paymentOffer.amountUsd === 'number'", html);
+        Assert.Contains("Number.isFinite(paymentOffer.amountUsd)", html);
+        Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
         Assert.Contains("let serializedPaymentOffer = null;", html);
         Assert.Contains("try {", html);
@@ -311,7 +318,14 @@ public sealed class BioageStoredBiomarkerTests
 
         Assert.Contains("function storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)", html);
         Assert.Contains("function serializePendingPaymentOffer(offer)", html);
-        Assert.Contains("if (!offer || typeof offer !== 'object' || Array.isArray(offer)) return null;", html);
+        Assert.Contains("if (!isUsablePaymentOffer(offer)) return null;", html);
+        Assert.Contains("function isUsablePaymentOffer(paymentOffer)", html);
+        Assert.Contains("typeof paymentOffer.source === 'string'", html);
+        Assert.Contains("typeof paymentOffer.offerType === 'string'", html);
+        Assert.Contains("typeof paymentOffer.currency === 'string'", html);
+        Assert.Contains("typeof paymentOffer.amountUsd === 'number'", html);
+        Assert.Contains("Number.isFinite(paymentOffer.amountUsd)", html);
+        Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
         Assert.Contains("let serializedPaymentOffer = null;", html);
         Assert.Contains("try {", html);
