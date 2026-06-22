@@ -116,12 +116,18 @@
 </html>
 
 <script>
-    function hasSubmittedApplication() {
+    function getBrowserStorageItem(storageName, key) {
         try {
-            return localStorage.getItem('hasApplication') === 'true';
+            return window[storageName].getItem(key);
         } catch (_) {
-            return false;
+            return null;
         }
+    }
+
+    function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
+
+    function hasSubmittedApplication() {
+        return getLocalItem('hasApplication') === 'true';
     }
 
     document.addEventListener('DOMContentLoaded', function () {
