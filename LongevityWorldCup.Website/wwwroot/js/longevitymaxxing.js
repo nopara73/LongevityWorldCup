@@ -1236,6 +1236,20 @@
         }, "Saving...");
     }
 
+    function normalizeCheckoutLink(value) {
+        const raw = typeof value === "string" ? value.trim() : "";
+        if (!raw) return "";
+
+        try {
+            const checkoutUrl = new URL(raw, window.location.origin);
+            return checkoutUrl.protocol === "http:" || checkoutUrl.protocol === "https:"
+                ? checkoutUrl.href
+                : "";
+        } catch (_) {
+            return "";
+        }
+    }
+
     async function payCommitment(button) {
         if (!accessToken) return;
         const checkoutWindow = window.open("", "_blank", "noopener");
@@ -1243,8 +1257,8 @@
             const result = await postJson(`${API}/commitment-payment`, { accessToken });
             participantState = result;
             publicState = result.public;
-            const checkoutLink = result.commitment && result.commitment.checkoutLink;
-            if (!checkoutLink) throw new Error("The payment invoice did not return a checkout link.");
+            const checkoutLink = normalizeCheckoutLink(result.commitment && result.commitment.checkoutLink);
+            if (!checkoutLink) throw new Error("The payment invoice did not return a usable checkout link.");
             if (checkoutWindow) {
                 checkoutWindow.location = checkoutLink;
             } else {

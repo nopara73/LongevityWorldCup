@@ -526,6 +526,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain(".lmx-commitment-hint", css);
         Assert.DoesNotContain(".lmx-payment-link", css);
         Assert.Contains("const checkoutWindow = window.open(\"\", \"_blank\", \"noopener\");", javascript);
+        Assert.Contains("function normalizeCheckoutLink(value)", javascript);
+        Assert.Contains("const checkoutUrl = new URL(raw, window.location.origin);", javascript);
+        Assert.Contains("return checkoutUrl.protocol === \"http:\" || checkoutUrl.protocol === \"https:\"", javascript);
+        Assert.Contains("const checkoutLink = normalizeCheckoutLink(result.commitment && result.commitment.checkoutLink);", javascript);
+        Assert.DoesNotContain("const checkoutLink = result.commitment && result.commitment.checkoutLink;", javascript);
         Assert.Contains("checkoutWindow.location = checkoutLink;", javascript);
         Assert.Contains("window.location.href = checkoutLink;", javascript);
         Assert.Contains("function sanitizeCommitmentAmountInput", javascript);
