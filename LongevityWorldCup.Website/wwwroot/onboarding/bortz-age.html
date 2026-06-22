@@ -1503,22 +1503,47 @@
                 && paymentOffer.amountUsd >= 0;
         }
 
+        function serializePendingPaymentOffer(offer) {
+            if (!offer || typeof offer !== 'object' || Array.isArray(offer)) return null;
+
+            try {
+                const serializedOffer = JSON.stringify(offer);
+                return typeof serializedOffer === 'string' && serializedOffer
+                    ? serializedOffer
+                    : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
         function storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference) {
+            let serializedPaymentOffer = null;
+            if (!isUpdate && !hasUsablePendingPaymentOffer()) {
+                const paymentOffer = buildDirectBortzPaymentOffer();
+                try {
+                    const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer
+                        ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                        : window.applyFreePassToPaymentOffer
+                            ? window.applyFreePassToPaymentOffer(paymentOffer)
+                            : paymentOffer;
+                    serializedPaymentOffer = serializePendingPaymentOffer(adjustedPaymentOffer);
+                } catch (_) {
+                    serializedPaymentOffer = null;
+                }
+                if (!serializedPaymentOffer) {
+                    customAlert('Payment details could not be saved. Enable browser storage and try again.');
+                    return false;
+                }
+            }
+
             try {
                 sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));
                 sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
                 sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
                 try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
 
-                if (!isUpdate && !hasUsablePendingPaymentOffer()) {
-                    const paymentOffer = buildDirectBortzPaymentOffer();
-                    sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
-                        window.applyPaymentAdjustmentsToPaymentOffer
-                            ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
-                            : window.applyFreePassToPaymentOffer
-                                ? window.applyFreePassToPaymentOffer(paymentOffer)
-                                : paymentOffer
-                    ));
+                if (serializedPaymentOffer) {
+                    sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);
                 }
 
                 return true;
