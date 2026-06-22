@@ -1110,6 +1110,25 @@
                 && paymentOffer.amountUsd >= 0;
         }
 
+        function readAdjustedPendingPaymentOffer() {
+            const paymentOffer = readPendingPaymentOffer();
+            if (!paymentOffer) return null;
+
+            try {
+                const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer
+                    ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                    : window.applyFreePassToPaymentOffer
+                        ? window.applyFreePassToPaymentOffer(paymentOffer)
+                        : paymentOffer;
+                if (!adjustedPaymentOffer) return null;
+                if (isUsablePaymentOffer(adjustedPaymentOffer)) return adjustedPaymentOffer;
+            } catch (_) {
+            }
+
+            customAlert('Payment details could not be prepared. Please try again.');
+            return undefined;
+        }
+
         function getCheckoutLink(submitResult) {
             return submitResult
                 && submitResult.paymentRequired
@@ -1156,12 +1175,8 @@
                 return;
             }
 
-            let paymentOffer = readPendingPaymentOffer();
-            if (window.applyPaymentAdjustmentsToPaymentOffer) {
-                paymentOffer = window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer);
-            } else if (window.applyFreePassToPaymentOffer) {
-                paymentOffer = window.applyFreePassToPaymentOffer(paymentOffer);
-            }
+            const paymentOffer = readAdjustedPendingPaymentOffer();
+            if (paymentOffer === undefined) return;
 
             // Create the applicant data object
             const applicantData = {
