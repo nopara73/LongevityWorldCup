@@ -225,6 +225,9 @@ public sealed class ProofUploadPageTests
         Assert.Contains("return checkboxes.length === 0 || checkboxes.every(input => input.checked);", javascript);
         Assert.Contains("const checklistComplete = areRequiredProofChecklistItemsChecked(biomarkerChecklistContainer);", javascript);
         Assert.Contains("nextButton.disabled = !(hasProofs && checklistComplete);", javascript);
+        Assert.Contains("var PROOF_CONTEXT_CHECKLIST_LABELS = ['Collection date', 'Lab/report source'];", javascript);
+        Assert.Contains("return labels.length > 0 ? PROOF_CONTEXT_CHECKLIST_LABELS.concat(labels) : labels;", javascript);
+        Assert.Contains("instructions.textContent = \"Check each item once your proof shows it:\";", javascript);
         Assert.Contains("input.addEventListener('change', function ()", javascript);
         Assert.Contains("checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", javascript);
     }
