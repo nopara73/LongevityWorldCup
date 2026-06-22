@@ -915,9 +915,13 @@
         const hasDiscountCode = result
           && Array.isArray(result.components)
           && result.components.some(component => component && component.kind === "discountCode");
-        return hasDiscountCode && window.addActiveDiscountMetadataToPaymentOffer
-          ? window.addActiveDiscountMetadataToPaymentOffer(offer)
-          : offer;
+        if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
+
+        try {
+          return window.addActiveDiscountMetadataToPaymentOffer(offer);
+        } catch (_) {
+          return null;
+        }
       }
 
       function startAmateurApplication() {
