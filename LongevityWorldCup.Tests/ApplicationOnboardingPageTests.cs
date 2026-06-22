@@ -315,7 +315,14 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("function readPendingPaymentOffer()", html);
         Assert.Contains("const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.Contains("const paymentOffer = JSON.parse(rawOffer);", html);
-        Assert.Contains("if (paymentOffer && typeof paymentOffer === 'object' && !Array.isArray(paymentOffer))", html);
+        Assert.Contains("if (isUsablePaymentOffer(paymentOffer))", html);
+        Assert.Contains("function isUsablePaymentOffer(paymentOffer)", html);
+        Assert.Contains("typeof paymentOffer.source === 'string'", html);
+        Assert.Contains("typeof paymentOffer.offerType === 'string'", html);
+        Assert.Contains("typeof paymentOffer.currency === 'string'", html);
+        Assert.Contains("typeof paymentOffer.amountUsd === 'number'", html);
+        Assert.Contains("Number.isFinite(paymentOffer.amountUsd)", html);
+        Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("function clearPendingPaymentOffer()", html);
         Assert.Contains("clearPendingPaymentOffer();", html);
         Assert.Contains("let paymentOffer = readPendingPaymentOffer();", collectBody);

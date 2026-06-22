@@ -200,7 +200,14 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("function hasUsablePendingPaymentOffer()", html);
         Assert.Contains("const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.Contains("const parsedOffer = JSON.parse(rawOffer);", html);
-        Assert.Contains("if (parsedOffer && typeof parsedOffer === 'object' && !Array.isArray(parsedOffer)) return true;", html);
+        Assert.Contains("if (isUsablePaymentOffer(parsedOffer)) return true;", html);
+        Assert.Contains("function isUsablePaymentOffer(paymentOffer)", html);
+        Assert.Contains("typeof paymentOffer.source === 'string'", html);
+        Assert.Contains("typeof paymentOffer.offerType === 'string'", html);
+        Assert.Contains("typeof paymentOffer.currency === 'string'", html);
+        Assert.Contains("typeof paymentOffer.amountUsd === 'number'", html);
+        Assert.Contains("Number.isFinite(paymentOffer.amountUsd)", html);
+        Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("function clearPendingPaymentOffer()", html);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.Contains("clearPendingPaymentOffer();", html);
