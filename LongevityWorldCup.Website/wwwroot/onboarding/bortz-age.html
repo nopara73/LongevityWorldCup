@@ -1961,6 +1961,18 @@
                 }
             }
 
+            // ApoA1: g/L typical ~1-2; mg/dL entries often appear as 100+.
+            const apoa1El = document.getElementById('apoa1');
+            const apoa1UnitEl = document.getElementById('apoa1Unit');
+            if (apoa1El && apoa1UnitEl) {
+                const v = parse(apoa1El);
+                const u = parseFloat(apoa1UnitEl.value);
+                if (!isNaN(v) && u === 1 && v > 10) {
+                    console.warn("ApoA1 value suggests mg/dL. Correcting the unit.");
+                    setUnit(apoa1UnitEl, 100);
+                }
+            }
+
             // HbA1c: mmol/mol typical 20–50, max plausible ~140 (≈15%); % 4–6 (so % rarely > 15); eAG uses value 1
             const hba1cEl = document.getElementById('hba1c');
             const hba1cUnitEl = document.getElementById('hba1cUnit');
@@ -2872,6 +2884,8 @@
             if (!bloodDrawDate) {
                 return;
             }
+
+            correctCorrectableUnits();
 
             const year = yearInput ? parseInt(yearInput) : null;
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index

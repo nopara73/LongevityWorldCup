@@ -233,6 +233,24 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", failureBody);
     }
 
+    [Fact]
+    public void BortzPage_CorrectsApoA1MgDlEnteredWithGLUnit()
+    {
+        var html = File.ReadAllText(GetPagePath("bortz-age.html"));
+
+        Assert.Contains("const apoa1El = document.getElementById('apoa1');", html);
+        Assert.Contains("const apoa1UnitEl = document.getElementById('apoa1Unit');", html);
+        Assert.Contains("if (!isNaN(v) && u === 1 && v > 10)", html);
+        Assert.Contains("setUnit(apoa1UnitEl, 100);", html);
+
+        var proceedBody = GetFunctionBody(html, "function proceedToNextPage()", "const biomarkerData = {");
+        var correctionIndex = proceedBody.IndexOf("correctCorrectableUnits();", StringComparison.Ordinal);
+        var storeIndex = proceedBody.IndexOf("store('apoa1', 'ApoA1GL'", StringComparison.Ordinal);
+
+        Assert.True(correctionIndex >= 0);
+        Assert.True(storeIndex > correctionIndex);
+    }
+
     private static string GetPagePath(string fileName)
     {
         var repoRoot = FindRepoRoot();
