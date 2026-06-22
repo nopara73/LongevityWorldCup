@@ -193,6 +193,17 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
+    public void BioageUpdatePages_RenderSelectedAthleteNameAsText(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("document.getElementById('mainPageTitleH2').textContent = athlete.Name;", html);
+        Assert.DoesNotContain("document.getElementById('mainPageTitleH2').innerHTML = athlete.Name;", html);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
     public void BioagePages_ReplaceMalformedPendingPaymentOfferBeforeHandoff(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));

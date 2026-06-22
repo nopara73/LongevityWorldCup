@@ -2251,7 +2251,7 @@
             if (isUpdate && hasSelectedAthlete) {
                 hideMainProgress();
 
-                document.getElementById('mainPageTitleH2').innerHTML = athlete.Name;
+                document.getElementById('mainPageTitleH2').textContent = athlete.Name;
                 document.getElementById('mainInstructions').innerHTML = 'Submit your latest test results. All fields are required and must be from the same day.';
 
                 // Fill out the date of birth because we'll need it for calculations, but hide it as well so the user doesn't wanna change that.
