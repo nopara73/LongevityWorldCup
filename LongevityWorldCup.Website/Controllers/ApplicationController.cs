@@ -2029,13 +2029,14 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static bool HasRequiredBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
         {
-            return biomarkers.All(biomarker => !string.IsNullOrWhiteSpace(biomarker.Date));
+            return biomarkers.All(biomarker => biomarker is not null && !string.IsNullOrWhiteSpace(biomarker.Date));
         }
 
         private static bool HasValidBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
             return biomarkers.All(biomarker =>
+                biomarker is not null &&
                 DateOnly.TryParseExact(
                     biomarker.Date,
                     "yyyy-MM-dd",
@@ -2047,7 +2048,7 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static bool HasRequiredBiomarkerValues(IEnumerable<BiomarkerData> biomarkers)
         {
-            return biomarkers.All(biomarker => typeof(BiomarkerData)
+            return biomarkers.All(biomarker => biomarker is not null && typeof(BiomarkerData)
                 .GetProperties()
                 .Where(property => !string.Equals(property.Name, nameof(BiomarkerData.Date), StringComparison.Ordinal))
                 .Select(property => property.GetValue(biomarker))
