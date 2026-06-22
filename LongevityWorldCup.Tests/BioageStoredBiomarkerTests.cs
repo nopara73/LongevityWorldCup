@@ -163,7 +163,9 @@ public sealed class BioageStoredBiomarkerTests
 
         Assert.Contains("if (isUpdate && athlete?.Biomarkers?.length)", calculateBody);
         Assert.Contains("if (isUpdate && touchedBiomarkers.size === 0)", calculateBody);
-        Assert.Contains("customAlert('😱 No new biomarker data entered! Cannot proceed!');", calculateBody);
+        Assert.Contains("customAlert('Change at least one biomarker value before continuing.');", calculateBody);
+        Assert.DoesNotContain("No new biomarker data entered", html);
+        Assert.DoesNotContain("Cannot proceed", html);
         Assert.DoesNotContain(oldGuard, calculateBody);
         Assert.DoesNotContain(oldAlert, calculateBody);
     }
