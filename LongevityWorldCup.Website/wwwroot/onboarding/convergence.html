@@ -1890,7 +1890,7 @@
 
             function handleProfileUploadChange(event) {
                 const input = event.target;
-                if (!input.files.length) return; // Reset if no file selected
+                if (!input.files || !input.files.length) return; // Reset if no file selected
                 const file = input.files[0];
                 input.value = '';
                 if (file) {
