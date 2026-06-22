@@ -70,6 +70,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);", html);
         Assert.Contains("let availableFlags = currentFlag ? [currentFlag] : [];", html);
         Assert.Contains("flagInput.value = athlete.Flag;", html);
+        Assert.Contains("fetch('/api/data/athletes').then(r => r.ok ? r.json() : [])", html);
         Assert.Contains("fetch('/api/data/flags').then(r => r.ok ? r.json() : [])", html);
         Assert.Contains("if (currentFlag && !availableFlags.includes(currentFlag)) availableFlags.push(currentFlag);", html);
         Assert.Contains("console.error('Error fetching flags:', error);", html);
