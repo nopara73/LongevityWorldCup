@@ -222,8 +222,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("id=\"lmxProfilePictureInput\" type=\"file\" accept=\"image/*\"", html);
         Assert.Contains("id=\"lmxSignupTimeZoneLabel\">Timezone</span>", html);
         Assert.Contains("class=\"lmx-timezone-picker\" data-timezone-picker data-select-id=\"lmxSignupTimeZone\"", html);
-        Assert.Contains("id=\"lmxSignupTimeZoneSearch\" type=\"search\"", html);
-        Assert.Contains("placeholder=\"Search city or timezone\"", html);
+        Assert.Contains("<input id=\"lmxSignupTimeZoneSearch\" type=\"search\" autocomplete=\"off\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"Search city or timezone\" aria-controls=\"lmxSignupTimeZoneList\">", html);
+        Assert.Contains("<input id=\"lmxEditTimeZoneSearch\" type=\"search\" autocomplete=\"off\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"Search city or timezone\" aria-controls=\"lmxEditTimeZoneList\">", html);
         Assert.Contains("id=\"lmxSignupTimeZone\" class=\"lmx-timezone-native\" name=\"timeZoneId\" required", html);
         Assert.Contains("id=\"lmxEditTimeZone\" class=\"lmx-timezone-native\" required", html);
         Assert.DoesNotContain("Extra details", html);
