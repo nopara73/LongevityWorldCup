@@ -1856,26 +1856,28 @@
                         nextButton.disabled = true;
                         updateUploadButtons();
 
+                        if (cropper) {
+                            cropper.destroy();
+                            cropper = null;
+                        }
+
                         document.getElementById('cropperImage').src = e.target.result;
 
                         document.getElementById('uploadPart').style.display = 'none';
                         document.getElementById('croppingPart').style.display = 'block';
 
-                        // Initialize Cropper only once
-                        if (!cropper) {
-                            cropper = new Cropper(document.getElementById('cropperImage'), {
-                                aspectRatio: 1,
-                                viewMode: 1,
-                                autoCropArea: 1,
-                                movable: true,
-                                zoomable: true,
-                                rotatable: false,
-                                scalable: false,
-                                cropBoxResizable: true,
-                                minCropBoxWidth: 200,
-                                minCropBoxHeight: 150,
-                            });
-                        }
+                        cropper = new Cropper(document.getElementById('cropperImage'), {
+                            aspectRatio: 1,
+                            viewMode: 1,
+                            autoCropArea: 1,
+                            movable: true,
+                            zoomable: true,
+                            rotatable: false,
+                            scalable: false,
+                            cropBoxResizable: true,
+                            minCropBoxWidth: 200,
+                            minCropBoxHeight: 150,
+                        });
                     };
                     reader.onerror = function () {
                         customAlert('Profile picture upload failed.');

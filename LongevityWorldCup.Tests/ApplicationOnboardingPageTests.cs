@@ -546,6 +546,29 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ProfilePhotoSelection_ReplacesExistingCropperBeforeNewImage()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var loadStart = html.IndexOf("reader.onload = function (e)", StringComparison.Ordinal);
+        var loadEnd = html.IndexOf("reader.onerror = function ()", loadStart, StringComparison.Ordinal);
+
+        Assert.True(loadStart >= 0);
+        Assert.True(loadEnd > loadStart);
+
+        var loadBody = html[loadStart..loadEnd];
+
+        Assert.Contains("if (cropper)", loadBody);
+        Assert.Contains("cropper.destroy();", loadBody);
+        Assert.Contains("cropper = null;", loadBody);
+        Assert.Contains("document.getElementById('cropperImage').src = e.target.result;", loadBody);
+        Assert.Contains("cropper = new Cropper(document.getElementById('cropperImage'),", loadBody);
+        Assert.DoesNotContain("if (!cropper)", loadBody);
+    }
+
+    [Fact]
     public async Task ProfilePhotoCrop_CanBeCanceledBackToUploadMode()
     {
         using var factory = new TestWebApplicationFactory();

@@ -129,6 +129,36 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task ProfilePictureSelection_ReplacesExistingCropperBeforeNewImage()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var loadStart = html.IndexOf("reader.onload = (evt) =>", StringComparison.Ordinal);
+        var loadEnd = html.IndexOf("reader.onerror = () =>", loadStart, StringComparison.Ordinal);
+        var cropStart = html.IndexOf("cropBtn.addEventListener('click', async function ()", StringComparison.Ordinal);
+        var cancelStart = html.IndexOf("cancelBtn.addEventListener('click', () =>", cropStart, StringComparison.Ordinal);
+
+        Assert.True(loadStart >= 0);
+        Assert.True(loadEnd > loadStart);
+        Assert.True(cropStart >= 0);
+        Assert.True(cancelStart > cropStart);
+
+        var loadBody = html[loadStart..loadEnd];
+        var cropBody = html[cropStart..cancelStart];
+        var cancelBody = html[cancelStart..html.IndexOf("function updateSubmitButtonState()", cancelStart, StringComparison.Ordinal)];
+
+        Assert.Contains("if (window.changeProfileCropper)", loadBody);
+        Assert.Contains("window.changeProfileCropper.destroy();", loadBody);
+        Assert.Contains("window.changeProfileCropper = null;", loadBody);
+        Assert.Contains("cropperImage.src = evt.target.result;", loadBody);
+        Assert.Contains("window.changeProfileCropper = new Cropper(cropperImage,", loadBody);
+        Assert.Contains("window.changeProfileCropper = null;", cropBody);
+        Assert.Contains("window.changeProfileCropper = null;", cancelBody);
+    }
+
+    [Fact]
     public async Task ProfilePictureCrop_FallsBackToRawCropWhenOptimizationFails()
     {
         using var factory = new TestWebApplicationFactory();
