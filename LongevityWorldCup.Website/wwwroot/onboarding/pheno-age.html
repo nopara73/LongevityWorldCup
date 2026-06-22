@@ -2254,12 +2254,12 @@
                 toStep2Btn.addEventListener('click', () => {
                     if (!lwcValidateStep1()) return;
                     lwcSetStep(2);
-                    try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {}
+                    setSessionItem('lwcStep', '2');
                 });
             }
             if (toStep1Btn) {
                 toStep1Btn.addEventListener('click', () => {
-                    try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+                    setSessionItem('lwcStep', '1');
                     lwcSetStep(1);
                 });
             }
@@ -2268,8 +2268,8 @@
             const dot1 = document.getElementById('lwcDot1');
             const dot2 = document.getElementById('lwcDot2');
 
-            function activateDot1() { lwcSetStep(1); try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {} }
-            function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {} } }
+            function activateDot1() { lwcSetStep(1); setSessionItem('lwcStep', '1'); }
+            function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); setSessionItem('lwcStep', '2'); } }
 
             if (dot1) {
                 dot1.addEventListener('click', activateDot1);
@@ -2379,7 +2379,7 @@
             } catch (e) {}
             if (!restoredStep) {
                 lwcSetStep(1);
-                try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+                setSessionItem('lwcStep', '1');
             }
         });
 

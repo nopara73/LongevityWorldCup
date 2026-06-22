@@ -71,20 +71,23 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", failureBody);
     }
 
-    [Fact]
-    public void PhenoPage_PersistsAndRestoresWizardStep()
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BioagePages_PersistAndRestoreWizardStepWithSafeStorage(string fileName)
     {
-        var html = File.ReadAllText(GetPagePath("pheno-age.html"));
+        var html = File.ReadAllText(GetPagePath(fileName));
 
         Assert.Contains("function lwcValidateStep1(silent)", html);
         Assert.Contains("if (!silent) customAlert('Please select your birth year.');", html);
-        Assert.Contains("try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {}", html);
-        Assert.Contains("function activateDot1() { lwcSetStep(1); try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {} }", html);
-        Assert.Contains("function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {} } }", html);
+        Assert.Contains("setSessionItem('lwcStep', '2');", html);
+        Assert.Contains("setSessionItem('lwcStep', '1');", html);
+        Assert.Contains("function activateDot1() { lwcSetStep(1); setSessionItem('lwcStep', '1'); }", html);
+        Assert.Contains("function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); setSessionItem('lwcStep', '2'); } }", html);
         Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
         Assert.Contains("let restoredStep = false;", html);
         Assert.Contains("if (!restoredStep) {", html);
-        Assert.Contains("try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}", html);
+        Assert.DoesNotContain("sessionStorage.setItem('lwcStep'", html);
     }
 
     [Theory]
