@@ -1163,7 +1163,9 @@
         const cropBtn = document.getElementById('changeProfileCropButton');
         const cancelBtn = document.getElementById('changeProfileCancelButton');
         cropBtn.addEventListener('click', async function () {
-            const canvas = window.changeProfileCropper.getCroppedCanvas({
+            const activeCropper = window.changeProfileCropper;
+            if (!activeCropper) return;
+            const canvas = activeCropper.getCroppedCanvas({
                 width: 1024,
                 height: 1024,
             });
@@ -1183,7 +1185,7 @@
 
             // enable the “Submit Change Request” button now that there’s a new image
             updateSubmitButtonState();
-            window.changeProfileCropper.destroy();
+            activeCropper.destroy();
             window.changeProfileCropper = null;
             document.getElementById('modalOverlay').style.display = 'none';
             document.body.classList.remove('no-scroll');
@@ -1192,7 +1194,10 @@
             profileCameraInput.value = '';
         });
         cancelBtn.addEventListener('click', () => {
-            window.changeProfileCropper.destroy();
+            const activeCropper = window.changeProfileCropper;
+            if (activeCropper) {
+                activeCropper.destroy();
+            }
             window.changeProfileCropper = null;
             document.getElementById('modalOverlay').style.display = 'none';
             document.body.classList.remove('no-scroll');
