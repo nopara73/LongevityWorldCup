@@ -548,6 +548,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("input.type = 'url';", helperBody);
         Assert.Contains("return input.checkValidity();", helperBody);
         Assert.Contains("if (!isOptionalUrl(v))", validateBody);
+        Assert.Contains("customAlert('Please enter a valid URL for your personal link.').then(() => document.getElementById('personalLinkInput')?.focus());", validateBody);
         Assert.DoesNotContain("!validator.isURL(v)", validateBody);
     }
 
@@ -565,8 +566,8 @@ public sealed class EditProfilePageTests
         Assert.Contains("id=\"mediaContactInput\"\n                       name=\"mediaContact\"\n                       required\n                       aria-required=\"true\"", html);
         Assert.Contains("id=\"mediaContactInput\"\n                       name=\"mediaContact\"\n                       required\n                       aria-required=\"true\"\n                       inputmode=\"email\"\n                       autocomplete=\"off\"\n                       autocapitalize=\"none\"\n                       spellcheck=\"false\"\n                       placeholder=\"media@example.com or @handle\"", html);
         Assert.Contains("<textarea id=\"whyDisplayInput\"\n                          name=\"whyDisplay\"\n                          rows=\"3\"\n                          required\n                          aria-required=\"true\"", html);
-        Assert.Contains("customAlert('Media contact is required.');", html);
-        Assert.Contains("customAlert('Your why is the light. Don’t leave us in the dark.');", html);
+        Assert.Contains("customAlert('Media contact is required.').then(() => document.getElementById('mediaContactInput')?.focus());", html);
+        Assert.Contains("customAlert('Your why is the light. Don’t leave us in the dark.').then(() => document.getElementById('whyDisplayInput')?.focus());", html);
     }
 
     [Fact]

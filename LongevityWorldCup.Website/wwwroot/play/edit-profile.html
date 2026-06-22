@@ -1366,7 +1366,7 @@
             const v = value.trim();
             if (!v) return true;                            // empty OK
             if (!isOptionalUrl(v)) {
-                customAlert('Please enter a valid URL for your personal link.');
+                customAlert('Please enter a valid URL for your personal link.').then(() => document.getElementById('personalLinkInput')?.focus());
                 return false;
             }
             return true;
@@ -1375,7 +1375,7 @@
         function validateMediaContact(value) {
             const v = value.trim();
             if (!v) {
-                customAlert('Media contact is required.');
+                customAlert('Media contact is required.').then(() => document.getElementById('mediaContactInput')?.focus());
                 return false;
             }
             return true;                                    // any non-empty string OK
@@ -1384,7 +1384,7 @@
         function validateWhyDisplay(value) {
             const v = value.trim();
             if (!v) {
-                customAlert('Your why is the light. Don’t leave us in the dark.');
+                customAlert('Your why is the light. Don’t leave us in the dark.').then(() => document.getElementById('whyDisplayInput')?.focus());
                 return false;
             }
             return true;
