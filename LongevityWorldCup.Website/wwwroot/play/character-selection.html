@@ -370,14 +370,24 @@
                     return `${athlete.Name || ''} ${getAthleteDisplayName(athlete)}`.toLowerCase();
                 }
 
-                function findExactAthleteMatch(value) {
+                function isAthleteInputValue(athlete, value) {
                     const query = (value || '').trim().toLowerCase();
-                    if (!query) return null;
+                    if (!query || !athlete) return false;
 
-                    return athletes.find(a =>
-                        (a.Name || '').trim().toLowerCase() === query
-                        || getAthleteDisplayName(a).toLowerCase() === query
-                    ) || null;
+                    return (athlete.Name || '').trim().toLowerCase() === query
+                        || getAthleteDisplayName(athlete).toLowerCase() === query;
+                }
+
+                function clearCurrentAthleteSelectionIfInputChanged(value) {
+                    if (!currentAthlete || isAthleteInputValue(currentAthlete, value)) return;
+
+                    currentAthlete = null;
+                    confirmBtn.disabled = true;
+                    document.getElementById('character-title').textContent = 'Athlete selection';
+                }
+
+                function findExactAthleteMatch(value) {
+                    return athletes.find(a => isAthleteInputValue(a, value)) || null;
                 }
 
                 function appendHighlightedText(container, text, query) {
@@ -399,6 +409,7 @@
                     // split on spaces and match all terms anywhere in the name
                     const query = this.value.trim().toLowerCase();
                     const terms = query.split(/\s+/).filter(t => t);
+                    clearCurrentAthleteSelectionIfInputChanged(this.value);
 
                     closeAllLists();
                     if (!terms.length) return false;
