@@ -859,6 +859,7 @@
         }
 
         function normalizeContactEmail(value) {
+            if (typeof value !== 'string') return null;
             let contactEmail = (value || '').trim();
             if (!contactEmail) return null;
             if (/^mailto:/i.test(contactEmail)) {
