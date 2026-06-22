@@ -311,7 +311,7 @@ public sealed class EditProfilePageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
-        var listenerStart = html.IndexOf("[personalLinkInput, mediaContactInput].forEach(input =>", StringComparison.Ordinal);
+        var listenerStart = html.IndexOf("[flagInput, personalLinkInput, mediaContactInput].forEach(input =>", StringComparison.Ordinal);
         var listenerEnd = html.IndexOf("const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');", listenerStart, StringComparison.Ordinal);
 
         Assert.True(listenerStart >= 0);
