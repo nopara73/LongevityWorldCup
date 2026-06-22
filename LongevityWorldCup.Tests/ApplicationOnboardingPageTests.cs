@@ -192,7 +192,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("input.type = 'url';", html);
         Assert.Contains("<input type=\"text\" id=\"personalLink\" name=\"personalLink\" inputmode=\"url\" autocomplete=\"url\" placeholder=\"yourwebsite.com\">", html);
         Assert.DoesNotContain("<input type=\"url\" id=\"personalLink\"", html);
-        Assert.Contains("<input type=\"text\" id=\"accountEmail\" name=\"accountEmail\" required aria-required=\"true\" inputmode=\"email\" autocomplete=\"email\" placeholder=\"pizza_lover@hungry.com\">", html);
+        Assert.Contains("<input type=\"text\" id=\"accountEmail\" name=\"accountEmail\" required aria-required=\"true\" inputmode=\"email\" autocomplete=\"email\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"pizza_lover@hungry.com\">", html);
         Assert.DoesNotContain("<input type=\"email\" id=\"accountEmail\"", html);
         Assert.Contains("const rawAccountEmail = accountEmailInput.value.trim();", html);
         Assert.Contains("const accountEmail = normalizeContactEmail(accountEmailInput.value);", html);
