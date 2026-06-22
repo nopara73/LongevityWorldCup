@@ -89,9 +89,9 @@
     }
 
     function getDisplayName(athlete) {
-        return athlete && athlete.DisplayName && athlete.DisplayName.trim()
+        return athlete && typeof athlete.DisplayName === 'string' && athlete.DisplayName.trim()
             ? athlete.DisplayName.trim()
-            : athlete.Name;
+            : athlete && typeof athlete.Name === 'string' ? athlete.Name : '';
     }
 
     function mapAthlete(athlete) {
