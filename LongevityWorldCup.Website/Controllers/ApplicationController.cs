@@ -651,6 +651,7 @@ namespace LongevityWorldCup.Website.Controllers
                         displayNameOrName,
                         isResultSubmissionOnly,
                         isEditSubmissionOnly,
+                        paymentUnavailable: true,
                         ct: ct);
 
                     return Ok(new
@@ -682,8 +683,8 @@ namespace LongevityWorldCup.Website.Controllers
                     displayNameOrName,
                     isResultSubmissionOnly,
                     isEditSubmissionOnly,
-                    invoiceResult.CheckoutLink,
-                    ct);
+                    checkoutLink: invoiceResult.CheckoutLink,
+                    ct: ct);
 
                 _logger.LogInformation(
                     "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
@@ -816,6 +817,7 @@ namespace LongevityWorldCup.Website.Controllers
             bool isResultSubmissionOnly,
             bool isEditSubmissionOnly,
             string? checkoutLink = null,
+            bool paymentUnavailable = false,
             CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(accountEmail))
@@ -836,7 +838,7 @@ namespace LongevityWorldCup.Website.Controllers
                 message.Subject = BuildSubmissionConfirmationSubject(isResultSubmissionOnly, isEditSubmissionOnly);
                 message.Body = new BodyBuilder
                 {
-                    TextBody = BuildSubmissionConfirmationBody(applicantName, isResultSubmissionOnly, isEditSubmissionOnly, checkoutLink)
+                    TextBody = BuildSubmissionConfirmationBody(applicantName, isResultSubmissionOnly, isEditSubmissionOnly, checkoutLink, paymentUnavailable)
                 }.ToMessageBody();
 
                 await SendEmailThroughSmtpAsync(config, message, ct);
@@ -865,16 +867,17 @@ namespace LongevityWorldCup.Website.Controllers
             string? applicantName,
             bool isResultSubmissionOnly,
             bool isEditSubmissionOnly,
-            string? checkoutLink)
+            string? checkoutLink,
+            bool paymentUnavailable = false)
         {
             if (isResultSubmissionOnly)
-                return BuildResultUploadConfirmationBody(applicantName, checkoutLink);
+                return BuildResultUploadConfirmationBody(applicantName, checkoutLink, paymentUnavailable);
             if (isEditSubmissionOnly)
                 return BuildChangeRequestConfirmationBody(applicantName);
-            return BuildApplicationConfirmationBody(applicantName, checkoutLink);
+            return BuildApplicationConfirmationBody(applicantName, checkoutLink, paymentUnavailable);
         }
 
-        private static string BuildApplicationConfirmationBody(string? applicantName, string? checkoutLink)
+        private static string BuildApplicationConfirmationBody(string? applicantName, string? checkoutLink, bool paymentUnavailable = false)
         {
             var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
             var body = new StringBuilder()
@@ -883,7 +886,13 @@ namespace LongevityWorldCup.Website.Controllers
                 .AppendLine("We'll review your Longevity World Cup application, which usually takes a day or two.")
                 .AppendLine("When the review is done, we'll contact you at this email address.");
 
-            if (!string.IsNullOrWhiteSpace(checkoutLink))
+            if (paymentUnavailable)
+            {
+                body
+                    .AppendLine()
+                    .AppendLine("Your application also has a payment step, but we could not create the payment page automatically. We'll follow up with the next step by email.");
+            }
+            else if (!string.IsNullOrWhiteSpace(checkoutLink))
             {
                 body
                     .AppendLine()
@@ -899,7 +908,7 @@ namespace LongevityWorldCup.Website.Controllers
                 .ToString();
         }
 
-        private static string BuildResultUploadConfirmationBody(string? applicantName, string? checkoutLink)
+        private static string BuildResultUploadConfirmationBody(string? applicantName, string? checkoutLink, bool paymentUnavailable = false)
         {
             var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
             var body = new StringBuilder()
@@ -908,7 +917,13 @@ namespace LongevityWorldCup.Website.Controllers
                 .AppendLine("We received your Longevity World Cup result upload and proof.")
                 .AppendLine("We'll review it and update your athlete profile if the result is accepted.");
 
-            if (!string.IsNullOrWhiteSpace(checkoutLink))
+            if (paymentUnavailable)
+            {
+                body
+                    .AppendLine()
+                    .AppendLine("Your upload also has a payment step, but we could not create the payment page automatically. We'll follow up with the next step by email.");
+            }
+            else if (!string.IsNullOrWhiteSpace(checkoutLink))
             {
                 body
                     .AppendLine()
