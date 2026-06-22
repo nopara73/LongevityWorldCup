@@ -1171,7 +1171,8 @@
             }
             if (!biomarkerData || !hasStoredDateOfBirth(biomarkerData) || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasStoredBiomarkerValues(biomarkerData)) {
                 clearStoredBiomarkerHandoff();
-                customAlert('Biomarker data is missing. Please complete the biomarker form.');
+                customAlert('Biomarker data is missing. Please complete the biomarker step.')
+                    .then(() => window.location.href = '/onboarding/pheno-age');
                 return;
             }
 

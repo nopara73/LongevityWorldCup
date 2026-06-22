@@ -354,7 +354,8 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("removeSessionItem('biomarkerData');", html);
         Assert.Contains("removeSessionItem('chronoPhenoDifference');", html);
         Assert.Contains("removeSessionItem('chronoBortzDifference');", html);
-        Assert.Contains("customAlert('Biomarker data is missing. Please complete the biomarker form.');", parseBody);
+        Assert.Contains("customAlert('Biomarker data is missing. Please complete the biomarker step.')", parseBody);
+        Assert.Contains(".then(() => window.location.href = '/onboarding/pheno-age');", parseBody);
     }
 
     [Fact]
