@@ -113,6 +113,10 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
         TryGetPropertyString(document.RootElement, "paidAmount", out var paidAmountText);
         TryGetPropertyString(document.RootElement, "checkoutLink", out var checkoutLink);
         TryGetNestedPropertyString(document.RootElement, "buyer", "email", out var buyerEmail);
+        if (string.IsNullOrWhiteSpace(buyerEmail))
+        {
+            TryGetNestedPropertyString(document.RootElement, "metadata", "buyerEmail", out buyerEmail);
+        }
         TryGetNestedPropertyString(document.RootElement, "metadata", "athleteName", out var athleteNameFromMetadata);
         TryGetNestedPropertyString(document.RootElement, "metadata", "submissionType", out var submissionTypeFromMetadata);
 

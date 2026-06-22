@@ -1162,7 +1162,8 @@ namespace LongevityWorldCup.Website.Controllers
                     ["discountCode"] = applicantData.Discount,
                     ["discountPercent"] = applicantData.PaymentOffer?.DiscountPercent,
                     ["submissionType"] = isEditSubmissionOnly ? "edit" : isResultSubmissionOnly ? "result" : "application",
-                    ["athleteName"] = applicantData.Name?.Trim()
+                    ["athleteName"] = applicantData.Name?.Trim(),
+                    ["buyerEmail"] = accountEmail
                 }
             };
 
