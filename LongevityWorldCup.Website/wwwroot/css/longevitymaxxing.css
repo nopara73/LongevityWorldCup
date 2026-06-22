@@ -1778,6 +1778,88 @@
     cursor: progress;
 }
 
+body.lmx-quote-open {
+    overflow: hidden;
+}
+
+.lmx-quote-dialog[hidden] {
+    display: none;
+}
+
+.lmx-quote-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+}
+
+.lmx-quote-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.52);
+}
+
+.lmx-quote-dialog-card {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 34rem);
+    max-height: min(88vh, 38rem);
+    overflow: auto;
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 22px 54px rgba(15, 23, 42, 0.26);
+}
+
+.lmx-quote-dialog blockquote {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.05rem;
+    font-weight: 850;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.lmx-quote-source {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.32rem 0.45rem;
+    color: #64748b;
+    font-size: 0.84rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.lmx-quote-source a {
+    color: #075985;
+    text-decoration: none;
+}
+
+.lmx-quote-source a:hover {
+    text-decoration: underline;
+}
+
+.lmx-quote-source a:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.32);
+    outline-offset: 2px;
+}
+
+.lmx-quote-source-separator {
+    color: #cbd5e1;
+}
+
+.lmx-quote-dialog-card .lmx-button {
+    justify-self: end;
+    min-width: 5.5rem;
+}
+
 .lmx-status {
     margin-top: 0.35rem;
     min-height: 1.3rem;

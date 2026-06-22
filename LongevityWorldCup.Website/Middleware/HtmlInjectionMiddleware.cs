@@ -426,6 +426,14 @@ $@"<script type=""module"">
                         "/js/misc.js",
                         "/js/pro-discounts.js"
                     ]),
+                "/longevitymaxxing" or "/longevitymaxxing/longevitymaxxing.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/pheno-age.js",
+                        "/js/bortz-age.js"
+                    ]),
                 _ => HeadAssetConfig.Empty
             };
         }
