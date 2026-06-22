@@ -261,7 +261,8 @@ public sealed class EditProfilePageTests
         var html = await client.GetStringAsync("/play/edit-profile.html");
 
         Assert.Contains("function isValidSelectedAthlete(value)", html);
-        Assert.Contains("return value && typeof value === 'object' && !Array.isArray(value) && value.Name;", html);
+        Assert.Contains("typeof value.Name === 'string'", html);
+        Assert.Contains("value.Name.trim()", html);
         Assert.Contains("const selectedAthleteJson = getSessionItem('selectedAthlete');", html);
         Assert.Contains("if (!isValidSelectedAthlete(originalAthlete))", html);
         Assert.Contains("removeSessionItem('selectedAthlete');", html);

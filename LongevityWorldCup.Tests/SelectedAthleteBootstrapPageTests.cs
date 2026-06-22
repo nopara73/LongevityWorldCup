@@ -46,6 +46,37 @@ public sealed class SelectedAthleteBootstrapPageTests
         Assert.Contains("!Array.isArray(value)", html);
     }
 
+    [Theory]
+    [InlineData("/onboarding/pheno-age.html")]
+    [InlineData("/onboarding/bortz-age.html")]
+    [InlineData("/play/proof-upload.html")]
+    [InlineData("/play/character-customization.html")]
+    [InlineData("/play/edit-profile.html")]
+    public async Task SelectedAthleteValidation_RejectsBlankNames(string path)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains("typeof value.Name === 'string'", html);
+        Assert.Contains("value.Name.trim()", html);
+    }
+
+    [Theory]
+    [InlineData("/onboarding/pheno-age.html")]
+    [InlineData("/onboarding/bortz-age.html")]
+    public async Task UpdateBioageSelectedAthleteValidation_RejectsBlankDatesOfBirth(string path)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains("typeof value.DateOfBirth === 'string'", html);
+        Assert.Contains("value.DateOfBirth.trim()", html);
+    }
+
     [Fact]
     public async Task EditProfileTempAthleteFallback_UsesSafeStorageCleanup()
     {
