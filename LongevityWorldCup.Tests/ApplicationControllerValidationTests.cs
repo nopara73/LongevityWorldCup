@@ -610,14 +610,29 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, false, "https://pay.example.test/invoice"]);
+        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, false, "https://pay.example.test/invoice", false]);
 
         Assert.NotNull(body);
         Assert.Contains("Hi Athlete Ada,", body);
         Assert.Contains("result upload and proof", body);
         Assert.Contains("update your athlete profile", body);
         Assert.Contains("https://pay.example.test/invoice", body);
+        Assert.DoesNotContain("could not create the payment page automatically", body);
         Assert.DoesNotContain("application, which usually takes a day or two", body);
+    }
+
+    [Fact]
+    public void SubmissionConfirmationBody_ExplainsUnavailableResultUploadPaymentPage()
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, false, null, true]);
+
+        Assert.NotNull(body);
+        Assert.Contains("result upload and proof", body);
+        Assert.Contains("Your upload also has a payment step, but we could not create the payment page automatically.", body);
+        Assert.DoesNotContain("If you were not redirected automatically", body);
+        Assert.DoesNotContain("https://pay.example.test/invoice", body);
     }
 
     [Fact]
@@ -625,7 +640,7 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Athlete Ada", false, true, null]);
+        var body = (string?)method!.Invoke(null, ["Athlete Ada", false, true, null, true]);
 
         Assert.NotNull(body);
         Assert.Contains("Hi Athlete Ada,", body);
@@ -633,6 +648,7 @@ public sealed class ApplicationControllerValidationTests
         Assert.Contains("update your athlete profile", body);
         Assert.DoesNotContain("result upload and proof", body);
         Assert.DoesNotContain("application, which usually takes a day or two", body);
+        Assert.DoesNotContain("could not create the payment page automatically", body);
     }
 
     [Fact]
@@ -640,12 +656,25 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, false, null]);
+        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, false, null, false]);
 
         Assert.NotNull(body);
         Assert.Contains("Hi Applicant Ada,", body);
         Assert.Contains("application, which usually takes a day or two", body);
         Assert.DoesNotContain("result upload and proof", body);
+    }
+
+    [Fact]
+    public void SubmissionConfirmationBody_ExplainsUnavailableApplicationPaymentPage()
+    {
+        var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, false, null, true]);
+
+        Assert.NotNull(body);
+        Assert.Contains("application, which usually takes a day or two", body);
+        Assert.Contains("Your application also has a payment step, but we could not create the payment page automatically.", body);
+        Assert.DoesNotContain("If you were not redirected automatically", body);
     }
 
     [Fact]
@@ -686,6 +715,7 @@ public sealed class ApplicationControllerValidationTests
         Assert.Contains("invoiceId: null", failureBody);
         Assert.Contains("checkoutLink: null", failureBody);
         Assert.Contains("await TrySendSubmissionConfirmationEmailAsync(", failureBody);
+        Assert.Contains("paymentUnavailable: true", failureBody);
         Assert.Contains("return Ok(new", failureBody);
         Assert.Contains("paymentUnavailable = true", failureBody);
         Assert.DoesNotContain("return StatusCode(500, $\"Application sent, but failed to create BTCPay invoice:", failureBody);
