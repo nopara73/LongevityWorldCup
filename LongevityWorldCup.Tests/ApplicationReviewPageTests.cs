@@ -27,6 +27,10 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("window[storageName].removeItem(key);", script);
         Assert.Contains("function normalizeReviewSource(value)", script);
         Assert.Contains("return value === \"proof-upload\" || value === \"edit-profile\" ? value : null;", script);
+        Assert.Contains("function normalizePaymentSubmissionType(value)", script);
+        Assert.Contains("return value === \"application\" || value === \"result\" || value === \"edit\" ? value : null;", script);
+        Assert.Contains("function normalizeOptionalString(value)", script);
+        Assert.Contains("return typeof value === \"string\" && value.trim() ? value.trim() : null;", script);
         Assert.Contains("function normalizeSubmissionTypeReviewSource(value)", script);
         Assert.Contains("if (value === \"result\") return \"proof-upload\";", script);
         Assert.Contains("if (value === \"edit\") return \"edit-profile\";", script);
@@ -70,7 +74,8 @@ public sealed class ApplicationReviewPageTests
         Assert.DoesNotContain("} catch (_) {", pendingReadBody);
         Assert.Contains("const contactEmail = readStoredContactEmail();", script);
         Assert.Contains("accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null", script);
-        Assert.Contains("submissionType: pending.submissionType || null", script);
+        Assert.Contains("applicantName: normalizeOptionalString(pending.applicantName)", script);
+        Assert.Contains("submissionType: normalizePaymentSubmissionType(pending.submissionType)", script);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", script);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", script);
         Assert.DoesNotContain("sessionStorage.getItem(", script);
@@ -116,5 +121,7 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("? 'the email address you provided'", script);
         Assert.Contains(": 'the email address you provided with your application';", script);
         Assert.Contains("accountEmail: normalizeContactEmail(pending.accountEmail) || contactEmail || null", script);
+        Assert.Contains("applicantName: normalizeOptionalString(pending.applicantName)", script);
+        Assert.Contains("submissionType: normalizePaymentSubmissionType(pending.submissionType)", script);
     }
 }
