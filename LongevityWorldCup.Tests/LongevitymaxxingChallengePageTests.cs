@@ -141,7 +141,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("<label for=\"lmxSignupName\">Username</label>", html);
         Assert.DoesNotContain("<label for=\"lmxEditName\">Username</label>", html);
         Assert.Contains("id=\"lmxProfileIdentity\"", html);
-        Assert.Contains("autocomplete=\"username\"", html);
+        Assert.Contains("<input id=\"lmxSignupName\" name=\"displayName\" autocomplete=\"username\" autocapitalize=\"none\" spellcheck=\"false\" required maxlength=\"80\">", html);
         Assert.Contains("Are you already a Longevity World Cup athlete?", html);
         Assert.Contains("name=\"lmxSignupIdentity\" value=\"participant\" checked", html);
         Assert.Contains("name=\"lmxSignupIdentity\" value=\"athlete\"", html);
@@ -212,7 +212,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("LWC athlete profile <span>optional</span>", html);
         Assert.Contains("lmx-athlete-selector", html);
         Assert.Contains("lmx-athlete-picker", html);
-        Assert.Contains("Search athlete name", html);
+        Assert.Contains("<input id=\"lmxSignupAthlete\" name=\"athleteLink\" autocomplete=\"off\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"Search athlete name\">", html);
         Assert.Contains("lmxSignupAthleteClear", html);
         Assert.DoesNotContain("lmxEditAthleteSelected", html);
         Assert.DoesNotContain("Choose this only if the participant is already listed as a Longevity athlete.", html);
