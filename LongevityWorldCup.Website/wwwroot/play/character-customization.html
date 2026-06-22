@@ -426,7 +426,7 @@
             }
         }
 
-        function setPendingPaymentOffer(offer) {
+        function setPendingPaymentOffer(offer, retryButton) {
             let effectiveOffer = offer;
             try {
                 effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
@@ -435,7 +435,8 @@
                         ? window.applyFreePassToPaymentOffer(offer)
                         : offer;
             } catch (_) {
-                customAlert('Payment details could not be saved. Enable browser storage and try again.');
+                customAlert('Payment details could not be saved. Enable browser storage and try again.')
+                    .then(() => retryButton?.focus());
                 return false;
             }
 
@@ -444,7 +445,8 @@
                 return true;
             }
 
-            customAlert('Payment details could not be saved. Enable browser storage and try again.');
+            customAlert('Payment details could not be saved. Enable browser storage and try again.')
+                .then(() => retryButton?.focus());
             return false;
         }
 
@@ -492,7 +494,7 @@
                     button.className = className;
                     button.innerHTML = label;
                     button.addEventListener('click', () => {
-                        if (typeof beforeNavigate === 'function' && beforeNavigate() === false) return;
+                        if (typeof beforeNavigate === 'function' && beforeNavigate(button) === false) return;
                         window.location.href = href;
                     });
                     return button;
@@ -553,7 +555,7 @@
                             : '<span class="dashboard-action-label">Go pro for</span><i class="fas fa-bolt"></i>',
                         'option-button green',
                         '/bortz-age?update=1',
-                        () => {
+                        button => {
                             const amountUsd =
                                 goProDiscountResult && Number.isFinite(goProDiscountResult.finalPriceUsd)
                                     ? goProDiscountResult.finalPriceUsd
@@ -564,7 +566,7 @@
                                 currency: 'USD',
                                 amountUsd
                             }, goProDiscountResult);
-                            return setPendingPaymentOffer(paymentOffer);
+                            return setPendingPaymentOffer(paymentOffer, button);
                         }
                     );
                     optionsContainer.insertBefore(submitButton, backButton);

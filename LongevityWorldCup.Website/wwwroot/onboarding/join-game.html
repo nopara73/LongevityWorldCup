@@ -665,7 +665,7 @@
             <div class="card-cta">
               <button
                 class="option-button grey"
-                onclick="startAmateurApplication()"
+                onclick="startAmateurApplication(this)"
               >
                 Start amateur
               </button>
@@ -803,7 +803,7 @@
               <button
                 id="goProJoinButton"
                 class="option-button green"
-                onclick="startProApplication()"
+                onclick="startProApplication(this)"
               >
                 Go pro
               </button>
@@ -879,7 +879,7 @@
           && paymentOffer.amountUsd >= 0;
       }
 
-      function setPendingPaymentOffer(offer) {
+      function setPendingPaymentOffer(offer, retryButton) {
         let effectiveOffer = offer;
         try {
           effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
@@ -888,7 +888,8 @@
               ? window.applyFreePassToPaymentOffer(offer)
               : offer;
         } catch (_) {
-          customAlert('Payment details could not be saved. Enable browser storage and try again.');
+          customAlert('Payment details could not be saved. Enable browser storage and try again.')
+            .then(() => retryButton?.focus());
           return false;
         }
 
@@ -897,7 +898,8 @@
           return true;
         }
 
-        customAlert('Payment details could not be saved. Enable browser storage and try again.');
+        customAlert('Payment details could not be saved. Enable browser storage and try again.')
+          .then(() => retryButton?.focus());
         return false;
       }
 
@@ -924,18 +926,18 @@
         }
       }
 
-      function startAmateurApplication() {
+      function startAmateurApplication(retryButton) {
         const stored = setPendingPaymentOffer({
           source: "join-game",
           offerType: "amateur",
           currency: "USD",
           amountUsd: 10
-        });
+        }, retryButton);
         if (!stored) return;
         window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;
       }
 
-      function startProApplication() {
+      function startProApplication(retryButton) {
         const result = window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === "function"
           ? window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false })
           : null;
@@ -946,7 +948,7 @@
           currency: "USD",
           amountUsd
         }, result);
-        if (!setPendingPaymentOffer(paymentOffer)) return;
+        if (!setPendingPaymentOffer(paymentOffer, retryButton)) return;
         window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;
       }
 
