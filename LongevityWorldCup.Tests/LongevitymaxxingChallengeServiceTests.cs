@@ -1497,7 +1497,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task CommitmentTriggersOnFourthScoredCheckInUsingExactAverageAndKeepsAmountPrivate()
+    public async Task CommitmentAllowsPledgeSlipBufferAndKeepsAmountPrivate()
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await fixture.ConfirmParticipantAsync("commitment-trigger@example.com", "Trigger Tess");
@@ -1506,13 +1506,24 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var beforeTrigger = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-12T09:00:00Z"));
         Assert.Equal("clear", beforeTrigger.Commitment.Status);
 
+        var allowedSlip = fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access,
+            5,
+            0,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-13T07:55:00Z"));
+        Assert.Equal("clear", allowedSlip.Commitment.Status);
+        Assert.Null(allowedSlip.Public.Leaderboard.Single().CommitmentStatus);
+
         var due = SubmitCommitmentTriggerMiss(fixture, access);
 
         Assert.Equal("due", due.Commitment.Status);
         Assert.True(due.Commitment.BlocksParticipant);
         Assert.Equal(25m, due.Commitment.OwedAmountUsd);
         Assert.Equal(5, due.Commitment.TriggerChallengeDay);
-        Assert.Equal(8, due.Commitment.TriggerScore);
+        Assert.Equal(6, due.Commitment.TriggerScore);
         Assert.True(due.Commitment.ThresholdAverage is > 8m and < 9m);
 
         var row = Assert.Single(due.Public.Leaderboard);
@@ -1595,8 +1606,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.True(state.TrendGuidance.Enforced);
         Assert.Equal(3, state.TrendGuidance.PriorScoredDays);
-        Assert.Contains("Next scored day: need at least", state.TrendGuidance.Text);
-        Assert.Contains("you can miss one whole habit or two somewhat", state.TrendGuidance.Text);
+        Assert.Equal("Pledge allowance: you can miss one whole habit or mark two habits somewhat.", state.TrendGuidance.Text);
     }
 
     [Fact]
@@ -1655,7 +1665,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var cleared = fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
             access,
             5,
-            2,
+            0,
             2,
             2,
             2,
@@ -1813,14 +1823,14 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.True(editableReminder.IsCommitmentPaymentReminder);
         Assert.Equal(5, editableReminder.CommitmentTriggerChallengeDay);
         Assert.Equal(25m, editableReminder.CommitmentOwedAmountUsd);
-        Assert.Equal(8, editableReminder.CommitmentTriggerScore);
+        Assert.Equal(6, editableReminder.CommitmentTriggerScore);
         Assert.True(editableReminder.CommitmentThresholdAverage is > 8m and < 9m);
         var emailContent = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
             editableReminder,
             "https://example.test/check-in",
             "https://example.test/stop");
         Assert.Equal("Longevitymaxxing commitment due", emailContent.Subject);
-        Assert.Contains("Day 5 scored 8 points.", emailContent.TextBody);
+        Assert.Contains("Day 5 scored 6 points.", emailContent.TextBody);
         Assert.Contains("Your recent average was", emailContent.TextBody);
         Assert.Contains("so the commitment is due: USD 25.", emailContent.TextBody);
         Assert.Contains("You can either pay the locked amount, or edit Day 5 while it is still eligible.", emailContent.TextBody);
@@ -1930,8 +1940,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
         => fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
             accessToken,
             5,
+            0,
             1,
-            2,
             2,
             2,
             null), DateTimeOffset.Parse("2026-06-13T08:00:00Z"));
