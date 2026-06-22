@@ -252,6 +252,13 @@
         }
 
         function readStoredContactEmail() {
+            const pendingContactEmail = normalizeContactEmail(pendingPaymentInvoice && pendingPaymentInvoice.accountEmail);
+            if (pendingContactEmail) {
+                removeSessionItem('contactEmail');
+                removeLocalItem('contactEmail');
+                return pendingContactEmail;
+            }
+
             const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));
             if (sessionContactEmail) return sessionContactEmail;
 
@@ -259,13 +266,6 @@
             if (localContactEmail) {
                 removeSessionItem('contactEmail');
                 return localContactEmail;
-            }
-
-            const pendingContactEmail = normalizeContactEmail(pendingPaymentInvoice && pendingPaymentInvoice.accountEmail);
-            if (pendingContactEmail) {
-                removeSessionItem('contactEmail');
-                removeLocalItem('contactEmail');
-                return pendingContactEmail;
             }
 
             removeSessionItem('contactEmail');
