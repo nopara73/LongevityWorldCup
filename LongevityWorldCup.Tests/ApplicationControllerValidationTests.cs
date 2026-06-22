@@ -568,6 +568,17 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public void SubmissionConfirmationRecipient_DoesNotPutApplicantNameInEmailHeader()
+    {
+        var method = typeof(ApplicationController).GetMethod("CreateSubmissionConfirmationRecipient", BindingFlags.Static | BindingFlags.NonPublic);
+
+        var recipient = Assert.IsType<MailboxAddress>(method!.Invoke(null, ["athlete@example.test"]));
+
+        Assert.Equal("athlete@example.test", recipient.Address);
+        Assert.Equal(string.Empty, recipient.Name);
+    }
+
+    [Fact]
     public void SubmissionConfirmationSubject_UsesChangeRequestCopyForEditSubmissions()
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationSubject", BindingFlags.Static | BindingFlags.NonPublic);
