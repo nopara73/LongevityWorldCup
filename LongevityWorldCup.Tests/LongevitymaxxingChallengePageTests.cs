@@ -108,6 +108,42 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
+    public async Task ChallengeSignupAthleteSelection_FocusesInvalidAthleteInput()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+
+        var selectorPayloadStart = javascript.IndexOf("getPayload() {", StringComparison.Ordinal);
+        var selectorPayloadEnd = javascript.IndexOf("getSelectedName()", selectorPayloadStart, StringComparison.Ordinal);
+        var fallbackPayloadStart = javascript.IndexOf("function getAthleteSelectorPayload(id)", StringComparison.Ordinal);
+        var fallbackPayloadEnd = javascript.IndexOf("function getRequiredAthleteSelectorPayload(id)", fallbackPayloadStart, StringComparison.Ordinal);
+        var requiredPayloadStart = fallbackPayloadEnd;
+        var requiredPayloadEnd = javascript.IndexOf("function getAthleteSelectorDisplayName(id)", requiredPayloadStart, StringComparison.Ordinal);
+
+        Assert.True(selectorPayloadStart >= 0);
+        Assert.True(selectorPayloadEnd > selectorPayloadStart);
+        Assert.True(fallbackPayloadStart >= 0);
+        Assert.True(fallbackPayloadEnd > fallbackPayloadStart);
+        Assert.True(requiredPayloadEnd > requiredPayloadStart);
+
+        var selectorPayload = javascript[selectorPayloadStart..selectorPayloadEnd];
+        var fallbackPayload = javascript[fallbackPayloadStart..fallbackPayloadEnd];
+        var requiredPayload = javascript[requiredPayloadStart..requiredPayloadEnd];
+
+        Assert.Contains("Select an athlete from the list or clear this field.", selectorPayload);
+        Assert.Contains("input.reportValidity?.();", selectorPayload);
+        Assert.Contains("input.focus();", selectorPayload);
+        Assert.Contains("Select an athlete from the list or clear this field.", fallbackPayload);
+        Assert.Contains("input.reportValidity?.();", fallbackPayload);
+        Assert.Contains("input.focus();", fallbackPayload);
+        Assert.Contains("Select your athlete profile.", requiredPayload);
+        Assert.Contains("input?.reportValidity?.();", requiredPayload);
+        Assert.Contains("input?.focus();", requiredPayload);
+    }
+
+    [Fact]
     public async Task ChallengeStandaloneButtonHelper_IgnoresDuplicateBusyButtons()
     {
         using var factory = CreateFactory();
