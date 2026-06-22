@@ -160,7 +160,13 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("if (!currentAthlete || isAthleteInputValue(currentAthlete, value)) return;", html);
         Assert.Contains("currentAthlete = null;", html);
         Assert.Contains("confirmBtn.disabled = true;", html);
+        Assert.Contains("resetAthletePreview();", html);
+        Assert.Contains("function resetAthletePreview()", html);
         Assert.Contains("document.getElementById('character-title').textContent = 'Athlete selection';", html);
+        Assert.Contains("webpSource.srcset = '../assets/content-images/headshot.webp';", html);
+        Assert.Contains("jpegSource.srcset = '../assets/content-images/headshot.jpg';", html);
+        Assert.Contains("image.alt = 'Headshot';", html);
+        Assert.Contains("document.querySelector('picture').replaceChildren(webpSource, jpegSource, image);", html);
         Assert.Contains("clearCurrentAthleteSelectionIfInputChanged(this.value);", inputBody);
     }
 }

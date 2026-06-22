@@ -383,7 +383,25 @@
 
                     currentAthlete = null;
                     confirmBtn.disabled = true;
+                    resetAthletePreview();
+                }
+
+                function resetAthletePreview() {
                     document.getElementById('character-title').textContent = 'Athlete selection';
+                    const webpSource = document.createElement('source');
+                    webpSource.srcset = '../assets/content-images/headshot.webp';
+                    webpSource.type = 'image/webp';
+
+                    const jpegSource = document.createElement('source');
+                    jpegSource.srcset = '../assets/content-images/headshot.jpg';
+                    jpegSource.type = 'image/jpeg';
+
+                    const image = document.createElement('img');
+                    image.src = '../assets/content-images/headshot.jpg';
+                    image.alt = 'Headshot';
+                    image.className = 'illustration';
+                    image.loading = 'lazy';
+                    document.querySelector('picture').replaceChildren(webpSource, jpegSource, image);
                 }
 
                 function findExactAthleteMatch(value) {
