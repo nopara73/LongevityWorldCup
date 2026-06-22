@@ -185,7 +185,9 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("window.validator && typeof window.validator.isEmail === 'function'", html);
         Assert.Contains("window.validator && typeof window.validator.isURL === 'function'", html);
         Assert.Contains("const trimmed = normalizeOptionalUrl(value);", html);
-        Assert.Contains("return /^www\\./i.test(trimmed) ? `https://${trimmed}` : trimmed;", html);
+        Assert.Contains("if (/^[a-z][a-z\\d+.-]*:/i.test(trimmed)) return trimmed;", html);
+        Assert.Contains("if (/^www\\./i.test(trimmed) || /^[^\\s/:]+\\.[^\\s/]+(?:[/?#].*)?$/i.test(trimmed))", html);
+        Assert.Contains("return `https://${trimmed}`;", html);
         Assert.Contains("input.type = 'email';", html);
         Assert.Contains("input.type = 'url';", html);
         Assert.Contains("const rawAccountEmail = accountEmailInput.value.trim();", html);
