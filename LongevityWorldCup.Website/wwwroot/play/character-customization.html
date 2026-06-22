@@ -414,11 +414,18 @@
         }
 
         function setPendingPaymentOffer(offer) {
-            const effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
-                ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
-                : window.applyFreePassToPaymentOffer
-                    ? window.applyFreePassToPaymentOffer(offer)
-                    : offer;
+            let effectiveOffer = offer;
+            try {
+                effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
+                    ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
+                    : window.applyFreePassToPaymentOffer
+                        ? window.applyFreePassToPaymentOffer(offer)
+                        : offer;
+            } catch (_) {
+                customAlert('Payment details could not be saved. Enable browser storage and try again.');
+                return false;
+            }
+
             const serializedOffer = serializePendingPaymentOffer(effectiveOffer);
             if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) {
                 return true;
