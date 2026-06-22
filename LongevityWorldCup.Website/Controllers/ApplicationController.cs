@@ -1499,6 +1499,9 @@ namespace LongevityWorldCup.Website.Controllers
             if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
                 sb.AppendLine($"Bortz age difference: {chronoBortzDifference.Trim()}");
 
+            if (!string.IsNullOrWhiteSpace(accountEmail))
+                sb.AppendLine("Reply to this email to contact the requester.");
+
             sb.AppendLine();
         }
 
