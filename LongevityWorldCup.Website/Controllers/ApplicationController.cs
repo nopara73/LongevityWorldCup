@@ -934,12 +934,12 @@ namespace LongevityWorldCup.Website.Controllers
                 if (subscribeError != null
                     && !subscribeError.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogWarning("Failed to subscribe interview request email {Email}: {Error}", email, subscribeError);
+                    _logger.LogWarning("Failed to subscribe interview request email: {Error}", subscribeError);
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogWarning(ex, "Failed to subscribe interview request email {Email}", email);
+                _logger.LogWarning(ex, "Failed to subscribe interview request email.");
             }
 
             try
@@ -949,7 +949,7 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "Failed to send interview request email for {Email}", email);
+                _logger.LogError(ex, "Failed to send interview request email.");
                 return StatusCode(500, "Failed to send interview request.");
             }
         }
