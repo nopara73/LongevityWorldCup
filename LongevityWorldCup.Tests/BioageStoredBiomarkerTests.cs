@@ -126,6 +126,23 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BioagePages_IgnoreBlankStoredBiomarkerValuesWhenSeedingTouchedFields(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("function hasStoredFiniteBiomarkerValue(value)", html);
+        Assert.Contains("if (value === null || value === undefined || typeof value === 'boolean') return false;", html);
+        Assert.Contains("if (typeof value === 'number') return Number.isFinite(value);", html);
+        Assert.Contains("const trimmed = value.trim();", html);
+        Assert.Contains("return trimmed !== '' && Number.isFinite(Number(trimmed));", html);
+        Assert.Contains("if (hasStoredFiniteBiomarkerValue", html);
+        Assert.DoesNotContain("latest[prop] != null && !isNaN(latest[prop])", html);
+        Assert.DoesNotContain("val != null && !isNaN(val)", html);
+    }
+
+    [Theory]
     [InlineData("pheno-age.html", "if (touchedBiomarkers.size < 9)", "customAlert('😱 Need to submit all 9 biomarkers!');")]
     [InlineData("bortz-age.html", "if (touchedBiomarkers.size < requiredCount)", "customAlert(`😱 Need to submit all ${requiredCount} biomarkers!`);")]
     public void BioageUpdateCalculations_AllowPartialBiomarkerUpdates(string fileName, string oldGuard, string oldAlert)
