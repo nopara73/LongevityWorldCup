@@ -237,7 +237,11 @@ public sealed class EditProfilePageTests
         Assert.Contains("|| normalizeContactEmail(athlete && athlete.MediaContact)", html);
         Assert.Contains("|| normalizeContactEmail(originalAthlete && originalAthlete.MediaContact)", html);
         Assert.Contains("function readStoredContactEmail()", html);
-        Assert.Contains("const contactEmail = normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));", html);
+        Assert.Contains("const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));", html);
+        Assert.Contains("if (sessionContactEmail) return sessionContactEmail;", html);
+        Assert.Contains("const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));", html);
+        Assert.Contains("if (localContactEmail)", html);
+        Assert.Contains("return localContactEmail;", html);
         Assert.Contains("removeSessionItem('contactEmail');", html);
         Assert.Contains("removeLocalItem('contactEmail');", html);
         Assert.Contains("|| readStoredContactEmail();", html);
