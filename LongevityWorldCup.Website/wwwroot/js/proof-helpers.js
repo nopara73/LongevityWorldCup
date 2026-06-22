@@ -169,13 +169,6 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
         showLoading();
         try {
-            // Limit the total number of selected files before processing. PDFs may still stop
-            // at the image cap below if they contain multiple pages.
-            if (proofPics.length + selectedFiles.length > 9) {
-                customAlert('You can upload a maximum of 9 images.');
-                return;
-            }
-
             // helper to read a File as dataURL
             const readDataURL = file => new Promise((res, rej) => {
                 const r = new FileReader();
