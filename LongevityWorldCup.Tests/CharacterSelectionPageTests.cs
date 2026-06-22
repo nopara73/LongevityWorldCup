@@ -16,12 +16,14 @@ public sealed class CharacterSelectionPageTests
         Assert.DoesNotContain("onclick=\"window.location.href='/dashboard'\"", html);
         Assert.Contains("if (!currentAthlete || !currentAthlete.Name) return;", html);
         Assert.Contains("const prevName = getLocalItem('selectedAthleteName');", html);
+        Assert.Contains("if (!isAthleteInputValue(currentAthlete, prevName))", html);
         Assert.Contains("if (!setRequiredSessionItem('selectedAthlete', JSON.stringify(currentAthlete)))", html);
         Assert.Contains("removeSessionItem('contactEmail');", html);
         Assert.Contains("removeLocalItem('contactEmail');", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("setLocalItem('selectedAthleteName', currentAthlete.Name);", html);
         Assert.Contains("window.location.href = '/dashboard';", html);
+        Assert.DoesNotContain("prevName !== currentAthlete.Name", html);
     }
 
     [Fact]
