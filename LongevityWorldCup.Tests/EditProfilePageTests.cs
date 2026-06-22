@@ -407,6 +407,7 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
 
+        Assert.Contains("id=\"personalLinkInput\"\n                       name=\"personalLink\"\n                       inputmode=\"url\"\n                       autocomplete=\"url\"\n                       placeholder=\"yourwebsite.com\"", html);
         Assert.Contains("id=\"flagDisplayInput\"\n                       name=\"flagDisplay\"\n                       required\n                       aria-required=\"true\"\n                       minlength=\"3\"\n                       maxlength=\"100\"", html);
         Assert.Contains("id=\"mediaContactInput\"\n                       name=\"mediaContact\"\n                       required\n                       aria-required=\"true\"", html);
         Assert.Contains("<textarea id=\"whyDisplayInput\"\n                          name=\"whyDisplay\"\n                          rows=\"3\"\n                          required\n                          aria-required=\"true\"", html);
