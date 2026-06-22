@@ -276,9 +276,9 @@ public sealed class ApplicationOnboardingPageTests
         Assert.True(submitStart > finalValidationStart);
 
         var validationBody = html[finalValidationStart..submitStart];
-        var missingEmailAlert = validationBody.IndexOf("customAlert('Please enter your email.');", StringComparison.Ordinal);
-        var invalidEmailAlert = validationBody.IndexOf("customAlert('Please enter a valid email address.');", StringComparison.Ordinal);
-        var invalidUrlAlert = validationBody.IndexOf("customAlert('Please enter a valid URL for your personal link.');", StringComparison.Ordinal);
+        var missingEmailAlert = validationBody.IndexOf("customAlert('Please enter your email.').then(() => accountEmailInput.focus());", StringComparison.Ordinal);
+        var invalidEmailAlert = validationBody.IndexOf("customAlert('Please enter a valid email address.').then(() => accountEmailInput.focus());", StringComparison.Ordinal);
+        var invalidUrlAlert = validationBody.IndexOf("customAlert('Please enter a valid URL for your personal link.').then(() => personalLinkInput.focus());", StringComparison.Ordinal);
         var missingEmailReturn = validationBody.IndexOf("return;", missingEmailAlert, StringComparison.Ordinal);
         var invalidEmailReturn = validationBody.IndexOf("return;", invalidEmailAlert, StringComparison.Ordinal);
         var invalidUrlReturn = validationBody.IndexOf("return;", invalidUrlAlert, StringComparison.Ordinal);

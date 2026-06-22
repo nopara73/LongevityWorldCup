@@ -1753,15 +1753,15 @@
                 const personalLink = normalizeOptionalUrl(personalLinkInput.value);
 
                 if (!rawAccountEmail) {
-                    customAlert('Please enter your email.');
+                    customAlert('Please enter your email.').then(() => accountEmailInput.focus());
                     return;
                 } else if (!accountEmail) {
-                    customAlert('Please enter a valid email address.');
+                    customAlert('Please enter a valid email address.').then(() => accountEmailInput.focus());
                     return;
                 }
 
                 if (!isOptionalUrl(personalLink)) {
-                    customAlert('Please enter a valid URL for your personal link.');
+                    customAlert('Please enter a valid URL for your personal link.').then(() => personalLinkInput.focus());
                     return;
                 }
 
