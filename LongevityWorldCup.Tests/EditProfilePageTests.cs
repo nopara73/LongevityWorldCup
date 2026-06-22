@@ -114,7 +114,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("const file = input.files[0];", selectionBody);
         Assert.Contains("input.value = '';", selectionBody);
         Assert.Contains("reader.onerror = () =>", selectionBody);
-        Assert.Contains("customAlert('Profile picture upload failed.');", selectionBody);
+        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.');", selectionBody);
     }
 
     [Fact]
@@ -174,6 +174,14 @@ public sealed class EditProfilePageTests
         Assert.Contains("window.changeProfileCropper = null;", loadBody);
         Assert.Contains("cropperImage.src = evt.target.result;", loadBody);
         Assert.Contains("window.changeProfileCropper = new Cropper(cropperImage,", loadBody);
+        Assert.Contains("const modalOverlay = document.getElementById('modalOverlay');", loadBody);
+        Assert.Contains("modalOverlay.style.display = 'block';", loadBody);
+        Assert.Contains("} catch (_) {", loadBody);
+        Assert.Contains("try { window.changeProfileCropper.destroy(); } catch (_) { }", loadBody);
+        Assert.Contains("cropperModal.style.display = 'none';", loadBody);
+        Assert.Contains("modalOverlay.style.display = 'none';", loadBody);
+        Assert.Contains("document.body.classList.remove('no-scroll');", loadBody);
+        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.');", loadBody);
         Assert.Contains("let isChangeProfileCropProcessing = false;", html);
         Assert.Contains("const activeCropper = window.changeProfileCropper;", cropBody);
         Assert.Contains("if (isChangeProfileCropProcessing || !activeCropper) return;", cropBody);
