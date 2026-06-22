@@ -513,8 +513,14 @@
         }
 
         function readStoredContactEmail() {
-            const contactEmail = normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));
-            if (contactEmail) return contactEmail;
+            const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));
+            if (sessionContactEmail) return sessionContactEmail;
+
+            const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));
+            if (localContactEmail) {
+                removeSessionItem('contactEmail');
+                return localContactEmail;
+            }
 
             removeSessionItem('contactEmail');
             removeLocalItem('contactEmail');
