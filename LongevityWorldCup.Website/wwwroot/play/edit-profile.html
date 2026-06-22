@@ -928,7 +928,7 @@
                             });
                         } else {
                             return window.readApplicationErrorMessage(response).then(txt => {
-                                window.sendApplicationSubmissionReport(
+                                void window.sendApplicationSubmissionReport(
                                     window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                         type: `HTTP ${response.status}`,
                                         message: txt
@@ -941,7 +941,7 @@
                     .catch(err => {
                         hideLoading();
                         if (typeof err !== 'string') {
-                            window.sendApplicationSubmissionReport(
+                            void window.sendApplicationSubmissionReport(
                                 window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                     type: err && err.name || 'Error',
                                     message: err && err.message || String(err)

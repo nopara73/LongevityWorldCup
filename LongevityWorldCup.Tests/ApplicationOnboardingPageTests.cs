@@ -73,6 +73,33 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task FailedSubmissionReports_DoNotDelayRetryUi()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        foreach (var path in new[]
+        {
+            "/onboarding/convergence.html",
+            "/play/proof-upload.html",
+            "/play/edit-profile.html"
+        })
+        {
+            var html = await client.GetStringAsync(path);
+
+            var guardedFailedReports = Regex.Matches(
+                html,
+                @"void window\.sendApplicationSubmissionReport\(\s*window\.buildApplicationSubmissionReport\(applicantData, submissionId, 'failed'");
+            var unguardedFailedReports = Regex.Matches(
+                html,
+                @"(?<!void )window\.sendApplicationSubmissionReport\(\s*window\.buildApplicationSubmissionReport\(applicantData, submissionId, 'failed'");
+
+            Assert.Equal(2, guardedFailedReports.Count);
+            Assert.Empty(unguardedFailedReports);
+        }
+    }
+
+    [Fact]
     public async Task ApplicationFailures_UseReadableErrorExtractor()
     {
         using var factory = new TestWebApplicationFactory();

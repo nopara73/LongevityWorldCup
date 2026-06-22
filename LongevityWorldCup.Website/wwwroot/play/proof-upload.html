@@ -802,7 +802,7 @@
                             });
                         } else {
                             window.readApplicationErrorMessage(response).then(badResponse => {
-                                window.sendApplicationSubmissionReport(
+                                void window.sendApplicationSubmissionReport(
                                     window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                         type: `HTTP ${response.status}`,
                                         message: badResponse
@@ -821,7 +821,7 @@
                     .catch(error => {
                         hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
-                        window.sendApplicationSubmissionReport(
+                        void window.sendApplicationSubmissionReport(
                             window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                 type: error && error.name || 'Error',
                                 message: displayError
