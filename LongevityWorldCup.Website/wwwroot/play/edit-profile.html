@@ -457,6 +457,10 @@
                 <input type="text"
                        id="flagDisplayInput"
                        name="flagDisplay"
+                       required
+                       aria-required="true"
+                       minlength="3"
+                       maxlength="100"
                        autocomplete="off"
                        placeholder="Type or select a flag…">
                 <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag">
@@ -478,6 +482,8 @@
                 <input type="text"
                        id="mediaContactInput"
                        name="mediaContact"
+                       required
+                       aria-required="true"
                        autocomplete="off"
                        placeholder="Enter media contact…">
                 <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact">
@@ -488,6 +494,8 @@
                 <textarea id="whyDisplayInput"
                           name="whyDisplay"
                           rows="3"
+                          required
+                          aria-required="true"
                           placeholder="What drives you?"></textarea>
 
                 <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why">
