@@ -94,13 +94,20 @@ public sealed class ApplicationReviewPageTests
         var script = html[scriptStart..scriptEnd];
 
         Assert.Contains("function normalizeContactEmail(value)", script);
+        Assert.Contains("if (typeof value !== 'string') return null;", script);
         Assert.Contains("let contactEmail = (value || '').trim();", script);
         Assert.Contains("contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();", script);
         Assert.Contains("emailInput.type = 'email';", script);
         Assert.Contains("return emailInput.checkValidity() ? contactEmail : null;", script);
         Assert.Contains("function readStoredContactEmail()", script);
-        Assert.Contains("normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'))", script);
+        Assert.Contains("const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));", script);
+        Assert.Contains("if (sessionContactEmail) return sessionContactEmail;", script);
+        Assert.Contains("const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));", script);
+        Assert.Contains("if (localContactEmail)", script);
+        Assert.Contains("return localContactEmail;", script);
         Assert.Contains("normalizeContactEmail(pendingPaymentInvoice && pendingPaymentInvoice.accountEmail)", script);
+        Assert.Contains("if (pendingContactEmail)", script);
+        Assert.Contains("return pendingContactEmail;", script);
         Assert.Contains("removeSessionItem('contactEmail');", script);
         Assert.Contains("removeLocalItem('contactEmail');", script);
         Assert.Contains("? 'the email address you provided'", script);

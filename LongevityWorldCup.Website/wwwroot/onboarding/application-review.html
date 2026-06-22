@@ -206,6 +206,7 @@
         function removeLocalItem(key) { removeStorageItem('localStorage', key); }
 
         function normalizeContactEmail(value) {
+            if (typeof value !== 'string') return null;
             let contactEmail = (value || '').trim();
             if (!contactEmail) return null;
             if (/^mailto:/i.test(contactEmail)) {
@@ -242,11 +243,21 @@
         }
 
         function readStoredContactEmail() {
-            const storedContactEmail = normalizeContactEmail(getSessionItem('contactEmail') || getLocalItem('contactEmail'));
-            if (storedContactEmail) return storedContactEmail;
+            const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));
+            if (sessionContactEmail) return sessionContactEmail;
+
+            const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));
+            if (localContactEmail) {
+                removeSessionItem('contactEmail');
+                return localContactEmail;
+            }
 
             const pendingContactEmail = normalizeContactEmail(pendingPaymentInvoice && pendingPaymentInvoice.accountEmail);
-            if (pendingContactEmail) return pendingContactEmail;
+            if (pendingContactEmail) {
+                removeSessionItem('contactEmail');
+                removeLocalItem('contactEmail');
+                return pendingContactEmail;
+            }
 
             removeSessionItem('contactEmail');
             removeLocalItem('contactEmail');
