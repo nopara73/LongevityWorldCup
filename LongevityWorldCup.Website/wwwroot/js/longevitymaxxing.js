@@ -219,21 +219,26 @@
         const resendForm = document.getElementById("lmxResendForm");
         const editForm = document.getElementById("lmxEditForm");
         const signupAgain = document.getElementById("lmxSignupAgain");
+        const signupEmailInput = document.getElementById("lmxSignupEmail");
+        const resendEmailInput = document.getElementById("lmxResendEmail");
         const profilePictureInput = document.getElementById("lmxProfilePictureInput");
         const profilePictureButton = document.getElementById("lmxProfilePictureButton");
         const editTimeZone = document.getElementById("lmxEditTimeZone");
         const inactiveToggle = document.getElementById("lmxInactiveToggle");
+        wireEmailValidityReset(signupEmailInput);
+        wireEmailValidityReset(resendEmailInput);
         wireCommitmentAmountValidation("lmxSignupCommitmentAmount");
         wireCommitmentAmountValidation("lmxEditCommitmentAmount");
 
         signupForm.addEventListener("submit", async event => {
             event.preventDefault();
             accessTab = "signup";
+            const signupEmail = validateEmailInput(signupEmailInput);
+            if (!signupEmail) return;
 
             await withButton(signupForm.querySelector("button[type='submit']"), async () => {
-                const signupEmailInput = document.getElementById("lmxSignupEmail");
                 const payload = {
-                    email: normalizeEmailInput(signupEmailInput),
+                    email: signupEmail,
                     displayName: getIdentityDisplayName("signup"),
                     timeZoneId: document.getElementById("lmxSignupTimeZone").value,
                     athleteLink: getIdentityAthletePayload("signup"),
@@ -260,10 +265,12 @@
 
         resendForm.addEventListener("submit", async event => {
             event.preventDefault();
+            const resendEmail = validateEmailInput(resendEmailInput);
+            if (!resendEmail) return;
+
             await withButton(resendForm.querySelector("button[type='submit']"), async () => {
-                const resendEmailInput = document.getElementById("lmxResendEmail");
                 await postJson(`${API}/resend`, {
-                    email: normalizeEmailInput(resendEmailInput)
+                    email: resendEmail
                 });
                 setStatus("lmxResendStatus", "Check your email for your private check-in link.", false);
             }, "Sending...");
@@ -393,6 +400,31 @@
         const normalized = normalizeEmailValue(input?.value || "");
         if (input) input.value = normalized;
         return normalized;
+    }
+
+    function validateEmailInput(input) {
+        const normalized = normalizeEmailInput(input);
+        if (!input) return normalized;
+
+        input.setCustomValidity("");
+        if (!normalized) return normalized;
+        if (isEmailAddress(normalized)) return normalized;
+
+        input.setCustomValidity("Enter a valid email address.");
+        input.reportValidity?.();
+        input.focus();
+        return null;
+    }
+
+    function wireEmailValidityReset(input) {
+        input?.addEventListener("input", () => input.setCustomValidity(""));
+    }
+
+    function isEmailAddress(value) {
+        const input = document.createElement("input");
+        input.type = "email";
+        input.value = String(value || "");
+        return input.checkValidity();
     }
 
     function normalizeEmailValue(value) {
