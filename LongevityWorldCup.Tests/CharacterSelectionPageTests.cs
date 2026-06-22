@@ -36,7 +36,9 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("function setLocalItem(key, value)", html);
         Assert.Contains("function removeLocalItem(key)", html);
         Assert.Contains("const saved = getLocalItem('selectedAthleteName');", html);
+        Assert.Contains("const match = athletes.find(a => isAthleteInputValue(a, saved));", html);
         Assert.Contains("setLocalItem('selectedAthleteName', currentAthlete.Name);", html);
+        Assert.DoesNotContain("const match = athletes.find(a => a.Name === saved);", html);
         Assert.DoesNotContain("const prevName = localStorage.getItem('selectedAthleteName');", html);
     }
 
