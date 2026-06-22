@@ -155,15 +155,16 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
     const handleProofFiles = async function (files, input) {
         const selectedFiles = Array.from(files || []);
-        const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));
-        if (unsupportedFiles.length > 0) {
+        if (selectedFiles.length === 0) {
             if (input) input.value = "";
-            customAlert('Proof files must be JPG, PNG, WebP, or PDF.');
             return;
         }
 
-        if (selectedFiles.length === 0) {
+        const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));
+        const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));
+        if (supportedFiles.length === 0) {
             if (input) input.value = "";
+            customAlert('Proof files must be JPG, PNG, WebP, or PDF.');
             return;
         }
 
@@ -187,7 +188,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
             };
 
             // process one by one to preserve order
-            for (const file of selectedFiles) {
+            for (const file of supportedFiles) {
                 if (isProofPdfFile(file)) {
                     const pdfLib = await ensurePdfJsReady();
                     // read file as arrayBuffer
@@ -230,6 +231,9 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                     checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                 }
+            }
+            if (unsupportedFiles.length > 0) {
+                customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.');
             }
         } catch (error) {
             customAlert(error && error.message ? error.message : 'Proof upload failed.');
