@@ -423,8 +423,11 @@ public sealed class ApplicationOnboardingPageTests
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
 
-        Assert.Contains("athletes.flatMap(athlete => [athlete.Name, athlete.DisplayName])", html);
-        Assert.Contains(".map(name => (name || '').trim())", html);
+        Assert.Contains("athletes.flatMap(getExistingAthleteNameCandidates)", html);
+        Assert.Contains("function getExistingAthleteNameCandidates(athlete)", html);
+        Assert.Contains("if (!athlete || typeof athlete !== 'object' || Array.isArray(athlete))", html);
+        Assert.Contains(".filter(name => typeof name === 'string')", html);
+        Assert.Contains(".map(name => name.trim())", html);
         Assert.Contains(".filter(Boolean)", html);
         Assert.Contains(".then(response => response.ok ? response.json() : [])", html);
         Assert.Contains("console.error('Error fetching flags:', error);", html);
@@ -470,7 +473,10 @@ public sealed class ApplicationOnboardingPageTests
 
         var fetchBody = html[fetchStart..validateStart];
 
-        Assert.Contains("athletes.flatMap(athlete => [athlete.Name, athlete.DisplayName])", fetchBody);
+        Assert.Contains("athletes.flatMap(getExistingAthleteNameCandidates)", fetchBody);
+        Assert.Contains("function getExistingAthleteNameCandidates(athlete)", html);
+        Assert.Contains("return [athlete.Name, athlete.DisplayName]", html);
+        Assert.Contains(".filter(name => typeof name === 'string')", html);
         Assert.Contains(".filter(Boolean)", fetchBody);
         Assert.Contains("const athleteNames = Array.isArray(existingAthleteNames) ? existingAthleteNames : [];", html);
         Assert.Contains("existingName.toLowerCase() === name.toLowerCase()", html);
