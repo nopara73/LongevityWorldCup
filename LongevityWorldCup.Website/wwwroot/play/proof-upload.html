@@ -492,7 +492,11 @@
         function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
 
         function isValidSelectedAthlete(value) {
-            return value && typeof value === 'object' && !Array.isArray(value) && value.Name;
+            return value
+                && typeof value === 'object'
+                && !Array.isArray(value)
+                && typeof value.Name === 'string'
+                && value.Name.trim();
         }
 
         function normalizeContactEmail(value) {

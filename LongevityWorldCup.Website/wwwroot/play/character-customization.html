@@ -345,7 +345,11 @@
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
 
         function isValidSelectedAthlete(value) {
-            return value && typeof value === 'object' && !Array.isArray(value) && value.Name;
+            return value
+                && typeof value === 'object'
+                && !Array.isArray(value)
+                && typeof value.Name === 'string'
+                && value.Name.trim();
         }
 
         let athlete = null;
