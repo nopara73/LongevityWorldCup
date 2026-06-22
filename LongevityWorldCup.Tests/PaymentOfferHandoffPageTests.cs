@@ -25,6 +25,21 @@ public sealed class PaymentOfferHandoffPageTests
     }
 
     [Fact]
+    public async Task JoinGamePricing_RendersWhenModuleReadinessRejects()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/join-game.html");
+
+        Assert.Contains("const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});", html);
+        Assert.Contains(".then(() => ensureProDiscountsLoaded())", html);
+        Assert.Contains(".catch(() => {})", html);
+        Assert.Contains(".then(() => renderProDiscountNote());", html);
+        Assert.DoesNotContain("const ready = window.modulesReady || Promise.resolve();", html);
+    }
+
+    [Fact]
     public async Task CharacterCustomizationPaymentOffer_HaltsNavigationWhenStorageFails()
     {
         using var factory = new TestWebApplicationFactory();

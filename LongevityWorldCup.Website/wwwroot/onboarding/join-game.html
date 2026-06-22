@@ -983,9 +983,10 @@
         return import("{{ASSET_PRO_DISCOUNTS_JS}}");
       }
 
-      const ready = window.modulesReady || Promise.resolve();
+      const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});
       ready
         .then(() => ensureProDiscountsLoaded())
+        .catch(() => {})
         .then(() => renderProDiscountNote());
     </script>
   </body>
