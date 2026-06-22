@@ -300,6 +300,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("if (isEditProfileSubmitting || submitButton.disabled) return;", handlerBeforeFetch);
         Assert.Contains("isEditProfileSubmitting = true;", handlerBeforeFetch);
         Assert.Contains("submitButton.disabled = true;", handlerBeforeFetch);
+        Assert.Contains("const displayError = typeof err === 'string'\n                            ? err\n                            : 'Change request could not be submitted. Please check your connection and try again.';", html);
         Assert.Contains("customAlert(`Submission failed:\\n\\n${displayError}`).then(() => {\n                            isEditProfileSubmitting = false;", html);
     }
 
