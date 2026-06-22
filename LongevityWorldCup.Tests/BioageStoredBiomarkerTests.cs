@@ -230,9 +230,11 @@ public sealed class BioageStoredBiomarkerTests
         var calculateBody = GetFunctionBody(html, "function calculateResult()", "// Add age as the first marker value");
 
         Assert.Contains("chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate", calculateBody);
-        Assert.Contains("customAlert('Date of birth could not be read. Please check it and try again.');", calculateBody);
+        Assert.Contains("const yearSelect = document.getElementById('dob-year');", calculateBody);
+        Assert.Contains("customAlert(\"Please select a year.\")\n                    .then(() => yearSelect.focus());", calculateBody);
+        Assert.Contains("customAlert('Date of birth could not be read. Please check it and try again.')\n                    .then(() => yearSelect.focus());", calculateBody);
         Assert.Contains("if (chronologicalAgeAtTimeOfTest < 0)", calculateBody);
-        Assert.Contains("customAlert('Date of birth cannot be after the blood draw date.');", calculateBody);
+        Assert.Contains("customAlert('Date of birth cannot be after the blood draw date.')\n                    .then(() => yearSelect.focus());", calculateBody);
         Assert.DoesNotContain("customAlert(error.message)", calculateBody);
         Assert.DoesNotContain("throw new Error(\"Invalid date of birth", calculateBody);
     }

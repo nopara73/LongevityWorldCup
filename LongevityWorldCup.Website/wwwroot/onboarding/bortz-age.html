@@ -2153,7 +2153,8 @@
             const markerValues = [];
 
             // Get age from separate Date of Birth inputs
-            const yearInput = document.getElementById('dob-year').value;
+            const yearSelect = document.getElementById('dob-year');
+            const yearInput = yearSelect.value;
             const monthInput = document.getElementById('dob-month').value;
             const dayInput = document.getElementById('dob-day').value;
 
@@ -2162,7 +2163,8 @@
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
             if (!year) {
-                customAlert("Please select a year.");
+                customAlert("Please select a year.")
+                    .then(() => yearSelect.focus());
                 return;
             }
 
@@ -2171,11 +2173,13 @@
             try {
                 chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
             } catch (error) {
-                customAlert('Date of birth could not be read. Please check it and try again.');
+                customAlert('Date of birth could not be read. Please check it and try again.')
+                    .then(() => yearSelect.focus());
                 return;
             }
             if (chronologicalAgeAtTimeOfTest < 0) {
-                customAlert('Date of birth cannot be after the blood draw date.');
+                customAlert('Date of birth cannot be after the blood draw date.')
+                    .then(() => yearSelect.focus());
                 return;
             }
 
