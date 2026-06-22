@@ -941,27 +941,28 @@
                             });
                         } else {
                             const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
-                            return window.readApplicationErrorMessage(response).catch(() => fallbackError).then(txt => {
+                            window.readApplicationErrorMessage(response).catch(() => fallbackError).then(txt => {
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                     type: `HTTP ${response.status}`,
                                     message: txt
                                 });
-                                return Promise.reject(txt);
+                                customAlert(`Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
+                                    isEditProfileSubmitting = false;
+                                    submitButton.disabled = false;
+                                    submitButton.innerHTML = 'Submit change request <i class="fa fa-rocket"></i>';
+                                });
                             });
                         }
                     })
-                    .catch(err => {
+                    .catch(error => {
                         hideLoading();
-                        if (typeof err !== 'string') {
-                            void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                type: err && err.name || 'Error',
-                                message: err && err.message || String(err)
-                            });
-                        }
-                        const displayError = typeof err === 'string'
-                            ? err
-                            : 'Change request could not be submitted. Please check your connection and try again.';
-                        customAlert(`Submission failed:\n\n${displayError}`).then(() => {
+                        const displayError = error && error.message ? error.message : String(error);
+                        const alertMessage = 'Change request could not be submitted. Please check your connection and try again.';
+                        void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                            type: error && error.name || 'Error',
+                            message: displayError
+                        });
+                        customAlert(alertMessage).then(() => {
                             isEditProfileSubmitting = false;
                             submitButton.disabled = false;
                             submitButton.innerHTML = 'Submit change request <i class="fa fa-rocket"></i>';

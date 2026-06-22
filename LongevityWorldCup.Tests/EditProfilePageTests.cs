@@ -40,7 +40,9 @@ public sealed class EditProfilePageTests
 
         Assert.Contains("const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';", html);
         Assert.Contains("window.readApplicationErrorMessage(response).catch(() => fallbackError).then(txt =>", html);
+        Assert.Contains("customAlert(`Failed to submit change request. Please try again later.\\n\\n${txt}`).then(() => {\n                                    isEditProfileSubmitting = false;", html);
         Assert.DoesNotContain("response.text().then(txt =>", html);
+        Assert.DoesNotContain("return Promise.reject(txt);", html);
     }
 
     [Fact]
@@ -321,8 +323,11 @@ public sealed class EditProfilePageTests
         Assert.Contains("if (isEditProfileSubmitting || submitButton.disabled) return;", handlerBeforeFetch);
         Assert.Contains("isEditProfileSubmitting = true;", handlerBeforeFetch);
         Assert.Contains("submitButton.disabled = true;", handlerBeforeFetch);
-        Assert.Contains("const displayError = typeof err === 'string'\n                            ? err\n                            : 'Change request could not be submitted. Please check your connection and try again.';", html);
-        Assert.Contains("customAlert(`Submission failed:\\n\\n${displayError}`).then(() => {\n                            isEditProfileSubmitting = false;", html);
+        Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
+        Assert.Contains("const alertMessage = 'Change request could not be submitted. Please check your connection and try again.';", html);
+        Assert.Contains("message: displayError", html);
+        Assert.Contains("customAlert(alertMessage).then(() => {\n                            isEditProfileSubmitting = false;", html);
+        Assert.DoesNotContain("customAlert(`Submission failed:\\n\\n${displayError}`)", html);
     }
 
     [Fact]
