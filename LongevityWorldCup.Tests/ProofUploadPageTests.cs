@@ -349,7 +349,7 @@ public sealed class ProofUploadPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
-        var submitStart = html.IndexOf("const applicantData = {", StringComparison.Ordinal);
+        var submitStart = html.IndexOf("const paymentOffer = readAdjustedPendingPaymentOffer();", StringComparison.Ordinal);
         var submitEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", submitStart, StringComparison.Ordinal);
 
         Assert.True(submitStart >= 0);
@@ -387,7 +387,18 @@ public sealed class ProofUploadPageTests
         Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("function clearPendingPaymentOffer()", html);
         Assert.Contains("clearPendingPaymentOffer();", html);
-        Assert.Contains("const paymentOffer = readPendingPaymentOffer();", submitBody);
+        Assert.Contains("function readAdjustedPendingPaymentOffer()", html);
+        Assert.Contains("const paymentOffer = readPendingPaymentOffer();", html);
+        Assert.Contains("if (!paymentOffer) return null;", html);
+        Assert.Contains("const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer", html);
+        Assert.Contains("if (!adjustedPaymentOffer) return null;", html);
+        Assert.Contains("if (isUsablePaymentOffer(adjustedPaymentOffer)) return adjustedPaymentOffer;", html);
+        Assert.Contains("customAlert('Payment details could not be prepared. Please try again.');", html);
+        Assert.Contains("return undefined;", html);
+        Assert.Contains("const paymentOffer = readAdjustedPendingPaymentOffer();", submitBody);
+        Assert.Contains("if (paymentOffer === undefined) return;", submitBody);
+        Assert.Contains("paymentOffer: paymentOffer", submitBody);
+        Assert.DoesNotContain("window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)", submitBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.DoesNotContain("accountEmail: readStoredContactEmail()", submitBody);
         Assert.DoesNotContain("sessionStorage.getItem('contactEmail')", submitBody);

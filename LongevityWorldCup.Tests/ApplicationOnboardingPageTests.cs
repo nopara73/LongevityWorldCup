@@ -311,7 +311,7 @@ public sealed class ApplicationOnboardingPageTests
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
         var parseStart = html.IndexOf("let biomarkerData = null;", StringComparison.Ordinal);
-        var parseEnd = html.IndexOf("let paymentOffer = readPendingPaymentOffer();", parseStart, StringComparison.Ordinal);
+        var parseEnd = html.IndexOf("const paymentOffer = readAdjustedPendingPaymentOffer();", parseStart, StringComparison.Ordinal);
 
         Assert.True(parseStart >= 0);
         Assert.True(parseEnd > parseStart);
@@ -391,8 +391,18 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("function clearPendingPaymentOffer()", html);
         Assert.Contains("clearPendingPaymentOffer();", html);
-        Assert.Contains("let paymentOffer = readPendingPaymentOffer();", collectBody);
+        Assert.Contains("function readAdjustedPendingPaymentOffer()", html);
+        Assert.Contains("const paymentOffer = readPendingPaymentOffer();", html);
+        Assert.Contains("if (!paymentOffer) return null;", html);
+        Assert.Contains("const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer", html);
+        Assert.Contains("if (!adjustedPaymentOffer) return null;", html);
+        Assert.Contains("if (isUsablePaymentOffer(adjustedPaymentOffer)) return adjustedPaymentOffer;", html);
+        Assert.Contains("customAlert('Payment details could not be prepared. Please try again.');", html);
+        Assert.Contains("return undefined;", html);
+        Assert.Contains("const paymentOffer = readAdjustedPendingPaymentOffer();", collectBody);
+        Assert.Contains("if (paymentOffer === undefined) return;", collectBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
+        Assert.DoesNotContain("window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer);", collectBody);
         Assert.DoesNotContain("sessionStorage.getItem('chronoPhenoDifference')", collectBody);
         Assert.DoesNotContain("sessionStorage.getItem('chronoBortzDifference')", collectBody);
         Assert.DoesNotContain("sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)", collectBody);
