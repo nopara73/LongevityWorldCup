@@ -108,7 +108,7 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
-    public async Task ProofHelper_RejectsUnsupportedFilesBeforeProcessing()
+    public async Task ProofHelper_RejectsAllUnsupportedFilesBeforeProcessing()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -133,11 +133,37 @@ public sealed class ProofUploadPageTests
         Assert.Contains("extension === 'webp'", javascript);
         Assert.Contains("const selectedFiles = Array.from(files || []);", beforeLoading);
         Assert.Contains("const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));", beforeLoading);
+        Assert.Contains("const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));", beforeLoading);
+        Assert.Contains("if (supportedFiles.length === 0)", beforeLoading);
         Assert.Contains("if (input) input.value = \"\";", beforeLoading);
         Assert.Contains("customAlert('Proof files must be JPG, PNG, WebP, or PDF.');", beforeLoading);
         Assert.Contains("return;", beforeLoading);
         Assert.Contains("if (isProofPdfFile(file))", javascript);
         Assert.DoesNotContain("if (file.type === 'application/pdf')", javascript);
+    }
+
+    [Fact]
+    public async Task ProofHelper_ProcessesSupportedFilesFromMixedSelection()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input)", StringComparison.Ordinal);
+        var loopStart = javascript.IndexOf("for (const file of supportedFiles)", handlerStart, StringComparison.Ordinal);
+        var catchStart = javascript.IndexOf("} catch (error)", loopStart, StringComparison.Ordinal);
+
+        Assert.True(handlerStart >= 0);
+        Assert.True(loopStart > handlerStart);
+        Assert.True(catchStart > loopStart);
+
+        var processingBody = javascript[loopStart..catchStart];
+
+        Assert.Contains("const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));", javascript);
+        Assert.Contains("for (const file of supportedFiles)", processingBody);
+        Assert.DoesNotContain("for (const file of selectedFiles)", processingBody);
+        Assert.Contains("if (unsupportedFiles.length > 0)", processingBody);
+        Assert.Contains("customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.');", processingBody);
     }
 
     [Fact]
