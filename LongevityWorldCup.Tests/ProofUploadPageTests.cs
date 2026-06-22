@@ -448,6 +448,19 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ResultUploadDisplayName_FallsBackWhenStoredDisplayNameIsNotText()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+
+        Assert.Contains("typeof athlete?.DisplayName === 'string'", html);
+        Assert.Contains("return typeof athlete?.Name === 'string' ? athlete.Name : '';", html);
+        Assert.DoesNotContain("athlete?.DisplayName && athlete.DisplayName.trim()", html);
+    }
+
+    [Fact]
     public async Task ResultUploadSuccessHandoff_UsesSafeStorageBeforeNavigation()
     {
         using var factory = new TestWebApplicationFactory();

@@ -94,11 +94,13 @@ public sealed class CharacterSelectionPageTests
 
         Assert.Contains("function getAthleteDisplayName(athlete)", html);
         Assert.Contains("return `${athlete.Name || ''} ${getAthleteDisplayName(athlete)}`.toLowerCase();", html);
+        Assert.Contains("typeof athlete.DisplayName === 'string'", html);
+        Assert.Contains("return athlete && typeof athlete.Name === 'string' ? athlete.Name : '';", html);
         Assert.Contains("if (terms.every(term => searchText.includes(term)))", html);
         Assert.Contains("const displayName = getAthleteDisplayName(a);", html);
         Assert.Contains("appendHighlightedText(item, displayName, first);", html);
         Assert.Contains("item.dataset.value = a.Name;", html);
-        Assert.Contains("const displayName = (a.DisplayName && a.DisplayName.trim()) ? a.DisplayName.trim() : a.Name;", html);
+        Assert.Contains("const displayName = getAthleteDisplayName(a);", html);
         Assert.Contains("athleteInput.value = displayName;", html);
         Assert.Contains("image.alt = `${displayName} headshot`;", html);
         Assert.Contains("document.querySelector('picture').replaceChildren(image);", html);

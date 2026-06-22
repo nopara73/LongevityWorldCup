@@ -358,14 +358,6 @@
 
                 let currentFocus = -1;
 
-                function getAthleteDisplayName(athlete) {
-                    if (athlete && athlete.DisplayName && athlete.DisplayName.trim()) {
-                        return athlete.DisplayName.trim();
-                    }
-
-                    return athlete && athlete.Name || '';
-                }
-
                 function getAthleteSearchText(athlete) {
                     return `${athlete.Name || ''} ${getAthleteDisplayName(athlete)}`.toLowerCase();
                 }
@@ -581,8 +573,16 @@
             }
         }
 
+        function getAthleteDisplayName(athlete) {
+            if (athlete && typeof athlete.DisplayName === 'string' && athlete.DisplayName.trim()) {
+                return athlete.DisplayName.trim();
+            }
+
+            return athlete && typeof athlete.Name === 'string' ? athlete.Name : '';
+        }
+
         function selectAthlete(a) {
-            const displayName = (a.DisplayName && a.DisplayName.trim()) ? a.DisplayName.trim() : a.Name;
+            const displayName = getAthleteDisplayName(a);
             athleteInput.value = displayName;
             document.getElementById('character-title').textContent = displayName;
             const image = document.createElement('img');
