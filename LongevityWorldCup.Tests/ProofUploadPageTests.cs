@@ -91,6 +91,40 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ProofHelper_DisablesProofControlsWhileProcessingSelection()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input)", StringComparison.Ordinal);
+        var finallyIndex = javascript.IndexOf("} finally {", handlerStart, StringComparison.Ordinal);
+
+        Assert.True(handlerStart >= 0);
+        Assert.True(finallyIndex > handlerStart);
+
+        var handlerBody = javascript[handlerStart..finallyIndex];
+        var finallyBody = javascript[finallyIndex..javascript.IndexOf("};", finallyIndex, StringComparison.Ordinal)];
+
+        Assert.Contains("let isProofUploadProcessing = false;", javascript);
+        Assert.Contains("if (isProofUploadProcessing) return;", javascript);
+        Assert.Contains("if (isProofUploadProcessing)", handlerBody);
+        Assert.Contains("if (input) input.value = \"\";", handlerBody);
+        Assert.Contains("isProofUploadProcessing = true;", handlerBody);
+        Assert.Contains("uploadProofButton.disabled = true;", handlerBody);
+        Assert.Contains("proofPicInput.disabled = true;", handlerBody);
+        Assert.Contains("if (cameraButton) cameraButton.disabled = true;", handlerBody);
+        Assert.Contains("if (cameraInput) cameraInput.disabled = true;", handlerBody);
+        Assert.Contains("nextButton.disabled = true;", handlerBody);
+        Assert.Contains("isProofUploadProcessing = false;", finallyBody);
+        Assert.Contains("uploadProofButton.disabled = false;", finallyBody);
+        Assert.Contains("proofPicInput.disabled = false;", finallyBody);
+        Assert.Contains("if (cameraButton) cameraButton.disabled = false;", finallyBody);
+        Assert.Contains("if (cameraInput) cameraInput.disabled = false;", finallyBody);
+        Assert.Contains("checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", finallyBody);
+    }
+
+    [Fact]
     public async Task ProofHelper_FallsBackToRawImageWhenClientOptimizationFails()
     {
         using var factory = new TestWebApplicationFactory();

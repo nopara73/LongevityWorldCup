@@ -130,6 +130,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
     nextButton.disabled = true;
     const cameraButton = options && options.cameraButton;
     const cameraInput = options && options.cameraInput;
+    let isProofUploadProcessing = false;
     const proofOptimizationOptions = {
         maxSize: 2560,
         quality: 0.88,
@@ -141,6 +142,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
     // Attach event listener to the Upload Proof button
     if (uploadProofButton && !uploadProofButton.hasAttribute('data-listener')) {
         uploadProofButton.addEventListener('click', function () {
+            if (isProofUploadProcessing) return;
             proofPicInput.click();
         });
         uploadProofButton.setAttribute('data-listener', 'true');
@@ -148,12 +150,18 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
     if (cameraButton && cameraInput && !cameraButton.hasAttribute('data-listener')) {
         cameraButton.addEventListener('click', function () {
+            if (isProofUploadProcessing) return;
             cameraInput.click();
         });
         cameraButton.setAttribute('data-listener', 'true');
     }
 
     const handleProofFiles = async function (files, input) {
+        if (isProofUploadProcessing) {
+            if (input) input.value = "";
+            return;
+        }
+
         const selectedFiles = Array.from(files || []);
         if (selectedFiles.length === 0) {
             if (input) input.value = "";
@@ -168,6 +176,12 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
             return;
         }
 
+        isProofUploadProcessing = true;
+        uploadProofButton.disabled = true;
+        proofPicInput.disabled = true;
+        if (cameraButton) cameraButton.disabled = true;
+        if (cameraInput) cameraInput.disabled = true;
+        nextButton.disabled = true;
         showLoading();
         try {
             // helper to read a File as dataURL
@@ -217,6 +231,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     }
                     updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                     checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                    nextButton.disabled = true;
                     continue;
                 }
 
@@ -230,6 +245,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     proofPics.push(dataUrl);
                     updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                     checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                    nextButton.disabled = true;
                 }
             }
             if (unsupportedFiles.length > 0) {
@@ -241,6 +257,12 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
             // Reset the file input's value to allow re-uploading the same file if needed.
             if (input) input.value = "";
             hideLoading();
+            isProofUploadProcessing = false;
+            uploadProofButton.disabled = false;
+            proofPicInput.disabled = false;
+            if (cameraButton) cameraButton.disabled = false;
+            if (cameraInput) cameraInput.disabled = false;
+            checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
         }
     };
 
