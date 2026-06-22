@@ -930,20 +930,6 @@ namespace LongevityWorldCup.Website.Controllers
 
             try
             {
-                var subscribeError = await NewsletterService.SubscribeAsync(email, _logger, _environment, ct);
-                if (subscribeError != null
-                    && !subscribeError.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogWarning("Failed to subscribe interview request email: {Error}", subscribeError);
-                }
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogWarning(ex, "Failed to subscribe interview request email.");
-            }
-
-            try
-            {
                 await SendEmailThroughSmtpAsync(config, message, ct);
                 return Ok(new { success = true });
             }
@@ -960,11 +946,12 @@ namespace LongevityWorldCup.Website.Controllers
             var message = new MimeMessage();
             message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
             message.To.Add(CreateConfiguredToAddress(config));
+            // codeql[cs/exposure-of-sensitive-information] The requester email is intentionally limited to Reply-To so admins can respond to interview requests.
             AddReplyToIfValid(message, trimmedEmail, trimmedEmail);
             message.Subject = "LWC Interview Request";
             message.Body = new BodyBuilder
             {
-                TextBody = $"Interview contact email: {trimmedEmail}"
+                TextBody = "Interview request received. Reply to this email to contact the requester."
             }.ToMessageBody();
 
             return message;

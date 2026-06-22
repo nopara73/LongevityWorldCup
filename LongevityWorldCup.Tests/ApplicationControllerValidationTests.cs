@@ -479,11 +479,12 @@ public sealed class ApplicationControllerValidationTests
         var replyTo = Assert.IsType<MailboxAddress>(message.ReplyTo[0]);
         Assert.Equal("athlete@example.test", replyTo.Address);
         Assert.Equal("athlete@example.test", replyTo.Name);
-        Assert.Contains("Interview contact email: athlete@example.test", message.TextBody);
+        Assert.Contains("Reply to this email to contact the requester.", message.TextBody);
+        Assert.DoesNotContain("athlete@example.test", message.TextBody);
     }
 
     [Fact]
-    public void InterviewRequestFailureLogs_DoNotIncludeRawEmailPlaceholders()
+    public void InterviewRequest_DoesNotPersistOrLogRawRequesterEmail()
     {
         string? sourcePath = null;
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -514,9 +515,8 @@ public sealed class ApplicationControllerValidationTests
 
         var actionBody = source[actionStart..actionEnd];
 
+        Assert.DoesNotContain("NewsletterService.SubscribeAsync(email", actionBody);
         Assert.DoesNotContain("{Email}", actionBody);
-        Assert.Contains("Failed to subscribe interview request email: {Error}", actionBody);
-        Assert.Contains("Failed to subscribe interview request email.", actionBody);
         Assert.Contains("Failed to send interview request email.", actionBody);
     }
 
