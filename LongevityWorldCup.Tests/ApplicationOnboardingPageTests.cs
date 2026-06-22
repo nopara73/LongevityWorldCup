@@ -190,6 +190,8 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("return `https://${trimmed}`;", html);
         Assert.Contains("input.type = 'email';", html);
         Assert.Contains("input.type = 'url';", html);
+        Assert.Contains("<input type=\"text\" id=\"personalLink\" name=\"personalLink\" inputmode=\"url\" autocomplete=\"url\" placeholder=\"yourwebsite.com\">", html);
+        Assert.DoesNotContain("<input type=\"url\" id=\"personalLink\"", html);
         Assert.Contains("const rawAccountEmail = accountEmailInput.value.trim();", html);
         Assert.Contains("const accountEmail = normalizeContactEmail(accountEmailInput.value);", html);
         Assert.Contains("} else if (!accountEmail) {", html);
