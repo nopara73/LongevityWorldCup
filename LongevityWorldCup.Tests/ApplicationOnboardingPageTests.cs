@@ -337,6 +337,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const fallbackDivisions = [\"Men's\", \"Women's\", \"Open\"];", html);
         Assert.Contains("function populateDivisionSelect(divisions)", html);
         Assert.Contains("const availableDivisions = Array.isArray(divisions) && divisions.length ? divisions : fallbackDivisions;", html);
+        Assert.Contains(".then(response => response.ok ? response.json() : fallbackDivisions)", html);
         Assert.Contains(".then(populateDivisionSelect)", html);
         Assert.Contains("populateDivisionSelect(fallbackDivisions);", html);
     }
@@ -367,12 +368,16 @@ public sealed class ApplicationOnboardingPageTests
         var html = await client.GetStringAsync("/onboarding/convergence.html");
         var fetchStart = html.IndexOf("athletesPromise\n                .then(athletes =>", StringComparison.Ordinal);
         var flagStart = html.IndexOf("Promise.all([", fetchStart, StringComparison.Ordinal);
+        var athletesFetchStart = html.IndexOf("const athletesPromise = fetch('/api/data/athletes')", StringComparison.Ordinal);
 
+        Assert.True(athletesFetchStart >= 0);
         Assert.True(fetchStart >= 0);
         Assert.True(flagStart > fetchStart);
 
+        var athletesFetchBody = html[athletesFetchStart..fetchStart];
         var fetchBody = html[fetchStart..flagStart];
 
+        Assert.Contains(".then(response => response.ok ? response.json() : [])", athletesFetchBody);
         Assert.Contains("existingAthleteNames = Array.isArray(athletes)", fetchBody);
         Assert.Contains("checkFormValidityStage1();", fetchBody);
     }
