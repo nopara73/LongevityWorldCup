@@ -11,6 +11,13 @@ public sealed class PaymentOfferHandoffPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/join-game.html");
+        var offerStart = html.IndexOf("function setPendingPaymentOffer(offer)", StringComparison.Ordinal);
+        var serializeStart = html.IndexOf("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", offerStart, StringComparison.Ordinal);
+
+        Assert.True(offerStart >= 0);
+        Assert.True(serializeStart > offerStart);
+
+        var offerAdjustmentBody = html[offerStart..serializeStart];
 
         Assert.Contains("function setPendingPaymentOffer(offer)", html);
         Assert.Contains("return true;", html);
@@ -24,7 +31,13 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("Number.isFinite(paymentOffer.amountUsd)", html);
         Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
-        Assert.Contains("catch (_) {", html);
+        Assert.Contains("let effectiveOffer = offer;", offerAdjustmentBody);
+        Assert.Contains("try {", offerAdjustmentBody);
+        Assert.Contains("window.applyPaymentAdjustmentsToPaymentOffer(offer)", offerAdjustmentBody);
+        Assert.Contains("window.applyFreePassToPaymentOffer(offer)", offerAdjustmentBody);
+        Assert.Contains("catch (_) {", offerAdjustmentBody);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", offerAdjustmentBody);
+        Assert.Contains("return false;", offerAdjustmentBody);
         Assert.Contains("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", html);
         Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
         Assert.Contains("return false;", html);
@@ -59,6 +72,13 @@ public sealed class PaymentOfferHandoffPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/character-customization.html");
+        var offerStart = html.IndexOf("function setPendingPaymentOffer(offer)", StringComparison.Ordinal);
+        var serializeStart = html.IndexOf("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", offerStart, StringComparison.Ordinal);
+
+        Assert.True(offerStart >= 0);
+        Assert.True(serializeStart > offerStart);
+
+        var offerAdjustmentBody = html[offerStart..serializeStart];
 
         Assert.Contains("function setPendingPaymentOffer(offer)", html);
         Assert.Contains("return true;", html);
@@ -72,7 +92,13 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("Number.isFinite(paymentOffer.amountUsd)", html);
         Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
-        Assert.Contains("catch (_) {", html);
+        Assert.Contains("let effectiveOffer = offer;", offerAdjustmentBody);
+        Assert.Contains("try {", offerAdjustmentBody);
+        Assert.Contains("window.applyPaymentAdjustmentsToPaymentOffer(offer)", offerAdjustmentBody);
+        Assert.Contains("window.applyFreePassToPaymentOffer(offer)", offerAdjustmentBody);
+        Assert.Contains("catch (_) {", offerAdjustmentBody);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", offerAdjustmentBody);
+        Assert.Contains("return false;", offerAdjustmentBody);
         Assert.Contains("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", html);
         Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
         Assert.Contains("return false;", html);
