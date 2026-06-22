@@ -1669,127 +1669,124 @@
                 }
 
                 // Final stage requires accountEmail
-                let isValid = true;
                 const accountEmailInput = document.getElementById('accountEmail');
                 const rawAccountEmail = accountEmailInput.value.trim();
                 const accountEmail = normalizeContactEmail(accountEmailInput.value);
                 const personalLink = document.getElementById('personalLink').value.trim();
 
                 if (!rawAccountEmail) {
-                    isValid = false;
                     customAlert('Please enter your email.');
+                    return;
                 } else if (!accountEmail) {
-                    isValid = false;
                     customAlert('Please enter a valid email address.');
+                    return;
                 }
 
                 if (!isOptionalUrl(personalLink)) {
-                    isValid = false;
                     customAlert('Please enter a valid URL for your personal link.');
+                    return;
                 }
 
-                if (isValid) {
-                    accountEmailInput.value = accountEmail;
+                accountEmailInput.value = accountEmail;
 
-                    // Collect all the data and send it to the backend via an API call
-                    const applicantData = collectApplicantData();
-                    if (!applicantData) return;
-                    const submissionId = window.createApplicationSubmissionId();
-                    const submissionKind = 'full-application';
-                    applicantData.submissionId = submissionId;
+                // Collect all the data and send it to the backend via an API call
+                const applicantData = collectApplicantData();
+                if (!applicantData) return;
+                const submissionId = window.createApplicationSubmissionId();
+                const submissionKind = 'full-application';
+                applicantData.submissionId = submissionId;
 
-                    // remember this athlete for next time
-                    setLocalItem('selectedAthleteName', applicantData.name);
+                // remember this athlete for next time
+                setLocalItem('selectedAthleteName', applicantData.name);
 
-                    // Disable the Apply button and change its text
-                    const applyButton = nextButton;
-                    isApplicationSubmitting = true;
-                    applyButton.disabled = true;
-                    accountEmailInput.setAttribute("disabled", "true");
-                    applyButton.textContent = 'Submitting...';
-                    showLoading();
+                // Disable the Apply button and change its text
+                const applyButton = nextButton;
+                isApplicationSubmitting = true;
+                applyButton.disabled = true;
+                accountEmailInput.setAttribute("disabled", "true");
+                applyButton.textContent = 'Submitting...';
+                showLoading();
 
-                    void window.sendApplicationSubmissionReport(
-                        window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)
-                    );
+                void window.sendApplicationSubmissionReport(
+                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)
+                );
 
-                    // Send the data via fetch POST request
-                    fetchWithTimeout('/api/application/application', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(applicantData)
-                    }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
-                        .then(response => {
-                            hideLoading();
-                            if (response.ok) {
-                                response.json().catch(() => ({})).then(submitResult => {
-                                    const nextStepMessage =
-                                        submitResult && submitResult.paymentRequired && submitResult.checkoutLink
-                                            ? 'You\'ll be redirected to the payment page'
-                                            : 'Your application was received';
-                                    customAlert(nextStepMessage).then(() => {
-                                        setSessionItem('contactEmail', applicantData.accountEmail);
-                                        setLocalItem('contactEmail', applicantData.accountEmail);
-                                        removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
-                                        // Clear the image variables
-                                        profilePic = null;
-                                        proofPics = [];
-                                        // Redirect to BTCPay invoice if required, otherwise to review.
-                                        if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
-                                            if (submitResult.invoiceId) {
-                                                const pendingInvoiceInfo = JSON.stringify({
-                                                    invoiceId: submitResult.invoiceId,
-                                                    applicantName: applicantData.name || null,
-                                                    accountEmail: applicantData.accountEmail || null,
-                                                    submissionType: 'application'
-                                                });
-                                                setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
-                                                setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
-                                            }
-                                            window.location.href = submitResult.checkoutLink;
-                                            return;
+                // Send the data via fetch POST request
+                fetchWithTimeout('/api/application/application', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(applicantData)
+                }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
+                    .then(response => {
+                        hideLoading();
+                        if (response.ok) {
+                            response.json().catch(() => ({})).then(submitResult => {
+                                const nextStepMessage =
+                                    submitResult && submitResult.paymentRequired && submitResult.checkoutLink
+                                        ? 'You\'ll be redirected to the payment page'
+                                        : 'Your application was received';
+                                customAlert(nextStepMessage).then(() => {
+                                    setSessionItem('contactEmail', applicantData.accountEmail);
+                                    setLocalItem('contactEmail', applicantData.accountEmail);
+                                    removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                    // Clear the image variables
+                                    profilePic = null;
+                                    proofPics = [];
+                                    // Redirect to BTCPay invoice if required, otherwise to review.
+                                    if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
+                                        if (submitResult.invoiceId) {
+                                            const pendingInvoiceInfo = JSON.stringify({
+                                                invoiceId: submitResult.invoiceId,
+                                                applicantName: applicantData.name || null,
+                                                accountEmail: applicantData.accountEmail || null,
+                                                submissionType: 'application'
+                                            });
+                                            setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
+                                            setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
                                         }
-                                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
-                                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
-                                        window.location.href = '/review';
-                                    });
+                                        window.location.href = submitResult.checkoutLink;
+                                        return;
+                                    }
+                                    removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                                    removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                    window.location.href = '/review';
                                 });
-                            } else {
-                                window.readApplicationErrorMessage(response).then(badResponse => {
-                                    window.sendApplicationSubmissionReport(
-                                        window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                            type: `HTTP ${response.status}`,
-                                            message: badResponse
-                                        })
-                                    );
-                                    customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
-                                        isApplicationSubmitting = false;
-                                        applyButton.disabled = false;
-                                        accountEmailInput.disabled = false;
-                                        setNextButtonToApply();
-                                    });
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            hideLoading();
-                            const displayError = error && error.message ? error.message : String(error);
-                            window.sendApplicationSubmissionReport(
-                                window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                    type: error && error.name || 'Error',
-                                    message: displayError
-                                })
-                            );
-                            customAlert(`An error occurred while submitting your application:\n\n${displayError}`).then(() => {
-                                isApplicationSubmitting = false;
-                                applyButton.disabled = false;
-                                accountEmailInput.disabled = false;
-                                setNextButtonToApply();
                             });
+                        } else {
+                            window.readApplicationErrorMessage(response).then(badResponse => {
+                                window.sendApplicationSubmissionReport(
+                                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                        type: `HTTP ${response.status}`,
+                                        message: badResponse
+                                    })
+                                );
+                                customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
+                                    isApplicationSubmitting = false;
+                                    applyButton.disabled = false;
+                                    accountEmailInput.disabled = false;
+                                    setNextButtonToApply();
+                                });
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        hideLoading();
+                        const displayError = error && error.message ? error.message : String(error);
+                        window.sendApplicationSubmissionReport(
+                            window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                type: error && error.name || 'Error',
+                                message: displayError
+                            })
+                        );
+                        customAlert(`An error occurred while submitting your application:\n\n${displayError}`).then(() => {
+                            isApplicationSubmitting = false;
+                            applyButton.disabled = false;
+                            accountEmailInput.disabled = false;
+                            setNextButtonToApply();
                         });
-                }
+                    });
             }
         });
 
