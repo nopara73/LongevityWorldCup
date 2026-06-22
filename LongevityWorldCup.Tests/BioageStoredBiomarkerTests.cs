@@ -45,15 +45,22 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("} catch (_) {", html);
         Assert.Contains("serializedPaymentOffer = null;", html);
         Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
-        Assert.Contains("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);
-        Assert.Contains("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
-        Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);", html);
+        Assert.Contains("function setSessionItem(key, value)", html);
+        Assert.Contains("serializedBiomarkerData = JSON.stringify(biomarkerData);", html);
+        Assert.Contains("setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))", html);
+        Assert.Contains("setSessionItem('biomarkerData', serializedBiomarkerData)", html);
+        Assert.Contains("setSessionItem('lwcStep', '1')", html);
+        Assert.Contains("setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer)", html);
+        Assert.DoesNotContain("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);
+        Assert.DoesNotContain("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
+        Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("if (!storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)) return;", html);
 
         var failureBody = GetStoreFailureBody(html, "function storePhenoResultForNextStep");
         Assert.Contains("clearStoredBiomarkerHandoff();", failureBody);
+        Assert.Contains("if (!isUpdate) clearPendingPaymentOffer();", failureBody);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", failureBody);
     }
 
@@ -102,8 +109,8 @@ public sealed class BioageStoredBiomarkerTests
 
         var storeBody = html[storeStart..storeEnd];
 
-        Assert.Contains("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", storeBody);
-        Assert.Contains("try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}", storeBody);
+        Assert.Contains("setSessionItem('biomarkerData', serializedBiomarkerData)", storeBody);
+        Assert.Contains("setSessionItem('lwcStep', '1')", storeBody);
     }
 
     [Theory]
@@ -313,16 +320,24 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("} catch (_) {", html);
         Assert.Contains("serializedPaymentOffer = null;", html);
         Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
-        Assert.Contains("sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));", html);
-        Assert.Contains("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);
-        Assert.Contains("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
-        Assert.Contains("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);", html);
+        Assert.Contains("function setSessionItem(key, value)", html);
+        Assert.Contains("serializedBiomarkerData = JSON.stringify(biomarkerData);", html);
+        Assert.Contains("setSessionItem('chronoBortzDifference', chronoBortzDifference.toFixed(2))", html);
+        Assert.Contains("setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))", html);
+        Assert.Contains("setSessionItem('biomarkerData', serializedBiomarkerData)", html);
+        Assert.Contains("setSessionItem('lwcStep', '1')", html);
+        Assert.Contains("setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer)", html);
+        Assert.DoesNotContain("sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));", html);
+        Assert.DoesNotContain("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);
+        Assert.DoesNotContain("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
+        Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
         Assert.Contains("if (!storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)) return;", html);
 
         var failureBody = GetStoreFailureBody(html, "function storeBortzResultForNextStep");
         Assert.Contains("clearStoredBiomarkerHandoff();", failureBody);
+        Assert.Contains("if (!isUpdate) clearPendingPaymentOffer();", failureBody);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", failureBody);
     }
 
@@ -379,16 +394,14 @@ public sealed class BioageStoredBiomarkerTests
     private static string GetStoreFailureBody(string html, string storeFunctionMarker)
     {
         var storeStart = html.IndexOf(storeFunctionMarker, StringComparison.Ordinal);
-        var successReturn = html.IndexOf("return true;", storeStart, StringComparison.Ordinal);
-        var catchStart = html.IndexOf("} catch (_) {", successReturn, StringComparison.Ordinal);
-        var returnFalse = html.IndexOf("return false;", catchStart, StringComparison.Ordinal);
+        var failureStart = html.IndexOf("if (!stored) {", storeStart, StringComparison.Ordinal);
+        var returnFalse = html.IndexOf("return false;", failureStart, StringComparison.Ordinal);
 
         Assert.True(storeStart >= 0);
-        Assert.True(successReturn > storeStart);
-        Assert.True(catchStart > successReturn);
-        Assert.True(returnFalse > catchStart);
+        Assert.True(failureStart > storeStart);
+        Assert.True(returnFalse > failureStart);
 
-        return html[catchStart..returnFalse];
+        return html[failureStart..returnFalse];
     }
 
     private static string GetFunctionBody(string html, string functionMarker, string endMarker)

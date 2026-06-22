@@ -1194,6 +1194,16 @@
             }
         }
 
+        function setBrowserStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
         function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
         function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
 
@@ -1340,21 +1350,28 @@
                 }
             }
 
+            let serializedBiomarkerData;
             try {
-                sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
-                sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
-                try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
-
-                if (serializedPaymentOffer) {
-                    sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);
-                }
-
-                return true;
+                serializedBiomarkerData = JSON.stringify(biomarkerData);
             } catch (_) {
+                serializedBiomarkerData = null;
+            }
+
+            const stored =
+                !!serializedBiomarkerData
+                && setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))
+                && setSessionItem('biomarkerData', serializedBiomarkerData)
+                && setSessionItem('lwcStep', '1')
+                && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer));
+
+            if (!stored) {
                 clearStoredBiomarkerHandoff();
+                if (!isUpdate) clearPendingPaymentOffer();
                 customAlert('Browser storage is unavailable. Enable storage and try again.');
                 return false;
             }
+
+            return true;
         }
 
         function initializePhenoLabAccessGate() {
