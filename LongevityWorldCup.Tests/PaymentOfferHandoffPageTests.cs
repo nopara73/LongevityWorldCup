@@ -11,7 +11,7 @@ public sealed class PaymentOfferHandoffPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/join-game.html");
-        var offerStart = html.IndexOf("function setPendingPaymentOffer(offer)", StringComparison.Ordinal);
+        var offerStart = html.IndexOf("function setPendingPaymentOffer(offer, retryButton)", StringComparison.Ordinal);
         var serializeStart = html.IndexOf("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", offerStart, StringComparison.Ordinal);
 
         Assert.True(offerStart >= 0);
@@ -19,7 +19,7 @@ public sealed class PaymentOfferHandoffPageTests
 
         var offerAdjustmentBody = html[offerStart..serializeStart];
 
-        Assert.Contains("function setPendingPaymentOffer(offer)", html);
+        Assert.Contains("function setPendingPaymentOffer(offer, retryButton)", html);
         Assert.Contains("return true;", html);
         Assert.Contains("function serializePendingPaymentOffer(offer)", html);
         Assert.Contains("if (!isUsablePaymentOffer(offer)) return null;", html);
@@ -36,16 +36,21 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("window.applyPaymentAdjustmentsToPaymentOffer(offer)", offerAdjustmentBody);
         Assert.Contains("window.applyFreePassToPaymentOffer(offer)", offerAdjustmentBody);
         Assert.Contains("catch (_) {", offerAdjustmentBody);
-        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", offerAdjustmentBody);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.')\n            .then(() => retryButton?.focus());", offerAdjustmentBody);
         Assert.Contains("return false;", offerAdjustmentBody);
         Assert.Contains("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", html);
-        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.')\n          .then(() => retryButton?.focus());", html);
         Assert.Contains("return false;", html);
         Assert.Contains("function setSessionItem(key, value)", html);
         Assert.Contains("if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer))", html);
+        Assert.Contains("onclick=\"startAmateurApplication(this)\"", html);
+        Assert.Contains("onclick=\"startProApplication(this)\"", html);
+        Assert.Contains("function startAmateurApplication(retryButton)", html);
         Assert.Contains("const stored = setPendingPaymentOffer({", html);
+        Assert.Contains("}, retryButton);", html);
         Assert.Contains("if (!stored) return;", html);
-        Assert.Contains("if (!setPendingPaymentOffer(paymentOffer)) return;", html);
+        Assert.Contains("function startProApplication(retryButton)", html);
+        Assert.Contains("if (!setPendingPaymentOffer(paymentOffer, retryButton)) return;", html);
         Assert.Contains("function preserveAppliedDiscountMetadata(offer, result)", html);
         Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", html);
         Assert.Contains("return window.addActiveDiscountMetadataToPaymentOffer(offer);", html);
@@ -76,7 +81,7 @@ public sealed class PaymentOfferHandoffPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/character-customization.html");
-        var offerStart = html.IndexOf("function setPendingPaymentOffer(offer)", StringComparison.Ordinal);
+        var offerStart = html.IndexOf("function setPendingPaymentOffer(offer, retryButton)", StringComparison.Ordinal);
         var serializeStart = html.IndexOf("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", offerStart, StringComparison.Ordinal);
 
         Assert.True(offerStart >= 0);
@@ -84,7 +89,7 @@ public sealed class PaymentOfferHandoffPageTests
 
         var offerAdjustmentBody = html[offerStart..serializeStart];
 
-        Assert.Contains("function setPendingPaymentOffer(offer)", html);
+        Assert.Contains("function setPendingPaymentOffer(offer, retryButton)", html);
         Assert.Contains("return true;", html);
         Assert.Contains("function serializePendingPaymentOffer(offer)", html);
         Assert.Contains("if (!isUsablePaymentOffer(offer)) return null;", html);
@@ -101,20 +106,20 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("window.applyPaymentAdjustmentsToPaymentOffer(offer)", offerAdjustmentBody);
         Assert.Contains("window.applyFreePassToPaymentOffer(offer)", offerAdjustmentBody);
         Assert.Contains("catch (_) {", offerAdjustmentBody);
-        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", offerAdjustmentBody);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.')\n                    .then(() => retryButton?.focus());", offerAdjustmentBody);
         Assert.Contains("return false;", offerAdjustmentBody);
         Assert.Contains("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", html);
-        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.')\n                .then(() => retryButton?.focus());", html);
         Assert.Contains("return false;", html);
         Assert.Contains("function setSessionItem(key, value)", html);
         Assert.Contains("if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer))", html);
-        Assert.Contains("if (typeof beforeNavigate === 'function' && beforeNavigate() === false) return;", html);
+        Assert.Contains("if (typeof beforeNavigate === 'function' && beforeNavigate(button) === false) return;", html);
         Assert.Contains("function preserveAppliedDiscountMetadata(offer, result)", html);
         Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", html);
         Assert.Contains("return window.addActiveDiscountMetadataToPaymentOffer(offer);", html);
         Assert.Contains("return null;", html);
         Assert.Contains("const paymentOffer = preserveAppliedDiscountMetadata({", html);
-        Assert.Contains("return setPendingPaymentOffer(paymentOffer);", html);
+        Assert.Contains("return setPendingPaymentOffer(paymentOffer, button);", html);
         Assert.DoesNotContain("paymentOffer = window.addActiveDiscountMetadataToPaymentOffer(paymentOffer);", html);
         Assert.DoesNotContain("setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", html);
