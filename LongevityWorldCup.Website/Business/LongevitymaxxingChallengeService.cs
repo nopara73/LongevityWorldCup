@@ -2868,6 +2868,11 @@ public sealed class LongevitymaxxingChallengeService
     private static string NormalizeEmail(string email)
     {
         var normalized = (email ?? "").Trim();
+        if (normalized.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized["mailto:".Length..].Split('?', 2)[0].Trim();
+        }
+
         if (!EmailValidator.IsValid(normalized))
             throw new InvalidOperationException("Valid email is required.");
         return normalized;

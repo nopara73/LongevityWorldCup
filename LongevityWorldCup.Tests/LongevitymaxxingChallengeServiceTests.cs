@@ -46,6 +46,30 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task SignupAndResendNormalizeMailtoEmailLinks()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var now = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "mailto:linked@example.com?subject=Challenge",
+            "Linked Lee",
+            "UTC",
+            null,
+            25m), now);
+
+        var confirmation = Assert.Single(fixture.Email.Confirmations);
+        Assert.Equal("linked@example.com", confirmation.Email);
+
+        await fixture.Service.ResendAccessLinkAsync(
+            " mailto:linked@example.com?subject=Challenge ",
+            now.AddMinutes(1));
+
+        Assert.Equal(2, fixture.Email.Confirmations.Count);
+        Assert.Equal("linked@example.com", fixture.Email.Confirmations.Last().Email);
+    }
+
+    [Fact]
     public async Task SignupStaysOpenDuringActiveChallengeWithoutBackfillingBeforeSignup()
     {
         using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-09T22:00:00Z");
