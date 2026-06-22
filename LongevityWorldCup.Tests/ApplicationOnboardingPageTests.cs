@@ -259,6 +259,18 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationMotivationField_AdvertisesExistingLengthRequirement()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("<textarea id=\"why\" name=\"why\" rows=\"5\" required aria-required=\"true\" minlength=\"30\" maxlength=\"250\"", html);
+        Assert.Contains("if (charCount >= 30 && charCount <= 250)", html);
+    }
+
+    [Fact]
     public async Task ApplicationContactEmail_ReusesEmailShapedMediaContact()
     {
         using var factory = new TestWebApplicationFactory();
