@@ -2216,6 +2216,7 @@
         const button = document.getElementById("lmxProfilePictureButton");
         input.disabled = true;
         if (button) button.disabled = true;
+        let shouldFocusRetry = false;
         setStatus("lmxProfilePictureStatus", "Uploading...", false);
         try {
             const uploadFile = await prepareProfilePictureFile(file);
@@ -2229,11 +2230,13 @@
             renderAll();
             setStatus("lmxProfilePictureStatus", "Uploaded.", false);
         } catch (err) {
+            shouldFocusRetry = true;
             setStatus("lmxProfilePictureStatus", messageOf(err), true);
         } finally {
             input.disabled = false;
             if (button) button.disabled = false;
             input.value = "";
+            if (shouldFocusRetry) button?.focus();
         }
     }
 

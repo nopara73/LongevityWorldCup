@@ -133,12 +133,16 @@ public sealed class LongevitymaxxingChallengePageTests
         var prepareIndex = uploadBody.IndexOf("const uploadFile = await prepareProfilePictureFile(file);", StringComparison.Ordinal);
         var catchIndex = uploadBody.IndexOf("} catch (err) {", StringComparison.Ordinal);
         var resetIndex = uploadBody.IndexOf("input.value = \"\";", StringComparison.Ordinal);
+        var retryFocusIndex = uploadBody.IndexOf("if (shouldFocusRetry) button?.focus();", StringComparison.Ordinal);
 
+        Assert.Contains("let shouldFocusRetry = false;", uploadBody);
         Assert.Contains("setStatus(\"lmxProfilePictureStatus\", \"Uploading...\", false);", uploadBody);
+        Assert.Contains("shouldFocusRetry = true;", uploadBody);
         Assert.True(tryIndex >= 0);
         Assert.True(prepareIndex > tryIndex);
         Assert.True(catchIndex > prepareIndex);
         Assert.True(resetIndex > catchIndex);
+        Assert.True(retryFocusIndex > resetIndex);
     }
 
     [Fact]
