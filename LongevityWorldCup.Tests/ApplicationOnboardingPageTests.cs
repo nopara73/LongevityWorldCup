@@ -760,6 +760,9 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("cropButton.disabled = true;", cropBody);
         Assert.Contains("cancelProfileCropButton.disabled = true;", cropBody);
         Assert.Contains("activeCropper.getCroppedCanvas({", cropBody);
+        Assert.Contains("if (!croppedCanvas)", cropBody);
+        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.');", cropBody);
+        Assert.Contains("return;", cropBody);
         Assert.Contains("let croppedImageDataURL = raw;", cropBody);
         Assert.Contains("try {", cropBody);
         Assert.Contains("await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);", cropBody);
