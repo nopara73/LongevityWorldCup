@@ -1272,7 +1272,7 @@
             if (isChangeProfileCropProcessing) return;
             const activeCropper = window.changeProfileCropper;
             if (activeCropper) {
-                activeCropper.destroy();
+                try { activeCropper.destroy(); } catch (_) { }
             }
             window.changeProfileCropper = null;
             document.getElementById('modalOverlay').style.display = 'none';

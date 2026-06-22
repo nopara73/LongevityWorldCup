@@ -197,7 +197,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("cancelBtn.disabled = false;", cropBody);
         Assert.Contains("if (isChangeProfileCropProcessing) return;", cancelBody);
         Assert.Contains("if (activeCropper)", cancelBody);
-        Assert.Contains("activeCropper.destroy();", cancelBody);
+        Assert.Contains("try { activeCropper.destroy(); } catch (_) { }", cancelBody);
         Assert.Contains("window.changeProfileCropper = null;", cropBody);
         Assert.Contains("window.changeProfileCropper = null;", cancelBody);
     }

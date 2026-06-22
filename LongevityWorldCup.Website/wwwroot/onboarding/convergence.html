@@ -2007,7 +2007,7 @@
                 cancelProfileCropButton.addEventListener('click', function () {
                     if (isProfileCropProcessing) return;
                     if (cropper) {
-                        cropper.destroy();
+                        try { cropper.destroy(); } catch (_) { }
                         cropper = null;
                     }
 
