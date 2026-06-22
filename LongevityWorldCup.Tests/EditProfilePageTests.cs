@@ -225,6 +225,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("} catch {", cropBody);
         Assert.Contains("newSrc = raw;", cropBody);
         Assert.Contains("athlete.ProfilePic = newSrc;", cropBody);
+        Assert.Contains("try { activeCropper.destroy(); } catch (_) { }", cropBody);
         Assert.Contains("} catch (_) {", cropBody);
         Assert.Contains("customAlert('Profile picture crop failed. Please try another image.');", cropBody);
     }

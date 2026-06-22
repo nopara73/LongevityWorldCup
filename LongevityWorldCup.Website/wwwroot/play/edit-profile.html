@@ -1253,7 +1253,7 @@
 
                 // enable the “Submit Change Request” button now that there’s a new image
                 updateSubmitButtonState();
-                activeCropper.destroy();
+                try { activeCropper.destroy(); } catch (_) { }
                 window.changeProfileCropper = null;
                 document.getElementById('modalOverlay').style.display = 'none';
                 document.body.classList.remove('no-scroll');
