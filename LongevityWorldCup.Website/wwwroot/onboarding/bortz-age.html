@@ -2123,7 +2123,8 @@
 
             if (isUpdate && touchedBiomarkers.size === 0) {
                 document.getElementById('continueButton').classList.remove('show');
-                customAlert('Change at least one biomarker value before continuing.');
+                customAlert('Change at least one biomarker value before continuing.')
+                    .then(() => focusFirstEditableBiomarker(bortzFieldIds));
                 return;
             }
 
@@ -2971,7 +2972,8 @@
             syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
 
             if (isUpdate && touchedBiomarkers.size === 0) {
-                customAlert('Change at least one biomarker value before continuing.');
+                customAlert('Change at least one biomarker value before continuing.')
+                    .then(() => focusFirstEditableBiomarker(bortzFieldIds));
                 return;
             }
 
@@ -3359,6 +3361,16 @@
                     }
                 }
             }
+        }
+
+        function focusFirstEditableBiomarker(fieldIds) {
+            const input = fieldIds
+                .map(id => document.getElementById(id))
+                .find(Boolean);
+            if (!input) return;
+
+            expandFieldCard(input);
+            input.focus();
         }
 
         // Let the browser show its validation bubbles, but expand the card first
