@@ -1945,7 +1945,8 @@
                 input.value = '';
                 if (file) {
                     if (!isSupportedProfilePictureFile(file)) {
-                        customAlert('Profile picture must be JPG, PNG, or WebP.');
+                        customAlert('Profile picture must be JPG, PNG, or WebP.')
+                            .then(() => uploadButton?.focus());
                         return;
                     }
 
@@ -1988,11 +1989,13 @@
                             document.getElementById('croppingPart').style.display = 'none';
                             nextButton.disabled = !profilePic;
                             updateUploadButtons();
-                            customAlert('Profile picture upload failed. Please try another image.');
+                            customAlert('Profile picture upload failed. Please try another image.')
+                                .then(() => uploadButton?.focus());
                         }
                     };
                     reader.onerror = function () {
-                        customAlert('Profile picture upload failed. Please try another image.');
+                        customAlert('Profile picture upload failed. Please try another image.')
+                            .then(() => uploadButton?.focus());
                     };
                     reader.onabort = reader.onerror;
                     reader.readAsDataURL(file);
