@@ -9,6 +9,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using MimeKit;
 using System.Reflection;
+using System.Text;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -497,6 +498,28 @@ public sealed class ApplicationControllerValidationTests
         var mailbox = Assert.IsType<MailboxAddress>(message.ReplyTo[0]);
         Assert.Equal(expectedEmail, mailbox.Address);
         Assert.Equal(expectedName, mailbox.Name);
+    }
+
+    [Theory]
+    [InlineData("athlete@example.test", true)]
+    [InlineData(null, false)]
+    [InlineData("  ", false)]
+    public void ApplicationAuditIntro_IncludesReplyHintWhenRequesterEmailIsKnown(string? accountEmail, bool expectedHint)
+    {
+        var method = typeof(ApplicationController).GetMethod("AppendLegacyApplicationEmailIntro", BindingFlags.Static | BindingFlags.NonPublic);
+        var body = new StringBuilder();
+
+        method!.Invoke(null, [body, accountEmail, "free (USD)", null, null, false, false]);
+
+        var intro = body.ToString();
+        if (expectedHint)
+        {
+            Assert.Contains("Reply to this email to contact the requester.", intro);
+        }
+        else
+        {
+            Assert.DoesNotContain("Reply to this email to contact the requester.", intro);
+        }
     }
 
     [Fact]
