@@ -215,6 +215,23 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task ResultSubmissionNullBiomarkerRowReturnsDateRequiredBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            Biomarkers = [null!],
+            ProofPics = ["data:image/png;base64,AA=="]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Biomarker date is required.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task ResultSubmissionInvalidAccountEmailReturnsBadRequestBeforeProcessing()
     {
         using var factory = new TestWebApplicationFactory();
