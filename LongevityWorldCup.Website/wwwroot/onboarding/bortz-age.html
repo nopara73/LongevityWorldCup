@@ -2397,7 +2397,7 @@
                             
                             // Update years text with year reduction/increase and celebratory emoji if bio age is better
                             const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
-                            yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
+                            yearsTextElement.textContent = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
                             // Show Pheno Age when computed (WBC provided)
                             const phenoAgeRowEl = document.getElementById('phenoAgeRow');
@@ -2439,7 +2439,7 @@
                     animatedAgeElement.classList.add(ageCategory);
                     
                     const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
-                    yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
+                    yearsTextElement.textContent = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
                     // Show Pheno Age when computed (WBC provided)
                     const phenoAgeRowEl = document.getElementById('phenoAgeRow');
@@ -2685,7 +2685,7 @@
                 hideMainProgress();
 
                 document.getElementById('mainPageTitleH2').textContent = athlete.Name;
-                document.getElementById('mainInstructions').innerHTML = 'Submit your latest test results. All fields are required and must be from the same day.';
+                document.getElementById('mainInstructions').textContent = 'Submit your latest test results. All fields are required and must be from the same day.';
 
                 // Fill out the date of birth because we'll need it for calculations, but hide it as well so the user doesn't wanna change that.
                 document.getElementById('dob-year').value = athlete.DateOfBirth.Year;
