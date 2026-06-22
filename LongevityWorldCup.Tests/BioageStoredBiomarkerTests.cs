@@ -51,7 +51,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("serializedPaymentOffer = serializePendingPaymentOffer(adjustedPaymentOffer);", html);
         Assert.Contains("} catch (_) {", html);
         Assert.Contains("serializedPaymentOffer = null;", html);
-        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.')\n                        .then(() => document.getElementById('continueButton')?.focus());", html);
         Assert.Contains("function setSessionItem(key, value)", html);
         Assert.Contains("serializedBiomarkerData = JSON.stringify(biomarkerData);", html);
         Assert.Contains("setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))", html);
@@ -62,13 +62,13 @@ public sealed class BioageStoredBiomarkerTests
         Assert.DoesNotContain("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
-        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
+        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.')\n                    .then(() => document.getElementById('continueButton')?.focus());", html);
         Assert.Contains("if (!storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)) return;", html);
 
         var failureBody = GetStoreFailureBody(html, "function storePhenoResultForNextStep");
         Assert.Contains("clearStoredBiomarkerHandoff();", failureBody);
         Assert.Contains("if (!isUpdate) clearPendingPaymentOffer();", failureBody);
-        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", failureBody);
+        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.')\n                    .then(() => document.getElementById('continueButton')?.focus());", failureBody);
     }
 
     [Theory]
@@ -386,7 +386,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("serializedPaymentOffer = serializePendingPaymentOffer(adjustedPaymentOffer);", html);
         Assert.Contains("} catch (_) {", html);
         Assert.Contains("serializedPaymentOffer = null;", html);
-        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.')\n                        .then(() => document.getElementById('continueButton')?.focus());", html);
         Assert.Contains("function setSessionItem(key, value)", html);
         Assert.Contains("serializedBiomarkerData = JSON.stringify(biomarkerData);", html);
         Assert.Contains("setSessionItem('chronoBortzDifference', chronoBortzDifference.toFixed(2))", html);
@@ -399,13 +399,13 @@ public sealed class BioageStoredBiomarkerTests
         Assert.DoesNotContain("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer);", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(", html);
-        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
+        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.')\n                    .then(() => document.getElementById('continueButton')?.focus());", html);
         Assert.Contains("if (!storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)) return;", html);
 
         var failureBody = GetStoreFailureBody(html, "function storeBortzResultForNextStep");
         Assert.Contains("clearStoredBiomarkerHandoff();", failureBody);
         Assert.Contains("if (!isUpdate) clearPendingPaymentOffer();", failureBody);
-        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", failureBody);
+        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.')\n                    .then(() => document.getElementById('continueButton')?.focus());", failureBody);
     }
 
     [Fact]
