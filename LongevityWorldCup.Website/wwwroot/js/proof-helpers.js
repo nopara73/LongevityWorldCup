@@ -176,7 +176,13 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
         cameraButton.setAttribute('data-listener', 'true');
     }
 
-    const handleProofFiles = async function (files, input) {
+    const focusProofRetryButton = retryButton => {
+        if (retryButton && typeof retryButton.focus === 'function') {
+            retryButton.focus();
+        }
+    };
+
+    const handleProofFiles = async function (files, input, retryButton) {
         if (isProofUploadProcessing) {
             if (input) input.value = "";
             return;
@@ -192,7 +198,8 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
         const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));
         if (supportedFiles.length === 0) {
             if (input) input.value = "";
-            customAlert('Proof files must be JPG, PNG, WebP, or PDF.');
+            customAlert('Proof files must be JPG, PNG, WebP, or PDF.')
+                .then(() => focusProofRetryButton(retryButton));
             return;
         }
 
@@ -237,7 +244,8 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                         // render each page
                         for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
                             if (proofPics.length >= 9) {
-                                customAlert('You can upload a maximum of 9 images.');
+                                customAlert('You can upload a maximum of 9 images.')
+                                    .then(() => focusProofRetryButton(retryButton));
                                 break;
                             }
                             const page = await pdfDoc.getPage(pageNum);
@@ -261,7 +269,8 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     }
 
                     if (proofPics.length >= 9) {
-                        customAlert('You can upload a maximum of 9 images.');
+                        customAlert('You can upload a maximum of 9 images.')
+                            .then(() => focusProofRetryButton(retryButton));
                         break;
                     }
                     const raw = await readDataURL(file);
@@ -284,13 +293,16 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 }
             }
             if (unsupportedFiles.length > 0) {
-                customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.');
+                customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.')
+                    .then(() => focusProofRetryButton(retryButton));
             }
             if (failedFiles > 0) {
-                customAlert('Some proof files could not be processed. Please try them again as JPG, PNG, WebP, or PDF.');
+                customAlert('Some proof files could not be processed. Please try them again as JPG, PNG, WebP, or PDF.')
+                    .then(() => focusProofRetryButton(retryButton));
             }
         } catch (error) {
-            customAlert('Proof upload failed. Please try again with a JPG, PNG, WebP, or PDF file.');
+            customAlert('Proof upload failed. Please try again with a JPG, PNG, WebP, or PDF file.')
+                .then(() => focusProofRetryButton(retryButton));
         } finally {
             // Reset the file input's value to allow re-uploading the same file if needed.
             if (input) input.value = "";
@@ -307,14 +319,14 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
     // Handle proof uploads (without cropping)
     if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
         proofPicInput.addEventListener('change', async function (event) {
-            await handleProofFiles(event.target.files, proofPicInput);
+            await handleProofFiles(event.target.files, proofPicInput, uploadProofButton);
         });
         proofPicInput.setAttribute('data-listener', 'true');
     }
 
     if (cameraInput && !cameraInput.hasAttribute('data-listener')) {
         cameraInput.addEventListener('change', async function (event) {
-            await handleProofFiles(event.target.files, cameraInput);
+            await handleProofFiles(event.target.files, cameraInput, cameraButton || uploadProofButton);
         });
         cameraInput.setAttribute('data-listener', 'true');
     }
