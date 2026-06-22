@@ -75,14 +75,20 @@ public sealed class SelectedAthleteBootstrapPageTests
 
         Assert.Contains("hasSelectedAthleteDateOfBirth(value.DateOfBirth)", html);
         Assert.Contains("function hasSelectedAthleteDateOfBirth(value)", html);
-        Assert.Contains("typeof value === 'object'", html);
-        Assert.Contains("!Array.isArray(value)", html);
-        Assert.Contains("hasSelectedAthleteDatePart(value.Year, 1, 9999)", html);
-        Assert.Contains("hasSelectedAthleteDatePart(value.Month, 1, 12)", html);
-        Assert.Contains("hasSelectedAthleteDatePart(value.Day, 1, 31)", html);
-        Assert.Contains("function hasSelectedAthleteDatePart(value, min, max)", html);
-        Assert.Contains("if (typeof value === 'boolean' || value === null || value === undefined) return false;", html);
-        Assert.Contains("return Number.isInteger(number) && number >= min && number <= max;", html);
+        Assert.Contains("if (!value || typeof value !== 'object' || Array.isArray(value)) return false;", html);
+        Assert.Contains("const year = toSelectedAthleteDatePart(value.Year, 1, 9999);", html);
+        Assert.Contains("const month = toSelectedAthleteDatePart(value.Month, 1, 12);", html);
+        Assert.Contains("const day = toSelectedAthleteDatePart(value.Day, 1, 31);", html);
+        Assert.Contains("const date = new Date(0);", html);
+        Assert.Contains("date.setUTCFullYear(year, month - 1, day);", html);
+        Assert.Contains("date.setUTCHours(0, 0, 0, 0);", html);
+        Assert.Contains("date.getUTCFullYear() === year", html);
+        Assert.Contains("date.getUTCMonth() === month - 1", html);
+        Assert.Contains("date.getUTCDate() === day", html);
+        Assert.Contains("function toSelectedAthleteDatePart(value, min, max)", html);
+        Assert.Contains("if (typeof value === 'boolean' || value === null || value === undefined) return null;", html);
+        Assert.Contains("? number", html);
+        Assert.Contains(": null", html);
         Assert.DoesNotContain("typeof value.DateOfBirth === 'string'", html);
         Assert.DoesNotContain("value.DateOfBirth.trim()", html);
     }

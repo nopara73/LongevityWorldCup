@@ -1207,21 +1207,31 @@
         }
 
         function hasSelectedAthleteDateOfBirth(value) {
-            return value
-                && typeof value === 'object'
-                && !Array.isArray(value)
-                && hasSelectedAthleteDatePart(value.Year, 1, 9999)
-                && hasSelectedAthleteDatePart(value.Month, 1, 12)
-                && hasSelectedAthleteDatePart(value.Day, 1, 31);
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+
+            const year = toSelectedAthleteDatePart(value.Year, 1, 9999);
+            const month = toSelectedAthleteDatePart(value.Month, 1, 12);
+            const day = toSelectedAthleteDatePart(value.Day, 1, 31);
+
+            if (year === null || month === null || day === null) return false;
+
+            const date = new Date(0);
+            date.setUTCFullYear(year, month - 1, day);
+            date.setUTCHours(0, 0, 0, 0);
+            return date.getUTCFullYear() === year
+                && date.getUTCMonth() === month - 1
+                && date.getUTCDate() === day;
         }
 
-        function hasSelectedAthleteDatePart(value, min, max) {
-            if (typeof value === 'boolean' || value === null || value === undefined) return false;
+        function toSelectedAthleteDatePart(value, min, max) {
+            if (typeof value === 'boolean' || value === null || value === undefined) return null;
 
             const number = typeof value === 'string' && value.trim()
                 ? Number(value)
                 : value;
-            return Number.isInteger(number) && number >= min && number <= max;
+            return Number.isInteger(number) && number >= min && number <= max
+                ? number
+                : null;
         }
 
         function clearStoredBiomarkerHandoff() {
