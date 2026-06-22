@@ -109,6 +109,11 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("emailInput.type = 'email';", script);
         Assert.Contains("return emailInput.checkValidity() ? contactEmail : null;", script);
         Assert.Contains("function readStoredContactEmail()", script);
+        var contactReadStart = script.IndexOf("function readStoredContactEmail()", StringComparison.Ordinal);
+        var contactReadEnd = script.IndexOf("const PENDING_PAYMENT_INVOICE_KEY", contactReadStart, StringComparison.Ordinal);
+        Assert.True(contactReadStart >= 0);
+        Assert.True(contactReadEnd > contactReadStart);
+        var contactReadBody = script[contactReadStart..contactReadEnd];
         Assert.Contains("const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));", script);
         Assert.Contains("if (sessionContactEmail) return sessionContactEmail;", script);
         Assert.Contains("const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));", script);
@@ -117,6 +122,11 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("normalizeContactEmail(pendingPaymentInvoice && pendingPaymentInvoice.accountEmail)", script);
         Assert.Contains("if (pendingContactEmail)", script);
         Assert.Contains("return pendingContactEmail;", script);
+        var pendingContactIndex = contactReadBody.IndexOf("const pendingContactEmail = normalizeContactEmail(pendingPaymentInvoice && pendingPaymentInvoice.accountEmail)", StringComparison.Ordinal);
+        var sessionContactIndex = contactReadBody.IndexOf("const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));", StringComparison.Ordinal);
+        Assert.True(pendingContactIndex >= 0);
+        Assert.True(sessionContactIndex >= 0);
+        Assert.True(pendingContactIndex < sessionContactIndex);
         Assert.Contains("removeSessionItem('contactEmail');", script);
         Assert.Contains("removeLocalItem('contactEmail');", script);
         Assert.Contains("? 'the email address you provided'", script);
