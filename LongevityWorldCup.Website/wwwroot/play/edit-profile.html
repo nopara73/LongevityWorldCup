@@ -1231,7 +1231,7 @@
         }
 
         function isOptionalUrl(value) {
-            const v = value.trim();
+            const v = normalizeOptionalUrl(value);
             if (!v) return true;
             if (window.validator && typeof window.validator.isURL === 'function') {
                 return window.validator.isURL(v);
@@ -1241,6 +1241,12 @@
             input.type = 'url';
             input.value = v;
             return input.checkValidity();
+        }
+
+        function normalizeOptionalUrl(value) {
+            const v = (value || '').trim();
+            if (!v) return '';
+            return /^www\./i.test(v) ? `https://${v}` : v;
         }
 
         function validatePersonalLink(value) {
