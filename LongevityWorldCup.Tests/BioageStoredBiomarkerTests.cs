@@ -256,12 +256,25 @@ public sealed class BioageStoredBiomarkerTests
     {
         var html = File.ReadAllText(GetPagePath("pheno-age.html"));
 
+        Assert.Contains("Creatinine value suggests µmol/L. Correcting the unit.", html);
+        Assert.Contains("setUnit('creatinineUnit', 1);", html);
+        Assert.Contains("Creatinine value suggests mg/dL. Correcting the unit.", html);
+        Assert.Contains("setUnit('creatinineUnit', 0.0113);", html);
+        Assert.Contains("Glucose value suggests mg/dL. Correcting the unit.", html);
+        Assert.Contains("setUnit('glucoseUnit', 18.016);", html);
+        Assert.Contains("Glucose value suggests mmol/L. Correcting the unit.", html);
+        Assert.Contains("setUnit('glucoseUnit', 1);", html);
+
         var proceedBody = GetFunctionBody(html, "function proceedToNextPage()", "const biomarkerData = {");
         var correctionIndex = proceedBody.IndexOf("correctCorrectableUnits();", StringComparison.Ordinal);
         var albuminStoreIndex = proceedBody.IndexOf("entry.AlbGL = parseFloat", StringComparison.Ordinal);
+        var creatinineStoreIndex = proceedBody.IndexOf("entry.CreatUmolL = parseFloat", StringComparison.Ordinal);
+        var glucoseStoreIndex = proceedBody.IndexOf("entry.GluMmolL = parseFloat", StringComparison.Ordinal);
 
         Assert.True(correctionIndex >= 0);
         Assert.True(albuminStoreIndex > correctionIndex);
+        Assert.True(creatinineStoreIndex > correctionIndex);
+        Assert.True(glucoseStoreIndex > correctionIndex);
     }
 
     private static string GetPagePath(string fileName)
