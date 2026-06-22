@@ -429,6 +429,7 @@ window.optimizeImageClient = async function (dataUri, options) {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
         ctx.drawImage(img, 0, 0, width, height);
         return await new Promise(resolve =>
             canvas.toBlob(resolve, targetContentType, quality)
