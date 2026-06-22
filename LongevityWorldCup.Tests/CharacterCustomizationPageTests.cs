@@ -20,4 +20,18 @@ public sealed class CharacterCustomizationPageTests
         Assert.Contains("document.querySelector('picture').replaceChildren(athleteImage);", html);
         Assert.DoesNotContain("document.querySelector('picture').innerHTML", html);
     }
+
+    [Fact]
+    public async Task CharacterCustomization_RendersActionsWhenModuleReadinessRejects()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-customization.html");
+
+        Assert.Contains("const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});", html);
+        Assert.Contains("ready.then(() => ensureProDiscountsLoaded()).catch(() => {}).then(() => {", html);
+        Assert.DoesNotContain("const ready = window.modulesReady || Promise.resolve();", html);
+        Assert.DoesNotContain("ready.then(() => ensureProDiscountsLoaded()).then(() => {", html);
+    }
 }
