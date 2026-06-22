@@ -79,7 +79,8 @@ public sealed class BioageStoredBiomarkerTests
         var html = File.ReadAllText(GetPagePath(fileName));
 
         Assert.Contains("function lwcValidateStep1(silent)", html);
-        Assert.Contains("if (!silent) customAlert('Please select your birth year.');", html);
+        Assert.Contains("const yearSelect = document.getElementById('dob-year');", html);
+        Assert.Contains("customAlert('Please select your birth year.')\n                        .then(() => yearSelect.focus());", html);
         Assert.Contains("setSessionItem('lwcStep', '2');", html);
         Assert.Contains("setSessionItem('lwcStep', '1');", html);
         Assert.Contains("function activateDot1() { lwcSetStep(1); setSessionItem('lwcStep', '1'); }", html);
@@ -99,8 +100,8 @@ public sealed class BioageStoredBiomarkerTests
 
         Assert.Contains("function getValidatedBloodDrawDate(silent)", html);
         Assert.Contains("if (!silent) {", html);
-        Assert.Contains("customAlert('Please enter the date when your blood was drawn.');", html);
-        Assert.Contains("customAlert('Blood draw date cannot be in the future.');", html);
+        Assert.Contains("customAlert('Please enter the date when your blood was drawn.')\n                        .then(() => bloodDrawDateInput.focus());", html);
+        Assert.Contains("customAlert('Blood draw date cannot be in the future.')\n                        .then(() => bloodDrawDateInput.focus());", html);
         Assert.Contains("const bd = getValidatedBloodDrawDate(silent);", html);
         Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
     }
