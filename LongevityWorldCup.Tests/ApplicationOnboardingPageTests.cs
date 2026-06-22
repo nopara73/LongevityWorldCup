@@ -505,7 +505,8 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer", html);
         Assert.Contains("if (!adjustedPaymentOffer) return null;", html);
         Assert.Contains("if (isUsablePaymentOffer(adjustedPaymentOffer)) return adjustedPaymentOffer;", html);
-        Assert.Contains("customAlert('Payment details could not be prepared. Please try again.');", html);
+        Assert.Contains("const retryButton = document.getElementById('submitButton') || document.getElementById('nextButton');", html);
+        Assert.Contains("customAlert('Payment details could not be prepared. Please try again.')\n                .then(() => retryButton?.focus());", html);
         Assert.Contains("return undefined;", html);
         Assert.Contains("const paymentOffer = readAdjustedPendingPaymentOffer();", collectBody);
         Assert.Contains("if (paymentOffer === undefined) return;", collectBody);

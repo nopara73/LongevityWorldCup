@@ -1129,7 +1129,9 @@
             } catch (_) {
             }
 
-            customAlert('Payment details could not be prepared. Please try again.');
+            const retryButton = document.getElementById('submitButton') || document.getElementById('nextButton');
+            customAlert('Payment details could not be prepared. Please try again.')
+                .then(() => retryButton?.focus());
             return undefined;
         }
 
