@@ -14,13 +14,19 @@ public sealed class PaymentOfferHandoffPageTests
 
         Assert.Contains("function setPendingPaymentOffer(offer)", html);
         Assert.Contains("return true;", html);
-        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
+        Assert.Contains("function serializePendingPaymentOffer(offer)", html);
+        Assert.Contains("if (!offer || typeof offer !== \"object\" || Array.isArray(offer)) return null;", html);
+        Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
+        Assert.Contains("catch (_) {", html);
+        Assert.Contains("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", html);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
         Assert.Contains("return false;", html);
         Assert.Contains("function setSessionItem(key, value)", html);
-        Assert.Contains("if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer)))", html);
+        Assert.Contains("if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer))", html);
         Assert.Contains("const stored = setPendingPaymentOffer({", html);
         Assert.Contains("if (!stored) return;", html);
         Assert.Contains("if (!setPendingPaymentOffer(paymentOffer)) return;", html);
+        Assert.DoesNotContain("setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", html);
     }
 
@@ -49,12 +55,18 @@ public sealed class PaymentOfferHandoffPageTests
 
         Assert.Contains("function setPendingPaymentOffer(offer)", html);
         Assert.Contains("return true;", html);
-        Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.');", html);
+        Assert.Contains("function serializePendingPaymentOffer(offer)", html);
+        Assert.Contains("if (!offer || typeof offer !== 'object' || Array.isArray(offer)) return null;", html);
+        Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
+        Assert.Contains("catch (_) {", html);
+        Assert.Contains("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", html);
+        Assert.Contains("customAlert('Payment details could not be saved. Enable browser storage and try again.');", html);
         Assert.Contains("return false;", html);
         Assert.Contains("function setSessionItem(key, value)", html);
-        Assert.Contains("if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer)))", html);
+        Assert.Contains("if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer))", html);
         Assert.Contains("if (typeof beforeNavigate === 'function' && beforeNavigate() === false) return;", html);
         Assert.Contains("return setPendingPaymentOffer(paymentOffer);", html);
+        Assert.DoesNotContain("setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))", html);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", html);
     }
 
