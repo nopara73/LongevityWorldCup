@@ -231,8 +231,9 @@
             accessTab = "signup";
 
             await withButton(signupForm.querySelector("button[type='submit']"), async () => {
+                const signupEmailInput = document.getElementById("lmxSignupEmail");
                 const payload = {
-                    email: document.getElementById("lmxSignupEmail").value.trim(),
+                    email: normalizeEmailInput(signupEmailInput),
                     displayName: getIdentityDisplayName("signup"),
                     timeZoneId: document.getElementById("lmxSignupTimeZone").value,
                     athleteLink: getIdentityAthletePayload("signup"),
@@ -260,8 +261,9 @@
         resendForm.addEventListener("submit", async event => {
             event.preventDefault();
             await withButton(resendForm.querySelector("button[type='submit']"), async () => {
+                const resendEmailInput = document.getElementById("lmxResendEmail");
                 await postJson(`${API}/resend`, {
-                    email: document.getElementById("lmxResendEmail").value.trim()
+                    email: normalizeEmailInput(resendEmailInput)
                 });
                 setStatus("lmxResendStatus", "Check your email for your private check-in link.", false);
             }, "Sending...");
@@ -385,6 +387,26 @@
 
         const athleteInputId = `${identityPrefix(scope)}Athlete`;
         return getAthleteSelectorDisplayName(athleteInputId);
+    }
+
+    function normalizeEmailInput(input) {
+        const normalized = normalizeEmailValue(input?.value || "");
+        if (input) input.value = normalized;
+        return normalized;
+    }
+
+    function normalizeEmailValue(value) {
+        let normalized = String(value || "").trim();
+        const bracketMatch = /<([^<>]+)>/.exec(normalized);
+        if (bracketMatch) {
+            normalized = bracketMatch[1].trim();
+        }
+
+        if (/^mailto:/i.test(normalized)) {
+            normalized = normalized.replace(/^mailto:/i, "").split("?")[0].trim();
+        }
+
+        return normalized;
     }
 
     function getIdentityAthletePayload(scope) {

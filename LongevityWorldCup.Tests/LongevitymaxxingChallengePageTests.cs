@@ -69,6 +69,29 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
+    public async Task ChallengeSignupAndResend_NormalizeCopiedEmailInputsBeforePosting()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+
+        Assert.Contains("function normalizeEmailInput(input)", javascript);
+        Assert.Contains("const normalized = normalizeEmailValue(input?.value || \"\");", javascript);
+        Assert.Contains("if (input) input.value = normalized;", javascript);
+        Assert.Contains("function normalizeEmailValue(value)", javascript);
+        Assert.Contains("const bracketMatch = /<([^<>]+)>/.exec(normalized);", javascript);
+        Assert.Contains("normalized = bracketMatch[1].trim();", javascript);
+        Assert.Contains("normalized = normalized.replace(/^mailto:/i, \"\").split(\"?\")[0].trim();", javascript);
+        Assert.Contains("const signupEmailInput = document.getElementById(\"lmxSignupEmail\");", javascript);
+        Assert.Contains("email: normalizeEmailInput(signupEmailInput)", javascript);
+        Assert.Contains("const resendEmailInput = document.getElementById(\"lmxResendEmail\");", javascript);
+        Assert.Contains("email: normalizeEmailInput(resendEmailInput)", javascript);
+        Assert.DoesNotContain("email: document.getElementById(\"lmxSignupEmail\").value.trim()", javascript);
+        Assert.DoesNotContain("email: document.getElementById(\"lmxResendEmail\").value.trim()", javascript);
+    }
+
+    [Fact]
     public async Task ChallengeStandaloneButtonHelper_IgnoresDuplicateBusyButtons()
     {
         using var factory = CreateFactory();
