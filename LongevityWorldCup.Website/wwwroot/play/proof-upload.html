@@ -580,7 +580,7 @@
 
             try {
                 const paymentOffer = JSON.parse(rawOffer);
-                if (paymentOffer && typeof paymentOffer === 'object' && !Array.isArray(paymentOffer)) {
+                if (isUsablePaymentOffer(paymentOffer)) {
                     return paymentOffer;
                 }
             } catch (_) {
@@ -588,6 +588,21 @@
 
             clearPendingPaymentOffer();
             return null;
+        }
+
+        function isUsablePaymentOffer(paymentOffer) {
+            return paymentOffer
+                && typeof paymentOffer === 'object'
+                && !Array.isArray(paymentOffer)
+                && typeof paymentOffer.source === 'string'
+                && paymentOffer.source.trim()
+                && typeof paymentOffer.offerType === 'string'
+                && paymentOffer.offerType.trim()
+                && typeof paymentOffer.currency === 'string'
+                && paymentOffer.currency.trim()
+                && typeof paymentOffer.amountUsd === 'number'
+                && Number.isFinite(paymentOffer.amountUsd)
+                && paymentOffer.amountUsd >= 0;
         }
 
         if (window.captureFreePassFromUrl) {
