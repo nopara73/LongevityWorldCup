@@ -632,7 +632,35 @@ namespace LongevityWorldCup.Website.Controllers
                         submissionKind,
                         zipSizeBytes,
                         invoiceResult.Error);
-                    return StatusCode(500, $"Application sent, but failed to create BTCPay invoice: {invoiceResult.Error}");
+                    await TryRecordDiscountSignupAsync(
+                        applicantData,
+                        accountEmail,
+                        folderKey,
+                        submissionId,
+                        submissionKind,
+                        requestedAmountUsd,
+                        paymentCurrency,
+                        paymentRequired: true,
+                        invoiceId: null,
+                        checkoutLink: null,
+                        ct);
+
+                    await TrySendSubmissionConfirmationEmailAsync(
+                        config,
+                        accountEmail,
+                        displayNameOrName,
+                        isResultSubmissionOnly,
+                        isEditSubmissionOnly,
+                        ct: ct);
+
+                    return Ok(new
+                    {
+                        success = true,
+                        paymentRequired = true,
+                        paymentUnavailable = true,
+                        checkoutLink = (string?)null,
+                        invoiceId = (string?)null
+                    });
                 }
 
                 await TryRecordDiscountSignupAsync(

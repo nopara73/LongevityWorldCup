@@ -691,6 +691,10 @@
             return !!(submitResult && submitResult.paymentRequired);
         }
 
+        function isPaymentUnavailable(submitResult) {
+            return !!(submitResult && submitResult.paymentUnavailable);
+        }
+
         function isSubmissionAcceptedPaymentFailure(message) {
             return typeof message === 'string'
                 && /^Application sent, but failed to create BTCPay invoice:/i.test(message.trim());
@@ -818,9 +822,12 @@
                                 const checkoutLink = getCheckoutLink(submitResult);
                                 const invoiceId = getInvoiceId(submitResult);
                                 const paymentRequired = isPaymentRequired(submitResult);
+                                const paymentUnavailable = isPaymentUnavailable(submitResult);
                                 const nextStepMessage =
                                     checkoutLink
                                         ? 'You\'ll be redirected to the payment page'
+                                        : paymentUnavailable
+                                            ? 'Your results were received, but the payment page could not be created. We will follow up by email.'
                                         : paymentRequired
                                             ? 'Your results were received, but the payment page could not be opened. Check your confirmation email.'
                                             : 'Your results were received';
