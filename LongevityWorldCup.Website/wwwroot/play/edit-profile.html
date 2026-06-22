@@ -750,7 +750,7 @@
             const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);
             let availableFlags = currentFlag ? [currentFlag] : [];
             flagInput.value = athlete.Flag;
-            if (athlete.Flag !== originalAthlete.Flag) {
+            if (normalizeEditText(athlete.Flag) !== normalizeEditText(originalAthlete.Flag)) {
                 restoreFlagBtn.style.display = 'inline-flex';
             }
 
@@ -775,7 +775,7 @@
             flagInput.addEventListener('input', function () {
                 athlete.Flag = this.value.trim();
                 // Show or hide the Restore-Flag button based on whether the input matches original
-                if (flagInput.value.trim() !== originalAthlete.Flag) {
+                if (normalizeEditText(flagInput.value) !== normalizeEditText(originalAthlete.Flag)) {
                     restoreFlagBtn.style.display = 'inline-flex';
                 } else {
                     restoreFlagBtn.style.display = 'none';
@@ -875,7 +875,7 @@
 
             const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');
             whyDisplayInput.value = athlete.Why || '';
-            if (athlete.Why !== originalAthlete.Why) {
+            if (normalizeEditText(athlete.Why) !== normalizeEditText(originalAthlete.Why)) {
                 restoreWhyDisplayBtn.style.display = 'inline-flex';
                 updateSubmitButtonState();
             }
@@ -982,7 +982,7 @@
 
             const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');
             mediaContactInput.value = athlete.MediaContact;
-            if (athlete.MediaContact !== originalAthlete.MediaContact) {
+            if (normalizeEditText(athlete.MediaContact) !== normalizeEditText(originalAthlete.MediaContact)) {
                 restoreMediaContactBtn.style.display = 'inline-flex';
                 updateSubmitButtonState();
             }
@@ -999,7 +999,7 @@
             });
             mediaContactInput.addEventListener('input', () => {
                 athlete.MediaContact = mediaContactInput.value.trim();
-                if (mediaContactInput.value.trim() !== originalAthlete.MediaContact) {
+                if (normalizeEditText(mediaContactInput.value) !== normalizeEditText(originalAthlete.MediaContact)) {
                     restoreMediaContactBtn.style.display = 'inline-flex';
                 } else {
                     restoreMediaContactBtn.style.display = 'none';
@@ -1008,7 +1008,7 @@
             });
             whyDisplayInput.addEventListener('input', () => {
                 athlete.Why = whyDisplayInput.value.trim();
-                if (whyDisplayInput.value.trim() !== originalAthlete.Why) {
+                if (normalizeEditText(whyDisplayInput.value) !== normalizeEditText(originalAthlete.Why)) {
                     restoreWhyDisplayBtn.style.display = 'inline-flex';
                 } else {
                     restoreWhyDisplayBtn.style.display = 'none';
@@ -1291,17 +1291,17 @@
             const submitButton = document.getElementById('submitButton');
             const currentPicSrc = document.querySelector('.illustration').getAttribute('src');
             const currentDivision = document.getElementById('divisionDisplaySelect').value;
-            const currentFlag = document.getElementById('flagDisplayInput').value.trim();
+            const currentFlag = normalizeEditText(document.getElementById('flagDisplayInput').value);
             const currentPersonalLink = normalizeOptionalUrl(document.getElementById('personalLinkInput').value);
-            const currentMediaContact = document.getElementById('mediaContactInput').value.trim();
-            const currentWhyDisplay = document.getElementById('whyDisplayInput').value.trim();
+            const currentMediaContact = normalizeEditText(document.getElementById('mediaContactInput').value);
+            const currentWhyDisplay = normalizeEditText(document.getElementById('whyDisplayInput').value);
 
             const picChanged = currentPicSrc !== originalAthlete.ProfilePic;
             const divChanged = currentDivision !== originalAthlete.Division;
-            const flagChanged = currentFlag !== originalAthlete.Flag;
+            const flagChanged = currentFlag !== normalizeEditText(originalAthlete.Flag);
             const personalLinkChanged = currentPersonalLink !== normalizeOptionalUrl(originalAthlete.PersonalLink);
-            const mediaContactChanged = currentMediaContact !== originalAthlete.MediaContact;
-            const whyChanged = currentWhyDisplay !== originalAthlete.Why;
+            const mediaContactChanged = currentMediaContact !== normalizeEditText(originalAthlete.MediaContact);
+            const whyChanged = currentWhyDisplay !== normalizeEditText(originalAthlete.Why);
 
             const anyChanged = picChanged
                 || divChanged
@@ -1356,6 +1356,10 @@
                 return `https://${v}`;
             }
             return v;
+        }
+
+        function normalizeEditText(value) {
+            return typeof value === 'string' ? value.trim() : '';
         }
 
         function validatePersonalLink(value) {
