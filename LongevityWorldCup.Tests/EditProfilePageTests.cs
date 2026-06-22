@@ -205,6 +205,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("function setSessionItem(key, value)", html);
         Assert.Contains("function setLocalItem(key, value)", html);
         Assert.Contains("const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);", successBody);
+        Assert.Contains("rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);", successBody);
         Assert.Contains("setSessionItem('contactEmail', reviewContactEmail);", successBody);
         Assert.Contains("setLocalItem('contactEmail', reviewContactEmail);", successBody);
         Assert.Contains("setSessionItem(\"came-from\", \"edit-profile\");", successBody);
@@ -244,6 +245,8 @@ public sealed class EditProfilePageTests
         Assert.Contains("const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));", html);
         Assert.Contains("if (localContactEmail)", html);
         Assert.Contains("return localContactEmail;", html);
+        Assert.Contains("function rememberAthleteContactEmail(athleteName, email)", html);
+        Assert.Contains("return name ? 'contactEmailFor:' + name : null;", html);
         Assert.Contains("removeSessionItem('contactEmail');", html);
         Assert.Contains("removeLocalItem('contactEmail');", html);
         Assert.Contains("|| readStoredContactEmail();", html);

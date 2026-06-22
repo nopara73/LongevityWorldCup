@@ -397,9 +397,12 @@ public sealed class ProofUploadPageTests
         Assert.Contains("const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));", html);
         Assert.Contains("if (localContactEmail)", html);
         Assert.Contains("return localContactEmail;", html);
+        Assert.Contains("function readStoredAthleteContactEmail(athleteName)", html);
+        Assert.Contains("return key ? normalizeContactEmail(getLocalItem(key)) : null;", html);
         Assert.Contains("emailInput.type = 'email';", html);
         Assert.Contains("return emailInput.checkValidity() ? contactEmail : null;", html);
         Assert.Contains("|| normalizeContactEmail(athlete && athlete.MediaContact)", html);
+        Assert.Contains("|| readStoredAthleteContactEmail(athlete && athlete.Name)", html);
         Assert.Contains("removeSessionItem('contactEmail');", html);
         Assert.Contains("removeLocalItem('contactEmail');", html);
         Assert.Contains("accountEmail: readResultUploadContactEmail()", html);
@@ -443,6 +446,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
         Assert.Contains("function removeBrowserStorageItem(storageName, key)", html);
         Assert.Contains("const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);", successBody);
+        Assert.Contains("rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);", successBody);
         Assert.Contains("setSessionItem('contactEmail', reviewContactEmail);", successBody);
         Assert.Contains("setLocalItem('contactEmail', reviewContactEmail);", successBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", successBody);

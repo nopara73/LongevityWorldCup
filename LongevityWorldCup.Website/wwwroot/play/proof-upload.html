@@ -532,9 +532,28 @@
             return null;
         }
 
+        function getAthleteContactEmailStorageKey(athleteName) {
+            const name = typeof athleteName === 'string' ? athleteName.trim() : '';
+            return name ? 'contactEmailFor:' + name : null;
+        }
+
+        function readStoredAthleteContactEmail(athleteName) {
+            const key = getAthleteContactEmailStorageKey(athleteName);
+            return key ? normalizeContactEmail(getLocalItem(key)) : null;
+        }
+
+        function rememberAthleteContactEmail(athleteName, email) {
+            const key = getAthleteContactEmailStorageKey(athleteName);
+            const contactEmail = normalizeContactEmail(email);
+            if (key && contactEmail) {
+                setLocalItem(key, contactEmail);
+            }
+        }
+
         function readResultUploadContactEmail() {
             return normalizeContactEmail(athlete && athlete.AccountEmail)
                 || normalizeContactEmail(athlete && athlete.MediaContact)
+                || readStoredAthleteContactEmail(athlete && athlete.Name)
                 || readStoredContactEmail();
         }
 
@@ -753,6 +772,7 @@
                                 customAlert(nextStepMessage).then(() => {
                                     const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
                                     if (reviewContactEmail) {
+                                        rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);
                                         setSessionItem('contactEmail', reviewContactEmail);
                                         setLocalItem('contactEmail', reviewContactEmail);
                                     }
