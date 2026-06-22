@@ -758,7 +758,7 @@ public sealed class ApplicationOnboardingPageTests
 
         var cancelBody = html[cancelStart..cancelEnd];
         Assert.Contains("if (isProfileCropProcessing) return;", cancelBody);
-        Assert.Contains("cropper.destroy();", cancelBody);
+        Assert.Contains("try { cropper.destroy(); } catch (_) { }", cancelBody);
         Assert.Contains("cropper = null;", cancelBody);
         Assert.Contains("document.getElementById('uploadPart').style.display = '';", cancelBody);
         Assert.Contains("document.getElementById('croppingPart').style.display = 'none';", cancelBody);
