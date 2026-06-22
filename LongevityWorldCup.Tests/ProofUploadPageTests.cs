@@ -293,6 +293,11 @@ public sealed class ProofUploadPageTests
 
         Assert.Contains("const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';", html);
         Assert.Contains("window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse =>", html);
+        Assert.Contains("function isSubmissionAcceptedPaymentFailure(message)", html);
+        Assert.Contains("/^Application sent, but failed to create BTCPay invoice:/i.test(message.trim())", html);
+        Assert.Contains("if (isSubmissionAcceptedPaymentFailure(badResponse))", html);
+        Assert.Contains("'payment-unavailable'", html);
+        Assert.Contains("Your results were received, but the payment page could not be created. We will follow up by email.", html);
         Assert.DoesNotContain("response.text().then(badResponse =>", html);
     }
 
