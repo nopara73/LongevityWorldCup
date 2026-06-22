@@ -123,7 +123,8 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("if (data && typeof data === 'object' && !Array.isArray(data))", javascript);
         Assert.Contains("return messages.join('\\n');", javascript);
         Assert.DoesNotContain(".map(value => String(value || '').trim())", javascript);
-        Assert.Contains("window.readApplicationErrorMessage(response).then(badResponse =>", html);
+        Assert.Contains("const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';", html);
+        Assert.Contains("window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse =>", html);
         Assert.DoesNotContain("response.text().then(badResponse =>", html);
     }
 

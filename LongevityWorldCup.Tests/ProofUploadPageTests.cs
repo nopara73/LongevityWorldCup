@@ -258,7 +258,8 @@ public sealed class ProofUploadPageTests
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
 
-        Assert.Contains("window.readApplicationErrorMessage(response).then(badResponse =>", html);
+        Assert.Contains("const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';", html);
+        Assert.Contains("window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse =>", html);
         Assert.DoesNotContain("response.text().then(badResponse =>", html);
     }
 

@@ -801,7 +801,8 @@
                                 });
                             });
                         } else {
-                            window.readApplicationErrorMessage(response).then(badResponse => {
+                            const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
+                            window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
                                 void window.sendApplicationSubmissionReport(
                                     window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                         type: `HTTP ${response.status}`,

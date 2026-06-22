@@ -927,7 +927,8 @@
                                 window.location.href = '/review?from=edit-profile';
                             });
                         } else {
-                            return window.readApplicationErrorMessage(response).then(txt => {
+                            const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
+                            return window.readApplicationErrorMessage(response).catch(() => fallbackError).then(txt => {
                                 void window.sendApplicationSubmissionReport(
                                     window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                                         type: `HTTP ${response.status}`,
