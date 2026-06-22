@@ -308,7 +308,7 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
-    public async Task EditProfileSubmit_NormalizesPersonalLinkBeforePosting()
+    public async Task EditProfileSubmit_NormalizesPersonalLinkAndEmailShapedMediaContactBeforePosting()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -327,7 +327,12 @@ public sealed class EditProfilePageTests
 
         Assert.Contains("athlete.PersonalLink = normalizeOptionalUrl(personalLinkInput.value) || '';", beforeApplicantData);
         Assert.Contains("personalLinkInput.value = athlete.PersonalLink;", beforeApplicantData);
+        Assert.Contains("function normalizeMediaContact(value)", html);
+        Assert.Contains("return normalizeContactEmail(value) || normalizeEditText(value);", html);
+        Assert.Contains("athlete.MediaContact = normalizeMediaContact(mediaContactInput.value);", beforeApplicantData);
+        Assert.Contains("mediaContactInput.value = athlete.MediaContact;", beforeApplicantData);
         Assert.Contains("personalLink: athlete.PersonalLink || null,", submitBody);
+        Assert.Contains("mediaContact: athlete.MediaContact,", submitBody);
     }
 
     [Fact]

@@ -236,7 +236,7 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
-    public async Task ApplicationSubmit_NormalizesPersonalLinkBeforePosting()
+    public async Task ApplicationSubmit_NormalizesPersonalLinkAndEmailShapedMediaContactBeforePosting()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -258,9 +258,16 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const personalLinkInput = document.getElementById('personalLink');", finalValidationBody);
         Assert.Contains("const personalLink = normalizeOptionalUrl(personalLinkInput.value);", finalValidationBody);
         Assert.Contains("personalLinkInput.value = personalLink;", finalValidationBody);
+        Assert.Contains("function normalizeMediaContact(value)", html);
+        Assert.Contains("return normalizeContactEmail(value) || (typeof value === 'string' ? value.trim() : '');", html);
+        Assert.Contains("const mediaContactInput = document.getElementById('mediaContact');", collectBody);
+        Assert.Contains("const mediaContact = normalizeMediaContact(mediaContactInput.value);", collectBody);
+        Assert.Contains("mediaContactInput.value = mediaContact;", collectBody);
+        Assert.Contains("mediaContact: mediaContact,", collectBody);
         Assert.Contains("const personalLink = normalizeOptionalUrl(document.getElementById('personalLink').value);", collectBody);
         Assert.Contains("personalLink: personalLink,", collectBody);
         Assert.DoesNotContain("const personalLink = document.getElementById('personalLink').value.trim();", html);
+        Assert.DoesNotContain("const mediaContact = document.getElementById('mediaContact').value.trim();", html);
     }
 
     [Fact]
