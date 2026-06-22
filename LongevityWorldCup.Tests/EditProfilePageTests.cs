@@ -376,6 +376,8 @@ public sealed class EditProfilePageTests
         var flagSetupEnd = html.IndexOf("const athletesForFlagOptions", flagSetupStart, StringComparison.Ordinal);
         var flagListenerStart = html.IndexOf("flagInput.addEventListener('input', function ()", StringComparison.Ordinal);
         var flagListenerEnd = html.IndexOf("const terms = this.value.trim().split", flagListenerStart, StringComparison.Ordinal);
+        var selectFlagStart = html.IndexOf("function selectFlag(value)", StringComparison.Ordinal);
+        var selectFlagEnd = html.IndexOf("const mediaContactInput = document.getElementById('mediaContactInput');", selectFlagStart, StringComparison.Ordinal);
         var whySetupStart = html.IndexOf("const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');", StringComparison.Ordinal);
         var submitHandlerStart = html.IndexOf("// \u2014 SUBMIT CHANGE REQUEST \u2014", whySetupStart, StringComparison.Ordinal);
         var mediaSetupStart = html.IndexOf("const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');", submitHandlerStart, StringComparison.Ordinal);
@@ -389,6 +391,8 @@ public sealed class EditProfilePageTests
         Assert.True(flagSetupEnd > flagSetupStart);
         Assert.True(flagListenerStart >= 0);
         Assert.True(flagListenerEnd > flagListenerStart);
+        Assert.True(selectFlagStart >= 0);
+        Assert.True(selectFlagEnd > selectFlagStart);
         Assert.True(whySetupStart >= 0);
         Assert.True(submitHandlerStart > whySetupStart);
         Assert.True(mediaSetupStart > submitHandlerStart);
@@ -400,6 +404,7 @@ public sealed class EditProfilePageTests
 
         var flagSetupBody = html[flagSetupStart..flagSetupEnd];
         var flagListenerBody = html[flagListenerStart..flagListenerEnd];
+        var selectFlagBody = html[selectFlagStart..selectFlagEnd];
         var whySetupBody = html[whySetupStart..submitHandlerStart];
         var mediaSetupBody = html[mediaSetupStart..personalLinkListenerStart];
         var mediaAndWhyListenerBody = html[mediaListenerStart..whyListenerEnd];
@@ -409,6 +414,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("return typeof value === 'string' ? value.trim() : '';", html);
         Assert.Contains("if (normalizeEditText(athlete.Flag) !== normalizeEditText(originalAthlete.Flag))", flagSetupBody);
         Assert.Contains("if (normalizeEditText(flagInput.value) !== normalizeEditText(originalAthlete.Flag))", flagListenerBody);
+        Assert.Contains("if (normalizeEditText(value) !== normalizeEditText(originalAthlete.Flag))", selectFlagBody);
         Assert.Contains("if (normalizeEditText(athlete.Why) !== normalizeEditText(originalAthlete.Why))", whySetupBody);
         Assert.Contains("if (normalizeEditText(athlete.MediaContact) !== normalizeEditText(originalAthlete.MediaContact))", mediaSetupBody);
         Assert.Contains("if (normalizeEditText(mediaContactInput.value) !== normalizeEditText(originalAthlete.MediaContact))", mediaAndWhyListenerBody);
