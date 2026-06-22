@@ -483,6 +483,44 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public void InterviewRequestFailureLogs_DoNotIncludeRawEmailPlaceholders()
+    {
+        string? sourcePath = null;
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(
+                directory.FullName,
+                "LongevityWorldCup.Website",
+                "Controllers",
+                "ApplicationController.cs");
+            if (File.Exists(candidate))
+            {
+                sourcePath = candidate;
+                break;
+            }
+
+            directory = directory.Parent;
+        }
+
+        Assert.NotNull(sourcePath);
+
+        var source = File.ReadAllText(sourcePath);
+        var actionStart = source.IndexOf("public async Task<IActionResult> InterviewRequest", StringComparison.Ordinal);
+        var actionEnd = source.IndexOf("[HttpPost(\"payment-status\")]", actionStart, StringComparison.Ordinal);
+
+        Assert.True(actionStart >= 0);
+        Assert.True(actionEnd > actionStart);
+
+        var actionBody = source[actionStart..actionEnd];
+
+        Assert.DoesNotContain("{Email}", actionBody);
+        Assert.Contains("Failed to subscribe interview request email: {Error}", actionBody);
+        Assert.Contains("Failed to subscribe interview request email.", actionBody);
+        Assert.Contains("Failed to send interview request email.", actionBody);
+    }
+
+    [Fact]
     public void SubmissionConfirmationSubject_UsesResultUploadCopyForResultSubmissions()
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationSubject", BindingFlags.Static | BindingFlags.NonPublic);
