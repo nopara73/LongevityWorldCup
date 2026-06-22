@@ -1737,7 +1737,7 @@
 
             if (isUpdate && touchedBiomarkers.size === 0) {
                 document.getElementById('continueButton').classList.remove('show');
-                customAlert('😱 No new biomarker data entered! Cannot proceed!');
+                customAlert('Change at least one biomarker value before continuing.');
                 return;
             }
 
@@ -2466,7 +2466,7 @@
             syncFilledBiomarkersForNewApplication(['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']);
 
             if (isUpdate && touchedBiomarkers.size === 0) {
-                customAlert('😱 No new biomarker data entered! Cannot proceed!');
+                customAlert('Change at least one biomarker value before continuing.');
                 return;
             }
 
