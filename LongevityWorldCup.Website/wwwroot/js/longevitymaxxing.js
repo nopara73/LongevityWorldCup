@@ -19,6 +19,116 @@
         { key: "nutrition", icon: "fa-bowl-food", title: "Nutrition", text: "By your own standards, did you eat healthy yesterday?" },
         { key: "vices", icon: "fa-shield-halved", title: "Vices", text: "Were your vices under control yesterday?" }
     ];
+    const LMX_QUOTES = {
+        sleep: [
+            ["Sleep is still a work in progress, immensely better than it's been. Going to sleep at the same time every night, trying to sleep as much as I physically can, that is almost a constant.","Michael Lustgarten","michael_lustgarten","https://youtu.be/KFfGdf20-1g"],
+            ["Sleep quality is immeasurably better, and nothing affects my mental health more than a great night of sleep.","Michael Lustgarten","michael_lustgarten","https://youtu.be/KFfGdf20-1g"],
+            ["Your day obviously starts with what goes on the night before. Be bored, do nothing. No screens, no bright lights. Wind down properly.","Wen Z","wen_z","https://www.youtube.com/watch?v=Bf6c7JE5xX4"],
+            ["Getting good sleep and enough sleep will literally make you way more efficient the next day and every other day after that.","Wen Z","wen_z","https://www.youtube.com/watch?v=Bf6c7JE5xX4"],
+            ["Sleep is probably the weakest part of my approach, but I try to be very consistent with it.","Wen Z","wen_z","https://www.youtube.com/watch?v=Bf6c7JE5xX4"],
+            ["The single most effective thing for my sleep actually was the morning walk: starting the walk first thing in the morning to get the sunlight and get the exercise.","Inka Land","inka_land","https://www.youtube.com/watch?v=KP880OKbYrw"],
+            ["The morning walk is a very important habit for the early day energy levels that I have. It has increased that a lot.","Inka Land","inka_land","https://www.youtube.com/watch?v=KP880OKbYrw"],
+            ["As regular as possible is challenging when there's travel involved or social engagements, but one of the most important parts of sleep hygiene now is to keep that regular bedtime.","HealthOptimisers","healthoptimisers","https://youtu.be/Iwno9u6AHxs"],
+            ["I'd love people to give as much focus to sleep as I have learnt to do. That doesn't need to be with any tools, but to have a sleep routine.","HealthOptimisers","healthoptimisers","https://youtu.be/Iwno9u6AHxs"],
+            ["For me, the focus to sleep is something that should not be underestimated compared to nutrition and all these other things.","HealthOptimisers","healthoptimisers","https://youtu.be/Iwno9u6AHxs"],
+            ["When I get my pattern down and I'm consistent, same time every night, I sleep like a rock.","Richard Heck","richard_heck","https://youtu.be/RaEUPU1Oej4"],
+            ["My sleep schedule is pretty basic. It's just the same time every night, and perfect darkness is really nice.","Richard Heck","richard_heck","https://youtu.be/RaEUPU1Oej4"],
+            ["I definitely like the idea of separating from a device in the evening. If I'm listening to a simple story, I usually will just go right to sleep.","Cher","cher","https://youtu.be/H0kWwC_z2v0"],
+            ["I had a long story of trying to fix a broken sleep. Right now, I finally fixed my sleep.","Max","max","https://www.youtube.com/watch?v=P0H3XvBUte0"],
+            ["I like to have good quality sleep, but I know that it also fluctuates. I just try to optimize as best as I can.","Ilhui","ilhui","https://www.youtube.com/watch?v=qFWWghmFSCc"]
+        ],
+        exercise: [
+            ["I had to put in the work: working out, having a clean diet, getting rid of all the bad things in my life that had been a burden on my body. That allowed me to actually excel.","Keith Blondin","keith_blondin","https://youtu.be/hNpXAXH9bT0"],
+            ["I didn't have any equipment. I was just doing what I could. Then I started seeing some results and just kept building upon that.","Keith Blondin","keith_blondin","https://youtu.be/hNpXAXH9bT0"],
+            ["I think the biggest one is just move. Don't just sit all the time. Don't give an excuse that you're at your desk or you're too busy.","Mel C","mel_c","https://youtu.be/4hFzzMfV2To"],
+            ["It doesn't have to be a big movement to start with. All these small steps count: walking a little more, taking the stairs a little bit.","Mel C","mel_c","https://youtu.be/4hFzzMfV2To"],
+            ["Fifteen minutes would still make a difference rather than zero minutes. To me, movement is very important.","Mel C","mel_c","https://youtu.be/4hFzzMfV2To"],
+            ["You can get a pair of shoes, step outside, and start running. You don't need to go on a health retreat. You don't need to pay thousands of dollars.","HealthOptimisers","healthoptimisers","https://youtu.be/Iwno9u6AHxs"],
+            ["Movement is something that I have done every decade of my life. It's just the most consistent thing that I've always done.","Cher","cher","https://youtu.be/H0kWwC_z2v0"],
+            ["I don't really have a day off where I do absolutely nothing. I feel like it's good to just kind of move every day.","Richard Heck","richard_heck","https://youtu.be/RaEUPU1Oej4"],
+            ["The first and very important principle is consistency. I have to consistently work out, and for five years I did not skip a single workout.","Philipp Schmeing","philipp_schmeing","https://youtu.be/2V-TPK4Ni0g"],
+            ["If you don't have this competitive mindset against yourself a week ago or a month ago, maybe at one point you stop working out altogether.","Philipp Schmeing","philipp_schmeing","https://youtu.be/2V-TPK4Ni0g"],
+            ["If you start working out, it is a good idea to do one set less than to injure yourself.","Philipp Schmeing","philipp_schmeing","https://youtu.be/2V-TPK4Ni0g"],
+            ["I went ahead for 40 or 50 days with zero equipment, using plastic water bottles for dumbbells.","Zdenek Sipek","zdenek_sipek","https://youtu.be/Ma13R7YRcho"],
+            ["It doesn't matter where you come from, what your condition is, or what your age is. You always have an opportunity to be the best version of yourself.","Amandeep","amandeep","https://youtu.be/Wz0nElWOwO0"],
+            ["You don't necessarily have to do fast movements to stress out your heart.","Amandeep","amandeep","https://youtu.be/Wz0nElWOwO0"],
+            ["I do it to 70% of capacity. I reserve 30% of my energy, which I then spread out through the rest of my day.","Amandeep","amandeep","https://youtu.be/Wz0nElWOwO0"],
+            ["If you continue doing the exercise as long as you can, it's maybe more important: the consistency of just having a reserve of it.","Ricardo di Lazzaro Filho","ricardo_di_lazzaro_filho","https://www.youtube.com/watch?v=AMsDDM76wXg"],
+            ["I started an exercise routine by doing five minutes, three times a week, and I slowly built it up.","Richard Heck","richard_heck","https://youtu.be/RaEUPU1Oej4"],
+            ["If your habits take too much willpower, they're probably not going to be long-term sustainable. Keep it in a comfortable range, something attainable for long periods of time.","Angela Buzzeo","angela_buzzeo","https://youtu.be/AY_ZgRqApCE"]
+        ],
+        nutrition: [
+            ["I don't eat perfect at all, but there's a lot of thought that goes into it. Pretty much everything I eat is what I make and pick and hand select.","Cher","cher","https://youtu.be/H0kWwC_z2v0"],
+            ["My espresso is like a treat. I believe there's space for having what you love.","Cher","cher","https://youtu.be/H0kWwC_z2v0"],
+            ["I'm not going to totally deny myself, but I have to control that to work on the body composition I seek to have and maintain.","Cher","cher","https://youtu.be/H0kWwC_z2v0"],
+            ["If I'm going to eat something like that, I'm going to eat something really good. If you're going to eat bad food, limit it to a special occasion.","Richard Heck","richard_heck","https://youtu.be/RaEUPU1Oej4"],
+            ["I've eaten so much good food in the day. If I ate some bad food now, it's not that big of a deal.","Richard Heck","richard_heck","https://youtu.be/RaEUPU1Oej4"],
+            ["I don't subscribe to the idea that you need to have a 100% strict diet, at least not all the time.","Siim Land","siim_land","https://www.youtube.com/watch?v=ogy7l0nka-Y"],
+            ["You can make a healthy diet work even with small amounts of what people would consider unhealthy foods.","Siim Land","siim_land","https://www.youtube.com/watch?v=ogy7l0nka-Y"],
+            ["I believe in flexibility, and I don't believe that rigid lifestyles can help you to a sustainable outcome long term.","Ilhui","ilhui","https://www.youtube.com/watch?v=qFWWghmFSCc"],
+            ["It's the sum of everything: these consistent habits that you have for years, all these little habits that become part of your lifestyle.","Ilhui","ilhui","https://www.youtube.com/watch?v=qFWWghmFSCc"],
+            ["Whole foods, tasty foods, not processed foods, and no sugar. At some point your body realizes: this is good for me.","Philipp Schmeing","philipp_schmeing","https://youtu.be/2V-TPK4Ni0g"],
+            ["Every weekday I'm eating the same thing, but I'm always looking forward to it because for me it tastes great.","Philipp Schmeing","philipp_schmeing","https://youtu.be/2V-TPK4Ni0g"],
+            ["You think if you don't do 110% you die. It's not true. If you do an 80% approach, you're already fine.","Philipp Schmeing","philipp_schmeing","https://youtu.be/2V-TPK4Ni0g"],
+            ["I have a backup strategy where I don't just jump all the way to hot dogs and pizza, but gradually make things easier to eat without sacrificing too much.","Max","max","https://www.youtube.com/watch?v=P0H3XvBUte0"],
+            ["Find rewards that create minor trade-offs, but actually help you keep going long-term, so you don't relapse.","Max","max","https://www.youtube.com/watch?v=P0H3XvBUte0"],
+            ["There are options where you can choose to be healthier. It's just making the right choices.","Mel C","mel_c","https://youtu.be/4hFzzMfV2To"],
+            ["If you do it once in a while, it's okay as long as you don't do it all the time.","Mel C","mel_c","https://youtu.be/4hFzzMfV2To"],
+            ["If you don't understand anything in the label, drop it. It has to be whole foods, or the label has to be understandable.","Amandeep","amandeep","https://youtu.be/Wz0nElWOwO0"]
+        ],
+        vices: [
+            ["The wrong lifestyle decisions I've made were my decisions. Temptations are temptations, but nothing feels better than feeling healthy.","Wen Z","wen_z","https://www.youtube.com/watch?v=Bf6c7JE5xX4"],
+            ["Nothing feels better than waking up and not feeling groggy, not wanting to doom scroll in bed for two hours, and having no fatigue during the day.","Wen Z","wen_z","https://www.youtube.com/watch?v=Bf6c7JE5xX4"],
+            ["When I started doing more sports and more work, you see you are not that efficient in your daily life and you are not performant the next day.","Philipp Schmeing","philipp_schmeing","https://youtu.be/2V-TPK4Ni0g"],
+            ["At some point we realized it's not worth it to have the hangover the next day. The next day is gone.","Philipp Schmeing","philipp_schmeing","https://youtu.be/2V-TPK4Ni0g"],
+            ["If I had one drink, my HRV goes from the 120s to the 50s or 60s. It's a terrible night's sleep for me.","Richard Heck","richard_heck","https://youtu.be/RaEUPU1Oej4"],
+            ["Alcohol is one of the things I've given up over time because I could see it in the data that it's not good for me.","Richard Heck","richard_heck","https://youtu.be/RaEUPU1Oej4"],
+            ["The things they have in common are the things that they don't do. It's the things that they remove.","Dave Pascoe","dave_pascoe","https://youtu.be/b3D1k1-w9K4"],
+            ["Our pace of aging is really based on what we remove rather than what we're adding or what we're doing.","Dave Pascoe","dave_pascoe","https://youtu.be/b3D1k1-w9K4"],
+            ["Getting rid of all the bad things in my life that had been a burden on my body allowed me to actually excel.","Keith Blondin","keith_blondin","https://youtu.be/hNpXAXH9bT0"],
+            ["I have my system and identity going with it. I don't really think about exercising, eating right, junk food, or alcohol. I am in control now.","Zdenek Sipek","zdenek_sipek","https://youtu.be/Ma13R7YRcho"],
+            ["So I guess junk food is a vice, but I've learned to minimize it. I wouldn't say conquer it; I've learned to manage it.","Michael Lustgarten","michael_lustgarten","https://youtu.be/KFfGdf20-1g"],
+            ["If I go completely cold turkey with any junk, it sets me up for one of these binges, and I don't want that. That's the antithesis of optimal health.","Michael Lustgarten","michael_lustgarten","https://youtu.be/KFfGdf20-1g"],
+            ["How do you get off any kind of addiction? You find something better to do.","Richard Heck","richard_heck","https://youtu.be/RaEUPU1Oej4"],
+            ["Find rewards that create minor trade-offs, but actually help you keep going long-term, so you don't relapse.","Max","max","https://www.youtube.com/watch?v=P0H3XvBUte0"]
+        ],
+        mindset: [
+            ["If there is a competitive spirit in you, it never gives up. It always bites back. Once you get bitten by it, it always stays there.","Amandeep","amandeep","https://youtu.be/Wz0nElWOwO0"],
+            ["I hope this story inspires folks who think, because of a chronic condition, life is over. That's not the case. You always have an opportunity.","Amandeep","amandeep","https://youtu.be/Wz0nElWOwO0"],
+            ["If you do not take away money from longevity, you take an asset even more important than money, which is health.","Amandeep","amandeep","https://youtu.be/Wz0nElWOwO0"],
+            ["There's no shortcut with health. It's a long-term game. It's not a sprint; it's a marathon.","Amandeep","amandeep","https://youtu.be/Wz0nElWOwO0"],
+            ["Life is not about perfection. It's about probability. There's nothing certain about life; what we want is to improve the probability.","Amandeep","amandeep","https://youtu.be/Wz0nElWOwO0"],
+            ["If your habits take too much willpower, they're probably not going to be long-term sustainable. Keep it in a comfortable range, something attainable for long periods of time.","Angela Buzzeo","angela_buzzeo","https://youtu.be/AY_ZgRqApCE"],
+            ["It's all a habit and natural, so it's not willpower.","Angela Buzzeo","angela_buzzeo","https://youtu.be/AY_ZgRqApCE"],
+            ["I realized it was just time now to get back to doing those healthier habits again. So I did.","Dave Pascoe","dave_pascoe","https://youtu.be/b3D1k1-w9K4"],
+            ["What's the point of longevity if you're not living your life?","Dave Pascoe","dave_pascoe","https://youtu.be/b3D1k1-w9K4"],
+            ["Someday you're going to be older. When you get there, are you going to be where you want to be? Do you have a purpose? Are you going towards something?","Dave Pascoe","dave_pascoe","https://youtu.be/b3D1k1-w9K4"],
+            ["Discipline brings freedom. For the most part, I'm living fairly disciplined.","HealthOptimisers","healthoptimisers","https://youtu.be/Iwno9u6AHxs"],
+            ["I believe in friends, family, connection, enjoying myself, growing, learning, and making mistakes as well. That's all part of the journey.","HealthOptimisers","healthoptimisers","https://youtu.be/Iwno9u6AHxs"],
+            ["Health optimization comes back to the basics: exercise, sleep, nutrition, recovery.","HealthOptimisers","healthoptimisers","https://youtu.be/Iwno9u6AHxs"],
+            ["If we see stress as an opportunity for growth, it comes back to mindset: learning how to cope with challenges can make us more resilient.","Ilhui","ilhui","https://www.youtube.com/watch?v=qFWWghmFSCc"],
+            ["It's the approach on how we tackle challenges that can help us keep waking up and doing things we know are going to help us keep going.","Ilhui","ilhui","https://www.youtube.com/watch?v=qFWWghmFSCc"],
+            ["It's just these little things that I do every day that are part of a lifestyle already.","Ilhui","ilhui","https://www.youtube.com/watch?v=qFWWghmFSCc"],
+            ["I do believe in flexibility, and I don't believe rigid lifestyles can help you to a sustainable outcome long term.","Ilhui","ilhui","https://www.youtube.com/watch?v=qFWWghmFSCc"],
+            ["What I do on a day-by-day basis really makes me feel good. I don't think it's perfect by any means; it's just the habits that I enjoy doing.","Inka Land","inka_land","https://www.youtube.com/watch?v=KP880OKbYrw"],
+            ["I started meditation. I started changing my diet. I started reading the science myself. I started applying, and gradually, little by little, I tested a lot of habits.","Inka Land","inka_land","https://www.youtube.com/watch?v=KP880OKbYrw"],
+            ["Gradually, I started identifying triggers and causes, and I was able to find a way of life that wouldn't cause me migraines.","Inka Land","inka_land","https://www.youtube.com/watch?v=KP880OKbYrw"],
+            ["I realized how many things in the world can be changed by a lifestyle.","Inka Land","inka_land","https://www.youtube.com/watch?v=KP880OKbYrw"],
+            ["This is a journey. Time passes and you keep learning and changing things and evolving.","Juan Robalino","juan_robalino","https://youtu.be/mYi8JlEWDYI"],
+            ["What is difficult is to be consistently lower. You have to have good habits as a lifestyle. It's not that you do it for one day and one week and that's it.","Juan Robalino","juan_robalino","https://youtu.be/mYi8JlEWDYI"],
+            ["I didn't really start this health journey until I hit 55.","Keith Blondin","keith_blondin","https://youtu.be/hNpXAXH9bT0"],
+            ["I'm just working on my health and making myself the best possible.","Keith Blondin","keith_blondin","https://youtu.be/hNpXAXH9bT0"],
+            ["Everybody wins because we're all getting better.","Keith Blondin","keith_blondin","https://youtu.be/hNpXAXH9bT0"],
+            ["The goal is to do it for the rest of your life, however long you will live.","Markus Mattiasson","markus_mattiasson","https://www.youtube.com/watch?v=RDg2T_ypNDE"],
+            ["A lot can be achieved with relatively simple means through just diet and lifestyle.","Markus Mattiasson","markus_mattiasson","https://www.youtube.com/watch?v=RDg2T_ypNDE"],
+            ["Resilience is the most important thing, and avoiding frailty is what we want to pursue.","Markus Mattiasson","markus_mattiasson","https://www.youtube.com/watch?v=RDg2T_ypNDE"],
+            ["Execution is taking time. Every time I adjust my routine or diet, I need to learn a new cooking routine or fitness routine. That adjustment takes effort and willpower.","Max","max","https://www.youtube.com/watch?v=P0H3XvBUte0"],
+            ["Find rewards that help you keep going long term, so you don't relapse.","Max","max","https://www.youtube.com/watch?v=P0H3XvBUte0"],
+            ["The mindset is critical. We shouldn't focus just on the body. Identify with the goal, so you are a longevity athlete.","Zdenek Sipek","zdenek_sipek","https://youtu.be/Ma13R7YRcho"]
+        ]
+    };
+    const QUOTE_BUCKETS = ["sleep", "exercise", "nutrition", "vices", "mindset"];
+    const CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT = 100;
     const ATHLETE_PLACEHOLDER_IMAGE = "/assets/content-images/headshot.webp";
     const FALLBACK_TIME_ZONES = [
         "UTC",
@@ -62,6 +172,7 @@
     const athleteSelectors = new Map();
     let athleteDirectory = [];
     let athleteDirectoryPromise = null;
+    let quoteAthleteResults = [];
     let boardScrollObserver = null;
     let boardScrollObservedElement = null;
     let dashboardScrollObserver = null;
@@ -76,6 +187,7 @@
     let timeZoneCountryCodes = null;
     let regionDisplayNames = null;
     let callCountdownTimer = null;
+    let quoteDialogLastFocus = null;
 
     document.addEventListener("DOMContentLoaded", init);
 
@@ -1837,11 +1949,146 @@
         </div>`;
     }
 
+    function selectQuoteBucket(draft) {
+        const values = QUESTIONS.map(question => ({
+            key: question.key,
+            value: clampHabitValue(draft?.[question.key])
+        }));
+        if (values.every(item => item.value === 2)) return null;
+
+        const minValue = Math.min(...values.map(item => item.value));
+        const worst = values.filter(item => item.value === minValue);
+        return worst.length === 1 ? worst[0].key : "mindset";
+    }
+
+    async function showRandomCheckInQuote(bucket) {
+        const quote = pickQuote(bucket);
+        if (!quote) return;
+
+        const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        showCheckInQuoteDialog(quote, null, token);
+
+        try {
+            await loadAthleteDirectory();
+        } catch (_) {
+        }
+
+        const athlete = findQuoteAthlete(quote);
+        updateCheckInQuoteDialogRank(quote, computeQuoteAthleteBestRank(athlete), token);
+    }
+
+    function pickQuote(bucket) {
+        const safeBucket = QUOTE_BUCKETS.includes(bucket) ? bucket : "mindset";
+        const rows = LMX_QUOTES[safeBucket] || [];
+        if (!rows.length) return null;
+
+        const row = rows[Math.floor(Math.random() * rows.length)];
+        return {
+            bucket: safeBucket,
+            text: row[0],
+            athleteName: row[1],
+            athleteSlug: row[2],
+            youtubeUrl: row[3]
+        };
+    }
+
+    function findQuoteAthlete(quote) {
+        const slug = normalizeAthleteSlug(quote?.athleteSlug);
+        if (!slug || !quoteAthleteResults.length) return null;
+        return quoteAthleteResults.find(athlete => normalizeAthleteSlug(athlete.slug) === slug) || null;
+    }
+
+    function showCheckInQuoteDialog(quote, bestRank, token) {
+        const dialog = ensureCheckInQuoteDialog();
+        const text = dialog.querySelector("#lmxQuoteDialogText");
+        const source = dialog.querySelector("#lmxQuoteDialogSource");
+        const ok = dialog.querySelector("#lmxQuoteDialogOk");
+        if (!text || !source || !ok) return;
+
+        quoteDialogLastFocus = document.activeElement;
+        dialog.dataset.quoteToken = token || "";
+        text.textContent = quote.text || "";
+        source.innerHTML = renderCheckInQuoteSourceHtml(quote, bestRank);
+        dialog.hidden = false;
+        document.body.classList.add("lmx-quote-open");
+        requestAnimationFrame(() => ok.focus({ preventScroll: true }));
+    }
+
+    function ensureCheckInQuoteDialog() {
+        let dialog = document.getElementById("lmxQuoteDialog");
+        if (dialog) return dialog;
+
+        document.body.insertAdjacentHTML("beforeend", `
+            <div id="lmxQuoteDialog" class="lmx-quote-dialog" role="dialog" aria-modal="true" aria-label="Challenge quote" hidden>
+                <div class="lmx-quote-dialog-backdrop" aria-hidden="true"></div>
+                <div class="lmx-quote-dialog-card">
+                    <blockquote id="lmxQuoteDialogText"></blockquote>
+                    <div id="lmxQuoteDialogSource" class="lmx-quote-source"></div>
+                    <button id="lmxQuoteDialogOk" class="lmx-button" type="button">OK</button>
+                </div>
+            </div>`);
+        dialog = document.getElementById("lmxQuoteDialog");
+        const ok = dialog.querySelector("#lmxQuoteDialogOk");
+        ok.addEventListener("click", closeCheckInQuoteDialog);
+        dialog.addEventListener("keydown", event => {
+            if (event.key !== "Tab") return;
+            event.preventDefault();
+            ok.focus({ preventScroll: true });
+        });
+        return dialog;
+    }
+
+    function updateCheckInQuoteDialogRank(quote, bestRank, token) {
+        const dialog = document.getElementById("lmxQuoteDialog");
+        if (!dialog || dialog.hidden || dialog.dataset.quoteToken !== token) return;
+
+        const source = dialog.querySelector("#lmxQuoteDialogSource");
+        if (source) source.innerHTML = renderCheckInQuoteSourceHtml(quote, bestRank);
+    }
+
+    function closeCheckInQuoteDialog() {
+        const dialog = document.getElementById("lmxQuoteDialog");
+        if (dialog) {
+            dialog.hidden = true;
+            delete dialog.dataset.quoteToken;
+        }
+        document.body.classList.remove("lmx-quote-open");
+        try {
+            quoteDialogLastFocus?.focus?.({ preventScroll: true });
+        } catch (_) {
+        }
+        quoteDialogLastFocus = null;
+    }
+
+    function renderCheckInQuoteSourceHtml(quote, bestRank) {
+        const athleteSlug = normalizeAthleteSlug(quote.athleteSlug);
+        const athleteName = quote.athleteName || "Longevity athlete";
+        const athlete = athleteSlug
+            ? `<a href="/athlete/${escAttr(athleteSlug)}" target="_blank" rel="noopener noreferrer">${esc(athleteName)}</a>`
+            : `<span>${esc(athleteName)}</span>`;
+        const rank = formatQuoteRankText(bestRank);
+        const youtube = quote.youtubeUrl
+            ? `<a href="${escAttr(quote.youtubeUrl)}" target="_blank" rel="noopener noreferrer">YouTube</a>`
+            : "";
+        return [
+            athlete,
+            rank ? `<span>${esc(rank)}</span>` : "",
+            youtube
+        ].filter(Boolean).join(`<span class="lmx-quote-source-separator" aria-hidden="true">-</span>`);
+    }
+
+    function formatQuoteRankText(bestRank) {
+        if (!bestRank || !Number.isFinite(bestRank.rank)) return "";
+        const label = String(bestRank.leagueLabel || bestRank.leagueName || "Ultimate League").trim();
+        return `#${Math.trunc(bestRank.rank)} in ${label || "Ultimate League"}`;
+    }
+
     async function submitCheckIn(form) {
         if (!accessToken) return;
         if (!hasCheckInChanged(form)) return;
         await withButton(form.querySelector("button[type='submit']"), async () => {
             const draft = collectCheckInDraft(form);
+            const quoteBucket = selectQuoteBucket(draft);
             const notePhotos = getPendingNotePhotos(form);
             const payload = {
                 accessToken,
@@ -1860,6 +2107,7 @@
                 .sort((a, b) => b.challengeDay - a.challengeDay)[0];
             selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
             renderAll();
+            if (quoteBucket) void showRandomCheckInQuote(quoteBucket);
         }, "Saving...");
     }
 
@@ -2191,7 +2439,9 @@
         athleteDirectoryPromise = fetch("/api/data/athletes")
             .then(response => response.ok ? response.json() : [])
             .then(data => {
-                athleteDirectory = (Array.isArray(data) ? data : [])
+                const athletes = Array.isArray(data) ? data : [];
+                quoteAthleteResults = buildQuoteAthleteResults(athletes);
+                athleteDirectory = athletes
                     .map(a => ({
                         name: String(a.DisplayName || a.Name || "").trim(),
                         legalName: String(a.Name || "").trim(),
@@ -2210,6 +2460,677 @@
             });
 
         return athleteDirectoryPromise;
+    }
+
+    function buildQuoteAthleteResults(athletes) {
+        const rows = (Array.isArray(athletes) ? athletes : [])
+            .map(buildQuoteAthleteRankRow)
+            .filter(Boolean)
+            .sort(compareQuoteAthleteRank);
+
+        rows.forEach((athlete, index) => {
+            athlete.rank = index + 1;
+        });
+        assignQuoteBestRankCandidates(rows);
+        return rows;
+    }
+
+    function buildQuoteAthleteRankRow(athlete) {
+        const slug = String(athlete?.AthleteSlug || "").trim();
+        const name = String(athlete?.DisplayName || athlete?.Name || "").trim();
+        const legalName = String(athlete?.Name || "").trim();
+        const dob = parseQuoteDateOfBirth(athlete?.DateOfBirth);
+        if (!slug || !name || !dob) return null;
+
+        const now = new Date();
+        const chronologicalAge = calculateQuoteAgeAtDate(dob, now);
+        const phenoStats = calculateQuotePhenoStats(athlete, dob, chronologicalAge);
+        const bortzStats = calculateQuoteBortzStats(athlete, dob);
+        const crowdAge = toFiniteNumber(athlete.CrowdAge);
+        const crowdCount = Math.max(0, Math.trunc(toFiniteNumber(athlete.CrowdCount) || 0));
+        const crowdAgeReduction = Number.isFinite(crowdAge) && Number.isFinite(chronologicalAge)
+            ? crowdAge - chronologicalAge
+            : null;
+        const generation = typeof window.getGeneration === "function"
+            ? window.getGeneration(dob.getFullYear())
+            : resolveQuoteGeneration(dob.getFullYear());
+
+        return {
+            name,
+            legalName,
+            slug,
+            dateOfBirth: dob,
+            chronologicalAge,
+            crowdAge,
+            crowdCount,
+            crowdAgeReduction,
+            lowestBortzAge: bortzStats.lowestBortzAge,
+            chronoAtLowestBortzAge: bortzStats.chronoAtLowestBortzAge,
+            bortzAgeReduction: bortzStats.bortzAgeReduction,
+            bortzAgeImprovement: Number.isFinite(athlete.BortzAgeImprovementFromWorst)
+                ? Number(athlete.BortzAgeImprovementFromWorst)
+                : bortzStats.bortzAgeImprovement,
+            lowestPhenoAge: phenoStats.lowestPhenoAge,
+            chronoAtLowestPhenoAge: phenoStats.chronoAtLowestPhenoAge,
+            ageReduction: phenoStats.ageReduction,
+            ageReductionPercent: phenoStats.ageReductionPercent,
+            phenoAgeImprovement: Number.isFinite(athlete.PhenoAgeImprovementFromWorst)
+                ? Number(athlete.PhenoAgeImprovementFromWorst)
+                : phenoStats.phenoAgeImprovement,
+            division: String(athlete.Division || "").trim(),
+            generation,
+            exclusiveLeague: String(athlete.ExclusiveLeague || "").trim(),
+            podcastLink: String(athlete.PodcastLink || "").trim(),
+            bestRankCandidates: []
+        };
+    }
+
+    function calculateQuotePhenoStats(athlete, dob, chronologicalAge) {
+        let lowestPhenoAge = Infinity;
+        let chronoAtLowestPhenoAge = chronologicalAge;
+        const phenoSubmissionAges = quoteBiomarkers(athlete)
+            .filter(isQuoteCompleteBiomarkerSet)
+            .map((entry, index) => {
+                const submittedAt = parseQuoteDate(entry.Date) || new Date();
+                const ageAtEntry = calculateQuoteAgeAtDate(dob, submittedAt);
+                const values = [
+                    ageAtEntry,
+                    entry.AlbGL,
+                    entry.CreatUmolL,
+                    entry.GluMmolL,
+                    Math.log(entry.CrpMgL / 10),
+                    entry.Wbc1000cellsuL,
+                    entry.LymPc,
+                    entry.McvFL,
+                    entry.RdwPc,
+                    entry.AlpUL
+                ];
+                const phenoAge = window.PhenoAge && typeof window.PhenoAge.calculatePhenoAge === "function"
+                    ? window.PhenoAge.calculatePhenoAge(values)
+                    : NaN;
+                if (Number.isFinite(phenoAge) && phenoAge < lowestPhenoAge) {
+                    lowestPhenoAge = phenoAge;
+                    chronoAtLowestPhenoAge = ageAtEntry;
+                }
+                return { submittedAt, index, phenoAge };
+            })
+            .filter(result => Number.isFinite(result.phenoAge));
+
+        if (!Number.isFinite(lowestPhenoAge)) {
+            lowestPhenoAge = chronologicalAge;
+            chronoAtLowestPhenoAge = chronologicalAge;
+        }
+
+        const ageReduction = Number.isFinite(lowestPhenoAge) && Number.isFinite(chronoAtLowestPhenoAge)
+            ? lowestPhenoAge - chronoAtLowestPhenoAge
+            : null;
+        const ageReductionPercent = Number.isFinite(lowestPhenoAge) && Number.isFinite(chronoAtLowestPhenoAge) && chronoAtLowestPhenoAge > 0
+            ? (1 - lowestPhenoAge / chronoAtLowestPhenoAge) * 100
+            : null;
+        let phenoAgeImprovement = null;
+        if (phenoSubmissionAges.length >= 2) {
+            const latest = phenoSubmissionAges.slice().sort(compareQuoteSubmissionDate).at(-1);
+            const worst = Math.max(...phenoSubmissionAges.map(result => result.phenoAge));
+            phenoAgeImprovement = latest.phenoAge - worst;
+        }
+
+        return {
+            lowestPhenoAge,
+            chronoAtLowestPhenoAge,
+            ageReduction,
+            ageReductionPercent,
+            phenoAgeImprovement
+        };
+    }
+
+    function calculateQuoteBortzStats(athlete, dob) {
+        let lowestBortzAge = null;
+        let chronoAtLowestBortzAge = null;
+        let bortzAgeReduction = null;
+        let bortzAgeImprovement = null;
+        let bortzMin = Infinity;
+
+        const bortzSubmissionAges = quoteBiomarkers(athlete)
+            .filter(isQuoteCompleteBortzBiomarkerSet)
+            .map((entry, index) => {
+                const submittedAt = parseQuoteDate(entry.Date) || new Date();
+                const ageAtEntry = calculateQuoteAgeAtDate(dob, submittedAt);
+                const values = buildQuoteBortzValues(entry, ageAtEntry);
+                const bortzAge = window.BortzAge && typeof window.BortzAge.calculateBortzAge === "function"
+                    ? window.BortzAge.calculateBortzAge(ageAtEntry, values)
+                    : NaN;
+                if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
+                    bortzMin = bortzAge;
+                    chronoAtLowestBortzAge = ageAtEntry;
+                }
+                return { submittedAt, index, bortzAge };
+            })
+            .filter(result => Number.isFinite(result.bortzAge));
+
+        if (Number.isFinite(bortzMin) && Number.isFinite(chronoAtLowestBortzAge)) {
+            lowestBortzAge = bortzMin;
+            bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
+        }
+
+        if (bortzSubmissionAges.length >= 2) {
+            const latest = bortzSubmissionAges.slice().sort(compareQuoteSubmissionDate).at(-1);
+            const worst = Math.max(...bortzSubmissionAges.map(result => result.bortzAge));
+            bortzAgeImprovement = latest.bortzAge - worst;
+        }
+
+        return {
+            lowestBortzAge,
+            chronoAtLowestBortzAge,
+            bortzAgeReduction,
+            bortzAgeImprovement
+        };
+    }
+
+    function quoteBiomarkers(athlete) {
+        return Array.isArray(athlete?.Biomarkers) ? athlete.Biomarkers : [];
+    }
+
+    function isQuoteCompleteBiomarkerSet(entry) {
+        const values = [
+            entry?.Wbc1000cellsuL,
+            entry?.LymPc,
+            entry?.McvFL,
+            entry?.RdwPc,
+            entry?.AlbGL,
+            entry?.AlpUL,
+            entry?.CreatUmolL,
+            entry?.GluMmolL,
+            entry?.CrpMgL
+        ];
+        return values.every(Number.isFinite) && entry.CrpMgL > 0;
+    }
+
+    function isQuoteCompleteBortzBiomarkerSet(entry) {
+        if (!entry || !entry.Date) return false;
+        const values = [
+            entry.AlbGL,
+            entry.AlpUL,
+            entry.UreaMmolL,
+            entry.CholesterolMmolL,
+            entry.CreatUmolL,
+            entry.CystatinCMgL,
+            entry.Hba1cMmolMol,
+            entry.CrpMgL,
+            entry.GgtUL,
+            entry.Rbc10e12L,
+            entry.McvFL,
+            entry.RdwPc,
+            entry.Wbc1000cellsuL,
+            entry.MonocytePc,
+            entry.NeutrophilPc,
+            entry.LymPc,
+            entry.AltUL,
+            entry.ShbgNmolL,
+            entry.VitaminDNmolL,
+            entry.GluMmolL,
+            entry.MchPg,
+            entry.ApoA1GL
+        ];
+        return values.every(Number.isFinite) &&
+            entry.CrpMgL > 0 &&
+            entry.GgtUL > 0 &&
+            entry.AltUL > 0 &&
+            entry.ShbgNmolL > 0 &&
+            entry.VitaminDNmolL > 0;
+    }
+
+    function buildQuoteBortzValues(entry, ageAtEntry) {
+        const wbc = Number(entry.Wbc1000cellsuL);
+        const monocyteCount = wbc * Number(entry.MonocytePc) / 100;
+        const neutrophilCount = wbc * Number(entry.NeutrophilPc) / 100;
+        return [
+            ageAtEntry,
+            entry.AlbGL,
+            entry.AlpUL,
+            entry.UreaMmolL,
+            entry.CholesterolMmolL,
+            entry.CreatUmolL,
+            entry.CystatinCMgL,
+            entry.Hba1cMmolMol,
+            entry.CrpMgL,
+            entry.GgtUL,
+            entry.Rbc10e12L,
+            entry.McvFL,
+            entry.RdwPc,
+            monocyteCount,
+            neutrophilCount,
+            entry.LymPc,
+            entry.AltUL,
+            entry.ShbgNmolL,
+            entry.VitaminDNmolL,
+            entry.GluMmolL,
+            entry.MchPg,
+            entry.ApoA1GL
+        ];
+    }
+
+    function buildQuoteViewHref(view) {
+        return `/league/${encodeURIComponent(String(view || "").trim())}`;
+    }
+
+    function buildQuoteFiltersHref(filters) {
+        const values = (Array.isArray(filters) ? filters : [filters])
+            .map(value => String(value || "").trim())
+            .filter(Boolean)
+            .map(value => quoteSlugifyName(value, true));
+        return values.length ? `/league/${values.join("/")}` : "/leaderboard";
+    }
+
+    function quoteSlugifyName(name, encode) {
+        if (typeof window.slugifyName === "function") {
+            return window.slugifyName(name, encode);
+        }
+
+        const normalized = String(name || "")
+            .trim()
+            .toLowerCase()
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/[^a-z0-9-]/g, "")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "");
+        return encode ? encodeURIComponent(normalized) : decodeURIComponent(normalized);
+    }
+
+    function assignQuoteBestRankCandidates(athletes) {
+        const rows = Array.isArray(athletes) ? athletes : [];
+        rows.forEach(athlete => {
+            athlete.bestRankCandidates = [];
+            if (Number.isFinite(athlete.rank)) {
+                addQuoteBestRankCandidate(athlete, {
+                    rank: athlete.rank,
+                    leagueName: "Ultimate League",
+                    leagueLabel: "Ultimate League",
+                    leagueType: "ultimate",
+                    href: "/leaderboard",
+                    targetBlank: true,
+                    tiePriority: 0
+                });
+            }
+        });
+
+        assignQuoteRankedBestCandidates(
+            sortedQuoteRankableAthletes(rows, hasQuoteBortzRankData, compareQuoteAthleteRank),
+            () => ({
+                leagueName: "Bortz Age",
+                leagueLabel: "Bortz Age leaderboard",
+                leagueType: "bortz",
+                href: buildQuoteViewHref("bortz"),
+                tiePriority: 10
+            })
+        );
+
+        assignQuoteRankedBestCandidates(
+            sortedQuoteRankableAthletes(rows, athlete => Number.isFinite(athlete.ageReduction), compareQuoteAthleteRankPhenoOnly),
+            () => ({
+                leagueName: "Pheno Age",
+                leagueLabel: "Pheno Age leaderboard",
+                leagueType: "pheno",
+                href: buildQuoteViewHref("pheno"),
+                tiePriority: 11
+            })
+        );
+
+        assignQuoteRankedBestCandidates(
+            sortedQuoteRankableAthletes(rows, athlete => !hasQuoteBortzRankData(athlete), compareQuoteAthleteRankPhenoOnly),
+            () => ({
+                leagueName: "Amateur League",
+                leagueLabel: "Amateur League",
+                leagueType: "amateur",
+                href: buildQuoteFiltersHref("Amateur"),
+                targetBlank: true,
+                tiePriority: -1
+            })
+        );
+
+        assignQuoteRankedBestCandidates(
+            sortedQuoteRankableAthletes(rows, athlete => Number.isFinite(athlete.phenoAgeImprovement), compareQuoteAthleteRankPhenoImprovement),
+            () => ({
+                leagueName: "Pheno Improvement",
+                leagueLabel: "Pheno Improvement leaderboard",
+                leagueType: "pheno-improvement",
+                href: buildQuoteViewHref("improvement"),
+                tiePriority: 12
+            })
+        );
+
+        assignQuoteRankedBestCandidates(
+            sortedQuoteRankableAthletes(rows, athlete => Number.isFinite(athlete.bortzAgeImprovement), compareQuoteAthleteRankBortzImprovement),
+            () => ({
+                leagueName: "Bortz Improvement",
+                leagueLabel: "Bortz Improvement leaderboard",
+                leagueType: "bortz-improvement",
+                href: buildQuoteViewHref("bortz-improvement"),
+                tiePriority: 12
+            })
+        );
+
+        assignQuoteRankedBestCandidates(
+            sortedQuoteRankableAthletes(
+                rows,
+                athlete => athlete.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(athlete.crowdAgeReduction),
+                compareQuoteAthleteRankCrowdAge),
+            () => ({
+                leagueName: "Crowd Age",
+                leagueLabel: "Crowd Age leaderboard",
+                leagueType: "crowd",
+                href: buildQuoteViewHref("crowd"),
+                tiePriority: 13
+            })
+        );
+
+        assignQuoteRankedBestCandidates(
+            orderByQuoteNumberDesc(
+                rows.filter(athlete => Number.isFinite(athlete.ageReductionPercent)),
+                athlete => athlete.ageReductionPercent),
+            () => ({
+                leagueName: "Pheno pace of aging",
+                leagueLabel: "Pheno pace of aging ranking",
+                leagueType: "pheno-pace",
+                tiePriority: 14
+            })
+        );
+
+        assignQuoteRankedBestCandidates(
+            orderByQuoteNumberAsc(
+                rows.filter(athlete =>
+                    athlete.lowestBortzAge != null &&
+                    athlete.chronoAtLowestBortzAge != null &&
+                    Number.isFinite(athlete.lowestBortzAge / athlete.chronoAtLowestBortzAge)),
+                athlete => athlete.lowestBortzAge / athlete.chronoAtLowestBortzAge),
+            () => ({
+                leagueName: "Bortz pace of aging",
+                leagueLabel: "Bortz pace of aging ranking",
+                leagueType: "bortz-pace",
+                tiePriority: 14
+            })
+        );
+
+        const addGroupedRanks = (values, predicate, comparator, candidateFactory) => {
+            values.filter(Boolean).forEach(value => {
+                assignQuoteRankedBestCandidates(
+                    sortedQuoteRankableAthletes(rows, athlete => predicate(athlete, value), comparator),
+                    athlete => candidateFactory(athlete, value)
+                );
+            });
+        };
+
+        const divisions = [...new Set(rows.map(athlete => athlete.division).filter(Boolean))];
+        addGroupedRanks(
+            divisions,
+            (athlete, division) => athlete.division === division,
+            compareQuoteAthleteRank,
+            (_athlete, division) => ({
+                leagueName: division,
+                leagueLabel: `${division} League`,
+                leagueType: "division",
+                href: `/league/${quoteSlugifyName(division, true)}`,
+                tiePriority: 20
+            })
+        );
+
+        const generations = [...new Set(rows.map(athlete => athlete.generation).filter(Boolean))];
+        addGroupedRanks(
+            generations,
+            (athlete, generation) => athlete.generation === generation,
+            compareQuoteAthleteRank,
+            (_athlete, generation) => ({
+                leagueName: generation,
+                leagueLabel: `${generation} League`,
+                leagueType: "generation",
+                href: `/league/${quoteSlugifyName(generation, true)}`,
+                tiePriority: 21
+            })
+        );
+
+        divisions.forEach(division => {
+            generations.forEach(generation => {
+                assignQuoteRankedBestCandidates(
+                    sortedQuoteRankableAthletes(
+                        rows,
+                        athlete => athlete.division === division && athlete.generation === generation,
+                        compareQuoteAthleteRank),
+                    () => ({
+                        leagueName: `${generation}_${division}`,
+                        leagueLabel: `${generation} ${division} League`,
+                        leagueType: "combination",
+                        href: buildQuoteFiltersHref([generation, division]),
+                        tiePriority: 22
+                    })
+                );
+            });
+        });
+
+        const exclusiveLeagues = [...new Set(rows.map(athlete => athlete.exclusiveLeague).filter(Boolean))];
+        addGroupedRanks(
+            exclusiveLeagues,
+            (athlete, exclusiveLeague) => athlete.exclusiveLeague === exclusiveLeague,
+            compareQuoteAthleteRank,
+            (_athlete, exclusiveLeague) => ({
+                leagueName: exclusiveLeague,
+                leagueLabel: `${exclusiveLeague} League`,
+                leagueType: "exclusive",
+                href: exclusiveLeague === "Prosperan"
+                    ? "/league/prosperan"
+                    : buildQuoteFiltersHref(exclusiveLeague),
+                tiePriority: 23
+            })
+        );
+    }
+
+    function addQuoteBestRankCandidate(athlete, candidate) {
+        if (!athlete || !candidate) return;
+
+        const rank = Number(candidate.rank);
+        if (!Number.isFinite(rank) || rank < 1) return;
+
+        const normalized = {
+            rank,
+            leagueName: String(candidate.leagueName || candidate.leagueLabel || "").trim(),
+            leagueLabel: String(candidate.leagueLabel || candidate.leagueName || "").trim(),
+            leagueLabelHtml: candidate.leagueLabelHtml || null,
+            leagueType: String(candidate.leagueType || "other").trim(),
+            href: candidate.href || null,
+            targetBlank: !!candidate.targetBlank,
+            tiePriority: Number.isFinite(candidate.tiePriority) ? candidate.tiePriority : 100
+        };
+        if (!normalized.leagueName && !normalized.leagueLabel) return;
+
+        if (!Array.isArray(athlete.bestRankCandidates)) {
+            athlete.bestRankCandidates = [];
+        }
+
+        const key = `${normalized.leagueType}|${normalized.leagueName || normalized.leagueLabel}`;
+        const existingIndex = athlete.bestRankCandidates.findIndex(item => item.key === key);
+        if (existingIndex >= 0) {
+            const existing = athlete.bestRankCandidates[existingIndex];
+            if (compareQuoteBestRankCandidates(normalized, existing) < 0) {
+                athlete.bestRankCandidates[existingIndex] = { ...normalized, key };
+            }
+            return;
+        }
+
+        athlete.bestRankCandidates.push({ ...normalized, key });
+    }
+
+    function compareQuoteBestRankCandidates(a, b) {
+        if (!a) return 1;
+        if (!b) return -1;
+
+        if (a.rank !== b.rank) return a.rank - b.rank;
+        if (a.tiePriority !== b.tiePriority) return a.tiePriority - b.tiePriority;
+        return String(a.leagueLabel || a.leagueName || "").localeCompare(String(b.leagueLabel || b.leagueName || ""));
+    }
+
+    function computeQuoteAthleteBestRank(athlete) {
+        if (!athlete) return null;
+        const candidates = Array.isArray(athlete.bestRankCandidates) ? athlete.bestRankCandidates : [];
+        if (!candidates.length && Number.isFinite(athlete.rank)) {
+            return {
+                rank: athlete.rank,
+                leagueName: "Ultimate League",
+                leagueLabel: "Ultimate League",
+                leagueType: "ultimate",
+                href: "/leaderboard",
+                targetBlank: true,
+                tiePriority: 0
+            };
+        }
+        return candidates.slice().sort(compareQuoteBestRankCandidates)[0] || null;
+    }
+
+    function assignQuoteRankedBestCandidates(items, candidateFactory) {
+        (Array.isArray(items) ? items : []).forEach((athlete, index) => {
+            addQuoteBestRankCandidate(athlete, {
+                ...candidateFactory(athlete, index),
+                rank: index + 1
+            });
+        });
+    }
+
+    function sortedQuoteRankableAthletes(athletes, predicate, comparator) {
+        return (Array.isArray(athletes) ? athletes : [])
+            .filter(predicate || (() => true))
+            .slice()
+            .sort(comparator);
+    }
+
+    function hasQuoteBortzRankData(athlete) {
+        return athlete && athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
+    }
+
+    function compareQuoteAthleteRank(a, b) {
+        const aHasBortz = hasQuoteBortzRankData(a);
+        const bHasBortz = hasQuoteBortzRankData(b);
+        if (aHasBortz && !bHasBortz) return -1;
+        if (!aHasBortz && bHasBortz) return 1;
+
+        const aRed = aHasBortz ? a.bortzAgeReduction : a.ageReduction;
+        const bRed = bHasBortz ? b.bortzAgeReduction : b.ageReduction;
+        if (aRed < bRed) return -1;
+        if (aRed > bRed) return 1;
+
+        return compareQuoteDobAndName(a, b);
+    }
+
+    function compareQuoteAthleteRankPhenoOnly(a, b) {
+        const aRed = Number.isFinite(a.ageReduction) ? a.ageReduction : 0;
+        const bRed = Number.isFinite(b.ageReduction) ? b.ageReduction : 0;
+        if (aRed < bRed) return -1;
+        if (aRed > bRed) return 1;
+        return compareQuoteDobAndName(a, b);
+    }
+
+    function compareQuoteAthleteRankPhenoImprovement(a, b) {
+        const aImprovement = Number.isFinite(a.phenoAgeImprovement) ? a.phenoAgeImprovement : Infinity;
+        const bImprovement = Number.isFinite(b.phenoAgeImprovement) ? b.phenoAgeImprovement : Infinity;
+        if (aImprovement < bImprovement) return -1;
+        if (aImprovement > bImprovement) return 1;
+        return compareQuoteAthleteRankPhenoOnly(a, b);
+    }
+
+    function compareQuoteAthleteRankBortzImprovement(a, b) {
+        const aImprovement = Number.isFinite(a.bortzAgeImprovement) ? a.bortzAgeImprovement : Infinity;
+        const bImprovement = Number.isFinite(b.bortzAgeImprovement) ? b.bortzAgeImprovement : Infinity;
+        if (aImprovement < bImprovement) return -1;
+        if (aImprovement > bImprovement) return 1;
+        return compareQuoteAthleteRank(a, b);
+    }
+
+    function compareQuoteAthleteRankCrowdAge(a, b) {
+        const aReduction = Number.isFinite(a.crowdAgeReduction) ? a.crowdAgeReduction : -Infinity;
+        const bReduction = Number.isFinite(b.crowdAgeReduction) ? b.crowdAgeReduction : -Infinity;
+        if (aReduction < bReduction) return -1;
+        if (aReduction > bReduction) return 1;
+
+        const aCount = Number.isFinite(a.crowdCount) ? a.crowdCount : 0;
+        const bCount = Number.isFinite(b.crowdCount) ? b.crowdCount : 0;
+        if (aCount > bCount) return -1;
+        if (aCount < bCount) return 1;
+
+        return compareQuoteDobAndName(a, b);
+    }
+
+    function compareQuoteDobAndName(a, b) {
+        if (a.dateOfBirth < b.dateOfBirth) return -1;
+        if (a.dateOfBirth > b.dateOfBirth) return 1;
+        if (a.name < b.name) return -1;
+        if (a.name > b.name) return 1;
+        return 0;
+    }
+
+    function compareQuoteSubmissionDate(a, b) {
+        const timeDiff = a.submittedAt.getTime() - b.submittedAt.getTime();
+        return timeDiff !== 0 ? timeDiff : a.index - b.index;
+    }
+
+    function orderByQuoteNumberDesc(items, selector) {
+        return [...items].sort((a, b) => {
+            const aValue = selector(a);
+            const bValue = selector(b);
+            const aRank = Number.isFinite(aValue) ? aValue : Number.NEGATIVE_INFINITY;
+            const bRank = Number.isFinite(bValue) ? bValue : Number.NEGATIVE_INFINITY;
+            return bRank - aRank;
+        });
+    }
+
+    function orderByQuoteNumberAsc(items, selector) {
+        return [...items].sort((a, b) => {
+            const aValue = selector(a);
+            const bValue = selector(b);
+            const aRank = Number.isFinite(aValue) ? aValue : Number.POSITIVE_INFINITY;
+            const bRank = Number.isFinite(bValue) ? bValue : Number.POSITIVE_INFINITY;
+            return aRank - bRank;
+        });
+    }
+
+    function parseQuoteDateOfBirth(dateOfBirth) {
+        const year = Number(dateOfBirth?.Year);
+        const month = Number(dateOfBirth?.Month);
+        const day = Number(dateOfBirth?.Day);
+        if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+        const date = new Date(year, month - 1, day);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function parseQuoteDate(value) {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function calculateQuoteAgeAtDate(dob, date) {
+        if (typeof window.calculateAgeAtDate === "function") {
+            try {
+                return window.calculateAgeAtDate(dob, date);
+            } catch (_) {
+            }
+        }
+
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const start = Date.UTC(dob.getFullYear(), dob.getMonth(), dob.getDate());
+        const end = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+        return Math.round(((end - start) / msPerDay / 365.2425) * 100) / 100;
+    }
+
+    function resolveQuoteGeneration(birthYear) {
+        if (birthYear >= 1928 && birthYear <= 1945) return "Silent Generation";
+        if (birthYear >= 1946 && birthYear <= 1964) return "Baby Boomers";
+        if (birthYear >= 1965 && birthYear <= 1980) return "Gen X";
+        if (birthYear >= 1981 && birthYear <= 1996) return "Millennials";
+        if (birthYear >= 1997 && birthYear <= 2012) return "Gen Z";
+        if (birthYear >= 2013) return "Gen Alpha";
+        return "Unknown";
+    }
+
+    function toFiniteNumber(value) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : null;
     }
 
     function initAthleteSelectors() {

@@ -128,6 +128,48 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
+    public async Task LongevitymaxxingCheckInQuotes_AreBucketedAndRenderLinkedSources()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/longevitymaxxing");
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+        var css = await client.GetStringAsync("/css/longevitymaxxing.css");
+
+        Assert.Contains("import(`/js/misc.js?v=", html);
+        Assert.Contains("import(`/js/pheno-age.js?v=", html);
+        Assert.Contains("import(`/js/bortz-age.js?v=", html);
+
+        Assert.Contains("const LMX_QUOTES = {", javascript);
+        Assert.Contains("Sleep quality is immeasurably better", javascript);
+        Assert.Contains("The wrong lifestyle decisions I've made were my decisions.", javascript);
+        Assert.Contains("function selectQuoteBucket", javascript);
+        Assert.Contains("if (values.every(item => item.value === 2)) return null;", javascript);
+        Assert.Contains("return worst.length === 1 ? worst[0].key : \"mindset\";", javascript);
+        Assert.Contains("const quoteBucket = selectQuoteBucket(draft);", javascript);
+        Assert.Contains("if (quoteBucket) void showRandomCheckInQuote(quoteBucket);", javascript);
+        Assert.Contains("showCheckInQuoteDialog(quote, null, token);", javascript);
+        Assert.Contains("updateCheckInQuoteDialogRank(quote, computeQuoteAthleteBestRank(athlete), token);", javascript);
+        Assert.Contains("dialog.dataset.quoteToken !== token", javascript);
+        Assert.Contains("function computeQuoteAthleteBestRank", javascript);
+        Assert.Contains("leagueType: \"pheno-improvement\"", javascript);
+        Assert.Contains("leagueType: \"bortz-improvement\"", javascript);
+        Assert.Contains("CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT", javascript);
+        Assert.Contains("href: buildQuoteViewHref(\"improvement\")", javascript);
+        Assert.Contains("href: buildQuoteFiltersHref([generation, division])", javascript);
+        Assert.Contains("targetBlank: true", javascript);
+        Assert.Contains("target=\"_blank\" rel=\"noopener noreferrer\"", javascript);
+        Assert.Contains("OK</button>", javascript);
+
+        Assert.Contains("body.lmx-quote-open", css);
+        Assert.Contains(".lmx-quote-dialog", css);
+        Assert.Contains(".lmx-quote-dialog-card", css);
+        Assert.Contains("max-height: min(88vh, 38rem);", css);
+        Assert.Contains(".lmx-quote-source", css);
+    }
+
+    [Fact]
     public async Task LongevitymaxxingPublicState_DoesNotExposeParticipantOnlyMeetingLink()
     {
         using var factory = CreateFactory();
