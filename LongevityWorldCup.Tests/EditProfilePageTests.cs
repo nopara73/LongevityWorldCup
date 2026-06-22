@@ -38,7 +38,8 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
 
-        Assert.Contains("window.readApplicationErrorMessage(response).then(txt =>", html);
+        Assert.Contains("const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';", html);
+        Assert.Contains("window.readApplicationErrorMessage(response).catch(() => fallbackError).then(txt =>", html);
         Assert.DoesNotContain("response.text().then(txt =>", html);
     }
 
