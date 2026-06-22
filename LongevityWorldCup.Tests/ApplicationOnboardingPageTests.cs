@@ -838,7 +838,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("cancelProfileCropButton.disabled = true;", cropBody);
         Assert.Contains("activeCropper.getCroppedCanvas({", cropBody);
         Assert.Contains("if (!croppedCanvas)", cropBody);
-        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.');", cropBody);
+        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.')\n                                .then(() => cropButton.focus());", cropBody);
         Assert.Contains("return;", cropBody);
         Assert.Contains("let croppedImageDataURL = raw;", cropBody);
         Assert.Contains("try {", cropBody);
@@ -850,7 +850,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.DoesNotContain("activeCropper.destroy(); // Clean up the Cropper instance", cropBody);
         Assert.Contains("if (cropper === activeCropper)", cropBody);
         Assert.Contains("} catch (_) {", cropBody);
-        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.');", cropBody);
+        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.')\n                            .then(() => cropButton.focus());", cropBody);
         Assert.Contains("isProfileCropProcessing = false;", cropBody);
         Assert.Contains("cropButton.disabled = false;", cropBody);
         Assert.Contains("cancelProfileCropButton.disabled = false;", cropBody);

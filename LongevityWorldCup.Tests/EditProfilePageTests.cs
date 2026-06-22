@@ -219,7 +219,7 @@ public sealed class EditProfilePageTests
 
         var cropBody = html[cropStart..cropEnd];
         Assert.Contains("if (!canvas)", cropBody);
-        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.');", cropBody);
+        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.')\n                        .then(() => cropBtn.focus());", cropBody);
         Assert.Contains("return;", cropBody);
         Assert.Contains("let newSrc = raw;", cropBody);
         Assert.Contains("try {", cropBody);
@@ -229,7 +229,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("athlete.ProfilePic = newSrc;", cropBody);
         Assert.Contains("try { activeCropper.destroy(); } catch (_) { }", cropBody);
         Assert.Contains("} catch (_) {", cropBody);
-        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.');", cropBody);
+        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.')\n                    .then(() => cropBtn.focus());", cropBody);
     }
 
     [Fact]

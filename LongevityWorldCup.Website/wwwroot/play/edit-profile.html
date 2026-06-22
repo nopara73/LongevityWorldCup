@@ -1242,7 +1242,8 @@
                     height: 1024,
                 });
                 if (!canvas) {
-                    customAlert('Profile picture crop failed. Please try another image.');
+                    customAlert('Profile picture crop failed. Please try another image.')
+                        .then(() => cropBtn.focus());
                     return;
                 }
                 const raw = canvas.toDataURL('image/png');
@@ -1269,7 +1270,8 @@
                 changeProfileInput.value = '';
                 profileCameraInput.value = '';
             } catch (_) {
-                customAlert('Profile picture crop failed. Please try another image.');
+                customAlert('Profile picture crop failed. Please try another image.')
+                    .then(() => cropBtn.focus());
             } finally {
                 isChangeProfileCropProcessing = false;
                 cropBtn.disabled = false;
