@@ -551,8 +551,8 @@
 
                 <!-- Name Field -->
                 <label for="name">Name</label>
-                <input type="text" id="name" name="name" required aria-required="true" minlength="3" maxlength="100" autocomplete="name" placeholder="Real name or cyber alias — your call">
-                <span id="nameError" class="error-message"></span>
+                <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" placeholder="Real name or cyber alias — your call">
+                <span id="nameError" class="error-message" aria-live="polite"></span>
 
                 <!-- Division Field -->
                 <label for="division">Division</label>
@@ -563,8 +563,8 @@
                 <!-- Flag Field with Autocomplete -->
                 <label for="flag">Flag</label>
                 <div class="autocomplete-container">
-                    <input type="text" id="flag" name="flag" required aria-required="true" minlength="3" maxlength="100" autocomplete="off" placeholder="Cyberspace">
-                    <span id="flagError" class="error-message"></span>
+                    <input type="text" id="flag" name="flag" required aria-required="true" aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" placeholder="Cyberspace">
+                    <span id="flagError" class="error-message" aria-live="polite"></span>
                 </div>
             </fieldset>
             <fieldset id="privacyDetails">
