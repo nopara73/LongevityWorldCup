@@ -235,6 +235,29 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task EditProfileSubmit_EnterKeyUsesExistingSubmitPathForSingleLineFields()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+        var listenerStart = html.IndexOf("[personalLinkInput, mediaContactInput].forEach(input =>", StringComparison.Ordinal);
+        var listenerEnd = html.IndexOf("const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');", listenerStart, StringComparison.Ordinal);
+
+        Assert.True(listenerStart >= 0);
+        Assert.True(listenerEnd > listenerStart);
+
+        var listenerBody = html[listenerStart..listenerEnd];
+
+        Assert.Contains("input.addEventListener('keydown', e =>", listenerBody);
+        Assert.Contains("if (e.key === 'Enter')", listenerBody);
+        Assert.Contains("e.preventDefault();", listenerBody);
+        Assert.Contains("submitButton.click();", listenerBody);
+        Assert.DoesNotContain("whyDisplayInput", listenerBody);
+        Assert.Contains("submitButton.addEventListener('click', async function ()", html);
+    }
+
+    [Fact]
     public async Task EditProfileNoAthleteGuard_ReturnsToAthleteSelection()
     {
         using var factory = new TestWebApplicationFactory();
