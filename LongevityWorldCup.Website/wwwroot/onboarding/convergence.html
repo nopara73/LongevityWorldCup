@@ -1459,9 +1459,7 @@
                 .then(athletes => {
                     // Extract athlete names into a list
                     existingAthleteNames = Array.isArray(athletes)
-                        ? athletes.flatMap(athlete => [athlete.Name, athlete.DisplayName])
-                            .map(name => (name || '').trim())
-                            .filter(Boolean)
+                        ? athletes.flatMap(getExistingAthleteNameCandidates)
                         : [];
                     checkFormValidityStage1();
                 });
@@ -2095,6 +2093,17 @@
             } else {
                 nextButton.disabled = true;
             }
+        }
+
+        function getExistingAthleteNameCandidates(athlete) {
+            if (!athlete || typeof athlete !== 'object' || Array.isArray(athlete)) {
+                return [];
+            }
+
+            return [athlete.Name, athlete.DisplayName]
+                .filter(name => typeof name === 'string')
+                .map(name => name.trim())
+                .filter(Boolean);
         }
 
         function validateName(name) {
