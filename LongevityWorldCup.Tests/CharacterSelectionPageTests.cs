@@ -125,8 +125,9 @@ public sealed class CharacterSelectionPageTests
         var keydownBody = html[keydownStart..keydownEnd];
 
         Assert.Contains("const query = (value || '').trim().toLowerCase();", html);
-        Assert.Contains("(a.Name || '').trim().toLowerCase() === query", html);
-        Assert.Contains("|| getAthleteDisplayName(a).toLowerCase() === query", html);
+        Assert.Contains("return (athlete.Name || '').trim().toLowerCase() === query", html);
+        Assert.Contains("|| getAthleteDisplayName(athlete).toLowerCase() === query", html);
+        Assert.Contains("return athletes.find(a => isAthleteInputValue(a, value)) || null;", html);
         Assert.Contains("const exactMatch = findExactAthleteMatch(this.value);", keydownBody);
         Assert.Contains("if (exactMatch)", keydownBody);
         Assert.Contains("selectAthlete(exactMatch);", keydownBody);
@@ -134,5 +135,32 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("if (currentFocus > -1 && list)", keydownBody);
         Assert.Contains("list[currentFocus].dispatchEvent(new MouseEvent('mousedown'));", keydownBody);
         Assert.Contains("return;", keydownBody);
+    }
+
+    [Fact]
+    public async Task AthleteSelection_InputChangeClearsStaleSelectedAthlete()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-selection.html");
+        var inputStart = html.IndexOf("athleteInput.addEventListener('input'", StringComparison.Ordinal);
+        var inputEnd = html.IndexOf("athleteInput.addEventListener('keydown'", inputStart, StringComparison.Ordinal);
+
+        Assert.True(inputStart >= 0);
+        Assert.True(inputEnd > inputStart);
+
+        var inputBody = html[inputStart..inputEnd];
+
+        Assert.Contains("function isAthleteInputValue(athlete, value)", html);
+        Assert.Contains("const query = (value || '').trim().toLowerCase();", html);
+        Assert.Contains("return (athlete.Name || '').trim().toLowerCase() === query", html);
+        Assert.Contains("|| getAthleteDisplayName(athlete).toLowerCase() === query;", html);
+        Assert.Contains("function clearCurrentAthleteSelectionIfInputChanged(value)", html);
+        Assert.Contains("if (!currentAthlete || isAthleteInputValue(currentAthlete, value)) return;", html);
+        Assert.Contains("currentAthlete = null;", html);
+        Assert.Contains("confirmBtn.disabled = true;", html);
+        Assert.Contains("document.getElementById('character-title').textContent = 'Athlete selection';", html);
+        Assert.Contains("clearCurrentAthleteSelectionIfInputChanged(this.value);", inputBody);
     }
 }
