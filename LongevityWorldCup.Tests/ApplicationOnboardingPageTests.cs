@@ -244,15 +244,20 @@ public sealed class ApplicationOnboardingPageTests
         var html = await client.GetStringAsync("/onboarding/convergence.html");
         var finalValidationStart = html.IndexOf("// Final stage requires accountEmail", StringComparison.Ordinal);
         var finalValidationEnd = html.IndexOf("const applicantData = collectApplicantData();", finalValidationStart, StringComparison.Ordinal);
+        var stage6Start = html.IndexOf("case 6:", StringComparison.Ordinal);
+        var stage6End = html.IndexOf("case 7:", stage6Start, StringComparison.Ordinal);
         var collectStart = html.IndexOf("function collectApplicantData()", StringComparison.Ordinal);
         var collectEnd = html.IndexOf("return applicantData;", collectStart, StringComparison.Ordinal);
 
         Assert.True(finalValidationStart >= 0);
         Assert.True(finalValidationEnd > finalValidationStart);
+        Assert.True(stage6Start >= 0);
+        Assert.True(stage6End > stage6Start);
         Assert.True(collectStart >= 0);
         Assert.True(collectEnd > collectStart);
 
         var finalValidationBody = html[finalValidationStart..finalValidationEnd];
+        var stage6Body = html[stage6Start..stage6End];
         var collectBody = html[collectStart..collectEnd];
 
         Assert.Contains("const personalLinkInput = document.getElementById('personalLink');", finalValidationBody);
@@ -260,6 +265,14 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("personalLinkInput.value = personalLink;", finalValidationBody);
         Assert.Contains("function normalizeMediaContact(value)", html);
         Assert.Contains("return normalizeContactEmail(value) || (typeof value === 'string' ? value.trim() : '');", html);
+        Assert.Contains("addStageListenerOnce(mediaContactInput, 'blur', normalizeStage6MediaContact, 'stage6NormalizeMediaContactOnBlur');", stage6Body);
+        Assert.Contains("addStageListenerOnce(personalLinkInput, 'blur', normalizeStage6PersonalLink, 'stage6NormalizePersonalLinkOnBlur');", stage6Body);
+        Assert.Contains("function normalizeStage6MediaContact()", html);
+        Assert.Contains("mediaContactInput.value = normalizeMediaContact(mediaContactInput.value);", html);
+        Assert.Contains("prefillAccountEmailFromMediaContact();", html);
+        Assert.Contains("function normalizeStage6PersonalLink()", html);
+        Assert.Contains("const normalized = normalizeOptionalUrl(personalLinkInput.value);", html);
+        Assert.Contains("personalLinkInput.value = normalized;", html);
         Assert.Contains("const mediaContactInput = document.getElementById('mediaContact');", collectBody);
         Assert.Contains("const mediaContact = normalizeMediaContact(mediaContactInput.value);", collectBody);
         Assert.Contains("mediaContactInput.value = mediaContact;", collectBody);

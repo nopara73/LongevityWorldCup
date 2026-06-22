@@ -317,16 +317,26 @@ public sealed class EditProfilePageTests
         var submitStart = html.IndexOf("submitButton.addEventListener('click', async function ()", StringComparison.Ordinal);
         var applicantDataStart = html.IndexOf("const applicantData = {", submitStart, StringComparison.Ordinal);
         var fetchStart = html.IndexOf("fetchWithTimeout('/api/application/application'", applicantDataStart, StringComparison.Ordinal);
+        var blurStart = html.IndexOf("// --- BLUR HANDLERS ---", StringComparison.Ordinal);
+        var blurEnd = html.IndexOf("let skipWhyValidation = false;", blurStart, StringComparison.Ordinal);
 
         Assert.True(submitStart >= 0);
         Assert.True(applicantDataStart > submitStart);
         Assert.True(fetchStart > applicantDataStart);
+        Assert.True(blurStart >= 0);
+        Assert.True(blurEnd > blurStart);
 
         var beforeApplicantData = html[submitStart..applicantDataStart];
         var submitBody = html[applicantDataStart..fetchStart];
+        var blurBody = html[blurStart..blurEnd];
 
         Assert.Contains("athlete.PersonalLink = normalizeOptionalUrl(personalLinkInput.value) || '';", beforeApplicantData);
         Assert.Contains("personalLinkInput.value = athlete.PersonalLink;", beforeApplicantData);
+        Assert.Contains("const normalized = normalizeOptionalUrl(this.value);", blurBody);
+        Assert.Contains("if (isOptionalUrl(normalized))", blurBody);
+        Assert.Contains("this.value = normalized;", blurBody);
+        Assert.Contains("this.value = normalizeMediaContact(this.value);", blurBody);
+        Assert.Contains("updateSubmitButtonState();", blurBody);
         Assert.Contains("function normalizeMediaContact(value)", html);
         Assert.Contains("return normalizeContactEmail(value) || normalizeEditText(value);", html);
         Assert.Contains("athlete.MediaContact = normalizeMediaContact(mediaContactInput.value);", beforeApplicantData);

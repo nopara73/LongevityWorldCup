@@ -1050,7 +1050,12 @@
                     skipPersonalLinkValidation = false;
                     return;
                 }
+                const normalized = normalizeOptionalUrl(this.value);
+                if (isOptionalUrl(normalized)) {
+                    this.value = normalized;
+                }
                 validatePersonalLink(this.value);
+                updateSubmitButtonState();
             });
 
             mediaContactInput.addEventListener('blur', function () {
@@ -1058,7 +1063,9 @@
                     skipMediaContactValidation = false;
                     return;
                 }
+                this.value = normalizeMediaContact(this.value);
                 validateMediaContact(this.value);
+                updateSubmitButtonState();
             });
 
             let skipWhyValidation = false;
