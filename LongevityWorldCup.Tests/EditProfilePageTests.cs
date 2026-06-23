@@ -122,6 +122,19 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task ProfilePictureCropper_UsesCspAllowedCdn()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css", html);
+        Assert.Contains("https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js", html);
+        Assert.DoesNotContain("https://unpkg.com/cropperjs", html);
+    }
+
+    [Fact]
     public async Task ProfilePictureSelection_RejectsUnsupportedFormatsBeforeReading()
     {
         using var factory = new TestWebApplicationFactory();
