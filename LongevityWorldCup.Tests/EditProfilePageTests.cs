@@ -136,19 +136,19 @@ public sealed class EditProfilePageTests
 
         var beforeReader = html[selectionStart..readerStart];
 
-        Assert.Contains("id=\"profilePicInputModal\" accept=\"image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp\"", html);
-        Assert.Contains("id=\"profileCameraInputModal\" accept=\"image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp\"", html);
+        Assert.Contains("id=\"profilePicInputModal\" accept=\"image/*,.heic,.heif\"", html);
+        Assert.Contains("id=\"profileCameraInputModal\" accept=\"image/*,.heic,.heif\"", html);
         Assert.Contains("function isSupportedProfilePictureFile(file)", html);
-        Assert.Contains("type === 'image/jpeg'", html);
-        Assert.Contains("type === 'image/png'", html);
-        Assert.Contains("type === 'image/webp'", html);
+        Assert.Contains("type.startsWith('image/')", html);
         Assert.Contains("extension === 'jpg'", html);
         Assert.Contains("extension === 'jpeg'", html);
         Assert.Contains("extension === 'png'", html);
         Assert.Contains("extension === 'webp'", html);
+        Assert.Contains("extension === 'heic'", html);
+        Assert.Contains("extension === 'heif'", html);
         Assert.Contains("input.value = '';", beforeReader);
         Assert.Contains("if (!isSupportedProfilePictureFile(file))", beforeReader);
-        Assert.Contains("customAlert('Profile picture must be JPG, PNG, or WebP.')\n                    .then(() => changeProfileBtn.focus());", beforeReader);
+        Assert.Contains("customAlert('Profile picture must be an image file.')\n                    .then(() => changeProfileBtn.focus());", beforeReader);
         Assert.Contains("return;", beforeReader);
     }
 

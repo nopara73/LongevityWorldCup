@@ -21,17 +21,17 @@ public sealed class ProofUploadPageTests
     [Theory]
     [InlineData("/onboarding/convergence.html")]
     [InlineData("/play/proof-upload.html")]
-    public async Task ProofUploadPages_AdvertiseSupportedProofFileFormats(string path)
+    public async Task ProofUploadPages_AcceptImagesAndPdfWithoutNarrowingPhonePhotoFormats(string path)
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
 
-        Assert.Contains("id=\"proofPicInput\" accept=\"image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf\"", html);
-        Assert.Contains("id=\"proofCameraInput\" accept=\"image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp\"", html);
-        Assert.DoesNotContain("id=\"proofPicInput\" accept=\"image/*,application/pdf\"", html);
-        Assert.DoesNotContain("id=\"proofCameraInput\" accept=\"image/*\"", html);
+        Assert.Contains("id=\"proofPicInput\" accept=\"image/*,application/pdf,.heic,.heif,.pdf\"", html);
+        Assert.Contains("id=\"proofCameraInput\" accept=\"image/*,.heic,.heif\"", html);
+        Assert.DoesNotContain("id=\"proofPicInput\" accept=\"image/jpeg,image/png,image/webp,application/pdf", html);
+        Assert.DoesNotContain("id=\"proofCameraInput\" accept=\"image/jpeg,image/png,image/webp", html);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class ProofUploadPageTests
         Assert.True(hideLoadingIndex > resetIndex);
 
         var catchBody = javascript[catchIndex..finallyIndex];
-        Assert.Contains("customAlert('Proof upload failed. Please try again with a JPG, PNG, WebP, or PDF file.')\n                .then(() => focusProofRetryButton(retryButton));", catchBody);
+        Assert.Contains("customAlert('Proof upload failed. Please try again with an image or PDF file.')\n                .then(() => focusProofRetryButton(retryButton));", catchBody);
         Assert.DoesNotContain("error.message", catchBody);
     }
 
@@ -166,20 +166,20 @@ public sealed class ProofUploadPageTests
 
         Assert.Contains("function isSupportedProofFile(file)", javascript);
         Assert.Contains("type === 'application/pdf'", javascript);
-        Assert.Contains("type === 'image/jpeg'", javascript);
-        Assert.Contains("type === 'image/png'", javascript);
-        Assert.Contains("type === 'image/webp'", javascript);
+        Assert.Contains("type.startsWith('image/')", javascript);
         Assert.Contains("extension === 'jpg'", javascript);
         Assert.Contains("extension === 'jpeg'", javascript);
         Assert.Contains("extension === 'png'", javascript);
         Assert.Contains("extension === 'webp'", javascript);
+        Assert.Contains("extension === 'heic'", javascript);
+        Assert.Contains("extension === 'heif'", javascript);
         Assert.Contains("r.onabort = rej;", javascript);
         Assert.Contains("const selectedFiles = Array.from(files || []);", beforeLoading);
         Assert.Contains("const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));", beforeLoading);
         Assert.Contains("const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));", beforeLoading);
         Assert.Contains("if (supportedFiles.length === 0)", beforeLoading);
         Assert.Contains("if (input) input.value = \"\";", beforeLoading);
-        Assert.Contains("customAlert('Proof files must be JPG, PNG, WebP, or PDF.')\n                .then(() => focusProofRetryButton(retryButton));", beforeLoading);
+        Assert.Contains("customAlert('Proof files must be images or PDFs.')\n                .then(() => focusProofRetryButton(retryButton));", beforeLoading);
         Assert.Contains("return;", beforeLoading);
         Assert.Contains("if (isProofPdfFile(file))", javascript);
         Assert.DoesNotContain("if (file.type === 'application/pdf')", javascript);
@@ -206,7 +206,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("for (const file of supportedFiles)", processingBody);
         Assert.DoesNotContain("for (const file of selectedFiles)", processingBody);
         Assert.Contains("if (unsupportedFiles.length > 0)", processingBody);
-        Assert.Contains("customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.')\n                    .then(() => focusProofRetryButton(retryButton));", processingBody);
+        Assert.Contains("customAlert('Some proof files were skipped because proof files must be images or PDFs.')\n                    .then(() => focusProofRetryButton(retryButton));", processingBody);
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", processingBody);
         Assert.Contains("nextButton.disabled = true;", processingBody);
         Assert.Contains("if (failedFiles > 0)", javascript);
-        Assert.Contains("customAlert('Some proof files could not be processed. Please try them again as JPG, PNG, WebP, or PDF.')\n                    .then(() => focusProofRetryButton(retryButton));", javascript);
+        Assert.Contains("customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')\n                    .then(() => focusProofRetryButton(retryButton));", javascript);
     }
 
     [Fact]
