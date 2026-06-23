@@ -665,7 +665,7 @@
             <div class="card-cta">
               <button
                 class="option-button grey"
-                onclick="startAmateurApplication()"
+                onclick="startAmateurApplication(this)"
               >
                 Start amateur
               </button>
@@ -803,7 +803,7 @@
               <button
                 id="goProJoinButton"
                 class="option-button green"
-                onclick="startProApplication()"
+                onclick="startProApplication(this)"
               >
                 Go pro
               </button>
@@ -838,13 +838,69 @@
         window.captureDiscountFromUrl();
       }
 
-      function setPendingPaymentOffer(offer) {
-        const effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
-          ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
-          : window.applyFreePassToPaymentOffer
-            ? window.applyFreePassToPaymentOffer(offer)
-            : offer;
-        sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer));
+      function setBrowserStorageItem(storageName, key, value) {
+        try {
+          window[storageName].setItem(key, value);
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function setSessionItem(key, value) {
+        return setBrowserStorageItem("sessionStorage", key, value);
+      }
+
+      function serializePendingPaymentOffer(offer) {
+        if (!isUsablePaymentOffer(offer)) return null;
+
+        try {
+          const serializedOffer = JSON.stringify(offer);
+          return typeof serializedOffer === "string" && serializedOffer
+            ? serializedOffer
+            : null;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function isUsablePaymentOffer(paymentOffer) {
+        return paymentOffer
+          && typeof paymentOffer === "object"
+          && !Array.isArray(paymentOffer)
+          && typeof paymentOffer.source === "string"
+          && paymentOffer.source.trim()
+          && typeof paymentOffer.offerType === "string"
+          && paymentOffer.offerType.trim()
+          && typeof paymentOffer.currency === "string"
+          && paymentOffer.currency.trim()
+          && typeof paymentOffer.amountUsd === "number"
+          && Number.isFinite(paymentOffer.amountUsd)
+          && paymentOffer.amountUsd >= 0;
+      }
+
+      function setPendingPaymentOffer(offer, retryButton) {
+        let effectiveOffer = offer;
+        try {
+          effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
+            ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
+            : window.applyFreePassToPaymentOffer
+              ? window.applyFreePassToPaymentOffer(offer)
+              : offer;
+        } catch (_) {
+          customAlert('Payment details could not be saved. Enable browser storage and try again.')
+            .then(() => retryButton?.focus());
+          return false;
+        }
+
+        const serializedOffer = serializePendingPaymentOffer(effectiveOffer);
+        if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) {
+          return true;
+        }
+
+        customAlert('Payment details could not be saved. Enable browser storage and try again.')
+          .then(() => retryButton?.focus());
+        return false;
       }
 
       function getCheckoutQuerySuffix() {
@@ -861,22 +917,27 @@
         const hasDiscountCode = result
           && Array.isArray(result.components)
           && result.components.some(component => component && component.kind === "discountCode");
-        return hasDiscountCode && window.addActiveDiscountMetadataToPaymentOffer
-          ? window.addActiveDiscountMetadataToPaymentOffer(offer)
-          : offer;
+        if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
+
+        try {
+          return window.addActiveDiscountMetadataToPaymentOffer(offer);
+        } catch (_) {
+          return null;
+        }
       }
 
-      function startAmateurApplication() {
-        setPendingPaymentOffer({
+      function startAmateurApplication(retryButton) {
+        const stored = setPendingPaymentOffer({
           source: "join-game",
           offerType: "amateur",
           currency: "USD",
           amountUsd: 10
-        });
+        }, retryButton);
+        if (!stored) return;
         window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;
       }
 
-      function startProApplication() {
+      function startProApplication(retryButton) {
         const result = window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === "function"
           ? window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false })
           : null;
@@ -887,7 +948,7 @@
           currency: "USD",
           amountUsd
         }, result);
-        setPendingPaymentOffer(paymentOffer);
+        if (!setPendingPaymentOffer(paymentOffer, retryButton)) return;
         window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;
       }
 
@@ -964,9 +1025,10 @@
         return import("{{ASSET_PRO_DISCOUNTS_JS}}");
       }
 
-      const ready = window.modulesReady || Promise.resolve();
+      const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});
       ready
         .then(() => ensureProDiscountsLoaded())
+        .catch(() => {})
         .then(() => renderProDiscountNote());
     </script>
   </body>

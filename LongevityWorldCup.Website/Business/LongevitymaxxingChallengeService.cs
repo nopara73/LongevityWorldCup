@@ -2868,6 +2868,20 @@ public sealed class LongevitymaxxingChallengeService
     private static string NormalizeEmail(string email)
     {
         var normalized = (email ?? "").Trim();
+        var bracketStart = normalized.IndexOf("<", StringComparison.Ordinal);
+        var bracketEnd = bracketStart >= 0
+            ? normalized.IndexOf(">", bracketStart + 1, StringComparison.Ordinal)
+            : -1;
+        if (bracketEnd > bracketStart)
+        {
+            normalized = normalized[(bracketStart + 1)..bracketEnd].Trim();
+        }
+
+        if (normalized.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized["mailto:".Length..].Split('?', 2)[0].Trim();
+        }
+
         if (!EmailValidator.IsValid(normalized))
             throw new InvalidOperationException("Valid email is required.");
         return normalized;

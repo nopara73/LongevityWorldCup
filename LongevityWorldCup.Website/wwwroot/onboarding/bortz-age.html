@@ -949,7 +949,7 @@
                         <legend>Blood draw date:</legend>
                         <p class="privacy-note">When did you get your blood test done?</p>
                         <div class="input-group lwc-date-flex">
-                            <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" inputmode="none" onkeydown="return false" onkeypress="return false" onkeyup="return false" onpaste="return false" ondrop="return false" autocomplete="off">
+                            <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
                         </div>
                     </fieldset>
                     <div class="lwc-step-actions">
@@ -1357,19 +1357,98 @@
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
         const isUpdate = urlParams.get('update') === '1';
+
+        function removeBrowserStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function setBrowserStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
+        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+        function setLocalItem(key, value) { return setBrowserStorageItem('localStorage', key, value); }
+        function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
+        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
+
+        function isValidSelectedAthlete(value) {
+            return value
+                && typeof value === 'object'
+                && !Array.isArray(value)
+                && typeof value.Name === 'string'
+                && value.Name.trim()
+                && hasSelectedAthleteDateOfBirth(value.DateOfBirth);
+        }
+
+        function hasSelectedAthleteDateOfBirth(value) {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+
+            const year = toSelectedAthleteDatePart(value.Year, 1, 9999);
+            const month = toSelectedAthleteDatePart(value.Month, 1, 12);
+            const day = toSelectedAthleteDatePart(value.Day, 1, 31);
+
+            if (year === null || month === null || day === null) return false;
+
+            const date = new Date(0);
+            date.setUTCFullYear(year, month - 1, day);
+            date.setUTCHours(0, 0, 0, 0);
+            return date.getUTCFullYear() === year
+                && date.getUTCMonth() === month - 1
+                && date.getUTCDate() === day;
+        }
+
+        function toSelectedAthleteDatePart(value, min, max) {
+            if (typeof value === 'boolean' || value === null || value === undefined) return null;
+
+            const number = typeof value === 'string' && value.trim()
+                ? Number(value)
+                : value;
+            return Number.isInteger(number) && number >= min && number <= max
+                ? number
+                : null;
+        }
+
+        function clearStoredBiomarkerHandoff() {
+            removeSessionItem('biomarkerData');
+            removeSessionItem('chronoPhenoDifference');
+            removeSessionItem('chronoBortzDifference');
+        }
+
+        function clearPendingPaymentOffer() {
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+        }
+
         let athlete = null;
 
         try {
-            const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');
+            const selectedAthleteJson = getSessionItem('selectedAthlete');
             athlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
         } catch {
             athlete = null;
         }
 
-        const hasSelectedAthlete = athlete && typeof athlete === 'object' && athlete.Name && athlete.DateOfBirth;
+        const hasSelectedAthlete = isValidSelectedAthlete(athlete);
         if (isUpdate && !hasSelectedAthlete) {
-            sessionStorage.removeItem('selectedAthlete');
-            sessionStorage.removeItem('tempAthlete');
+            removeSessionItem('selectedAthlete');
+            removeSessionItem('tempAthlete');
             window.location.replace('/select-athlete');
             athlete = null;
         }
@@ -1390,9 +1469,13 @@
             const hasDiscountCode = result
                 && Array.isArray(result.components)
                 && result.components.some(component => component && component.kind === 'discountCode');
-            return hasDiscountCode && window.addActiveDiscountMetadataToPaymentOffer
-                ? window.addActiveDiscountMetadataToPaymentOffer(offer)
-                : offer;
+            if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
+
+            try {
+                return window.addActiveDiscountMetadataToPaymentOffer(offer);
+            } catch (_) {
+                return null;
+            }
         }
 
         function buildDirectBortzPaymentOffer() {
@@ -1406,6 +1489,95 @@
                 currency: 'USD',
                 amountUsd
             }, result);
+        }
+
+        function hasUsablePendingPaymentOffer() {
+            const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
+            if (!rawOffer) return false;
+
+            try {
+                const parsedOffer = JSON.parse(rawOffer);
+                if (isUsablePaymentOffer(parsedOffer)) return true;
+            } catch (_) {
+            }
+
+            clearPendingPaymentOffer();
+            return false;
+        }
+
+        function isUsablePaymentOffer(paymentOffer) {
+            return paymentOffer
+                && typeof paymentOffer === 'object'
+                && !Array.isArray(paymentOffer)
+                && typeof paymentOffer.source === 'string'
+                && paymentOffer.source.trim()
+                && typeof paymentOffer.offerType === 'string'
+                && paymentOffer.offerType.trim()
+                && typeof paymentOffer.currency === 'string'
+                && paymentOffer.currency.trim()
+                && typeof paymentOffer.amountUsd === 'number'
+                && Number.isFinite(paymentOffer.amountUsd)
+                && paymentOffer.amountUsd >= 0;
+        }
+
+        function serializePendingPaymentOffer(offer) {
+            if (!isUsablePaymentOffer(offer)) return null;
+
+            try {
+                const serializedOffer = JSON.stringify(offer);
+                return typeof serializedOffer === 'string' && serializedOffer
+                    ? serializedOffer
+                    : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference) {
+            let serializedPaymentOffer = null;
+            if (!isUpdate && !hasUsablePendingPaymentOffer()) {
+                const paymentOffer = buildDirectBortzPaymentOffer();
+                try {
+                    const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer
+                        ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                        : window.applyFreePassToPaymentOffer
+                            ? window.applyFreePassToPaymentOffer(paymentOffer)
+                            : paymentOffer;
+                    serializedPaymentOffer = serializePendingPaymentOffer(adjustedPaymentOffer);
+                } catch (_) {
+                    serializedPaymentOffer = null;
+                }
+                if (!serializedPaymentOffer) {
+                    customAlert('Payment details could not be saved. Enable browser storage and try again.')
+                        .then(() => document.getElementById('continueButton')?.focus());
+                    return false;
+                }
+            }
+
+            let serializedBiomarkerData;
+            try {
+                serializedBiomarkerData = JSON.stringify(biomarkerData);
+            } catch (_) {
+                serializedBiomarkerData = null;
+            }
+
+            const stored =
+                !!serializedBiomarkerData
+                && setSessionItem('chronoBortzDifference', chronoBortzDifference.toFixed(2))
+                && setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))
+                && setSessionItem('biomarkerData', serializedBiomarkerData)
+                && setSessionItem('lwcStep', '1')
+                && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer));
+
+            if (!stored) {
+                clearStoredBiomarkerHandoff();
+                if (!isUpdate) clearPendingPaymentOffer();
+                customAlert('Browser storage is unavailable. Enable storage and try again.')
+                    .then(() => document.getElementById('continueButton')?.focus());
+                return false;
+            }
+
+            return true;
         }
 
         function initializeBortzLabAccessGate() {
@@ -1508,7 +1680,7 @@
 
             function readCachedEligibility() {
                 try {
-                    const raw = localStorage.getItem(BORTZ_LAB_GEO_CACHE_KEY);
+                    const raw = getLocalItem(BORTZ_LAB_GEO_CACHE_KEY);
                     if (!raw) return null;
                     const cached = JSON.parse(raw);
                     if (!cached || Date.now() - cached.timestamp > 24 * 60 * 60 * 1000) return null;
@@ -1520,12 +1692,26 @@
 
             function writeCachedEligibility(countryCode, regionCode) {
                 try {
-                    localStorage.setItem(BORTZ_LAB_GEO_CACHE_KEY, JSON.stringify({
+                    setLocalItem(BORTZ_LAB_GEO_CACHE_KEY, JSON.stringify({
                         countryCode,
                         regionCode,
                         timestamp: Date.now()
                     }));
                 } catch (_) { /* ignore */ }
+            }
+
+            function fetchLabGeoWithTimeout() {
+                const timeoutMs = 3500;
+                const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const timer = controller
+                    ? window.setTimeout(() => controller.abort(), timeoutMs)
+                    : null;
+                return fetch('https://ipapi.co/json/', {
+                    cache: 'no-store',
+                    ...(controller ? { signal: controller.signal } : {})
+                }).finally(() => {
+                    if (timer) window.clearTimeout(timer);
+                });
             }
 
             const previewGeo = getLocalPreviewGeo();
@@ -1550,7 +1736,7 @@
                 return;
             }
 
-            fetch('https://ipapi.co/json/', { cache: 'no-store' })
+            fetchLabGeoWithTimeout()
                 .then(response => response.ok ? response.json() : null)
                 .then(location => {
                     if (!location) {
@@ -1582,9 +1768,7 @@
             window.lwcBortzLabAccess = {
                 refresh: initializeBortzLabAccessGate,
                 clearCache: function () {
-                    try {
-                        localStorage.removeItem(BORTZ_LAB_GEO_CACHE_KEY);
-                    } catch (_) { /* ignore */ }
+                    removeLocalItem(BORTZ_LAB_GEO_CACHE_KEY);
                 }
             };
         }
@@ -1607,15 +1791,6 @@
             };
             bloodDrawDateInput.addEventListener('focus', lwcOpenDatePickerGuarded);
             bloodDrawDateInput.addEventListener('click', lwcOpenDatePickerGuarded);
-
-            // Block manual edits (typing/paste/drop), but keep control mutable so showPicker works
-            ['keypress', 'keydown', 'keyup', 'paste', 'drop'].forEach(evt =>
-                bloodDrawDateInput.addEventListener(evt, e => e.preventDefault())
-            );
-            bloodDrawDateInput.addEventListener('beforeinput', e => {
-                // Allow programmatic changes only
-                if (!e.inputType || e.inputType !== 'insertReplacementText') e.preventDefault();
-            });
         }
 
         function overwriteBortzFormFromUrlParams() {
@@ -1647,6 +1822,22 @@
         }
 
         //–– keep track of which fields the user actually edits (or clears)
+        function readStoredBiomarkerData() {
+            const raw = getSessionItem('biomarkerData');
+            if (!raw) return null;
+
+            try {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.Biomarkers)) {
+                    return parsed;
+                }
+            } catch (_) {
+            }
+
+            clearStoredBiomarkerHandoff();
+            return null;
+        }
+
         const touchedBiomarkers = new Set();
         const bortzFieldIds = ['lymphocyte_percentage', 'neutrophil_percentage', 'monocyte_percentage', 'rbc', 'mcv', 'mch', 'rdw', 'albumin', 'urea', 'creatinine', 'cystatin_c', 'glucose', 'hba1c', 'cholesterol', 'apoa1', 'alt', 'alp', 'ggt', 'crp', 'shbg', 'vitamin_d'];
         [...bortzFieldIds, 'wbc'].forEach(id => {
@@ -1672,8 +1863,27 @@
                 });
             });
 
+        function syncFilledBiomarkersForNewApplication(fieldIds) {
+            if (isUpdate) return;
+
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value.trim() !== '') touchedBiomarkers.add(id);
+            });
+        }
+
+        function hasStoredFiniteBiomarkerValue(value) {
+            if (value === null || value === undefined || typeof value === 'boolean') return false;
+            if (typeof value === 'number') return Number.isFinite(value);
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                return trimmed !== '' && Number.isFinite(Number(trimmed));
+            }
+            return false;
+        }
+
         //–– seed from stored data
-        const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
+        const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
             const latest = stored.Biomarkers[0];
             if (latest.Date && bloodDrawDateInput) {
@@ -1707,17 +1917,19 @@
 
             Object.entries(propMap).forEach(([id, prop]) => {
                 const val = latest[prop] ?? (legacyStoredKeys[prop] != null ? latest[legacyStoredKeys[prop]] : undefined);
-                if (val != null && !isNaN(val)) touchedBiomarkers.add(id);
+                if (hasStoredFiniteBiomarkerValue(val)) touchedBiomarkers.add(id);
             });
         }
 
-        function getValidatedBloodDrawDate() {
+        function getValidatedBloodDrawDate(silent) {
             if (!bloodDrawDateInput) return null;
 
             const rawValue = bloodDrawDateInput.value;
             if (!rawValue) {
-                customAlert('Please enter the date when your blood was drawn.');
-                bloodDrawDateInput.focus();
+                if (!silent) {
+                    customAlert('Please enter the date when your blood was drawn.')
+                        .then(() => bloodDrawDateInput.focus());
+                }
                 return null;
             }
 
@@ -1725,8 +1937,10 @@
             const maxDate = bloodDrawDateInput.max ? new Date(`${bloodDrawDateInput.max}T00:00:00`) : null;
 
             if (maxDate && selectedDate > maxDate) {
-                customAlert('Blood draw date cannot be in the future.');
-                bloodDrawDateInput.focus();
+                if (!silent) {
+                    customAlert('Blood draw date cannot be in the future.')
+                        .then(() => bloodDrawDateInput.focus());
+                }
                 return null;
             }
 
@@ -1779,7 +1993,7 @@
             if (creatEl && creatUnitEl) {
                 const v = parse(creatEl);
                 const u = parseFloat(creatUnitEl.value);
-                if (!isNaN(v) && u === 0.0113 && v > 200) {
+                if (!isNaN(v) && u === 0.0113 && v > 20) {
                     console.warn("Creatinine value suggests µmol/L. Correcting the unit.");
                     setUnit(creatUnitEl, 1);
                 } else if (!isNaN(v) && u === 1 && v < 2 && v > 0) {
@@ -1797,7 +2011,7 @@
                 if (!isNaN(v) && u === 1 && v > 30) {
                     console.warn("Glucose value suggests mg/dL. Correcting the unit.");
                     setUnit(gluUnitEl, 18.016);
-                } else if (!isNaN(v) && u === 18.016 && v < 2 && v > 0) {
+                } else if (!isNaN(v) && u === 18.016 && v < 30 && v > 0) {
                     console.warn("Glucose value suggests mmol/L. Correcting the unit.");
                     setUnit(gluUnitEl, 1);
                 }
@@ -1812,9 +2026,24 @@
                 if (!isNaN(v) && u === 1 && v > 40) {
                     console.warn("Urea value suggests BUN (mg/dL). Correcting the unit.");
                     setUnit(ureaUnitEl, 2.801);
-                } else if (!isNaN(v) && u === 2.801 && v < 2 && v > 0) {
+                } else if (!isNaN(v) && u === 2.801 && v < 7.5 && v > 0) {
                     console.warn("Urea value suggests mmol/L. Correcting the unit.");
                     setUnit(ureaUnitEl, 1);
+                }
+            }
+
+            // Cystatin C: mg/L typical ~0.6-1.2; mg/dL entries are ~0.06-0.12.
+            const cystatinEl = document.getElementById('cystatin_c');
+            const cystatinUnitEl = document.getElementById('cystatin_cUnit');
+            if (cystatinEl && cystatinUnitEl) {
+                const v = parse(cystatinEl);
+                const u = parseFloat(cystatinUnitEl.value);
+                if (!isNaN(v) && u === 0.1 && v > 0.3 && v < 3) {
+                    console.warn("Cystatin C value suggests mg/L. Correcting the unit.");
+                    setUnit(cystatinUnitEl, 1);
+                } else if (!isNaN(v) && u === 1 && v > 0 && v < 0.3) {
+                    console.warn("Cystatin C value suggests mg/dL. Correcting the unit.");
+                    setUnit(cystatinUnitEl, 0.1);
                 }
             }
 
@@ -1833,7 +2062,37 @@
                 }
             }
 
-            // HbA1c: mmol/mol typical 20–50, max plausible ~140 (≈15%); % 4–6 (so % rarely > 15); eAG uses value 1
+            // ApoA1: g/L typical ~1-2; mg/dL entries often appear as 100+.
+            const apoa1El = document.getElementById('apoa1');
+            const apoa1UnitEl = document.getElementById('apoa1Unit');
+            if (apoa1El && apoa1UnitEl) {
+                const v = parse(apoa1El);
+                const u = parseFloat(apoa1UnitEl.value);
+                if (!isNaN(v) && u === 1 && v > 10) {
+                    console.warn("ApoA1 value suggests mg/dL. Correcting the unit.");
+                    setUnit(apoa1UnitEl, 100);
+                } else if (!isNaN(v) && u === 100 && v < 10 && v > 0) {
+                    console.warn("ApoA1 value suggests g/L. Correcting the unit.");
+                    setUnit(apoa1UnitEl, 1);
+                }
+            }
+
+            // SHBG: nmol/L typical ~10-100; µg/dL values are only a few units.
+            const shbgEl = document.getElementById('shbg');
+            const shbgUnitEl = document.getElementById('shbgUnit');
+            if (shbgEl && shbgUnitEl) {
+                const v = parse(shbgEl);
+                const u = parseFloat(shbgUnitEl.value);
+                if (!isNaN(v) && u === 0.0347 && v >= 10 && v < 200) {
+                    console.warn("SHBG value suggests nmol/L. Correcting the unit.");
+                    setUnit(shbgUnitEl, 1);
+                } else if (!isNaN(v) && u === 1 && v > 0 && v < 5) {
+                    console.warn("SHBG value suggests µg/dL. Correcting the unit.");
+                    setUnit(shbgUnitEl, 0.0347);
+                }
+            }
+
+            // HbA1c: mmol/mol typical 20-50, max plausible ~140 (~15%); % commonly lands around 4-6; eAG uses value 1.
             const hba1cEl = document.getElementById('hba1c');
             const hba1cUnitEl = document.getElementById('hba1cUnit');
             if (hba1cEl && hba1cUnitEl) {
@@ -1842,7 +2101,7 @@
                 const unitText = hba1cUnitEl.options[hba1cUnitEl.selectedIndex].text;
                 const isPct = unitText.indexOf('%') !== -1;
                 const isEAG = unitText.indexOf('eAG') !== -1;
-                if (!isNaN(v) && !isPct && !isEAG && u === 1 && v > 150) {
+                if (!isNaN(v) && !isPct && !isEAG && u === 1 && v > 0 && v < 15) {
                     console.warn("HbA1c value suggests %. Correcting the unit.");
                     setUnit(hba1cUnitEl, 0.0915);
                 } else if (!isNaN(v) && isPct && v > 15) {
@@ -1856,68 +2115,7 @@
         let isFirstTimeAnimation = true; // Flag to control the first-time animation
 
         function calculateResult() {
-            // In update mode, ensure all Bortz biomarkers were entered
-            if (isUpdate) {
-                const requiredCount = window.BortzAge.features.length - 1; // exclude age
-                if (touchedBiomarkers.size < requiredCount) {
-                    document.getElementById('continueButton').classList.remove('show');
-                    customAlert(`😱 Need to submit all ${requiredCount} biomarkers!`);
-                    return;
-                }
-            }
-
-            const bloodDrawDate = getValidatedBloodDrawDate();
-            if (!bloodDrawDate) {
-                document.getElementById('continueButton').classList.remove('show');
-                updateCalculateButton();
-                return;
-            }
-
-            // WBC is unconditionally required; no calculation without it
-            const wbcInputEl = document.getElementById('wbc');
-            const wbcUnitInputEl = document.getElementById('wbcUnit');
-            if (!wbcInputEl || !wbcUnitInputEl) {
-                customAlert('White Blood Cell Count (WBC) is required.');
-                return;
-            }
-            const wbcRaw = window.PhenoAge && typeof window.PhenoAge.parseInput === 'function' ? window.PhenoAge.parseInput(wbcInputEl.value) : parseFloat(wbcInputEl.value);
-            const wbcUnit = parseFloat(wbcUnitInputEl.value);
-            if (typeof wbcRaw !== 'number' || !Number.isFinite(wbcRaw) || wbcRaw <= 0 || !Number.isFinite(wbcUnit) || wbcUnit <= 0) {
-                expandFieldCard('wbc');
-                customAlert('Please enter a valid White Blood Cell Count (WBC).');
-                return;
-            }
-
-            const markerValues = [];
-
-            // Get age from separate Date of Birth inputs
-            const yearInput = document.getElementById('dob-year').value;
-            const monthInput = document.getElementById('dob-month').value;
-            const dayInput = document.getElementById('dob-day').value;
-
-            const year = yearInput ? parseInt(yearInput) : null;
-            const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
-            const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
-
-            if (!year) {
-                customAlert("Please select a year.");
-                return;
-            }
-
-            const dobValue = new Date(year, month, day);  // Month is 0-based (0 = Jan), Day is 1-based (1 = 1st day, 0 = last day of previous month)
-            let chronologicalAgeAtTimeOfTest;
-            try {
-                chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
-                if (chronologicalAgeAtTimeOfTest < 0) {
-                    throw new Error("Invalid date of birth: you cannot be born in the future.");
-                }
-            } catch (error) {
-                customAlert(error.message);
-                return;
-            }
-
-            // Add age as the first marker value
-            markerValues.push(chronologicalAgeAtTimeOfTest);
+            syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
 
             // Fill missing biomarker fields on update
             if (isUpdate && athlete?.Biomarkers?.length) {
@@ -1951,12 +2149,78 @@
                 Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
                     const input = document.getElementById(id);
                     const unitEl = document.getElementById(id + 'Unit');
-                    if (input && unitEl && val != null && !isNaN(val) && !input.value) {
+                    if (input && unitEl && hasStoredFiniteBiomarkerValue(val) && !input.value) {
                         input.value = val;
                         unitEl.value = unit;
                     }
                 });
             }
+
+            if (isUpdate && touchedBiomarkers.size === 0) {
+                document.getElementById('continueButton').classList.remove('show');
+                customAlert('Change at least one biomarker value before continuing.')
+                    .then(() => focusFirstEditableBiomarker(bortzFieldIds));
+                return;
+            }
+
+            const bloodDrawDate = getValidatedBloodDrawDate();
+            if (!bloodDrawDate) {
+                document.getElementById('continueButton').classList.remove('show');
+                updateCalculateButton();
+                return;
+            }
+
+            // WBC is unconditionally required; no calculation without it
+            const wbcInputEl = document.getElementById('wbc');
+            const wbcUnitInputEl = document.getElementById('wbcUnit');
+            if (!wbcInputEl || !wbcUnitInputEl) {
+                customAlert('White Blood Cell Count (WBC) is required.');
+                return;
+            }
+            const wbcRaw = window.PhenoAge && typeof window.PhenoAge.parseInput === 'function' ? window.PhenoAge.parseInput(wbcInputEl.value) : parseFloat(wbcInputEl.value);
+            const wbcUnit = parseFloat(wbcUnitInputEl.value);
+            if (typeof wbcRaw !== 'number' || !Number.isFinite(wbcRaw) || wbcRaw <= 0 || !Number.isFinite(wbcUnit) || wbcUnit <= 0) {
+                expandFieldCard('wbc');
+                customAlert('Please enter a valid White Blood Cell Count (WBC).')
+                    .then(() => wbcInputEl.focus());
+                return;
+            }
+
+            const markerValues = [];
+
+            // Get age from separate Date of Birth inputs
+            const yearSelect = document.getElementById('dob-year');
+            const yearInput = yearSelect.value;
+            const monthInput = document.getElementById('dob-month').value;
+            const dayInput = document.getElementById('dob-day').value;
+
+            const year = yearInput ? parseInt(yearInput) : null;
+            const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
+            const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
+
+            if (!year) {
+                customAlert("Please select a year.")
+                    .then(() => yearSelect.focus());
+                return;
+            }
+
+            const dobValue = new Date(year, month, day);  // Month is 0-based (0 = Jan), Day is 1-based (1 = 1st day, 0 = last day of previous month)
+            let chronologicalAgeAtTimeOfTest;
+            try {
+                chronologicalAgeAtTimeOfTest = window.calculateAgeAtDate(dobValue, new Date(`${bloodDrawDate}T00:00:00`));
+            } catch (error) {
+                customAlert('Date of birth could not be read. Please check it and try again.')
+                    .then(() => yearSelect.focus());
+                return;
+            }
+            if (chronologicalAgeAtTimeOfTest < 0) {
+                customAlert('Date of birth cannot be after the blood draw date.')
+                    .then(() => yearSelect.focus());
+                return;
+            }
+
+            // Add age as the first marker value
+            markerValues.push(chronologicalAgeAtTimeOfTest);
 
             correctCorrectableUnits();
 
@@ -2015,6 +2279,7 @@
                         } else {
                             expandFieldCard('wbc');
                             customAlert('Enter White Blood Cell Count (WBC) to use Lymphocytes in absolute units.').then(() => {
+                                document.getElementById('wbc')?.focus();
                                 document.getElementById('continueButton').classList.remove('show');
                                 updateCalculateButton();
                             });
@@ -2034,6 +2299,7 @@
                         } else {
                             expandFieldCard('wbc');
                             customAlert('Enter White Blood Cell Count (WBC) to use Neutrophils in %.').then(() => {
+                                document.getElementById('wbc')?.focus();
                                 document.getElementById('continueButton').classList.remove('show');
                                 updateCalculateButton();
                             });
@@ -2055,6 +2321,7 @@
                         } else {
                             expandFieldCard('wbc');
                             customAlert('Enter White Blood Cell Count (WBC) to use Monocytes in %.').then(() => {
+                                document.getElementById('wbc')?.focus();
                                 document.getElementById('continueButton').classList.remove('show');
                                 updateCalculateButton();
                             });
@@ -2205,7 +2472,7 @@
                 if (window.LwcBioAgeRankPreview) {
                     window.LwcBioAgeRankPreview.render('bortzAgeRankPreview', bortzRankPreview);
                 } else if (window.modulesReady) {
-                    window.modulesReady.then(() => {
+                    Promise.resolve(window.modulesReady).catch(() => {}).then(() => {
                         if (window.LwcBioAgeRankPreview) window.LwcBioAgeRankPreview.render('bortzAgeRankPreview', bortzRankPreview);
                     });
                 }
@@ -2259,7 +2526,7 @@
                             
                             // Update years text with year reduction/increase and celebratory emoji if bio age is better
                             const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
-                            yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
+                            yearsTextElement.textContent = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
                             // Show Pheno Age when computed (WBC provided)
                             const phenoAgeRowEl = document.getElementById('phenoAgeRow');
@@ -2301,7 +2568,7 @@
                     animatedAgeElement.classList.add(ageCategory);
                     
                     const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
-                    yearsTextElement.innerHTML = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
+                    yearsTextElement.textContent = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
 
                     // Show Pheno Age when computed (WBC provided)
                     const phenoAgeRowEl = document.getElementById('phenoAgeRow');
@@ -2448,12 +2715,16 @@
         function lwcValidateStep1(silent) {
             // validate DOB year + blood draw date (reuse existing validation)
             // silent: when true (e.g. restore-step check), return false without showing alerts
-            const yearVal = document.getElementById('dob-year').value;
+            const yearSelect = document.getElementById('dob-year');
+            const yearVal = yearSelect.value;
             if (!yearVal) {
-                if (!silent) customAlert('Please select your birth year.');
+                if (!silent) {
+                    customAlert('Please select your birth year.')
+                        .then(() => yearSelect.focus());
+                }
                 return false;
             }
-            const bd = getValidatedBloodDrawDate();
+            const bd = getValidatedBloodDrawDate(silent);
             if (!bd) return false;
             return true;
         }
@@ -2468,12 +2739,12 @@
                 toStep2Btn.addEventListener('click', () => {
                     if (!lwcValidateStep1()) return;
                     lwcSetStep(2);
-                    try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {}
+                    setSessionItem('lwcStep', '2');
                 });
             }
             if (toStep1Btn) {
                 toStep1Btn.addEventListener('click', () => {
-                    try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+                    setSessionItem('lwcStep', '1');
                     lwcSetStep(1);
                 });
             }
@@ -2482,8 +2753,8 @@
             const dot1 = document.getElementById('lwcDot1');
             const dot2 = document.getElementById('lwcDot2');
 
-            function activateDot1() { lwcSetStep(1); try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {} }
-            function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); try { sessionStorage.setItem('lwcStep', '2'); } catch (e) {} } }
+            function activateDot1() { lwcSetStep(1); setSessionItem('lwcStep', '1'); }
+            function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); setSessionItem('lwcStep', '2'); } }
 
             if (dot1) {
                 dot1.addEventListener('click', activateDot1);
@@ -2546,8 +2817,8 @@
             if (isUpdate && hasSelectedAthlete) {
                 hideMainProgress();
 
-                document.getElementById('mainPageTitleH2').innerHTML = athlete.Name;
-                document.getElementById('mainInstructions').innerHTML = 'Submit your latest test results. All fields are required and must be from the same day.';
+                document.getElementById('mainPageTitleH2').textContent = athlete.Name;
+                document.getElementById('mainInstructions').textContent = 'Submit your latest test results. All fields are required and must be from the same day.';
 
                 // Fill out the date of birth because we'll need it for calculations, but hide it as well so the user doesn't wanna change that.
                 document.getElementById('dob-year').value = athlete.DateOfBirth.Year;
@@ -2586,14 +2857,14 @@
             // Restore step 2 after refresh if user had navigated there and step 1 is valid
             let restoredStep = false;
             try {
-                if (sessionStorage.getItem('lwcStep') === '2' && lwcValidateStep1(true)) {
+                if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true)) {
                     lwcSetStep(2);
                     restoredStep = true;
                 }
             } catch (e) {}
             if (!restoredStep) {
                 lwcSetStep(1);
-                try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+                setSessionItem('lwcStep', '1');
             }
         });
 
@@ -2661,7 +2932,7 @@
             overwriteBortzFormFromUrlParams();
 
             // refill only saved biomarkers
-            const stored = JSON.parse(sessionStorage.getItem('biomarkerData'));
+            const stored = readStoredBiomarkerData();
             const entry = stored?.Biomarkers?.[0];
             if (entry) {
                 if (bloodDrawDateInput) {
@@ -2672,13 +2943,13 @@
                     const lymphUnitEl = document.getElementById('lymphocyte_percentageUnit');
                     if (lymphUnitEl) lymphUnitEl.value = '1';
                 }
-                if (entry.NeutrophilPc != null) {
+                if (hasStoredFiniteBiomarkerValue(entry.NeutrophilPc)) {
                     document.getElementById('neutrophil_percentage').value = entry.NeutrophilPc;
                     const neuUnitEl = document.getElementById('neutrophil_percentageUnit');
                     if (neuUnitEl) neuUnitEl.value = '1';
                     expandFieldCard('neutrophil_percentage');
                 }
-                if (entry.MonocytePc != null) {
+                if (hasStoredFiniteBiomarkerValue(entry.MonocytePc)) {
                     document.getElementById('monocyte_percentage').value = entry.MonocytePc;
                     const monoUnitEl = document.getElementById('monocyte_percentageUnit');
                     if (monoUnitEl) monoUnitEl.value = '1';
@@ -2688,12 +2959,14 @@
                     const id = idMapUnique[prop];
                     if (id) {
                         const val = entry[prop] ?? (legacyRefillKeys[prop] != null ? entry[legacyRefillKeys[prop]] : undefined);
-                        if (val != null && !isNaN(val)) document.getElementById(id).value = val;
-                        if (prop === 'Wbc1000cellsuL') {
-                            const wbcUnitEl = document.getElementById('wbcUnit');
-                            if (wbcUnitEl) wbcUnitEl.value = '1';
+                        if (hasStoredFiniteBiomarkerValue(val)) {
+                            document.getElementById(id).value = val;
+                            if (prop === 'Wbc1000cellsuL') {
+                                const wbcUnitEl = document.getElementById('wbcUnit');
+                                if (wbcUnitEl) wbcUnitEl.value = '1';
+                            }
+                            expandFieldCard(id);
                         }
-                        expandFieldCard(id);
                     }
                 });
                 // hide toggle icons on expanded cards
@@ -2731,8 +3004,11 @@
         }
 
         function proceedToNextPage() {
+            syncFilledBiomarkersForNewApplication([...bortzFieldIds, 'wbc']);
+
             if (isUpdate && touchedBiomarkers.size === 0) {
-                customAlert('😱 No new biomarker data entered! Cannot proceed!');
+                customAlert('Change at least one biomarker value before continuing.')
+                    .then(() => focusFirstEditableBiomarker(bortzFieldIds));
                 return;
             }
 
@@ -2744,6 +3020,8 @@
             if (!bloodDrawDate) {
                 return;
             }
+
+            correctCorrectableUnits();
 
             const year = yearInput ? parseInt(yearInput) : null;
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
@@ -2871,25 +3149,11 @@
             const chronoBortzDifference = bortzAge - chronoAgeAtTimeOfTest;
             const phenoAge = lastCalculatedPhenoAge;
             const chronoPhenoDifference = phenoAge - chronoAgeAtTimeOfTest;
-            sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));
-            sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));
-
-            sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));
-            try { sessionStorage.setItem('lwcStep', '1'); } catch (e) {}
+            if (!storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference)) return;
             
              if (isUpdate) {
                  window.location.href = '/proofs';
              } else {
-                 if (!sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY)) {
-                     const paymentOffer = buildDirectBortzPaymentOffer();
-                     sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(
-                         window.applyPaymentAdjustmentsToPaymentOffer
-                             ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
-                             : window.applyFreePassToPaymentOffer
-                                 ? window.applyFreePassToPaymentOffer(paymentOffer)
-                                 : paymentOffer
-                     ));
-                 }
                  window.location.href = '/apply';
              }
         }
@@ -3132,6 +3396,16 @@
                     }
                 }
             }
+        }
+
+        function focusFirstEditableBiomarker(fieldIds) {
+            const input = fieldIds
+                .map(id => document.getElementById(id))
+                .find(Boolean);
+            if (!input) return;
+
+            expandFieldCard(input);
+            input.focus();
         }
 
         // Let the browser show its validation bubbles, but expand the card first

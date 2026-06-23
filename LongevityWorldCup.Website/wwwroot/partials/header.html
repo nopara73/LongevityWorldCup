@@ -909,19 +909,27 @@
     });
 
     function fetchWithTimeout(url, options = {}, timeout = 10000) {
+        const timeoutController = typeof AbortController !== 'undefined' && !options.signal
+            ? new AbortController()
+            : null;
+        const fetchOptions = timeoutController
+            ? { ...options, signal: timeoutController.signal }
+            : options;
+
         return new Promise((resolve, reject) => {
             const timer = setTimeout(() => {
+                if (timeoutController) timeoutController.abort();
                 reject(new Error('Request timed out'));
             }, timeout);
 
-            fetch(url, options)
+            fetch(url, fetchOptions)
                 .then(response => {
                     clearTimeout(timer);
                     resolve(response);
                 })
                 .catch(err => {
                     clearTimeout(timer);
-                    reject(err);
+                    reject(err && err.name === 'AbortError' ? new Error('Request timed out') : err);
                 });
         });
     }

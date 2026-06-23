@@ -46,6 +46,30 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task SignupAndResendNormalizeCopiedEmailLinks()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var now = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "Linked Lee <linked@example.com>",
+            "Linked Lee",
+            "UTC",
+            null,
+            25m), now);
+
+        var confirmation = Assert.Single(fixture.Email.Confirmations);
+        Assert.Equal("linked@example.com", confirmation.Email);
+
+        await fixture.Service.ResendAccessLinkAsync(
+            " Linked Lee <mailto:linked@example.com?subject=Challenge> ",
+            now.AddMinutes(1));
+
+        Assert.Equal(2, fixture.Email.Confirmations.Count);
+        Assert.Equal("linked@example.com", fixture.Email.Confirmations.Last().Email);
+    }
+
+    [Fact]
     public async Task SignupStaysOpenDuringActiveChallengeWithoutBackfillingBeforeSignup()
     {
         using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-09T22:00:00Z");
@@ -1783,6 +1807,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             "https://btcpay.example.test/i/lmx-invoice-2",
             null,
             null,
+            null,
             null);
 
         var paid = await fixture.Service.RefreshCommitmentPaymentStatusAsync(access, DateTimeOffset.Parse("2026-06-13T09:06:00Z"));
@@ -2234,6 +2259,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
                         25m,
                         0m,
                         $"https://btcpay.example.test/i/{invoiceId}",
+                        null,
                         null,
                         null,
                         null));

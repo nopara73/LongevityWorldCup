@@ -96,7 +96,7 @@
                         <form id="lmxSignupForm" class="lmx-form">
                             <div class="lmx-field">
                                 <label for="lmxSignupEmail">Email</label>
-                                <input id="lmxSignupEmail" name="email" type="email" autocomplete="email" required>
+                                <input id="lmxSignupEmail" name="email" type="text" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required>
                             </div>
                             <fieldset class="lmx-identity-field" data-identity-scope="signup">
                                 <legend>Are you already a Longevity World Cup athlete?</legend>
@@ -112,14 +112,14 @@
                                 </div>
                                 <div id="lmxSignupUsernameField" class="lmx-field lmx-identity-username" data-identity-panel="username">
                                     <label for="lmxSignupName">Username</label>
-                                    <input id="lmxSignupName" name="displayName" autocomplete="username" required maxlength="80">
+                                    <input id="lmxSignupName" name="displayName" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="80">
                                 </div>
                                 <div id="lmxSignupAthleteField" class="lmx-field lmx-athlete-selector lmx-identity-athlete lmx-hidden" data-identity-panel="athlete">
                                     <label for="lmxSignupAthlete">Athlete profile</label>
                                     <div class="lmx-athlete-picker">
                                         <div class="lmx-athlete-search">
                                             <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                                            <input id="lmxSignupAthlete" name="athleteLink" autocomplete="off" placeholder="Search athlete name">
+                                            <input id="lmxSignupAthlete" name="athleteLink" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Search athlete name">
                                             <button id="lmxSignupAthleteClear" class="lmx-athlete-clear lmx-hidden" type="button" aria-label="Clear selected athlete">
                                                 <i class="fas fa-xmark" aria-hidden="true"></i>
                                             </button>
@@ -147,7 +147,7 @@
                                     <div class="lmx-timezone-popover" hidden>
                                         <div class="lmx-timezone-search">
                                             <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                                            <input id="lmxSignupTimeZoneSearch" type="search" autocomplete="off" placeholder="Search city or timezone" aria-controls="lmxSignupTimeZoneList">
+                                            <input id="lmxSignupTimeZoneSearch" type="search" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Search city or timezone" aria-controls="lmxSignupTimeZoneList">
                                         </div>
                                         <div id="lmxSignupTimeZoneList" class="lmx-timezone-list" role="listbox" aria-label="Timezones"></div>
                                     </div>
@@ -178,7 +178,7 @@
                     <form id="lmxResendForm" class="lmx-form">
                         <div class="lmx-field">
                             <label for="lmxResendEmail">Email</label>
-                            <input id="lmxResendEmail" type="email" autocomplete="email" required>
+                            <input id="lmxResendEmail" type="text" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required>
                         </div>
                         <button class="lmx-button lmx-primary-action" type="submit">
                             <i class="fas fa-envelope" aria-hidden="true"></i>
@@ -236,7 +236,7 @@
                                 <div class="lmx-timezone-popover" hidden>
                                     <div class="lmx-timezone-search">
                                         <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-                                        <input id="lmxEditTimeZoneSearch" type="search" autocomplete="off" placeholder="Search city or timezone" aria-controls="lmxEditTimeZoneList">
+                                        <input id="lmxEditTimeZoneSearch" type="search" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Search city or timezone" aria-controls="lmxEditTimeZoneList">
                                     </div>
                                     <div id="lmxEditTimeZoneList" class="lmx-timezone-list" role="listbox" aria-label="Timezones"></div>
                                 </div>

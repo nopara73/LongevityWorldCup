@@ -1,6 +1,7 @@
 (function () {
     const STORAGE_KEY = "lmxAccessToken";
     const API = "/api/longevitymaxxing";
+    const REQUEST_TIMEOUT_MS = 65000;
     const CALL_ACTIVE_WINDOW_MS = 90 * 60 * 1000;
     const ANSWERS = [
         { label: "No", value: 0 },
@@ -218,20 +219,26 @@
         const resendForm = document.getElementById("lmxResendForm");
         const editForm = document.getElementById("lmxEditForm");
         const signupAgain = document.getElementById("lmxSignupAgain");
+        const signupEmailInput = document.getElementById("lmxSignupEmail");
+        const resendEmailInput = document.getElementById("lmxResendEmail");
         const profilePictureInput = document.getElementById("lmxProfilePictureInput");
         const profilePictureButton = document.getElementById("lmxProfilePictureButton");
         const editTimeZone = document.getElementById("lmxEditTimeZone");
         const inactiveToggle = document.getElementById("lmxInactiveToggle");
+        wireEmailValidityReset(signupEmailInput);
+        wireEmailValidityReset(resendEmailInput);
         wireCommitmentAmountValidation("lmxSignupCommitmentAmount");
         wireCommitmentAmountValidation("lmxEditCommitmentAmount");
 
         signupForm.addEventListener("submit", async event => {
             event.preventDefault();
             accessTab = "signup";
+            const signupEmail = validateEmailInput(signupEmailInput);
+            if (!signupEmail) return;
 
             await withButton(signupForm.querySelector("button[type='submit']"), async () => {
                 const payload = {
-                    email: document.getElementById("lmxSignupEmail").value.trim(),
+                    email: signupEmail,
                     displayName: getIdentityDisplayName("signup"),
                     timeZoneId: document.getElementById("lmxSignupTimeZone").value,
                     athleteLink: getIdentityAthletePayload("signup"),
@@ -258,9 +265,12 @@
 
         resendForm.addEventListener("submit", async event => {
             event.preventDefault();
+            const resendEmail = validateEmailInput(resendEmailInput);
+            if (!resendEmail) return;
+
             await withButton(resendForm.querySelector("button[type='submit']"), async () => {
                 await postJson(`${API}/resend`, {
-                    email: document.getElementById("lmxResendEmail").value.trim()
+                    email: resendEmail
                 });
                 setStatus("lmxResendStatus", "Check your email for your private check-in link.", false);
             }, "Sending...");
@@ -384,6 +394,51 @@
 
         const athleteInputId = `${identityPrefix(scope)}Athlete`;
         return getAthleteSelectorDisplayName(athleteInputId);
+    }
+
+    function normalizeEmailInput(input) {
+        const normalized = normalizeEmailValue(input?.value || "");
+        if (input) input.value = normalized;
+        return normalized;
+    }
+
+    function validateEmailInput(input) {
+        const normalized = normalizeEmailInput(input);
+        if (!input) return normalized;
+
+        input.setCustomValidity("");
+        if (!normalized) return normalized;
+        if (isEmailAddress(normalized)) return normalized;
+
+        input.setCustomValidity("Enter a valid email address.");
+        input.reportValidity?.();
+        input.focus();
+        return null;
+    }
+
+    function wireEmailValidityReset(input) {
+        input?.addEventListener("input", () => input.setCustomValidity(""));
+    }
+
+    function isEmailAddress(value) {
+        const input = document.createElement("input");
+        input.type = "email";
+        input.value = String(value || "");
+        return input.checkValidity();
+    }
+
+    function normalizeEmailValue(value) {
+        let normalized = String(value || "").trim();
+        const bracketMatch = /<([^<>]+)>/.exec(normalized);
+        if (bracketMatch) {
+            normalized = bracketMatch[1].trim();
+        }
+
+        if (/^mailto:/i.test(normalized)) {
+            normalized = normalized.replace(/^mailto:/i, "").split("?")[0].trim();
+        }
+
+        return normalized;
     }
 
     function getIdentityAthletePayload(scope) {
@@ -1235,6 +1290,20 @@
         }, "Saving...");
     }
 
+    function normalizeCheckoutLink(value) {
+        const raw = typeof value === "string" ? value.trim() : "";
+        if (!raw) return "";
+
+        try {
+            const checkoutUrl = new URL(raw, window.location.origin);
+            return checkoutUrl.protocol === "http:" || checkoutUrl.protocol === "https:"
+                ? checkoutUrl.href
+                : "";
+        } catch (_) {
+            return "";
+        }
+    }
+
     async function payCommitment(button) {
         if (!accessToken) return;
         const checkoutWindow = window.open("", "_blank", "noopener");
@@ -1242,8 +1311,8 @@
             const result = await postJson(`${API}/commitment-payment`, { accessToken });
             participantState = result;
             publicState = result.public;
-            const checkoutLink = result.commitment && result.commitment.checkoutLink;
-            if (!checkoutLink) throw new Error("The payment invoice did not return a checkout link.");
+            const checkoutLink = normalizeCheckoutLink(result.commitment && result.commitment.checkoutLink);
+            if (!checkoutLink) throw new Error("The payment invoice did not return a usable checkout link.");
             if (checkoutWindow) {
                 checkoutWindow.location = checkoutLink;
             } else {
@@ -1303,6 +1372,8 @@
     }
 
     async function withStandaloneButton(button, busyText, work, onError) {
+        if (button && (button.disabled || button.getAttribute("aria-busy") === "true")) return;
+
         const original = button ? button.innerHTML : "";
         if (button) {
             button.disabled = true;
@@ -1756,7 +1827,9 @@
                 form.querySelector("input[data-note-photos]")?.click();
             });
             form.querySelector("input[data-note-photos]")?.addEventListener("change", event => {
-                setPendingNotePhotos(form, Array.from(event.target.files || []));
+                const input = event.target;
+                setPendingNotePhotos(form, Array.from(input.files || []));
+                input.value = "";
                 renderSelectedNotePhotoPreviews(form);
                 updateCheckInSaveState(form);
             });
@@ -2172,27 +2245,30 @@
     async function uploadProfilePicture(file, input) {
         if (!accessToken) return;
 
-        const uploadFile = await prepareProfilePictureFile(file);
-        const formData = new FormData();
-        formData.append("accessToken", accessToken);
-        formData.append("profilePicture", uploadFile, uploadFile.name || "profile-picture.jpg");
-
         const button = document.getElementById("lmxProfilePictureButton");
         input.disabled = true;
         if (button) button.disabled = true;
+        let shouldFocusRetry = false;
         setStatus("lmxProfilePictureStatus", "Uploading...", false);
         try {
+            const uploadFile = await prepareProfilePictureFile(file);
+            const formData = new FormData();
+            formData.append("accessToken", accessToken);
+            formData.append("profilePicture", uploadFile, uploadFile.name || "profile-picture.jpg");
+
             const result = await postForm(`${API}/profile-picture`, formData);
             participantState = result;
             publicState = result.public;
             renderAll();
             setStatus("lmxProfilePictureStatus", "Uploaded.", false);
         } catch (err) {
+            shouldFocusRetry = true;
             setStatus("lmxProfilePictureStatus", messageOf(err), true);
         } finally {
             input.disabled = false;
             if (button) button.disabled = false;
             input.value = "";
+            if (shouldFocusRetry) button?.focus();
         }
     }
 
@@ -3212,6 +3288,7 @@
                 const message = "Select an athlete from the list or clear this field.";
                 input.setCustomValidity?.(message);
                 input.reportValidity?.();
+                input.focus();
                 throw new Error(message);
             },
             getSelectedName() {
@@ -3361,6 +3438,7 @@
         const message = "Select an athlete from the list or clear this field.";
         input.setCustomValidity?.(message);
         input.reportValidity?.();
+        input.focus();
         throw new Error(message);
     }
 
@@ -3372,6 +3450,7 @@
         const message = "Select your athlete profile.";
         input?.setCustomValidity?.(message);
         input?.reportValidity?.();
+        input?.focus();
         throw new Error(message);
     }
 
@@ -3443,12 +3522,12 @@
     }
 
     async function getJson(url) {
-        const response = await fetch(url, { headers: { "Accept": "application/json" } });
+        const response = await requestJson(url, { headers: { "Accept": "application/json" } });
         return readJsonResponse(response, url);
     }
 
     async function postJson(url, payload) {
-        const response = await fetch(url, {
+        const response = await requestJson(url, {
             method: "POST",
             headers: {
                 "Accept": "application/json",
@@ -3460,12 +3539,31 @@
     }
 
     async function postForm(url, formData) {
-        const response = await fetch(url, {
+        const response = await requestJson(url, {
             method: "POST",
             headers: { "Accept": "application/json" },
             body: formData
         });
         return readJsonResponse(response, url);
+    }
+
+    async function requestJson(url, options) {
+        const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        const timer = controller
+            ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+            : null;
+
+        try {
+            return await fetch(url, {
+                ...(options || {}),
+                ...(controller ? { signal: controller.signal } : {})
+            });
+        } catch (err) {
+            if (err && err.name === "AbortError") throw new Error("Request timed out");
+            throw err;
+        } finally {
+            if (timer) window.clearTimeout(timer);
+        }
     }
 
     async function readJsonResponse(response, url) {
@@ -3483,7 +3581,15 @@
         }
 
         if (!response.ok) {
-            const err = new Error(data.message || response.statusText || "Request failed");
+            const fallback = response.statusText || (response.status ? `HTTP ${response.status}` : "Request failed");
+            const message = typeof data === "string" && data.trim()
+                ? data.trim()
+                : data && typeof data.message === "string" && data.message.trim()
+                    ? data.message.trim()
+                    : Array.isArray(data)
+                        ? data.filter(value => typeof value === "string").map(value => value.trim()).filter(Boolean).join("\n")
+                        : "";
+            const err = new Error(message || fallback);
             err.status = response.status;
             throw err;
         }
@@ -3495,6 +3601,8 @@
     }
 
     async function withButton(button, work, busyText) {
+        if (button.disabled || button.getAttribute("aria-busy") === "true") return;
+
         const original = button.innerHTML;
         button.disabled = true;
         button.setAttribute("aria-busy", "true");
