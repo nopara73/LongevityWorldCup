@@ -704,7 +704,7 @@ public sealed class ApplicationControllerValidationTests
     public void ApplicationSubmit_TreatsPostEmailInvoiceFailureAsAcceptedSubmission()
     {
         var source = ReadApplicationControllerSource();
-        var failureStart = source.IndexOf("Application submission email was sent but BTCPay invoice creation failed.", StringComparison.Ordinal);
+        var failureStart = source.IndexOf("Application submission was saved but BTCPay invoice creation failed.", StringComparison.Ordinal);
         var acceptedReturn = source.IndexOf("return Ok(new", failureStart, StringComparison.Ordinal);
         var failureEnd = source.IndexOf("await TryRecordDiscountSignupAsync(", acceptedReturn + 1, StringComparison.Ordinal);
 
@@ -722,6 +722,47 @@ public sealed class ApplicationControllerValidationTests
         Assert.Contains("return Ok(new", failureBody);
         Assert.Contains("paymentUnavailable = true", failureBody);
         Assert.DoesNotContain("return StatusCode(500, $\"Application sent, but failed to create BTCPay invoice:", failureBody);
+    }
+
+    [Fact]
+    public void ApplicationSubmit_ArchivesAndContinuesWhenAdminEmailFails()
+    {
+        var source = ReadApplicationControllerSource();
+        var emailStart = source.IndexOf("// Send the admin notification email.", StringComparison.Ordinal);
+        var paymentStart = source.IndexOf("if (!paymentRequired)", emailStart, StringComparison.Ordinal);
+        var invoiceStart = source.IndexOf("var invoiceResult = await CreateBtcpayInvoiceAsync", paymentStart, StringComparison.Ordinal);
+
+        Assert.True(emailStart >= 0);
+        Assert.True(paymentStart > emailStart);
+        Assert.True(invoiceStart > paymentStart);
+
+        var emailBody = source[emailStart..paymentStart];
+        var freeSubmissionBody = source[paymentStart..invoiceStart];
+
+        Assert.Contains("archivedSubmissionPath = await PersistApplicationSubmissionArchiveAsync(zipPath, folderKey, submissionId, ct);", emailBody);
+        Assert.Contains("Application submission email failed after archive was saved.", emailBody);
+        Assert.Contains("Application submission email failed and archive could not be saved.", emailBody);
+        Assert.Contains("return StatusCode(500, \"Internal server error: application could not be saved.\");", emailBody);
+        Assert.Contains("return Ok(new", freeSubmissionBody);
+        Assert.Contains("paymentRequired = false", freeSubmissionBody);
+        Assert.Contains("AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}", freeSubmissionBody);
+    }
+
+    [Fact]
+    public void ApplicationArchive_UsesDurableDataDirectory()
+    {
+        var source = ReadApplicationControllerSource();
+        var methodStart = source.IndexOf("private static async Task<string> PersistApplicationSubmissionArchiveAsync", StringComparison.Ordinal);
+        var methodEnd = source.IndexOf("private static string SanitizeArchiveFilePart", methodStart, StringComparison.Ordinal);
+
+        Assert.True(methodStart >= 0);
+        Assert.True(methodEnd > methodStart);
+
+        var methodBody = source[methodStart..methodEnd];
+
+        Assert.Contains("EnvironmentHelpers.GetDataDir()", methodBody);
+        Assert.Contains("\"ApplicationSubmissions\"", methodBody);
+        Assert.Contains("FileMode.CreateNew", methodBody);
     }
 
     [Theory]

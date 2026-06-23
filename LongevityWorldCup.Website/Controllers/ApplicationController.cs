@@ -563,18 +563,50 @@ namespace LongevityWorldCup.Website.Controllers
                 _logger.LogWarning(ex, "Failed to subscribe applicant email to the newsletter.");
             }
 
-            // Send the email
+            var requestedAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
+            var paymentRequired = requestedAmountUsd > 0m;
+            string? archivedSubmissionPath = null;
+            var auditEmailDelivered = false;
+
+            // Send the admin notification email. If email auth is misconfigured, keep the
+            // already-packaged submission on disk and let the applicant continue.
             try
             {
                 await SendEmailThroughSmtpAsync(config, message, ct);
+                auditEmailDelivered = true;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                try
+                {
+                    archivedSubmissionPath = await PersistApplicationSubmissionArchiveAsync(zipPath, folderKey, submissionId, ct);
+                }
+                catch (Exception archiveEx) when (archiveEx is not OperationCanceledException)
+                {
+                    _logger.LogError(
+                        archiveEx,
+                        "Application submission email failed and archive could not be saved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind}",
+                        submissionId,
+                        submissionKind);
+                    return StatusCode(500, "Internal server error: application could not be saved.");
+                }
 
+                _logger.LogError(
+                    ex,
+                    "Application submission email failed after archive was saved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ArchivePath={ArchivePath}",
+                    submissionId,
+                    submissionKind,
+                    archivedSubmissionPath);
+            }
+
+            try
+            {
                 try
                 {
                     Directory.Delete(tempRoot, recursive: true);
                 }
                 catch { /* ignore */ }
-                var requestedAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
-                var paymentRequired = requestedAmountUsd > 0m;
+
                 if (!paymentRequired)
                 {
                     await TrySendSubmissionConfirmationEmailAsync(
@@ -599,12 +631,14 @@ namespace LongevityWorldCup.Website.Controllers
                         ct);
 
                     _logger.LogInformation(
-                        "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
+                        "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
                         submissionId,
                         submissionKind,
                         applicantData.ProofPics?.Count ?? 0,
                         zipSizeBytes,
-                        false);
+                        false,
+                        auditEmailDelivered,
+                        archivedSubmissionPath);
 
                     return Ok(new
                     {
@@ -627,10 +661,12 @@ namespace LongevityWorldCup.Website.Controllers
                 if (!invoiceResult.Success)
                 {
                     _logger.LogError(
-                        "Application submission email was sent but BTCPay invoice creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} Error={Error}",
+                        "Application submission was saved but BTCPay invoice creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath} Error={Error}",
                         submissionId,
                         submissionKind,
                         zipSizeBytes,
+                        auditEmailDelivered,
+                        archivedSubmissionPath,
                         invoiceResult.Error);
                     await TryRecordDiscountSignupAsync(
                         applicantData,
@@ -687,12 +723,14 @@ namespace LongevityWorldCup.Website.Controllers
                     ct: ct);
 
                 _logger.LogInformation(
-                    "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
+                    "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
                     submissionId,
                     submissionKind,
                     applicantData.ProofPics?.Count ?? 0,
                     zipSizeBytes,
-                    true);
+                    true,
+                    auditEmailDelivered,
+                    archivedSubmissionPath);
 
                 return Ok(new
                 {
@@ -715,6 +753,42 @@ namespace LongevityWorldCup.Website.Controllers
                     zipSizeBytes);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        private static async Task<string> PersistApplicationSubmissionArchiveAsync(
+            string zipPath,
+            string folderKey,
+            string submissionId,
+            CancellationToken ct)
+        {
+            var archiveRoot = Path.Combine(EnvironmentHelpers.GetDataDir(), "ApplicationSubmissions");
+            Directory.CreateDirectory(archiveRoot);
+
+            var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+            var safeSubmissionId = SanitizeArchiveFilePart(submissionId, "submission");
+            var safeFolderKey = SanitizeArchiveFilePart(folderKey, "athlete");
+            var archivePath = Path.Combine(archiveRoot, $"{timestamp}_{safeSubmissionId}_{safeFolderKey}.zip");
+
+            await using var source = System.IO.File.OpenRead(zipPath);
+            await using var destination = new FileStream(
+                archivePath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 81920,
+                useAsync: true);
+            await source.CopyToAsync(destination, ct);
+
+            return archivePath;
+        }
+
+        private static string SanitizeArchiveFilePart(string? value, string fallback)
+        {
+            var sanitized = SanitizeFileName(value ?? "");
+            if (string.IsNullOrWhiteSpace(sanitized))
+                sanitized = fallback;
+
+            return sanitized.Length <= 80 ? sanitized : sanitized[..80].Trim('-', '_');
         }
 
         private async Task TryRecordDiscountSignupAsync(
