@@ -13,6 +13,8 @@ public interface IBtcpayInvoiceClient
 
 public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : IBtcpayInvoiceClient
 {
+    internal const string DefaultPaymentMethod = "STRIPE";
+
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
 
     public async Task<BtcpayInvoiceCreateResult> CreateInvoiceAsync(Config config, BtcpayInvoiceCreateRequest request, CancellationToken ct = default)
@@ -45,7 +47,7 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
             ["checkout"] = new Dictionary<string, object?>
             {
                 ["speedPolicy"] = "HighSpeed",
-                ["paymentMethods"] = new[] { "BTC" }
+                ["defaultPaymentMethod"] = DefaultPaymentMethod
             }
         };
 
@@ -72,7 +74,7 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
         if (!TryGetPropertyString(json.RootElement, "id", out var invoiceId) || string.IsNullOrWhiteSpace(invoiceId))
             return BtcpayInvoiceCreateResult.Failure("BTCPay response missing invoice id.");
 
-        return new BtcpayInvoiceCreateResult(true, checkoutLink, invoiceId, null);
+        return new BtcpayInvoiceCreateResult(true, PreferDefaultPaymentMethod(checkoutLink), invoiceId, null);
     }
 
     public async Task<BtcpayInvoiceLookupResult> GetInvoiceAsync(Config config, string invoiceId, CancellationToken ct = default)
@@ -151,6 +153,27 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
 
     private static string BuildBtcpayFailureMessage(System.Net.HttpStatusCode statusCode)
         => $"BTCPay API returned HTTP {(int)statusCode}.";
+
+    internal static string PreferDefaultPaymentMethod(string checkoutLink)
+    {
+        var trimmed = checkoutLink.Trim();
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+            return trimmed;
+
+        var pathSegments = uri.AbsolutePath
+            .Trim('/')
+            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (pathSegments.Length < 2 || !string.Equals(pathSegments[0], "i", StringComparison.OrdinalIgnoreCase))
+            return trimmed;
+
+        var builder = new UriBuilder(uri)
+        {
+            Path = $"/i/{pathSegments[1]}/{DefaultPaymentMethod}"
+        };
+
+        return builder.Uri.AbsoluteUri;
+    }
 
     private static bool TryGetPropertyString(JsonElement element, string propertyName, out string? value)
     {

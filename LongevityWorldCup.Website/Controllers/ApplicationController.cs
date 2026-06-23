@@ -1225,6 +1225,7 @@ namespace LongevityWorldCup.Website.Controllers
                 },
                 ["checkout"] = new Dictionary<string, object?>
                 {
+                    ["defaultPaymentMethod"] = BtcpayInvoiceClient.DefaultPaymentMethod,
                     ["redirectURL"] = BuildReviewRedirectUrlForCurrentRequest(isResultSubmissionOnly, isEditSubmissionOnly),
                     ["redirectAutomatically"] = true
                 },
@@ -1268,7 +1269,7 @@ namespace LongevityWorldCup.Website.Controllers
                 return (false, null, null, "BTCPay response missing invoice id.");
             }
 
-            return (true, checkoutLink, invoiceId, null);
+            return (true, BtcpayInvoiceClient.PreferDefaultPaymentMethod(checkoutLink), invoiceId, null);
         }
 
         private string BuildReviewRedirectUrlForCurrentRequest(bool isResultSubmissionOnly, bool isEditSubmissionOnly)

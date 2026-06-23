@@ -42,7 +42,7 @@ public sealed class BtcpayInvoiceClientTests
 
         Assert.True(result.Success);
         Assert.Equal("invoice-123", result.InvoiceId);
-        Assert.Equal("https://btcpay.example.test/i/invoice-123", result.CheckoutLink);
+        Assert.Equal("https://btcpay.example.test/i/invoice-123/STRIPE", result.CheckoutLink);
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Post, request.Method);
@@ -54,8 +54,10 @@ public sealed class BtcpayInvoiceClientTests
         var root = payload.RootElement;
         Assert.Equal(25.5m, root.GetProperty("amount").GetDecimal());
         Assert.Equal("USD", root.GetProperty("currency").GetString());
-        Assert.Equal("BTC", root.GetProperty("checkout").GetProperty("paymentMethods")[0].GetString());
-        Assert.Equal("HighSpeed", root.GetProperty("checkout").GetProperty("speedPolicy").GetString());
+        var checkout = root.GetProperty("checkout");
+        Assert.Equal("STRIPE", checkout.GetProperty("defaultPaymentMethod").GetString());
+        Assert.Equal("HighSpeed", checkout.GetProperty("speedPolicy").GetString());
+        Assert.False(checkout.TryGetProperty("paymentMethods", out _));
         Assert.Equal("buyer@example.test", root.GetProperty("buyer").GetProperty("email").GetString());
 
         var metadata = root.GetProperty("metadata");
@@ -63,6 +65,15 @@ public sealed class BtcpayInvoiceClientTests
         Assert.Equal("order-1", metadata.GetProperty("orderId").GetString());
         Assert.Equal("Buyer Name", metadata.GetProperty("buyerName").GetString());
         Assert.Equal("buyer@example.test", metadata.GetProperty("buyerEmail").GetString());
+    }
+
+    [Fact]
+    public void PreferDefaultPaymentMethod_ReplacesInvoicePaymentMethodAndKeepsQueryString()
+    {
+        var link = BtcpayInvoiceClient.PreferDefaultPaymentMethod(
+            "https://btcpay.example.test/i/invoice-123/BTC-LightningNetwork?view=checkout");
+
+        Assert.Equal("https://btcpay.example.test/i/invoice-123/STRIPE?view=checkout", link);
     }
 
     [Fact]
