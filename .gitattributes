@@ -3,4 +3,5 @@
 *.html text eol=lf
 *.css text eol=lf
 *.js text eol=lf
+*.cs text eol=lf
 *.sh text eol=lf
