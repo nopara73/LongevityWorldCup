@@ -3072,6 +3072,24 @@
             })
         );
 
+        const flagOptions = window.LwcFlags.countFlagUsage(rows, athlete => athlete.canonicalFlag);
+        flagOptions.forEach(flagOption => {
+            assignRankedBestCandidates(
+                sortedRankableAthletes(
+                    rows,
+                    athlete => athlete.flagFilterKey === flagOption.key,
+                    window.compareAthleteRank),
+                () => ({
+                    leagueName: flagOption.name,
+                    leagueLabel: `${flagOption.name} Flag`,
+                    leagueLabelHtml: `${renderFlagLabel(flagOption.name)} Flag`,
+                    leagueType: 'flag',
+                    href: buildFlagHref(flagOption.name),
+                    tiePriority: 24
+                })
+            );
+        });
+
     }
 
     function renderBestRankLink(bestRankCandidate) {

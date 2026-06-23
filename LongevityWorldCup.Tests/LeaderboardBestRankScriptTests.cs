@@ -24,9 +24,12 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("leagueType: 'generation'", html);
         Assert.Contains("leagueType: 'combination'", html);
         Assert.Contains("leagueType: 'exclusive'", html);
+        Assert.Contains("leagueType: 'flag'", html);
 
         Assert.Contains("CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT", html);
         Assert.Contains("buildFiltersHref([generation, division])", html);
+        Assert.Contains("href: buildFlagHref(flagOption.name)", html);
+        Assert.Contains("leagueLabelHtml: `${renderFlagLabel(flagOption.name)} Flag`", html);
     }
 
     [Fact]
