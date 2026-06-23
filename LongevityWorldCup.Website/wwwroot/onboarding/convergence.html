@@ -3,7 +3,7 @@
 <head>
     <title>Longevity World Cup - Convergence</title>
     <!--HEAD-->
-    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="{{ASSET_BIOAGEFORM_CSS}}">
     <style>
         /* Hide the join-game button in the header */
@@ -551,8 +551,8 @@
 
                 <!-- Name Field -->
                 <label for="name">Name</label>
-                <input type="text" id="name" name="name" required aria-required="true" autocomplete="name" placeholder="Real name or cyber alias — your call">
-                <span id="nameError" class="error-message"></span>
+                <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Real name or cyber alias — your call">
+                <span id="nameError" class="error-message" aria-live="polite"></span>
 
                 <!-- Division Field -->
                 <label for="division">Division</label>
@@ -563,8 +563,8 @@
                 <!-- Flag Field with Autocomplete -->
                 <label for="flag">Flag</label>
                 <div class="autocomplete-container">
-                    <input type="text" id="flag" name="flag" required aria-required="true" autocomplete="off" placeholder="Cyberspace">
-                    <span id="flagError" class="error-message"></span>
+                    <input type="text" id="flag" name="flag" required aria-required="true" aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Cyberspace">
+                    <span id="flagError" class="error-message" aria-live="polite"></span>
                 </div>
             </fieldset>
             <fieldset id="privacyDetails">
@@ -588,8 +588,8 @@
                         <li>Include head and shoulders.</li>
                     </ol>
                     <div class="convergence-upload-action">
-                        <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
-                        <input type="file" id="profileCameraInput" accept="image/*" capture="user" style="display: none;">
+                        <input type="file" id="profilePicInput" accept="image/*,.heic,.heif" style="display: none;">
+                        <input type="file" id="profileCameraInput" accept="image/*,.heic,.heif" capture="user" style="display: none;">
                         <button type="button" id="takeProfileSelfieButton" class="option-button grey">
                             <i class="fa fa-camera"></i>
                             Take selfie
@@ -609,14 +609,17 @@
                         <button type="button" id="cropButton" class="option-button">
                             Crop and save
                         </button>
+                        <button type="button" id="cancelProfileCropButton" class="option-button grey">
+                            Cancel
+                        </button>
                     </div>
                 </div>
             </fieldset>
             <fieldset id="proofUploadSection">
                 <legend>Proof upload</legend>
                 <div class="convergence-upload-action">
-                    <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
-                    <input type="file" id="proofCameraInput" accept="image/*" capture="environment" style="display: none;">
+                    <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
+                    <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
                     <button type="button" id="takeProofPhotoButton" class="option-button grey camera-capture-action">
                         <i class="fa fa-camera"></i>
                         Take proof photo
@@ -636,14 +639,14 @@
 
                 <!-- Link to Personal Page (Optional) -->
                 <label for="personalLink">Link (optional)</label>
-                <input type="url" id="personalLink" name="personalLink" inputmode="url" autocomplete="url" placeholder="https://yourwebsite.com">
+                <input type="text" id="personalLink" name="personalLink" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="yourwebsite.com">
                 <p class="convergence-helper-text">
                     Provide a link to your personal page, social media profile, or any other online presence you wish to advertise.
                 </p>
 
                 <!-- Media Contact (Required) -->
                 <label for="mediaContact">Media contact (required)</label>
-                <input id="mediaContact" name="mediaContact" required aria-required="true" placeholder="media@coolpeopleonly.com">
+                <input type="text" id="mediaContact" name="mediaContact" required aria-required="true" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="media@example.com or @handle">
 
                 <p class="convergence-helper-text">
                     <span class="smaller-text">
@@ -657,14 +660,14 @@
                 <div id="congratsText" class="convergence-application-copy" style="display:none">
                     <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
                 </div>
-                <input type="email" id="accountEmail" name="accountEmail" required aria-required="true" autocomplete="email" placeholder="pizza_lover@hungry.com">
+                <input type="text" id="accountEmail" name="accountEmail" required aria-required="true" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
             </fieldset>
 
             <!-- WHY Field (Initially Hidden) -->
             <fieldset id="whyField" style="display: none; position: relative;">
                 <legend>Motivation</legend>
                 <label for="why">What drives you forward?</label>
-                <textarea id="why" name="why" rows="5" placeholder="Share your motivation here..."></textarea>
+                <textarea id="why" name="why" rows="5" required aria-required="true" minlength="30" maxlength="250" placeholder="Share your motivation here..."></textarea>
                 <div id="whyCharCounter" class="char-counter">0/250</div>
             </fieldset>
 
@@ -682,9 +685,38 @@
         var currentStage = 1;
         let profilePic = null;
         let proofPics = [];
+        let isApplicationSubmitting = false;
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
+
+        function setBrowserStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+            } catch (_) {
+            }
+        }
+
+        function removeBrowserStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
+        function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
+        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
 
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
@@ -724,6 +756,13 @@
                 if (uploadProfileButton) uploadProfileButton.classList.remove('green');
                 if (cropAndSaveButton) cropAndSaveButton.classList.remove('green');
             }
+        }
+
+        function addStageListenerOnce(element, type, listener, key) {
+            if (!element || element.dataset[key] === 'true') return;
+
+            element.addEventListener(type, listener);
+            element.dataset[key] = 'true';
         }
 
         function setFakeDivisionValue() {
@@ -806,39 +845,375 @@
             fillFakeData();
         }
 
+        function isEmailAddress(value) {
+            const trimmed = (value || '').trim();
+            if (!trimmed) return false;
+            if (window.validator && typeof window.validator.isEmail === 'function') {
+                return window.validator.isEmail(trimmed);
+            }
+
+            const input = document.createElement('input');
+            input.type = 'email';
+            input.value = trimmed;
+            return input.checkValidity();
+        }
+
+        function normalizeContactEmail(value) {
+            if (typeof value !== 'string') return null;
+            let contactEmail = (value || '').trim();
+            if (!contactEmail) return null;
+            const bracketedEmail = /<([^<>]+)>/.exec(contactEmail);
+            if (bracketedEmail) {
+                contactEmail = bracketedEmail[1].trim();
+            }
+            if (/^mailto:/i.test(contactEmail)) {
+                contactEmail = contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();
+            }
+
+            return isEmailAddress(contactEmail) ? contactEmail : null;
+        }
+
+        function normalizeMediaContact(value) {
+            return normalizeContactEmail(value) || (typeof value === 'string' ? value.trim() : '');
+        }
+
+        function getAthleteContactEmailStorageKey(athleteName) {
+            const name = typeof athleteName === 'string' ? athleteName.trim() : '';
+            return name ? 'contactEmailFor:' + name : null;
+        }
+
+        function rememberAthleteContactEmail(athleteName, email) {
+            const key = getAthleteContactEmailStorageKey(athleteName);
+            const contactEmail = normalizeContactEmail(email);
+            if (key && contactEmail) {
+                setLocalItem(key, contactEmail);
+            }
+        }
+
+        function isOptionalUrl(value) {
+            const trimmed = normalizeOptionalUrl(value);
+            if (!trimmed) return true;
+            if (window.validator && typeof window.validator.isURL === 'function') {
+                return window.validator.isURL(trimmed);
+            }
+
+            const input = document.createElement('input');
+            input.type = 'url';
+            input.value = trimmed;
+            return input.checkValidity();
+        }
+
+        function normalizeOptionalUrl(value) {
+            const trimmed = (value || '').trim();
+            if (!trimmed) return '';
+            if (/^[a-z][a-z\d+.-]*:/i.test(trimmed)) return trimmed;
+            if (/^www\./i.test(trimmed) || /^[^\s/:]+\.[^\s/]+(?:[/?#].*)?$/i.test(trimmed)) {
+                return `https://${trimmed}`;
+            }
+            return trimmed;
+        }
+
+        function prefillAccountEmailFromMediaContact() {
+            const accountEmailInput = document.getElementById('accountEmail');
+            const mediaContactInput = document.getElementById('mediaContact');
+            if (!accountEmailInput || !mediaContactInput) return;
+            if (accountEmailInput.value.trim() && accountEmailInput.dataset.prefilledFrom !== 'mediaContact') return;
+
+            const mediaContact = normalizeContactEmail(mediaContactInput.value);
+            if (mediaContact) {
+                accountEmailInput.value = mediaContact;
+                accountEmailInput.dataset.prefilledFrom = 'mediaContact';
+            } else if (accountEmailInput.dataset.prefilledFrom === 'mediaContact') {
+                accountEmailInput.value = '';
+                delete accountEmailInput.dataset.prefilledFrom;
+            }
+        }
+
+        function handleAccountEmailInput() {
+            const accountEmailInput = document.getElementById('accountEmail');
+            delete accountEmailInput.dataset.prefilledFrom;
+            checkFormValidityStage7();
+        }
+
+        function getProfilePictureFileExtension(file) {
+            const name = file && typeof file.name === 'string' ? file.name.toLowerCase() : '';
+            const dotIndex = name.lastIndexOf('.');
+            return dotIndex >= 0 ? name.slice(dotIndex + 1) : '';
+        }
+
+        function isSupportedProfilePictureFile(file) {
+            if (!file) return false;
+
+            const type = typeof file.type === 'string' ? file.type.toLowerCase() : '';
+            const extension = getProfilePictureFileExtension(file);
+            return type.startsWith('image/')
+                || extension === 'jpg'
+                || extension === 'jpeg'
+                || extension === 'png'
+                || extension === 'webp'
+                || extension === 'heic'
+                || extension === 'heif';
+        }
+
+        function validateApplicationIdentity() {
+            const nameValidationResult = validateName(document.getElementById('name').value);
+            if (!nameValidationResult.valid) {
+                return {
+                    valid: false,
+                    stage: 1,
+                    inputId: 'name',
+                    errorId: 'nameError',
+                    error: nameValidationResult.error
+                };
+            }
+
+            const flagValidationResult = validateFlag(document.getElementById('flag').value);
+            if (!flagValidationResult.valid) {
+                return {
+                    valid: false,
+                    stage: 1,
+                    inputId: 'flag',
+                    errorId: 'flagError',
+                    error: flagValidationResult.error
+                };
+            }
+
+            const divisionSelect = document.getElementById('division');
+            if (!divisionSelect || !divisionSelect.value.trim()) {
+                return {
+                    valid: false,
+                    stage: 1,
+                    inputId: 'division',
+                    error: 'Please select a division.'
+                };
+            }
+
+            return { valid: true };
+        }
+
+        function showApplicationIdentityIssue(validationResult) {
+            currentStage = validationResult.stage;
+            goToStage(validationResult.stage);
+
+            if (validationResult.errorId) {
+                const errorElement = document.getElementById(validationResult.errorId);
+                if (errorElement) errorElement.textContent = validationResult.error;
+            }
+
+            const input = document.getElementById(validationResult.inputId);
+            if (input) input.focus();
+        }
+
+        function clearStoredBiomarkerHandoff() {
+            removeSessionItem('biomarkerData');
+            removeSessionItem('chronoPhenoDifference');
+            removeSessionItem('chronoBortzDifference');
+        }
+
+        function clearPendingPaymentOffer() {
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+        }
+
+        function hasStoredDateOfBirth(biomarkerData) {
+            const dateOfBirth = biomarkerData && biomarkerData.DateOfBirth;
+            if (!dateOfBirth
+                || dateOfBirth.Year === null || dateOfBirth.Year === undefined
+                || dateOfBirth.Month === null || dateOfBirth.Month === undefined
+                || dateOfBirth.Day === null || dateOfBirth.Day === undefined) {
+                return false;
+            }
+
+            const year = Number(dateOfBirth.Year);
+            const month = Number(dateOfBirth.Month);
+            const day = Number(dateOfBirth.Day);
+            if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
+            if (year < 1 || year > 9999 || month < 1 || month > 12 || day < 1) return false;
+
+            const parsedDate = new Date(Date.UTC(year, month - 1, day));
+            if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) return false;
+
+            const todayUtc = new Date();
+            todayUtc.setUTCHours(0, 0, 0, 0);
+            return parsedDate <= todayUtc;
+        }
+
+        function hasStoredBiomarkerDates(biomarkerData) {
+            return biomarkerData
+                && Array.isArray(biomarkerData.Biomarkers)
+                && biomarkerData.Biomarkers.every(entry => hasStoredBiomarkerDate(entry && entry.Date));
+        }
+
+        function hasStoredBiomarkerValues(biomarkerData) {
+            return biomarkerData
+                && Array.isArray(biomarkerData.Biomarkers)
+                && biomarkerData.Biomarkers.every(entry => entry
+                    && Object.keys(entry).some(key => key !== 'Date' && hasStoredBiomarkerValue(entry[key])));
+        }
+
+        function hasStoredBiomarkerValue(value) {
+            if (value === null || value === undefined) return false;
+            if (typeof value === 'boolean') return false;
+            if (typeof value !== 'number' && typeof value !== 'string') return false;
+            if (typeof value === 'string' && !value.trim()) return false;
+            return Number.isFinite(Number(value));
+        }
+
+        function readStoredAgeDifference(key) {
+            const value = getSessionItem(key);
+            if (value === null || value === undefined) return null;
+
+            const text = String(value).trim();
+            if (text && Number.isFinite(Number(text))) {
+                return text;
+            }
+
+            removeSessionItem(key);
+            return null;
+        }
+
+        function hasStoredBiomarkerDate(value) {
+            if (typeof value !== 'string') return false;
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+            if (!match) return false;
+
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            const parsedDate = new Date(Date.UTC(year, month - 1, day));
+            if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) return false;
+
+            const todayUtc = new Date();
+            todayUtc.setUTCHours(0, 0, 0, 0);
+            return parsedDate <= todayUtc;
+        }
+
+        function readPendingPaymentOffer() {
+            const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
+            if (!rawOffer) return null;
+
+            try {
+                const paymentOffer = JSON.parse(rawOffer);
+                if (isUsablePaymentOffer(paymentOffer)) {
+                    return paymentOffer;
+                }
+            } catch (_) {
+            }
+
+            clearPendingPaymentOffer();
+            return null;
+        }
+
+        function isUsablePaymentOffer(paymentOffer) {
+            return paymentOffer
+                && typeof paymentOffer === 'object'
+                && !Array.isArray(paymentOffer)
+                && typeof paymentOffer.source === 'string'
+                && paymentOffer.source.trim()
+                && typeof paymentOffer.offerType === 'string'
+                && paymentOffer.offerType.trim()
+                && typeof paymentOffer.currency === 'string'
+                && paymentOffer.currency.trim()
+                && typeof paymentOffer.amountUsd === 'number'
+                && Number.isFinite(paymentOffer.amountUsd)
+                && paymentOffer.amountUsd >= 0;
+        }
+
+        function readAdjustedPendingPaymentOffer() {
+            const paymentOffer = readPendingPaymentOffer();
+            if (!paymentOffer) return null;
+
+            try {
+                const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer
+                    ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                    : window.applyFreePassToPaymentOffer
+                        ? window.applyFreePassToPaymentOffer(paymentOffer)
+                        : paymentOffer;
+                if (!adjustedPaymentOffer) return null;
+                if (isUsablePaymentOffer(adjustedPaymentOffer)) return adjustedPaymentOffer;
+            } catch (_) {
+            }
+
+            const retryButton = document.getElementById('submitButton') || document.getElementById('nextButton');
+            customAlert('Payment details could not be prepared. Please try again.')
+                .then(() => retryButton?.focus());
+            return undefined;
+        }
+
+        function normalizeCheckoutLink(value) {
+            if (typeof value !== 'string') return null;
+            const trimmed = value.trim();
+            if (!trimmed) return null;
+            try {
+                const checkoutUrl = new URL(trimmed, window.location.origin);
+                return checkoutUrl.protocol === 'http:' || checkoutUrl.protocol === 'https:'
+                    ? checkoutUrl.href
+                    : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function getCheckoutLink(submitResult) {
+            return submitResult && submitResult.paymentRequired
+                ? normalizeCheckoutLink(submitResult.checkoutLink)
+                : null;
+        }
+
+        function isPaymentRequired(submitResult) {
+            return !!(submitResult && submitResult.paymentRequired);
+        }
+
+        function isPaymentUnavailable(submitResult) {
+            return !!(submitResult && submitResult.paymentUnavailable);
+        }
+
+        function isSubmissionAcceptedPaymentFailure(message) {
+            return typeof message === 'string'
+                && /^Application sent, but failed to create BTCPay invoice:/i.test(message.trim());
+        }
+
+        function getInvoiceId(submitResult) {
+            return submitResult
+                && typeof submitResult.invoiceId === 'string'
+                && submitResult.invoiceId.trim()
+                ? submitResult.invoiceId.trim()
+                : null;
+        }
+
         function collectApplicantData() {
             // Get the data from the form fields
             const name = document.getElementById('name').value.trim();
             const division = document.getElementById('division').value.trim();
             const flag = document.getElementById('flag').value.trim();
             const why = document.getElementById('why').value.trim();
-            const mediaContact = document.getElementById('mediaContact').value.trim();
-            const accountEmail = document.getElementById('accountEmail').value.trim();
-            const personalLink = document.getElementById('personalLink').value.trim();
+            const mediaContactInput = document.getElementById('mediaContact');
+            const mediaContact = normalizeMediaContact(mediaContactInput.value);
+            mediaContactInput.value = mediaContact;
+            const accountEmailInput = document.getElementById('accountEmail');
+            const accountEmail = normalizeContactEmail(accountEmailInput.value);
+            const personalLink = normalizeOptionalUrl(document.getElementById('personalLink').value);
 
             // Get the differences from sessionStorage
-            const chronoPhenoDifference = sessionStorage.getItem('chronoPhenoDifference');
-            const chronoBortzDifference = sessionStorage.getItem('chronoBortzDifference');
+            const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');
+            const chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');
 
             // Use the global variables `profilePic` and `proofPics` directly
             // Get the biomarker data from sessionStorage
-            const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
-            if (!biomarkerData) {
-                customAlert('Biomarker data is missing. Please complete the biomarker form.');
+            let biomarkerData = null;
+            try {
+                biomarkerData = JSON.parse(getSessionItem('biomarkerData'));
+            } catch (_) {
+                biomarkerData = null;
+            }
+            if (!biomarkerData || !hasStoredDateOfBirth(biomarkerData) || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasStoredBiomarkerValues(biomarkerData)) {
+                clearStoredBiomarkerHandoff();
+                customAlert('Biomarker data is missing. Please complete the biomarker step.')
+                    .then(() => window.location.href = '/onboarding/pheno-age');
                 return;
             }
 
-            let paymentOffer = null;
-            try {
-                paymentOffer = JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
-            } catch (_) {
-                paymentOffer = null;
-            }
-            if (window.applyPaymentAdjustmentsToPaymentOffer) {
-                paymentOffer = window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer);
-            } else if (window.applyFreePassToPaymentOffer) {
-                paymentOffer = window.applyFreePassToPaymentOffer(paymentOffer);
-            }
+            const paymentOffer = readAdjustedPendingPaymentOffer();
+            if (paymentOffer === undefined) return;
 
             // Create the applicant data object
             const applicantData = {
@@ -936,14 +1311,14 @@
                     const flagInput = document.getElementById('flag');
                     const divisionSelect = document.getElementById('division');
 
-                    nameInput.addEventListener('input', checkFormValidityStage1);
-                    flagInput.addEventListener('input', checkFormValidityStage1);
+                    addStageListenerOnce(nameInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');
+                    addStageListenerOnce(flagInput, 'input', checkFormValidityStage1, 'stage1ValidityListener');
 
-                    nameInput.addEventListener('blur', validateStage1Inputs);
-                    flagInput.addEventListener('blur', validateStage1Inputs);
+                    addStageListenerOnce(nameInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');
+                    addStageListenerOnce(flagInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');
 
-                    divisionSelect.addEventListener('click', validateStage1Inputs);
-                    flagInput.addEventListener('input', validateStage1Inputs);
+                    addStageListenerOnce(divisionSelect, 'click', validateStage1Inputs, 'stage1ValidateOnClick');
+                    addStageListenerOnce(flagInput, 'input', validateStage1Inputs, 'stage1ValidateOnInput');
 
                     function validateStage1Inputs() {
                         const nameValue = nameInput.value.trim();
@@ -994,7 +1369,7 @@
 
                     // Add event listener for validation
                     const whyInput = document.getElementById('why');
-                    whyInput.addEventListener('input', checkFormValidityStage2);
+                    addStageListenerOnce(whyInput, 'input', checkFormValidityStage2, 'stage2ValidityListener');
                     checkFormValidityStage2(); // Initialize character counter
 
                     // Run checkFormValidityStage2 initially
@@ -1098,8 +1473,10 @@
                     const mediaContactInput = document.getElementById('mediaContact');
                     const personalLinkInput = document.getElementById('personalLink');
 
-                    mediaContactInput.addEventListener('input', checkFormValidityStage6);
-                    personalLinkInput.addEventListener('input', checkFormValidityStage6);
+                    addStageListenerOnce(mediaContactInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');
+                    addStageListenerOnce(personalLinkInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');
+                    addStageListenerOnce(mediaContactInput, 'blur', normalizeStage6MediaContact, 'stage6NormalizeMediaContactOnBlur');
+                    addStageListenerOnce(personalLinkInput, 'blur', normalizeStage6PersonalLink, 'stage6NormalizePersonalLinkOnBlur');
 
                     // Run checkFormValidityStage6 initially
                     checkFormValidityStage6();
@@ -1122,7 +1499,8 @@
                     updateSubProgress(99);
 
                     const accountEmailInput = document.getElementById('accountEmail');
-                    accountEmailInput.addEventListener('input', checkFormValidityStage7);
+                    prefillAccountEmailFromMediaContact();
+                    addStageListenerOnce(accountEmailInput, 'input', handleAccountEmailInput, 'stage7ValidityListener');
 
                     // Run checkFormValidityStage7 initially
                     checkFormValidityStage7();
@@ -1142,7 +1520,7 @@
             applyFakeDataIfNeeded();
 
             const athletesPromise = fetch('/api/data/athletes')
-                .then(response => response.json())
+                .then(response => response.ok ? response.json() : [])
                 .catch(error => {
                     console.error('Error fetching athlete names:', error);
                     return [];
@@ -1151,11 +1529,19 @@
             athletesPromise
                 .then(athletes => {
                     // Extract athlete names into a list
-                    existingAthleteNames = athletes.map(athlete => athlete.Name);
+                    existingAthleteNames = Array.isArray(athletes)
+                        ? athletes.flatMap(getExistingAthleteNameCandidates)
+                        : [];
+                    checkFormValidityStage1();
                 });
 
             Promise.all([
-                fetch('/api/data/flags').then(response => response.json()),
+                fetch('/api/data/flags')
+                    .then(response => response.ok ? response.json() : [])
+                    .catch(error => {
+                        console.error('Error fetching flags:', error);
+                        return [];
+                    }),
                 athletesPromise
             ])
                 .then(([flags, athletes]) => {
@@ -1278,50 +1664,51 @@
                     document.addEventListener('click', function (e) {
                         closeAllLists(e.target);
                     });
-                })
-                .catch(error => {
-                    console.error('Error fetching flags:', error);
                 });
+
+            const fallbackDivisions = ["Men's", "Women's", "Open"];
+            function populateDivisionSelect(divisions) {
+                const divisionSelect = document.getElementById('division');
+                const availableDivisions = Array.isArray(divisions) && divisions.length ? divisions : fallbackDivisions;
+
+                // Clear existing options (if any)
+                divisionSelect.innerHTML = '';
+
+                // Populate divisions into the select element
+                availableDivisions.forEach(function (division) {
+                    const option = document.createElement('option');
+                    option.value = division; // Use lowercase or any appropriate value
+                    option.textContent = `${window.TryGetDivisionIcon(division)} ${division}`;
+                    divisionSelect.appendChild(option);
+                });
+
+                // Optionally, set a default value or prompt
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = '-- Select division --';
+                defaultOption.disabled = true;
+                defaultOption.selected = true;
+                divisionSelect.insertBefore(defaultOption, divisionSelect.firstChild);
+
+                if (currentStage === 1) {
+                    divisionSelect.addEventListener('change', checkFormValidityStage1);
+                    checkFormValidityStage1(); // Check validity in case other fields are already filled
+                }
+
+                applyFakeDataIfNeeded();
+
+                document.getElementById('division').addEventListener('change', function () {
+                    document.getElementById('flag').focus();
+                });
+            }
 
             // Fetch divisions and populate the division select element
             fetch('/api/data/divisions')
-                .then(response => response.json())
-                .then(divisions => {
-                    const divisionSelect = document.getElementById('division');
-
-                    // Clear existing options (if any)
-                    divisionSelect.innerHTML = '';
-
-                    // Populate divisions into the select element
-                    divisions.forEach(function (division) {
-                        const option = document.createElement('option');
-                        option.value = division; // Use lowercase or any appropriate value
-                        option.textContent = `${window.TryGetDivisionIcon(division)} ${division}`;
-                        divisionSelect.appendChild(option);
-                    });
-
-                    // Optionally, set a default value or prompt
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = '';
-                    defaultOption.textContent = '-- Select division --';
-                    defaultOption.disabled = true;
-                    defaultOption.selected = true;
-                    divisionSelect.insertBefore(defaultOption, divisionSelect.firstChild);
-
-                    if (currentStage === 1) {
-                        divisionSelect.addEventListener('change', checkFormValidityStage1);
-                        checkFormValidityStage1(); // Check validity in case other fields are already filled
-                    }
-
-                    applyFakeDataIfNeeded();
-
-                    document.getElementById('division').addEventListener('change', function () {
-                        document.getElementById('flag').focus();
-                    });
-
-                })
+                .then(response => response.ok ? response.json() : fallbackDivisions)
+                .then(populateDivisionSelect)
                 .catch(error => {
                     console.error('Error fetching divisions:', error);
+                    populateDivisionSelect(fallbackDivisions);
                 });
 
             const mainProofInstructions = document.getElementById('mainProofInstructions');
@@ -1347,6 +1734,8 @@
         // "Next" Button Click Event Handler
         document.getElementById('nextButton').addEventListener('click', async function (event) {
             event.preventDefault(); // Prevent default button action
+            const nextButton = document.getElementById('nextButton');
+            if (isApplicationSubmitting || nextButton.disabled) return;
 
             // Scroll the heading into view
             document.querySelector('h1').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1358,120 +1747,160 @@
                 currentStage++;
                 goToStage(currentStage);
             } else {
+                const identityValidationResult = validateApplicationIdentity();
+                if (!identityValidationResult.valid) {
+                    customAlert(identityValidationResult.error).then(() => {
+                        showApplicationIdentityIssue(identityValidationResult);
+                    });
+                    return;
+                }
+
                 // Final stage requires accountEmail
-                let isValid = true;
                 const accountEmailInput = document.getElementById('accountEmail');
-                const accountEmail = accountEmailInput.value.trim();
-                const personalLink = document.getElementById('personalLink').value.trim();
+                const personalLinkInput = document.getElementById('personalLink');
+                const rawAccountEmail = accountEmailInput.value.trim();
+                const accountEmail = normalizeContactEmail(accountEmailInput.value);
+                const personalLink = normalizeOptionalUrl(personalLinkInput.value);
 
-                if (!accountEmail) {
-                    isValid = false;
-                    customAlert('Please enter your email.');
-                } else if (!validator.isEmail(accountEmail)) {
-                    isValid = false;
-                    customAlert('Please enter a valid email address.');
+                if (!rawAccountEmail) {
+                    customAlert('Please enter your email.').then(() => accountEmailInput.focus());
+                    return;
+                } else if (!accountEmail) {
+                    customAlert('Please enter a valid email address.').then(() => accountEmailInput.focus());
+                    return;
                 }
 
-                if (personalLink && !validator.isURL(personalLink)) {
-                    isValid = false;
-                    customAlert('Please enter a valid URL for your personal link.');
+                if (!isOptionalUrl(personalLink)) {
+                    customAlert('Please enter a valid URL for your personal link.').then(() => personalLinkInput.focus());
+                    return;
                 }
 
-                if (isValid) {
-                    // Collect all the data and send it to the backend via an API call
-                    const applicantData = collectApplicantData();
-                    if (!applicantData) return;
-                    const submissionId = window.createApplicationSubmissionId();
-                    const submissionKind = 'full-application';
-                    applicantData.submissionId = submissionId;
+                accountEmailInput.value = accountEmail;
+                personalLinkInput.value = personalLink;
 
-                    // remember this athlete for next time
-                    localStorage.setItem('selectedAthleteName', applicantData.name);
+                // Collect all the data and send it to the backend via an API call
+                const applicantData = collectApplicantData();
+                if (!applicantData) return;
+                const submissionId = window.createApplicationSubmissionId();
+                const submissionKind = 'full-application';
+                applicantData.submissionId = submissionId;
 
-                    // Disable the Apply button and change its text
-                    const applyButton = document.getElementById('nextButton');
-                    applyButton.disabled = true;
-                    accountEmailInput.setAttribute("disabled", "true");
-                    applyButton.textContent = 'Submitting...';
-                    showLoading();
+                // remember this athlete for next time
+                setLocalItem('selectedAthleteName', applicantData.name);
 
-                    await window.sendApplicationSubmissionReport(
-                        window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)
-                    );
+                // Disable the Apply button and change its text
+                const applyButton = nextButton;
+                isApplicationSubmitting = true;
+                applyButton.disabled = true;
+                accountEmailInput.setAttribute("disabled", "true");
+                applyButton.textContent = 'Submitting...';
+                showLoading();
 
-                    // Send the data via fetch POST request
-                    fetchWithTimeout('/api/application/application', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(applicantData)
-                    }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
-                        .then(response => {
-                            hideLoading();
-                            if (response.ok) {
-                                response.json().catch(() => ({})).then(submitResult => {
-                                    const nextStepMessage =
-                                        submitResult && submitResult.paymentRequired && submitResult.checkoutLink
-                                            ? 'You\'ll be redirected to the payment page'
+                void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
+
+                // Send the data via fetch POST request
+                fetchWithTimeout('/api/application/application', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(applicantData)
+                }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
+                    .then(response => {
+                        hideLoading();
+                        if (response.ok) {
+                            response.json().catch(() => ({})).then(submitResult => {
+                                const checkoutLink = getCheckoutLink(submitResult);
+                                const invoiceId = getInvoiceId(submitResult);
+                                const paymentRequired = isPaymentRequired(submitResult);
+                                const paymentUnavailable = isPaymentUnavailable(submitResult);
+                                const nextStepMessage =
+                                    checkoutLink
+                                        ? 'You\'ll be redirected to the payment page'
+                                        : paymentUnavailable
+                                            ? 'Your application was received, but the payment page could not be created. We will follow up by email.'
+                                        : paymentRequired
+                                            ? 'Your application was received, but the payment page could not be opened. Check your confirmation email.'
                                             : 'Your application was received';
-                                    customAlert(nextStepMessage).then(() => {
-                                        sessionStorage.setItem('contactEmail', applicantData.accountEmail);
-                                        localStorage.setItem('contactEmail', applicantData.accountEmail);
-                                        sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
-                                        // Clear the image variables
+                                customAlert(nextStepMessage).then(() => {
+                                    rememberAthleteContactEmail(applicantData.name, applicantData.accountEmail);
+                                    setSessionItem('contactEmail', applicantData.accountEmail);
+                                    setLocalItem('contactEmail', applicantData.accountEmail);
+                                    removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                    // Clear the image variables
+                                    profilePic = null;
+                                    proofPics = [];
+                                    // Redirect to BTCPay invoice if required, otherwise to review.
+                                    if (checkoutLink) {
+                                        if (invoiceId) {
+                                            const pendingInvoiceInfo = JSON.stringify({
+                                                invoiceId: invoiceId,
+                                                applicantName: applicantData.name || null,
+                                                accountEmail: applicantData.accountEmail || null,
+                                                submissionType: 'application'
+                                            });
+                                            setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
+                                            setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
+                                        }
+                                        window.location.href = checkoutLink;
+                                        return;
+                                    }
+                                    removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                                    removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                    window.location.href = '/review';
+                                });
+                            });
+                        } else {
+                            const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
+                            window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
+                                if (isSubmissionAcceptedPaymentFailure(badResponse)) {
+                                    void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'payment-unavailable', submissionKind, {
+                                        type: `HTTP ${response.status}`,
+                                        message: badResponse
+                                    });
+                                    customAlert('Your application was received, but the payment page could not be created. We will follow up by email.').then(() => {
+                                        rememberAthleteContactEmail(applicantData.name, applicantData.accountEmail);
+                                        setSessionItem('contactEmail', applicantData.accountEmail);
+                                        setLocalItem('contactEmail', applicantData.accountEmail);
+                                        removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
                                         profilePic = null;
                                         proofPics = [];
-                                        // Redirect to BTCPay invoice if required, otherwise to review.
-                                        if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
-                                            if (submitResult.invoiceId) {
-                                                const pendingInvoiceInfo = JSON.stringify({
-                                                    invoiceId: submitResult.invoiceId,
-                                                    applicantName: applicantData.name || null,
-                                                    accountEmail: applicantData.accountEmail || null
-                                                });
-                                                sessionStorage.setItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
-                                                localStorage.setItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
-                                            }
-                                            window.location.href = submitResult.checkoutLink;
-                                            return;
-                                        }
-                                        sessionStorage.removeItem(PENDING_PAYMENT_INVOICE_KEY);
-                                        localStorage.removeItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
                                         window.location.href = '/review';
                                     });
+                                    return;
+                                }
+                                void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                    type: `HTTP ${response.status}`,
+                                    message: badResponse
                                 });
-                            } else {
-                                response.text().then(badResponse => {
-                                    window.sendApplicationSubmissionReport(
-                                        window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                            type: `HTTP ${response.status}`,
-                                            message: badResponse
-                                        })
-                                    );
-                                    customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
-                                        applyButton.disabled = false;
-                                        accountEmailInput.setAttribute("disabled", "false");
-                                        setNextButtonToApply();
-                                    });
+                                customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
+                                    isApplicationSubmitting = false;
+                                    applyButton.disabled = false;
+                                    accountEmailInput.disabled = false;
+                                    setNextButtonToApply();
+                                    applyButton.focus();
                                 });
-                            }
-                        })
-                        .catch(error => {
-                            hideLoading();
-                            window.sendApplicationSubmissionReport(
-                                window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                    type: error && error.name || 'Error',
-                                    message: error && error.message || String(error)
-                                })
-                            );
-                            customAlert(`An error occurred while submitting your application:\n\n${error}`).then(() => {
-                                applyButton.disabled = false;
-                                accountEmailInput.setAttribute("disabled", "false");
-                                setNextButtonToApply();
                             });
+                        }
+                    })
+                    .catch(error => {
+                        hideLoading();
+                        const displayError = error && error.message ? error.message : String(error);
+                        const alertMessage = 'Application could not be submitted. Please check your connection and try again.';
+                        void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                            type: error && error.name || 'Error',
+                            message: displayError
                         });
-                }
+                        customAlert(alertMessage).then(() => {
+                            isApplicationSubmitting = false;
+                            applyButton.disabled = false;
+                            accountEmailInput.disabled = false;
+                            setNextButtonToApply();
+                            applyButton.focus();
+                        });
+                    });
             }
         });
 
@@ -1519,25 +1948,38 @@
             const profilePicInput = document.getElementById('profilePicInput');
             const profileCameraInput = document.getElementById('profileCameraInput');
             let cropper; // Declare Cropper instance at a higher scope
+            let isProfileCropProcessing = false;
 
             function handleProfileUploadChange(event) {
-                if (!event.target.files.length) return; // Reset if no file selected
-                const file = event.target.files[0];
+                const input = event.target;
+                if (!input.files || !input.files.length) return; // Reset if no file selected
+                const file = input.files[0];
+                input.value = '';
                 if (file) {
+                    if (!isSupportedProfilePictureFile(file)) {
+                        customAlert('Profile picture must be an image file.')
+                            .then(() => uploadButton?.focus());
+                        return;
+                    }
+
                     const reader = new FileReader();
                     reader.onload = function (e) {
-                        // Disable "Next" button while cropping
                         const nextButton = document.getElementById('nextButton');
-                        nextButton.disabled = true;
-                        updateUploadButtons();
+                        try {
+                            // Disable "Next" button while cropping
+                            nextButton.disabled = true;
+                            updateUploadButtons();
 
-                        document.getElementById('cropperImage').src = e.target.result;
+                            if (cropper) {
+                                cropper.destroy();
+                                cropper = null;
+                            }
 
-                        document.getElementById('uploadPart').style.display = 'none';
-                        document.getElementById('croppingPart').style.display = 'block';
+                            document.getElementById('cropperImage').src = e.target.result;
 
-                        // Initialize Cropper only once
-                        if (!cropper) {
+                            document.getElementById('uploadPart').style.display = 'none';
+                            document.getElementById('croppingPart').style.display = 'block';
+
                             cropper = new Cropper(document.getElementById('cropperImage'), {
                                 aspectRatio: 1,
                                 viewMode: 1,
@@ -1550,33 +1992,69 @@
                                 minCropBoxWidth: 200,
                                 minCropBoxHeight: 150,
                             });
+                        } catch (_) {
+                            if (cropper) {
+                                try { cropper.destroy(); } catch (_) { }
+                                cropper = null;
+                            }
+                            document.getElementById('uploadPart').style.display = '';
+                            document.getElementById('croppingPart').style.display = 'none';
+                            nextButton.disabled = !profilePic;
+                            updateUploadButtons();
+                            customAlert('Profile picture upload failed. Please try another image.')
+                                .then(() => uploadButton?.focus());
                         }
                     };
+                    reader.onerror = function () {
+                        customAlert('Profile picture upload failed. Please try another image.')
+                            .then(() => uploadButton?.focus());
+                    };
+                    reader.onabort = reader.onerror;
                     reader.readAsDataURL(file);
                 }
             }
 
             if (profilePicInput && !profilePicInput.hasAttribute('data-listener')) {
                 profilePicInput.addEventListener('change', handleProfileUploadChange);
+                const cropButton = document.getElementById('cropButton');
+                const cancelProfileCropButton = document.getElementById('cancelProfileCropButton');
                 // Add the crop button event listener once
-                document.getElementById('cropButton').addEventListener('click', async function () {
-                    if (cropper) {
-                        const croppedCanvas = cropper.getCroppedCanvas({
+                cropButton.addEventListener('click', async function () {
+                    const activeCropper = cropper;
+                    if (isProfileCropProcessing || !activeCropper) return;
+
+                    isProfileCropProcessing = true;
+                    cropButton.disabled = true;
+                    cancelProfileCropButton.disabled = true;
+                    try {
+                        const croppedCanvas = activeCropper.getCroppedCanvas({
                             width: 1024,
                             height: 768,
                         });
+                        if (!croppedCanvas) {
+                            customAlert('Profile picture crop failed. Please try another image.')
+                                .then(() => cropButton.focus());
+                            return;
+                        }
 
                         const raw = croppedCanvas.toDataURL('image/png');
-                        const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
-                        const croppedImageDataURL = dataUrl || raw;
+                        let croppedImageDataURL = raw;
+                        try {
+                            const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
+                            croppedImageDataURL = dataUrl || raw;
+                        } catch {
+                            croppedImageDataURL = raw;
+                        }
                         document.getElementById('illustrationPicture').style.display = 'none';
                         document.getElementById('profileImage').style.display = '';
                         document.getElementById('profileImage').src = croppedImageDataURL;
 
                         profilePic = croppedImageDataURL;
 
-                        cropper.destroy(); // Clean up the Cropper instance
-                        cropper = null; // Reset the Cropper instance
+                        try { activeCropper.destroy(); } catch (_) { }
+                        if (cropper === activeCropper) {
+                            cropper = null; // Reset the Cropper instance
+                        }
 
                         document.getElementById('uploadPart').style.display = '';
                         document.getElementById('croppingPart').style.display = 'none';
@@ -1584,7 +2062,29 @@
                         const nextButton = document.getElementById('nextButton');
                         nextButton.disabled = false;
                         updateUploadButtons();
+                    } catch (_) {
+                        customAlert('Profile picture crop failed. Please try another image.')
+                            .then(() => cropButton.focus());
+                    } finally {
+                        isProfileCropProcessing = false;
+                        cropButton.disabled = false;
+                        cancelProfileCropButton.disabled = false;
                     }
+                });
+
+                cancelProfileCropButton.addEventListener('click', function () {
+                    if (isProfileCropProcessing) return;
+                    if (cropper) {
+                        try { cropper.destroy(); } catch (_) { }
+                        cropper = null;
+                    }
+
+                    document.getElementById('uploadPart').style.display = '';
+                    document.getElementById('croppingPart').style.display = 'none';
+
+                    const nextButton = document.getElementById('nextButton');
+                    nextButton.disabled = !profilePic;
+                    updateUploadButtons();
                 });
 
                 profilePicInput.setAttribute('data-listener', 'true');
@@ -1688,7 +2188,7 @@
                 isValid = false;
             }
 
-            if (personalLinkValue && !validator.isURL(personalLinkValue)) {
+            if (!isOptionalUrl(personalLinkValue)) {
                 isValid = false;
                 personalLinkInput.setCustomValidity('Please enter a valid URL.');
             } else {
@@ -1702,19 +2202,48 @@
             }
         }
 
+        function normalizeStage6MediaContact() {
+            const mediaContactInput = document.getElementById('mediaContact');
+            if (!mediaContactInput) return;
+
+            mediaContactInput.value = normalizeMediaContact(mediaContactInput.value);
+            prefillAccountEmailFromMediaContact();
+            checkFormValidityStage6();
+        }
+
+        function normalizeStage6PersonalLink() {
+            const personalLinkInput = document.getElementById('personalLink');
+            if (!personalLinkInput) return;
+
+            const normalized = normalizeOptionalUrl(personalLinkInput.value);
+            if (isOptionalUrl(normalized)) {
+                personalLinkInput.value = normalized;
+            }
+            checkFormValidityStage6();
+        }
+
         function checkFormValidityStage7() {
             if (currentStage !== 7) return;
 
             const accountEmailInput = document.getElementById('accountEmail');
             const nextButton = document.getElementById('nextButton');
 
-            const emailFilled = accountEmailInput.value.trim() !== '';
-
-            if (emailFilled) {
+            if (normalizeContactEmail(accountEmailInput.value)) {
                 nextButton.disabled = false;
             } else {
                 nextButton.disabled = true;
             }
+        }
+
+        function getExistingAthleteNameCandidates(athlete) {
+            if (!athlete || typeof athlete !== 'object' || Array.isArray(athlete)) {
+                return [];
+            }
+
+            return [athlete.Name, athlete.DisplayName]
+                .filter(name => typeof name === 'string')
+                .map(name => name.trim())
+                .filter(Boolean);
         }
 
         function validateName(name) {
@@ -1762,6 +2291,6 @@
             return { valid: true };
         }
     </script>
-    <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" defer></script>
 </body>
 </html>

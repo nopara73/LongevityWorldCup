@@ -173,7 +173,144 @@ namespace LongevityWorldCup.Website.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return ValidationProblem(ModelState);
+            }
+
+            if (applicantData == null)
+            {
+                return BadRequest("Applicant data is null.");
+            }
+
+            if (string.IsNullOrWhiteSpace(applicantData.Name))
+            {
+                return BadRequest("Applicant name is required.");
+            }
+
+            applicantData.ProofPics = applicantData.ProofPics?
+                .Where(proof => !string.IsNullOrWhiteSpace(proof))
+                .ToList();
+
+            var hasSubmittedBiomarkers = applicantData.Biomarkers?.Any() is true;
+            var hasSubmittedProofs = applicantData.ProofPics?.Any() is true;
+            var hasOnlyResultSubmissionProfileFields =
+                   !string.IsNullOrWhiteSpace(applicantData.Name)
+                && applicantData.ProfilePic is null
+                && applicantData.DateOfBirth is null
+                && string.IsNullOrWhiteSpace(applicantData.MediaContact)
+                && string.IsNullOrWhiteSpace(applicantData.Division)
+                && string.IsNullOrWhiteSpace(applicantData.Flag)
+                && string.IsNullOrWhiteSpace(applicantData.Why)
+                && string.IsNullOrWhiteSpace(applicantData.PersonalLink);
+
+            // Handle result submissions: only biomarkers and proofs provided
+            var isResultSubmissionOnly =
+                   hasOnlyResultSubmissionProfileFields
+                && hasSubmittedBiomarkers
+                && hasSubmittedProofs;
+
+            // Handle edit submissions: when biomarkers and proofs are NOT provided
+            var isEditSubmissionOnly =
+                   !string.IsNullOrWhiteSpace(applicantData.Name)
+                && applicantData.Biomarkers is null
+                && applicantData.ProofPics is null
+                && applicantData.DateOfBirth is null;
+
+            var submittedAccountEmail = applicantData.AccountEmail?.Trim();
+            string? accountEmail = NormalizeOptionalAccountEmail(submittedAccountEmail);
+            if (!isEditSubmissionOnly && !string.IsNullOrWhiteSpace(submittedAccountEmail) && accountEmail is null)
+            {
+                return BadRequest("Account email is invalid.");
+            }
+
+            if (!isResultSubmissionOnly && hasOnlyResultSubmissionProfileFields && (hasSubmittedBiomarkers || hasSubmittedProofs))
+            {
+                if (!hasSubmittedBiomarkers)
+                {
+                    return BadRequest("Biomarker data is required.");
+                }
+
+                if (!hasSubmittedProofs)
+                {
+                    return BadRequest("Proof attachment is required.");
+                }
+            }
+
+            if (!isResultSubmissionOnly && !isEditSubmissionOnly)
+            {
+                if (string.IsNullOrWhiteSpace(accountEmail))
+                {
+                    return BadRequest("Account email is required.");
+                }
+
+                if (applicantData.DateOfBirth is null)
+                {
+                    return BadRequest("Date of birth is required.");
+                }
+
+                if (!IsValidDateOfBirth(applicantData.DateOfBirth))
+                {
+                    if (IsFutureDateOfBirth(applicantData.DateOfBirth))
+                    {
+                        return BadRequest("Date of birth cannot be in the future.");
+                    }
+
+                    return BadRequest("Date of birth is invalid.");
+                }
+
+                if (!hasSubmittedBiomarkers)
+                {
+                    return BadRequest("Biomarker data is required.");
+                }
+
+                if (!hasSubmittedProofs)
+                {
+                    return BadRequest("Proof attachment is required.");
+                }
+
+                if (string.IsNullOrWhiteSpace(applicantData.ProfilePic))
+                {
+                    return BadRequest("Profile picture is required.");
+                }
+
+                if (string.IsNullOrWhiteSpace(applicantData.Division))
+                {
+                    return BadRequest("Division is required.");
+                }
+
+                if (string.IsNullOrWhiteSpace(applicantData.Flag))
+                {
+                    return BadRequest("Flag is required.");
+                }
+
+                if (string.IsNullOrWhiteSpace(applicantData.Why))
+                {
+                    return BadRequest("Why is required.");
+                }
+
+                if (string.IsNullOrWhiteSpace(applicantData.MediaContact))
+                {
+                    return BadRequest("Media contact is required.");
+                }
+            }
+
+            if (applicantData.Biomarkers?.Any() is true && !HasRequiredBiomarkerDates(applicantData.Biomarkers))
+            {
+                return BadRequest("Biomarker date is required.");
+            }
+
+            if (applicantData.Biomarkers?.Any() is true && !HasValidBiomarkerDates(applicantData.Biomarkers))
+            {
+                if (HasFutureBiomarkerDates(applicantData.Biomarkers))
+                {
+                    return BadRequest("Biomarker date cannot be in the future.");
+                }
+
+                return BadRequest("Biomarker date is invalid.");
+            }
+
+            if (applicantData.Biomarkers?.Any() is true && !HasRequiredBiomarkerValues(applicantData.Biomarkers))
+            {
+                return BadRequest("Biomarker result value is required.");
             }
 
             // Load SMTP configuration
@@ -187,31 +324,6 @@ namespace LongevityWorldCup.Website.Controllers
                 _logger.LogError(ex, "Application submission failed before processing because configuration could not be loaded.");
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
             }
-
-            if (applicantData == null)
-            {
-                return BadRequest("Applicant data is null.");
-            }
-
-            // Handle result submissions: only biomarkers and proofs provided
-            var isResultSubmissionOnly =
-                   !string.IsNullOrWhiteSpace(applicantData.Name)
-                && applicantData.Biomarkers?.Any() is true
-                && applicantData.ProofPics?.Any() is true
-                && applicantData.ProfilePic is null
-                && applicantData.DateOfBirth is null
-                && string.IsNullOrWhiteSpace(applicantData.MediaContact)
-                && string.IsNullOrWhiteSpace(applicantData.Division)
-                && string.IsNullOrWhiteSpace(applicantData.Flag)
-                && string.IsNullOrWhiteSpace(applicantData.Why)
-                && string.IsNullOrWhiteSpace(applicantData.PersonalLink);
-
-            // Handle edit submissions: when biomarkers and proofs are NOT provided
-            var isEditSubmissionOnly =
-                   !string.IsNullOrWhiteSpace(applicantData.Name)
-                && applicantData.Biomarkers is null
-                && applicantData.ProofPics is null
-                && applicantData.DateOfBirth is null;
 
             var submissionId = NormalizeSubmissionId(applicantData.SubmissionId);
             applicantData.SubmissionId = submissionId;
@@ -227,8 +339,6 @@ namespace LongevityWorldCup.Website.Controllers
                 string.Join(",", proofLengths),
                 profilePicLength);
 
-            // Get AccountEmail from the json and trim it
-            string? accountEmail = applicantData.AccountEmail?.Trim();
             string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
             string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
             applicantData.FreePass = NormalizeFreePassValue(applicantData.FreePass);
@@ -255,17 +365,18 @@ namespace LongevityWorldCup.Website.Controllers
 
             var builder = new BodyBuilder();
 
-            var correctedPersonalLink = applicantData.PersonalLink?.Trim();
-            correctedPersonalLink = string.IsNullOrWhiteSpace(correctedPersonalLink)
-                    ? null
-                    : (correctedPersonalLink.StartsWith("www.")
-                        ? "https://" + correctedPersonalLink
-                        : correctedPersonalLink);
+            var correctedPersonalLink = NormalizeSubmittedPersonalLink(applicantData.PersonalLink);
             var trimmedDisplayName = string.IsNullOrWhiteSpace(applicantData.DisplayName) ? null : applicantData.DisplayName.Trim();
             var displayNameOrName = trimmedDisplayName ?? applicantData.Name?.Trim();
 
             // 1) Build a temp folder with profile + proofs + athlete.json
             var folderKey = SanitizeFileName(applicantData.Name ?? "noname");
+            if ((isResultSubmissionOnly || isEditSubmissionOnly) && string.IsNullOrWhiteSpace(accountEmail))
+            {
+                accountEmail = ResolveExistingAthleteContactEmail(TryReadExistingAthleteFields(_environment, folderKey, applicantData.Name));
+            }
+            AddReplyToIfValid(message, accountEmail, displayNameOrName);
+
             var tempRoot = Path.Combine(Path.GetTempPath(), "LWC", folderKey);
             var athleteFolder = Path.Combine(tempRoot, folderKey);
             Directory.CreateDirectory(athleteFolder);
@@ -431,42 +542,74 @@ namespace LongevityWorldCup.Website.Controllers
                         if (error.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
                         {
                             // Explicitly ignore "already subscribed" errors
-                            _logger.LogInformation("The applicant's email {Email} is already subscribed to the newsletter.", email);
+                            _logger.LogInformation("The applicant email is already subscribed to the newsletter.");
                         }
                         else
                         {
                             // Log and ignore any other errors silently
-                            _logger.LogWarning("Failed to subscribe applicant email {Email} to the newsletter. Error: {Error}", email, error);
+                            _logger.LogWarning("Failed to subscribe applicant email to the newsletter. Error: {Error}", error);
                         }
                     }
                     else
                     {
                         // Subscription successful
-                        _logger.LogInformation("Successfully subscribed applicant email {Email} to the newsletter.", email);
+                        _logger.LogInformation("Successfully subscribed applicant email to the newsletter.");
                     }
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Log and ignore any other errors silently
-                _logger.LogWarning(ex, "Failed to subscribe applicant email {Email} to the newsletter.", accountEmail);
+                _logger.LogWarning(ex, "Failed to subscribe applicant email to the newsletter.");
             }
 
-            // Send the email
+            var requestedAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
+            var paymentRequired = requestedAmountUsd > 0m;
+            string? archivedSubmissionPath = null;
+            var auditEmailDelivered = false;
+
+            // Send the admin notification email. If email auth is misconfigured, keep the
+            // already-packaged submission on disk and let the applicant continue.
             try
             {
                 await SendEmailThroughSmtpAsync(config, message, ct);
+                auditEmailDelivered = true;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                try
+                {
+                    archivedSubmissionPath = await PersistApplicationSubmissionArchiveAsync(zipPath, folderKey, submissionId, ct);
+                }
+                catch (Exception archiveEx) when (archiveEx is not OperationCanceledException)
+                {
+                    _logger.LogError(
+                        archiveEx,
+                        "Application submission email failed and archive could not be saved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind}",
+                        submissionId,
+                        submissionKind);
+                    return StatusCode(500, "Internal server error: application could not be saved.");
+                }
 
+                _logger.LogError(
+                    ex,
+                    "Application submission email failed after archive was saved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ArchivePath={ArchivePath}",
+                    submissionId,
+                    submissionKind,
+                    archivedSubmissionPath);
+            }
+
+            try
+            {
                 try
                 {
                     Directory.Delete(tempRoot, recursive: true);
                 }
                 catch { /* ignore */ }
-                var requestedAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
-                var paymentRequired = requestedAmountUsd > 0m;
+
                 if (!paymentRequired)
                 {
-                    await TrySendApplicationConfirmationEmailAsync(
+                    await TrySendSubmissionConfirmationEmailAsync(
                         config,
                         accountEmail,
                         displayNameOrName,
@@ -488,12 +631,14 @@ namespace LongevityWorldCup.Website.Controllers
                         ct);
 
                     _logger.LogInformation(
-                        "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
+                        "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
                         submissionId,
                         submissionKind,
                         applicantData.ProofPics?.Count ?? 0,
                         zipSizeBytes,
-                        false);
+                        false,
+                        auditEmailDelivered,
+                        archivedSubmissionPath);
 
                     return Ok(new
                     {
@@ -516,12 +661,43 @@ namespace LongevityWorldCup.Website.Controllers
                 if (!invoiceResult.Success)
                 {
                     _logger.LogError(
-                        "Application submission email was sent but BTCPay invoice creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} Error={Error}",
+                        "Application submission was saved but BTCPay invoice creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath} Error={Error}",
                         submissionId,
                         submissionKind,
                         zipSizeBytes,
+                        auditEmailDelivered,
+                        archivedSubmissionPath,
                         invoiceResult.Error);
-                    return StatusCode(500, $"Application sent, but failed to create BTCPay invoice: {invoiceResult.Error}");
+                    await TryRecordDiscountSignupAsync(
+                        applicantData,
+                        accountEmail,
+                        folderKey,
+                        submissionId,
+                        submissionKind,
+                        requestedAmountUsd,
+                        paymentCurrency,
+                        paymentRequired: true,
+                        invoiceId: null,
+                        checkoutLink: null,
+                        ct);
+
+                    await TrySendSubmissionConfirmationEmailAsync(
+                        config,
+                        accountEmail,
+                        displayNameOrName,
+                        isResultSubmissionOnly,
+                        isEditSubmissionOnly,
+                        paymentUnavailable: true,
+                        ct: ct);
+
+                    return Ok(new
+                    {
+                        success = true,
+                        paymentRequired = true,
+                        paymentUnavailable = true,
+                        checkoutLink = (string?)null,
+                        invoiceId = (string?)null
+                    });
                 }
 
                 await TryRecordDiscountSignupAsync(
@@ -537,22 +713,24 @@ namespace LongevityWorldCup.Website.Controllers
                     invoiceResult.CheckoutLink,
                     ct);
 
-                await TrySendApplicationConfirmationEmailAsync(
+                await TrySendSubmissionConfirmationEmailAsync(
                     config,
                     accountEmail,
                     displayNameOrName,
                     isResultSubmissionOnly,
                     isEditSubmissionOnly,
-                    invoiceResult.CheckoutLink,
-                    ct);
+                    checkoutLink: invoiceResult.CheckoutLink,
+                    ct: ct);
 
                 _logger.LogInformation(
-                    "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired}",
+                    "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
                     submissionId,
                     submissionKind,
                     applicantData.ProofPics?.Count ?? 0,
                     zipSizeBytes,
-                    true);
+                    true,
+                    auditEmailDelivered,
+                    archivedSubmissionPath);
 
                 return Ok(new
                 {
@@ -575,6 +753,42 @@ namespace LongevityWorldCup.Website.Controllers
                     zipSizeBytes);
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        private static async Task<string> PersistApplicationSubmissionArchiveAsync(
+            string zipPath,
+            string folderKey,
+            string submissionId,
+            CancellationToken ct)
+        {
+            var archiveRoot = Path.Combine(EnvironmentHelpers.GetDataDir(), "ApplicationSubmissions");
+            Directory.CreateDirectory(archiveRoot);
+
+            var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+            var safeSubmissionId = SanitizeArchiveFilePart(submissionId, "submission");
+            var safeFolderKey = SanitizeArchiveFilePart(folderKey, "athlete");
+            var archivePath = Path.Combine(archiveRoot, $"{timestamp}_{safeSubmissionId}_{safeFolderKey}.zip");
+
+            await using var source = System.IO.File.OpenRead(zipPath);
+            await using var destination = new FileStream(
+                archivePath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 81920,
+                useAsync: true);
+            await source.CopyToAsync(destination, ct);
+
+            return archivePath;
+        }
+
+        private static string SanitizeArchiveFilePart(string? value, string fallback)
+        {
+            var sanitized = SanitizeFileName(value ?? "");
+            if (string.IsNullOrWhiteSpace(sanitized))
+                sanitized = fallback;
+
+            return sanitized.Length <= 80 ? sanitized : sanitized[..80].Trim('-', '_');
         }
 
         private async Task TryRecordDiscountSignupAsync(
@@ -670,25 +884,23 @@ namespace LongevityWorldCup.Website.Controllers
             return Ok(new { success = true });
         }
 
-        private async Task TrySendApplicationConfirmationEmailAsync(
+        private async Task TrySendSubmissionConfirmationEmailAsync(
             Config config,
             string? accountEmail,
             string? applicantName,
             bool isResultSubmissionOnly,
             bool isEditSubmissionOnly,
             string? checkoutLink = null,
+            bool paymentUnavailable = false,
             CancellationToken ct = default)
         {
-            if (isResultSubmissionOnly || isEditSubmissionOnly)
-                return;
-
             if (string.IsNullOrWhiteSpace(accountEmail))
                 return;
 
             var trimmedEmail = accountEmail.Trim();
             if (!new EmailAddressAttribute().IsValid(trimmedEmail))
             {
-                _logger.LogWarning("Skipping application confirmation email because applicant email is invalid: {Email}", trimmedEmail);
+                _logger.LogWarning("Skipping submission confirmation email because applicant email is invalid.");
                 return;
             }
 
@@ -696,22 +908,50 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 var message = new MimeMessage();
                 message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
-                message.To.Add(new MailboxAddress(applicantName?.Trim() ?? "", trimmedEmail));
-                message.Subject = "Your Longevity World Cup application was received";
+                message.To.Add(CreateSubmissionConfirmationRecipient(trimmedEmail));
+                message.Subject = BuildSubmissionConfirmationSubject(isResultSubmissionOnly, isEditSubmissionOnly);
                 message.Body = new BodyBuilder
                 {
-                    TextBody = BuildApplicationConfirmationBody(applicantName, checkoutLink)
+                    TextBody = BuildSubmissionConfirmationBody(applicantName, isResultSubmissionOnly, isEditSubmissionOnly, checkoutLink, paymentUnavailable)
                 }.ToMessageBody();
 
                 await SendEmailThroughSmtpAsync(config, message, ct);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogWarning(ex, "Failed to send application confirmation email to {Email}", trimmedEmail);
+                _logger.LogWarning(ex, "Failed to send submission confirmation email.");
             }
         }
 
-        private static string BuildApplicationConfirmationBody(string? applicantName, string? checkoutLink)
+        private static MailboxAddress CreateSubmissionConfirmationRecipient(string email)
+        {
+            return new MailboxAddress(string.Empty, email);
+        }
+
+        private static string BuildSubmissionConfirmationSubject(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
+        {
+            if (isResultSubmissionOnly)
+                return "Your Longevity World Cup result upload was received";
+            if (isEditSubmissionOnly)
+                return "Your Longevity World Cup change request was received";
+            return "Your Longevity World Cup application was received";
+        }
+
+        private static string BuildSubmissionConfirmationBody(
+            string? applicantName,
+            bool isResultSubmissionOnly,
+            bool isEditSubmissionOnly,
+            string? checkoutLink,
+            bool paymentUnavailable = false)
+        {
+            if (isResultSubmissionOnly)
+                return BuildResultUploadConfirmationBody(applicantName, checkoutLink, paymentUnavailable);
+            if (isEditSubmissionOnly)
+                return BuildChangeRequestConfirmationBody(applicantName);
+            return BuildApplicationConfirmationBody(applicantName, checkoutLink, paymentUnavailable);
+        }
+
+        private static string BuildApplicationConfirmationBody(string? applicantName, string? checkoutLink, bool paymentUnavailable = false)
         {
             var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
             var body = new StringBuilder()
@@ -720,7 +960,13 @@ namespace LongevityWorldCup.Website.Controllers
                 .AppendLine("We'll review your Longevity World Cup application, which usually takes a day or two.")
                 .AppendLine("When the review is done, we'll contact you at this email address.");
 
-            if (!string.IsNullOrWhiteSpace(checkoutLink))
+            if (paymentUnavailable)
+            {
+                body
+                    .AppendLine()
+                    .AppendLine("Your application also has a payment step, but we could not create the payment page automatically. We'll follow up with the next step by email.");
+            }
+            else if (!string.IsNullOrWhiteSpace(checkoutLink))
             {
                 body
                     .AppendLine()
@@ -736,12 +982,58 @@ namespace LongevityWorldCup.Website.Controllers
                 .ToString();
         }
 
+        private static string BuildResultUploadConfirmationBody(string? applicantName, string? checkoutLink, bool paymentUnavailable = false)
+        {
+            var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
+            var body = new StringBuilder()
+                .AppendLine($"Hi {greetingName},")
+                .AppendLine()
+                .AppendLine("We received your Longevity World Cup result upload and proof.")
+                .AppendLine("We'll review it and update your athlete profile if the result is accepted.");
+
+            if (paymentUnavailable)
+            {
+                body
+                    .AppendLine()
+                    .AppendLine("Your upload also has a payment step, but we could not create the payment page automatically. We'll follow up with the next step by email.");
+            }
+            else if (!string.IsNullOrWhiteSpace(checkoutLink))
+            {
+                body
+                    .AppendLine()
+                    .AppendLine("Your upload also has a payment step. If you were not redirected automatically, you can continue here:")
+                    .AppendLine(checkoutLink.Trim());
+            }
+
+            return body
+                .AppendLine()
+                .AppendLine("Questions or corrections? Reply to this email.")
+                .AppendLine()
+                .AppendLine("Longevity World Cup")
+                .ToString();
+        }
+
+        private static string BuildChangeRequestConfirmationBody(string? applicantName)
+        {
+            var greetingName = string.IsNullOrWhiteSpace(applicantName) ? "there" : applicantName.Trim();
+            return new StringBuilder()
+                .AppendLine($"Hi {greetingName},")
+                .AppendLine()
+                .AppendLine("We received your Longevity World Cup profile change request.")
+                .AppendLine("We'll review it and update your athlete profile if the changes are accepted.")
+                .AppendLine()
+                .AppendLine("Questions or corrections? Reply to this email.")
+                .AppendLine()
+                .AppendLine("Longevity World Cup")
+                .ToString();
+        }
+
         [HttpPost("interview-request")]
         public async Task<IActionResult> InterviewRequest([FromBody] InterviewRequestData requestData, CancellationToken ct)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                return ValidationProblem(ModelState);
             }
 
             var email = requestData.Email?.Trim();
@@ -761,28 +1053,7 @@ namespace LongevityWorldCup.Website.Controllers
                 return StatusCode(500, $"Failed to load configuration: {ex.Message}");
             }
 
-            var message = new MimeMessage();
-            message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
-            message.To.Add(CreateConfiguredToAddress(config));
-            message.Subject = "LWC Interview Request";
-            message.Body = new BodyBuilder
-            {
-                TextBody = $"Interview contact email: {email}"
-            }.ToMessageBody();
-
-            try
-            {
-                var subscribeError = await NewsletterService.SubscribeAsync(email, _logger, _environment, ct);
-                if (subscribeError != null
-                    && !subscribeError.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogWarning("Failed to subscribe interview request email {Email}: {Error}", email, subscribeError);
-                }
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogWarning(ex, "Failed to subscribe interview request email {Email}", email);
-            }
+            var message = BuildInterviewRequestEmail(config, email);
 
             try
             {
@@ -791,9 +1062,26 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                _logger.LogError(ex, "Failed to send interview request email for {Email}", email);
+                _logger.LogError(ex, "Failed to send interview request email.");
                 return StatusCode(500, "Failed to send interview request.");
             }
+        }
+
+        private static MimeMessage BuildInterviewRequestEmail(Config config, string email)
+        {
+            var trimmedEmail = email.Trim();
+            var message = new MimeMessage();
+            message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
+            message.To.Add(CreateConfiguredToAddress(config));
+            // codeql[cs/exposure-of-sensitive-information] The requester email is intentionally limited to Reply-To so admins can respond to interview requests.
+            AddReplyToIfValid(message, trimmedEmail, trimmedEmail);
+            message.Subject = "LWC Interview Request";
+            message.Body = new BodyBuilder
+            {
+                TextBody = "Interview request received. Reply to this email to contact the requester."
+            }.ToMessageBody();
+
+            return message;
         }
 
         [HttpPost("payment-status")]
@@ -803,6 +1091,9 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 return BadRequest("invoiceId is required.");
             }
+
+            request.AccountEmail = NormalizeOptionalAccountEmail(request.AccountEmail);
+            request.SubmissionType = NormalizePaymentSubmissionType(request.SubmissionType);
 
             Config config;
             try
@@ -839,11 +1130,15 @@ namespace LongevityWorldCup.Website.Controllers
                 {
                     if (string.IsNullOrWhiteSpace(request.AccountEmail))
                     {
-                        request.AccountEmail = invoiceResult.BuyerEmail;
+                        request.AccountEmail = NormalizeOptionalAccountEmail(invoiceResult.BuyerEmail);
                     }
                     if (string.IsNullOrWhiteSpace(request.ApplicantName))
                     {
                         request.ApplicantName = invoiceResult.AthleteNameFromMetadata;
+                    }
+                    if (string.IsNullOrWhiteSpace(request.SubmissionType))
+                    {
+                        request.SubmissionType = NormalizePaymentSubmissionType(invoiceResult.SubmissionTypeFromMetadata);
                     }
                     var paymentEmailResult = await SendPaymentFollowupEmailAsync(
                         config,
@@ -930,7 +1225,7 @@ namespace LongevityWorldCup.Website.Controllers
                 },
                 ["checkout"] = new Dictionary<string, object?>
                 {
-                    ["redirectURL"] = BuildReviewRedirectUrlForCurrentRequest(),
+                    ["redirectURL"] = BuildReviewRedirectUrlForCurrentRequest(isResultSubmissionOnly, isEditSubmissionOnly),
                     ["redirectAutomatically"] = true
                 },
                 ["metadata"] = new Dictionary<string, object?>
@@ -942,7 +1237,7 @@ namespace LongevityWorldCup.Website.Controllers
                     ["discountPercent"] = applicantData.PaymentOffer?.DiscountPercent,
                     ["submissionType"] = isEditSubmissionOnly ? "edit" : isResultSubmissionOnly ? "result" : "application",
                     ["athleteName"] = applicantData.Name?.Trim(),
-                    ["accountEmail"] = accountEmail
+                    ["buyerEmail"] = accountEmail
                 }
             };
 
@@ -976,9 +1271,13 @@ namespace LongevityWorldCup.Website.Controllers
             return (true, checkoutLink, invoiceId, null);
         }
 
-        private string BuildReviewRedirectUrlForCurrentRequest()
+        private string BuildReviewRedirectUrlForCurrentRequest(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
         {
             var origin = $"{Request.Scheme}://{Request.Host.Value}".TrimEnd('/');
+            if (isResultSubmissionOnly)
+                return $"{origin}/review?from=proof-upload";
+            if (isEditSubmissionOnly)
+                return $"{origin}/review?from=edit-profile";
             return $"{origin}/review";
         }
 
@@ -1015,6 +1314,77 @@ namespace LongevityWorldCup.Website.Controllers
         private static string BuildBtcpayFailureMessage(System.Net.HttpStatusCode statusCode)
             => $"BTCPay API returned HTTP {(int)statusCode}.";
 
+        private static string? NormalizeOptionalAccountEmail(string? accountEmail)
+        {
+            var trimmed = accountEmail?.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmed))
+            {
+                var start = trimmed.IndexOf('<', StringComparison.Ordinal);
+                var end = start >= 0
+                    ? trimmed.IndexOf('>', start + 1)
+                    : -1;
+
+                if (end > start)
+                {
+                    trimmed = trimmed[(start + 1)..end].Trim();
+                }
+            }
+
+            if (trimmed?.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) is true)
+            {
+                trimmed = trimmed["mailto:".Length..].Split('?', 2)[0].Trim();
+            }
+
+            return !string.IsNullOrWhiteSpace(trimmed) && new EmailAddressAttribute().IsValid(trimmed)
+                ? trimmed
+                : null;
+        }
+
+        private static string? NormalizeSubmittedPersonalLink(string? value)
+        {
+            var trimmed = value?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+                return null;
+
+            if (HasUriScheme(trimmed))
+                return trimmed;
+
+            if (LooksLikeSchemeLessDomain(trimmed))
+                return "https://" + trimmed;
+
+            return trimmed;
+        }
+
+        private static bool HasUriScheme(string value)
+            => value.IndexOf(':') is var separator
+               && separator > 0
+               && Uri.CheckSchemeName(value[..separator]);
+
+        private static bool LooksLikeSchemeLessDomain(string value)
+        {
+            if (value.Any(char.IsWhiteSpace) || value.StartsWith('/') || value.StartsWith('?') || value.StartsWith('#'))
+                return false;
+
+            var hostEnd = value.IndexOfAny(new[] { '/', '?', '#' });
+            var host = hostEnd >= 0 ? value[..hostEnd] : value;
+            return host.Contains('.') && !host.StartsWith('.') && !host.EndsWith('.');
+        }
+
+        private static string? ResolveExistingAthleteContactEmail(IReadOnlyDictionary<string, string?> existingFields)
+            => existingFields.TryGetValue("MediaContact", out var mediaContact)
+                ? NormalizeOptionalAccountEmail(mediaContact)
+                : null;
+
+        private static void AddReplyToIfValid(MimeMessage message, string? accountEmail, string? displayName)
+        {
+            var normalizedEmail = NormalizeOptionalAccountEmail(accountEmail);
+            if (normalizedEmail is null)
+                return;
+
+            message.ReplyTo.Clear();
+            message.ReplyTo.Add(new MailboxAddress(displayName?.Trim() ?? string.Empty, normalizedEmail));
+        }
+
         private async Task<(bool Success, string? Error)> SendPaymentFollowupEmailAsync(
             Config config,
             PaymentStatusRequest request,
@@ -1029,14 +1399,14 @@ namespace LongevityWorldCup.Website.Controllers
             var subject = BuildApplicationSubject(request.ApplicantName);
             var textBody = string.Join("\n", new[]
             {
-                "Payment detected for submitted application.",
+                BuildPaymentFollowupIntro(request.SubmissionType),
                 $"Invoice ID: {request.InvoiceId}",
                 $"Status: {status ?? "unknown"}",
                 $"Additional status: {additionalStatus ?? "unknown"}",
                 $"Amount: {amount ?? "?"} {currency ?? "?"}",
                 $"Paid amount: {paidAmount ?? "?"} {currency ?? "?"}",
                 $"Checkout link: {checkoutLink ?? "n/a"}",
-                $"Applicant email: {request.AccountEmail ?? "n/a"}"
+                $"{BuildPaymentFollowupContactLabel(request.SubmissionType)}: {request.AccountEmail ?? "n/a"}"
             });
 
             try
@@ -1044,6 +1414,7 @@ namespace LongevityWorldCup.Website.Controllers
                 var message = new MimeMessage();
                 message.From.Add(CreateConfiguredFromAddress(config, "Longevity World Cup"));
                 message.To.Add(CreateConfiguredToAddress(config));
+                AddReplyToIfValid(message, request.AccountEmail, request.ApplicantName);
                 message.Subject = subject; // exact subject for thread grouping
                 message.Body = new BodyBuilder { TextBody = textBody }.ToMessageBody();
 
@@ -1061,6 +1432,25 @@ namespace LongevityWorldCup.Website.Controllers
         {
             return $"[LWC26] Application: {applicantName?.Trim() ?? "Unknown"}";
         }
+
+        private static string? NormalizePaymentSubmissionType(string? submissionType)
+        {
+            var normalized = submissionType?.Trim().ToLowerInvariant();
+            return normalized is "application" or "result" or "edit" ? normalized : null;
+        }
+
+        private static string BuildPaymentFollowupIntro(string? submissionType)
+            => NormalizePaymentSubmissionType(submissionType) switch
+            {
+                "result" => "Payment detected for result upload.",
+                "edit" => "Payment detected for profile change request.",
+                _ => "Payment detected for submitted application."
+            };
+
+        private static string BuildPaymentFollowupContactLabel(string? submissionType)
+            => NormalizePaymentSubmissionType(submissionType) is "result" or "edit"
+                ? "Athlete email"
+                : "Applicant email";
 
         private static string BuildApplicationAuditEmailBody(
             ApplicantData applicantData,
@@ -1182,6 +1572,9 @@ namespace LongevityWorldCup.Website.Controllers
                 sb.AppendLine($"Pheno age difference: {chronoPhenoDifference.Trim()}");
             if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
                 sb.AppendLine($"Bortz age difference: {chronoBortzDifference.Trim()}");
+
+            if (!string.IsNullOrWhiteSpace(accountEmail))
+                sb.AppendLine("Reply to this email to contact the requester.");
 
             sb.AppendLine();
         }
@@ -1325,7 +1718,8 @@ namespace LongevityWorldCup.Website.Controllers
             var candidatePaths = new List<string>
             {
                 Path.Combine(athletesRoot, folderKey, "athlete.json"),
-                Path.Combine(athletesRoot, folderKey.Replace('_', '-'), "athlete.json")
+                Path.Combine(athletesRoot, folderKey.Replace('_', '-'), "athlete.json"),
+                Path.Combine(athletesRoot, folderKey.Replace('-', '_'), "athlete.json")
             };
 
             foreach (var path in candidatePaths.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -1790,6 +2184,71 @@ namespace LongevityWorldCup.Website.Controllers
         [GeneratedRegex(@"data:(?<type>.+?);base64,(?<data>.+)")]
         protected static partial Regex DataUriRegex();
 
+        private static bool IsValidDateOfBirth(DateOfBirthData dateOfBirth)
+        {
+            return dateOfBirth.Year is >= 1 and <= 9999
+                && dateOfBirth.Month is >= 1 and <= 12
+                && dateOfBirth.Day >= 1
+                && dateOfBirth.Day <= DateTime.DaysInMonth(dateOfBirth.Year, dateOfBirth.Month)
+                && new DateTime(dateOfBirth.Year, dateOfBirth.Month, dateOfBirth.Day, 0, 0, 0, DateTimeKind.Utc) <= DateTime.UtcNow.Date;
+        }
+
+        private static bool IsFutureDateOfBirth(DateOfBirthData dateOfBirth)
+        {
+            if (dateOfBirth.Year is < 1 or > 9999
+                || dateOfBirth.Month is < 1 or > 12
+                || dateOfBirth.Day < 1
+                || dateOfBirth.Day > DateTime.DaysInMonth(dateOfBirth.Year, dateOfBirth.Month))
+            {
+                return false;
+            }
+
+            return new DateTime(dateOfBirth.Year, dateOfBirth.Month, dateOfBirth.Day, 0, 0, 0, DateTimeKind.Utc) > DateTime.UtcNow.Date;
+        }
+
+        private static bool HasRequiredBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
+        {
+            return biomarkers.All(biomarker => biomarker is not null && !string.IsNullOrWhiteSpace(biomarker.Date));
+        }
+
+        private static bool HasValidBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            return biomarkers.All(biomarker =>
+                biomarker is not null &&
+                DateOnly.TryParseExact(
+                    biomarker.Date,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var resultDate)
+                && resultDate <= today);
+        }
+
+        private static bool HasFutureBiomarkerDates(IEnumerable<BiomarkerData> biomarkers)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            return biomarkers.Any(biomarker =>
+                biomarker is not null &&
+                DateOnly.TryParseExact(
+                    biomarker.Date,
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var resultDate)
+                && resultDate > today);
+        }
+
+        private static bool HasRequiredBiomarkerValues(IEnumerable<BiomarkerData> biomarkers)
+        {
+            return biomarkers.All(biomarker => biomarker is not null && typeof(BiomarkerData)
+                .GetProperties()
+                .Where(property => !string.Equals(property.Name, nameof(BiomarkerData.Date), StringComparison.Ordinal))
+                .Select(property => property.GetValue(biomarker))
+                .OfType<double>()
+                .Any(double.IsFinite));
+        }
+
         private sealed record ImageOptimizationResult(bool Success, byte[]? Bytes, string? ContentType, string? Extension, string ErrorMessage)
         {
             public static ImageOptimizationResult Ok(byte[] bytes, string contentType, string extension)
@@ -1805,6 +2264,7 @@ namespace LongevityWorldCup.Website.Controllers
         public string? InvoiceId { get; set; }
         public string? ApplicantName { get; set; }
         public string? AccountEmail { get; set; }
+        public string? SubmissionType { get; set; }
     }
 
     public sealed class InterviewRequestData

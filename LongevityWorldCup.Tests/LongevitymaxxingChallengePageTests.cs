@@ -1,3 +1,4 @@
+using LongevityWorldCup.Website.Tools;
 using LongevityWorldCup.Website;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -9,6 +10,193 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class LongevitymaxxingChallengePageTests
 {
+    [Fact]
+    public async Task ChallengeApiRequests_AreTimeBoundedPastServerPublicWorkTimeout()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+        var timeoutMatch = System.Text.RegularExpressions.Regex.Match(javascript, @"REQUEST_TIMEOUT_MS\s*=\s*(\d+)");
+
+        Assert.True(timeoutMatch.Success);
+        Assert.True(int.Parse(timeoutMatch.Groups[1].Value) > PublicRequestTimeoutPolicies.PublicWorkTimeout.TotalMilliseconds);
+        Assert.Contains("async function requestJson(url, options)", javascript);
+        Assert.Contains("window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)", javascript);
+        Assert.Contains("...(controller ? { signal: controller.signal } : {})", javascript);
+        Assert.Contains("if (err && err.name === \"AbortError\") throw new Error(\"Request timed out\");", javascript);
+        Assert.Contains("const response = await requestJson(url, {", javascript);
+        Assert.Contains("const fallback = response.statusText || (response.status ? `HTTP ${response.status}` : \"Request failed\");", javascript);
+        Assert.Contains("typeof data === \"string\" && data.trim()", javascript);
+        Assert.Contains("Array.isArray(data)", javascript);
+        Assert.Contains("const err = new Error(message || fallback);", javascript);
+    }
+
+    [Fact]
+    public async Task ChallengeNotePhotoSelection_ClearsFileInputAfterCapturingPendingPhotos()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+
+        Assert.Contains("const input = event.target;", javascript);
+        Assert.Contains("setPendingNotePhotos(form, Array.from(input.files || []));", javascript);
+        Assert.Contains("input.value = \"\";", javascript);
+    }
+
+    [Fact]
+    public async Task ChallengeSubmitHelper_IgnoresDuplicateBusySubmissions()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+        var helperStart = javascript.IndexOf("async function withButton(button, work, busyText)", StringComparison.Ordinal);
+        var helperEnd = javascript.IndexOf("function fillTimeZones(select)", helperStart, StringComparison.Ordinal);
+
+        Assert.True(helperStart >= 0);
+        Assert.True(helperEnd > helperStart);
+
+        var helperBody = javascript[helperStart..helperEnd];
+        var guardIndex = helperBody.IndexOf("if (button.disabled || button.getAttribute(\"aria-busy\") === \"true\") return;", StringComparison.Ordinal);
+        var originalIndex = helperBody.IndexOf("const original = button.innerHTML;", StringComparison.Ordinal);
+
+        Assert.True(guardIndex >= 0);
+        Assert.True(originalIndex > guardIndex);
+        Assert.Contains("button.setAttribute(\"aria-busy\", \"true\");", helperBody);
+        Assert.Contains("button.removeAttribute(\"aria-busy\");", helperBody);
+    }
+
+    [Fact]
+    public async Task ChallengeSignupAndResend_NormalizeCopiedEmailInputsBeforePosting()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+
+        Assert.Contains("function normalizeEmailInput(input)", javascript);
+        Assert.Contains("const normalized = normalizeEmailValue(input?.value || \"\");", javascript);
+        Assert.Contains("if (input) input.value = normalized;", javascript);
+        Assert.Contains("function validateEmailInput(input)", javascript);
+        Assert.Contains("input.setCustomValidity(\"\");", javascript);
+        Assert.Contains("if (isEmailAddress(normalized)) return normalized;", javascript);
+        Assert.Contains("input.setCustomValidity(\"Enter a valid email address.\");", javascript);
+        Assert.Contains("input.reportValidity?.();", javascript);
+        Assert.Contains("input.focus();", javascript);
+        Assert.Contains("function wireEmailValidityReset(input)", javascript);
+        Assert.Contains("input?.addEventListener(\"input\", () => input.setCustomValidity(\"\"));", javascript);
+        Assert.Contains("function isEmailAddress(value)", javascript);
+        Assert.Contains("input.type = \"email\";", javascript);
+        Assert.Contains("function normalizeEmailValue(value)", javascript);
+        Assert.Contains("const bracketMatch = /<([^<>]+)>/.exec(normalized);", javascript);
+        Assert.Contains("normalized = bracketMatch[1].trim();", javascript);
+        Assert.Contains("normalized = normalized.replace(/^mailto:/i, \"\").split(\"?\")[0].trim();", javascript);
+        Assert.Contains("const signupEmailInput = document.getElementById(\"lmxSignupEmail\");", javascript);
+        Assert.Contains("wireEmailValidityReset(signupEmailInput);", javascript);
+        Assert.Contains("const signupEmail = validateEmailInput(signupEmailInput);", javascript);
+        Assert.Contains("if (!signupEmail) return;", javascript);
+        Assert.Contains("email: signupEmail", javascript);
+        Assert.Contains("const resendEmailInput = document.getElementById(\"lmxResendEmail\");", javascript);
+        Assert.Contains("wireEmailValidityReset(resendEmailInput);", javascript);
+        Assert.Contains("const resendEmail = validateEmailInput(resendEmailInput);", javascript);
+        Assert.Contains("if (!resendEmail) return;", javascript);
+        Assert.Contains("email: resendEmail", javascript);
+        Assert.DoesNotContain("email: document.getElementById(\"lmxSignupEmail\").value.trim()", javascript);
+        Assert.DoesNotContain("email: document.getElementById(\"lmxResendEmail\").value.trim()", javascript);
+    }
+
+    [Fact]
+    public async Task ChallengeSignupAthleteSelection_FocusesInvalidAthleteInput()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+
+        var selectorPayloadStart = javascript.IndexOf("getPayload() {", StringComparison.Ordinal);
+        var selectorPayloadEnd = javascript.IndexOf("getSelectedName()", selectorPayloadStart, StringComparison.Ordinal);
+        var fallbackPayloadStart = javascript.IndexOf("function getAthleteSelectorPayload(id)", StringComparison.Ordinal);
+        var fallbackPayloadEnd = javascript.IndexOf("function getRequiredAthleteSelectorPayload(id)", fallbackPayloadStart, StringComparison.Ordinal);
+        var requiredPayloadStart = fallbackPayloadEnd;
+        var requiredPayloadEnd = javascript.IndexOf("function getAthleteSelectorDisplayName(id)", requiredPayloadStart, StringComparison.Ordinal);
+
+        Assert.True(selectorPayloadStart >= 0);
+        Assert.True(selectorPayloadEnd > selectorPayloadStart);
+        Assert.True(fallbackPayloadStart >= 0);
+        Assert.True(fallbackPayloadEnd > fallbackPayloadStart);
+        Assert.True(requiredPayloadEnd > requiredPayloadStart);
+
+        var selectorPayload = javascript[selectorPayloadStart..selectorPayloadEnd];
+        var fallbackPayload = javascript[fallbackPayloadStart..fallbackPayloadEnd];
+        var requiredPayload = javascript[requiredPayloadStart..requiredPayloadEnd];
+
+        Assert.Contains("Select an athlete from the list or clear this field.", selectorPayload);
+        Assert.Contains("input.reportValidity?.();", selectorPayload);
+        Assert.Contains("input.focus();", selectorPayload);
+        Assert.Contains("Select an athlete from the list or clear this field.", fallbackPayload);
+        Assert.Contains("input.reportValidity?.();", fallbackPayload);
+        Assert.Contains("input.focus();", fallbackPayload);
+        Assert.Contains("Select your athlete profile.", requiredPayload);
+        Assert.Contains("input?.reportValidity?.();", requiredPayload);
+        Assert.Contains("input?.focus();", requiredPayload);
+    }
+
+    [Fact]
+    public async Task ChallengeStandaloneButtonHelper_IgnoresDuplicateBusyButtons()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+        var helperStart = javascript.IndexOf("async function withStandaloneButton(button, busyText, work, onError)", StringComparison.Ordinal);
+        var helperEnd = javascript.IndexOf("function setCommitmentStatus(message, isError)", helperStart, StringComparison.Ordinal);
+
+        Assert.True(helperStart >= 0);
+        Assert.True(helperEnd > helperStart);
+
+        var helperBody = javascript[helperStart..helperEnd];
+        var guardIndex = helperBody.IndexOf("if (button && (button.disabled || button.getAttribute(\"aria-busy\") === \"true\")) return;", StringComparison.Ordinal);
+        var originalIndex = helperBody.IndexOf("const original = button ? button.innerHTML : \"\";", StringComparison.Ordinal);
+
+        Assert.True(guardIndex >= 0);
+        Assert.True(originalIndex > guardIndex);
+        Assert.Contains("if (button) {", helperBody);
+        Assert.Contains("await work();", helperBody);
+        Assert.Contains("checkCommitmentPayment(null, {", javascript);
+    }
+
+    [Fact]
+    public async Task ChallengeProfilePicturePreparation_IsCoveredByUploadRetryHandling()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/longevitymaxxing.js");
+        var uploadStart = javascript.IndexOf("async function uploadProfilePicture(file, input)", StringComparison.Ordinal);
+        var uploadEnd = javascript.IndexOf("async function prepareProfilePictureFile(file)", uploadStart, StringComparison.Ordinal);
+
+        Assert.True(uploadStart >= 0);
+        Assert.True(uploadEnd > uploadStart);
+
+        var uploadBody = javascript[uploadStart..uploadEnd];
+        var tryIndex = uploadBody.IndexOf("try {", StringComparison.Ordinal);
+        var prepareIndex = uploadBody.IndexOf("const uploadFile = await prepareProfilePictureFile(file);", StringComparison.Ordinal);
+        var catchIndex = uploadBody.IndexOf("} catch (err) {", StringComparison.Ordinal);
+        var resetIndex = uploadBody.IndexOf("input.value = \"\";", StringComparison.Ordinal);
+        var retryFocusIndex = uploadBody.IndexOf("if (shouldFocusRetry) button?.focus();", StringComparison.Ordinal);
+
+        Assert.Contains("let shouldFocusRetry = false;", uploadBody);
+        Assert.Contains("setStatus(\"lmxProfilePictureStatus\", \"Uploading...\", false);", uploadBody);
+        Assert.Contains("shouldFocusRetry = true;", uploadBody);
+        Assert.True(tryIndex >= 0);
+        Assert.True(prepareIndex > tryIndex);
+        Assert.True(catchIndex > prepareIndex);
+        Assert.True(resetIndex > catchIndex);
+        Assert.True(retryFocusIndex > resetIndex);
+    }
+
     [Fact]
     public async Task LongevitymaxxingPage_RendersProductCopyAndVersionedAssets()
     {
@@ -25,10 +213,14 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Sign up", html);
         Assert.Contains("Sign in", html);
         Assert.DoesNotContain("signup for free", html);
+        Assert.Contains("<input id=\"lmxSignupEmail\" name=\"email\" type=\"text\" inputmode=\"email\" autocomplete=\"email\" autocapitalize=\"none\" spellcheck=\"false\" required>", html);
+        Assert.Contains("<input id=\"lmxResendEmail\" type=\"text\" inputmode=\"email\" autocomplete=\"email\" autocapitalize=\"none\" spellcheck=\"false\" required>", html);
+        Assert.DoesNotContain("id=\"lmxSignupEmail\" name=\"email\" type=\"email\"", html);
+        Assert.DoesNotContain("id=\"lmxResendEmail\" type=\"email\"", html);
         Assert.Contains("<label for=\"lmxSignupName\">Username</label>", html);
         Assert.DoesNotContain("<label for=\"lmxEditName\">Username</label>", html);
         Assert.Contains("id=\"lmxProfileIdentity\"", html);
-        Assert.Contains("autocomplete=\"username\"", html);
+        Assert.Contains("<input id=\"lmxSignupName\" name=\"displayName\" autocomplete=\"username\" autocapitalize=\"none\" spellcheck=\"false\" required maxlength=\"80\">", html);
         Assert.Contains("Are you already a Longevity World Cup athlete?", html);
         Assert.Contains("name=\"lmxSignupIdentity\" value=\"participant\" checked", html);
         Assert.Contains("name=\"lmxSignupIdentity\" value=\"athlete\"", html);
@@ -99,7 +291,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("LWC athlete profile <span>optional</span>", html);
         Assert.Contains("lmx-athlete-selector", html);
         Assert.Contains("lmx-athlete-picker", html);
-        Assert.Contains("Search athlete name", html);
+        Assert.Contains("<input id=\"lmxSignupAthlete\" name=\"athleteLink\" autocomplete=\"off\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"Search athlete name\">", html);
         Assert.Contains("lmxSignupAthleteClear", html);
         Assert.DoesNotContain("lmxEditAthleteSelected", html);
         Assert.DoesNotContain("Choose this only if the participant is already listed as a Longevity athlete.", html);
@@ -109,8 +301,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("id=\"lmxProfilePictureInput\" type=\"file\" accept=\"image/*\"", html);
         Assert.Contains("id=\"lmxSignupTimeZoneLabel\">Timezone</span>", html);
         Assert.Contains("class=\"lmx-timezone-picker\" data-timezone-picker data-select-id=\"lmxSignupTimeZone\"", html);
-        Assert.Contains("id=\"lmxSignupTimeZoneSearch\" type=\"search\"", html);
-        Assert.Contains("placeholder=\"Search city or timezone\"", html);
+        Assert.Contains("<input id=\"lmxSignupTimeZoneSearch\" type=\"search\" autocomplete=\"off\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"Search city or timezone\" aria-controls=\"lmxSignupTimeZoneList\">", html);
+        Assert.Contains("<input id=\"lmxEditTimeZoneSearch\" type=\"search\" autocomplete=\"off\" autocapitalize=\"none\" spellcheck=\"false\" placeholder=\"Search city or timezone\" aria-controls=\"lmxEditTimeZoneList\">", html);
         Assert.Contains("id=\"lmxSignupTimeZone\" class=\"lmx-timezone-native\" name=\"timeZoneId\" required", html);
         Assert.Contains("id=\"lmxEditTimeZone\" class=\"lmx-timezone-native\" required", html);
         Assert.DoesNotContain("Extra details", html);
@@ -413,6 +605,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain(".lmx-commitment-hint", css);
         Assert.DoesNotContain(".lmx-payment-link", css);
         Assert.Contains("const checkoutWindow = window.open(\"\", \"_blank\", \"noopener\");", javascript);
+        Assert.Contains("function normalizeCheckoutLink(value)", javascript);
+        Assert.Contains("const checkoutUrl = new URL(raw, window.location.origin);", javascript);
+        Assert.Contains("return checkoutUrl.protocol === \"http:\" || checkoutUrl.protocol === \"https:\"", javascript);
+        Assert.Contains("const checkoutLink = normalizeCheckoutLink(result.commitment && result.commitment.checkoutLink);", javascript);
+        Assert.DoesNotContain("const checkoutLink = result.commitment && result.commitment.checkoutLink;", javascript);
         Assert.Contains("checkoutWindow.location = checkoutLink;", javascript);
         Assert.Contains("window.location.href = checkoutLink;", javascript);
         Assert.Contains("function sanitizeCommitmentAmountInput", javascript);

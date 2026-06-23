@@ -96,7 +96,7 @@ function hasPerfectGuessMarker() {
         const allGuesses = JSON.parse(localStorage.getItem("gmaAllGuesses") || "{}");
         const hasExact = Object.values(allGuesses).some(g => g && g.exact === true);
         if (hasExact) {
-            localStorage.setItem(PERFECT_GUESS_KEY, "1");
+            setPerfectGuessMarker();
             return true;
         }
         return false;

@@ -429,6 +429,7 @@ window.optimizeImageClient = async function (dataUri, options) {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
         ctx.drawImage(img, 0, 0, width, height);
         return await new Promise(resolve =>
             canvas.toBlob(resolve, targetContentType, quality)
@@ -498,7 +499,74 @@ window.createApplicationSubmissionId = function () {
     return 'submission-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
 };
 
-window.APPLICATION_SUBMISSION_TIMEOUT_MS = 50000;
+window.APPLICATION_SUBMISSION_TIMEOUT_MS = 65000;
+window.APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS = 2500;
+
+window.readApplicationErrorMessage = async function (response) {
+    const fallback = response && response.statusText
+        ? response.statusText
+        : response && Number.isFinite(response.status)
+            ? `HTTP ${response.status}`
+            : 'Request failed';
+    let text = '';
+    try {
+        text = response ? await response.text() : '';
+    } catch (_) {
+        return fallback;
+    }
+    return window.extractApplicationErrorMessage(text, fallback);
+};
+
+window.extractApplicationErrorMessage = function (text, fallback) {
+    const raw = String(text || '').trim();
+    if (!raw) return fallback || 'Request failed';
+    if (/^(?:<!doctype\s+html\b|<html[\s>])/i.test(raw)) return fallback || 'Request failed';
+    const collectMessages = function (values) {
+        return values
+            .flatMap(value => Array.isArray(value) ? value : [value])
+            .filter(value => typeof value === 'string')
+            .map(value => value.trim())
+            .filter(Boolean);
+    };
+
+    try {
+        const data = JSON.parse(raw);
+        if (typeof data === 'string' && data.trim()) {
+            return data.trim();
+        }
+
+        if (data && typeof data.message === 'string' && data.message.trim()) {
+            return data.message.trim();
+        }
+
+        if (data && typeof data.detail === 'string' && data.detail.trim()) {
+            return data.detail.trim();
+        }
+
+        if (data && data.errors && typeof data.errors === 'object') {
+            const messages = collectMessages(Object.values(data.errors));
+            if (messages.length) return messages.join('\n');
+        }
+
+        if (Array.isArray(data)) {
+            const messages = collectMessages(data);
+            if (messages.length) return messages.join('\n');
+        }
+
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+            const messages = collectMessages(Object.values(data));
+            if (messages.length) return messages.join('\n');
+        }
+
+        if (data && typeof data.title === 'string' && data.title.trim()) {
+            return data.title.trim();
+        }
+    } catch (_) {
+        return raw;
+    }
+
+    return fallback || raw || 'Request failed';
+};
 
 window.buildApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error) {
     applicantData = applicantData || {};
@@ -539,15 +607,38 @@ window.sendApplicationSubmissionReport = async function (report) {
         return;
     }
 
+    const timeoutMs = window.APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS || 2500;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller
+        ? window.setTimeout(() => controller.abort(), timeoutMs)
+        : null;
+
     try {
         await fetch('/api/application/submission-report', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body,
-            keepalive: body.length < 60000
+            keepalive: body.length < 60000,
+            ...(controller ? { signal: controller.signal } : {})
         });
     } catch (_) {
         // Best-effort diagnostics must never block an application attempt.
+    } finally {
+        if (timer) window.clearTimeout(timer);
+    }
+};
+
+window.trySendApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error) {
+    try {
+        if (typeof window.buildApplicationSubmissionReport !== 'function'
+            || typeof window.sendApplicationSubmissionReport !== 'function') {
+            return;
+        }
+
+        const report = window.buildApplicationSubmissionReport(applicantData, submissionId, phase, submissionKind, error);
+        void window.sendApplicationSubmissionReport(report);
+    } catch (_) {
+        // Best-effort diagnostics must never block or reset an application attempt.
     }
 };
 
@@ -584,11 +675,18 @@ window.updateHypotheticalRankResult = async function (options) {
     container.setAttribute('aria-busy', 'true');
     container.innerHTML = '<div class="bioage-rank-pending">Checking the current leaderboard...</div>';
 
+    const timeoutMs = 10000;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller
+        ? window.setTimeout(() => controller.abort(), timeoutMs)
+        : null;
+
     try {
         const response = await fetch('/api/data/hypothetical-rank', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            ...(controller ? { signal: controller.signal } : {})
         });
 
         if (!response.ok) throw new Error('Rank lookup failed.');
@@ -601,6 +699,7 @@ window.updateHypotheticalRankResult = async function (options) {
             container.hidden = true;
         }
     } finally {
+        if (timer) window.clearTimeout(timer);
         if (isCurrentRequest()) {
             container.removeAttribute('aria-busy');
         }

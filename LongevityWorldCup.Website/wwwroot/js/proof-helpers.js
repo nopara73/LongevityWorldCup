@@ -1,5 +1,5 @@
 window.getMainProofInstructionsInnerHTML = function () {
-    return "Upload <strong>proofs</strong> of your biomarkers (e.g., screenshots of PDF results or photos of physical documents)";
+    return "Upload <strong>proofs</strong> showing each submitted biomarker, the collection date, and the lab or report source (e.g., screenshots of PDF results or photos of physical documents)";
 }
 
 window.getSubProofInstructionsInnerHTML = function () {
@@ -39,6 +39,8 @@ var PROOF_CHECKLIST_PROPERTY_TO_LABEL = {
     VitaminDNmolL: 'Vitamin D (25-OH)'
 };
 
+var PROOF_CONTEXT_CHECKLIST_LABELS = ['Collection date', 'Lab/report source'];
+
 // Bortz-only biomarkers (not required for PhenoAge).
 var BORTZ_ONLY_BIOMARKER_KEYS = [
     'NeutrophilPc', 'MonocytePc', 'Rbc10e12L', 'MchPg', 'UreaMmolL',
@@ -67,10 +69,28 @@ window.isAthletePro = function (athlete) {
     for (var i = 0; i < BORTZ_ONLY_BIOMARKER_KEYS.length; i++) {
         var key = BORTZ_ONLY_BIOMARKER_KEYS[i];
         var val = latest[key];
-        if (val !== undefined && val !== null && !isNaN(val)) return true;
+        if (hasFiniteBiomarkerValue(val)) return true;
     }
     return false;
 };
+
+function hasFiniteBiomarkerValue(value) {
+    if (value === null || value === undefined || typeof value === 'boolean') return false;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value === 'string') {
+        var trimmed = value.trim();
+        return trimmed !== '' && Number.isFinite(Number(trimmed));
+    }
+    return false;
+}
+
+function getProofSessionItem(key) {
+    try {
+        return window.sessionStorage.getItem(key);
+    } catch (_) {
+        return null;
+    }
+}
 
 /**
  * Build Proof Tracker checklist labels from sessionStorage.biomarkerData.
@@ -80,7 +100,7 @@ window.isAthletePro = function (athlete) {
  */
 window.getProofChecklistLabelsFromSession = function () {
     try {
-        var raw = sessionStorage.getItem('biomarkerData');
+        var raw = getProofSessionItem('biomarkerData');
         if (!raw) return [];
         var data = JSON.parse(raw);
         var latest = (data.Biomarkers && data.Biomarkers[0]) || {};
@@ -88,42 +108,61 @@ window.getProofChecklistLabelsFromSession = function () {
         for (var i = 0; i < PROOF_CHECKLIST_ORDER.length; i++) {
             var prop = PROOF_CHECKLIST_ORDER[i];
             var val = latest[prop];
-            if (val !== undefined && val !== null && !isNaN(val)) {
+            if (hasFiniteBiomarkerValue(val)) {
                 var label = PROOF_CHECKLIST_PROPERTY_TO_LABEL[prop];
                 if (label) labels.push(label);
             }
         }
-        return labels;
+        return labels.length > 0 ? PROOF_CONTEXT_CHECKLIST_LABELS.concat(labels) : labels;
     } catch (e) {
         return [];
     }
 };
 
+function getProofFileExtension(file) {
+    const name = file && typeof file.name === 'string' ? file.name.toLowerCase() : '';
+    const dotIndex = name.lastIndexOf('.');
+    return dotIndex >= 0 ? name.slice(dotIndex + 1) : '';
+}
+
+function isProofPdfFile(file) {
+    const type = file && typeof file.type === 'string' ? file.type.toLowerCase() : '';
+    return type === 'application/pdf' || getProofFileExtension(file) === 'pdf';
+}
+
+function isSupportedProofFile(file) {
+    if (!file) return false;
+
+    const type = typeof file.type === 'string' ? file.type.toLowerCase() : '';
+    const extension = getProofFileExtension(file);
+    return type === 'application/pdf'
+        || type.startsWith('image/')
+        || extension === 'pdf'
+        || extension === 'jpg'
+        || extension === 'jpeg'
+        || extension === 'png'
+        || extension === 'webp'
+        || extension === 'heic'
+        || extension === 'heif';
+}
+
 window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers, options) {
     nextButton.disabled = true;
     const cameraButton = options && options.cameraButton;
     const cameraInput = options && options.cameraInput;
+    let isProofUploadProcessing = false;
     const proofOptimizationOptions = {
         maxSize: 2560,
         quality: 0.88,
         targetMaxBytes: 1.5 * 1024 * 1024
     };
 
-    // ——— Load PDF.js if not already loaded ———
-    if (!window.pdfjsLib) {
-        const pdfScript = document.createElement('script');
-        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
-        pdfScript.onload = () => {
-            // point to the worker
-            pdfjsLib.GlobalWorkerOptions.workerSrc =
-                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
-        };
-        document.head.appendChild(pdfScript);
-    }
+    ensurePdfJsReady().catch(() => {});
 
     // Attach event listener to the Upload Proof button
     if (uploadProofButton && !uploadProofButton.hasAttribute('data-listener')) {
         uploadProofButton.addEventListener('click', function () {
+            if (isProofUploadProcessing) return;
             proofPicInput.click();
         });
         uploadProofButton.setAttribute('data-listener', 'true');
@@ -131,84 +170,178 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
 
     if (cameraButton && cameraInput && !cameraButton.hasAttribute('data-listener')) {
         cameraButton.addEventListener('click', function () {
+            if (isProofUploadProcessing) return;
             cameraInput.click();
         });
         cameraButton.setAttribute('data-listener', 'true');
     }
 
-    const handleProofFiles = async function (files, input) {
+    const focusProofRetryButton = retryButton => {
+        if (retryButton && typeof retryButton.focus === 'function') {
+            retryButton.focus();
+        }
+    };
+
+    const showProofUploadNotice = message => {
+        if (!proofImageContainer) return;
+
+        let notice = proofImageContainer.querySelector('.proof-upload-notice');
+        if (!notice) {
+            notice = document.createElement('p');
+            notice.className = 'proof-upload-notice smaller-text';
+            proofImageContainer.appendChild(notice);
+        }
+        notice.textContent = message;
+    };
+
+    const handleProofFiles = async function (files, input, retryButton) {
+        if (isProofUploadProcessing) {
+            if (input) input.value = "";
+            return;
+        }
+
+        const selectedFiles = Array.from(files || []);
+        if (selectedFiles.length === 0) {
+            if (input) input.value = "";
+            return;
+        }
+
+        const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));
+        const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));
+        if (supportedFiles.length === 0) {
+            if (input) input.value = "";
+            customAlert('Proof files must be images or PDFs.')
+                .then(() => focusProofRetryButton(retryButton));
+            return;
+        }
+
+        isProofUploadProcessing = true;
+        uploadProofButton.disabled = true;
+        proofPicInput.disabled = true;
+        if (cameraButton) cameraButton.disabled = true;
+        if (cameraInput) cameraInput.disabled = true;
+        nextButton.disabled = true;
         showLoading();
         try {
-            if (files.length > 0) {
-                // Limit the total number of images to 9
-                if (proofPics.length + files.length > 9) {
-                    customAlert('You can upload a maximum of 9 images.');
-                    return;
+            // helper to read a File as dataURL
+            const readDataURL = file => new Promise((res, rej) => {
+                const r = new FileReader();
+                r.onload = e => res(e.target.result);
+                r.onerror = rej;
+                r.onabort = rej;
+                r.readAsDataURL(file);
+            });
+
+            const optimizeProofImageOrFallback = async raw => {
+                try {
+                    const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
+                    return dataUrl || raw;
+                } catch (_) {
+                    return raw;
                 }
+            };
 
-                // helper to read a File as dataURL
-                const readDataURL = file => new Promise((res, rej) => {
-                    const r = new FileReader();
-                    r.onload = e => res(e.target.result);
-                    r.onerror = rej;
-                    r.readAsDataURL(file);
-                });
-
-                // process one by one to preserve order
-                for (const file of Array.from(files)) {
-                    const raw = await readDataURL(file);
-                    if (file.type === 'application/pdf') {
+            let failedFiles = 0;
+            let hitImageLimit = false;
+            // process one by one to preserve order
+            for (const file of supportedFiles) {
+                const proofCountBeforeFile = proofPics.length;
+                try {
+                    if (isProofPdfFile(file)) {
+                        const pdfLib = await ensurePdfJsReady();
                         // read file as arrayBuffer
                         const arrayBuffer = await file.arrayBuffer();
                         // load PDF
-                        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+                        const loadingTask = pdfLib.getDocument({ data: arrayBuffer });
                         const pdfDoc = await loadingTask.promise;
                         // render each page
                         for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                            if (proofPics.length >= 9) {
+                                hitImageLimit = true;
+                                break;
+                            }
                             const page = await pdfDoc.getPage(pageNum);
                             const viewport = page.getViewport({ scale: 1.5 });
                             const canvas = document.createElement('canvas');
                             canvas.width = viewport.width;
                             canvas.height = viewport.height;
                             const context = canvas.getContext('2d');
+                            if (!context) throw new Error('Canvas context unavailable.');
                             await page.render({ canvasContext: context, viewport }).promise;
                             const rawPage = canvas.toDataURL();
-                            const { dataUrl: optimizedPage } = await window.optimizeImageClient(rawPage, proofOptimizationOptions);
+                            const optimizedPage = await optimizeProofImageOrFallback(rawPage);
                             if (optimizedPage) {
                                 proofPics.push(optimizedPage);
                             }
                         }
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
-                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        nextButton.disabled = true;
                         continue;
                     }
 
-                    const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
+                    if (proofPics.length >= 9) {
+                        hitImageLimit = true;
+                        break;
+                    }
+                    const raw = await readDataURL(file);
+                    const dataUrl = await optimizeProofImageOrFallback(raw);
                     if (dataUrl) {
                         proofPics.push(dataUrl);
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
-                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        nextButton.disabled = true;
+                    } else {
+                        failedFiles++;
+                    }
+                } catch (_) {
+                    failedFiles++;
+                    if (proofPics.length > proofCountBeforeFile) {
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        nextButton.disabled = true;
                     }
                 }
             }
-            // Reset the file input's value to allow re-uploading the same file if needed
-            input.value = "";
+            if (unsupportedFiles.length > 0) {
+                customAlert('Some proof files were skipped because proof files must be images or PDFs.')
+                    .then(() => focusProofRetryButton(retryButton));
+            }
+            if (failedFiles > 0) {
+                customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')
+                    .then(() => focusProofRetryButton(retryButton));
+            }
+            if (hitImageLimit) {
+                updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                showProofUploadNotice('Only the first 9 proof images were kept. Remove one to add another.');
+            }
+        } catch (error) {
+            customAlert('Proof upload failed. Please try again with an image or PDF file.')
+                .then(() => focusProofRetryButton(retryButton));
         } finally {
+            // Reset the file input's value to allow re-uploading the same file if needed.
+            if (input) input.value = "";
             hideLoading();
+            isProofUploadProcessing = false;
+            uploadProofButton.disabled = false;
+            proofPicInput.disabled = false;
+            if (cameraButton) cameraButton.disabled = false;
+            if (cameraInput) cameraInput.disabled = false;
+            checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
         }
     };
 
     // Handle proof uploads (without cropping)
     if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
         proofPicInput.addEventListener('change', async function (event) {
-            await handleProofFiles(event.target.files, proofPicInput);
+            await handleProofFiles(event.target.files, proofPicInput, uploadProofButton);
         });
         proofPicInput.setAttribute('data-listener', 'true');
     }
 
     if (cameraInput && !cameraInput.hasAttribute('data-listener')) {
         cameraInput.addEventListener('change', async function (event) {
-            await handleProofFiles(event.target.files, cameraInput);
+            await handleProofFiles(event.target.files, cameraInput, cameraButton || uploadProofButton);
         });
         cameraInput.setAttribute('data-listener', 'true');
     }
@@ -216,15 +349,53 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
     proofImageContainer.style.display = 'block';
 
     // Display any existing proof images
-    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton);
+    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
 
-    generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers);
+    generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nextButton, proofPics, uploadProofButton, cameraButton);
 
     // Check if proof images already exist
-    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
 }
 
-function updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton) {
+function ensurePdfJsReady() {
+    if (window.pdfjsLib && typeof window.pdfjsLib.getDocument === 'function') {
+        setPdfWorker(window.pdfjsLib);
+        return Promise.resolve(window.pdfjsLib);
+    }
+
+    if (window.__lwcPdfJsReady) return window.__lwcPdfJsReady;
+
+    window.__lwcPdfJsReady = new Promise((resolve, reject) => {
+        const pdfScript = document.createElement('script');
+        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
+        pdfScript.async = true;
+        pdfScript.dataset.lwcPdfjs = 'true';
+        pdfScript.onload = () => {
+            if (!window.pdfjsLib || typeof window.pdfjsLib.getDocument !== 'function') {
+                window.__lwcPdfJsReady = null;
+                reject(new Error('PDF renderer failed to load.'));
+                return;
+            }
+
+            setPdfWorker(window.pdfjsLib);
+            resolve(window.pdfjsLib);
+        };
+        pdfScript.onerror = () => {
+            window.__lwcPdfJsReady = null;
+            reject(new Error('PDF renderer failed to load.'));
+        };
+        document.head.appendChild(pdfScript);
+    });
+
+    return window.__lwcPdfJsReady;
+}
+
+function setPdfWorker(pdfLib) {
+    if (!pdfLib || !pdfLib.GlobalWorkerOptions) return;
+    pdfLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
+}
+
+function updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer) {
     container.innerHTML = '';
     // Use the global `proofPics` variable directly
     if (proofPics.length > 0) {
@@ -243,9 +414,9 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
             removeButton.style = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: var(--light-text-color); border: none; border-radius: 3px; cursor: pointer;';
             removeButton.addEventListener('click', function () {
                 proofPics.splice(i, 1);
-                updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton);
+                updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                 // Check proof images
-                checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton);
+                checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
             });
 
             imgContainer.appendChild(img);
@@ -255,14 +426,10 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
     }
 }
 
-function checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton) {
-    if (proofPics.length > 0) {
-        nextButton.disabled = false;
-        updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
-    } else {
-        nextButton.disabled = true;
-        updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
-    }
+function checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer) {
+    const hasProofs = proofPics.length > 0;
+    nextButton.disabled = !hasProofs;
+    updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
 }
 
 window.updateProofUploadButtons = function (nextButton, uploadProofButton, cameraButton) {
@@ -272,7 +439,7 @@ window.updateProofUploadButtons = function (nextButton, uploadProofButton, camer
     if (cameraButton) cameraButton.classList.toggle('green', nextButton.disabled);
 }
 
-function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
+function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nextButton, proofPics, uploadProofButton, cameraButton) {
     if (!biomarkerChecklistContainer) return;
 
     // Clear any existing content
@@ -285,7 +452,7 @@ function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
     biomarkerChecklistContainer.appendChild(title);
 
     const instructions = document.createElement('p');
-    instructions.textContent = "Check each biomarker you've already uploaded proof for:";
+    instructions.textContent = "Check each item only when an uploaded proof shows its marker name and submitted value:";
     instructions.style.marginTop = '1px';
     instructions.style.marginBottom = '4px';
     instructions.classList.add('smaller-text');
@@ -305,6 +472,9 @@ function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers) {
         input.className = 'biomarker-checkbox';
         // generate an ID like "biomarker-Albumin" or "biomarker-CReactiveProtein"
         input.id = 'biomarker-' + name.replace(/[^a-z0-9]/gi, '');
+        input.addEventListener('change', function () {
+            checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+        });
 
         // span with the visible name
         const span = document.createElement('span');

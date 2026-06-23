@@ -116,6 +116,20 @@
 </html>
 
 <script>
+    function getBrowserStorageItem(storageName, key) {
+        try {
+            return window[storageName].getItem(key);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
+
+    function hasSubmittedApplication() {
+        return getLocalItem('hasApplication') === 'true';
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
             const viewTarget = document.querySelector('h1');
@@ -123,7 +137,7 @@
         }, 500);
 
         // now mark the menu based on whether they've applied:
-        const hasApp = localStorage.getItem('hasApplication') === 'true';
+        const hasApp = hasSubmittedApplication();
         const container = document.querySelector('.options-container');
         const newBtn = document.getElementById('newGameBtn');
         const contBtn = document.getElementById('continueGameBtn');

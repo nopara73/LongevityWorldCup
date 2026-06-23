@@ -259,14 +259,17 @@
                        id="athlete"
                        name="athlete"
                        required
+                       aria-required="true"
+                       aria-describedby="athleteError"
                        autocomplete="off"
+                       autocapitalize="none"
+                       spellcheck="false"
                        placeholder="Start typing your athlete name…">
-                <span id="athleteError" class="error-message"></span>
+                <span id="athleteError" class="error-message" aria-live="polite"></span>
             </div>
         </div>
         <div class="options-container character-selection-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button disabled id="confirmBtn" class="option-button green"
-                    onclick="window.location.href='/dashboard'">
+            <button disabled id="confirmBtn" class="option-button green">
                 Select&nbsp;<i class="fas fa-arrow-right"></i>
             </button>
             <button class="option-button back-button" onclick="window.goBackOrHome()">
@@ -291,141 +294,313 @@
 
             const confirmBtn = document.getElementById('confirmBtn');
             confirmBtn.addEventListener('click', () => {
+                if (!currentAthlete || !currentAthlete.Name) return;
+
                 // if we had a different athlete before, clear any PhenoAge data
-                const prevName = localStorage.getItem('selectedAthleteName');
-                if (!prevName || prevName !== currentAthlete.Name) {
-                    sessionStorage.removeItem('biomarkerData');
-                    sessionStorage.removeItem('chronoPhenoDifference');
-                    sessionStorage.removeItem('chronoBortzDifference');
+                const prevName = getLocalItem('selectedAthleteName');
+                if (!isAthleteInputValue(currentAthlete, prevName)) {
+                    removeSessionItem('biomarkerData');
+                    removeSessionItem('chronoPhenoDifference');
+                    removeSessionItem('chronoBortzDifference');
+                    removeSessionItem('contactEmail');
+                    removeLocalItem('contactEmail');
                 }
 
-                localStorage.setItem('selectedAthleteName', currentAthlete.Name);
-                sessionStorage.setItem('selectedAthlete', JSON.stringify(currentAthlete));
-
-                const tempJson = sessionStorage.getItem('tempAthlete');
-                if (tempJson) {
-                    try {
-                        const tempAthlete = JSON.parse(tempJson);
-                        if (tempAthlete.Name !== currentAthlete.Name) {
-                            sessionStorage.removeItem('tempAthlete');
-                        }
-                    } catch (e) {
-                        // if it wasn't valid JSON, just drop it
-                        sessionStorage.removeItem('tempAthlete');
-                    }
+                if (!setRequiredSessionItem('selectedAthlete', JSON.stringify(currentAthlete))) {
+                    customAlert('Browser storage is unavailable. Enable storage and try again.');
+                    return;
                 }
+
+                clearStaleTempAthlete(currentAthlete.Name);
+                setLocalItem('selectedAthleteName', currentAthlete.Name);
+                window.location.href = '/dashboard';
             });
 
+            const athleteError = document.getElementById('athleteError');
+            let athleteAutocompleteReady = false;
+            let athleteLoadPromise = null;
+
+            function retryAthleteLoad() {
+                if (!athleteAutocompleteReady) {
+                    loadAthletes().catch(() => {});
+                }
+            }
+
+            athleteInput.addEventListener('focus', retryAthleteLoad);
+            athleteInput.addEventListener('input', retryAthleteLoad);
+
+            function loadAthletes() {
+                if (athleteAutocompleteReady) return Promise.resolve();
+                if (athleteLoadPromise) return athleteLoadPromise;
+                athleteError.textContent = '';
+                athleteLoadPromise = fetch('/api/data/athletes')
+                    .then(r => r.ok ? r.json() : Promise.reject(new Error('Athlete list request failed')))
+                    .then(data => {
+                        if (!Array.isArray(data)) {
+                            throw new Error('Athlete list response was invalid');
+                        }
+                        initializeAthleteAutocomplete(data);
+                        athleteAutocompleteReady = true;
+                        athleteInput.dispatchEvent(new Event('input'));
+                    })
+                    .catch(error => {
+                        console.error('Error fetching athletes:', error);
+                        athleteError.textContent = 'Athlete list could not load. Check your connection and try again.';
+                        throw error;
+                    })
+                    .finally(() => {
+                        athleteLoadPromise = null;
+                    });
+                return athleteLoadPromise;
+            }
+
+            loadAthletes().catch(() => {});
+
             // — ATHLETE AUTOCOMPLETE —
-            fetch('/api/data/athletes')
-                .then(r => r.json())
-                .then(data => {
-                    const athletes = data;
+            function initializeAthleteAutocomplete(data) {
+                const athletes = data;
 
-                    let currentFocus = -1;
+                let currentFocus = -1;
 
-                    // Inside your DOMContentLoaded listener, replace the loop in your input handler with this:
-                    athleteInput.addEventListener('input', function () {
-                        // split on spaces and match all terms anywhere in the name
-                        const query = this.value.trim().toLowerCase();
-                        const terms = query.split(/\s+/).filter(t => t);
+                function getAthleteSearchText(athlete) {
+                    return `${getAthleteCanonicalName(athlete)} ${getAthleteDisplayName(athlete)}`.toLowerCase();
+                }
 
-                        closeAllLists();
-                        if (!terms.length) return false;
+                function clearCurrentAthleteSelectionIfInputChanged(value) {
+                    if (!currentAthlete || isAthleteInputValue(currentAthlete, value)) return;
 
-                        // create the dropdown container
-                        const list = document.createElement('div');
-                        list.setAttribute('id', this.id + '-autocomplete-list');
-                        list.setAttribute('class', 'autocomplete-items');
-                        this.parentNode.appendChild(list);
+                    currentAthlete = null;
+                    confirmBtn.disabled = true;
+                    resetAthletePreview();
+                }
 
-                        // limit to at most 5 items
-                        const maxItems = 5;
-                        let count = 0;
+                function resetAthletePreview() {
+                    document.getElementById('character-title').textContent = 'Athlete selection';
+                    const webpSource = document.createElement('source');
+                    webpSource.srcset = '../assets/content-images/headshot.webp';
+                    webpSource.type = 'image/webp';
 
-                        athletes.forEach(a => {
-                            if (count >= maxItems) return;
-                            const name = a.Name.toLowerCase();
-                            // only match if every term appears somewhere
-                            if (terms.every(term => name.includes(term))) {
-                                // highlight the first search term
-                                const first = terms[0];
-                                const idx = name.indexOf(first);
-                                const item = document.createElement('div');
-                                item.innerHTML =
-                                    a.Name.substr(0, idx) +
-                                    '<strong>' + a.Name.substr(idx, first.length) + '</strong>' +
-                                    a.Name.substr(idx + first.length);
-                                item.dataset.value = a.Name;
-                                item.dataset.profilePic = a.ProfilePic;
+                    const jpegSource = document.createElement('source');
+                    jpegSource.srcset = '../assets/content-images/headshot.jpg';
+                    jpegSource.type = 'image/jpeg';
 
-                                item.addEventListener('mousedown', e => {
-                                    e.preventDefault();
-                                    selectAthlete(a);
-                                    closeAllLists();
-                                });
+                    const image = document.createElement('img');
+                    image.src = '../assets/content-images/headshot.jpg';
+                    image.alt = 'Headshot';
+                    image.className = 'illustration';
+                    image.loading = 'lazy';
+                    document.querySelector('picture').replaceChildren(webpSource, jpegSource, image);
+                }
 
-                                list.appendChild(item);
-                                count++;
-                            }
-                        });
-                    });
+                function findExactAthleteMatch(value) {
+                    return athletes.find(a => isAthleteInputValue(a, value)) || null;
+                }
 
-                    athleteInput.addEventListener('keydown', function (e) {
-                        let list = document.getElementById(this.id + '-autocomplete-list');
-                        if (list) list = list.getElementsByTagName('div');
-                        if (e.keyCode === 40) {          // down
-                            currentFocus++;
-                            addActive(list);
-                        } else if (e.keyCode === 38) {   // up
-                            currentFocus--;
-                            addActive(list);
-                        } else if (e.keyCode === 13) {   // enter
-                            e.preventDefault();
-                            if (currentFocus > -1 && list) {
-                                list[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
-                            }
+                function appendHighlightedText(container, text, query) {
+                    const lowerText = text.toLowerCase();
+                    const idx = lowerText.indexOf(query);
+                    if (idx < 0) {
+                        container.textContent = text;
+                        return;
+                    }
+
+                    container.append(document.createTextNode(text.slice(0, idx)));
+                    const strong = document.createElement('strong');
+                    strong.textContent = text.slice(idx, idx + query.length);
+                    container.append(strong, document.createTextNode(text.slice(idx + query.length)));
+                }
+
+                // Inside your DOMContentLoaded listener, replace the loop in your input handler with this:
+                athleteInput.addEventListener('input', function () {
+                    // split on spaces and match all terms anywhere in the name
+                    const query = this.value.trim().toLowerCase();
+                    const terms = query.split(/\s+/).filter(t => t);
+                    clearCurrentAthleteSelectionIfInputChanged(this.value);
+
+                    closeAllLists();
+                    if (!terms.length) return false;
+
+                    // create the dropdown container
+                    const list = document.createElement('div');
+                    list.setAttribute('id', this.id + '-autocomplete-list');
+                    list.setAttribute('class', 'autocomplete-items');
+                    this.parentNode.appendChild(list);
+
+                    // limit to at most 5 items
+                    const maxItems = 5;
+                    let count = 0;
+
+                    athletes.forEach(a => {
+                        if (count >= maxItems) return;
+                        if (!getAthleteCanonicalName(a)) return;
+                        const searchText = getAthleteSearchText(a);
+                        // only match if every term appears somewhere
+                        if (terms.every(term => searchText.includes(term))) {
+                            // highlight the first search term
+                            const first = terms[0];
+                            const displayName = getAthleteDisplayName(a);
+                            const item = document.createElement('div');
+                            appendHighlightedText(item, displayName, first);
+                            item.dataset.value = a.Name;
+                            item.dataset.profilePic = a.ProfilePic;
+
+                            item.addEventListener('mousedown', e => {
+                                e.preventDefault();
+                                selectAthlete(a);
+                                closeAllLists();
+                            });
+
+                            list.appendChild(item);
+                            count++;
                         }
                     });
+                });
 
-                    function addActive(items) {
-                        if (!items) return;
-                        removeActive(items);
-                        if (currentFocus >= items.length) currentFocus = 0;
-                        if (currentFocus < 0) currentFocus = items.length - 1;
-                        items[currentFocus].classList.add('autocomplete-active');
-                        items[currentFocus].scrollIntoView({ block: 'nearest' });
-                    }
-                    function removeActive(items) {
-                        Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
-                    }
-                    function closeAllLists() {
-                        document.querySelectorAll('.autocomplete-items')
-                            .forEach(list => list.remove());
-                        currentFocus = -1;
-                    }
-                    document.addEventListener('click', () => closeAllLists());
+                athleteInput.addEventListener('keydown', function (e) {
+                    let list = document.getElementById(this.id + '-autocomplete-list');
+                    if (list) list = list.getElementsByTagName('div');
+                    if (e.keyCode === 40) {          // down
+                        currentFocus++;
+                        addActive(list);
+                    } else if (e.keyCode === 38) {   // up
+                        currentFocus--;
+                        addActive(list);
+                    } else if (e.keyCode === 13) {   // enter
+                        e.preventDefault();
+                        if (currentFocus > -1 && list) {
+                            list[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
+                            return;
+                        }
 
-                    const saved = localStorage.getItem('selectedAthleteName');
-                    if (saved) {
-                        const match = athletes.find(a => a.Name === saved);
-                        if (match) {
-                            selectAthlete(match);
+                        const exactMatch = findExactAthleteMatch(this.value);
+                        if (exactMatch) {
+                            selectAthlete(exactMatch);
+                            closeAllLists();
                         }
                     }
-                })
-                .catch(console.error);
+                });
+
+                function addActive(items) {
+                    if (!items) return;
+                    removeActive(items);
+                    if (currentFocus >= items.length) currentFocus = 0;
+                    if (currentFocus < 0) currentFocus = items.length - 1;
+                    items[currentFocus].classList.add('autocomplete-active');
+                    items[currentFocus].scrollIntoView({ block: 'nearest' });
+                }
+                function removeActive(items) {
+                    Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
+                }
+                function closeAllLists() {
+                    document.querySelectorAll('.autocomplete-items')
+                        .forEach(list => list.remove());
+                    currentFocus = -1;
+                }
+                document.addEventListener('click', () => closeAllLists());
+
+                const saved = getLocalItem('selectedAthleteName');
+                if (saved) {
+                    const match = athletes.find(a => isAthleteInputValue(a, saved));
+                    if (match) {
+                        selectAthlete(match);
+                    }
+                }
+            }
 
         });
 
+        function getSessionItem(key) {
+            try {
+                return sessionStorage.getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function removeSessionItem(key) {
+            try {
+                sessionStorage.removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function setRequiredSessionItem(key, value) {
+            try {
+                sessionStorage.setItem(key, value);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function clearStaleTempAthlete(selectedAthleteName) {
+            const tempJson = getSessionItem('tempAthlete');
+            if (!tempJson) return;
+
+            try {
+                const tempAthlete = JSON.parse(tempJson);
+                if (tempAthlete && typeof tempAthlete === 'object' && tempAthlete.Name === selectedAthleteName) {
+                    return;
+                }
+            } catch (_) {
+            }
+
+            removeSessionItem('tempAthlete');
+        }
+
+        function getLocalItem(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function setLocalItem(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (_) {
+            }
+        }
+
+        function removeLocalItem(key) {
+            try {
+                localStorage.removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function getAthleteDisplayName(athlete) {
+            if (athlete && typeof athlete.DisplayName === 'string' && athlete.DisplayName.trim()) {
+                return athlete.DisplayName.trim();
+            }
+
+            return athlete && typeof athlete.Name === 'string' ? athlete.Name : '';
+        }
+
+        function getAthleteCanonicalName(athlete) {
+            return athlete && typeof athlete.Name === 'string' ? athlete.Name.trim() : '';
+        }
+
+        function isAthleteInputValue(athlete, value) {
+            const query = (value || '').trim().toLowerCase();
+            const canonicalName = getAthleteCanonicalName(athlete);
+            if (!query || !canonicalName) return false;
+
+            return canonicalName.toLowerCase() === query
+                || getAthleteDisplayName(athlete).toLowerCase() === query;
+        }
+
         function selectAthlete(a) {
-            athleteInput.value = a.Name;
-            document.getElementById('character-title').textContent = a.Name;
-            document.querySelector('picture').innerHTML = `
-                                                                                                            <img src="${a.ProfilePic}"
-                                                                                                                    alt="${a.Name} headshot"
-                                                                                                                    class="illustration"
-                                                                                                                    loading="lazy">`;
+            const displayName = getAthleteDisplayName(a);
+            athleteInput.value = displayName;
+            document.getElementById('character-title').textContent = displayName;
+            const image = document.createElement('img');
+            image.src = a.ProfilePic;
+            image.alt = `${displayName} headshot`;
+            image.className = 'illustration';
+            image.loading = 'lazy';
+            document.querySelector('picture').replaceChildren(image);
             confirmBtn.style.display = 'inline-block';
             confirmBtn.disabled = false;
             currentAthlete = a;

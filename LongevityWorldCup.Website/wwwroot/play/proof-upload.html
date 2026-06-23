@@ -414,8 +414,8 @@
         <p id="subProofInstructions" class="proof-upload-copy smaller-text" data-aos="fade" data-aos-duration="700" data-aos-delay="400"></p>
 
         <div class="options-container proof-upload-primary-action" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <input type="file" id="proofPicInput" accept="image/*,application/pdf" style="display: none;" multiple>
-            <input type="file" id="proofCameraInput" accept="image/*" capture="environment" style="display: none;">
+            <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
+            <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
             <button type="button" id="takeProofPhotoButton" class="option-button grey green camera-capture-action">
                 <i class="fa fa-camera"></i>
                 Take proof photo
@@ -443,23 +443,272 @@
         let athlete = null;
 
         try {
-            const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');
+            const selectedAthleteJson = getSessionItem('selectedAthlete');
             athlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
         } catch {
             athlete = null;
         }
 
-        if (!athlete || typeof athlete !== 'object' || !athlete.Name) {
-            sessionStorage.removeItem('selectedAthlete');
-            sessionStorage.removeItem('tempAthlete');
+        if (!isValidSelectedAthlete(athlete)) {
+            removeSessionItem('selectedAthlete');
+            removeSessionItem('tempAthlete');
             window.location.replace('/select-athlete');
             athlete = {};
         }
 
         let proofPics = [];
+        let isResultUploadSubmitting = false;
         const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
         const PENDING_PAYMENT_INVOICE_KEY = 'pendingPaymentInvoice';
         const PENDING_PAYMENT_INVOICE_STORAGE_KEY = 'pendingPaymentInvoicePersistent';
+
+        function setBrowserStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+            } catch (_) {
+            }
+        }
+
+        function removeBrowserStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
+        function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
+        function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
+        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
+
+        function isValidSelectedAthlete(value) {
+            return value
+                && typeof value === 'object'
+                && !Array.isArray(value)
+                && typeof value.Name === 'string'
+                && value.Name.trim();
+        }
+
+        function normalizeContactEmail(value) {
+            if (typeof value !== 'string') return null;
+            let contactEmail = (value || '').trim();
+            if (!contactEmail) return null;
+            const bracketedEmail = /<([^<>]+)>/.exec(contactEmail);
+            if (bracketedEmail) {
+                contactEmail = bracketedEmail[1].trim();
+            }
+            if (/^mailto:/i.test(contactEmail)) {
+                contactEmail = contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();
+            }
+
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.value = contactEmail;
+            return emailInput.checkValidity() ? contactEmail : null;
+        }
+
+        function readStoredContactEmail() {
+            const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));
+            if (sessionContactEmail) return sessionContactEmail;
+
+            const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));
+            if (localContactEmail) {
+                removeSessionItem('contactEmail');
+                return localContactEmail;
+            }
+
+            removeSessionItem('contactEmail');
+            removeLocalItem('contactEmail');
+            return null;
+        }
+
+        function getAthleteContactEmailStorageKey(athleteName) {
+            const name = typeof athleteName === 'string' ? athleteName.trim() : '';
+            return name ? 'contactEmailFor:' + name : null;
+        }
+
+        function readStoredAthleteContactEmail(athleteName) {
+            const key = getAthleteContactEmailStorageKey(athleteName);
+            return key ? normalizeContactEmail(getLocalItem(key)) : null;
+        }
+
+        function rememberAthleteContactEmail(athleteName, email) {
+            const key = getAthleteContactEmailStorageKey(athleteName);
+            const contactEmail = normalizeContactEmail(email);
+            if (key && contactEmail) {
+                setLocalItem(key, contactEmail);
+            }
+        }
+
+        function readResultUploadContactEmail() {
+            return normalizeContactEmail(athlete && athlete.AccountEmail)
+                || normalizeContactEmail(athlete && athlete.MediaContact)
+                || readStoredAthleteContactEmail(athlete && athlete.Name)
+                || readStoredContactEmail();
+        }
+
+        function clearStoredBiomarkerHandoff() {
+            removeSessionItem('biomarkerData');
+            removeSessionItem('chronoPhenoDifference');
+            removeSessionItem('chronoBortzDifference');
+        }
+
+        function clearPendingPaymentOffer() {
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+        }
+
+        function hasStoredBiomarkerDates(biomarkerData) {
+            return biomarkerData
+                && Array.isArray(biomarkerData.Biomarkers)
+                && biomarkerData.Biomarkers.every(entry => hasStoredBiomarkerDate(entry && entry.Date));
+        }
+
+        function hasStoredBiomarkerValues(biomarkerData) {
+            return biomarkerData
+                && Array.isArray(biomarkerData.Biomarkers)
+                && biomarkerData.Biomarkers.every(entry => entry
+                    && Object.keys(entry).some(key => key !== 'Date' && hasStoredBiomarkerValue(entry[key])));
+        }
+
+        function hasStoredBiomarkerValue(value) {
+            if (value === null || value === undefined) return false;
+            if (typeof value === 'boolean') return false;
+            if (typeof value !== 'number' && typeof value !== 'string') return false;
+            if (typeof value === 'string' && !value.trim()) return false;
+            return Number.isFinite(Number(value));
+        }
+
+        function readStoredAgeDifference(key) {
+            const value = getSessionItem(key);
+            if (value === null || value === undefined) return null;
+
+            const text = String(value).trim();
+            if (text && Number.isFinite(Number(text))) {
+                return text;
+            }
+
+            removeSessionItem(key);
+            return null;
+        }
+
+        function hasStoredBiomarkerDate(value) {
+            if (typeof value !== 'string') return false;
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+            if (!match) return false;
+
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            const parsedDate = new Date(Date.UTC(year, month - 1, day));
+            if (parsedDate.getUTCFullYear() !== year || parsedDate.getUTCMonth() !== month - 1 || parsedDate.getUTCDate() !== day) return false;
+
+            const todayUtc = new Date();
+            todayUtc.setUTCHours(0, 0, 0, 0);
+            return parsedDate <= todayUtc;
+        }
+
+        function readPendingPaymentOffer() {
+            const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
+            if (!rawOffer) return null;
+
+            try {
+                const paymentOffer = JSON.parse(rawOffer);
+                if (isUsablePaymentOffer(paymentOffer)) {
+                    return paymentOffer;
+                }
+            } catch (_) {
+            }
+
+            clearPendingPaymentOffer();
+            return null;
+        }
+
+        function isUsablePaymentOffer(paymentOffer) {
+            return paymentOffer
+                && typeof paymentOffer === 'object'
+                && !Array.isArray(paymentOffer)
+                && typeof paymentOffer.source === 'string'
+                && paymentOffer.source.trim()
+                && typeof paymentOffer.offerType === 'string'
+                && paymentOffer.offerType.trim()
+                && typeof paymentOffer.currency === 'string'
+                && paymentOffer.currency.trim()
+                && typeof paymentOffer.amountUsd === 'number'
+                && Number.isFinite(paymentOffer.amountUsd)
+                && paymentOffer.amountUsd >= 0;
+        }
+
+        function readAdjustedPendingPaymentOffer() {
+            const paymentOffer = readPendingPaymentOffer();
+            if (!paymentOffer) return null;
+
+            try {
+                const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer
+                    ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
+                    : window.applyFreePassToPaymentOffer
+                        ? window.applyFreePassToPaymentOffer(paymentOffer)
+                        : paymentOffer;
+                if (!adjustedPaymentOffer) return null;
+                if (isUsablePaymentOffer(adjustedPaymentOffer)) return adjustedPaymentOffer;
+            } catch (_) {
+            }
+
+            const retryButton = document.getElementById('submitButton') || document.getElementById('nextButton');
+            customAlert('Payment details could not be prepared. Please try again.')
+                .then(() => retryButton?.focus());
+            return undefined;
+        }
+
+        function normalizeCheckoutLink(value) {
+            if (typeof value !== 'string') return null;
+            const trimmed = value.trim();
+            if (!trimmed) return null;
+            try {
+                const checkoutUrl = new URL(trimmed, window.location.origin);
+                return checkoutUrl.protocol === 'http:' || checkoutUrl.protocol === 'https:'
+                    ? checkoutUrl.href
+                    : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function getCheckoutLink(submitResult) {
+            return submitResult && submitResult.paymentRequired
+                ? normalizeCheckoutLink(submitResult.checkoutLink)
+                : null;
+        }
+
+        function isPaymentRequired(submitResult) {
+            return !!(submitResult && submitResult.paymentRequired);
+        }
+
+        function isPaymentUnavailable(submitResult) {
+            return !!(submitResult && submitResult.paymentUnavailable);
+        }
+
+        function isSubmissionAcceptedPaymentFailure(message) {
+            return typeof message === 'string'
+                && /^Application sent, but failed to create BTCPay invoice:/i.test(message.trim());
+        }
+
+        function getInvoiceId(submitResult) {
+            return submitResult
+                && typeof submitResult.invoiceId === 'string'
+                && submitResult.invoiceId.trim()
+                ? submitResult.invoiceId.trim()
+                : null;
+        }
 
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
@@ -469,11 +718,11 @@
         }
 
         function getAthleteDisplayName() {
-            if (athlete?.DisplayName && athlete.DisplayName.trim()) {
+            if (typeof athlete?.DisplayName === 'string' && athlete.DisplayName.trim()) {
                 return athlete.DisplayName.trim();
             }
 
-            return athlete?.Name || '';
+            return typeof athlete?.Name === 'string' ? athlete.Name : '';
         }
 
         setSubmitButtonLabel();
@@ -512,39 +761,41 @@
             });
 
             submitButton.addEventListener('click', async function () {
-                if (!athlete || !athlete.Name) {
-                    customAlert('No athlete selected. Please return and choose your athlete.');
+                if (isResultUploadSubmitting || submitButton.disabled) return;
+
+                if (!isValidSelectedAthlete(athlete)) {
+                    customAlert('No athlete selected. Please return and choose your athlete.')
+                        .then(() => window.location.href = '/select-athlete');
                     return;
                 }
 
-                const biomarkerData = JSON.parse(sessionStorage.getItem('biomarkerData'));
-                if (!biomarkerData || !biomarkerData.Biomarkers || !biomarkerData.Biomarkers.length) {
-                    customAlert('Biomarker data is missing. Please fill out the biomarker form first.');
+                let biomarkerData = null;
+                try {
+                    biomarkerData = JSON.parse(getSessionItem('biomarkerData'));
+                } catch (_) {
+                    biomarkerData = null;
+                }
+                if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasStoredBiomarkerValues(biomarkerData)) {
+                    clearStoredBiomarkerHandoff();
+                    customAlert('Biomarker data is missing. Please fill out the biomarker form first.')
+                        .then(() => window.location.href = '/dashboard');
                     return;
                 }
+
+                const paymentOffer = readAdjustedPendingPaymentOffer();
+                if (paymentOffer === undefined) return;
 
                 const submissionId = window.createApplicationSubmissionId();
                 const submissionKind = 'result-upload';
                 const applicantData = {
                     name: athlete.Name,
-                    accountEmail: sessionStorage.getItem('contactEmail') || null,
-                    chronoPhenoDifference: sessionStorage.getItem('chronoPhenoDifference') || null,
-                    chronoBortzDifference: sessionStorage.getItem('chronoBortzDifference') || null,
+                    accountEmail: readResultUploadContactEmail(),
+                    chronoPhenoDifference: readStoredAgeDifference('chronoPhenoDifference'),
+                    chronoBortzDifference: readStoredAgeDifference('chronoBortzDifference'),
                     submissionId: submissionId,
                     biomarkers: biomarkerData.Biomarkers,
                     proofPics: proofPics,
-                    paymentOffer: (() => {
-                        try {
-                            const paymentOffer = JSON.parse(sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY) || 'null');
-                            return window.applyPaymentAdjustmentsToPaymentOffer
-                                ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
-                                : window.applyFreePassToPaymentOffer
-                                    ? window.applyFreePassToPaymentOffer(paymentOffer)
-                                    : paymentOffer;
-                        } catch (_) {
-                            return null;
-                        }
-                    })(),
+                    paymentOffer: paymentOffer,
                     freePass: window.getFreePassValue ? window.getFreePassValue() : null,
                     discount: window.getDiscountValue ? window.getDiscountValue() : null
                 };
@@ -552,15 +803,14 @@
                 const submitButton = document.getElementById('submitButton');
                 const uploadProofButton = document.getElementById('uploadProofButton');
                 const takeProofPhotoButton = document.getElementById('takeProofPhotoButton');
+                isResultUploadSubmitting = true;
                 submitButton.disabled = true;
                 uploadProofButton.disabled = true;
                 if (takeProofPhotoButton) takeProofPhotoButton.disabled = true;
                 submitButton.textContent = 'Submitting...';
                 showLoading();
 
-                await window.sendApplicationSubmissionReport(
-                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)
-                );
+                void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 fetchWithTimeout('/api/application/application', {
                     method: 'POST',
@@ -571,63 +821,103 @@
                         hideLoading();
                         if (response.ok) {
                             response.json().catch(() => ({})).then(submitResult => {
+                                const checkoutLink = getCheckoutLink(submitResult);
+                                const invoiceId = getInvoiceId(submitResult);
+                                const paymentRequired = isPaymentRequired(submitResult);
+                                const paymentUnavailable = isPaymentUnavailable(submitResult);
                                 const nextStepMessage =
-                                    submitResult && submitResult.paymentRequired && submitResult.checkoutLink
+                                    checkoutLink
                                         ? 'You\'ll be redirected to the payment page'
-                                        : 'Your results were received';
+                                        : paymentUnavailable
+                                            ? 'Your results were received, but the payment page could not be created. We will follow up by email.'
+                                        : paymentRequired
+                                            ? 'Your results were received, but the payment page could not be opened. Check your confirmation email.'
+                                            : 'Your results were received';
                                 customAlert(nextStepMessage).then(() => {
+                                    const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
+                                    if (reviewContactEmail) {
+                                        rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);
+                                        setSessionItem('contactEmail', reviewContactEmail);
+                                        setLocalItem('contactEmail', reviewContactEmail);
+                                    }
                                     proofPics = [];
-                                    sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);
-                                    if (submitResult && submitResult.paymentRequired && submitResult.checkoutLink) {
-                                        if (submitResult.invoiceId) {
+                                    removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                    if (checkoutLink) {
+                                        if (invoiceId) {
                                             const pendingInvoiceInfo = JSON.stringify({
-                                                invoiceId: submitResult.invoiceId,
+                                                invoiceId: invoiceId,
                                                 applicantName: athlete.Name || null,
-                                                accountEmail: applicantData.accountEmail || null
+                                                accountEmail: reviewContactEmail || null,
+                                                submissionType: 'result',
+                                                reviewSource: 'proof-upload'
                                             });
-                                            sessionStorage.setItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
-                                            localStorage.setItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
+                                            setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
+                                            setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
                                         }
-                                        window.location.href = submitResult.checkoutLink;
+                                        window.location.href = checkoutLink;
                                         return;
                                     }
 
-                                    sessionStorage.removeItem(PENDING_PAYMENT_INVOICE_KEY);
-                                    localStorage.removeItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
-                                    sessionStorage.setItem("came-from", "proof-upload");
-                                    window.location.href = '/review';
+                                    removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                                    removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                    setSessionItem("came-from", "proof-upload");
+                                    window.location.href = '/review?from=proof-upload';
                                 });
                             });
                         } else {
-                            response.text().then(badResponse => {
-                                window.sendApplicationSubmissionReport(
-                                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                            const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
+                            window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
+                                if (isSubmissionAcceptedPaymentFailure(badResponse)) {
+                                    void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'payment-unavailable', submissionKind, {
                                         type: `HTTP ${response.status}`,
                                         message: badResponse
-                                    })
-                                );
+                                    });
+                                    customAlert('Your results were received, but the payment page could not be created. We will follow up by email.').then(() => {
+                                        const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
+                                        if (reviewContactEmail) {
+                                            rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);
+                                            setSessionItem('contactEmail', reviewContactEmail);
+                                            setLocalItem('contactEmail', reviewContactEmail);
+                                        }
+                                        proofPics = [];
+                                        removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                        removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                                        removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                                        setSessionItem("came-from", "proof-upload");
+                                        window.location.href = '/review?from=proof-upload';
+                                    });
+                                    return;
+                                }
+                                void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                    type: `HTTP ${response.status}`,
+                                    message: badResponse
+                                });
                                 customAlert(`Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {
+                                    isResultUploadSubmitting = false;
                                     submitButton.disabled = false;
                                     uploadProofButton.disabled = false;
                                     if (takeProofPhotoButton) takeProofPhotoButton.disabled = false;
                                     setSubmitButtonLabel();
+                                    submitButton.focus();
                                 });
                             });
                         }
                     })
                     .catch(error => {
                         hideLoading();
-                        window.sendApplicationSubmissionReport(
-                            window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                type: error && error.name || 'Error',
-                                message: error && error.message || String(error)
-                            })
-                        );
-                        customAlert(`An error occurred:\n\n${error}`).then(() => {
+                        const displayError = error && error.message ? error.message : String(error);
+                        const alertMessage = 'Results could not be submitted. Please check your connection and try again.';
+                        void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                            type: error && error.name || 'Error',
+                            message: displayError
+                        });
+                        customAlert(alertMessage).then(() => {
+                            isResultUploadSubmitting = false;
                             submitButton.disabled = false;
                             uploadProofButton.disabled = false;
                             if (takeProofPhotoButton) takeProofPhotoButton.disabled = false;
                             setSubmitButtonLabel();
+                            submitButton.focus();
                         });
                     });
             });

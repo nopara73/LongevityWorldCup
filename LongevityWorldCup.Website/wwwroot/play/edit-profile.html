@@ -3,7 +3,7 @@
 <head>
     <title>Longevity World Cup - Edit Profile</title>
     <!--HEAD-->
-    <link rel="stylesheet" href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <style>
         /* Hide the join-game button in the header */
         .join-game {
@@ -441,8 +441,8 @@
                     <i class="fa fa-image"></i>
                     Change profile picture
                 </button>
-                <input type="file" id="profilePicInputModal" accept="image/*" style="display: none;">
-                <input type="file" id="profileCameraInputModal" accept="image/*" capture="user" style="display: none;">
+                <input type="file" id="profilePicInputModal" accept="image/*,.heic,.heif" style="display: none;">
+                <input type="file" id="profileCameraInputModal" accept="image/*,.heic,.heif" capture="user" style="display: none;">
                 <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture">
                     <i class="fa fa-undo"></i>
                 </button>
@@ -457,7 +457,13 @@
                 <input type="text"
                        id="flagDisplayInput"
                        name="flagDisplay"
+                       required
+                       aria-required="true"
+                       minlength="3"
+                       maxlength="100"
                        autocomplete="off"
+                       autocapitalize="none"
+                       spellcheck="false"
                        placeholder="Type or select a flag…">
                 <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag">
                     <i class="fa fa-undo"></i>
@@ -468,8 +474,10 @@
                        id="personalLinkInput"
                        name="personalLink"
                        inputmode="url"
-                       autocomplete="off"
-                       placeholder="Enter personal link…">
+                       autocomplete="url"
+                       autocapitalize="none"
+                       spellcheck="false"
+                       placeholder="yourwebsite.com">
                 <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link">
                     <i class="fa fa-undo"></i>
                 </button>
@@ -478,8 +486,13 @@
                 <input type="text"
                        id="mediaContactInput"
                        name="mediaContact"
+                       required
+                       aria-required="true"
+                       inputmode="email"
                        autocomplete="off"
-                       placeholder="Enter media contact…">
+                       autocapitalize="none"
+                       spellcheck="false"
+                       placeholder="media@example.com or @handle">
                 <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact">
                     <i class="fa fa-undo"></i>
                 </button>
@@ -488,6 +501,8 @@
                 <textarea id="whyDisplayInput"
                           name="whyDisplay"
                           rows="3"
+                          required
+                          aria-required="true"
                           placeholder="What drives you?"></textarea>
 
                 <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why">
@@ -514,42 +529,141 @@
     <!--FOOTER-->
     <script>
         let currentFlagFocus = -1;
+        let isEditProfileSubmitting = false;
+
+        function setBrowserStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+            } catch (_) {
+            }
+        }
+
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function removeBrowserStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function setSessionItem(key, value) { setBrowserStorageItem('sessionStorage', key, value); }
+        function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
+        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
+        function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
+
+        function normalizeContactEmail(value) {
+            if (typeof value !== 'string') return null;
+            let contactEmail = (value || '').trim();
+            if (!contactEmail) return null;
+            const bracketedEmail = /<([^<>]+)>/.exec(contactEmail);
+            if (bracketedEmail) {
+                contactEmail = bracketedEmail[1].trim();
+            }
+            if (/^mailto:/i.test(contactEmail)) {
+                contactEmail = contactEmail.replace(/^mailto:/i, '').split('?')[0].trim();
+            }
+
+            const emailInput = document.createElement('input');
+            emailInput.type = 'email';
+            emailInput.value = contactEmail;
+            return emailInput.checkValidity() ? contactEmail : null;
+        }
+
+        function readStoredContactEmail() {
+            const sessionContactEmail = normalizeContactEmail(getSessionItem('contactEmail'));
+            if (sessionContactEmail) return sessionContactEmail;
+
+            const localContactEmail = normalizeContactEmail(getLocalItem('contactEmail'));
+            if (localContactEmail) {
+                removeSessionItem('contactEmail');
+                return localContactEmail;
+            }
+
+            removeSessionItem('contactEmail');
+            removeLocalItem('contactEmail');
+            return null;
+        }
+
+        function getAthleteContactEmailStorageKey(athleteName) {
+            const name = typeof athleteName === 'string' ? athleteName.trim() : '';
+            return name ? 'contactEmailFor:' + name : null;
+        }
+
+        function readStoredAthleteContactEmail(athleteName) {
+            const key = getAthleteContactEmailStorageKey(athleteName);
+            return key ? normalizeContactEmail(getLocalItem(key)) : null;
+        }
+
+        function rememberAthleteContactEmail(athleteName, email) {
+            const key = getAthleteContactEmailStorageKey(athleteName);
+            const contactEmail = normalizeContactEmail(email);
+            if (key && contactEmail) {
+                setLocalItem(key, contactEmail);
+            }
+        }
+
+        function readEditProfileContactEmail() {
+            return normalizeContactEmail(athlete && athlete.AccountEmail)
+                || normalizeContactEmail(originalAthlete && originalAthlete.AccountEmail)
+                || normalizeContactEmail(athlete && athlete.MediaContact)
+                || normalizeContactEmail(originalAthlete && originalAthlete.MediaContact)
+                || readStoredAthleteContactEmail(originalAthlete && originalAthlete.Name)
+                || readStoredAthleteContactEmail(athlete && athlete.Name)
+                || readStoredContactEmail();
+        }
+
+        function isValidSelectedAthlete(value) {
+            return value
+                && typeof value === 'object'
+                && !Array.isArray(value)
+                && typeof value.Name === 'string'
+                && value.Name.trim();
+        }
 
         let originalAthlete = null;
         let tempAthlete = null;
 
         try {
-            const selectedAthleteJson = sessionStorage.getItem('selectedAthlete');
+            const selectedAthleteJson = getSessionItem('selectedAthlete');
             originalAthlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
         } catch {
             originalAthlete = null;
         }
 
-        if (!originalAthlete || typeof originalAthlete !== 'object') {
-            sessionStorage.removeItem('selectedAthlete');
-            sessionStorage.removeItem('tempAthlete');
+        if (!isValidSelectedAthlete(originalAthlete)) {
+            removeSessionItem('selectedAthlete');
+            removeSessionItem('tempAthlete');
             window.location.replace('/select-athlete');
             originalAthlete = {};
         }
 
         try {
-            const tempAthleteJson = sessionStorage.getItem('tempAthlete');
+            const tempAthleteJson = getSessionItem('tempAthlete');
             tempAthlete = tempAthleteJson ? JSON.parse(tempAthleteJson) : null;
         } catch {
-            sessionStorage.removeItem('tempAthlete');
+            removeSessionItem('tempAthlete');
             tempAthlete = null;
         }
 
-        const athlete = tempAthlete && typeof tempAthlete === 'object'
+        const athlete = isValidSelectedAthlete(tempAthlete)
             ? tempAthlete
             : JSON.parse(JSON.stringify(originalAthlete));  // ← deep‐clone here
 
         function getAthleteDisplayName() {
-            if (athlete?.DisplayName && athlete.DisplayName.trim()) {
+            if (typeof athlete?.DisplayName === 'string' && athlete.DisplayName.trim()) {
                 return athlete.DisplayName.trim();
             }
 
-            return athlete?.Name || '';
+            return typeof athlete?.Name === 'string' ? athlete.Name : '';
         }
 
         // now that athlete is chosen, normalize PersonalLink on each
@@ -569,11 +683,12 @@
 
             const athleteDisplayName = getAthleteDisplayName();
             document.getElementById('character-title').textContent = athleteDisplayName;
-            document.querySelector('picture').innerHTML = `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <img src="${athlete.ProfilePic}"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             alt="${athleteDisplayName} headshot"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            class="illustration"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            loading="lazy">`;
+            const athleteImage = document.createElement('img');
+            athleteImage.src = athlete.ProfilePic;
+            athleteImage.alt = `${athleteDisplayName} headshot`;
+            athleteImage.className = 'illustration';
+            athleteImage.loading = 'lazy';
+            document.querySelector('picture').replaceChildren(athleteImage);
             if (athlete.ProfilePic !== originalAthlete.ProfilePic) {
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
                 updateSubmitButtonState();
@@ -582,24 +697,36 @@
             // — DIVISION PREFILL & CHANGE/RESTORE LOGIC —
             const divisionSelect = document.getElementById('divisionDisplaySelect');
             const restoreDivisionBtn = document.getElementById('restoreDivisionBtn');
+            const fallbackDivisions = ["Men's", "Women's", "Open"];
+
+            function populateDivisionSelect(divs) {
+                const divisionOptions = [...(Array.isArray(divs) && divs.length ? divs : fallbackDivisions)];
+                if (athlete.Division && !divisionOptions.includes(athlete.Division)) {
+                    divisionOptions.unshift(athlete.Division);
+                }
+
+                divisionSelect.innerHTML = '';
+                divisionOptions.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d;
+                    opt.textContent = `${window.TryGetDivisionIcon(d)} ${d}`;
+                    divisionSelect.appendChild(opt);
+                });
+                divisionSelect.value = athlete.Division;
+
+                if (athlete.Division !== originalAthlete.Division) {
+                    restoreDivisionBtn.style.display = 'inline-flex';
+                    updateSubmitButtonState();
+                }
+            }
 
             // Populate the dropdown
             fetch('/api/data/divisions')
-                .then(r => r.json())
-                .then(divs => {
-                    divisionSelect.innerHTML = '';
-                    divs.forEach(d => {
-                        const opt = document.createElement('option');
-                        opt.value = d;
-                        opt.textContent = `${window.TryGetDivisionIcon(d)} ${d}`;
-                        divisionSelect.appendChild(opt);
-                    });
-                    divisionSelect.value = athlete.Division;
-
-                    if (athlete.Division !== originalAthlete.Division) {
-                        restoreDivisionBtn.style.display = 'inline-flex';
-                        updateSubmitButtonState();
-                    }
+                .then(r => r.ok ? r.json() : fallbackDivisions)
+                .then(populateDivisionSelect)
+                .catch(error => {
+                    console.error('Error fetching divisions:', error);
+                    populateDivisionSelect(fallbackDivisions);
                 });
 
             // When the user picks a different division…
@@ -620,32 +747,35 @@
             const restoreFlagBtn = document.getElementById('restoreFlagBtn');
 
             // Fetch and prepare flag list
-            let availableFlags = [];
+            const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);
+            let availableFlags = currentFlag ? [currentFlag] : [];
+            flagInput.value = athlete.Flag;
+            if (normalizeEditText(athlete.Flag) !== normalizeEditText(originalAthlete.Flag)) {
+                restoreFlagBtn.style.display = 'inline-flex';
+            }
+
             const athletesForFlagOptions = window.getSharedAthletes
                 ? window.getSharedAthletes()
-                : fetch('/api/data/athletes').then(r => r.json());
+                : fetch('/api/data/athletes').then(r => r.ok ? r.json() : []).catch(() => []);
             Promise.all([
-                fetch('/api/data/flags').then(r => r.json()),
+                fetch('/api/data/flags').then(r => r.ok ? r.json() : []).catch(() => []),
                 Promise.resolve(athletesForFlagOptions).catch(() => [])
             ])
                 .then(([flags, athletes]) => {
                     availableFlags = window.LwcFlags
                         .buildFlagOptions(flags, athletes)
                         .map(option => option.name);
-                    const currentFlag = window.LwcFlags.getCanonicalFlagName(athlete.Flag);
                     if (currentFlag && !availableFlags.includes(currentFlag)) availableFlags.push(currentFlag);
-                    flagInput.value = athlete.Flag;
-                    if (athlete.Flag !== originalAthlete.Flag) {
-                        restoreFlagBtn.style.display = 'inline-flex';
-                        updateSubmitButtonState();
-                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching flags:', error);
                 });
 
             // Autocomplete dropdown
             flagInput.addEventListener('input', function () {
                 athlete.Flag = this.value.trim();
                 // Show or hide the Restore-Flag button based on whether the input matches original
-                if (flagInput.value.trim() !== originalAthlete.Flag) {
+                if (normalizeEditText(flagInput.value) !== normalizeEditText(originalAthlete.Flag)) {
                     restoreFlagBtn.style.display = 'inline-flex';
                 } else {
                     restoreFlagBtn.style.display = 'none';
@@ -720,7 +850,7 @@
                 athlete.Flag = value;
                 flagInput.value = value;
 
-                if (value !== originalAthlete.Flag) {
+                if (normalizeEditText(value) !== normalizeEditText(originalAthlete.Flag)) {
                     restoreFlagBtn.style.display = 'inline-flex';
                 } else {
                     restoreFlagBtn.style.display = 'none';
@@ -734,15 +864,26 @@
             const personalLinkInput = document.getElementById('personalLinkInput');
             const whyDisplayInput = document.getElementById('whyDisplayInput');
 
+            [flagInput, personalLinkInput, mediaContactInput].forEach(input => {
+                input.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        submitButton.click();
+                    }
+                });
+            });
+
             const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');
             whyDisplayInput.value = athlete.Why || '';
-            if (athlete.Why !== originalAthlete.Why) {
+            if (normalizeEditText(athlete.Why) !== normalizeEditText(originalAthlete.Why)) {
                 restoreWhyDisplayBtn.style.display = 'inline-flex';
                 updateSubmitButtonState();
             }
 
             // — SUBMIT CHANGE REQUEST —
             submitButton.addEventListener('click', async function () {
+                if (isEditProfileSubmitting || submitButton.disabled) return;
+
                 // click-guard: validate before submitting
                 if (
                     !validateFlagDisplay(flagInput.value) ||
@@ -753,20 +894,22 @@
                     return;
                 }
 
-                if (!athlete || !athlete.Name) {
-                    customAlert('No athlete selected. Please return and choose your athlete.');
+                if (!isValidSelectedAthlete(athlete)) {
+                    customAlert('No athlete selected. Please return and choose your athlete.')
+                        .then(() => window.location.href = '/select-athlete');
                     return;
                 }
+
+                athlete.PersonalLink = normalizeOptionalUrl(personalLinkInput.value) || '';
+                personalLinkInput.value = athlete.PersonalLink;
+                athlete.MediaContact = normalizeMediaContact(mediaContactInput.value);
+                mediaContactInput.value = athlete.MediaContact;
 
                 const submissionId = window.createApplicationSubmissionId();
                 const submissionKind = 'edit-request';
                 const applicantData = {
                     name: athlete.Name,
-                    accountEmail: athlete.AccountEmail
-                        || originalAthlete.AccountEmail
-                        || sessionStorage.getItem('contactEmail')
-                        || localStorage.getItem('contactEmail')
-                        || null,
+                    accountEmail: readEditProfileContactEmail(),
                     submissionId: submissionId,
                     profilePic: athlete.ProfilePic,
                     division: athlete.Division,
@@ -776,13 +919,12 @@
                     why: athlete.Why
                 };
 
+                isEditProfileSubmitting = true;
                 submitButton.disabled = true;
                 submitButton.textContent = 'Submitting...';
                 showLoading();
 
-                await window.sendApplicationSubmissionReport(
-                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind)
-                );
+                void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
                 fetchWithTimeout('/api/application/application', {
                     method: 'POST',
@@ -793,56 +935,66 @@
                         hideLoading();
                         if (response.ok) {
                             customAlert('Change request submitted!').then(() => {
-                                sessionStorage.setItem("came-from", "edit-profile");
-                                window.location.href = '/review';
+                                const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
+                                if (reviewContactEmail) {
+                                    rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);
+                                    setSessionItem('contactEmail', reviewContactEmail);
+                                    setLocalItem('contactEmail', reviewContactEmail);
+                                }
+                                setSessionItem("came-from", "edit-profile");
+                                window.location.href = '/review?from=edit-profile';
                             });
                         } else {
-                            return response.text().then(txt => {
-                                window.sendApplicationSubmissionReport(
-                                    window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                        type: `HTTP ${response.status}`,
-                                        message: txt
-                                    })
-                                );
-                                return Promise.reject(txt);
+                            const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
+                            window.readApplicationErrorMessage(response).catch(() => fallbackError).then(txt => {
+                                void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                                    type: `HTTP ${response.status}`,
+                                    message: txt
+                                });
+                                customAlert(`Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
+                                    isEditProfileSubmitting = false;
+                                    submitButton.disabled = false;
+                                    submitButton.innerHTML = 'Submit change request <i class="fa fa-rocket"></i>';
+                                    submitButton.focus();
+                                });
                             });
                         }
                     })
-                    .catch(err => {
+                    .catch(error => {
                         hideLoading();
-                        if (typeof err !== 'string') {
-                            window.sendApplicationSubmissionReport(
-                                window.buildApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                    type: err && err.name || 'Error',
-                                    message: err && err.message || String(err)
-                                })
-                            );
-                        }
-                        const displayError = typeof err === 'string' ? err : (err && err.message || String(err));
-                        customAlert(`Submission failed:\n\n${displayError}`).then(() => {
+                        const displayError = error && error.message ? error.message : String(error);
+                        const alertMessage = 'Change request could not be submitted. Please check your connection and try again.';
+                        void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
+                            type: error && error.name || 'Error',
+                            message: displayError
+                        });
+                        customAlert(alertMessage).then(() => {
+                            isEditProfileSubmitting = false;
                             submitButton.disabled = false;
                             submitButton.innerHTML = 'Submit change request <i class="fa fa-rocket"></i>';
+                            submitButton.focus();
                         });
                     });
             });
 
             const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');
             personalLinkInput.value = athlete.PersonalLink || '';
-            if (athlete.PersonalLink !== originalAthlete.PersonalLink) {
+            if (normalizeOptionalUrl(athlete.PersonalLink) !== normalizeOptionalUrl(originalAthlete.PersonalLink)) {
                 restorePersonalLinkBtn.style.display = 'inline-flex';
                 updateSubmitButtonState();
             }
 
             const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');
             mediaContactInput.value = athlete.MediaContact;
-            if (athlete.MediaContact !== originalAthlete.MediaContact) {
+            if (normalizeEditText(athlete.MediaContact) !== normalizeEditText(originalAthlete.MediaContact)) {
                 restoreMediaContactBtn.style.display = 'inline-flex';
                 updateSubmitButtonState();
             }
 
             personalLinkInput.addEventListener('input', () => {
-                athlete.PersonalLink = personalLinkInput.value.trim();
-                if (personalLinkInput.value.trim() !== originalAthlete.PersonalLink) {
+                const currentPersonalLink = personalLinkInput.value.trim();
+                athlete.PersonalLink = currentPersonalLink;
+                if (normalizeOptionalUrl(currentPersonalLink) !== normalizeOptionalUrl(originalAthlete.PersonalLink)) {
                     restorePersonalLinkBtn.style.display = 'inline-flex';
                 } else {
                     restorePersonalLinkBtn.style.display = 'none';
@@ -851,7 +1003,7 @@
             });
             mediaContactInput.addEventListener('input', () => {
                 athlete.MediaContact = mediaContactInput.value.trim();
-                if (mediaContactInput.value.trim() !== originalAthlete.MediaContact) {
+                if (normalizeEditText(mediaContactInput.value) !== normalizeEditText(originalAthlete.MediaContact)) {
                     restoreMediaContactBtn.style.display = 'inline-flex';
                 } else {
                     restoreMediaContactBtn.style.display = 'none';
@@ -860,7 +1012,7 @@
             });
             whyDisplayInput.addEventListener('input', () => {
                 athlete.Why = whyDisplayInput.value.trim();
-                if (whyDisplayInput.value.trim() !== originalAthlete.Why) {
+                if (normalizeEditText(whyDisplayInput.value) !== normalizeEditText(originalAthlete.Why)) {
                     restoreWhyDisplayBtn.style.display = 'inline-flex';
                 } else {
                     restoreWhyDisplayBtn.style.display = 'none';
@@ -898,7 +1050,12 @@
                     skipPersonalLinkValidation = false;
                     return;
                 }
+                const normalized = normalizeOptionalUrl(this.value);
+                if (isOptionalUrl(normalized)) {
+                    this.value = normalized;
+                }
                 validatePersonalLink(this.value);
+                updateSubmitButtonState();
             });
 
             mediaContactInput.addEventListener('blur', function () {
@@ -906,7 +1063,9 @@
                     skipMediaContactValidation = false;
                     return;
                 }
+                this.value = normalizeMediaContact(this.value);
                 validateMediaContact(this.value);
+                updateSubmitButtonState();
             });
 
             let skipWhyValidation = false;
@@ -926,6 +1085,7 @@
             restorePersonalLinkBtn.addEventListener('click', restorePersonalLinkToOriginal);
             restoreWhyDisplayBtn.addEventListener('click', restoreWhyDisplayToOriginal);
             restoreMediaContactBtn.addEventListener('click', restoreMediaContactToOriginal);
+            updateSubmitButtonState();
 
         });
 
@@ -1001,25 +1161,75 @@
             profileCameraInput.click();
         });
 
+        function getProfilePictureFileExtension(file) {
+            const name = file && typeof file.name === 'string' ? file.name.toLowerCase() : '';
+            const dotIndex = name.lastIndexOf('.');
+            return dotIndex >= 0 ? name.slice(dotIndex + 1) : '';
+        }
+
+        function isSupportedProfilePictureFile(file) {
+            if (!file) return false;
+
+            const type = typeof file.type === 'string' ? file.type.toLowerCase() : '';
+            const extension = getProfilePictureFileExtension(file);
+            return type.startsWith('image/')
+                || extension === 'jpg'
+                || extension === 'jpeg'
+                || extension === 'png'
+                || extension === 'webp'
+                || extension === 'heic'
+                || extension === 'heif';
+        }
+
         function handleProfilePictureSelection(e) {
-            const file = e.target.files[0];
+            const input = e.target;
+            const file = input.files && input.files[0];
             if (!file) return;
+            input.value = '';
+            if (!isSupportedProfilePictureFile(file)) {
+                customAlert('Profile picture must be an image file.')
+                    .then(() => changeProfileBtn.focus());
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = (evt) => {
                 const cropperModal = document.getElementById('changeProfileCropperModal');
                 const cropperImage = document.getElementById('changeProfileCropperImage');
-                cropperImage.src = evt.target.result;
-                cropperModal.style.display = 'flex';
-                document.getElementById('modalOverlay').style.display = 'block';
-                document.body.classList.add('no-scroll');
+                const modalOverlay = document.getElementById('modalOverlay');
+                try {
+                    if (window.changeProfileCropper) {
+                        window.changeProfileCropper.destroy();
+                        window.changeProfileCropper = null;
+                    }
+                    cropperImage.src = evt.target.result;
+                    cropperModal.style.display = 'flex';
+                    modalOverlay.style.display = 'block';
+                    document.body.classList.add('no-scroll');
 
-                // expose globally so crop/cancel buttons can access it
-                window.changeProfileCropper = new Cropper(cropperImage, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    autoCropArea: 1,
-                });
+                    // expose globally so crop/cancel buttons can access it
+                    window.changeProfileCropper = new Cropper(cropperImage, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        autoCropArea: 1,
+                    });
+                } catch (_) {
+                    if (window.changeProfileCropper) {
+                        try { window.changeProfileCropper.destroy(); } catch (_) { }
+                        window.changeProfileCropper = null;
+                    }
+                    cropperModal.style.display = 'none';
+                    modalOverlay.style.display = 'none';
+                    document.body.classList.remove('no-scroll');
+                    customAlert('Profile picture upload failed. Please try another image.')
+                        .then(() => changeProfileBtn.focus());
+                }
             };
+            reader.onerror = () => {
+                customAlert('Profile picture upload failed. Please try another image.')
+                    .then(() => changeProfileBtn.focus());
+            };
+            reader.onabort = reader.onerror;
             reader.readAsDataURL(file);
         }
 
@@ -1029,31 +1239,63 @@
         // Crop & Cancel handlers for change-profile
         const cropBtn = document.getElementById('changeProfileCropButton');
         const cancelBtn = document.getElementById('changeProfileCancelButton');
+        let isChangeProfileCropProcessing = false;
         cropBtn.addEventListener('click', async function () {
-            const canvas = window.changeProfileCropper.getCroppedCanvas({
-                width: 1024,
-                height: 1024,
-            });
-            const raw = canvas.toDataURL('image/png');
-            const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
-            const newSrc = dataUrl || raw;
-            const imgEl = document.querySelector('.illustration');
-            imgEl.src = newSrc;
-            imgEl.alt = getAthleteDisplayName() + ' headshot';
-            athlete.ProfilePic = newSrc;
-            document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
+            const activeCropper = window.changeProfileCropper;
+            if (isChangeProfileCropProcessing || !activeCropper) return;
 
-            // enable the “Submit Change Request” button now that there’s a new image
-            updateSubmitButtonState();
-            window.changeProfileCropper.destroy();
-            document.getElementById('modalOverlay').style.display = 'none';
-            document.body.classList.remove('no-scroll');
-            document.getElementById('changeProfileCropperModal').style.display = 'none';
-            changeProfileInput.value = '';
-            profileCameraInput.value = '';
+            isChangeProfileCropProcessing = true;
+            cropBtn.disabled = true;
+            cancelBtn.disabled = true;
+            try {
+                const canvas = activeCropper.getCroppedCanvas({
+                    width: 1024,
+                    height: 1024,
+                });
+                if (!canvas) {
+                    customAlert('Profile picture crop failed. Please try another image.')
+                        .then(() => cropBtn.focus());
+                    return;
+                }
+                const raw = canvas.toDataURL('image/png');
+                let newSrc = raw;
+                try {
+                    const { dataUrl } = await window.optimizeImageClient(raw, window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS);
+                    newSrc = dataUrl || raw;
+                } catch {
+                    newSrc = raw;
+                }
+                const imgEl = document.querySelector('.illustration');
+                imgEl.src = newSrc;
+                imgEl.alt = getAthleteDisplayName() + ' headshot';
+                athlete.ProfilePic = newSrc;
+                document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
+
+                // enable the “Submit Change Request” button now that there’s a new image
+                updateSubmitButtonState();
+                try { activeCropper.destroy(); } catch (_) { }
+                window.changeProfileCropper = null;
+                document.getElementById('modalOverlay').style.display = 'none';
+                document.body.classList.remove('no-scroll');
+                document.getElementById('changeProfileCropperModal').style.display = 'none';
+                changeProfileInput.value = '';
+                profileCameraInput.value = '';
+            } catch (_) {
+                customAlert('Profile picture crop failed. Please try another image.')
+                    .then(() => cropBtn.focus());
+            } finally {
+                isChangeProfileCropProcessing = false;
+                cropBtn.disabled = false;
+                cancelBtn.disabled = false;
+            }
         });
         cancelBtn.addEventListener('click', () => {
-            window.changeProfileCropper.destroy();
+            if (isChangeProfileCropProcessing) return;
+            const activeCropper = window.changeProfileCropper;
+            if (activeCropper) {
+                try { activeCropper.destroy(); } catch (_) { }
+            }
+            window.changeProfileCropper = null;
             document.getElementById('modalOverlay').style.display = 'none';
             document.body.classList.remove('no-scroll');
             document.getElementById('changeProfileCropperModal').style.display = 'none';
@@ -1065,17 +1307,17 @@
             const submitButton = document.getElementById('submitButton');
             const currentPicSrc = document.querySelector('.illustration').getAttribute('src');
             const currentDivision = document.getElementById('divisionDisplaySelect').value;
-            const currentFlag = document.getElementById('flagDisplayInput').value.trim();
-            const currentPersonalLink = document.getElementById('personalLinkInput').value.trim();
-            const currentMediaContact = document.getElementById('mediaContactInput').value.trim();
-            const currentWhyDisplay = document.getElementById('whyDisplayInput').value.trim();
+            const currentFlag = normalizeEditText(document.getElementById('flagDisplayInput').value);
+            const currentPersonalLink = normalizeOptionalUrl(document.getElementById('personalLinkInput').value);
+            const currentMediaContact = normalizeEditText(document.getElementById('mediaContactInput').value);
+            const currentWhyDisplay = normalizeEditText(document.getElementById('whyDisplayInput').value);
 
             const picChanged = currentPicSrc !== originalAthlete.ProfilePic;
             const divChanged = currentDivision !== originalAthlete.Division;
-            const flagChanged = currentFlag !== originalAthlete.Flag;
-            const personalLinkChanged = currentPersonalLink !== originalAthlete.PersonalLink;
-            const mediaContactChanged = currentMediaContact !== originalAthlete.MediaContact;
-            const whyChanged = currentWhyDisplay !== originalAthlete.Why;
+            const flagChanged = currentFlag !== normalizeEditText(originalAthlete.Flag);
+            const personalLinkChanged = currentPersonalLink !== normalizeOptionalUrl(originalAthlete.PersonalLink);
+            const mediaContactChanged = currentMediaContact !== normalizeEditText(originalAthlete.MediaContact);
+            const whyChanged = currentWhyDisplay !== normalizeEditText(originalAthlete.Why);
 
             const anyChanged = picChanged
                 || divChanged
@@ -1088,9 +1330,9 @@
 
             // save or clear draft
             if (anyChanged) {
-                sessionStorage.setItem('tempAthlete', JSON.stringify(athlete));
+                setSessionItem('tempAthlete', JSON.stringify(athlete));
             } else {
-                sessionStorage.removeItem('tempAthlete');
+                removeSessionItem('tempAthlete');
             }
 
         }
@@ -1099,27 +1341,54 @@
             const trimmed = value.trim();
             const regex = /^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ0-9\s'(),.\-]{2,99}$/;
             if (trimmed.length < 3) {
-                customAlert('Flag must be at least 3 characters long.');
-                restoreFlagToOriginal();
-
+                customAlert('Flag must be at least 3 characters long.')
+                    .then(() => document.getElementById('flagDisplayInput')?.focus());
                 return false;
             }
             if (!regex.test(trimmed)) {
-                customAlert('Flag contains invalid characters.');
-                restoreFlagToOriginal();
-
+                customAlert('Flag contains invalid characters.')
+                    .then(() => document.getElementById('flagDisplayInput')?.focus());
                 return false;
             }
             return true;
         }
 
+        function isOptionalUrl(value) {
+            const v = normalizeOptionalUrl(value);
+            if (!v) return true;
+            if (window.validator && typeof window.validator.isURL === 'function') {
+                return window.validator.isURL(v);
+            }
+
+            const input = document.createElement('input');
+            input.type = 'url';
+            input.value = v;
+            return input.checkValidity();
+        }
+
+        function normalizeOptionalUrl(value) {
+            const v = (value || '').trim();
+            if (!v) return '';
+            if (/^[a-z][a-z\d+.-]*:/i.test(v)) return v;
+            if (/^www\./i.test(v) || /^[^\s/:]+\.[^\s/]+(?:[/?#].*)?$/i.test(v)) {
+                return `https://${v}`;
+            }
+            return v;
+        }
+
+        function normalizeMediaContact(value) {
+            return normalizeContactEmail(value) || normalizeEditText(value);
+        }
+
+        function normalizeEditText(value) {
+            return typeof value === 'string' ? value.trim() : '';
+        }
+
         function validatePersonalLink(value) {
             const v = value.trim();
             if (!v) return true;                            // empty OK
-            if (!validator.isURL(v)) {
-                customAlert('Please enter a valid URL for your personal link.');
-                restorePersonalLinkToOriginal();
-
+            if (!isOptionalUrl(v)) {
+                customAlert('Please enter a valid URL for your personal link.').then(() => document.getElementById('personalLinkInput')?.focus());
                 return false;
             }
             return true;
@@ -1128,9 +1397,7 @@
         function validateMediaContact(value) {
             const v = value.trim();
             if (!v) {
-                customAlert('Media contact is required.');
-                restoreMediaContactToOriginal();
-
+                customAlert('Media contact is required.').then(() => document.getElementById('mediaContactInput')?.focus());
                 return false;
             }
             return true;                                    // any non-empty string OK
@@ -1139,13 +1406,12 @@
         function validateWhyDisplay(value) {
             const v = value.trim();
             if (!v) {
-                customAlert('Your why is the light. Don’t leave us in the dark.');
-                restoreWhyDisplayToOriginal();
+                customAlert('Your why is the light. Don’t leave us in the dark.').then(() => document.getElementById('whyDisplayInput')?.focus());
                 return false;
             }
             return true;
         }
     </script>
-    <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" defer></script>
 </body>
 </html>
