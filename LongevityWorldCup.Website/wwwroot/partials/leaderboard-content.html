@@ -3095,8 +3095,8 @@
                     window.compareAthleteRank),
                 () => ({
                     leagueName: flagOption.name,
-                    leagueLabel: `${flagOption.name} Flag`,
-                    leagueLabelHtml: `${renderFlagLabel(flagOption.name)} Flag`,
+                    leagueLabel: flagOption.name,
+                    leagueLabelHtml: renderFlagLabel(flagOption.name),
                     leagueType: 'flag',
                     href: buildFlagHref(flagOption.name),
                     tiePriority: 24
@@ -3117,12 +3117,13 @@
 
         const label = candidate.leagueLabel || candidate.leagueName || 'Ultimate League';
         const labelHtml = candidate.leagueLabelHtml || escapeHtml(label);
+        const preposition = candidate.leagueType === 'flag' ? 'in' : 'in the';
         if (!candidate.href) {
-            return `#${rank} in the ${labelHtml}`;
+            return `#${rank} ${preposition} ${labelHtml}`;
         }
 
         const targetAttrs = candidate.targetBlank ? ' target="_blank" rel="noopener noreferrer"' : '';
-        return `#${rank} in the <a href="${escapeHtml(candidate.href)}" class="league-link"${targetAttrs}>${labelHtml}</a>`;
+        return `#${rank} ${preposition} <a href="${escapeHtml(candidate.href)}" class="league-link"${targetAttrs}>${labelHtml}</a>`;
     }
 
     window.LwcLeaderboardBestRank = {
