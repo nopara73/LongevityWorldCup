@@ -40,6 +40,17 @@ public class LeaderboardBestRankScriptTests
         Assert.DoesNotContain("bestLeagueType ===", html);
     }
 
+    [Fact]
+    public void FlagRoutes_AreRecognizedAndUsedForSingleFlagFilters()
+    {
+        var html = ReadLeaderboardPartial();
+
+        Assert.Contains("function getFlagRouteState(pathname)", html);
+        Assert.Contains("const flagPrefix = '/flag/';", html);
+        Assert.Contains("url.pathname = `/flag/${getFlagRouteSlug(selectedFlagNames[0])}`;", html);
+        Assert.Contains("replace(/\\/(?:league|flag)\\/[^/]+\\/?$/, '')", html);
+    }
+
     private static string ReadLeaderboardPartial()
     {
         var repoRoot = FindRepoRoot();

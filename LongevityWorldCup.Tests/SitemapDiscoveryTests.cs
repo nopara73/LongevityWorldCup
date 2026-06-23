@@ -57,6 +57,7 @@ public class SitemapDiscoveryTests
         [
             new SitemapUrlEntry("/", new DateTime(2026, 5, 30, 0, 0, 0, DateTimeKind.Utc), "daily", 1.0m),
             new SitemapUrlEntry("/league/amateur", new DateTime(2026, 5, 30, 0, 0, 0, DateTimeKind.Utc), "daily", 0.8m),
+            new SitemapUrlEntry("/flag/hungary", new DateTime(2026, 5, 30, 0, 0, 0, DateTimeKind.Utc), "daily", 0.7m),
             new SitemapUrlEntry("/athlete/michael-lustgarten", new DateTime(2026, 5, 30, 0, 0, 0, DateTimeKind.Utc), "weekly", 0.6m)
         ]);
         var doc = XDocument.Parse(xml);
@@ -67,6 +68,7 @@ public class SitemapDiscoveryTests
 
         Assert.Contains("https://longevityworldcup.com/", locs);
         Assert.Contains("https://longevityworldcup.com/league/amateur", locs);
+        Assert.Contains("https://longevityworldcup.com/flag/hungary", locs);
         Assert.Contains("https://longevityworldcup.com/athlete/michael-lustgarten", locs);
     }
 
@@ -118,15 +120,28 @@ public class SitemapDiscoveryTests
     }
 
     [Fact]
-    public void Robots_AllowsPublicLeagueAndAthleteRoutes()
+    public async Task SitemapEndpoint_IncludesPublicFlagRoutes()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var xml = await client.GetStringAsync("/sitemap.xml");
+
+        Assert.Contains("https://longevityworldcup.com/flag/hungary", xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Robots_AllowsPublicLeagueFlagAndAthleteRoutes()
     {
         var robotsPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "wwwroot", "robots.txt"));
         var robots = File.ReadAllLines(robotsPath);
 
         Assert.Contains("Allow: /league/", robots);
+        Assert.Contains("Allow: /flag/", robots);
         Assert.Contains("Allow: /athlete/", robots);
         Assert.Contains("Allow: /swagger", robots);
         Assert.DoesNotContain("Disallow: /league/", robots);
+        Assert.DoesNotContain("Disallow: /flag/", robots);
         Assert.DoesNotContain("Disallow: /athlete/", robots);
     }
 

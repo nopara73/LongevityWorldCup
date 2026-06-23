@@ -57,11 +57,11 @@ namespace LongevityWorldCup.Website.Middleware
         public async Task Invoke(HttpContext context)
         {
             var path = context.Request.Path.Value;
-            if (path == "/" || path?.EndsWith(".html") is true || IsLeagueRoute(path) || IsAthleteRoute(path))
+            if (path == "/" || path?.EndsWith(".html") is true || IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path))
             {
                 string filePath;
 
-                if (path == "/" || IsLeagueRoute(path) || IsAthleteRoute(path))
+                if (path == "/" || IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path))
                 {
                     filePath = Path.Combine(_webRootPath, "index.html");
                 }
@@ -300,7 +300,7 @@ $@"<script type=""module"">
 
         private static HeadAssetConfig GetHeadAssetConfig(string path)
         {
-            if (IsLeagueRoute(path) || IsAthleteRoute(path))
+            if (IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path))
             {
                 return new HeadAssetConfig(
                     IncludeValidator: false,
@@ -451,6 +451,11 @@ $@"<script type=""module"">
             if (TryGetLeaderboardViewSeoMeta(context, out var leaderboardViewSeo))
             {
                 return leaderboardViewSeo;
+            }
+
+            if (TryGetFlagSeoMeta(context, out var flagSeo))
+            {
+                return flagSeo;
             }
 
             if (TryGetLeagueSeoMeta(context, out var leagueSeo))
@@ -732,6 +737,39 @@ $@"<script type=""module"">
             return true;
         }
 
+        private bool TryGetFlagSeoMeta(HttpContext context, out SeoMeta seo)
+        {
+            seo = null!;
+            var canonicalRequestPath = RouteCanonicalization.GetCanonicalPath(context.Request.Path.Value);
+            if (!IsFlagRoute(canonicalRequestPath))
+            {
+                return false;
+            }
+
+            var rawSlug = canonicalRequestPath["/flag/".Length..].Trim('/');
+            var availableFlags = _leaderboardFacts.GetLeaderboardSnapshot().Rows.Select(row => row.Flag);
+            if (!FlagRouteCatalog.TryResolve(rawSlug, availableFlags, out var flagRoute))
+            {
+                return false;
+            }
+
+            var canonicalUrl = $"{SiteBaseUrl}{flagRoute.Path}";
+            var title = $"{flagRoute.Name} Leaderboard | Longevity World Cup";
+            var description = $"Current Longevity World Cup athletes from {flagRoute.Name}.";
+
+            seo = new SeoMeta(
+                flagRoute.Path,
+                description,
+                "index, follow",
+                canonicalUrl,
+                title,
+                $"{flagRoute.Name} Leaderboard",
+                "",
+                BuildDefaultOgImageUrl()
+            );
+            return true;
+        }
+
         private bool TryGetLeaderboardViewSeoMeta(HttpContext context, out SeoMeta seo)
         {
             seo = null!;
@@ -764,6 +802,13 @@ $@"<script type=""module"">
             return !string.IsNullOrWhiteSpace(path)
                    && path.StartsWith("/league/", StringComparison.OrdinalIgnoreCase)
                    && path.Length > "/league/".Length;
+        }
+
+        private static bool IsFlagRoute(string? path)
+        {
+            return !string.IsNullOrWhiteSpace(path)
+                   && path.StartsWith("/flag/", StringComparison.OrdinalIgnoreCase)
+                   && path.Length > "/flag/".Length;
         }
 
         private static bool IsAthleteRoute(string? path)
@@ -1256,6 +1301,7 @@ $@"<script type=""module"">
                 "/history" => "History",
                 "/ruleset" => "Ruleset",
                 _ when canonicalPath.StartsWith("/league/", StringComparison.OrdinalIgnoreCase) => "Leaderboard",
+                _ when canonicalPath.StartsWith("/flag/", StringComparison.OrdinalIgnoreCase) => "Leaderboard",
                 _ => "Page"
             };
         }
