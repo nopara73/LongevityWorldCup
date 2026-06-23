@@ -588,8 +588,8 @@
                         <li>Include head and shoulders.</li>
                     </ol>
                     <div class="convergence-upload-action">
-                        <input type="file" id="profilePicInput" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" style="display: none;">
-                        <input type="file" id="profileCameraInput" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="user" style="display: none;">
+                        <input type="file" id="profilePicInput" accept="image/*,.heic,.heif" style="display: none;">
+                        <input type="file" id="profileCameraInput" accept="image/*,.heic,.heif" capture="user" style="display: none;">
                         <button type="button" id="takeProfileSelfieButton" class="option-button grey">
                             <i class="fa fa-camera"></i>
                             Take selfie
@@ -618,8 +618,8 @@
             <fieldset id="proofUploadSection">
                 <legend>Proof upload</legend>
                 <div class="convergence-upload-action">
-                    <input type="file" id="proofPicInput" accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf" style="display: none;" multiple>
-                    <input type="file" id="proofCameraInput" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="environment" style="display: none;">
+                    <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
+                    <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
                     <button type="button" id="takeProofPhotoButton" class="option-button grey camera-capture-action">
                         <i class="fa fa-camera"></i>
                         Take proof photo
@@ -946,13 +946,13 @@
 
             const type = typeof file.type === 'string' ? file.type.toLowerCase() : '';
             const extension = getProfilePictureFileExtension(file);
-            return type === 'image/jpeg'
-                || type === 'image/png'
-                || type === 'image/webp'
+            return type.startsWith('image/')
                 || extension === 'jpg'
                 || extension === 'jpeg'
                 || extension === 'png'
-                || extension === 'webp';
+                || extension === 'webp'
+                || extension === 'heic'
+                || extension === 'heif';
         }
 
         function validateApplicationIdentity() {
@@ -1957,7 +1957,7 @@
                 input.value = '';
                 if (file) {
                     if (!isSupportedProfilePictureFile(file)) {
-                        customAlert('Profile picture must be JPG, PNG, or WebP.')
+                        customAlert('Profile picture must be an image file.')
                             .then(() => uploadButton?.focus());
                         return;
                     }

@@ -136,14 +136,14 @@ function isSupportedProofFile(file) {
     const type = typeof file.type === 'string' ? file.type.toLowerCase() : '';
     const extension = getProofFileExtension(file);
     return type === 'application/pdf'
-        || type === 'image/jpeg'
-        || type === 'image/png'
-        || type === 'image/webp'
+        || type.startsWith('image/')
         || extension === 'pdf'
         || extension === 'jpg'
         || extension === 'jpeg'
         || extension === 'png'
-        || extension === 'webp';
+        || extension === 'webp'
+        || extension === 'heic'
+        || extension === 'heif';
 }
 
 window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers, options) {
@@ -198,7 +198,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
         const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));
         if (supportedFiles.length === 0) {
             if (input) input.value = "";
-            customAlert('Proof files must be JPG, PNG, WebP, or PDF.')
+            customAlert('Proof files must be images or PDFs.')
                 .then(() => focusProofRetryButton(retryButton));
             return;
         }
@@ -293,15 +293,15 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 }
             }
             if (unsupportedFiles.length > 0) {
-                customAlert('Some proof files were skipped because proof files must be JPG, PNG, WebP, or PDF.')
+                customAlert('Some proof files were skipped because proof files must be images or PDFs.')
                     .then(() => focusProofRetryButton(retryButton));
             }
             if (failedFiles > 0) {
-                customAlert('Some proof files could not be processed. Please try them again as JPG, PNG, WebP, or PDF.')
+                customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')
                     .then(() => focusProofRetryButton(retryButton));
             }
         } catch (error) {
-            customAlert('Proof upload failed. Please try again with a JPG, PNG, WebP, or PDF file.')
+            customAlert('Proof upload failed. Please try again with an image or PDF file.')
                 .then(() => focusProofRetryButton(retryButton));
         } finally {
             // Reset the file input's value to allow re-uploading the same file if needed.
