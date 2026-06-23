@@ -68,8 +68,11 @@ public sealed class ProofUploadPageTests
 
         Assert.DoesNotContain("proofPics.length + selectedFiles.length > 9", beforeReader);
         Assert.Contains("if (proofPics.length >= 9)", javascript);
-        Assert.Contains("customAlert('You can upload a maximum of 9 images.')\n                                    .then(() => focusProofRetryButton(retryButton));", javascript);
-        Assert.Contains("customAlert('You can upload a maximum of 9 images.')\n                            .then(() => focusProofRetryButton(retryButton));", javascript);
+        Assert.Contains("let hitImageLimit = false;", javascript);
+        Assert.Contains("hitImageLimit = true;", javascript);
+        Assert.Contains("const showProofUploadNotice = message =>", javascript);
+        Assert.Contains("showProofUploadNotice('Only the first 9 proof images were kept. Remove one to add another.');", javascript);
+        Assert.DoesNotContain("customAlert('You can upload a maximum of 9 images.')", javascript);
     }
 
     [Fact]
