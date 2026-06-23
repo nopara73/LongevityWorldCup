@@ -1234,6 +1234,10 @@
         white-space: nowrap;
         margin-left: .25ch;
     }
+    .athlete-info-table .detail-muted,
+    .athlete-info-table .detail-value{
+        opacity: 1 !important;
+    }
     #detailsModal .athlete-info,
     #detailsModal .biomarkers-section,
     #detailsModal .proofs-section,
@@ -1257,6 +1261,12 @@
     }
     #detailsModal .athlete-info-table .unit{
         color: var(--athlete-modal-muted);
+    }
+    #detailsModal .athlete-info-table .detail-muted{
+        color: var(--athlete-modal-muted);
+    }
+    #detailsModal .athlete-info-table .detail-value{
+        color: var(--athlete-modal-text);
     }
     #detailsModal .athlete-info-table tr{
         border-color: var(--athlete-modal-border);
@@ -2586,8 +2596,7 @@
                                 <th scope="row"><strong>Crowd Age:</strong></th>
                                 <td>
                                     <span id="notEmptyCrowdAgeContainer" style="display:none;">
-            <span id="crowdAge">0</span> <span class="unit">years</span>,
-            <span id="crowdCount">0</span> guesses
+            <span id="crowdAge">0</span> <span class="unit">years</span><span class="detail-muted">, <span id="crowdCount">0</span> guesses</span>
           </span>
                                 </td>
                             </tr>
@@ -2605,18 +2614,18 @@
 
                             <tr id="lowestPhenoAgeContainer">
                                 <th scope="row"><strong>Lowest Pheno Age:</strong></th>
-                                <td><span id="lowestPhenoAge"></span> <span class="unit">years (rank: <span id="lowestPhenoAgeRank"></span>)</span></td>
+                                <td><span id="lowestPhenoAge"></span> <span class="unit">years</span> <span class="detail-muted">(rank: <span id="lowestPhenoAgeRank" class="detail-value"></span>)</span></td>
                             </tr>
 
 
                             <tr id="bortzPaceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
                                 <th scope="row"><strong>Bortz pace of aging:</strong></th>
-                                <td><span id="bortzPaceOfAging"></span> <span class="unit">years per year (rank: <span id="bortzPaceOfAgingRank"></span>)</span></td>
+                                <td><span id="bortzPaceOfAging"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="bortzPaceOfAgingRank" class="detail-value"></span>)</span></td>
                             </tr>
 
                             <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
                                 <th scope="row"><strong>Pheno pace of aging:</strong></th>
-                                <td><span id="paceOfAging"></span> <span class="unit">years per year (rank: <span id="paceOfAgingRank"></span>)</span></td>
+                                <td><span id="paceOfAging"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="paceOfAgingRank" class="detail-value"></span>)</span></td>
                             </tr>
 
                             <tr id="bortzAgeReductionContainer" title="Derived from the lowest biological age of the season" style="display:none;">
@@ -2750,6 +2759,11 @@
 
     function getFlagFilterKey(flag) {
         return window.LwcFlags.getFlagFilterKey(flag);
+    }
+
+    function getFlagRankKey(flag) {
+        const flagKey = getFlagFilterKey(flag);
+        return flagKey ? `flag:${flagKey}` : '';
     }
 
     function decodeFilterUrlToken(token) {
@@ -4037,6 +4051,17 @@
                     athletesInExclusive.sort(window.compareAthleteRank);
                     athletesInExclusive.forEach((athlete, index) => {
                         athlete.ranks[exclusiveLeague] = index + 1;
+                    });
+                });
+
+                // Assign ranks based on flags
+                const flagRankKeys = [...new Set(athleteResults.map(a => a.flagFilterKey).filter(Boolean))];
+                flagRankKeys.forEach(flagKey => {
+                    const athletesInFlag = athleteResults.filter(a => a.flagFilterKey === flagKey);
+                    athletesInFlag.sort(window.compareAthleteRank);
+                    athletesInFlag.forEach((athlete, index) => {
+                        const key = getFlagRankKey(athlete.canonicalFlag);
+                        if (key) athlete.ranks[key] = index + 1;
                     });
                 });
 
@@ -6233,15 +6258,40 @@
         return safeName.replace(/([a-z])([A-Z](?=[a-z]))/g, '$1<br>$2');
     }
 
+    function getModalRankText(rank) {
+        const numericRank = Number(rank);
+        return Number.isFinite(numericRank) && numericRank > 0 ? `#${numericRank}` : '';
+    }
+
     function getModalRankMarkup(rank) {
-        if (rank === 1) return '<span class="modal-rank-icon" aria-label="1st place"><i class="fa-solid fa-crown" aria-hidden="true"></i></span>';
-        if (rank === 2) return '<span class="modal-rank-icon" aria-label="2nd place"><i class="fa-solid fa-medal" aria-hidden="true"></i></span>';
-        if (rank === 3) return '<span class="modal-rank-icon" aria-label="3rd place"><i class="fa-solid fa-award" aria-hidden="true"></i></span>';
-        return ` <span class="modal-rank-text">(#${rank})</span>`;
+        const rankText = getModalRankText(rank);
+        if (!rankText) return '';
+        if (Number(rank) === 1) return '<span class="modal-rank-icon" aria-label="1st place"><i class="fa-solid fa-crown" aria-hidden="true"></i></span>';
+        if (Number(rank) === 2) return '<span class="modal-rank-icon" aria-label="2nd place"><i class="fa-solid fa-medal" aria-hidden="true"></i></span>';
+        if (Number(rank) === 3) return '<span class="modal-rank-icon" aria-label="3rd place"><i class="fa-solid fa-award" aria-hidden="true"></i></span>';
+        return ` <span class="modal-rank-text">(${rankText})</span>`;
     }
 
     function getModalTitleRankMarkup(rank) {
-        return ` <span class="modal-rank-text">(#${rank})</span>`;
+        const rankText = getModalRankText(rank);
+        return rankText ? ` <span class="modal-rank-text">(${rankText})</span>` : '';
+    }
+
+    function getModalDetailRankMarkup(rank) {
+        const rankText = getModalRankText(rank);
+        return rankText ? ` <span class="detail-muted">(rank: <span class="detail-value">${rankText}</span>)</span>` : '';
+    }
+
+    function renderAthleteFlagDetail(flag, athleteData) {
+        const canonicalFlag = getCanonicalFlagName(flag);
+        if (!canonicalFlag) return '';
+
+        const flagHref = buildFlagHref(canonicalFlag);
+        const flagRank = athleteData && athleteData.ranks
+            ? athleteData.ranks[getFlagRankKey(canonicalFlag)]
+            : null;
+
+        return `<a href="${escapeHtml(flagHref)}" class="league-link">${renderFlagLabel(canonicalFlag)}</a>${getModalDetailRankMarkup(flagRank)}`;
     }
 
     function fitTextToWidth(el, minPx = 12, maxPx = null) {
@@ -6616,9 +6666,10 @@
                     document.getElementById('bortzPaceOfAging').textContent = bortzPaceOfAgingValue.toFixed(2);
                     bortzPaceOfAgingContainer.style.display = '';
                     const bortzPaceOfAgingRank = findAthleteIndexByName(athletesOrderedByBortzPace, athleteData.name) + 1;
-                    if (Number.isFinite(bortzPaceOfAgingRank) && bortzPaceOfAgingRank > 0) {
-                        document.getElementById('bortzPaceOfAgingRank').textContent = '#' + bortzPaceOfAgingRank;
-                    }
+                    document.getElementById('bortzPaceOfAgingRank').textContent =
+                        Number.isFinite(bortzPaceOfAgingRank) && bortzPaceOfAgingRank > 0
+                            ? '#' + bortzPaceOfAgingRank
+                            : '';
                 } else {
                     bortzPaceOfAgingContainer.style.display = 'none';
                 }
@@ -6633,9 +6684,10 @@
                     paceOfAgingContainer.style.display = '';
 
                     const paceOfAgingRank = findAthleteIndexByName(athletesOrderedByPace, athleteData.name) + 1;
-                    if (Number.isFinite(paceOfAgingRank) && paceOfAgingRank > 0) {
-                        document.getElementById('paceOfAgingRank').textContent = '#' + paceOfAgingRank;
-                    }
+                    document.getElementById('paceOfAgingRank').textContent =
+                        Number.isFinite(paceOfAgingRank) && paceOfAgingRank > 0
+                            ? '#' + paceOfAgingRank
+                            : '';
                 } else {
                     paceOfAgingContainer.style.display = 'none';
                 }
@@ -6745,7 +6797,7 @@
         document.getElementById('athleteRank').innerHTML = renderBestRankLink(rankSummary && rankSummary.bestCandidate);
         document.getElementById('athleteDivision').innerHTML = `<a href="/league/${window.slugifyName(athleteData.division, true)}" class="league-link">${escapeHtml(athleteData.division)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.division])}`;
         document.getElementById('athleteGeneration').innerHTML = `<a href="/league/${window.slugifyName(athleteData.generation, true)}" class="league-link">${escapeHtml(athleteData.generation)}</a>${getModalTitleRankMarkup(athleteData.ranks[athleteData.generation])}`;
-        document.getElementById('athleteFlag').innerHTML = renderFlagLabel(fullAthleteData.Flag);
+        document.getElementById('athleteFlag').innerHTML = renderAthleteFlagDetail(fullAthleteData.Flag || athleteData.canonicalFlag, athleteData);
         document.getElementById('chronologicalAge').textContent = getCompletedChronologicalAge(fullAthleteData, athleteData).toString();
         updateCrowdContainer(athleteData.crowdAge, athleteData.crowdCount);
         updateYourGuess();
