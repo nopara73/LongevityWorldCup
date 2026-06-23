@@ -90,6 +90,8 @@ public class LeaderboardBestRankScriptTests
         Assert.DoesNotContain("border-bottom:3px solid rgba(0,188,212,.7);", html);
         Assert.DoesNotContain("background:linear-gradient(to bottom, rgba(0,188,212,0), rgba(0,188,212,.12));", html);
         Assert.DoesNotContain(".filter-section.has-active-filter h3::after", html);
+        Assert.Contains("#flag-filter-section ul::after", html);
+        Assert.Contains("background:linear-gradient(90deg, rgba(0,188,212,.68), rgba(0,188,212,.18));", html);
         Assert.Contains("display:block; position:sticky; top:calc(var(--leaderboard-sidebar-sticky-top) + .75rem);", html);
         Assert.Contains("width:100%; box-sizing:border-box;", html);
         Assert.DoesNotContain("position:sticky; top:var(--leaderboard-sidebar-sticky-top); z-index:2;", html);
