@@ -86,9 +86,10 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("overflow:clip; flex-grow:1;", html);
         Assert.Contains("position:relative; width:50px; min-height:var(--leaderboard-table-height);", html);
         Assert.Contains("overflow:visible; flex-shrink:0;", html);
-        Assert.Contains(".sidebar::before", html);
-        Assert.Contains("border-bottom:3px solid rgba(0,188,212,.7);", html);
-        Assert.Contains("background:linear-gradient(to bottom, rgba(0,188,212,0), rgba(0,188,212,.12));", html);
+        Assert.DoesNotContain(".sidebar::before", html);
+        Assert.DoesNotContain("border-bottom:3px solid rgba(0,188,212,.7);", html);
+        Assert.DoesNotContain("background:linear-gradient(to bottom, rgba(0,188,212,0), rgba(0,188,212,.12));", html);
+        Assert.DoesNotContain(".filter-section.has-active-filter h3::after", html);
         Assert.Contains("display:block; position:sticky; top:calc(var(--leaderboard-sidebar-sticky-top) + .75rem);", html);
         Assert.Contains("width:100%; box-sizing:border-box;", html);
         Assert.DoesNotContain("position:sticky; top:var(--leaderboard-sidebar-sticky-top); z-index:2;", html);
