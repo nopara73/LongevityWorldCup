@@ -1993,7 +1993,7 @@
             if (creatEl && creatUnitEl) {
                 const v = parse(creatEl);
                 const u = parseFloat(creatUnitEl.value);
-                if (!isNaN(v) && u === 0.0113 && v > 200) {
+                if (!isNaN(v) && u === 0.0113 && v > 20) {
                     console.warn("Creatinine value suggests µmol/L. Correcting the unit.");
                     setUnit(creatUnitEl, 1);
                 } else if (!isNaN(v) && u === 1 && v < 2 && v > 0) {
