@@ -895,7 +895,7 @@
         if (commitmentInput) {
             const showCommitment = shouldShowCommitmentAmountField(state);
             commitmentInput.disabled = !showCommitment || state.commitment?.canEditAmount === false;
-            commitmentInput.required = showCommitment;
+            commitmentInput.required = false;
         }
         renderProfilePictureControls(participant);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
@@ -1109,37 +1109,6 @@
             return;
         }
 
-        if (commitment.status === "needs-amount") {
-            panel.innerHTML = `
-                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card setup">
-                    <div class="lmx-commitment-main">
-                        <i class="fas fa-lock" aria-hidden="true"></i>
-                        <div>
-                            <strong>Set a real stake</strong>
-                            <span id="lmxBlockedCommitmentHelp">Fall below your recent average and either pay it or stop. Choose an amount that would hurt.</span>
-                        </div>
-                    </div>
-                    <div class="lmx-field">
-                        <label for="lmxBlockedCommitmentAmount">Pledge</label>
-                        <div class="lmx-money-input">
-                            <span aria-hidden="true">$</span>
-                            <input id="lmxBlockedCommitmentAmount" type="text" inputmode="decimal" required placeholder="300" aria-describedby="lmxBlockedCommitmentHelp">
-                        </div>
-                    </div>
-                    <button class="lmx-button" type="submit">
-                        <i class="fas fa-pen-nib" aria-hidden="true"></i>
-                        Make a pledge
-                    </button>
-                    <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
-                </form>`;
-            panel.querySelector("form")?.addEventListener("submit", event => {
-                event.preventDefault();
-                saveCommitmentAmountFromBlockedPanel(panel.querySelector("button[type='submit']"));
-            });
-            wireCommitmentAmountValidation("lmxBlockedCommitmentAmount");
-            return;
-        }
-
         const invoiceStatus = String(commitment.invoiceStatus || "");
         const hasInvoice = !!(commitment.invoiceId || commitment.checkoutLink || invoiceStatus);
         const replacesInvoice = ["expired", "failed", "invalid"].includes(invoiceStatus.toLowerCase());
@@ -1211,28 +1180,6 @@
         const triggerDay = Number(state?.commitment?.triggerChallengeDay || 0);
         return ((state && state.eligibleDays) || [])
             .filter(day => day.existing && (!triggerDay || day.challengeDay === triggerDay));
-    }
-
-    async function saveCommitmentAmountFromBlockedPanel(button) {
-        if (!accessToken || !participantState) return;
-        await withButton(button, async () => {
-            const participant = participantState.participant || {};
-            const result = await postJson(`${API}/edit`, {
-                accessToken,
-                displayName: participant.displayName || "",
-                timeZoneId: participant.timeZoneId || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-                athleteLink: participant.athleteSlug || participant.athleteUrl || null,
-                commitmentAmountUsd: parseCommitmentAmount("lmxBlockedCommitmentAmount")
-            });
-            participantState = result;
-            publicState = result.public;
-            if (!hasCommitmentBlock(result)) {
-                participantNotice = { message: "Commitment amount saved. You can continue.", isError: false };
-                participantActiveTab = null;
-                participantTabManual = false;
-            }
-            renderAll();
-        }, "Saving...");
     }
 
     async function payCommitment(button) {
@@ -2314,8 +2261,12 @@
         const raw = String(input?.value || "").trim();
         const normalized = raw;
         const value = Number(normalized);
+        if (!raw) {
+            clearCommitmentAmountValidity(input);
+            return null;
+        }
         if (!Number.isFinite(value) || value < 1) {
-            const message = raw ? "Commitment amount must be at least USD 1." : "Enter a commitment amount of at least USD 1.";
+            const message = "Commitment amount must be at least USD 1.";
             markCommitmentAmountInvalid(input, message, true);
             input?.focus();
             throw new Error(message);
@@ -2335,7 +2286,7 @@
         });
         input.addEventListener("invalid", () => {
             const raw = String(input.value || "").trim();
-            markCommitmentAmountInvalid(input, raw ? "Commitment amount must be at least USD 1." : "Enter a commitment amount of at least USD 1.");
+            if (raw) markCommitmentAmountInvalid(input, "Commitment amount must be at least USD 1.");
         });
     }
 
