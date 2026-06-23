@@ -84,6 +84,9 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("overflow:visible; flex-shrink:0;", html);
         Assert.Contains("display:block; position:sticky; top:calc(var(--leaderboard-sidebar-sticky-top) + 4.75rem);", html);
         Assert.Contains("position:sticky; top:var(--leaderboard-sidebar-sticky-top); z-index:2;", html);
+        Assert.Contains("display:flex; align-items:center; justify-content:center; border-bottom:2px solid var(--primary-color);", html);
+        Assert.Contains("display:inline-flex; align-items:center; justify-content:center; flex:0 0 2.25rem; width:2.25rem; height:2.25rem;", html);
+        Assert.Contains(".sidebar.expanded .sidebar-title{ position:static; justify-content:flex-start; }", html);
         Assert.Contains("position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; min-height:0; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height));", html);
         Assert.Contains("height:100dvh; min-height:0; max-height:100dvh;", html);
         Assert.Contains("const LEADERBOARD_SIDEBAR_MIN_ROWS = 10;", html);
