@@ -182,6 +182,18 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
         }
     };
 
+    const showProofUploadNotice = message => {
+        if (!proofImageContainer) return;
+
+        let notice = proofImageContainer.querySelector('.proof-upload-notice');
+        if (!notice) {
+            notice = document.createElement('p');
+            notice.className = 'proof-upload-notice smaller-text';
+            proofImageContainer.appendChild(notice);
+        }
+        notice.textContent = message;
+    };
+
     const handleProofFiles = async function (files, input, retryButton) {
         if (isProofUploadProcessing) {
             if (input) input.value = "";
@@ -230,6 +242,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
             };
 
             let failedFiles = 0;
+            let hitImageLimit = false;
             // process one by one to preserve order
             for (const file of supportedFiles) {
                 const proofCountBeforeFile = proofPics.length;
@@ -244,8 +257,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                         // render each page
                         for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
                             if (proofPics.length >= 9) {
-                                customAlert('You can upload a maximum of 9 images.')
-                                    .then(() => focusProofRetryButton(retryButton));
+                                hitImageLimit = true;
                                 break;
                             }
                             const page = await pdfDoc.getPage(pageNum);
@@ -269,8 +281,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                     }
 
                     if (proofPics.length >= 9) {
-                        customAlert('You can upload a maximum of 9 images.')
-                            .then(() => focusProofRetryButton(retryButton));
+                        hitImageLimit = true;
                         break;
                     }
                     const raw = await readDataURL(file);
@@ -299,6 +310,10 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
             if (failedFiles > 0) {
                 customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')
                     .then(() => focusProofRetryButton(retryButton));
+            }
+            if (hitImageLimit) {
+                updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                showProofUploadNotice('Only the first 9 proof images were kept. Remove one to add another.');
             }
         } catch (error) {
             customAlert('Proof upload failed. Please try again with an image or PDF file.')
