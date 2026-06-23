@@ -413,8 +413,7 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
 
 function checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer) {
     const hasProofs = proofPics.length > 0;
-    const checklistComplete = areRequiredProofChecklistItemsChecked(biomarkerChecklistContainer);
-    nextButton.disabled = !(hasProofs && checklistComplete);
+    nextButton.disabled = !hasProofs;
     updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
 }
 
@@ -423,12 +422,6 @@ window.updateProofUploadButtons = function (nextButton, uploadProofButton, camer
     // second argument to toggle is a boolean: add if true, remove if false
     uploadProofButton.classList.toggle('green', nextButton.disabled);
     if (cameraButton) cameraButton.classList.toggle('green', nextButton.disabled);
-}
-
-function areRequiredProofChecklistItemsChecked(biomarkerChecklistContainer) {
-    if (!biomarkerChecklistContainer) return true;
-    const checkboxes = Array.from(biomarkerChecklistContainer.querySelectorAll('.biomarker-checkbox'));
-    return checkboxes.length === 0 || checkboxes.every(input => input.checked);
 }
 
 function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nextButton, proofPics, uploadProofButton, cameraButton) {
