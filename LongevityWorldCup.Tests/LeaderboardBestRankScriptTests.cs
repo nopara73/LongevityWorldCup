@@ -29,7 +29,9 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT", html);
         Assert.Contains("buildFiltersHref([generation, division])", html);
         Assert.Contains("href: buildFlagHref(flagOption.name)", html);
-        Assert.Contains("leagueLabelHtml: `${renderFlagLabel(flagOption.name)} Flag`", html);
+        Assert.Contains("leagueLabel: flagOption.name", html);
+        Assert.Contains("leagueLabelHtml: renderFlagLabel(flagOption.name)", html);
+        Assert.DoesNotContain("leagueLabelHtml: `${renderFlagLabel(flagOption.name)} Flag`", html);
     }
 
     [Fact]
@@ -38,6 +40,7 @@ public class LeaderboardBestRankScriptTests
         var html = ReadLeaderboardPartial();
 
         Assert.Contains("renderBestRankLink(rankSummary && rankSummary.bestCandidate)", html);
+        Assert.Contains("const preposition = candidate.leagueType === 'flag' ? 'in' : 'in the';", html);
         Assert.Contains("href=\"${escapeHtml(candidate.href)}\"", html);
         Assert.Contains("candidates.length === 0 && Number.isFinite(ultimateRank)", html);
         Assert.DoesNotContain("bestLeagueType ===", html);
