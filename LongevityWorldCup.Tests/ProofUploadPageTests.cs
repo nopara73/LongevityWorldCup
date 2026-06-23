@@ -250,23 +250,22 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
-    public async Task ProofHelper_RequiresChecklistWhenBiomarkersAreListed()
+    public async Task ProofHelper_KeepsChecklistAdvisoryWhenBiomarkersAreListed()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/proof-helpers.js");
 
-        Assert.Contains("function areRequiredProofChecklistItemsChecked(biomarkerChecklistContainer)", javascript);
-        Assert.Contains("const checkboxes = Array.from(biomarkerChecklistContainer.querySelectorAll('.biomarker-checkbox'));", javascript);
-        Assert.Contains("return checkboxes.length === 0 || checkboxes.every(input => input.checked);", javascript);
-        Assert.Contains("const checklistComplete = areRequiredProofChecklistItemsChecked(biomarkerChecklistContainer);", javascript);
-        Assert.Contains("nextButton.disabled = !(hasProofs && checklistComplete);", javascript);
+        Assert.Contains("const hasProofs = proofPics.length > 0;", javascript);
+        Assert.Contains("nextButton.disabled = !hasProofs;", javascript);
         Assert.Contains("var PROOF_CONTEXT_CHECKLIST_LABELS = ['Collection date', 'Lab/report source'];", javascript);
         Assert.Contains("return labels.length > 0 ? PROOF_CONTEXT_CHECKLIST_LABELS.concat(labels) : labels;", javascript);
         Assert.Contains("instructions.textContent = \"Check each item only when an uploaded proof shows its marker name and submitted value:\";", javascript);
         Assert.Contains("input.addEventListener('change', function ()", javascript);
         Assert.Contains("checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", javascript);
+        Assert.DoesNotContain("areRequiredProofChecklistItemsChecked", javascript);
+        Assert.DoesNotContain("nextButton.disabled = !(hasProofs && checklistComplete);", javascript);
     }
 
     [Fact]
