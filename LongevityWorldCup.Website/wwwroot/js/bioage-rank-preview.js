@@ -18,7 +18,10 @@
     function getSharedAthletes() {
         if (window.getSharedAthletes) return window.getSharedAthletes();
         if (!sharedAthletesPromise) {
-            sharedAthletesPromise = fetch('/api/data/athletes', { headers: { accept: 'application/json' } })
+            sharedAthletesPromise = fetch('/api/data/athletes', {
+                cache: 'no-store',
+                headers: { accept: 'application/json' }
+            })
                 .then(function (response) {
                     return response.ok ? response.json() : Promise.reject(response.status);
                 })

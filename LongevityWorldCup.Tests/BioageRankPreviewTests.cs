@@ -37,4 +37,16 @@ public sealed class BioageRankPreviewTests
         Assert.Contains("athlete && typeof athlete.Name === 'string' ? athlete.Name : ''", javascript);
         Assert.DoesNotContain("athlete && athlete.DisplayName && athlete.DisplayName.trim()", javascript);
     }
+
+    [Fact]
+    public async Task RankPreviewAthleteFetch_BypassesBrowserCacheRevalidation()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/bioage-rank-preview.js");
+
+        Assert.Contains("fetch('/api/data/athletes', {", javascript);
+        Assert.Contains("cache: 'no-store'", javascript);
+    }
 }
