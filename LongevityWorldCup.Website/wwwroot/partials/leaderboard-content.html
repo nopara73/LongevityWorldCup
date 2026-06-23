@@ -304,11 +304,6 @@
         margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width .3s ease, padding .3s ease;
         overflow:visible; flex-shrink:0;
     }
-    .sidebar::before{
-        content:''; position:absolute; left:0; right:0; bottom:0; height:16px; border-radius:0 0 15px 15px;
-        border-bottom:3px solid rgba(0,188,212,.7); background:linear-gradient(to bottom, rgba(0,188,212,0), rgba(0,188,212,.12));
-        pointer-events:none; z-index:3;
-    }
     .sidebar:hover:not(.button-collapsed), .sidebar.expanded{
         position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; min-height:0; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height)); padding:1rem; align-items:flex-start;
         overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable;
@@ -442,10 +437,6 @@
         transition:color .2s ease;
     }
     .filter-section.has-active-filter h3{ color:var(--secondary-color); }
-    .filter-section.has-active-filter h3::after{
-        content:''; flex:1 1 auto; height:2px; border-radius:999px;
-        background:linear-gradient(90deg, rgba(255,64,129,.75), rgba(0,188,212,.14));
-    }
     .filter-section ul{ list-style:none; padding:0; margin:0; display:grid; gap:.35rem; }
     .filter-section li{ margin:0; }
     .filter-section label{
