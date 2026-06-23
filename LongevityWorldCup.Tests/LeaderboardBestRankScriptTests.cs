@@ -51,6 +51,24 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("replace(/\\/(?:league|flag)\\/[^/]+\\/?$/, '')", html);
     }
 
+    [Fact]
+    public void AthleteDetailModal_RendersFlagRanksAndMutedSecondaryValues()
+    {
+        var html = ReadLeaderboardPartial();
+
+        Assert.Contains("function getFlagRankKey(flag)", html);
+        Assert.Contains("const flagRankKeys = [...new Set(athleteResults.map(a => a.flagFilterKey).filter(Boolean))];", html);
+        Assert.Contains("athlete.ranks[key] = index + 1;", html);
+        Assert.Contains("function renderAthleteFlagDetail(flag, athleteData)", html);
+        Assert.Contains("href=\"${escapeHtml(flagHref)}\"", html);
+        Assert.Contains("getModalDetailRankMarkup(flagRank)", html);
+
+        Assert.Contains("<span id=\"crowdAge\">0</span> <span class=\"unit\">years</span><span class=\"detail-muted\">, <span id=\"crowdCount\">0</span> guesses</span>", html);
+        Assert.Contains("<span class=\"detail-muted\">(rank: <span id=\"lowestPhenoAgeRank\" class=\"detail-value\"></span>)</span>", html);
+        Assert.Contains("<span class=\"detail-muted\">(rank: <span id=\"bortzPaceOfAgingRank\" class=\"detail-value\"></span>)</span>", html);
+        Assert.Contains("<span class=\"detail-muted\">(rank: <span id=\"paceOfAgingRank\" class=\"detail-value\"></span>)</span>", html);
+    }
+
     private static string ReadLeaderboardPartial()
     {
         var repoRoot = FindRepoRoot();
