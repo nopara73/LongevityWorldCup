@@ -2786,6 +2786,14 @@
         return window.LwcFlags.renderFlagLabel(flag);
     }
 
+    function getFlagRouteSlug(flag) {
+        return window.LwcFlags.getFlagRouteSlug(flag);
+    }
+
+    function buildFlagHref(flag) {
+        return window.LwcFlags.getFlagHref(flag);
+    }
+
     function hasBortzRankData(athlete) {
         return athlete && athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
     }
@@ -3185,6 +3193,24 @@
             slug,
             filterLabel: filterLabelsBySlug[slug] || null,
             view: slug === 'ultimate' ? 'ultimate' : null
+        };
+    }
+
+    function getFlagRouteState(pathname) {
+        let normalizedPath = (pathname || '').trim().toLowerCase();
+        while (normalizedPath.length > 1 && normalizedPath.endsWith('/')) {
+            normalizedPath = normalizedPath.slice(0, -1);
+        }
+
+        const flagPrefix = '/flag/';
+        if (!normalizedPath.startsWith(flagPrefix) || normalizedPath.length <= flagPrefix.length) {
+            return { slug: null, flagKey: null };
+        }
+
+        const slug = decodeFilterUrlToken(normalizedPath.slice(flagPrefix.length));
+        return {
+            slug,
+            flagKey: getFlagFilterKey(slug)
         };
     }
 
@@ -4303,8 +4329,8 @@
                 }
 
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
-                const urlParams = new URLSearchParams(window.location.search);
                 const leagueRouteState = getLeagueRouteState(window.location.pathname);
+                const flagRouteState = getFlagRouteState(window.location.pathname);
                 const athleteParam = getInitialAthleteSlug();
                 if (athleteParam) {
                     const normalizedAthlete = window.slugifyName(athleteParam, false);
@@ -4340,6 +4366,13 @@
                             });
                         });
                         searchOrFilterApplied = true;
+                    } else if (flagRouteState.flagKey) {
+                        document.querySelectorAll('input[name="flag"]').forEach(checkbox => {
+                            if (getFlagFilterKey(checkbox.value) === flagRouteState.flagKey) {
+                                checkbox.checked = true;
+                                searchOrFilterApplied = true;
+                            }
+                        });
                     } else if (leagueRouteState.filterLabel) {
                         const normalizedFilter = leagueRouteState.filterLabel.trim().toLowerCase();
                         document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
@@ -5198,6 +5231,8 @@
             .map(checkbox => checkbox.value.toLowerCase());
         const selectedFlags = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
             .map(checkbox => getFlagFilterKey(checkbox.value));
+        const selectedFlagNames = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+            .map(checkbox => getCanonicalFlagName(checkbox.value));
         const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
             .map(checkbox => checkbox.value.toLowerCase());
         const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
@@ -5218,6 +5253,10 @@
 
         const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
         const currentLeaderboardView = viewRadio ? viewRadio.value.toLowerCase() : 'ultimate';
+        if (!searchQuery && filters.length === 1 && selectedFlags.length === 1 && currentLeaderboardView === 'ultimate') {
+            return buildFlagHref(selectedFlagNames[0]);
+        }
+
         if (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno' || currentLeaderboardView === 'improvement' || currentLeaderboardView === 'bortz-improvement' || currentLeaderboardView === 'crowd') {
             url.searchParams.set('view', currentLeaderboardView);
         }
@@ -5602,10 +5641,15 @@
 
         const selectedFlagKeys = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
             .map(checkbox => getFlagFilterKey(checkbox.value));
+        const selectedFlagNames = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+            .map(checkbox => getCanonicalFlagName(checkbox.value));
         const filters = [...selectedDivisions, ...selectedFlagKeys, ...selectedGenerations, ...selectedExclusiveLeagues, ...(leagueTrackFilterActive ? selectedLeagueTracks : [])];
         const cleanSearch = ([...url.searchParams].length === 0)
             || ([...url.searchParams].length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
-        if (filters.length === 1 && selectedFlagKeys.length === 0 && cleanSearch && currentLeaderboardView === 'ultimate') {
+        if (filters.length === 1 && selectedFlagKeys.length === 1 && cleanSearch && currentLeaderboardView === 'ultimate') {
+            url.searchParams.delete('filters');
+            url.pathname = `/flag/${getFlagRouteSlug(selectedFlagNames[0])}`;
+        } else if (filters.length === 1 && selectedFlagKeys.length === 0 && cleanSearch && currentLeaderboardView === 'ultimate') {
             url.searchParams.delete('filters');
             const leagueSlug = window.slugifyName(filters[0], true);
             url.pathname = `/league/${leagueSlug}`;
@@ -6295,7 +6339,7 @@
     }
 
     function getLeaguelessURL() {
-        const url = new URL(window.location.href.replace(/\/league\/[^/]+\/?$/, ''));
+        const url = new URL(window.location.href.replace(/\/(?:league|flag)\/[^/]+\/?$/, ''));
         return url;
     }
 

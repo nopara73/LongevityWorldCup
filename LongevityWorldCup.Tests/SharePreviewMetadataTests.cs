@@ -88,6 +88,7 @@ public sealed class SharePreviewMetadataTests
     [InlineData("/athlete/ron-lugbill", "Ron Lugbill | Longevity World Cup")]
     [InlineData("/league/gen-alpha", "Gen Alpha League | Longevity World Cup")]
     [InlineData("/league/prosperan", "Prosperan League | Longevity World Cup")]
+    [InlineData("/flag/hungary", "Hungary Leaderboard | Longevity World Cup")]
     [InlineData("/about", "About | Longevity World Cup")]
     public async Task SharePreviewTitles_AddBrandSuffixWhenMissing(string path, string expectedTitle)
     {
@@ -98,6 +99,19 @@ public sealed class SharePreviewMetadataTests
 
         Assert.Contains($"property=\"og:title\" content=\"{expectedTitle}\"", html);
         Assert.Contains($"name=\"twitter:title\" content=\"{expectedTitle}\"", html);
+    }
+
+    [Fact]
+    public async Task FlagRoute_UsesCanonicalFlagMetadata()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/flag/hungary");
+
+        Assert.Contains("rel=\"canonical\" href=\"https://longevityworldcup.com/flag/hungary\"", html);
+        Assert.Contains("Current Longevity World Cup athletes from Hungary.", html);
+        Assert.Contains("property=\"og:title\" content=\"Hungary Leaderboard | Longevity World Cup\"", html);
     }
 
     [Fact]

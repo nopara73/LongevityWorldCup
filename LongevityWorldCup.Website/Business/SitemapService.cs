@@ -65,12 +65,18 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
             entries.Add(new SitemapUrlEntry(route.Path, lastModified, route.ChangeFrequency, route.Priority));
         }
 
+        var snapshot = leaderboardFacts.GetLeaderboardSnapshot();
         foreach (var path in PublicLeaguePaths)
         {
             entries.Add(new SitemapUrlEntry(path, leaderboardLastModified, "daily", 0.8m));
         }
 
-        foreach (var row in leaderboardFacts.GetLeaderboardSnapshot().Rows)
+        foreach (var flagRoute in FlagRouteCatalog.BuildRoutes(snapshot.Rows.Select(row => row.Flag)))
+        {
+            entries.Add(new SitemapUrlEntry(flagRoute.Path, leaderboardLastModified, "daily", 0.7m));
+        }
+
+        foreach (var row in snapshot.Rows)
         {
             var athleteLastModified = athletesLastModifiedBySlug.TryGetValue(row.Slug, out var value)
                 ? value
@@ -98,7 +104,8 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
         }
 
         if (PublicLeaguePaths.Contains(normalizedPath, StringComparer.OrdinalIgnoreCase) ||
-            normalizedPath.StartsWith("/league/", StringComparison.OrdinalIgnoreCase))
+            normalizedPath.StartsWith("/league/", StringComparison.OrdinalIgnoreCase) ||
+            normalizedPath.StartsWith("/flag/", StringComparison.OrdinalIgnoreCase))
         {
             return leaderboardLastModified;
         }
@@ -206,9 +213,10 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
         if (string.Equals(path, "/", StringComparison.Ordinal)) return 0;
         if (string.Equals(path, "/leaderboard", StringComparison.OrdinalIgnoreCase)) return 1;
         if (path.StartsWith("/league/", StringComparison.OrdinalIgnoreCase)) return 2;
-        if (path.StartsWith("/athlete/", StringComparison.OrdinalIgnoreCase)) return 3;
-        if (path.StartsWith("/ai/", StringComparison.OrdinalIgnoreCase)) return 5;
-        return 4;
+        if (path.StartsWith("/flag/", StringComparison.OrdinalIgnoreCase)) return 3;
+        if (path.StartsWith("/athlete/", StringComparison.OrdinalIgnoreCase)) return 4;
+        if (path.StartsWith("/ai/", StringComparison.OrdinalIgnoreCase)) return 6;
+        return 5;
     }
 }
 

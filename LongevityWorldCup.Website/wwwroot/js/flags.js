@@ -90,6 +90,17 @@
         return normalizeFlagKey(getCanonicalFlagName(flag));
     }
 
+    function getFlagRouteSlug(flag) {
+        return normalizeText(getCanonicalFlagName(flag))
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    function getFlagHref(flag) {
+        const slug = getFlagRouteSlug(flag);
+        return slug ? `/flag/${encodeURIComponent(slug)}` : '/leaderboard';
+    }
+
     function getFlagIconCode(flag) {
         return standardFlagIconCodes.get(getFlagFilterKey(flag)) || '';
     }
@@ -188,7 +199,9 @@
         countFlagUsage,
         getCanonicalFlagName,
         getFlagFilterKey,
+        getFlagHref,
         getFlagIconCode,
+        getFlagRouteSlug,
         matchesFlagOption,
         normalizeFlagKey,
         renderFlagIcon,

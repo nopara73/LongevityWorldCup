@@ -9,6 +9,7 @@ Allow: /ai/athlete-names.md
 Allow: /swagger
 Allow: /athlete/
 Allow: /league/
+Allow: /flag/
 Disallow: /onboarding/
 Disallow: /play/
 Disallow: /error/
@@ -58,6 +59,7 @@ Allow: /ai/athlete-names.md
 Allow: /swagger
 Allow: /athlete/
 Allow: /league/
+Allow: /flag/
 Disallow: /onboarding/
 Disallow: /play/
 Disallow: /error/
