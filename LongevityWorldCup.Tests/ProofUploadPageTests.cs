@@ -45,7 +45,8 @@ public sealed class ProofUploadPageTests
         Assert.Contains("function ensurePdfJsReady()", javascript);
         Assert.Contains("const pdfLib = await ensurePdfJsReady();", javascript);
         Assert.Contains("const loadingTask = pdfLib.getDocument({ data: arrayBuffer });", javascript);
-        Assert.Contains("if (proofPics.length >= 9)", javascript);
+        Assert.Contains("const maxProofImages = 27;", javascript);
+        Assert.Contains("if (proofPics.length >= maxProofImages)", javascript);
         Assert.DoesNotContain("const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });", javascript);
     }
 
@@ -58,7 +59,7 @@ public sealed class ProofUploadPageTests
         var javascript = await client.GetStringAsync("/js/proof-helpers.js");
         var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input, retryButton)", StringComparison.Ordinal);
         var readerStart = javascript.IndexOf("const readDataURL = file =>", handlerStart, StringComparison.Ordinal);
-        var imageCapStart = javascript.IndexOf("if (proofPics.length >= 9)", readerStart, StringComparison.Ordinal);
+        var imageCapStart = javascript.IndexOf("if (proofPics.length >= maxProofImages)", readerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
         Assert.True(readerStart > handlerStart);
@@ -66,13 +67,14 @@ public sealed class ProofUploadPageTests
 
         var beforeReader = javascript[handlerStart..readerStart];
 
-        Assert.DoesNotContain("proofPics.length + selectedFiles.length > 9", beforeReader);
-        Assert.Contains("if (proofPics.length >= 9)", javascript);
+        Assert.DoesNotContain("proofPics.length + selectedFiles.length > maxProofImages", beforeReader);
+        Assert.Contains("const maxProofImages = 27;", javascript);
+        Assert.Contains("if (proofPics.length >= maxProofImages)", javascript);
         Assert.Contains("let hitImageLimit = false;", javascript);
         Assert.Contains("hitImageLimit = true;", javascript);
         Assert.Contains("const showProofUploadNotice = message =>", javascript);
-        Assert.Contains("showProofUploadNotice('Only the first 9 proof images were kept. Remove one to add another.');", javascript);
-        Assert.DoesNotContain("customAlert('You can upload a maximum of 9 images.')", javascript);
+        Assert.Contains("showProofUploadNotice('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');", javascript);
+        Assert.DoesNotContain("customAlert('You can upload a maximum of 27 images.')", javascript);
     }
 
     [Fact]
