@@ -75,7 +75,8 @@
     .content{ flex-grow:1; transition:margin-left .3s ease; }
 
     .leaderboard{
-        display:flex; align-items:stretch; background-color:var(--card-bg);
+        --leaderboard-table-height: calc(100vh - 2rem);
+        display:flex; align-items:flex-start; background-color:var(--card-bg);
         border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
     }
 
@@ -302,7 +303,7 @@
         overflow:hidden; flex-shrink:0;
     }
     .sidebar:hover:not(.button-collapsed), .sidebar.expanded{
-        width:auto; max-height:calc(100vh - 2rem); padding:1rem; align-items:flex-start;
+        width:auto; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height)); padding:1rem; align-items:flex-start;
         overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable;
         scrollbar-width:thin; scrollbar-color:rgba(0,188,212,.55) transparent;
     }
@@ -4287,6 +4288,7 @@
                     row.id = `rank-${athlete.rank}`;
                     tableBody.appendChild(row);
                 });
+                scheduleLeaderboardTableHeightSync();
 
                 const hash = window.location.hash;
                 if (hash && /^#rank-\d+$/.test(hash)) {
@@ -5587,6 +5589,7 @@
         }
 
         updateLeaderboardStateIndicator();
+        scheduleLeaderboardTableHeightSync();
 
         const url = new URL(window.location.href);
         url.hash = ""; // <- this line removes #ABCD or any other fragment
@@ -7369,9 +7372,46 @@
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
     const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
+    let leaderboardTableHeightFrame = 0;
+    let leaderboardTableResizeObserver = null;
 
     function isMobileDrawerViewport() {
         return mobileDrawerMediaQuery.matches;
+    }
+
+    function scheduleLeaderboardTableHeightSync() {
+        if (leaderboardTableHeightFrame) return;
+        leaderboardTableHeightFrame = requestAnimationFrame(syncLeaderboardTableHeight);
+    }
+
+    function syncLeaderboardTableHeight() {
+        leaderboardTableHeightFrame = 0;
+
+        const leaderboard = document.querySelector('.leaderboard');
+        const table = document.querySelector('.leaderboard > table');
+        if (!leaderboard || !table) return;
+
+        if (isMobileDrawerViewport()) {
+            leaderboard.style.removeProperty('--leaderboard-table-height');
+            return;
+        }
+
+        const tableHeight = table.getBoundingClientRect().height;
+        if (tableHeight > 0) {
+            leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
+        }
+    }
+
+    function installLeaderboardTableHeightObserver() {
+        const table = document.querySelector('.leaderboard > table');
+        if (!table) return;
+
+        if ('ResizeObserver' in window) {
+            leaderboardTableResizeObserver = new ResizeObserver(scheduleLeaderboardTableHeightSync);
+            leaderboardTableResizeObserver.observe(table);
+        }
+
+        scheduleLeaderboardTableHeightSync();
     }
 
     sidebarToggle.addEventListener('click', (event) => {
@@ -7500,6 +7540,7 @@
         const drawerScrollX = window.scrollX;
         const drawerScrollY = window.scrollY;
 
+        scheduleLeaderboardTableHeightSync();
         sidebar.classList.remove('partially-expanded');
         sidebar.classList.remove('collapsed');
 
@@ -7573,7 +7614,16 @@
     }
 
     syncSidebarDrawerBackdrop();
-    window.addEventListener('resize', syncSidebarDrawerBackdrop);
+    installLeaderboardTableHeightObserver();
+    window.addEventListener('resize', () => {
+        syncSidebarDrawerBackdrop();
+        scheduleLeaderboardTableHeightSync();
+    });
+    if (typeof mobileDrawerMediaQuery.addEventListener === 'function') {
+        mobileDrawerMediaQuery.addEventListener('change', scheduleLeaderboardTableHeightSync);
+    } else if (typeof mobileDrawerMediaQuery.addListener === 'function') {
+        mobileDrawerMediaQuery.addListener(scheduleLeaderboardTableHeightSync);
+    }
 
     // Sidebar swipe gesture
     let startX = 0;
