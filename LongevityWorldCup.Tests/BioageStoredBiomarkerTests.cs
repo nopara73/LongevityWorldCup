@@ -506,6 +506,34 @@ public sealed class BioageStoredBiomarkerTests
         Assert.True(creatinineStoreIndex > correctionIndex);
     }
 
+    [Fact]
+    public void BortzPage_CorrectsCommonSiBortzOnlyValuesEnteredWithUsDefaultUnits()
+    {
+        var html = File.ReadAllText(GetPagePath("bortz-age.html"));
+
+        Assert.Contains("u === 2.801 && v < 7.5 && v > 0", html);
+        Assert.Contains("Urea value suggests mmol/L. Correcting the unit.", html);
+        Assert.Contains("u === 0.1 && v > 0.3 && v < 3", html);
+        Assert.Contains("Cystatin C value suggests mg/L. Correcting the unit.", html);
+        Assert.Contains("u === 100 && v < 10 && v > 0", html);
+        Assert.Contains("ApoA1 value suggests g/L. Correcting the unit.", html);
+        Assert.Contains("u === 0.0347 && v >= 10 && v < 200", html);
+        Assert.Contains("SHBG value suggests nmol/L. Correcting the unit.", html);
+
+        var proceedBody = GetFunctionBody(html, "function proceedToNextPage()", "const biomarkerData = {");
+        var correctionIndex = proceedBody.IndexOf("correctCorrectableUnits();", StringComparison.Ordinal);
+        var ureaStoreIndex = proceedBody.IndexOf("store('urea', 'UreaMmolL'", StringComparison.Ordinal);
+        var cystatinStoreIndex = proceedBody.IndexOf("store('cystatin_c', 'CystatinCMgL'", StringComparison.Ordinal);
+        var apoa1StoreIndex = proceedBody.IndexOf("store('apoa1', 'ApoA1GL'", StringComparison.Ordinal);
+        var shbgStoreIndex = proceedBody.IndexOf("store('shbg', 'ShbgNmolL'", StringComparison.Ordinal);
+
+        Assert.True(correctionIndex >= 0);
+        Assert.True(ureaStoreIndex > correctionIndex);
+        Assert.True(cystatinStoreIndex > correctionIndex);
+        Assert.True(apoa1StoreIndex > correctionIndex);
+        Assert.True(shbgStoreIndex > correctionIndex);
+    }
+
     private static string GetPagePath(string fileName)
     {
         var repoRoot = FindRepoRoot();

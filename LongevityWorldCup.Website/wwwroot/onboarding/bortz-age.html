@@ -2026,9 +2026,24 @@
                 if (!isNaN(v) && u === 1 && v > 40) {
                     console.warn("Urea value suggests BUN (mg/dL). Correcting the unit.");
                     setUnit(ureaUnitEl, 2.801);
-                } else if (!isNaN(v) && u === 2.801 && v < 2 && v > 0) {
+                } else if (!isNaN(v) && u === 2.801 && v < 7.5 && v > 0) {
                     console.warn("Urea value suggests mmol/L. Correcting the unit.");
                     setUnit(ureaUnitEl, 1);
+                }
+            }
+
+            // Cystatin C: mg/L typical ~0.6-1.2; mg/dL entries are ~0.06-0.12.
+            const cystatinEl = document.getElementById('cystatin_c');
+            const cystatinUnitEl = document.getElementById('cystatin_cUnit');
+            if (cystatinEl && cystatinUnitEl) {
+                const v = parse(cystatinEl);
+                const u = parseFloat(cystatinUnitEl.value);
+                if (!isNaN(v) && u === 0.1 && v > 0.3 && v < 3) {
+                    console.warn("Cystatin C value suggests mg/L. Correcting the unit.");
+                    setUnit(cystatinUnitEl, 1);
+                } else if (!isNaN(v) && u === 1 && v > 0 && v < 0.3) {
+                    console.warn("Cystatin C value suggests mg/dL. Correcting the unit.");
+                    setUnit(cystatinUnitEl, 0.1);
                 }
             }
 
@@ -2056,6 +2071,24 @@
                 if (!isNaN(v) && u === 1 && v > 10) {
                     console.warn("ApoA1 value suggests mg/dL. Correcting the unit.");
                     setUnit(apoa1UnitEl, 100);
+                } else if (!isNaN(v) && u === 100 && v < 10 && v > 0) {
+                    console.warn("ApoA1 value suggests g/L. Correcting the unit.");
+                    setUnit(apoa1UnitEl, 1);
+                }
+            }
+
+            // SHBG: nmol/L typical ~10-100; µg/dL values are only a few units.
+            const shbgEl = document.getElementById('shbg');
+            const shbgUnitEl = document.getElementById('shbgUnit');
+            if (shbgEl && shbgUnitEl) {
+                const v = parse(shbgEl);
+                const u = parseFloat(shbgUnitEl.value);
+                if (!isNaN(v) && u === 0.0347 && v >= 10 && v < 200) {
+                    console.warn("SHBG value suggests nmol/L. Correcting the unit.");
+                    setUnit(shbgUnitEl, 1);
+                } else if (!isNaN(v) && u === 1 && v > 0 && v < 5) {
+                    console.warn("SHBG value suggests µg/dL. Correcting the unit.");
+                    setUnit(shbgUnitEl, 0.0347);
                 }
             }
 
