@@ -76,8 +76,10 @@
 
     .leaderboard{
         --leaderboard-table-height: calc(100vh - 2rem);
+        --leaderboard-sidebar-sticky-top: 4rem;
         display:flex; align-items:flex-start; background-color:var(--card-bg);
-        border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:hidden; flex-grow:1;
+        min-height:var(--leaderboard-table-height);
+        border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:clip; flex-grow:1;
     }
 
     @keyframes skeletonShimmer{
@@ -298,12 +300,12 @@
        4) Sidebar & filters
        ========================= */
     .sidebar{
-        position:relative; width:50px; padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
+        position:relative; width:50px; min-height:var(--leaderboard-table-height); padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
         margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width .3s ease, padding .3s ease;
-        overflow:hidden; flex-shrink:0;
+        overflow:visible; flex-shrink:0;
     }
     .sidebar:hover:not(.button-collapsed), .sidebar.expanded{
-        width:auto; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height)); padding:1rem; align-items:flex-start;
+        position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; min-height:0; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height)); padding:1rem; align-items:flex-start;
         overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable;
         scrollbar-width:thin; scrollbar-color:rgba(0,188,212,.55) transparent;
     }
@@ -375,15 +377,18 @@
     }
 
     .collapsed-title{
-        display:block; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:1.8rem; color:var(--primary-color);
+        display:block; position:sticky; top:calc(var(--leaderboard-sidebar-sticky-top) + 4.75rem); z-index:1; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:1.8rem; color:var(--primary-color);
         padding:15px 0; letter-spacing:1px; word-spacing:10px; font-family:'Orbitron', sans-serif;
         background:linear-gradient(45deg, var(--primary-color), var(--secondary-color)); background-size:200%;
         -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
     }
     .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
     .sidebar:hover .sidebar-title, .sidebar.expanded .sidebar-title{ width:100%; }
+    .sidebar:hover:not(.button-collapsed) .sidebar-title,
+    .sidebar.expanded .sidebar-title{ position:static; }
 
     .sidebar-title{
+        position:sticky; top:var(--leaderboard-sidebar-sticky-top); z-index:2; width:100%; box-sizing:border-box;
         margin:0; padding:1rem 0; text-align:center; font-size:1.2rem; color:var(--primary-color);
         display:flex; align-items:center; justify-content:left; border-bottom:2px solid var(--primary-color);
     }
@@ -1741,7 +1746,7 @@
         .sidebar{
             width:min(82vw, 320px); max-width:calc(100vw - 2rem); margin-right:0; margin-bottom:1rem;
             padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
-            position:fixed; top:0; left:0; height:100dvh; max-height:100dvh; align-items:stretch; border-radius:0 18px 18px 0;
+            position:fixed; top:0; left:0; height:100dvh; min-height:0; max-height:100dvh; align-items:stretch; border-radius:0 18px 18px 0;
             background:var(--card-bg); z-index:1002; box-shadow:0 18px 42px rgba(0,0,0,.26); overflow-x:hidden; overflow-y:auto; transform:translateX(-105%);
             visibility:hidden; pointer-events:none;
             transition:transform .3s ease-in-out, visibility 0s linear .3s; box-sizing:border-box; overscroll-behavior:contain;
@@ -7486,6 +7491,7 @@
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
     const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
+    const LEADERBOARD_SIDEBAR_MIN_ROWS = 10;
     let leaderboardTableHeightFrame = 0;
     let leaderboardTableResizeObserver = null;
 
@@ -7512,7 +7518,22 @@
 
         const tableHeight = table.getBoundingClientRect().height;
         if (tableHeight > 0) {
-            leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
+            const tableHeaderHeight = table.tHead ? table.tHead.getBoundingClientRect().height : 0;
+            const bodyRows = Array.from(table.tBodies[0]?.rows || [])
+                .filter(row => {
+                    if (row.classList.contains('no-results')) return false;
+                    if (row.classList.contains('tier-separator')) return false;
+                    return window.getComputedStyle(row).display !== 'none';
+                });
+            const measuredRowHeights = bodyRows
+                .map(row => row.getBoundingClientRect().height)
+                .filter(height => height > 0);
+            const averageRowHeight = measuredRowHeights.length > 0
+                ? measuredRowHeights.reduce((sum, height) => sum + height, 0) / measuredRowHeights.length
+                : 84;
+            const tenRowTableHeight = tableHeaderHeight + (averageRowHeight * LEADERBOARD_SIDEBAR_MIN_ROWS);
+            const sidebarLayoutHeight = Math.max(tableHeight, tenRowTableHeight);
+            leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(sidebarLayoutHeight)}px`);
         }
     }
 
