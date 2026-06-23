@@ -1656,6 +1656,10 @@
                     if (timeZone === 'Pacific/Honolulu') {
                         return { countryCode: 'US', regionCode: 'HI' };
                     }
+                    if (timeZone) {
+                        // Timezone is stronger location evidence than a language preference such as en-US.
+                        return null;
+                    }
                 } catch (_) { /* ignore */ }
 
                 const languages = [];
