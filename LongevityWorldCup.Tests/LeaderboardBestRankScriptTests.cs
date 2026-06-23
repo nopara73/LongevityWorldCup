@@ -69,7 +69,8 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("href=\"${escapeHtml(flagHref)}\"", html);
         Assert.Contains("getModalDetailRankMarkup(flagRank)", html);
 
-        Assert.Contains("<span id=\"crowdAge\">0</span> <span class=\"unit\">years</span><span class=\"detail-muted\">, <span id=\"crowdCount\">0</span> guesses</span>", html);
+        Assert.Contains("<span id=\"crowdAge\">0</span> <span class=\"unit\">years</span>, <span id=\"crowdCount\">0</span> <span class=\"detail-muted\">guesses</span>", html);
+        Assert.DoesNotContain("<span class=\"detail-muted\">, <span id=\"crowdCount\">0</span> guesses</span>", html);
         Assert.Contains("<span class=\"detail-muted\">(rank: <span id=\"lowestPhenoAgeRank\" class=\"detail-value\"></span>)</span>", html);
         Assert.Contains("<span class=\"detail-muted\">(rank: <span id=\"bortzPaceOfAgingRank\" class=\"detail-value\"></span>)</span>", html);
         Assert.Contains("<span class=\"detail-muted\">(rank: <span id=\"paceOfAgingRank\" class=\"detail-value\"></span>)</span>", html);
