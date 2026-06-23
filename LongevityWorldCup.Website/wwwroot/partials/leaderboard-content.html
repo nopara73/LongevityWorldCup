@@ -385,14 +385,18 @@
     .sidebar:hover .collapsed-title, .sidebar.expanded .collapsed-title{ display:none; }
     .sidebar:hover .sidebar-title, .sidebar.expanded .sidebar-title{ width:100%; }
     .sidebar:hover:not(.button-collapsed) .sidebar-title,
-    .sidebar.expanded .sidebar-title{ position:static; }
+    .sidebar.expanded .sidebar-title{ position:static; justify-content:flex-start; }
 
     .sidebar-title{
         position:sticky; top:var(--leaderboard-sidebar-sticky-top); z-index:2; width:100%; box-sizing:border-box;
         margin:0; padding:1rem 0; text-align:center; font-size:1.2rem; color:var(--primary-color);
-        display:flex; align-items:center; justify-content:left; border-bottom:2px solid var(--primary-color);
+        display:flex; align-items:center; justify-content:center; border-bottom:2px solid var(--primary-color);
     }
-    .sidebar .sidebar-title .sidebar-icon{ display:inline-block; font-size:2rem; position:relative; }
+    .sidebar .sidebar-title .sidebar-icon{
+        display:inline-flex; align-items:center; justify-content:center; flex:0 0 2.25rem; width:2.25rem; height:2.25rem;
+        font-size:2rem; line-height:1; position:relative;
+    }
+    .sidebar .sidebar-title .sidebar-icon i{ line-height:1; }
     .sidebar.has-active-state .sidebar-title .sidebar-icon::after{
         content:''; position:absolute; top:0; right:-4px; width:12px; height:12px; border-radius:50%;
         background:var(--secondary-color); border:2px solid var(--card-bg); box-shadow:0 1px 4px rgba(0,0,0,.2);
