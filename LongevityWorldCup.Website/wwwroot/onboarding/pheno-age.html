@@ -1718,7 +1718,7 @@
             if (!isNaN(glucoseValue) && glucoseUnit === 1 && glucoseValue > 30) {
                 console.warn("Glucose value suggests mg/dL. Correcting the unit.");
                 setUnit('glucoseUnit', 18.016);
-            } else if (!isNaN(glucoseValue) && glucoseUnit === 18.016 && glucoseValue < 2 && glucoseValue > 0) {
+            } else if (!isNaN(glucoseValue) && glucoseUnit === 18.016 && glucoseValue < 30 && glucoseValue > 0) {
                 console.warn("Glucose value suggests mmol/L. Correcting the unit.");
                 setUnit('glucoseUnit', 1);
             }

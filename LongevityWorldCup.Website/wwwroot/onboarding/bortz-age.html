@@ -2011,7 +2011,7 @@
                 if (!isNaN(v) && u === 1 && v > 30) {
                     console.warn("Glucose value suggests mg/dL. Correcting the unit.");
                     setUnit(gluUnitEl, 18.016);
-                } else if (!isNaN(v) && u === 18.016 && v < 2 && v > 0) {
+                } else if (!isNaN(v) && u === 18.016 && v < 30 && v > 0) {
                     console.warn("Glucose value suggests mmol/L. Correcting the unit.");
                     setUnit(gluUnitEl, 1);
                 }

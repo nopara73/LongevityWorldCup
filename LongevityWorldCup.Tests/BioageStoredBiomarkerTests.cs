@@ -456,6 +456,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("Glucose value suggests mg/dL. Correcting the unit.", html);
         Assert.Contains("setUnit('glucoseUnit', 18.016);", html);
         Assert.Contains("Glucose value suggests mmol/L. Correcting the unit.", html);
+        Assert.Contains("glucoseUnit === 18.016 && glucoseValue < 30 && glucoseValue > 0", html);
         Assert.Contains("setUnit('glucoseUnit', 1);", html);
 
         var proceedBody = GetFunctionBody(html, "function proceedToNextPage()", "const biomarkerData = {");
@@ -467,6 +468,23 @@ public sealed class BioageStoredBiomarkerTests
         Assert.True(correctionIndex >= 0);
         Assert.True(albuminStoreIndex > correctionIndex);
         Assert.True(creatinineStoreIndex > correctionIndex);
+        Assert.True(glucoseStoreIndex > correctionIndex);
+    }
+
+    [Fact]
+    public void BortzPage_CorrectsNormalMmolLGlucoseEnteredWithMgDlUnit()
+    {
+        var html = File.ReadAllText(GetPagePath("bortz-age.html"));
+
+        Assert.Contains("Glucose value suggests mmol/L. Correcting the unit.", html);
+        Assert.Contains("u === 18.016 && v < 30 && v > 0", html);
+        Assert.Contains("setUnit(gluUnitEl, 1);", html);
+
+        var proceedBody = GetFunctionBody(html, "function proceedToNextPage()", "const biomarkerData = {");
+        var correctionIndex = proceedBody.IndexOf("correctCorrectableUnits();", StringComparison.Ordinal);
+        var glucoseStoreIndex = proceedBody.IndexOf("store('glucose', 'GluMmolL'", StringComparison.Ordinal);
+
+        Assert.True(correctionIndex >= 0);
         Assert.True(glucoseStoreIndex > correctionIndex);
     }
 
