@@ -25,6 +25,20 @@ public sealed class LabAccessPanelTests
     }
 
     [Fact]
+    public void BortzPageDoesNotLetBrowserLanguageOverrideKnownTimezone()
+    {
+        var html = File.ReadAllText(GetPagePath("bortz-age.html")).Replace("\r\n", "\n");
+
+        var timezoneCheck = html.IndexOf("const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;", StringComparison.Ordinal);
+        var knownTimezoneFallback = html.IndexOf("if (timeZone) {\n                        // Timezone is stronger location evidence than a language preference such as en-US.\n                        return null;\n                    }", timezoneCheck, StringComparison.Ordinal);
+        var languageFallback = html.IndexOf("const languages = [];", timezoneCheck, StringComparison.Ordinal);
+
+        Assert.True(timezoneCheck >= 0);
+        Assert.True(knownTimezoneFallback > timezoneCheck);
+        Assert.True(languageFallback > knownTimezoneFallback);
+    }
+
+    [Fact]
     public void PhenoPageShowsNewZealandPanelForEligibleVisitors()
     {
         var html = File.ReadAllText(GetPagePath("pheno-age.html"));
