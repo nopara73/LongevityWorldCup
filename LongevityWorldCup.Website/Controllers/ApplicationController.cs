@@ -86,6 +86,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         private const int MaxBase64Length = 10 * 1024 * 1024; // 10 MB
+        private const int MaxProofImages = 27;
         private const int ProfileImageMaxDimension = 2048;
         private const int ProofImageMaxDimension = 2560;
         private const int ExistingWebpProfilePassthroughBytes = 4 * 1024 * 1024;
@@ -189,6 +190,11 @@ namespace LongevityWorldCup.Website.Controllers
             applicantData.ProofPics = applicantData.ProofPics?
                 .Where(proof => !string.IsNullOrWhiteSpace(proof))
                 .ToList();
+
+            if (applicantData.ProofPics?.Count > MaxProofImages)
+            {
+                return BadRequest($"You can upload a maximum of {MaxProofImages} proof images.");
+            }
 
             var hasSubmittedBiomarkers = applicantData.Biomarkers?.Any() is true;
             var hasSubmittedProofs = applicantData.ProofPics?.Any() is true;

@@ -156,6 +156,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
         quality: 0.88,
         targetMaxBytes: 1.5 * 1024 * 1024
     };
+    const maxProofImages = 27;
 
     ensurePdfJsReady().catch(() => {});
 
@@ -256,7 +257,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                         const pdfDoc = await loadingTask.promise;
                         // render each page
                         for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-                            if (proofPics.length >= 9) {
+                            if (proofPics.length >= maxProofImages) {
                                 hitImageLimit = true;
                                 break;
                             }
@@ -280,7 +281,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                         continue;
                     }
 
-                    if (proofPics.length >= 9) {
+                    if (proofPics.length >= maxProofImages) {
                         hitImageLimit = true;
                         break;
                     }
@@ -313,7 +314,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
             }
             if (hitImageLimit) {
                 updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                showProofUploadNotice('Only the first 9 proof images were kept. Remove one to add another.');
+                showProofUploadNotice('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');
             }
         } catch (error) {
             customAlert('Proof upload failed. Please try again with an image or PDF file.')

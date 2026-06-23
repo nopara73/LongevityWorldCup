@@ -339,6 +339,23 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task ResultSubmissionTooManyProofsReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }],
+            ProofPics = Enumerable.Repeat("data:image/png;base64,AA==", 28).ToList()
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("You can upload a maximum of 27 proof images.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task ResultSubmissionMissingBiomarkersReturnsBadRequestBeforeProcessing()
     {
         using var factory = new TestWebApplicationFactory();
