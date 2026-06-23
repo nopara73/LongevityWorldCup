@@ -72,6 +72,25 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("<span class=\"detail-muted\">(rank: <span id=\"paceOfAgingRank\" class=\"detail-value\"></span>)</span>", html);
     }
 
+    [Fact]
+    public void LeaderboardSidebar_UsesTenRowMinimumAndStickyDesktopRail()
+    {
+        var html = ReadLeaderboardPartial();
+
+        Assert.Contains("--leaderboard-sidebar-sticky-top: 4rem;", html);
+        Assert.Contains("min-height:var(--leaderboard-table-height);", html);
+        Assert.Contains("overflow:clip; flex-grow:1;", html);
+        Assert.Contains("position:relative; width:50px; min-height:var(--leaderboard-table-height);", html);
+        Assert.Contains("overflow:visible; flex-shrink:0;", html);
+        Assert.Contains("display:block; position:sticky; top:calc(var(--leaderboard-sidebar-sticky-top) + 4.75rem);", html);
+        Assert.Contains("position:sticky; top:var(--leaderboard-sidebar-sticky-top); z-index:2;", html);
+        Assert.Contains("position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; min-height:0; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height));", html);
+        Assert.Contains("height:100dvh; min-height:0; max-height:100dvh;", html);
+        Assert.Contains("const LEADERBOARD_SIDEBAR_MIN_ROWS = 10;", html);
+        Assert.Contains("const tenRowTableHeight = tableHeaderHeight + (averageRowHeight * LEADERBOARD_SIDEBAR_MIN_ROWS);", html);
+        Assert.Contains("const sidebarLayoutHeight = Math.max(tableHeight, tenRowTableHeight);", html);
+    }
+
     private static string ReadLeaderboardPartial()
     {
         var repoRoot = FindRepoRoot();
