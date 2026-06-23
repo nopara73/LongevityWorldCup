@@ -1488,15 +1488,15 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task SignupAndProfileAllowMissingCommitmentAmountAfterOriginalCatchUp()
+    public async Task SignupAndProfileRequireValidCommitmentAmountAfterOriginalCatchUp()
     {
         using var fixture = TestChallengeFixture.Create();
 
-        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
             "missing-commitment@example.com",
             "Missing Commitment",
             "UTC",
-            null));
+            null)));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
             "small-commitment@example.com",
@@ -1535,18 +1535,16 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal("deferred", day14.Commitment.Status);
 
         var blocked = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-23T08:05:00Z"));
-        Assert.Equal("clear", blocked.Commitment.Status);
-        Assert.False(blocked.Commitment.BlocksParticipant);
+        Assert.Equal("needs-amount", blocked.Commitment.Status);
+        Assert.True(blocked.Commitment.BlocksParticipant);
         Assert.True(blocked.Commitment.CanEditAmount);
         Assert.False(blocked.Commitment.CanPay);
-        Assert.Contains("No commitment due.", blocked.Commitment.Message);
-
+        Assert.Contains("Configure an amount that'd hurt before continuing past Day 14.", blocked.Commitment.Message);
         var day15 = fixture.Service.SubmitCheckIn(
             new LongevitymaxxingCheckInRequest(access, 15, 2, 2, 2, 2, null),
             DateTimeOffset.Parse("2026-06-23T08:05:00Z"));
-        Assert.False(day15.Commitment.BlocksParticipant);
-        Assert.Null(day15.Participant.CommitmentAmountUsd);
         Assert.True(day15.Public.Leaderboard.Single().Cells.Single(cell => cell.ChallengeDay == 15).CheckedIn);
+        Assert.Null(day15.Participant.CommitmentAmountUsd);
 
         var configured = fixture.Service.EditParticipant(new LongevitymaxxingParticipantEditRequest(
             access,
@@ -1867,12 +1865,12 @@ public sealed class LongevitymaxxingChallengeServiceTests
         using var setupStream = CreatePngStream();
         var setupFile = CreatePngFormFile(setupStream);
 
-        var uploaded = await fixture.Service.UploadParticipantProfilePictureAsync(
-            setupAccess,
-            setupFile,
-            nowUtc: DateTimeOffset.Parse("2026-06-23T08:05:00Z"));
-        Assert.False(uploaded.Commitment.BlocksParticipant);
-        Assert.NotNull(uploaded.Participant.ProfileImageUrl);
+        var setupError = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.Service.UploadParticipantProfilePictureAsync(
+                setupAccess,
+                setupFile,
+                nowUtc: DateTimeOffset.Parse("2026-06-23T08:05:00Z")));
+        Assert.Contains("Configure your commitment amount", setupError.Message);
     }
 
     [Fact]
