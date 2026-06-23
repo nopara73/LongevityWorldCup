@@ -756,6 +756,19 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ProfilePhotoCropper_UsesCspAllowedCdn()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css", html);
+        Assert.Contains("https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js", html);
+        Assert.DoesNotContain("https://unpkg.com/cropperjs", html);
+    }
+
+    [Fact]
     public async Task ProfilePhotoSelection_RejectsUnsupportedFormatsBeforeReading()
     {
         using var factory = new TestWebApplicationFactory();
