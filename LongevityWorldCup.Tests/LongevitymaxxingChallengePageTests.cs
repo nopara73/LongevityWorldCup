@@ -394,9 +394,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Payment confirmed. You're unlocked.", javascript);
         Assert.Contains("Redeem yourself", javascript);
         Assert.Contains(": \"Make a pledge to continue\";", javascript);
-        Assert.DoesNotContain("<strong>Set a real stake</strong>", javascript);
-        Assert.DoesNotContain("Fall below your recent average and either pay it or stop. Choose an amount that would hurt.", javascript);
-        Assert.DoesNotContain("id=\"lmxBlockedCommitmentAmount\"", javascript);
+        Assert.Contains("<strong>Set a real stake</strong>", javascript);
+        Assert.Contains("Fall below your recent average and either pay it or stop. Choose an amount that would hurt.", javascript);
+        Assert.Contains("Make a pledge", javascript);
         Assert.Contains("Check again", javascript);
         Assert.Contains("Waiting for payment confirmation...", javascript);
         Assert.Contains("Still waiting. This can take a minute.", javascript);
@@ -416,6 +416,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("checkoutWindow.location = checkoutLink;", javascript);
         Assert.Contains("window.location.href = checkoutLink;", javascript);
         Assert.Contains("function sanitizeCommitmentAmountInput", javascript);
+        Assert.Contains("<span aria-hidden=\"true\">$</span>", javascript);
+        Assert.Contains("placeholder=\"300\"", javascript);
         var html = await client.GetStringAsync("/longevitymaxxing");
         Assert.Contains("id=\"lmxSignupCommitmentAmount\"", html);
         Assert.Contains("<span aria-hidden=\"true\">$</span>", html);

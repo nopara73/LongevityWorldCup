@@ -191,7 +191,7 @@ public sealed class LongevitymaxxingChallengeService
                 Add(insert, "@access", accessToken);
                 Add(insert, "@confirm", confirmationToken);
                 Add(insert, "@stop", stopToken);
-                Add(insert, "@commitmentAmount", commitmentAmountUsd.HasValue ? FormatDecimal(commitmentAmountUsd.Value) : null);
+                Add(insert, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
                 Add(insert, "@created", now.ToString("o"));
                 Add(insert, "@updated", now.ToString("o"));
                 insert.ExecuteNonQuery();
@@ -221,7 +221,7 @@ public sealed class LongevitymaxxingChallengeService
                 Add(update, "@name", displayName);
                 Add(update, "@tz", timeZoneId);
                 Add(update, "@athlete", athleteSlug);
-                Add(update, "@commitmentAmount", commitmentAmountUsd.HasValue ? FormatDecimal(commitmentAmountUsd.Value) : null);
+                Add(update, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
                 Add(update, "@updated", now.ToString("o"));
                 Add(update, "@id", participantId);
                 update.ExecuteNonQuery();
@@ -377,7 +377,7 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset? nowUtc = null)
     {
         var participant = RequireParticipantByAccessToken(accessToken);
-        EnsureParticipantNotCommitmentBlocked(participant);
+        EnsureParticipantNotCommitmentBlocked(participant, nowUtc);
         if (!string.IsNullOrWhiteSpace(participant.AthleteSlug))
             throw new InvalidOperationException("Profile picture upload is only for participants without a linked Longevity athlete profile.");
 
@@ -1487,10 +1487,13 @@ public sealed class LongevitymaxxingChallengeService
 
         if (participant.CommitmentAmountUsd is null)
         {
+            var hasOriginalDurationCatchUp = eligibleDays.Any(day =>
+                day.ChallengeDay <= settings.DurationDays &&
+                day.Existing is null);
             var hasPendingContinuationCheckIn = eligibleDays.Any(day =>
                 day.ChallengeDay > settings.DurationDays &&
                 day.Existing is null);
-            if (!hasPendingContinuationCheckIn)
+            if (!IsCommitmentSetupRequired(settings, participant, now) && !hasPendingContinuationCheckIn)
             {
                 return new LongevitymaxxingCommitmentState(
                     "deferred",
@@ -1509,8 +1512,8 @@ public sealed class LongevitymaxxingChallengeService
             }
 
             return new LongevitymaxxingCommitmentState(
-                "clear",
-                false,
+                "needs-amount",
+                !hasOriginalDurationCatchUp,
                 true,
                 false,
                 null,
@@ -1521,7 +1524,7 @@ public sealed class LongevitymaxxingChallengeService
                 null,
                 null,
                 null,
-                "No commitment due.");
+                "Configure an amount that'd hurt before continuing past Day 14.");
         }
 
         return new LongevitymaxxingCommitmentState(
@@ -1548,16 +1551,6 @@ public sealed class LongevitymaxxingChallengeService
         IReadOnlyDictionary<int, CheckInRecord> byDay,
         DateTimeOffset now)
     {
-        if (participant.CommitmentAmountUsd is null)
-        {
-            return new LongevitymaxxingCommitmentTrendGuidance(
-                false,
-                0,
-                null,
-                null,
-                "Pledge optional.");
-        }
-
         var referenceDay = byDay.Keys.DefaultIfEmpty(0).Max() + 1;
         var prior = GetPreviousScoredCheckIns(settings, participant, byDay, referenceDay)
             .Take(CommitmentAverageWindowDays)
@@ -2000,8 +1993,11 @@ public sealed class LongevitymaxxingChallengeService
             .Any(day => day.ChallengeDay == obligation.TriggerChallengeDay && day.Existing is not null);
     }
 
-    private void EnsureParticipantNotCommitmentBlocked(ParticipantRecord participant)
+    private void EnsureParticipantNotCommitmentBlocked(ParticipantRecord participant, DateTimeOffset? nowUtc = null)
     {
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        if (participant.CommitmentAmountUsd is null && IsCommitmentSetupRequired(BuildSettings(now), participant, now))
+            throw new InvalidOperationException("Configure your commitment amount before continuing.");
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before continuing.");
     }
@@ -2263,6 +2259,9 @@ public sealed class LongevitymaxxingChallengeService
         var localDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, ResolveTimeZone(participant.TimeZoneId)).DateTime);
         return localDate > settings.EndDate.AddDays(1);
     }
+
+    private static bool IsCommitmentAmountRequiredForCheckIn(ChallengeSettings settings, int challengeDay)
+        => challengeDay > settings.DurationDays;
 
     private static bool CountsForScore(
         ChallengeSettings settings,
@@ -3123,10 +3122,10 @@ public sealed class LongevitymaxxingChallengeService
         }
     }
 
-    private static decimal? NormalizeCommitmentAmount(decimal? amount)
+    private static decimal NormalizeCommitmentAmount(decimal? amount)
     {
         if (amount is null)
-            return null;
+            throw new InvalidOperationException("Configure an amount that'd hurt.");
 
         var rounded = decimal.Round(amount.Value, 2, MidpointRounding.AwayFromZero);
         if (rounded < MinimumCommitmentAmountUsd)
