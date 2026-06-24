@@ -1798,51 +1798,149 @@ body.lmx-quote-open {
 .lmx-quote-dialog-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(15, 23, 42, 0.52);
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(3px);
 }
 
 .lmx-quote-dialog-card {
+    --lmx-quote-accent: #14b8a6;
+    --lmx-quote-accent-deep: #0f766e;
+    --lmx-quote-accent-soft: rgba(20, 184, 166, 0.10);
     position: relative;
     z-index: 1;
-    width: min(100%, 34rem);
+    width: min(100%, 35rem);
     max-height: min(88vh, 38rem);
     overflow: auto;
     display: grid;
-    gap: 0.75rem;
-    padding: 1rem;
-    border: 1px solid rgba(15, 23, 42, 0.14);
+    border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 8px;
-    background: #ffffff;
-    box-shadow: 0 22px 54px rgba(15, 23, 42, 0.26);
+    background:
+        linear-gradient(180deg, var(--lmx-quote-accent) 0 0.28rem, transparent 0.28rem),
+        #ffffff;
+    box-shadow:
+        0 22px 58px rgba(15, 23, 42, 0.30),
+        0 1px 0 rgba(255, 255, 255, 0.70) inset;
+}
+
+.lmx-quote-dialog[data-quote-bucket="sleep"] .lmx-quote-dialog-card {
+    --lmx-quote-accent: #0ea5e9;
+    --lmx-quote-accent-deep: #075985;
+    --lmx-quote-accent-soft: rgba(14, 165, 233, 0.10);
+}
+
+.lmx-quote-dialog[data-quote-bucket="exercise"] .lmx-quote-dialog-card {
+    --lmx-quote-accent: #f97316;
+    --lmx-quote-accent-deep: #9a3412;
+    --lmx-quote-accent-soft: rgba(249, 115, 22, 0.10);
+}
+
+.lmx-quote-dialog[data-quote-bucket="nutrition"] .lmx-quote-dialog-card {
+    --lmx-quote-accent: #16a34a;
+    --lmx-quote-accent-deep: #166534;
+    --lmx-quote-accent-soft: rgba(22, 163, 74, 0.10);
+}
+
+.lmx-quote-dialog[data-quote-bucket="vices"] .lmx-quote-dialog-card {
+    --lmx-quote-accent: #e11d48;
+    --lmx-quote-accent-deep: #9f1239;
+    --lmx-quote-accent-soft: rgba(225, 29, 72, 0.09);
+}
+
+.lmx-quote-dialog[data-quote-bucket="mindset"] .lmx-quote-dialog-card {
+    --lmx-quote-accent: #6366f1;
+    --lmx-quote-accent-deep: #3730a3;
+    --lmx-quote-accent-soft: rgba(99, 102, 241, 0.09);
+}
+
+.lmx-quote-dialog-body {
+    display: grid;
+    grid-template-columns: 2.6rem minmax(0, 1fr);
+    gap: 0.85rem;
+    padding: 1.15rem 1.15rem 1rem;
+}
+
+.lmx-quote-dialog-symbol {
+    width: 2.6rem;
+    height: 2.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: start;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 8px;
+    background: var(--lmx-quote-accent-soft);
+    color: var(--lmx-quote-accent-deep);
+}
+
+.lmx-quote-dialog-symbol i {
+    font-size: 1.05rem;
+}
+
+.lmx-quote-dialog-main {
+    position: relative;
+    z-index: 0;
+    min-width: 0;
+    display: grid;
+    gap: 0.75rem;
 }
 
 .lmx-quote-dialog blockquote {
+    position: relative;
     margin: 0;
     color: #0f172a;
-    font-size: 1.05rem;
+    font-size: 1.12rem;
     font-weight: 850;
-    line-height: 1.45;
+    line-height: 1.42;
     overflow-wrap: anywhere;
+}
+
+.lmx-quote-dialog blockquote::before {
+    content: "\"";
+    position: absolute;
+    top: -0.9rem;
+    left: -0.1rem;
+    z-index: -1;
+    color: var(--lmx-quote-accent-soft);
+    font-size: 4.1rem;
+    font-weight: 900;
+    line-height: 1;
 }
 
 .lmx-quote-source {
     min-width: 0;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) 2.5rem;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 0.32rem 0.45rem;
-    color: #64748b;
-    font-size: 0.84rem;
+    gap: 0.55rem;
+    color: #475569;
+    font-size: 0.82rem;
     font-weight: 800;
     line-height: 1.35;
 }
 
+.lmx-quote-athlete,
+.lmx-quote-rank,
+.lmx-quote-podcast-link {
+    max-width: 100%;
+    min-height: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    overflow-wrap: anywhere;
+}
+
 .lmx-quote-source a {
-    color: #075985;
+    color: #0f172a;
     text-decoration: none;
 }
 
+.lmx-quote-athlete a {
+    color: var(--lmx-quote-accent-deep);
+    font-weight: 900;
+}
+
 .lmx-quote-source a:hover {
+    color: var(--lmx-quote-accent-deep);
     text-decoration: underline;
 }
 
@@ -1851,13 +1949,100 @@ body.lmx-quote-open {
     outline-offset: 2px;
 }
 
+.lmx-quote-rank {
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.3;
+}
+
+.lmx-quote-rank::before {
+    content: "";
+    width: 0.28rem;
+    height: 0.28rem;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: #cbd5e1;
+}
+
+.lmx-quote-podcast-link {
+    width: 2.5rem;
+    height: 2.5rem;
+    justify-content: center;
+    justify-self: end;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 999px;
+    background: #0f172a;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.lmx-quote-podcast-link:hover {
+    background: var(--lmx-quote-accent-deep);
+    color: #ffffff !important;
+}
+
+.lmx-quote-podcast-link span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
 .lmx-quote-source-separator {
     color: #cbd5e1;
 }
 
+.lmx-quote-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.7rem 1rem 0.95rem;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    background: #f8fafc;
+}
+
 .lmx-quote-dialog-card .lmx-button {
     justify-self: end;
-    min-width: 5.5rem;
+    min-width: 4.8rem;
+    min-height: 2.55rem;
+    background: #0f766e;
+    box-shadow: 0 5px 14px rgba(15, 118, 110, 0.20);
+}
+
+@media (max-width: 560px) {
+    .lmx-quote-dialog {
+        padding: 0.75rem;
+    }
+
+    .lmx-quote-dialog-body {
+        grid-template-columns: 2.45rem minmax(0, 1fr);
+        gap: 0.7rem;
+        padding: 1rem 0.9rem 0.85rem;
+    }
+
+    .lmx-quote-dialog-symbol {
+        width: 2.45rem;
+        height: 2.45rem;
+    }
+
+    .lmx-quote-dialog blockquote {
+        font-size: 1rem;
+    }
+
+    .lmx-quote-source {
+        grid-template-columns: auto minmax(0, 1fr) 2.35rem;
+        font-size: 0.78rem;
+    }
+
+    .lmx-quote-podcast-link {
+        width: 2.35rem;
+        height: 2.35rem;
+    }
+
+    .lmx-quote-dialog-actions {
+        padding: 0.65rem 0.8rem 0.8rem;
+    }
 }
 
 .lmx-status {
