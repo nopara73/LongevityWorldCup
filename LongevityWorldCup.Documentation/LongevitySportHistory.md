@@ -87,6 +87,14 @@ Season 2 of the Longevity World Cup was released with major competition-format u
 - Athlete pages and the leaderboard began surfacing new derived performance views like pace of aging / pace rank.
 - Entry evolved from an early “low-friction” model toward explicit pricing.
 
+### 2026 November (announced) - Super Age Games
+
+The [Super Age Games](https://games.superage.com/) announced an in-person longevity fitness competition for November 7, 2026 in New York City. Its format emphasizes functional healthspan markers, with eight trials spanning grip strength, aerobic capacity, agility, balance, functional strength, endurance under load, cognitive capacity under physical stress, and relational capacity.
+
+### 2027 (announced) - Younger Contest
+
+[Younger Contest 2027](https://luma.com/829lvr59), hosted by NeuroAge Therapeutics, frames longevity competition as a six-month attempt to become biologically younger across brain, body, and face. Its composite Younger Score combines biological age markers, brain age, face age, functional measures like VO2 max and grip strength, and optional ultra testing such as MRI, DEXA, and expanded biomarkers.
+
 ## Special mentions
 
 Similar competitions are also emerging, such as [XPRIZE Health](https://www.xprize.org/domains/health), the now-offline VO2 Max Leaderboard by JoinZero, Favies (previously Goaly), and various fitness tracker-specific gamified leaderboards.
