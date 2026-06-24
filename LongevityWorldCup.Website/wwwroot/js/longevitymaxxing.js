@@ -2084,8 +2084,11 @@
 
         quoteDialogLastFocus = document.activeElement;
         dialog.dataset.quoteToken = token || "";
+        dialog.dataset.quoteBucket = quote.bucket || "";
         text.textContent = quote.text || "";
         source.innerHTML = renderCheckInQuoteSourceHtml(quote, bestRank);
+        const icon = dialog.querySelector("#lmxQuoteDialogIcon");
+        if (icon) icon.className = `fas ${getQuoteDialogIconClass(quote.bucket)}`;
         dialog.hidden = false;
         document.body.classList.add("lmx-quote-open");
         requestAnimationFrame(() => ok.focus({ preventScroll: true }));
@@ -2099,9 +2102,21 @@
             <div id="lmxQuoteDialog" class="lmx-quote-dialog" role="dialog" aria-modal="true" aria-label="Challenge quote" hidden>
                 <div class="lmx-quote-dialog-backdrop" aria-hidden="true"></div>
                 <div class="lmx-quote-dialog-card">
-                    <blockquote id="lmxQuoteDialogText"></blockquote>
-                    <div id="lmxQuoteDialogSource" class="lmx-quote-source"></div>
-                    <button id="lmxQuoteDialogOk" class="lmx-button" type="button">OK</button>
+                    <div class="lmx-quote-dialog-body">
+                        <div class="lmx-quote-dialog-symbol" aria-hidden="true">
+                            <i id="lmxQuoteDialogIcon" class="fas fa-quote-left"></i>
+                        </div>
+                        <div class="lmx-quote-dialog-main">
+                            <blockquote id="lmxQuoteDialogText"></blockquote>
+                            <div id="lmxQuoteDialogSource" class="lmx-quote-source"></div>
+                        </div>
+                    </div>
+                    <div class="lmx-quote-dialog-actions">
+                        <button id="lmxQuoteDialogOk" class="lmx-button" type="button">
+                            <i class="fas fa-check" aria-hidden="true"></i>
+                            <span>OK</span>
+                        </button>
+                    </div>
                 </div>
             </div>`);
         dialog = document.getElementById("lmxQuoteDialog");
@@ -2128,6 +2143,7 @@
         if (dialog) {
             dialog.hidden = true;
             delete dialog.dataset.quoteToken;
+            delete dialog.dataset.quoteBucket;
         }
         document.body.classList.remove("lmx-quote-open");
         try {
@@ -2144,14 +2160,25 @@
             ? `<a href="/athlete/${escAttr(athleteSlug)}" target="_blank" rel="noopener noreferrer">${esc(athleteName)}</a>`
             : `<span>${esc(athleteName)}</span>`;
         const rank = formatQuoteRankText(bestRank);
-        const youtube = quote.youtubeUrl
-            ? `<a href="${escAttr(quote.youtubeUrl)}" target="_blank" rel="noopener noreferrer">YouTube</a>`
+        const podcast = quote.youtubeUrl
+            ? `<a class="lmx-quote-podcast-link" href="${escAttr(quote.youtubeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open podcast episode with ${escAttr(athleteName)}" title="Podcast"><i class="fa fa-microphone" aria-hidden="true"></i><span>Podcast</span></a>`
             : "";
         return [
-            athlete,
-            rank ? `<span>${esc(rank)}</span>` : "",
-            youtube
-        ].filter(Boolean).join(`<span class="lmx-quote-source-separator" aria-hidden="true">-</span>`);
+            `<span class="lmx-quote-athlete">${athlete}</span>`,
+            rank ? `<span class="lmx-quote-rank">${esc(rank)}</span>` : "",
+            podcast
+        ].filter(Boolean).join("");
+    }
+
+    function getQuoteDialogIconClass(bucket) {
+        switch (bucket) {
+            case "sleep": return "fa-moon";
+            case "exercise": return "fa-dumbbell";
+            case "nutrition": return "fa-bowl-food";
+            case "vices": return "fa-shield-halved";
+            case "mindset": return "fa-brain";
+            default: return "fa-quote-left";
+        }
     }
 
     function formatQuoteRankText(bestRank) {

@@ -352,13 +352,17 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("href: buildQuoteFiltersHref([generation, division])", javascript);
         Assert.Contains("targetBlank: true", javascript);
         Assert.Contains("target=\"_blank\" rel=\"noopener noreferrer\"", javascript);
-        Assert.Contains("OK</button>", javascript);
+        Assert.Contains("id=\"lmxQuoteDialogOk\"", javascript);
+        Assert.Contains("Podcast</span>", javascript);
+        Assert.Contains("fa fa-microphone", javascript);
+        Assert.DoesNotContain(">YouTube</a>", javascript);
 
         Assert.Contains("body.lmx-quote-open", css);
         Assert.Contains(".lmx-quote-dialog", css);
         Assert.Contains(".lmx-quote-dialog-card", css);
         Assert.Contains("max-height: min(88vh, 38rem);", css);
         Assert.Contains(".lmx-quote-source", css);
+        Assert.Contains(".lmx-quote-podcast-link", css);
     }
 
     [Fact]
