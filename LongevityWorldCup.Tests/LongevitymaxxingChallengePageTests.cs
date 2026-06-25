@@ -506,7 +506,7 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
-    public async Task LongevitymaxxingScript_KeepsSignupLeaderboardVisibleAndFocusesDueCheckIn()
+    public async Task LongevitymaxxingScript_KeepsCommitmentBlockedLeaderboardVisibleAndFocusesDueCheckIn()
     {
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
@@ -534,7 +534,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("publicClosed", javascript);
         Assert.DoesNotContain("public-board-only", javascript);
         Assert.Contains("const participantGateOnly = commitmentBlocked || checkInOnly;", javascript);
-        Assert.Contains("toggle(\"lmxBoardSection\", !participantGateOnly);", javascript);
+        Assert.Contains("const publicContentHidden = checkInOnly;", javascript);
+        Assert.Contains("hero.classList.toggle(\"checkin-only\", publicContentHidden);", javascript);
+        Assert.Contains("toggle(\"lmxBoardSection\", !publicContentHidden);", javascript);
         Assert.Contains("toggle(\"lmxCommitmentPanel\", hasParticipant && commitmentBlocked);", javascript);
         Assert.Contains("toggle(\"lmxParticipantTools\", hasParticipant && !commitmentBlocked && activeParticipantTab === \"home\");", javascript);
         Assert.Contains("toggle(\"lmxParticipantCalls\", hasParticipant && !commitmentBlocked && activeParticipantTab === \"home\");", javascript);
@@ -559,14 +561,14 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-call-when small", css);
         Assert.Contains("const leaderboardRows = splitLeaderboardRows(state);", javascript);
         Assert.Contains("const leaderboard = participant.challengeInactive ? (state.leaderboard || []) : leaderboardRows.active;", javascript);
-        Assert.Contains("toggle(\"lmxTitlePanel\", !participantGateOnly);", javascript);
+        Assert.Contains("toggle(\"lmxTitlePanel\", !publicContentHidden);", javascript);
         Assert.Contains("toggle(\"lmxAccessTabs\", !hasParticipant && !isAccessLoading);", javascript);
         Assert.Contains("toggle(\"lmxResendPanel\", !hasParticipant && !isAccessLoading && accessTab === \"signin\");", javascript);
         Assert.Contains("toggle(\"lmxHabitHeading\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxHabitGrid\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxQuestionPreview\", !commitmentBlocked && (!hasParticipant || pendingCheckInDays.length > 0));", javascript);
         Assert.Contains("toggle(\"lmxTrack\", hasParticipant && dashboardMode && !participantGateOnly);", javascript);
-        Assert.Contains("toggle(\"lmxNotesPanel\", dashboardMode && !participantGateOnly);", javascript);
+        Assert.Contains("toggle(\"lmxNotesPanel\", dashboardMode && !publicContentHidden);", javascript);
         Assert.Contains("renderNotes(state.notes || [], false);", javascript);
         Assert.Contains("renderNotes(state.notes || state.public.notes || [], true);", javascript);
         Assert.Contains("No public notes yet.", javascript);
