@@ -873,19 +873,20 @@
         const activeParticipantTab = hasParticipant ? ensureParticipantTab(participantState) : null;
         const checkInOnly = !commitmentBlocked && pendingCheckInDays.length > 0 && activeParticipantTab === "checkin";
         const participantGateOnly = commitmentBlocked || checkInOnly;
+        const publicContentHidden = checkInOnly;
         const dashboardMode = hasParticipant || !isPreStartSignup(state);
         const hero = document.getElementById("lmxHeroLayout");
         if (hero) {
-            hero.classList.toggle("checkin-only", participantGateOnly);
+            hero.classList.toggle("checkin-only", publicContentHidden);
         }
 
-        toggle("lmxTitlePanel", !participantGateOnly);
+        toggle("lmxTitlePanel", !publicContentHidden);
         toggle("lmxAccessTabs", !hasParticipant && !isAccessLoading);
         toggle("lmxSignupPanel", !hasParticipant && !isAccessLoading && accessTab === "signup");
         toggle("lmxAccessLoadingPanel", isAccessLoading);
         toggle("lmxParticipantPanel", hasParticipant);
         toggle("lmxResendPanel", !hasParticipant && !isAccessLoading && accessTab === "signin");
-        toggle("lmxNotesPanel", dashboardMode && !participantGateOnly);
+        toggle("lmxNotesPanel", dashboardMode && !publicContentHidden);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
         toggle("lmxHabitHeading", !hasParticipant);
@@ -893,7 +894,7 @@
         toggle("lmxQuestionPreview", !commitmentBlocked && (!hasParticipant || pendingCheckInDays.length > 0));
         toggle("lmxTrack", hasParticipant && dashboardMode && !participantGateOnly);
         toggle("lmxMetrics", hasParticipant && dashboardMode && !participantGateOnly);
-        toggle("lmxBoardSection", !participantGateOnly);
+        toggle("lmxBoardSection", !publicContentHidden);
         toggle("lmxParticipantTabs", hasParticipant && !commitmentBlocked);
         toggle("lmxCommitmentPanel", hasParticipant && commitmentBlocked);
         toggle("lmxCheckinPanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "checkin");
