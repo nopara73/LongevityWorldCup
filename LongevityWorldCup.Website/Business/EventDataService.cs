@@ -1109,9 +1109,12 @@ public sealed class EventDataService : IDisposable
 
             using var existsCmd = sqlite.CreateCommand();
             existsCmd.Transaction = tx;
-            existsCmd.CommandText = "SELECT 1 FROM Events WHERE Type=@t AND Text=@txt LIMIT 1;";
+            // Crowd age/count can move with each accepted guess; notify once per athlete/place.
+            existsCmd.CommandText =
+                "SELECT 1 FROM Events WHERE Type=@t AND instr(Text, @slugToken) > 0 AND instr(Text, @placeToken) > 0 LIMIT 1;";
             var exType = existsCmd.Parameters.Add("@t", SqliteType.Integer);
-            var exText = existsCmd.Parameters.Add("@txt", SqliteType.Text);
+            var exSlugToken = existsCmd.Parameters.Add("@slugToken", SqliteType.Text);
+            var exPlaceToken = existsCmd.Parameters.Add("@placeToken", SqliteType.Text);
 
             using var insertCmd = sqlite.CreateCommand();
             insertCmd.Transaction = tx;
@@ -1131,10 +1134,12 @@ public sealed class EventDataService : IDisposable
                 if (!double.IsFinite(crowdAge)) continue;
                 if (crowdCount < 1) continue;
 
+                var normalizedSlug = NormalizeEventToken(slug);
+                var placeText = place.ToString(CultureInfo.InvariantCulture);
                 var parts = new List<string>
                 {
-                    $"slug[{NormalizeEventToken(slug)}]",
-                    $"place[{place.ToString(CultureInfo.InvariantCulture)}]"
+                    $"slug[{normalizedSlug}]",
+                    $"place[{placeText}]"
                 };
 
                 if (previousPlace.HasValue)
@@ -1151,7 +1156,8 @@ public sealed class EventDataService : IDisposable
                 if (skipIfExists)
                 {
                     exType.Value = (int)EventType.CrowdAgeTop10Change;
-                    exText.Value = text;
+                    exSlugToken.Value = $"slug[{normalizedSlug}]";
+                    exPlaceToken.Value = $"place[{placeText}]";
                     shouldInsert = existsCmd.ExecuteScalar() == null;
                 }
 
