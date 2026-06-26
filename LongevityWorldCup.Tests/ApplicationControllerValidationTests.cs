@@ -348,11 +348,11 @@ public sealed class ApplicationControllerValidationTests
         {
             Name = "Applicant Ada",
             Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }],
-            ProofPics = Enumerable.Repeat("data:image/png;base64,AA==", 28).ToList()
+            ProofPics = Enumerable.Repeat("data:image/png;base64,AA==", 31).ToList()
         }, CancellationToken.None);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("You can upload a maximum of 27 proof images.", badRequest.Value);
+        Assert.Equal("You can upload a maximum of 30 proof images.", badRequest.Value);
     }
 
     [Fact]
