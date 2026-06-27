@@ -363,9 +363,12 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             .documentation-nav a {
-                flex: 0 0 auto;
+                box-sizing: border-box;
+                flex: 0 1 auto;
+                max-width: 100%;
                 background: rgba(255, 255, 255, 0.58);
-                white-space: nowrap;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
 
             .documentation-nav .documentation-nav-level-3 {
