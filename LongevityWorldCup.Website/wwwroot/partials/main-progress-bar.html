@@ -175,6 +175,8 @@
 
     (function () {
         document.addEventListener('DOMContentLoaded', function () {
+            var stickyProgressContentGap = 12;
+
             setTimeout(function () {
                 // Scroll to the content under the progress bar so it sits just below the sticky header + progress bar (no overscroll)
                 var stickyHeader = document.getElementById('site-sticky-header');
@@ -184,7 +186,7 @@
                 if (contentStart) {
                     var headerHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
                     var progressHeight = 44; /* #site-sticky-progress when visible */
-                    var topOffset = headerHeight + progressHeight;
+                    var topOffset = headerHeight + progressHeight + stickyProgressContentGap;
                     var contentTop = contentStart.getBoundingClientRect().top + (window.scrollY || window.pageYOffset);
                     var targetScroll = contentTop - topOffset;
                     window.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
@@ -218,7 +220,7 @@
                     // Flush under LWC bar: no gap
                     if (stickyHeader) {
                         stickyProgress.style.top = stickyHeader.offsetHeight + 'px';
-                        document.documentElement.style.scrollPaddingTop = (stickyHeader.offsetHeight + stickyProgress.offsetHeight) + 'px';
+                        document.documentElement.style.scrollPaddingTop = (stickyHeader.offsetHeight + stickyProgress.offsetHeight + stickyProgressContentGap) + 'px';
                     }
                 } else {
                     stickyProgress.classList.remove('visible');
