@@ -77,6 +77,33 @@ public class LeaderboardBestRankScriptTests
     }
 
     [Fact]
+    public void AthleteShareButton_UsesDesktopShareMenuInsteadOfDesktopNativeShare()
+    {
+        var html = ReadLeaderboardPartial();
+
+        Assert.Contains("id=\"athleteShareMenu\"", html);
+        Assert.Contains("id=\"copyAthleteProfileLink\"", html);
+        Assert.Contains("id=\"shareAthleteProfileX\"", html);
+        Assert.Contains("id=\"shareAthleteProfileFacebook\"", html);
+        Assert.Contains("id=\"shareAthleteProfileLinkedIn\"", html);
+        Assert.Contains("id=\"shareAthleteProfileEmail\"", html);
+        Assert.Contains("function shouldUseNativeAthleteShare(sharePayload)", html);
+        Assert.Contains("function getAthleteShareOrigin()", html);
+        Assert.Contains("hostname === 'localhost' || hostname === '127.0.0.1'", html);
+        Assert.Contains("'https://longevityworldcup.com'", html);
+        Assert.Contains("window.matchMedia('(pointer: coarse)').matches", html);
+        Assert.Contains("https://twitter.com/intent/tweet?text=", html);
+        Assert.Contains("https://www.facebook.com/sharer/sharer.php?u=", html);
+        Assert.Contains("https://www.linkedin.com/sharing/share-offsite/?url=", html);
+        Assert.Contains("mailto:?subject=", html);
+        Assert.Contains("openAthleteShareMenu(button, sharePayload)", html);
+        Assert.Contains("copyTextToClipboard(sharePayload.url)", html);
+        Assert.Contains("if (shouldUseNativeAthleteShare(sharePayload))", html);
+        Assert.DoesNotContain("if (navigator.share &&", html);
+        Assert.DoesNotContain("await navigator.share(sharePayload);", html);
+    }
+
+    [Fact]
     public void LeaderboardSidebar_MatchesRenderedTableHeightAndKeepsStickyRail()
     {
         var html = ReadLeaderboardPartial();

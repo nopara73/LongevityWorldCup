@@ -1147,6 +1147,7 @@
 
     #detailsModal #athlete-profile{
         color: var(--athlete-modal-text);
+        z-index: 2;
     }
     #detailsModal #athlete-profile .portrait-wrapper{
         filter: drop-shadow(0 18px 28px rgba(0,0,0,.42));
@@ -1325,6 +1326,7 @@
     #bortzAgeReductionPercent{ white-space: nowrap; }
 
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
+    .athlete-share-wrapper{ position:relative; display:inline-flex; }
     .athlete-links a,
     .athlete-links button{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
     .athlete-links a:hover,
@@ -1371,6 +1373,50 @@
     #detailsModal .athlete-links button:disabled{
         cursor: default;
         opacity: .82;
+    }
+    #detailsModal .athlete-share-menu{
+        position:absolute;
+        top:calc(100% + .45rem);
+        left:0;
+        z-index:80;
+        min-width:12.5rem;
+        padding:.35rem;
+        border:1px solid var(--athlete-modal-border-strong);
+        border-radius:14px;
+        background:rgb(18,20,20);
+        box-shadow:0 20px 42px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    #detailsModal .athlete-share-menu[hidden]{ display:none; }
+    #detailsModal .athlete-share-menu a,
+    #detailsModal .athlete-share-menu button{
+        width:100%;
+        min-height:42px;
+        padding:.55rem .7rem;
+        border:0;
+        border-radius:10px;
+        background:transparent;
+        box-shadow:none;
+        color:var(--athlete-modal-link);
+        font:inherit;
+        justify-content:flex-start;
+        text-align:left;
+        gap:.55rem;
+        box-sizing:border-box;
+    }
+    #detailsModal .athlete-share-menu a:hover,
+    #detailsModal .athlete-share-menu a:focus-visible,
+    #detailsModal .athlete-share-menu button:hover,
+    #detailsModal .athlete-share-menu button:focus-visible{
+        color:#fff;
+        background:rgba(246,244,237,.12);
+        outline:none;
+        box-shadow:var(--athlete-modal-focus);
+    }
+    #detailsModal .athlete-share-menu i{
+        width:1.25rem;
+        text-align:center;
+        font-size:1rem;
+        flex:0 0 1.25rem;
     }
     #detailsModal .modal-link i{
         font-size: 1.15rem;
@@ -2102,10 +2148,28 @@
             border-radius:18px;
             gap:.55rem;
         }
+        #detailsModal .athlete-share-wrapper{
+            flex:1 1 10rem;
+        }
+        #detailsModal .athlete-share-wrapper > #shareAthleteProfile{
+            width:100%;
+            justify-content:center;
+        }
+        #detailsModal .athlete-share-menu{
+            left:0;
+            right:0;
+            min-width:0;
+        }
         #detailsModal .athlete-links a,
         #detailsModal .athlete-links button{
             flex:1 1 10rem;
             padding:.55rem .85rem;
+        }
+        #detailsModal .athlete-share-menu a,
+        #detailsModal .athlete-share-menu button{
+            flex:0 0 auto;
+            padding:.55rem .7rem;
+            justify-content:flex-start;
         }
         #detailsModal .age-visualization{
             margin-top:1.25rem;
@@ -2660,9 +2724,28 @@
                         </table>
                     </div>
                     <div class="athlete-links">
-                        <button id="shareAthleteProfile" type="button" class="modal-link" aria-label="Share athlete profile">
-                            <i class="fa fa-share-nodes"></i> Share
-                        </button>
+                        <span class="athlete-share-wrapper">
+                            <button id="shareAthleteProfile" type="button" class="modal-link" aria-label="Share athlete profile" aria-haspopup="menu" aria-expanded="false" aria-controls="athleteShareMenu">
+                                <i class="fa fa-share-nodes"></i> Share
+                            </button>
+                            <span id="athleteShareMenu" class="athlete-share-menu" role="menu" hidden>
+                                <button id="copyAthleteProfileLink" type="button" role="menuitem">
+                                    <i class="fa fa-link"></i> Copy link
+                                </button>
+                                <a id="shareAthleteProfileX" href="#" target="_blank" rel="noopener" role="menuitem" aria-label="Share on X">
+                                    <i class="fa-brands fa-x-twitter"></i> Post
+                                </a>
+                                <a id="shareAthleteProfileFacebook" href="#" target="_blank" rel="noopener" role="menuitem">
+                                    <i class="fa-brands fa-facebook"></i> Facebook
+                                </a>
+                                <a id="shareAthleteProfileLinkedIn" href="#" target="_blank" rel="noopener" role="menuitem">
+                                    <i class="fa-brands fa-linkedin"></i> LinkedIn
+                                </a>
+                                <a id="shareAthleteProfileEmail" href="#" role="menuitem">
+                                    <i class="fa fa-envelope"></i> Email
+                                </a>
+                            </span>
+                        </span>
                         <a id="personalLink" href="#" target="_blank" rel="noopener" class="modal-link" aria-label="Visit the athlete's personal page">
                             <i class="fa fa-link"></i> Personal page
                         </a>
@@ -4774,6 +4857,7 @@
 
     function resetModalForLoading(athleteSlug) {
         ensureAthleteModalDeferredSections();
+        closeAthleteShareMenu();
 
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return null;
@@ -5056,6 +5140,8 @@
     function closeModal() {
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return;
+
+        closeAthleteShareMenu();
         
         const athleteSlug = modalContent.dataset.athleteSlug;
         
@@ -6354,6 +6440,10 @@
         const modalContent = document.querySelector('.modal-content');
         if (modalContent && modalContent.classList.contains('guess-mode')) return;
 
+        if (closeAthleteShareMenu({ restoreFocus: true })) {
+            return;
+        }
+
         const enlargedImg = document.querySelector('.enlarged-portrait.show');
         if (enlargedImg) {
             closeEnlargedView(enlargedImg);
@@ -6434,8 +6524,25 @@
         return match ? decodeURIComponent(match[1]) : '';
     }
 
+    function getAthleteShareOrigin() {
+        const hostname = window.location.hostname;
+        const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1';
+        if (!isLocalHost) {
+            return window.location.origin;
+        }
+
+        const canonicalLink = document.querySelector('link[rel="canonical"]');
+        try {
+            return canonicalLink && canonicalLink.href
+                ? new URL(canonicalLink.href).origin
+                : 'https://longevityworldcup.com';
+        } catch (error) {
+            return 'https://longevityworldcup.com';
+        }
+    }
+
     function getCanonicalAthleteShareUrl(athleteSlug) {
-        return new URL(`/athlete/${encodeURIComponent(athleteSlug)}`, window.location.origin).toString();
+        return new URL(`/athlete/${encodeURIComponent(athleteSlug)}`, getAthleteShareOrigin()).toString();
     }
 
     function setShareButtonState(button, label, disabled) {
@@ -6468,6 +6575,123 @@
         });
     }
 
+    function shouldUseNativeAthleteShare(sharePayload) {
+        const nav = window.navigator;
+        if (!nav || typeof nav.share !== 'function') {
+            return false;
+        }
+
+        const hasCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        const mobileTouchUserAgent = Number(nav.maxTouchPoints) > 0 && /Android|iPhone|iPad|iPod/i.test(nav.userAgent || '');
+        if (!hasCoarsePointer && !mobileTouchUserAgent) {
+            return false;
+        }
+
+        return typeof nav.canShare !== 'function' || nav.canShare(sharePayload);
+    }
+
+    function setShareMenuCopyState(label, disabled) {
+        const copyButton = document.getElementById('copyAthleteProfileLink');
+        if (!copyButton) return;
+        copyButton.disabled = !!disabled;
+        copyButton.innerHTML = `<i class="fa fa-link"></i> ${escapeHtml(label)}`;
+    }
+
+    function closeAthleteShareMenu(options) {
+        const menu = document.getElementById('athleteShareMenu');
+        if (!menu || menu.hidden) {
+            return false;
+        }
+
+        menu.hidden = true;
+        setShareMenuCopyState('Copy link', false);
+
+        const button = document.getElementById('shareAthleteProfile');
+        if (button) {
+            button.setAttribute('aria-expanded', 'false');
+            if (options && options.restoreFocus && !button.disabled) {
+                button.focus({ preventScroll: true });
+            }
+        }
+
+        return true;
+    }
+
+    function getAthleteSharePayload(button) {
+        return {
+            title: button.dataset.shareTitle,
+            text: button.dataset.shareText,
+            url: button.dataset.shareUrl
+        };
+    }
+
+    function configureAthleteShareMenu(button, sharePayload) {
+        const menu = document.getElementById('athleteShareMenu');
+        if (!menu) return;
+
+        const text = sharePayload.text || sharePayload.title || '';
+        const encodedText = encodeURIComponent(text);
+        const encodedTitle = encodeURIComponent(sharePayload.title || 'Longevity World Cup');
+        const encodedUrl = encodeURIComponent(sharePayload.url);
+        const encodedEmailBody = encodeURIComponent(`${text}\n\n${sharePayload.url}`);
+
+        const xLink = document.getElementById('shareAthleteProfileX');
+        const facebookLink = document.getElementById('shareAthleteProfileFacebook');
+        const linkedInLink = document.getElementById('shareAthleteProfileLinkedIn');
+        const emailLink = document.getElementById('shareAthleteProfileEmail');
+
+        if (xLink) xLink.href = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        if (facebookLink) facebookLink.href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+        if (linkedInLink) linkedInLink.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+        if (emailLink) emailLink.href = `mailto:?subject=${encodedTitle}&body=${encodedEmailBody}`;
+
+        [xLink, facebookLink, linkedInLink, emailLink].forEach(link => {
+            if (link) {
+                link.onclick = () => closeAthleteShareMenu();
+            }
+        });
+
+        const copyButton = document.getElementById('copyAthleteProfileLink');
+        if (copyButton) {
+            setShareMenuCopyState('Copy link', false);
+            copyButton.onclick = async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                try {
+                    await copyTextToClipboard(sharePayload.url);
+                    closeAthleteShareMenu();
+                    setShareButtonState(button, 'Copied', true);
+                    window.setTimeout(() => setShareButtonState(button, 'Share', false), 1600);
+                } catch (error) {
+                    setShareMenuCopyState('Copy failed', true);
+                    window.setTimeout(() => setShareMenuCopyState('Copy link', false), 1800);
+                }
+            };
+        }
+    }
+
+    function openAthleteShareMenu(button, sharePayload) {
+        const menu = document.getElementById('athleteShareMenu');
+        if (!menu) {
+            return;
+        }
+
+        if (!menu.hidden) {
+            closeAthleteShareMenu();
+            return;
+        }
+
+        configureAthleteShareMenu(button, sharePayload);
+        menu.hidden = false;
+        button.setAttribute('aria-expanded', 'true');
+
+        const copyButton = document.getElementById('copyAthleteProfileLink');
+        if (copyButton) {
+            copyButton.focus({ preventScroll: true });
+        }
+    }
+
     function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
         const button = document.getElementById('shareAthleteProfile');
         if (!button || !athleteSlug) return;
@@ -6484,18 +6708,16 @@
         button.setAttribute('aria-label', `Share ${displayName}'s athlete profile`);
         setShareButtonState(button, 'Share', false);
 
-        button.onclick = async () => {
+        button.onclick = async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             if (button.disabled) return;
 
-            const sharePayload = {
-                title: button.dataset.shareTitle,
-                text: button.dataset.shareText,
-                url: button.dataset.shareUrl
-            };
+            const sharePayload = getAthleteSharePayload(button);
 
-            if (navigator.share && (!navigator.canShare || navigator.canShare(sharePayload))) {
+            if (shouldUseNativeAthleteShare(sharePayload)) {
                 try {
-                    await navigator.share(sharePayload);
+                    await window.navigator.share(sharePayload);
                     return;
                 } catch (error) {
                     if (error && error.name === 'AbortError') {
@@ -6504,16 +6726,17 @@
                 }
             }
 
-            try {
-                await copyTextToClipboard(sharePayload.url);
-                setShareButtonState(button, 'Copied', true);
-                window.setTimeout(() => setShareButtonState(button, 'Share', false), 1600);
-            } catch (error) {
-                setShareButtonState(button, 'Copy failed', true);
-                window.setTimeout(() => setShareButtonState(button, 'Share', false), 1800);
-            }
+            openAthleteShareMenu(button, sharePayload);
         };
     }
+
+    document.addEventListener('click', function(event) {
+        const menu = document.getElementById('athleteShareMenu');
+        const target = event.target && event.target.closest ? event.target : event.target?.parentElement;
+        if (!menu || menu.hidden || !target || !target.closest) return;
+        if (target.closest('#athleteShareMenu') || target.closest('#shareAthleteProfile')) return;
+        closeAthleteShareMenu();
+    });
 
     function fetchFullAthleteData(athleteNameText, athleteData, options) {
         window.getSharedAthletes = window.getSharedAthletes || function(){
