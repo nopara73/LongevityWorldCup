@@ -128,6 +128,15 @@
                 line-height: 1.42;
             }
 
+            .application-review-copy:not(.primary) .smaller-text {
+                font-size: 0.88rem;
+            }
+
+            .application-review-copy:not(.primary) a,
+            .application-review-copy:not(.primary) .application-review-highlight {
+                white-space: nowrap;
+            }
+
             .application-review-actions {
                 margin-top: 1.1rem;
             }
@@ -135,6 +144,12 @@
             .application-review-actions .option-button {
                 width: 100%;
                 min-width: 0;
+            }
+        }
+
+        @media (max-width: 300px) {
+            .application-review-copy:not(.primary) .smaller-text {
+                font-size: 0.82rem;
             }
         }
     </style>
