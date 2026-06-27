@@ -651,6 +651,7 @@
         .scrolled-button {
             top: max(0.35rem, env(safe-area-inset-top, 0px));
             right: max(0.5rem, env(safe-area-inset-right, 0px));
+            margin-top: 0;
             min-width: 4.25rem;
             padding: 0.55rem 0.85rem;
             font-size: 0.95rem;
@@ -726,7 +727,7 @@
             font-size: 0.96rem;
         }
 
-        .join-game {
+        .join-game:not(.scrolled-button) {
             padding-inline: 1.45rem;
         }
     }
@@ -753,7 +754,7 @@
             font-size: 0.95rem;
         }
 
-        .join-game {
+        .join-game:not(.scrolled-button) {
             margin-top: 0.9rem;
             padding: 0.75rem 1.45rem;
             font-size: 1.08rem;
