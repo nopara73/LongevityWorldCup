@@ -3333,6 +3333,9 @@ body.lmx-quote-open {
     .lmx-life-strip span {
         min-height: 2.35rem;
         padding-inline: 0.55rem;
+        gap: 0.28rem;
+        font-size: clamp(0.75rem, 3.2vw, 0.82rem);
+        white-space: nowrap;
     }
 
     .lmx-question-preview {
