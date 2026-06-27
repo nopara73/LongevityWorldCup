@@ -3392,6 +3392,10 @@ body.lmx-quote-open {
 }
 
 @media (max-width: 360px) {
+    .lmx-title-row h1 {
+        font-size: 1.85rem;
+    }
+
     .lmx-life-strip {
         grid-template-columns: 1fr;
     }
