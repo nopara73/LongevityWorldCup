@@ -270,32 +270,88 @@
 
         @media (max-width: 360px) {
             .documentation-document table {
-                display: table;
-                table-layout: fixed;
+                display: block;
+                border-collapse: separate;
+                background: transparent;
+                border-radius: 0;
                 overflow: visible;
             }
 
-            .documentation-document th,
-            .documentation-document td {
-                padding: 0.52rem 0.45rem;
+            .documentation-document thead {
+                display: none;
+            }
+
+            .documentation-document tbody {
+                display: grid;
+                gap: 0.55rem;
+            }
+
+            .documentation-document tbody tr {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 0.35rem 0.7rem;
+                padding: 0.62rem 0.7rem;
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                border-radius: 8px;
+                background: rgba(248, 250, 252, 0.78);
+            }
+
+            .documentation-document tbody td {
+                padding: 0;
+                border-bottom: 0;
                 white-space: normal;
-                overflow-wrap: break-word;
-            }
-
-            .documentation-document th {
-                font-size: 0.82rem;
-                line-height: 1.25;
                 overflow-wrap: normal;
+                word-break: normal;
             }
 
-            .documentation-document th:first-child,
-            .documentation-document td:first-child {
-                width: 2.55rem;
+            .documentation-document tbody td {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 0.35rem;
+                align-items: baseline;
+                color: #334155;
+                font-size: 0.86rem;
+                line-height: 1.28;
             }
 
-            .documentation-document th:last-child,
-            .documentation-document td:last-child {
-                width: 4.65rem;
+            .documentation-document tbody td::before {
+                content: attr(data-label);
+                color: #64748b;
+                font-size: 0.68rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0;
+            }
+
+            .documentation-document tbody td:first-child {
+                grid-column: 1;
+                grid-template-columns: auto auto;
+            }
+
+            .documentation-document tbody td:nth-child(2) {
+                grid-column: 1 / -1;
+                grid-row: 2;
+                font-size: 0.96rem;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+            .documentation-document tbody td:nth-child(2)::before {
+                display: none;
+            }
+
+            .documentation-document tbody td:last-child {
+                grid-column: 2;
+                justify-self: end;
+                width: 6.25rem;
+                grid-template-columns: 1fr;
+                justify-items: end;
+                gap: 0.12rem;
+                text-align: right;
+            }
+
+            .documentation-document tbody td:last-child::before {
+                white-space: nowrap;
             }
         }
     </style>
