@@ -201,22 +201,6 @@
         document.addEventListener('DOMContentLoaded', function () {
             var stickyProgressContentGap = 12;
 
-            setTimeout(function () {
-                // Scroll to the content under the progress bar so it sits just below the sticky header + progress bar (no overscroll)
-                var stickyHeader = document.getElementById('site-sticky-header');
-                var stickyProgress = document.getElementById('site-sticky-progress');
-                var contentStart = stickyProgress && stickyProgress.nextElementSibling;
-                if (contentStart && contentStart.tagName === 'SCRIPT') contentStart = contentStart.nextElementSibling;
-                if (contentStart) {
-                    var headerHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
-                    var progressHeight = 44; /* #site-sticky-progress when visible */
-                    var topOffset = headerHeight + progressHeight + stickyProgressContentGap;
-                    var contentTop = contentStart.getBoundingClientRect().top + (window.scrollY || window.pageYOffset);
-                    var targetScroll = contentTop - topOffset;
-                    window.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
-                }
-            }, 500);
-
             // Sticky progress: show only when it would completely cover the in-page progress bar (not the main site header)
             var mainProgressBar = document.getElementById('mainProgressBar');
             var stickyHeader = document.getElementById('site-sticky-header');
