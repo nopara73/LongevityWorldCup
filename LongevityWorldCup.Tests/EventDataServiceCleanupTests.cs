@@ -79,6 +79,40 @@ public sealed class EventDataServiceCleanupTests
     }
 
     [Fact]
+    public void CleanupAmateurAgeReductionGraduationLinks_RemovesOnlyCurrentProPreviousLinks()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var events = factory.Services.GetRequiredService<EventDataService>();
+        var db = factory.Services.GetRequiredService<DatabaseManager>();
+
+        db.Run(sqlite =>
+        {
+            using var clear = sqlite.CreateCommand();
+            clear.CommandText = "DELETE FROM Events;";
+            clear.ExecuteNonQuery();
+
+            InsertEvent(sqlite, "wen-pro", EventType.BecamePro, "slug[wen_z]");
+            InsertEvent(sqlite, "graduation", EventType.BadgeAward, "slug[philipp_schmeing] badge[Age reduction] cat[Amateur] val[Amateur] place[1] prev[wen_z]");
+            InsertEvent(sqlite, "normal", EventType.BadgeAward, "slug[philipp_schmeing] badge[Age reduction] cat[Amateur] val[Amateur] place[1] prev[alice]");
+            InsertEvent(sqlite, "global", EventType.BadgeAward, "slug[philipp_schmeing] badge[Age reduction] cat[Global] val[] place[1] prev[wen_z]");
+            InsertEvent(sqlite, "multi", EventType.BadgeAward, "slug[philipp_schmeing] badge[Age reduction] cat[Amateur] val[Amateur] place[1] prevs[wen_z,alice]");
+            InsertEvent(sqlite, "historical", EventType.BadgeAward, "slug[philipp_schmeing] badge[Age reduction] cat[Amateur] val[Amateur] place[1] prev[wen_z]", DateTime.UtcNow.AddDays(-1));
+        });
+
+        var updated = events.CleanupAmateurAgeReductionGraduationLinks(new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "wen-z"
+        });
+
+        Assert.Equal(2, updated);
+        Assert.Equal("slug[philipp_schmeing] badge[Age reduction] cat[Amateur] val[Amateur] place[1]", ReadEventText(db, "graduation"));
+        Assert.Equal("slug[philipp_schmeing] badge[Age reduction] cat[Amateur] val[Amateur] place[1] prev[alice]", ReadEventText(db, "normal"));
+        Assert.Equal("slug[philipp_schmeing] badge[Age reduction] cat[Global] val[] place[1] prev[wen_z]", ReadEventText(db, "global"));
+        Assert.Equal("slug[philipp_schmeing] badge[Age reduction] cat[Amateur] val[Amateur] place[1] prevs[alice]", ReadEventText(db, "multi"));
+        Assert.Equal("slug[philipp_schmeing] badge[Age reduction] cat[Amateur] val[Amateur] place[1] prev[wen_z]", ReadEventText(db, "historical"));
+    }
+
+    [Fact]
     public void ExtractReferencedAthleteSlugs_NormalizesPrimaryAndPreviousSlugTokens()
     {
         var slugs = EventDataService.ExtractReferencedAthleteSlugs("slug[alice-smith] rank[1] prev[bob] prevs[charlie-one,dana]")
@@ -93,7 +127,18 @@ public sealed class EventDataServiceCleanupTests
         }, slugs);
     }
 
-    private static void InsertEvent(Microsoft.Data.Sqlite.SqliteConnection sqlite, string id, EventType type, string text)
+    private static string ReadEventText(DatabaseManager db, string id)
+    {
+        return db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT Text FROM Events WHERE Id=@id;";
+            cmd.Parameters.AddWithValue("@id", id);
+            return Assert.IsType<string>(cmd.ExecuteScalar());
+        });
+    }
+
+    private static void InsertEvent(Microsoft.Data.Sqlite.SqliteConnection sqlite, string id, EventType type, string text, DateTime? occurredAtUtc = null)
     {
         using var insert = sqlite.CreateCommand();
         insert.CommandText =
@@ -104,7 +149,7 @@ public sealed class EventDataServiceCleanupTests
         insert.Parameters.AddWithValue("@id", id);
         insert.Parameters.AddWithValue("@type", (int)type);
         insert.Parameters.AddWithValue("@text", text);
-        insert.Parameters.AddWithValue("@occurredAt", DateTime.UtcNow.ToString("o"));
+        insert.Parameters.AddWithValue("@occurredAt", (occurredAtUtc ?? DateTime.UtcNow).ToString("o"));
         insert.Parameters.AddWithValue("@relevance", 5d);
         insert.ExecuteNonQuery();
     }
