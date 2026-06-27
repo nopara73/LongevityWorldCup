@@ -267,6 +267,37 @@
                 margin: 1.15rem auto 1.45rem;
             }
         }
+
+        @media (max-width: 360px) {
+            .documentation-document table {
+                display: table;
+                table-layout: fixed;
+                overflow: visible;
+            }
+
+            .documentation-document th,
+            .documentation-document td {
+                padding: 0.52rem 0.45rem;
+                white-space: normal;
+                overflow-wrap: break-word;
+            }
+
+            .documentation-document th {
+                font-size: 0.82rem;
+                line-height: 1.25;
+                overflow-wrap: normal;
+            }
+
+            .documentation-document th:first-child,
+            .documentation-document td:first-child {
+                width: 2.55rem;
+            }
+
+            .documentation-document th:last-child,
+            .documentation-document td:last-child {
+                width: 4.65rem;
+            }
+        }
     </style>
 </head>
 <body>
