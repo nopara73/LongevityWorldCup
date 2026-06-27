@@ -77,6 +77,30 @@
         color: #666;
     }
 
+    @media (max-width: 300px) {
+        .progress-container {
+            width: calc(100% - 20px);
+        }
+
+        .stages {
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .stage {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .stage-label {
+            font-size: 12px;
+        }
+
+        .stage.active .stage-label {
+            padding: 0.25rem 0.42rem;
+        }
+    }
+
     /* Sticky progress row (under LWC bar): same dark strip as header */
     #site-sticky-progress {
         position: fixed;
