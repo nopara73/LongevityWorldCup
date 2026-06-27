@@ -24,10 +24,6 @@
     history.replaceState({}, '', '/leaderboard' + (window.location.search || '') + (window.location.hash || ''));
 
     document.addEventListener('DOMContentLoaded', function () {
-        setTimeout(() => {
-            const leaderboardTitle = document.getElementById('leaderboardTitle');
-            leaderboardTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 500);
         LoadLeaderboard(false, Infinity);
     });
 </script>
