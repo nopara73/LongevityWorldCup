@@ -382,6 +382,7 @@ namespace LongevityWorldCup.Website
                 options.DisplayRequestDuration();
                 options.EnableDeepLinking();
                 options.EnableFilter();
+                options.InjectStylesheet("/css/swagger-ui-mobile.css");
                 options.EnableTryItOutByDefault();
                 options.ShowCommonExtensions();
                 options.ShowExtensions();
