@@ -29,6 +29,7 @@
         }
 
         .character-selection-visual {
+            width: 100%;
             margin: 0 auto 1.4rem;
             text-align: center;
         }
@@ -37,6 +38,64 @@
             width: min(100%, 408px);
             margin-bottom: 0;
             box-sizing: border-box;
+        }
+
+        .athlete-picture-frame {
+            position: relative;
+            display: block;
+            width: min(100%, 408px);
+            aspect-ratio: 1 / 1;
+            margin-inline: auto;
+            overflow: hidden;
+            border: 4px solid var(--dark-text-color);
+            border-radius: 8px;
+            background: #d4d4d4;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+            line-height: 0;
+        }
+
+        .athlete-picture-frame > picture,
+        .athlete-picture-frame > img {
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .athlete-picture-frame .illustration {
+            display: block;
+            width: 100%;
+            height: 100%;
+            margin-bottom: 0;
+            max-width: none;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            object-fit: contain;
+            object-position: center;
+            box-sizing: border-box;
+            opacity: 1;
+            transition: opacity 160ms ease;
+        }
+
+        .athlete-picture-frame .athlete-picture-placeholder {
+            object-fit: cover;
+            transform: scale(1.035);
+        }
+
+        .athlete-picture-frame .athlete-picture-next {
+            opacity: 0;
+        }
+
+        .athlete-picture-frame .athlete-picture-next.is-visible {
+            opacity: 1;
+        }
+
+        .athlete-picture-frame .is-exiting .illustration,
+        .athlete-picture-frame .illustration.is-exiting {
+            opacity: 0;
         }
 
         .autocomplete-wrapper {
@@ -232,6 +291,16 @@
                 object-fit: contain;
             }
 
+            .athlete-picture-frame {
+                width: min(100%, 240px);
+            }
+
+            .athlete-picture-frame .illustration {
+                width: 100%;
+                max-width: none;
+                max-height: none;
+            }
+
             .autocomplete-wrapper {
                 margin-bottom: 0.65rem;
             }
@@ -250,6 +319,12 @@
                 gap: 0.55rem;
             }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            .athlete-picture-frame .illustration {
+                transition: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -257,11 +332,13 @@
     <main class="character-selection-main">
         <h1 id="character-title" class="character-selection-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
         <div class="character-selection-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <picture>
-                <source srcset="../assets/content-images/headshot.webp" type="image/webp">
-                <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
-                <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" loading="lazy">
-            </picture>
+            <div id="characterSelectionPicture" class="athlete-picture-frame">
+                <picture>
+                    <source srcset="../assets/content-images/headshot.webp" type="image/webp">
+                    <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
+                    <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration athlete-picture-placeholder" loading="lazy" decoding="async">
+                </picture>
+            </div>
         </div>
         <div class="autocomplete-wrapper" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <div class="autocomplete-container">
@@ -290,8 +367,10 @@
     <!--FOOTER-->
     <script>
         const athleteInput = document.getElementById('athlete');
+        const ATHLETE_PICTURE_TRANSITION_MS = 180;
 
         let currentAthlete = null;
+        let athletePictureTransitionToken = 0;
 
         document.addEventListener('DOMContentLoaded', function () {
             setTimeout(() => {
@@ -351,7 +430,9 @@
                         }
                         initializeAthleteAutocomplete(data);
                         athleteAutocompleteReady = true;
-                        athleteInput.dispatchEvent(new Event('input'));
+                        if (!currentAthlete) {
+                            athleteInput.dispatchEvent(new Event('input'));
+                        }
                     })
                     .catch(error => {
                         console.error('Error fetching athletes:', error);
@@ -364,6 +445,7 @@
                 return athleteLoadPromise;
             }
 
+            hydrateStoredAthleteSelection();
             loadAthletes().catch(() => {});
 
             // — ATHLETE AUTOCOMPLETE —
@@ -384,8 +466,8 @@
                     resetAthletePreview();
                 }
 
-                function resetAthletePreview() {
-                    document.getElementById('character-title').textContent = 'Athlete selection';
+                function createDefaultAthletePicture() {
+                    const picture = document.createElement('picture');
                     const webpSource = document.createElement('source');
                     webpSource.srcset = '../assets/content-images/headshot.webp';
                     webpSource.type = 'image/webp';
@@ -397,9 +479,26 @@
                     const image = document.createElement('img');
                     image.src = '../assets/content-images/headshot.jpg';
                     image.alt = 'Headshot';
-                    image.className = 'illustration';
+                    image.className = 'illustration athlete-picture-placeholder';
                     image.loading = 'lazy';
-                    document.querySelector('picture').replaceChildren(webpSource, jpegSource, image);
+                    image.decoding = 'async';
+                    picture.replaceChildren(webpSource, jpegSource, image);
+                    return picture;
+                }
+
+                function createDefaultAthleteImage() {
+                    const image = document.createElement('img');
+                    image.src = '../assets/content-images/headshot.jpg';
+                    image.alt = 'Headshot';
+                    image.className = 'illustration athlete-picture-placeholder athlete-picture-next';
+                    image.loading = 'eager';
+                    image.decoding = 'async';
+                    return image;
+                }
+
+                function resetAthletePreview() {
+                    document.getElementById('character-title').textContent = 'Athlete selection';
+                    transitionAthleteSelectionImage(createDefaultAthleteImage(), '../assets/content-images/headshot.jpg');
                 }
 
                 function findExactAthleteMatch(value) {
@@ -428,6 +527,7 @@
                     clearCurrentAthleteSelectionIfInputChanged(this.value);
 
                     closeAllLists();
+                    if (currentAthlete && isAthleteInputValue(currentAthlete, this.value)) return false;
                     if (!terms.length) return false;
 
                     // create the dropdown container
@@ -509,7 +609,7 @@
                 document.addEventListener('click', () => closeAllLists());
 
                 const saved = getLocalItem('selectedAthleteName');
-                if (saved) {
+                if (saved && !currentAthlete) {
                     const match = athletes.find(a => isAthleteInputValue(a, saved));
                     if (match) {
                         selectAthlete(match);
@@ -522,6 +622,20 @@
         function getSessionItem(key) {
             try {
                 return sessionStorage.getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function getStoredSelectedAthlete() {
+            const json = getSessionItem('selectedAthlete');
+            if (!json) return null;
+
+            try {
+                const athlete = JSON.parse(json);
+                return athlete && typeof athlete === 'object' && typeof athlete.Name === 'string'
+                    ? athlete
+                    : null;
             } catch (_) {
                 return null;
             }
@@ -601,19 +715,101 @@
                 || getAthleteDisplayName(athlete).toLowerCase() === query;
         }
 
-        function selectAthlete(a) {
-            const displayName = getAthleteDisplayName(a);
+        function createAthletePictureImage(altText) {
+            const image = document.createElement('img');
+            image.alt = altText;
+            image.className = 'illustration athlete-picture-next';
+            image.loading = 'eager';
+            image.decoding = 'async';
+            return image;
+        }
+
+        function getAthletePictureImageSrc(athlete) {
+            return athlete && (athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb)
+                ? athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb
+                : '../assets/content-images/headshot.jpg';
+        }
+
+        function transitionAthleteSelectionImage(image, src) {
+            const frame = document.getElementById('characterSelectionPicture');
+            const transitionToken = ++athletePictureTransitionToken;
+            let hasFinished = false;
+
+            function finishImageSwap() {
+                if (hasFinished) return;
+                if (transitionToken !== athletePictureTransitionToken) return;
+                hasFinished = true;
+
+                const currentMedia = Array.from(frame.children).find(child => child !== image);
+                if (!currentMedia) {
+                    image.classList.remove('athlete-picture-next', 'is-visible');
+                    frame.replaceChildren(image);
+                    return;
+                }
+
+                frame.appendChild(image);
+                requestAnimationFrame(() => {
+                    if (transitionToken !== athletePictureTransitionToken) return;
+
+                    image.classList.add('is-visible');
+                    currentMedia.classList.add('is-exiting');
+                    window.setTimeout(() => {
+                        if (transitionToken !== athletePictureTransitionToken) return;
+
+                        image.classList.remove('athlete-picture-next', 'is-visible');
+                        frame.replaceChildren(image);
+                    }, ATHLETE_PICTURE_TRANSITION_MS);
+                });
+            }
+
+            image.addEventListener('load', finishImageSwap, { once: true });
+            image.addEventListener('error', () => {
+                if (transitionToken !== athletePictureTransitionToken) return;
+                if (!image.src.endsWith('/assets/content-images/headshot.jpg')) {
+                    image.src = '../assets/content-images/headshot.jpg';
+                }
+            }, { once: true });
+            image.src = src || '../assets/content-images/headshot.jpg';
+
+            if (image.complete && image.naturalWidth > 0) {
+                finishImageSwap();
+            }
+        }
+
+        function replaceAthleteSelectionImageImmediately(image, src) {
+            athletePictureTransitionToken++;
+            image.classList.remove('athlete-picture-next', 'is-visible');
+            image.src = src || '../assets/content-images/headshot.jpg';
+            document.getElementById('characterSelectionPicture').replaceChildren(image);
+        }
+
+        function renderSelectedAthletePreview(athlete, options = {}) {
+            const displayName = getAthleteDisplayName(athlete);
             athleteInput.value = displayName;
             document.getElementById('character-title').textContent = displayName;
-            const image = document.createElement('img');
-            image.src = a.ProfilePic;
-            image.alt = `${displayName} headshot`;
-            image.className = 'illustration';
-            image.loading = 'lazy';
-            document.querySelector('picture').replaceChildren(image);
-            confirmBtn.style.display = 'inline-block';
-            confirmBtn.disabled = false;
-            currentAthlete = a;
+            const image = createAthletePictureImage(`${displayName} headshot`);
+            if (options.transition === false) {
+                replaceAthleteSelectionImageImmediately(image, getAthletePictureImageSrc(athlete));
+            } else {
+                transitionAthleteSelectionImage(image, getAthletePictureImageSrc(athlete));
+            }
+
+            const button = document.getElementById('confirmBtn');
+            button.style.display = 'inline-block';
+            button.disabled = false;
+            currentAthlete = athlete;
+        }
+
+        function hydrateStoredAthleteSelection() {
+            const storedAthlete = currentAthlete || getStoredSelectedAthlete();
+            if (!storedAthlete || !storedAthlete.Name) return false;
+
+            renderSelectedAthletePreview(storedAthlete, { transition: false });
+            return true;
+        }
+
+        function selectAthlete(a) {
+            renderSelectedAthletePreview(a, { transition: true });
         }
     </script>
 </body>

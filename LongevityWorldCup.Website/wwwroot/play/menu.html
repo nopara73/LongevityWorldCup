@@ -9,19 +9,26 @@
             display: none !important;
         }
 
-        .play-menu-hero {
-            text-align: center;
-            padding: clamp(1.4rem, 3vh, 2.25rem) 1rem 0;
+        .play-hub-main {
+            max-width: 760px;
+            margin-inline: auto;
+            padding: 0 1rem 3.25rem;
         }
 
+        .play-hub-panel[data-aos]:not(.aos-animate),
         .play-menu-hero[data-aos]:not(.aos-animate),
         .play-menu-actions[data-aos]:not(.aos-animate) {
             opacity: 1;
             transform: none;
         }
 
+        .play-menu-hero {
+            text-align: center;
+            padding: clamp(1.4rem, 3vh, 2.25rem) 1rem 0;
+        }
+
         .img-crop {
-            width: min(92vw, 408px);
+            width: min(100%, 408px);
             height: clamp(360px, 60vh, 720px);
             overflow: hidden;
             display: block;
@@ -33,20 +40,22 @@
 
             .img-crop .illustration {
                 box-sizing: border-box;
-                width: 100%; /* same width behavior */
+                width: 100%;
                 max-width: none;
                 height: auto;
                 display: block;
                 margin: 0;
                 position: relative;
                 top: 50%;
-                transform: translateY(-50%); /* equal crop top/bottom */
+                transform: translateY(-50%);
                 border: 0;
                 border-radius: 6px;
                 box-shadow: none;
             }
 
-        .play-menu-actions {
+        .play-menu-actions,
+        .play-athlete-actions,
+        .play-dashboard-actions {
             width: min(100%, 408px);
             min-width: 0;
             max-width: 408px;
@@ -57,7 +66,9 @@
             margin: 1.35rem auto 0;
         }
 
-        .play-menu-actions .option-button {
+        .play-menu-actions .option-button,
+        .play-athlete-actions .option-button,
+        .play-dashboard-actions .option-button {
             width: 100%;
             min-width: 0;
             max-width: none;
@@ -65,18 +76,339 @@
             box-sizing: border-box;
         }
 
+        .play-athlete-panel,
+        .play-dashboard-panel {
+            padding: 2.5rem 0 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .play-athlete-title,
+        .play-dashboard-title {
+            max-width: 100%;
+            margin: 0 0 1rem;
+            text-align: center;
+            line-height: 1.12;
+            overflow-wrap: anywhere;
+        }
+
+        .play-athlete-visual,
+        .play-dashboard-visual {
+            width: 100%;
+            margin: 0 auto 1.25rem;
+            text-align: center;
+        }
+
+        .play-athlete-visual .illustration,
+        .play-dashboard-visual .illustration {
+            width: min(100%, 408px);
+            margin-bottom: 0;
+            box-sizing: border-box;
+        }
+
+        .athlete-picture-frame {
+            position: relative;
+            display: block;
+            width: min(100%, 408px);
+            aspect-ratio: 1 / 1;
+            margin-inline: auto;
+            overflow: hidden;
+            border: 4px solid var(--dark-text-color);
+            border-radius: 8px;
+            background: #d4d4d4;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+            line-height: 0;
+        }
+
+        .athlete-picture-frame > picture,
+        .athlete-picture-frame > img {
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .athlete-picture-frame .illustration {
+            display: block;
+            width: 100%;
+            height: 100%;
+            margin-bottom: 0;
+            max-width: none;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            object-fit: contain;
+            object-position: center;
+            box-sizing: border-box;
+            opacity: 1;
+            transition: opacity 160ms ease;
+        }
+
+        .athlete-picture-frame .athlete-picture-placeholder {
+            object-fit: cover;
+            transform: scale(1.035);
+        }
+
+        .athlete-picture-frame .athlete-picture-next {
+            opacity: 0;
+        }
+
+        .athlete-picture-frame .athlete-picture-next.is-visible {
+            opacity: 1;
+        }
+
+        .athlete-picture-frame .is-exiting .illustration,
+        .athlete-picture-frame .illustration.is-exiting {
+            opacity: 0;
+        }
+
+        .play-autocomplete-wrapper {
+            position: relative;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 1.2rem;
+            transition: margin-bottom 0.2s ease;
+        }
+
+        @supports selector(:has(*)) {
+            .play-autocomplete-wrapper:has(.autocomplete-items) {
+                margin-bottom: calc(1.2rem + min(12rem, 36vh));
+            }
+        }
+
+        .play-autocomplete-container {
+            position: relative;
+            padding: 0;
+            font-size: 1.2rem;
+            width: min(100%, 408px);
+            max-width: 408px;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+            .play-autocomplete-container input {
+                width: 100%;
+                min-height: 44px;
+                padding: 0.65rem 1rem;
+                border: 1px solid #cbd5e1;
+                border-radius: 999px;
+                font-size: 1rem;
+                line-height: 1.3;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
+                box-sizing: border-box;
+            }
+
+                .play-autocomplete-container input:focus {
+                    outline: none;
+                    border-color: var(--primary-color, #00bcd4);
+                    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
+                }
+
+        .autocomplete-items {
+            position: absolute;
+            top: calc(100% + 0.45rem);
+            left: 0;
+            right: 0;
+            padding: 0.25rem;
+            border: 1px solid rgba(15, 23, 42, 0.14);
+            border-radius: 8px;
+            background: #fff;
+            width: 100%;
+            max-height: min(12rem, 36vh);
+            overflow-y: auto;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+            box-sizing: border-box;
+            z-index: 9999;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
+        }
+
+            .autocomplete-items div {
+                display: flex;
+                align-items: center;
+                min-height: 44px;
+                padding: 0.6rem 0.7rem;
+                border-radius: 6px;
+                box-sizing: border-box;
+                color: #2d3748;
+                cursor: pointer;
+                font-size: 1rem;
+                line-height: 1.25;
+            }
+
+                .autocomplete-items div + div {
+                    margin-top: 0.15rem;
+                }
+
+                .autocomplete-items div:hover,
+                .autocomplete-active {
+                    background-color: rgba(0, 188, 212, 0.12);
+                    color: #243446;
+                }
+
+                .autocomplete-items div strong {
+                    padding: 0 0.12rem;
+                    border-radius: 4px;
+                    background: rgba(0, 188, 212, 0.16);
+                    color: #0f5965;
+                }
+
+        .error-message {
+            display: none;
+        }
+
+        .error-message:not(:empty) {
+            display: block;
+            margin-top: 0.55rem;
+            padding: 0.55rem 0.7rem;
+            border: 1px solid rgba(220, 38, 38, 0.24);
+            border-radius: 8px;
+            background: rgba(254, 242, 242, 0.94);
+            color: #b91c1c;
+            font-size: 0.9rem;
+            font-weight: 700;
+            line-height: 1.35;
+            box-sizing: border-box;
+        }
+
+        .play-dashboard-actions {
+            margin-top: 0.25rem;
+        }
+
+        #athleteDashboardDynamicActions {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.85rem;
+        }
+
+        .play-dashboard-actions .option-button {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-inline: 3rem;
+            column-gap: 0.55rem;
+            row-gap: 0.25rem;
+            line-height: 1.25;
+            text-align: center;
+            white-space: normal;
+        }
+
+        .play-dashboard-actions .dashboard-action-label {
+            display: block;
+            width: 100%;
+            min-width: 0;
+            text-align: center;
+        }
+
+        .play-dashboard-actions .option-button i {
+            position: absolute;
+            top: 50%;
+            right: 1.35rem;
+            flex: 0 0 auto;
+            transform: translateY(-50%);
+        }
+
+        .play-inline-back {
+            align-self: center;
+            width: auto !important;
+            min-width: 10rem !important;
+            min-height: 44px;
+            padding: 0.55rem 1.2rem;
+        }
+
+        .play-inline-back i {
+            position: static !important;
+            transform: none !important;
+            margin-right: 0.35rem;
+        }
+
+        .pro-discount-box {
+            width: 100%;
+            max-width: none;
+            margin: -0.1rem 0 0.1rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid rgba(76, 175, 80, 0.22);
+            border-radius: 8px;
+            background: rgba(240, 253, 244, 0.82);
+            color: #24442a;
+            font-size: 0.88rem;
+            line-height: 1.35;
+            text-align: left;
+            box-sizing: border-box;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+        }
+
+        .pro-discount-box .pro-discount-breakdown {
+            margin: 0;
+            text-align: left;
+            white-space: pre-line;
+        }
+
+        .pro-discount-box .pro-discount-breakdown .pro-discount-line {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.42rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pro-discount-box .pro-discount-breakdown .pro-discount-line:last-child {
+            margin-bottom: 0;
+        }
+
+        .pro-discount-box .pro-discount-breakdown .pro-discount-badge-slot {
+            width: 22px;
+            min-width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pro-old-price {
+            text-decoration: line-through;
+            opacity: 0.75;
+            margin-right: 0.2rem;
+        }
+
+        .pro-new-price {
+            font-weight: 700;
+        }
+
+        .option-button .pro-old-price,
+        .option-button .pro-new-price {
+            font-weight: inherit;
+        }
+
         @media (max-width: 600px) {
+            .play-hub-main {
+                padding-inline: 1.35rem;
+            }
+
             .play-menu-hero {
-                padding: 1rem 1.35rem 0;
+                padding: 1rem 0 0;
             }
 
             .img-crop {
-                width: min(100%, 330px);
+                width: min(100%, 408px);
                 height: clamp(300px, 44vh, 410px);
             }
 
-            .play-menu-actions {
-                width: min(100%, 330px);
+            .play-menu-actions,
+            .play-athlete-actions,
+            .play-dashboard-actions {
+                width: min(100%, 408px);
                 margin-top: 1.15rem;
             }
 
@@ -84,72 +416,972 @@
                 padding-inline: 1.25rem;
                 white-space: nowrap;
             }
+
+            .play-athlete-panel,
+            .play-dashboard-panel {
+                padding-top: 2rem;
+            }
+
+            .play-athlete-title,
+            .play-dashboard-title {
+                margin-bottom: 0.85rem;
+                font-size: clamp(1.65rem, 7vw, 1.9rem);
+            }
+
+            .play-athlete-visual,
+            .play-dashboard-visual {
+                margin-bottom: 1rem;
+            }
+
+            .athlete-picture-frame {
+                width: min(100%, 408px);
+            }
+
+            .play-autocomplete-wrapper {
+                margin-bottom: 1rem;
+            }
+
+            @supports selector(:has(*)) {
+                .play-autocomplete-wrapper:has(.autocomplete-items) {
+                    margin-bottom: calc(1rem + min(11.5rem, 34vh));
+                }
+            }
+
+            .play-dashboard-actions {
+                gap: 0.65rem;
+                margin-top: 0.1rem;
+            }
+
+            .play-dashboard-actions .option-button {
+                padding-inline: 2.75rem;
+            }
+
+            .play-dashboard-actions .option-button i {
+                right: 1.2rem;
+            }
+        }
+
+        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+            .play-athlete-panel,
+            .play-dashboard-panel {
+                padding-top: 0.6rem;
+            }
+
+            .play-athlete-title,
+            .play-dashboard-title {
+                margin-bottom: 0.45rem;
+                font-size: clamp(1.55rem, 8vh, 2rem);
+                line-height: 1.05;
+            }
+
+            .play-athlete-visual,
+            .play-dashboard-visual {
+                margin-bottom: 0.65rem;
+            }
+
+            .athlete-picture-frame {
+                width: min(100%, 240px);
+            }
+
+            .athlete-picture-frame .illustration {
+                width: 100%;
+                max-width: none;
+                max-height: none;
+            }
+
+            .play-autocomplete-wrapper {
+                margin-bottom: 0.65rem;
+            }
+
+            @supports selector(:has(*)) {
+                .play-autocomplete-wrapper:has(.autocomplete-items) {
+                    margin-bottom: calc(0.65rem + min(8.5rem, 42vh));
+                }
+            }
+
+            .autocomplete-items {
+                max-height: min(8.5rem, 42vh);
+            }
+
+            .play-athlete-actions,
+            .play-dashboard-actions {
+                gap: 0.55rem;
+                margin-top: 0;
+            }
+
+            .play-dashboard-actions .option-button {
+                min-height: 42px;
+                padding-block: 0.55rem;
+            }
+
+            .pro-discount-box {
+                margin-top: 0;
+                padding: 0.6rem 0.75rem;
+                font-size: 0.82rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .athlete-picture-frame .illustration {
+                transition: none;
+            }
         }
     </style>
 </head>
 <body>
     <!--HEADER-->
-    <main>
-        <h1 class="visually-hidden">Game menu</h1>
-        <div class="play-menu-hero" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <div class="img-crop">
-                <img src="../assets/content-images/JustTrackIt.jpg"
-                     alt="Illustration encouraging athletes to track their progress"
-                     class="illustration"
-                     loading="eager"
-                     fetchpriority="high"
-                     decoding="async">
+    <main class="play-hub-main">
+        <section id="playStartPanel" class="play-hub-panel play-start-panel">
+            <h1 class="visually-hidden">Game menu</h1>
+            <div class="play-menu-hero" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+                <div class="img-crop">
+                    <img src="../assets/content-images/JustTrackIt.jpg"
+                         alt="Illustration encouraging athletes to track their progress"
+                         class="illustration"
+                         loading="eager"
+                         fetchpriority="high"
+                         decoding="async">
+                </div>
             </div>
-        </div>
 
-        <div class="options-container play-menu-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button id="newGameBtn" class="option-button grey" onclick="window.location.href='/join'">
-                I'm a new athlete
-            </button>
-            <button id="continueGameBtn" class="option-button grey" onclick="window.location.href='/select-athlete'">
-                I'm already an athlete
-            </button>
-        </div>
+            <div class="options-container play-menu-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                <button id="newGameBtn" class="option-button grey" onclick="window.location.href='/join'">
+                    I'm a new athlete
+                </button>
+                <button id="continueGameBtn" type="button" class="option-button grey">
+                    I'm already an athlete
+                </button>
+            </div>
+        </section>
+
+        <section id="athleteSelectionPanel" class="play-hub-panel play-athlete-panel" hidden>
+            <h1 id="athleteSelectionTitle" class="play-athlete-title">Athlete selection</h1>
+            <div class="play-athlete-visual">
+                <div id="athleteSelectionPicture" class="athlete-picture-frame">
+                    <picture>
+                        <source srcset="../assets/content-images/headshot.webp" type="image/webp">
+                        <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
+                        <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration athlete-picture-placeholder" loading="lazy" decoding="async">
+                    </picture>
+                </div>
+            </div>
+            <div class="play-autocomplete-wrapper">
+                <div class="play-autocomplete-container">
+                    <input type="text"
+                           id="playAthleteInput"
+                           name="athlete"
+                           required
+                           aria-required="true"
+                           aria-describedby="playAthleteError"
+                           autocomplete="off"
+                           autocapitalize="none"
+                           spellcheck="false"
+                           placeholder="Start typing your athlete name...">
+                    <span id="playAthleteError" class="error-message" aria-live="polite"></span>
+                </div>
+            </div>
+            <div class="options-container play-athlete-actions">
+                <button disabled id="playConfirmAthleteBtn" type="button" class="option-button green">
+                    Select&nbsp;<i class="fas fa-arrow-right"></i>
+                </button>
+                <button id="playSelectionBackBtn" type="button" class="option-button back-button play-inline-back">
+                    <i class="fas fa-arrow-left"></i>Back
+                </button>
+            </div>
+        </section>
+
+        <section id="athleteDashboardPanel" class="play-hub-panel play-dashboard-panel" hidden>
+            <h1 id="athleteDashboardTitle" class="play-dashboard-title">Athlete dashboard</h1>
+            <div class="play-dashboard-visual">
+                <div id="athleteDashboardPicture" class="athlete-picture-frame">
+                    <picture>
+                        <source srcset="../assets/content-images/headshot.webp" type="image/webp">
+                        <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
+                        <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration athlete-picture-placeholder" loading="lazy">
+                    </picture>
+                </div>
+            </div>
+            <div id="athleteDashboardActions" class="options-container play-dashboard-actions">
+                <button type="button" class="option-button grey" onclick="window.location.href='/edit-profile'">
+                    <span class="dashboard-action-label">Edit profile</span><i class="fas fa-pen"></i>
+                </button>
+                <div id="athleteDashboardDynamicActions"></div>
+                <button id="playDashboardBackBtn" type="button" class="option-button back-button play-inline-back">
+                    <i class="fas fa-arrow-left"></i>Change athlete
+                </button>
+            </div>
+        </section>
     </main>
     <!--FOOTER-->
+    <script>
+        const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
+        const ATHLETE_PICTURE_TRANSITION_MS = 180;
+        const athleteInput = document.getElementById('playAthleteInput');
+        const athleteError = document.getElementById('playAthleteError');
+        const confirmAthleteBtn = document.getElementById('playConfirmAthleteBtn');
+
+        let currentAthlete = null;
+        let athletePictureTransitionToken = 0;
+        let athleteAutocompleteReady = false;
+        let athleteLoadPromise = null;
+        let athletes = [];
+        let currentFocus = -1;
+
+        function getBrowserStorageItem(storageName, key) {
+            try {
+                return window[storageName].getItem(key);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function setBrowserStorageItem(storageName, key, value) {
+            try {
+                window[storageName].setItem(key, value);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function removeBrowserStorageItem(storageName, key) {
+            try {
+                window[storageName].removeItem(key);
+            } catch (_) {
+            }
+        }
+
+        function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
+        function setLocalItem(key, value) { setBrowserStorageItem('localStorage', key, value); }
+        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
+        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
+        function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
+        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
+
+        function hasSubmittedApplication() {
+            return getLocalItem('hasApplication') === 'true';
+        }
+
+        function focusWithoutScrolling(element) {
+            try {
+                element?.focus({ preventScroll: true });
+            } catch (_) {
+                element?.focus();
+            }
+        }
+
+        function getPlayRoute(panelName) {
+            switch (panelName) {
+                case 'selection':
+                    return '/select-athlete';
+                case 'dashboard':
+                    return '/dashboard';
+                default:
+                    return '/play';
+            }
+        }
+
+        function getPlayPanelForPath() {
+            const path = window.location.pathname.toLowerCase();
+            if (path === '/select-athlete') return 'selection';
+            if (path === '/dashboard') return 'dashboard';
+            return 'start';
+        }
+
+        function setPlayHistory(panelName, historyMode) {
+            if (!historyMode || !window.history) return;
+
+            const route = getPlayRoute(panelName);
+            const state = { playPanel: panelName };
+            if (historyMode === 'replace') {
+                window.history.replaceState(state, '', route);
+                return;
+            }
+
+            if (historyMode === 'push') {
+                if (window.location.pathname.toLowerCase() === route) {
+                    window.history.replaceState(state, '', route);
+                } else {
+                    window.history.pushState(state, '', route);
+                }
+            }
+        }
+
+        function showPanel(panelId) {
+            document.querySelectorAll('.play-hub-panel').forEach(panel => {
+                const isActive = panel.id === panelId;
+                panel.hidden = !isActive;
+            });
+            window.scrollTo(0, 0);
+        }
+
+        function showStartPanel(options = {}) {
+            setPlayHistory('start', options.historyMode);
+            showPanel('playStartPanel');
+            closeAllLists();
+            focusWithoutScrolling(document.getElementById('continueGameBtn'));
+        }
+
+        function showAthleteSelection(options = {}) {
+            setPlayHistory('selection', options.historyMode);
+            hydrateStoredAthleteSelection();
+            showPanel('athleteSelectionPanel');
+            loadAthletes().catch(() => {});
+            requestAnimationFrame(() => focusWithoutScrolling(athleteInput));
+        }
+
+        function getAthleteDisplayName(athlete) {
+            if (athlete && typeof athlete.DisplayName === 'string' && athlete.DisplayName.trim()) {
+                return athlete.DisplayName.trim();
+            }
+
+            return athlete && typeof athlete.Name === 'string' ? athlete.Name : '';
+        }
+
+        function getAthleteCanonicalName(athlete) {
+            return athlete && typeof athlete.Name === 'string' ? athlete.Name.trim() : '';
+        }
+
+        function isAthleteInputValue(athlete, value) {
+            const query = (value || '').trim().toLowerCase();
+            const canonicalName = getAthleteCanonicalName(athlete);
+            if (!query || !canonicalName) return false;
+
+            return canonicalName.toLowerCase() === query
+                || getAthleteDisplayName(athlete).toLowerCase() === query;
+        }
+
+        function getAthleteSearchText(athlete) {
+            return `${getAthleteCanonicalName(athlete)} ${getAthleteDisplayName(athlete)}`.toLowerCase();
+        }
+
+        function clearCurrentAthleteSelectionIfInputChanged(value) {
+            if (!currentAthlete || isAthleteInputValue(currentAthlete, value)) return;
+
+            currentAthlete = null;
+            confirmAthleteBtn.disabled = true;
+            resetAthletePreview();
+        }
+
+        function createDefaultAthletePicture() {
+            const picture = document.createElement('picture');
+            const webpSource = document.createElement('source');
+            webpSource.srcset = '../assets/content-images/headshot.webp';
+            webpSource.type = 'image/webp';
+
+            const jpegSource = document.createElement('source');
+            jpegSource.srcset = '../assets/content-images/headshot.jpg';
+            jpegSource.type = 'image/jpeg';
+
+            const image = document.createElement('img');
+            image.src = '../assets/content-images/headshot.jpg';
+            image.alt = 'Headshot';
+            image.className = 'illustration athlete-picture-placeholder';
+            image.loading = 'lazy';
+            image.decoding = 'async';
+            picture.replaceChildren(webpSource, jpegSource, image);
+            return picture;
+        }
+
+        function createDefaultAthleteImage() {
+            const image = document.createElement('img');
+            image.src = '../assets/content-images/headshot.jpg';
+            image.alt = 'Headshot';
+            image.className = 'illustration athlete-picture-placeholder athlete-picture-next';
+            image.loading = 'eager';
+            image.decoding = 'async';
+            return image;
+        }
+
+        function resetAthletePreview() {
+            document.getElementById('athleteSelectionTitle').textContent = 'Athlete selection';
+            transitionAthleteSelectionImage(createDefaultAthleteImage(), '../assets/content-images/headshot.jpg');
+        }
+
+        function createAthletePictureImage(altText) {
+            const image = document.createElement('img');
+            image.alt = altText;
+            image.className = 'illustration athlete-picture-next';
+            image.loading = 'eager';
+            image.decoding = 'async';
+            return image;
+        }
+
+        function getAthletePictureImageSrc(athlete) {
+            return athlete && (athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb)
+                ? athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb
+                : '../assets/content-images/headshot.jpg';
+        }
+
+        function transitionAthleteSelectionImage(image, src) {
+            const frame = document.getElementById('athleteSelectionPicture');
+            const transitionToken = ++athletePictureTransitionToken;
+            let hasFinished = false;
+
+            function finishImageSwap() {
+                if (hasFinished) return;
+                if (transitionToken !== athletePictureTransitionToken) return;
+                hasFinished = true;
+
+                const currentMedia = Array.from(frame.children).find(child => child !== image);
+                if (!currentMedia) {
+                    image.classList.remove('athlete-picture-next', 'is-visible');
+                    frame.replaceChildren(image);
+                    return;
+                }
+
+                frame.appendChild(image);
+                requestAnimationFrame(() => {
+                    if (transitionToken !== athletePictureTransitionToken) return;
+
+                    image.classList.add('is-visible');
+                    currentMedia.classList.add('is-exiting');
+                    window.setTimeout(() => {
+                        if (transitionToken !== athletePictureTransitionToken) return;
+
+                        image.classList.remove('athlete-picture-next', 'is-visible');
+                        frame.replaceChildren(image);
+                    }, ATHLETE_PICTURE_TRANSITION_MS);
+                });
+            }
+
+            image.addEventListener('load', finishImageSwap, { once: true });
+            image.addEventListener('error', () => {
+                if (transitionToken !== athletePictureTransitionToken) return;
+                if (!image.src.endsWith('/assets/content-images/headshot.jpg')) {
+                    image.src = '../assets/content-images/headshot.jpg';
+                }
+            }, { once: true });
+            image.src = src || '../assets/content-images/headshot.jpg';
+
+            if (image.complete && image.naturalWidth > 0) {
+                finishImageSwap();
+            }
+        }
+
+        function replaceAthleteSelectionImageImmediately(image, src) {
+            athletePictureTransitionToken++;
+            image.classList.remove('athlete-picture-next', 'is-visible');
+            image.src = src || '../assets/content-images/headshot.jpg';
+            document.getElementById('athleteSelectionPicture').replaceChildren(image);
+        }
+
+        function findExactAthleteMatch(value) {
+            return athletes.find(a => isAthleteInputValue(a, value)) || null;
+        }
+
+        function appendHighlightedText(container, text, query) {
+            const lowerText = text.toLowerCase();
+            const idx = lowerText.indexOf(query);
+            if (idx < 0) {
+                container.textContent = text;
+                return;
+            }
+
+            container.append(document.createTextNode(text.slice(0, idx)));
+            const strong = document.createElement('strong');
+            strong.textContent = text.slice(idx, idx + query.length);
+            container.append(strong, document.createTextNode(text.slice(idx + query.length)));
+        }
+
+        function closeAllLists() {
+            document.querySelectorAll('.autocomplete-items')
+                .forEach(list => list.remove());
+            currentFocus = -1;
+        }
+
+        function addActive(items) {
+            if (!items) return;
+            removeActive(items);
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = items.length - 1;
+            items[currentFocus].classList.add('autocomplete-active');
+            items[currentFocus].scrollIntoView({ block: 'nearest' });
+        }
+
+        function removeActive(items) {
+            Array.from(items).forEach(i => i.classList.remove('autocomplete-active'));
+        }
+
+        function renderSelectedAthletePreview(athlete, options = {}) {
+            const displayName = getAthleteDisplayName(athlete);
+            athleteInput.value = displayName;
+            document.getElementById('athleteSelectionTitle').textContent = displayName;
+            const image = createAthletePictureImage(`${displayName} headshot`);
+            if (options.transition === false) {
+                replaceAthleteSelectionImageImmediately(image, getAthletePictureImageSrc(athlete));
+            } else {
+                transitionAthleteSelectionImage(image, getAthletePictureImageSrc(athlete));
+            }
+            confirmAthleteBtn.disabled = false;
+            currentAthlete = athlete;
+        }
+
+        function hydrateStoredAthleteSelection() {
+            const storedAthlete = currentAthlete || getStoredSelectedAthlete();
+            if (!storedAthlete || !storedAthlete.Name) return false;
+
+            renderSelectedAthletePreview(storedAthlete, { transition: false });
+            return true;
+        }
+
+        function selectAthlete(a) {
+            renderSelectedAthletePreview(a, { transition: true });
+        }
+
+        function renderAthleteMatches() {
+            const query = athleteInput.value.trim().toLowerCase();
+            const terms = query.split(/\s+/).filter(t => t);
+            clearCurrentAthleteSelectionIfInputChanged(athleteInput.value);
+
+            closeAllLists();
+            if (currentAthlete && isAthleteInputValue(currentAthlete, athleteInput.value)) return false;
+            if (!terms.length) return false;
+
+            const list = document.createElement('div');
+            list.setAttribute('id', `${athleteInput.id}-autocomplete-list`);
+            list.setAttribute('class', 'autocomplete-items');
+            athleteInput.parentNode.appendChild(list);
+
+            const maxItems = 5;
+            let count = 0;
+
+            athletes.forEach(a => {
+                if (count >= maxItems) return;
+                if (!getAthleteCanonicalName(a)) return;
+                const searchText = getAthleteSearchText(a);
+                if (terms.every(term => searchText.includes(term))) {
+                    const first = terms[0];
+                    const displayName = getAthleteDisplayName(a);
+                    const item = document.createElement('div');
+                    appendHighlightedText(item, displayName, first);
+                    item.dataset.value = a.Name;
+                    item.dataset.profilePic = a.ProfilePic;
+
+                    item.addEventListener('mousedown', e => {
+                        e.preventDefault();
+                        selectAthlete(a);
+                        closeAllLists();
+                        confirmAthleteBtn.focus();
+                    });
+
+                    list.appendChild(item);
+                    count++;
+                }
+            });
+        }
+
+        function retryAthleteLoad() {
+            if (!athleteAutocompleteReady) {
+                loadAthletes().catch(() => {});
+            }
+        }
+
+        function loadAthletes() {
+            if (athleteAutocompleteReady) return Promise.resolve();
+            if (athleteLoadPromise) return athleteLoadPromise;
+            athleteError.textContent = '';
+            athleteLoadPromise = fetch('/api/data/athletes')
+                .then(r => r.ok ? r.json() : Promise.reject(new Error('Athlete list request failed')))
+                .then(data => {
+                    if (!Array.isArray(data)) {
+                        throw new Error('Athlete list response was invalid');
+                    }
+                    athletes = data;
+                    athleteAutocompleteReady = true;
+                    const saved = getLocalItem('selectedAthleteName');
+                    if (saved && !currentAthlete) {
+                        const match = athletes.find(a => isAthleteInputValue(a, saved));
+                        if (match) {
+                            selectAthlete(match);
+                        }
+                    }
+                    if (!currentAthlete) {
+                        renderAthleteMatches();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching athletes:', error);
+                    athleteError.textContent = 'Athlete list could not load. Check your connection and try again.';
+                    throw error;
+                })
+                .finally(() => {
+                    athleteLoadPromise = null;
+                });
+            return athleteLoadPromise;
+        }
+
+        function clearStaleTempAthlete(selectedAthleteName) {
+            const tempJson = getSessionItem('tempAthlete');
+            if (!tempJson) return;
+
+            try {
+                const tempAthlete = JSON.parse(tempJson);
+                if (tempAthlete && typeof tempAthlete === 'object' && tempAthlete.Name === selectedAthleteName) {
+                    return;
+                }
+            } catch (_) {
+            }
+
+            removeSessionItem('tempAthlete');
+        }
+
+        function persistSelectedAthlete() {
+            if (!currentAthlete || !currentAthlete.Name) return false;
+
+            const prevName = getLocalItem('selectedAthleteName');
+            if (!isAthleteInputValue(currentAthlete, prevName)) {
+                removeSessionItem('biomarkerData');
+                removeSessionItem('chronoPhenoDifference');
+                removeSessionItem('chronoBortzDifference');
+                removeSessionItem('contactEmail');
+                removeLocalItem('contactEmail');
+            }
+
+            if (!setSessionItem('selectedAthlete', JSON.stringify(currentAthlete))) {
+                customAlert('Browser storage is unavailable. Enable storage and try again.');
+                return false;
+            }
+
+            clearStaleTempAthlete(currentAthlete.Name);
+            setLocalItem('selectedAthleteName', currentAthlete.Name);
+            return true;
+        }
+
+        function getStoredSelectedAthlete() {
+            const json = getSessionItem('selectedAthlete');
+            if (!json) return null;
+
+            try {
+                const athlete = JSON.parse(json);
+                return athlete && typeof athlete === 'object' && typeof athlete.Name === 'string'
+                    ? athlete
+                    : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function serializePendingPaymentOffer(offer) {
+            if (!isUsablePaymentOffer(offer)) return null;
+
+            try {
+                const serializedOffer = JSON.stringify(offer);
+                return typeof serializedOffer === 'string' && serializedOffer
+                    ? serializedOffer
+                    : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function isUsablePaymentOffer(paymentOffer) {
+            return paymentOffer
+                && typeof paymentOffer === 'object'
+                && !Array.isArray(paymentOffer)
+                && typeof paymentOffer.source === 'string'
+                && paymentOffer.source.trim()
+                && typeof paymentOffer.offerType === 'string'
+                && paymentOffer.offerType.trim()
+                && typeof paymentOffer.currency === 'string'
+                && paymentOffer.currency.trim()
+                && typeof paymentOffer.amountUsd === 'number'
+                && Number.isFinite(paymentOffer.amountUsd)
+                && paymentOffer.amountUsd >= 0;
+        }
+
+        function preserveAppliedDiscountMetadata(offer, result) {
+            const hasDiscountCode = result
+                && Array.isArray(result.components)
+                && result.components.some(component => component && component.kind === 'discountCode');
+            if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
+
+            try {
+                return window.addActiveDiscountMetadataToPaymentOffer(offer);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function setPendingPaymentOffer(offer, retryButton) {
+            let effectiveOffer = offer;
+            try {
+                effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
+                    ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
+                    : window.applyFreePassToPaymentOffer
+                        ? window.applyFreePassToPaymentOffer(offer)
+                        : offer;
+            } catch (_) {
+                customAlert('Payment details could not be saved. Enable browser storage and try again.')
+                    .then(() => retryButton?.focus());
+                return false;
+            }
+
+            const serializedOffer = serializePendingPaymentOffer(effectiveOffer);
+            if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) {
+                return true;
+            }
+
+            customAlert('Payment details could not be saved. Enable browser storage and try again.')
+                .then(() => retryButton?.focus());
+            return false;
+        }
+
+        function clearPendingPaymentOffer() {
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+        }
+
+        function createPriceHtmlFallback(result) {
+            const oldText = `$${result.basePriceUsd}`;
+            if (result.finalPriceUsd < result.basePriceUsd) {
+                return `<span class="pro-old-price">${oldText}</span> <span class="pro-new-price">${result.finalPriceText}</span>`;
+            }
+            return `<span class="pro-new-price">${oldText}</span>`;
+        }
+
+        function createButton(label, className, href, beforeNavigate) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = className;
+            button.innerHTML = label;
+            button.addEventListener('click', () => {
+                if (typeof beforeNavigate === 'function' && beforeNavigate(button) === false) return;
+                window.location.href = href;
+            });
+            return button;
+        }
+
+        function createGoProDiscountSummary(result) {
+            if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== 'function') {
+                return null;
+            }
+            const wrapper = document.createElement('div');
+            wrapper.className = 'pro-discount-box';
+
+            const breakdownLine = document.createElement('p');
+            breakdownLine.className = 'pro-discount-breakdown';
+            if (typeof window.proDiscounts.createBreakdownHtml === 'function') {
+                breakdownLine.innerHTML = window.proDiscounts.createBreakdownHtml(result);
+            } else {
+                breakdownLine.textContent = window.proDiscounts.createBreakdownText(result);
+            }
+
+            wrapper.appendChild(breakdownLine);
+            return wrapper;
+        }
+
+        function showAthleteDashboard(athlete, options = {}) {
+            if (!athlete || !athlete.Name) {
+                showAthleteSelection({ historyMode: options.historyMode || 'replace' });
+                return;
+            }
+
+            setPlayHistory('dashboard', options.historyMode);
+            const athleteDisplayName = getAthleteDisplayName(athlete);
+            document.getElementById('athleteDashboardTitle').textContent = athleteDisplayName;
+            const athleteImage = document.createElement('img');
+            athleteImage.src = getAthletePictureImageSrc(athlete);
+            athleteImage.alt = `${athleteDisplayName} headshot`;
+            athleteImage.className = 'illustration';
+            athleteImage.loading = 'lazy';
+            athleteImage.decoding = 'async';
+            document.getElementById('athleteDashboardPicture').replaceChildren(athleteImage);
+            showPanel('athleteDashboardPanel');
+            renderDashboardActions(athlete);
+        }
+
+        function showPanelForCurrentUrl() {
+            const panelName = getPlayPanelForPath();
+            if (panelName === 'dashboard') {
+                const selectedAthlete = currentAthlete || getStoredSelectedAthlete();
+                currentAthlete = selectedAthlete;
+                showAthleteDashboard(selectedAthlete, { historyMode: null });
+                return;
+            }
+
+            if (panelName === 'selection') {
+                showAthleteSelection({ historyMode: null });
+                return;
+            }
+
+            showStartPanel({ historyMode: null });
+        }
+
+        function initializePlayHistory() {
+            if (!window.history) return;
+
+            try {
+                window.history.scrollRestoration = 'manual';
+            } catch (_) {
+            }
+
+            const panelName = getPlayPanelForPath();
+            const initialUrl = getPlayRoute(panelName) + window.location.search + window.location.hash;
+            window.history.replaceState({ playPanel: panelName }, '', initialUrl);
+        }
+
+        function returnToStartPanel() {
+            if (window.location.pathname.toLowerCase() === '/select-athlete' && window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+
+            showStartPanel({ historyMode: 'replace' });
+        }
+
+        function returnToSelectionPanel() {
+            if (window.location.pathname.toLowerCase() === '/dashboard' && window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+
+            showAthleteSelection({ historyMode: 'replace' });
+        }
+
+        function renderDashboardActions(athlete) {
+            const dynamicActions = document.getElementById('athleteDashboardDynamicActions');
+            dynamicActions.replaceChildren();
+            const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});
+
+            ready.catch(() => {}).then(() => {
+                dynamicActions.replaceChildren();
+
+                const isPro = window.isAthletePro ? window.isAthletePro(athlete) : false;
+
+                if (isPro) {
+                    const phenoButton = createButton(
+                        '<span class="dashboard-action-label">Submit new Pheno&nbsp;Age</span><i class="fas fa-rocket"></i>',
+                        'option-button grey',
+                        '/pheno-age?update=1',
+                        () => clearPendingPaymentOffer()
+                    );
+                    const bortzButton = createButton(
+                        '<span class="dashboard-action-label">Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age</span><i class="fas fa-rocket"></i>',
+                        'option-button grey',
+                        '/bortz-age?update=1',
+                        () => clearPendingPaymentOffer()
+                    );
+                    dynamicActions.append(phenoButton, bortzButton);
+                    return;
+                }
+
+                const submitButton = createButton(
+                    '<span class="dashboard-action-label">Submit new results</span><i class="fas fa-rocket"></i>',
+                    'option-button grey',
+                    '/pheno-age?update=1',
+                    () => clearPendingPaymentOffer()
+                );
+                const goProDiscountResult =
+                    window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
+                        ? window.proDiscounts.buildDiscountBreakdown(athlete, { isOnLeaderboard: true })
+                        : null;
+                const goProPriceHtml = window.hasFreePass && window.hasFreePass()
+                    ? '<span class="pro-new-price">free</span>'
+                    : goProDiscountResult
+                        ? (typeof window.proDiscounts.createPriceHtml === 'function' ? window.proDiscounts.createPriceHtml(goProDiscountResult) : createPriceHtmlFallback(goProDiscountResult))
+                        : null;
+                const goProButton = createButton(
+                    goProPriceHtml
+                        ? `<span class="dashboard-action-label">Go pro for&nbsp;${goProPriceHtml}</span><i class="fas fa-bolt"></i>`
+                        : '<span class="dashboard-action-label">Go pro</span><i class="fas fa-bolt"></i>',
+                    'option-button green',
+                    '/bortz-age?update=1',
+                    button => {
+                        const amountUsd =
+                            goProDiscountResult && Number.isFinite(goProDiscountResult.finalPriceUsd)
+                                ? goProDiscountResult.finalPriceUsd
+                                : 100;
+                        const paymentOffer = preserveAppliedDiscountMetadata({
+                            source: 'go-pro-upgrade',
+                            offerType: 'pro',
+                            currency: 'USD',
+                            amountUsd
+                        }, goProDiscountResult);
+                        return setPendingPaymentOffer(paymentOffer, button);
+                    }
+                );
+
+                dynamicActions.append(submitButton, goProButton);
+                const goProDiscountSummary = goProDiscountResult ? createGoProDiscountSummary(goProDiscountResult) : null;
+                if (goProDiscountSummary) {
+                    dynamicActions.append(goProDiscountSummary);
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.captureFreePassFromUrl) {
+                window.captureFreePassFromUrl();
+            }
+            if (window.captureDiscountFromUrl) {
+                window.captureDiscountFromUrl();
+            }
+            initializePlayHistory();
+
+            const hasApp = hasSubmittedApplication();
+            const container = document.querySelector('.play-menu-actions');
+            const newBtn = document.getElementById('newGameBtn');
+            const contBtn = document.getElementById('continueGameBtn');
+
+            if (hasApp) {
+                contBtn.classList.remove('grey');
+                contBtn.classList.add('green');
+                container.insertBefore(contBtn, container.firstChild);
+            } else {
+                newBtn.classList.remove('grey');
+                newBtn.classList.add('green');
+                container.insertBefore(newBtn, container.firstChild);
+            }
+
+            contBtn.addEventListener('click', () => showAthleteSelection({ historyMode: 'push' }));
+            document.getElementById('playSelectionBackBtn').addEventListener('click', returnToStartPanel);
+            document.getElementById('playDashboardBackBtn').addEventListener('click', returnToSelectionPanel);
+
+            confirmAthleteBtn.addEventListener('click', () => {
+                if (!persistSelectedAthlete()) return;
+                showAthleteDashboard(currentAthlete, { historyMode: 'push' });
+            });
+            window.addEventListener('popstate', showPanelForCurrentUrl);
+
+            athleteInput.addEventListener('focus', retryAthleteLoad);
+            athleteInput.addEventListener('input', () => {
+                retryAthleteLoad();
+                if (athleteAutocompleteReady) {
+                    renderAthleteMatches();
+                }
+            });
+
+            athleteInput.addEventListener('keydown', function (e) {
+                let list = document.getElementById(`${this.id}-autocomplete-list`);
+                if (list) list = list.getElementsByTagName('div');
+                if (e.keyCode === 40) {
+                    currentFocus++;
+                    addActive(list);
+                } else if (e.keyCode === 38) {
+                    currentFocus--;
+                    addActive(list);
+                } else if (e.keyCode === 13) {
+                    e.preventDefault();
+                    if (currentFocus > -1 && list) {
+                        list[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
+                        return;
+                    }
+
+                    const exactMatch = findExactAthleteMatch(this.value);
+                    if (exactMatch) {
+                        selectAthlete(exactMatch);
+                        closeAllLists();
+                        confirmAthleteBtn.focus();
+                    }
+                }
+            });
+
+            document.addEventListener('click', event => {
+                if (!event.target.closest('.play-autocomplete-container')) {
+                    closeAllLists();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
-
-<script>
-    function getBrowserStorageItem(storageName, key) {
-        try {
-            return window[storageName].getItem(key);
-        } catch (_) {
-            return null;
-        }
-    }
-
-    function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
-
-    function hasSubmittedApplication() {
-        return getLocalItem('hasApplication') === 'true';
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-        setTimeout(() => {
-            const viewTarget = document.querySelector('h1');
-            viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 500);
-
-        // now mark the menu based on whether they've applied:
-        const hasApp = hasSubmittedApplication();
-        const container = document.querySelector('.options-container');
-        const newBtn = document.getElementById('newGameBtn');
-        const contBtn = document.getElementById('continueGameBtn');
-
-        if (hasApp) {
-            contBtn.classList.remove('grey');
-            contBtn.classList.add('green');
-            container.insertBefore(contBtn, container.firstChild);
-        } else {
-            newBtn.classList.remove('grey');
-            newBtn.classList.add('green');
-            container.insertBefore(newBtn, container.firstChild);
-        }
-    });
-</script>
