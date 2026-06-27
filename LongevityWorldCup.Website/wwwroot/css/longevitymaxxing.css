@@ -3393,7 +3393,9 @@ body.lmx-quote-open {
 
 @media (max-width: 360px) {
     .lmx-title-row h1 {
-        font-size: 1.85rem;
+        font-size: clamp(1.58rem, 9vw, 1.85rem);
+        overflow-wrap: normal;
+        word-break: keep-all;
     }
 
     .lmx-life-strip {
