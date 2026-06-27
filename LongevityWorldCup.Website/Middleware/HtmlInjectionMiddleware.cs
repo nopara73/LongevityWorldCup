@@ -360,6 +360,17 @@ $@"<script type=""module"">
                         "/js/leagueIcons.js",
                         "/js/badges.js"
                     ]),
+                "/play/menu.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    ModulePaths:
+                    [
+                        "/js/misc.js",
+                        "/js/pheno-age.js",
+                        "/js/bortz-age.js",
+                        "/js/badges.js",
+                        "/js/proof-helpers.js",
+                        "/js/pro-discounts.js"
+                    ]),
                 "/play/edit-profile.html" => new HeadAssetConfig(
                     IncludeValidator: true,
                     ModulePaths:

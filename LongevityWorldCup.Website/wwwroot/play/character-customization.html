@@ -32,6 +32,7 @@
         }
 
         .character-dashboard-visual {
+            width: 100%;
             margin: 0 auto 1.4rem;
             text-align: center;
         }
@@ -40,6 +41,49 @@
             width: min(100%, 408px);
             margin-bottom: 0;
             box-sizing: border-box;
+        }
+
+        .athlete-picture-frame {
+            position: relative;
+            display: block;
+            width: min(100%, 408px);
+            aspect-ratio: 1 / 1;
+            margin-inline: auto;
+            overflow: hidden;
+            border: 4px solid var(--dark-text-color);
+            border-radius: 8px;
+            background: #d4d4d4;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+            line-height: 0;
+        }
+
+        .athlete-picture-frame > picture,
+        .athlete-picture-frame > img {
+            position: absolute;
+            inset: 0;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .athlete-picture-frame .illustration {
+            display: block;
+            width: 100%;
+            height: 100%;
+            margin-bottom: 0;
+            max-width: none;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            object-fit: contain;
+            object-position: center;
+            box-sizing: border-box;
+        }
+
+        .athlete-picture-frame .athlete-picture-placeholder {
+            object-fit: cover;
+            transform: scale(1.035);
         }
 
         .character-dashboard-actions {
@@ -109,6 +153,10 @@
                 margin-bottom: 1.25rem;
             }
 
+            .athlete-picture-frame {
+                width: min(100%, 408px);
+            }
+
             .character-dashboard-actions .option-button {
                 padding-inline: 2.75rem;
             }
@@ -138,11 +186,14 @@
                 margin-bottom: 0.65rem;
             }
 
-            .character-dashboard-visual .illustration {
-                width: auto;
-                max-width: min(100%, 240px);
-                max-height: 30dvh;
-                object-fit: contain;
+            .athlete-picture-frame {
+                width: min(100%, 240px);
+            }
+
+            .athlete-picture-frame .illustration {
+                width: 100%;
+                max-width: none;
+                max-height: none;
             }
 
             .character-dashboard-actions {
@@ -296,14 +347,16 @@
 </head>
 <body>
     <!--HEADER-->
-    <main class="character-dashboard-main">
+        <main class="character-dashboard-main">
         <h1 id="character-title" class="character-dashboard-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
         <div class="character-dashboard-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <picture>
-                <source srcset="../assets/content-images/headshot.webp" type="image/webp">
-                <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
-                <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" loading="lazy">
-            </picture>
+            <div id="characterDashboardPicture" class="athlete-picture-frame">
+                <picture>
+                    <source srcset="../assets/content-images/headshot.webp" type="image/webp">
+                    <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
+                    <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration athlete-picture-placeholder" loading="lazy" decoding="async">
+                </picture>
+            </div>
         </div>
         <div class="options-container character-dashboard-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <button class="option-button grey" onclick="window.location.href='/edit-profile'">
@@ -383,6 +436,12 @@
             }
 
             return typeof athlete?.Name === 'string' ? athlete.Name : '';
+        }
+
+        function getAthletePictureImageSrc(value) {
+            return value && (value.ProfilePic || value.ProfilePicLeaderboardThumb || value.ProfilePicThumb)
+                ? value.ProfilePic || value.ProfilePicLeaderboardThumb || value.ProfilePicThumb
+                : '../assets/content-images/headshot.jpg';
         }
 
         function serializePendingPaymentOffer(offer) {
@@ -473,11 +532,12 @@
             const athleteDisplayName = getAthleteDisplayName();
             document.getElementById('character-title').textContent = athleteDisplayName;
             const athleteImage = document.createElement('img');
-            athleteImage.src = athlete.ProfilePic;
+            athleteImage.src = getAthletePictureImageSrc(athlete);
             athleteImage.alt = `${athleteDisplayName} headshot`;
             athleteImage.className = 'illustration';
             athleteImage.loading = 'lazy';
-            document.querySelector('picture').replaceChildren(athleteImage);
+            athleteImage.decoding = 'async';
+            document.getElementById('characterDashboardPicture').replaceChildren(athleteImage);
 
             const optionsContainer = document.querySelector('.options-container');
             const backButton = document.getElementById('characterBackButton');

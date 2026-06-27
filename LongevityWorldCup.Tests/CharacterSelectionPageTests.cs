@@ -45,6 +45,27 @@ public sealed class CharacterSelectionPageTests
     }
 
     [Fact]
+    public async Task AthleteSelection_HydratesStoredAthleteBeforeAthleteListLoads()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-selection.html");
+        var hydrate = html.IndexOf("hydrateStoredAthleteSelection();", StringComparison.Ordinal);
+        var load = html.IndexOf("loadAthletes().catch(() => {});", hydrate, StringComparison.Ordinal);
+
+        Assert.True(hydrate >= 0);
+        Assert.True(load > hydrate);
+        Assert.Contains("function getStoredSelectedAthlete()", html);
+        Assert.Contains("const storedAthlete = currentAthlete || getStoredSelectedAthlete();", html);
+        Assert.Contains("renderSelectedAthletePreview(storedAthlete, { transition: false });", html);
+        Assert.Contains("replaceAthleteSelectionImageImmediately(image, getAthletePictureImageSrc(athlete));", html);
+        Assert.Contains("if (currentAthlete && isAthleteInputValue(currentAthlete, this.value)) return false;", html);
+        Assert.Contains("if (!currentAthlete) {\n                            athleteInput.dispatchEvent(new Event('input'));\n                        }", html);
+        Assert.Contains("if (saved && !currentAthlete)", html);
+    }
+
+    [Fact]
     public async Task AthleteSelection_AthleteListFailureShowsRetryableInputError()
     {
         using var factory = new TestWebApplicationFactory();
@@ -112,8 +133,10 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("item.dataset.value = a.Name;", html);
         Assert.Contains("const displayName = getAthleteDisplayName(a);", html);
         Assert.Contains("athleteInput.value = displayName;", html);
-        Assert.Contains("image.alt = `${displayName} headshot`;", html);
-        Assert.Contains("document.querySelector('picture').replaceChildren(image);", html);
+        Assert.Contains("createAthletePictureImage(`${displayName} headshot`);", html);
+        Assert.Contains("image.alt = altText;", html);
+        Assert.Contains("transitionAthleteSelectionImage(image, getAthletePictureImageSrc(athlete));", html);
+        Assert.DoesNotContain("document.querySelector('picture').replaceChildren(image);", html);
         Assert.Contains("setLocalItem('selectedAthleteName', currentAthlete.Name);", html);
         Assert.DoesNotContain("const name = a.Name.toLowerCase();", html);
         Assert.DoesNotContain("item.innerHTML =", html);
@@ -182,7 +205,44 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("webpSource.srcset = '../assets/content-images/headshot.webp';", html);
         Assert.Contains("jpegSource.srcset = '../assets/content-images/headshot.jpg';", html);
         Assert.Contains("image.alt = 'Headshot';", html);
-        Assert.Contains("document.querySelector('picture').replaceChildren(webpSource, jpegSource, image);", html);
+        Assert.Contains("image.className = 'illustration athlete-picture-placeholder';", html);
+        Assert.Contains("function createDefaultAthleteImage()", html);
+        Assert.Contains("image.className = 'illustration athlete-picture-placeholder athlete-picture-next';", html);
+        Assert.Contains("transitionAthleteSelectionImage(createDefaultAthleteImage(), '../assets/content-images/headshot.jpg');", html);
+        Assert.DoesNotContain("document.getElementById('characterSelectionPicture').replaceChildren(createDefaultAthletePicture());", html);
         Assert.Contains("clearCurrentAthleteSelectionIfInputChanged(this.value);", inputBody);
+    }
+
+    [Fact]
+    public async Task AthleteSelection_ProfilePictureSwapWaitsForImageLoad()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-selection.html");
+
+        Assert.Contains("id=\"characterSelectionPicture\" class=\"athlete-picture-frame\"", html);
+        Assert.Contains("aspect-ratio: 1 / 1;", html);
+        Assert.Contains("border: 4px solid var(--dark-text-color);", html);
+        Assert.Contains("box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);", html);
+        Assert.Contains("object-fit: contain;", html);
+        Assert.Contains(".athlete-picture-frame .athlete-picture-placeholder", html);
+        Assert.Contains("object-fit: cover;", html);
+        Assert.Contains("transform: scale(1.035);", html);
+        Assert.Contains("border: 0;", html);
+        Assert.Contains("class=\"illustration athlete-picture-placeholder\"", html);
+        Assert.Contains("const ATHLETE_PICTURE_TRANSITION_MS = 180;", html);
+        Assert.Contains("let athletePictureTransitionToken = 0;", html);
+        Assert.Contains("function transitionAthleteSelectionImage(image, src)", html);
+        Assert.Contains("function getAthletePictureImageSrc(athlete)", html);
+        Assert.Contains("athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb", html);
+        Assert.Contains("let hasFinished = false;", html);
+        Assert.Contains("image.loading = 'eager';", html);
+        Assert.Contains("image.addEventListener('load', finishImageSwap, { once: true });", html);
+        Assert.Contains("frame.appendChild(image);", html);
+        Assert.Contains("currentMedia.classList.add('is-exiting');", html);
+        Assert.Contains("frame.replaceChildren(image);", html);
+        Assert.Contains("transitionAthleteSelectionImage(image, getAthletePictureImageSrc(athlete));", html);
+        Assert.DoesNotContain("document.querySelector('picture').replaceChildren(image);", html);
     }
 }

@@ -14,13 +14,23 @@ public sealed class CharacterCustomizationPageTests
 
         Assert.Contains("typeof athlete?.DisplayName === 'string'", html);
         Assert.Contains("return typeof athlete?.Name === 'string' ? athlete.Name : '';", html);
+        Assert.Contains("id=\"characterDashboardPicture\" class=\"athlete-picture-frame\"", html);
+        Assert.Contains("aspect-ratio: 1 / 1;", html);
+        Assert.Contains("object-fit: contain;", html);
+        Assert.Contains(".athlete-picture-frame .athlete-picture-placeholder", html);
+        Assert.Contains("object-fit: cover;", html);
+        Assert.Contains("transform: scale(1.035);", html);
+        Assert.Contains("function getAthletePictureImageSrc(value)", html);
+        Assert.Contains("value.ProfilePic || value.ProfilePicLeaderboardThumb || value.ProfilePicThumb", html);
         Assert.Contains("const athleteImage = document.createElement('img');", html);
-        Assert.Contains("athleteImage.src = athlete.ProfilePic;", html);
+        Assert.Contains("athleteImage.src = getAthletePictureImageSrc(athlete);", html);
         Assert.Contains("athleteImage.alt = `${athleteDisplayName} headshot`;", html);
         Assert.Contains("athleteImage.className = 'illustration';", html);
         Assert.Contains("athleteImage.loading = 'lazy';", html);
-        Assert.Contains("document.querySelector('picture').replaceChildren(athleteImage);", html);
+        Assert.Contains("athleteImage.decoding = 'async';", html);
+        Assert.Contains("document.getElementById('characterDashboardPicture').replaceChildren(athleteImage);", html);
         Assert.DoesNotContain("document.querySelector('picture').innerHTML", html);
+        Assert.DoesNotContain("document.querySelector('picture').replaceChildren(athleteImage);", html);
     }
 
     [Fact]
