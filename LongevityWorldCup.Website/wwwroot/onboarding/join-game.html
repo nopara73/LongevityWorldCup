@@ -409,6 +409,59 @@
         }
       }
 
+      @media (max-width: 300px) {
+        body #mainProgressBar.progress-container {
+          width: calc(100% - 20px);
+        }
+
+        body #mainProgressBar .stages {
+          gap: 6px;
+          justify-content: space-between;
+        }
+
+        body #mainProgressBar .stage {
+          flex: 1 1 0;
+          min-width: 0;
+        }
+
+        body #mainProgressBar .stage-label {
+          font-size: 0.78rem;
+        }
+
+        body #mainProgressBar .stage.active .stage-label {
+          padding: 0.25rem 0.42rem;
+        }
+
+        .track-card {
+          padding: 1rem;
+        }
+
+        .track-card-meta {
+          grid-template-columns: 1fr;
+          gap: 0.18rem;
+        }
+
+        .track-card-meta dd {
+          margin-bottom: 0.4rem;
+          overflow-wrap: anywhere;
+        }
+
+        .track-card-meta dd a {
+          display: inline;
+          min-height: 0;
+          margin: 0;
+          padding: 0;
+        }
+
+        .biomarkers-section {
+          padding: 0.62rem 0.65rem 0.72rem;
+        }
+
+        .biomarkers-section .card-bio-list li {
+          overflow-wrap: anywhere;
+        }
+      }
+
       /* Only the direct child is the ribbon band; .btc-symbol stays inline on it */
       .track-card-ribbon.prize-money > span {
         display: flex;
@@ -479,6 +532,46 @@
           text-align: center;
           white-space: normal;
           transform: none;
+        }
+      }
+
+      @media (max-width: 300px) {
+        .track-card.pro {
+          grid-template-rows: auto auto auto auto auto;
+        }
+
+        .track-card.pro .track-card-ribbon-slot {
+          display: flex;
+          justify-content: flex-end;
+          height: auto;
+          margin-bottom: 0.45rem;
+        }
+
+        .track-card.pro .track-card-ribbon-slot .track-card-ribbon {
+          position: static;
+          top: auto;
+          right: auto;
+        }
+
+        .track-card.pro h2 {
+          padding-right: 0;
+        }
+
+        .track-card-ribbon.prize-money {
+          width: auto;
+          height: auto;
+        }
+
+        .track-card-ribbon.prize-money > span {
+          display: inline-flex;
+          box-sizing: border-box;
+          width: auto;
+          max-width: none;
+          padding: 0.3rem 0.5rem;
+          border-radius: 6px;
+          font-size: 0.54rem;
+          line-height: 1;
+          white-space: nowrap;
         }
       }
 
