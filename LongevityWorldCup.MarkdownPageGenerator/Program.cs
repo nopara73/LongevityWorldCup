@@ -344,8 +344,11 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             box-sizing: border-box;
             display: block;
             max-width: 100%;
+            max-width: min(100%, 48rem);
             max-height: 560px;
-            width: min(100%, 48rem);
+            max-height: min(560px, calc(100vh - 7rem));
+            max-height: min(560px, calc(100svh - 7rem));
+            width: auto;
             height: auto;
             object-fit: contain;
             margin: 1.45rem auto 1.8rem;
@@ -454,7 +457,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 720px) {
             .documentation-document table {
                 display: block;
                 border-collapse: separate;
