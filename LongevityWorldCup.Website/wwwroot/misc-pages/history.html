@@ -267,6 +267,93 @@
                 margin: 1.15rem auto 1.45rem;
             }
         }
+
+        @media (max-width: 360px) {
+            .documentation-document table {
+                display: block;
+                border-collapse: separate;
+                background: transparent;
+                border-radius: 0;
+                overflow: visible;
+            }
+
+            .documentation-document thead {
+                display: none;
+            }
+
+            .documentation-document tbody {
+                display: grid;
+                gap: 0.55rem;
+            }
+
+            .documentation-document tbody tr {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 0.35rem 0.7rem;
+                padding: 0.62rem 0.7rem;
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                border-radius: 8px;
+                background: rgba(248, 250, 252, 0.78);
+            }
+
+            .documentation-document tbody td {
+                padding: 0;
+                border-bottom: 0;
+                white-space: normal;
+                overflow-wrap: normal;
+                word-break: normal;
+            }
+
+            .documentation-document tbody td {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 0.35rem;
+                align-items: baseline;
+                color: #334155;
+                font-size: 0.86rem;
+                line-height: 1.28;
+            }
+
+            .documentation-document tbody td::before {
+                content: attr(data-label);
+                color: #64748b;
+                font-size: 0.68rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0;
+            }
+
+            .documentation-document tbody td:first-child {
+                grid-column: 1;
+                grid-template-columns: auto auto;
+            }
+
+            .documentation-document tbody td:nth-child(2) {
+                grid-column: 1 / -1;
+                grid-row: 2;
+                font-size: 0.96rem;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+            .documentation-document tbody td:nth-child(2)::before {
+                display: none;
+            }
+
+            .documentation-document tbody td:last-child {
+                grid-column: 2;
+                justify-self: end;
+                width: 6.25rem;
+                grid-template-columns: 1fr;
+                justify-items: end;
+                gap: 0.12rem;
+                text-align: right;
+            }
+
+            .documentation-document tbody td:last-child::before {
+                white-space: nowrap;
+            }
+        }
     </style>
 </head>
 <body>
@@ -329,104 +416,104 @@
 </thead>
 <tbody>
 <tr>
-<td>1</td>
-<td><a href="https://www.longevityworldcup.com/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a></td>
-<td>-22.1 years</td>
+<td data-label="Rank">1</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/michael-lustgarten" target="_blank" rel="noopener noreferrer">Michael Lustgarten, PhD</a></td>
+<td data-label="Age reduction">-22.1 years</td>
 </tr>
 <tr>
-<td>2</td>
-<td><a href="https://www.longevityworldcup.com/athlete/zdenek-sipek" target="_blank" rel="noopener noreferrer">Zdenek Sipek</a></td>
-<td>-20.6 years</td>
+<td data-label="Rank">2</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/zdenek-sipek" target="_blank" rel="noopener noreferrer">Zdenek Sipek</a></td>
+<td data-label="Age reduction">-20.6 years</td>
 </tr>
 <tr>
-<td>3</td>
-<td><a href="https://www.longevityworldcup.com/athlete/wen-z" target="_blank" rel="noopener noreferrer">Wen Z</a></td>
-<td>-20.1 years</td>
+<td data-label="Rank">3</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/wen-z" target="_blank" rel="noopener noreferrer">Wen Z</a></td>
+<td data-label="Age reduction">-20.1 years</td>
 </tr>
 <tr>
-<td>4</td>
-<td><a href="https://www.longevityworldcup.com/athlete/philipp-schmeing" target="_blank" rel="noopener noreferrer">Philipp Schmeing</a></td>
-<td>-19.6 years</td>
+<td data-label="Rank">4</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/philipp-schmeing" target="_blank" rel="noopener noreferrer">Philipp Schmeing</a></td>
+<td data-label="Age reduction">-19.6 years</td>
 </tr>
 <tr>
-<td>5</td>
-<td><a href="https://www.longevityworldcup.com/athlete/angela-buzzeo" target="_blank" rel="noopener noreferrer">Angela Buzzeo</a></td>
-<td>-19.5 years</td>
+<td data-label="Rank">5</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/angela-buzzeo" target="_blank" rel="noopener noreferrer">Angela Buzzeo</a></td>
+<td data-label="Age reduction">-19.5 years</td>
 </tr>
 <tr>
-<td>6</td>
-<td><a href="https://www.longevityworldcup.com/athlete/deelicious" target="_blank" rel="noopener noreferrer">deelicious</a></td>
-<td>-18.9 years</td>
+<td data-label="Rank">6</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/deelicious" target="_blank" rel="noopener noreferrer">deelicious</a></td>
+<td data-label="Age reduction">-18.9 years</td>
 </tr>
 <tr>
-<td>7</td>
-<td><a href="https://www.longevityworldcup.com/athlete/juan-robalino" target="_blank" rel="noopener noreferrer">Juan Robalino</a></td>
-<td>-18.3 years</td>
+<td data-label="Rank">7</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/juan-robalino" target="_blank" rel="noopener noreferrer">Juan Robalino</a></td>
+<td data-label="Age reduction">-18.3 years</td>
 </tr>
 <tr>
-<td>8</td>
-<td><a href="https://www.longevityworldcup.com/athlete/max" target="_blank" rel="noopener noreferrer">Max</a></td>
-<td>-18.3 years</td>
+<td data-label="Rank">8</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/max" target="_blank" rel="noopener noreferrer">Max</a></td>
+<td data-label="Age reduction">-18.3 years</td>
 </tr>
 <tr>
-<td>9</td>
-<td><a href="https://www.longevityworldcup.com/athlete/anicca" target="_blank" rel="noopener noreferrer">anicca</a></td>
-<td>-17.8 years</td>
+<td data-label="Rank">9</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/anicca" target="_blank" rel="noopener noreferrer">anicca</a></td>
+<td data-label="Age reduction">-17.8 years</td>
 </tr>
 <tr>
-<td>10</td>
-<td><a href="https://www.longevityworldcup.com/athlete/ilhui" target="_blank" rel="noopener noreferrer">Ilhui</a></td>
-<td>-17.7 years</td>
+<td data-label="Rank">10</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/ilhui" target="_blank" rel="noopener noreferrer">Ilhui</a></td>
+<td data-label="Age reduction">-17.7 years</td>
 </tr>
 <tr>
-<td>11</td>
-<td><a href="https://www.longevityworldcup.com/athlete/larsemann" target="_blank" rel="noopener noreferrer">Larsemann</a></td>
-<td>-17.4 years</td>
+<td data-label="Rank">11</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/larsemann" target="_blank" rel="noopener noreferrer">Larsemann</a></td>
+<td data-label="Age reduction">-17.4 years</td>
 </tr>
 <tr>
-<td>12</td>
-<td><a href="https://www.longevityworldcup.com/athlete/lauren" target="_blank" rel="noopener noreferrer">Lauren</a></td>
-<td>-17.4 years</td>
+<td data-label="Rank">12</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/lauren" target="_blank" rel="noopener noreferrer">Lauren</a></td>
+<td data-label="Age reduction">-17.4 years</td>
 </tr>
 <tr>
-<td>13</td>
-<td><a href="https://www.longevityworldcup.com/athlete/john" target="_blank" rel="noopener noreferrer">John</a></td>
-<td>-17.4 years</td>
+<td data-label="Rank">13</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/john" target="_blank" rel="noopener noreferrer">John</a></td>
+<td data-label="Age reduction">-17.4 years</td>
 </tr>
 <tr>
-<td>14</td>
-<td><a href="https://www.longevityworldcup.com/athlete/maria-olenina" target="_blank" rel="noopener noreferrer">Maria Olenina</a></td>
-<td>-17.4 years</td>
+<td data-label="Rank">14</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/maria-olenina" target="_blank" rel="noopener noreferrer">Maria Olenina</a></td>
+<td data-label="Age reduction">-17.4 years</td>
 </tr>
 <tr>
-<td>15</td>
-<td><a href="https://www.longevityworldcup.com/athlete/david-x" target="_blank" rel="noopener noreferrer">David X</a></td>
-<td>-17.0 years</td>
+<td data-label="Rank">15</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/david-x" target="_blank" rel="noopener noreferrer">David X</a></td>
+<td data-label="Age reduction">-17.0 years</td>
 </tr>
 <tr>
-<td>16</td>
-<td><a href="https://www.longevityworldcup.com/athlete/david-lo" target="_blank" rel="noopener noreferrer">David Lo</a></td>
-<td>-16.9 years</td>
+<td data-label="Rank">16</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/david-lo" target="_blank" rel="noopener noreferrer">David Lo</a></td>
+<td data-label="Age reduction">-16.9 years</td>
 </tr>
 <tr>
-<td>17</td>
-<td><a href="https://www.longevityworldcup.com/athlete/julie-jiang" target="_blank" rel="noopener noreferrer">Julie Jiang</a></td>
-<td>-16.8 years</td>
+<td data-label="Rank">17</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/julie-jiang" target="_blank" rel="noopener noreferrer">Julie Jiang</a></td>
+<td data-label="Age reduction">-16.8 years</td>
 </tr>
 <tr>
-<td>18</td>
-<td><a href="https://www.longevityworldcup.com/athlete/qingqingzhuo" target="_blank" rel="noopener noreferrer">QingqingZhuo</a></td>
-<td>-16.7 years</td>
+<td data-label="Rank">18</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/qingqingzhuo" target="_blank" rel="noopener noreferrer">QingqingZhuo</a></td>
+<td data-label="Age reduction">-16.7 years</td>
 </tr>
 <tr>
-<td>19</td>
-<td><a href="https://www.longevityworldcup.com/athlete/dave-pascoe" target="_blank" rel="noopener noreferrer">Dave Pascoe</a></td>
-<td>-16.6 years</td>
+<td data-label="Rank">19</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/dave-pascoe" target="_blank" rel="noopener noreferrer">Dave Pascoe</a></td>
+<td data-label="Age reduction">-16.6 years</td>
 </tr>
 <tr>
-<td>20</td>
-<td><a href="https://www.longevityworldcup.com/athlete/keith-blondin" target="_blank" rel="noopener noreferrer">Keith Blondin</a></td>
-<td>-16.4 years</td>
+<td data-label="Rank">20</td>
+<td data-label="Athlete"><a href="https://www.longevityworldcup.com/athlete/keith-blondin" target="_blank" rel="noopener noreferrer">Keith Blondin</a></td>
+<td data-label="Age reduction">-16.4 years</td>
 </tr>
 </tbody>
 </table>

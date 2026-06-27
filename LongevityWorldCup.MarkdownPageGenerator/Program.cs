@@ -39,7 +39,7 @@ foreach (var page in pages)
 {
     var markdown = await File.ReadAllTextAsync(page.Source);
     var title = ExtractTitle(markdown);
-    var documentHtml = OpenAbsoluteLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline)));
+    var documentHtml = AddTableCellLabels(OpenAbsoluteLinksInNewTabs(RewriteWebsiteAssetImageSources(Markdown.ToHtml(markdown, pipeline))));
     var contentsHtml = BuildContentsNav(documentHtml, page.SourceUrl);
     var pageHtml = NormalizeGeneratedHtml(RenderPage(title, documentHtml, contentsHtml, page));
 
@@ -101,6 +101,57 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
 static string StripTags(string value)
 {
     return Regex.Replace(value, "<.*?>", string.Empty).Trim();
+}
+
+static string AddTableCellLabels(string html)
+{
+    return Regex.Replace(
+        html,
+        "<table>\\s*<thead>\\s*<tr>(?<header>.*?)</tr>\\s*</thead>\\s*<tbody>(?<body>.*?)</tbody>\\s*</table>",
+        match =>
+        {
+            var headers = Regex.Matches(
+                    match.Groups["header"].Value,
+                    "<th>(?<text>.*?)</th>",
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline)
+                .Select(header => StripTags(WebUtility.HtmlDecode(header.Groups["text"].Value)))
+                .ToArray();
+
+            if (headers.Length == 0)
+            {
+                return match.Value;
+            }
+
+            var body = Regex.Replace(
+                match.Groups["body"].Value,
+                "<tr>(?<row>.*?)</tr>",
+                rowMatch =>
+                {
+                    var index = 0;
+                    var rowHtml = Regex.Replace(
+                        rowMatch.Groups["row"].Value,
+                        "<td(?<attrs>[^>]*)>",
+                        cellMatch =>
+                        {
+                            var attrs = cellMatch.Groups["attrs"].Value;
+                            if (Regex.IsMatch(attrs, "\\sdata-label=", RegexOptions.IgnoreCase) || index >= headers.Length)
+                            {
+                                index++;
+                                return cellMatch.Value;
+                            }
+
+                            var label = WebUtility.HtmlEncode(headers[index++]);
+                            return $"<td{attrs} data-label=\"{label}\">";
+                        },
+                        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+                    return $"<tr>{rowHtml}</tr>";
+                },
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            return $"<table>{Environment.NewLine}<thead>{Environment.NewLine}<tr>{match.Groups["header"].Value}</tr>{Environment.NewLine}</thead>{Environment.NewLine}<tbody>{body}</tbody>{Environment.NewLine}</table>";
+        },
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
 }
 
 static string OpenAbsoluteLinksInNewTabs(string html)
@@ -400,6 +451,93 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
             .documentation-document img {
                 margin: 1.15rem auto 1.45rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .documentation-document table {
+                display: block;
+                border-collapse: separate;
+                background: transparent;
+                border-radius: 0;
+                overflow: visible;
+            }
+
+            .documentation-document thead {
+                display: none;
+            }
+
+            .documentation-document tbody {
+                display: grid;
+                gap: 0.55rem;
+            }
+
+            .documentation-document tbody tr {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 0.35rem 0.7rem;
+                padding: 0.62rem 0.7rem;
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                border-radius: 8px;
+                background: rgba(248, 250, 252, 0.78);
+            }
+
+            .documentation-document tbody td {
+                padding: 0;
+                border-bottom: 0;
+                white-space: normal;
+                overflow-wrap: normal;
+                word-break: normal;
+            }
+
+            .documentation-document tbody td {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr);
+                gap: 0.35rem;
+                align-items: baseline;
+                color: #334155;
+                font-size: 0.86rem;
+                line-height: 1.28;
+            }
+
+            .documentation-document tbody td::before {
+                content: attr(data-label);
+                color: #64748b;
+                font-size: 0.68rem;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0;
+            }
+
+            .documentation-document tbody td:first-child {
+                grid-column: 1;
+                grid-template-columns: auto auto;
+            }
+
+            .documentation-document tbody td:nth-child(2) {
+                grid-column: 1 / -1;
+                grid-row: 2;
+                font-size: 0.96rem;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+            .documentation-document tbody td:nth-child(2)::before {
+                display: none;
+            }
+
+            .documentation-document tbody td:last-child {
+                grid-column: 2;
+                justify-self: end;
+                width: 6.25rem;
+                grid-template-columns: 1fr;
+                justify-items: end;
+                gap: 0.12rem;
+                text-align: right;
+            }
+
+            .documentation-document tbody td:last-child::before {
+                white-space: nowrap;
             }
         }
     </style>
