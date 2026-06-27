@@ -325,11 +325,6 @@
         removeSessionItem("came-from");
 
         document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(() => {
-                const viewTarget = document.querySelector('h1');
-                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
-
             if (isNewResultsUploaded) {
                 document.getElementById("appReviewText").textContent = "Result review";
                 document.getElementById("whatAreWeReviewing").textContent = "your new results";
