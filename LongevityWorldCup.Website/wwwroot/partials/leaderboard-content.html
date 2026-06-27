@@ -458,6 +458,7 @@
     .filter-section input[type="checkbox"]{
         flex:0 0 auto; width:18px; height:18px; margin:0 .55rem 0 0; accent-color:var(--primary-color); cursor:inherit;
     }
+    .filter-section .filter-label-copy{ min-width:0; }
     .lwc-flag-icon{
         flex:0 0 auto; margin-right:.4rem; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.08);
     }
@@ -476,6 +477,7 @@
     .filter-section .filter-count{
         color:#666; font-size:.95em; font-weight:700;
     }
+    .filter-section .filter-count-group{ white-space:nowrap; }
     .filter-section label.active .filter-count{ color:var(--secondary-color); }
     .filter-section label.is-zero-count:not(.active) .filter-count{ color:#909090; }
     .filter-section label:has(input[type="checkbox"]:focus-visible){
@@ -2560,31 +2562,31 @@
                         <li>
                             <label data-aging-clock-view="bortz">
                                 <input type="checkbox" name="agingClockView" value="bortz">
-                                🩸 Bortz Age (<span class="filter-count">0</span>)
+                                <span class="filter-label-copy">🩸 Bortz Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="pheno">
                                 <input type="checkbox" name="agingClockView" value="pheno">
-                                🩸 Pheno Age (<span class="filter-count">0</span>)
+                                <span class="filter-label-copy">🩸 Pheno Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="improvement">
                                 <input type="checkbox" name="agingClockView" value="improvement">
-                                📉 Pheno Improvement (<span class="filter-count">0</span>)
+                                <span class="filter-label-copy">📉 Pheno Improvement <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="bortz-improvement">
                                 <input type="checkbox" name="agingClockView" value="bortz-improvement">
-                                📉 Bortz Improvement (<span class="filter-count">0</span>)
+                                <span class="filter-label-copy">📉 Bortz Improvement <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="crowd">
                                 <input type="checkbox" name="agingClockView" value="crowd">
-                                👥 Crowd Age (<span class="filter-count">0</span>)
+                                <span class="filter-label-copy">👥 Crowd Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                     </ul>
@@ -6321,7 +6323,7 @@
             li.innerHTML = `
         <label data-division="${division}">
             <input type="checkbox" name="division" value="${division}">
-            ${icon} ${division.charAt(0).toUpperCase() + division.slice(1)} (<span class="filter-count">${count}</span>)
+            <span class="filter-label-copy">${icon} ${division.charAt(0).toUpperCase() + division.slice(1)} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
         </label>
     `;
             filterSection.appendChild(li);
@@ -6344,7 +6346,7 @@
                 li.innerHTML = `
             <label data-flag="${escapeHtml(name)}" data-flag-key="${escapeHtml(flagKey)}">
                 <input type="checkbox" name="flag" value="${escapeHtml(name)}">
-                ${renderFlagLabel(name)} (<span class="filter-count">${count}</span>)
+                <span class="filter-label-copy">${renderFlagLabel(name)} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
             </label>
         `;
                 filterSection.appendChild(li);
@@ -6379,7 +6381,7 @@
                 li.innerHTML = `
             <label data-generation="${generation}">
                 <input type="checkbox" name="generation" value="${generation}">
-                ${icon} ${generation} (<span class="filter-count">${count}</span>)
+                <span class="filter-label-copy">${icon} ${generation} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
             </label>
         `;
                 filterSection.appendChild(li);
@@ -6405,7 +6407,7 @@
             li.innerHTML = `
             <label data-exclusive-league="Prosperan">
                 <input type="checkbox" name="exclusiveLeague" value="Prosperan">
-                🏝️ Prosperan (<span class="filter-count">${prosperanCount}</span>)
+                <span class="filter-label-copy">🏝️ Prosperan <span class="filter-count-group">(<span class="filter-count">${prosperanCount}</span>)</span></span>
             </label>
         `;
             filterSection.appendChild(li);
@@ -6437,7 +6439,7 @@
             li.innerHTML = `
                 <label data-league-track="${value}">
                     <input type="checkbox" name="leagueTrack" value="${value}">
-                    ${icon} ${label} (<span class="filter-count">${count}</span>)
+                    <span class="filter-label-copy">${icon} ${label} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
                 </label>
             `;
             filterSection.appendChild(li);
