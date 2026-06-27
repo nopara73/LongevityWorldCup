@@ -454,7 +454,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
         }
 
-        @media (max-width: 360px) {
+        @media (max-width: 480px) {
             .documentation-document table {
                 display: block;
                 border-collapse: separate;
