@@ -48,6 +48,7 @@
             grid-template-columns: minmax(340px, 430px) minmax(600px, 1fr);
             gap: 18px;
             align-items: start;
+            min-width: 0;
         }
 
         .panel {
@@ -59,6 +60,7 @@
             display: grid;
             gap: 12px;
             align-content: start;
+            min-width: 0;
         }
 
         h1, h2 {
@@ -203,6 +205,7 @@
             padding: 12px;
             display: grid;
             gap: 10px;
+            min-width: 0;
         }
 
         .payload-actions {
@@ -272,10 +275,13 @@
             color: var(--muted);
             font-size: 12px;
             line-height: 1.55;
+            min-width: 0;
         }
 
         .live-checklist code {
             color: var(--text);
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .preview-stack {
