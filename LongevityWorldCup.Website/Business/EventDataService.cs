@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using LongevityWorldCup.Website.Tools;
@@ -94,6 +95,7 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceAgeImprovementTop10Change = 8d;
     private const int MaxCustomEventRetries = 3;
     private const int MinimumActiveAthleteSlugCountForEventCleanup = 10;
+    private static readonly TimeSpan AmateurAgeReductionGraduationCleanupWindow = TimeSpan.FromHours(2);
 
     private readonly DatabaseManager _db;
     private readonly SlackEventService _slackEvents;
@@ -1980,6 +1982,104 @@ public sealed class EventDataService : IDisposable
         return removed;
     }
 
+    public int CleanupAmateurAgeReductionGraduationLinks(IReadOnlySet<string> currentProSlugs)
+    {
+        ArgumentNullException.ThrowIfNull(currentProSlugs);
+
+        var normalizedProSlugs = currentProSlugs
+            .Select(NormalizeAthleteSlugForEventCleanup)
+            .Where(slug => !string.IsNullOrWhiteSpace(slug))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (normalizedProSlugs.Count == 0)
+            return 0;
+
+        var updated = _db.Run(sqlite =>
+        {
+            var updates = new List<(string Id, string Text)>();
+            var graduationTimes = new Dictionary<string, List<DateTime>>(StringComparer.OrdinalIgnoreCase);
+
+            using (var selectGraduations = sqlite.CreateCommand())
+            {
+                selectGraduations.CommandText = "SELECT Text, OccurredAt FROM Events WHERE Type=@type;";
+                selectGraduations.Parameters.AddWithValue("@type", (int)EventType.BecamePro);
+
+                using var reader = selectGraduations.ExecuteReader();
+                while (reader.Read())
+                {
+                    var text = reader.GetString(0);
+                    if (!EventHelpers.TryExtractSlug(text, out var slug))
+                        continue;
+
+                    var normalizedSlug = NormalizeAthleteSlugForEventCleanup(slug);
+                    if (!normalizedProSlugs.Contains(normalizedSlug))
+                        continue;
+
+                    var occurredAtUtc = EnsureUtc(DateTime.Parse(reader.GetString(1), null, DateTimeStyles.RoundtripKind));
+                    if (!graduationTimes.TryGetValue(normalizedSlug, out var times))
+                    {
+                        times = new List<DateTime>();
+                        graduationTimes[normalizedSlug] = times;
+                    }
+
+                    times.Add(occurredAtUtc);
+                }
+            }
+
+            if (graduationTimes.Count == 0)
+                return 0;
+
+            using (var select = sqlite.CreateCommand())
+            {
+                select.CommandText = "SELECT Id, Text, OccurredAt FROM Events WHERE Type=@type AND Text LIKE '%prev%';";
+                select.Parameters.AddWithValue("@type", (int)EventType.BadgeAward);
+
+                using var reader = select.ExecuteReader();
+                while (reader.Read())
+                {
+                    var id = reader.GetString(0);
+                    var text = reader.GetString(1);
+                    if (!IsAmateurAgeReductionBadgeEvent(text))
+                        continue;
+
+                    var occurredAtUtc = EnsureUtc(DateTime.Parse(reader.GetString(2), null, DateTimeStyles.RoundtripKind));
+                    var cleaned = RemoveGraduatedAmateurReplacementLinks(text, occurredAtUtc, graduationTimes);
+                    if (!string.Equals(cleaned, text, StringComparison.Ordinal))
+                        updates.Add((id, cleaned));
+                }
+            }
+
+            if (updates.Count == 0)
+                return 0;
+
+            using var tx = sqlite.BeginTransaction();
+            using var update = sqlite.CreateCommand();
+            update.Transaction = tx;
+            update.CommandText = "UPDATE Events SET Text=@text WHERE Id=@id;";
+            var pText = update.Parameters.Add("@text", SqliteType.Text);
+            var pId = update.Parameters.Add("@id", SqliteType.Text);
+
+            var count = 0;
+            foreach (var (id, text) in updates)
+            {
+                pText.Value = text;
+                pId.Value = id;
+                count += update.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return count;
+        });
+
+        if (updated > 0)
+        {
+            _log.LogInformation("Cleaned {EventCount} Amateur age-reduction graduation Event replacement link(s).", updated);
+            ReloadIntoCache();
+        }
+
+        return updated;
+    }
+
     public void ReloadIntoCache()
     {
         var arr = new JsonArray();
@@ -2041,6 +2141,68 @@ public sealed class EventDataService : IDisposable
         var normalized = NormalizeAthleteSlugForEventCleanup(slug);
         if (!string.IsNullOrWhiteSpace(normalized))
             slugs.Add(normalized);
+    }
+
+    private static bool IsAmateurAgeReductionBadgeEvent(string text)
+    {
+        if (!EventHelpers.TryExtractBadgeLabel(text, out var label))
+            return false;
+
+        if (!string.Equals(EventHelpers.NormalizeBadgeLabel(label), "Age reduction", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!EventHelpers.TryExtractCategory(text, out var category) ||
+            !string.Equals(category, "Amateur", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!EventHelpers.TryExtractValue(text, out var value))
+            return true;
+
+        return string.IsNullOrWhiteSpace(value) ||
+               string.Equals(value, "Amateur", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string RemoveGraduatedAmateurReplacementLinks(
+        string text,
+        DateTime occurredAtUtc,
+        IReadOnlyDictionary<string, List<DateTime>> graduationTimes)
+    {
+        var result = text;
+
+        if (EventHelpers.TryExtractPrev(text, out var prev) &&
+            IsNearProGraduation(prev, occurredAtUtc, graduationTimes))
+        {
+            result = Regex.Replace(result, @"\s*\bprev\[[^\]]*\]", "", RegexOptions.CultureInvariant);
+        }
+
+        if (EventHelpers.TryExtractPrevs(text, out var prevs))
+        {
+            var remaining = prevs
+                .Where(slug => !IsNearProGraduation(slug, occurredAtUtc, graduationTimes))
+                .ToList();
+
+            if (remaining.Count != prevs.Length)
+            {
+                result = remaining.Count == 0
+                    ? Regex.Replace(result, @"\s*\bprevs\[[^\]]*\]", "", RegexOptions.CultureInvariant)
+                    : Regex.Replace(result, @"\bprevs\[[^\]]*\]", _ => $"prevs[{string.Join(",", remaining)}]", RegexOptions.CultureInvariant);
+            }
+        }
+
+        return result.Trim();
+    }
+
+    private static bool IsNearProGraduation(
+        string slug,
+        DateTime occurredAtUtc,
+        IReadOnlyDictionary<string, List<DateTime>> graduationTimes)
+    {
+        var normalizedSlug = NormalizeAthleteSlugForEventCleanup(slug);
+        if (!graduationTimes.TryGetValue(normalizedSlug, out var times))
+            return false;
+
+        var occurred = EnsureUtc(occurredAtUtc);
+        return times.Any(t => (EnsureUtc(t) - occurred).Duration() <= AmateurAgeReductionGraduationCleanupWindow);
     }
 
     private static string BuildLongevitymaxxingChallengeResultText(LongevitymaxxingChallengeResultEventRow row)

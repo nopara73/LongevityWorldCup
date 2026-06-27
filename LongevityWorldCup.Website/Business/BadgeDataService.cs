@@ -167,7 +167,9 @@ CREATE TABLE IF NOT EXISTS {AwardsTable} (
         if (IsSuspiciousSnapshotDrop(previous, awards, stats.Count))
             return;
 
-        var badgeEvents = BuildBadgeAwardEventsForSnapshotChange(previous, awards, DateTime.UtcNow);
+        var currentProSlugs = BuildCurrentProSlugSet(stats.Values);
+        _events.CleanupAmateurAgeReductionGraduationLinks(currentProSlugs);
+        var badgeEvents = BuildBadgeAwardEventsForCurrentSnapshotChange(previous, awards, DateTime.UtcNow, currentProSlugs);
         var suppressBadgeEvents = badgeEvents.Count > MaxBadgeEventsPerRecompute;
         if (suppressBadgeEvents)
         {
@@ -246,6 +248,19 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             athleteStatsCount);
 
         return true;
+    }
+
+    private static HashSet<string> BuildCurrentProSlugSet(IEnumerable<AthleteStats> stats)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var s in stats)
+        {
+            if (s.BortzAgeReduction.HasValue && double.IsFinite(s.BortzAgeReduction.Value))
+                result.Add(s.Slug);
+        }
+
+        return result;
     }
 
     private void HydrateComputedStatsIntoAthletes(Dictionary<string, AthleteStats> stats)
@@ -345,19 +360,58 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         if (before.Count == 0)
             return new List<BadgeEventItem>();
 
-        return BuildBadgeAwardEvents(before, after, occurredAtUtc);
+        return BuildBadgeAwardEventsCore(before, after, occurredAtUtc, currentProSlugs: null);
+    }
+
+    private static List<BadgeEventItem> BuildBadgeAwardEventsForCurrentSnapshotChange(
+        IReadOnlyList<AwardRow> before,
+        IReadOnlyList<AwardRow> after,
+        DateTime occurredAtUtc,
+        IReadOnlySet<string> currentProSlugs)
+    {
+        if (before.Count == 0)
+            return new List<BadgeEventItem>();
+
+        return BuildBadgeAwardEventsCore(before, after, occurredAtUtc, currentProSlugs);
     }
 
     private static List<BadgeEventItem> BuildBadgeAwardEvents(
         IReadOnlyList<AwardRow> before,
         IReadOnlyList<AwardRow> after,
         DateTime occurredAtUtc)
+        => BuildBadgeAwardEventsCore(before, after, occurredAtUtc, currentProSlugs: null);
+
+    private static List<BadgeEventItem> BuildBadgeAwardEventsCore(
+        IReadOnlyList<AwardRow> before,
+        IReadOnlyList<AwardRow> after,
+        DateTime occurredAtUtc,
+        IReadOnlySet<string>? currentProSlugs)
     {
         static string SlotKey(string label, string cat, string? val, int? place)
             => $"{label}|{cat}|{val ?? ""}|{(place.HasValue ? place.Value.ToString(CultureInfo.InvariantCulture) : "")}";
 
         static string AbKey(string athleteSlug, string label, string cat, string? val)
             => $"{athleteSlug}|{label}|{cat}|{val ?? ""}";
+
+        static bool IsCurrentProAmateurAgeReductionRemoval(
+            string athleteSlug,
+            string label,
+            string cat,
+            string? val,
+            IReadOnlySet<string>? currentProSlugs)
+        {
+            if (currentProSlugs is null || !currentProSlugs.Contains(athleteSlug))
+                return false;
+
+            if (!string.Equals(EventHelpers.NormalizeBadgeLabel(label), "Age reduction", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            if (!string.Equals(cat, "Amateur", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            return string.IsNullOrWhiteSpace(val) ||
+                   string.Equals(val, "Amateur", StringComparison.OrdinalIgnoreCase);
+        }
 
         var beforeMap = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         foreach (var x in before)
@@ -460,6 +514,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
                 {
                     var slug = removes[i];
                     var ab = AbKey(slug, label, cat, valStr);
+
+                    if (IsCurrentProAmateurAgeReductionRemoval(slug, label, cat, valStr, currentProSlugs))
+                        continue;
 
                     if (!beforeByAb.TryGetValue(ab, out var beforeBest))
                     {
