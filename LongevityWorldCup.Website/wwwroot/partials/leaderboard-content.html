@@ -2095,6 +2095,96 @@
             }
         }
 
+        @media (max-width: 300px) {
+            .leaderboard table {
+                border-spacing: 0 0.45rem;
+                table-layout: auto;
+            }
+
+            .leaderboard .portrait {
+                width: 32px;
+                height: 32px;
+            }
+
+            .leaderboard table thead {
+                display: none;
+            }
+
+            .leaderboard table tbody tr {
+                display: grid;
+                grid-template-columns: 2rem minmax(0, 1fr);
+                grid-template-areas:
+                    "rank athlete"
+                    "rank score";
+                align-items: center;
+                column-gap: 0.45rem;
+                padding: 0.45rem 0.55rem;
+            }
+
+            .leaderboard table tbody tr.tier-separator {
+                display: block;
+                padding: 0;
+            }
+
+            .leaderboard table tbody tr.tier-separator .tier-separator-cell {
+                display: block;
+            }
+
+            .leaderboard table td.rank-td {
+                grid-area: rank;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: auto;
+                min-width: 0;
+                padding: 0;
+            }
+
+            .leaderboard table tbody tr td.athlete-td {
+                grid-area: athlete;
+                gap: 0.35rem;
+                min-width: 0;
+                padding: 0;
+            }
+
+            .leaderboard .athlete-td .portrait-wrapper,
+            .leaderboard .athlete-td .rank-change {
+                flex: 0 0 32px;
+                width: 32px;
+                min-width: 32px;
+            }
+
+            .leaderboard table td.age-reduction-td {
+                grid-area: score;
+                display: block;
+                width: auto;
+                min-width: 0;
+                padding: 0.1rem 0 0;
+                text-align: left;
+            }
+
+            .leaderboard table td.age-reduction-td::before {
+                content: "Age reduction";
+                display: block;
+                margin-bottom: 0.08rem;
+                color: #64748b;
+                font-size: 0.58rem;
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+            }
+
+            .leaderboard table td.age-reduction-td .age-reduction {
+                display: inline-block;
+                line-height: 1.2;
+            }
+
+            .athlete-name {
+                padding-left: 0.25rem;
+                padding-right: 0.25rem;
+            }
+        }
+
         @media (max-width: 420px) {
             .leaderboard table th:nth-child(2),
             .leaderboard table td.athlete-td {
