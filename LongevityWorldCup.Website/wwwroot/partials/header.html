@@ -690,12 +690,27 @@
     }
 
     @media (max-width: 300px) {
+        .scrolled-button {
+            right: max(0.45rem, env(safe-area-inset-right, 0px));
+            min-width: 3.55rem;
+            padding: 0.5rem 0.65rem;
+            font-size: 0.86rem;
+        }
+
+        .site-sticky-header {
+            padding-right: calc(max(0.45rem, env(safe-area-inset-right, 0px)) + 4.05rem);
+        }
+
         .site-sticky-header-link {
-            gap: 0.35rem;
+            gap: 0.24rem;
+        }
+
+        .site-sticky-header-logo {
+            display: none;
         }
 
         .site-sticky-header-title {
-            font-size: 0.84rem;
+            font-size: 0.8rem;
             letter-spacing: 0;
         }
     }
