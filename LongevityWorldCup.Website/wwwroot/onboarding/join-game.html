@@ -507,6 +507,44 @@
         }
       }
 
+      @media (max-width: 700px) {
+        .track-card.pro {
+          grid-template-rows: auto auto auto auto auto;
+        }
+
+        .track-card.pro .track-card-ribbon-slot {
+          display: flex;
+          justify-content: flex-end;
+          height: auto;
+          margin-bottom: 0.55rem;
+        }
+
+        .track-card.pro .track-card-ribbon-slot .track-card-ribbon {
+          position: static;
+          top: auto;
+          right: auto;
+        }
+
+        .track-card-ribbon.prize-money {
+          width: auto;
+          height: auto;
+          overflow: visible;
+        }
+
+        .track-card-ribbon.prize-money > span {
+          position: static;
+          display: inline-flex;
+          width: auto;
+          max-width: none;
+          padding: 0.34rem 0.58rem;
+          border-radius: 999px;
+          font-size: 0.6rem;
+          line-height: 1;
+          white-space: nowrap;
+          transform: none;
+        }
+      }
+
       @media (max-width: 360px) {
         .track-card.pro .track-card-ribbon-slot .track-card-ribbon {
           top: -0.75rem;
