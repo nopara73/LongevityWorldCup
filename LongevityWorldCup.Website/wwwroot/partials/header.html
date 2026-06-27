@@ -663,6 +663,11 @@
             padding-right: calc(max(0.5rem, env(safe-area-inset-right, 0px)) + 5.25rem);
         }
 
+        header:not(:has(.join-game.scrolled-button)) + .site-sticky-header,
+        header:has(.join-game.scrolled-button[style*="display: none"]) + .site-sticky-header {
+            padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+        }
+
         .site-sticky-header-link {
             max-width: 100%;
         }
