@@ -1811,9 +1811,11 @@
             background:linear-gradient(to bottom, rgba(0,188,212,.08), rgba(0,188,212,.42), rgba(0,188,212,.08));
             pointer-events:none;
         }
+        .sidebar:hover:not(.button-collapsed),
         .sidebar.expanded{
             display:block; width:min(82vw, 320px); max-width:calc(100vw - 2rem);
             padding:1rem 1rem 1.75rem; padding-bottom:calc(env(safe-area-inset-bottom) + 1.75rem);
+            position:fixed; top:0; left:0; height:100dvh; min-height:0; max-height:100dvh;
             transform:translateX(0); visibility:visible; pointer-events:auto; transition-delay:0s;
         }
         .sidebar.expanded .filter-section{ display:block; }
