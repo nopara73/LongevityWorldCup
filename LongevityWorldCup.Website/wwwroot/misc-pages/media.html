@@ -176,7 +176,7 @@
                 line-height: 1.32;
                 display: -webkit-box;
                 overflow: hidden;
-                overflow-wrap: anywhere;
+                overflow-wrap: normal;
                 -webkit-box-orient: vertical;
                 -webkit-line-clamp: 3;
             }
@@ -270,6 +270,17 @@
         const listEl = document.getElementById('fileList');
         const fallbackEl = document.getElementById('fallback');
 
+        function appendFileName(target, path) {
+            for (const part of path.split(/([/_-])/)) {
+                if (!part) continue;
+
+                target.appendChild(document.createTextNode(part));
+                if (part === "/" || part === "_" || part === "-") {
+                    target.appendChild(document.createElement("wbr"));
+                }
+            }
+        }
+
         async function fetchZip(url) {
             const res = await fetch(url, { cache: 'no-store' });
             if (!res.ok) throw new Error("HTTP " + res.status);
@@ -295,8 +306,8 @@
                     li.className = 'media-file-row';
 
                     const name = document.createElement('span');
-                    name.textContent = path;
                     name.className = 'media-file-name';
+                    appendFileName(name, path);
 
                     const btn = document.createElement('button');
                     btn.textContent = 'Download';
