@@ -2110,7 +2110,7 @@
                 display: none;
             }
 
-            .leaderboard table tbody tr {
+            .leaderboard table tbody tr:not(.no-results):not(.tier-separator) {
                 display: grid;
                 grid-template-columns: 2rem minmax(0, 1fr);
                 grid-template-areas:
@@ -2164,7 +2164,7 @@
             }
 
             .leaderboard table td.age-reduction-td::before {
-                content: "Age reduction";
+                content: attr(data-label);
                 display: block;
                 margin-bottom: 0.08rem;
                 color: #64748b;
