@@ -833,6 +833,30 @@
             .preview-surface,
             .webpage-surface { width: 100%; max-width: 100%; }
         }
+
+        @media (max-width: 640px) {
+            .slack-shell,
+            .x-post,
+            .x-main,
+            .x-text,
+            .og-card,
+            .x-media {
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .x-post {
+                display: grid;
+                grid-template-columns: 40px minmax(0, 1fr);
+            }
+
+            .og-card-media-fallback-badge,
+            .og-card-media-fallback-domain {
+                max-width: calc(100% - 24px);
+                overflow-wrap: anywhere;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
