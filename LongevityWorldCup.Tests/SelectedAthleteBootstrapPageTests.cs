@@ -16,17 +16,35 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
-        var redirectIndex = html.IndexOf("window.location.replace('/select-athlete');", StringComparison.Ordinal);
-        var recoveryStart = html.LastIndexOf(guard, redirectIndex, StringComparison.Ordinal);
+        if (path == "/play/character-customization.html")
+        {
+            var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+            var recoveryStart = flow.IndexOf("function readRequiredSelectedAthlete()", StringComparison.Ordinal);
+            var redirectIndex = flow.IndexOf("window.location.replace(\"/select-athlete\");", recoveryStart, StringComparison.Ordinal);
 
-        Assert.True(recoveryStart >= 0);
-        Assert.True(redirectIndex > recoveryStart);
+            Assert.Contains("flow.readRequiredSelectedAthlete();", html);
+            Assert.True(recoveryStart >= 0);
+            Assert.True(redirectIndex > recoveryStart);
 
-        var recoveryBody = html[recoveryStart..redirectIndex];
+            var recoveryBody = flow[recoveryStart..redirectIndex];
+
+            Assert.Contains("function removeSessionItem(key)", flow);
+            Assert.Contains("removeSessionItem(\"selectedAthlete\");", recoveryBody);
+            Assert.Contains("removeSessionItem(\"tempAthlete\");", recoveryBody);
+            return;
+        }
+
+        var inlineRedirectIndex = html.IndexOf("window.location.replace('/select-athlete');", StringComparison.Ordinal);
+        var inlineRecoveryStart = html.LastIndexOf(guard, inlineRedirectIndex, StringComparison.Ordinal);
+
+        Assert.True(inlineRecoveryStart >= 0);
+        Assert.True(inlineRedirectIndex > inlineRecoveryStart);
+
+        var inlineRecoveryBody = html[inlineRecoveryStart..inlineRedirectIndex];
 
         Assert.Contains("function removeSessionItem(key)", html);
-        Assert.Contains("removeSessionItem('selectedAthlete');", recoveryBody);
-        Assert.Contains("removeSessionItem('tempAthlete');", recoveryBody);
+        Assert.Contains("removeSessionItem('selectedAthlete');", inlineRecoveryBody);
+        Assert.Contains("removeSessionItem('tempAthlete');", inlineRecoveryBody);
     }
 
     [Theory]
@@ -41,9 +59,17 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
+        var validationSource = path == "/play/character-customization.html"
+            ? await client.GetStringAsync("/js/play-athlete-flow.js")
+            : html;
 
-        Assert.Contains("function isValidSelectedAthlete(value)", html);
-        Assert.Contains("!Array.isArray(value)", html);
+        if (path == "/play/character-customization.html")
+        {
+            Assert.Contains("flow.readRequiredSelectedAthlete();", html);
+        }
+
+        Assert.Contains("function isValidSelectedAthlete(value)", validationSource);
+        Assert.Contains("!Array.isArray(value)", validationSource);
     }
 
     [Theory]
@@ -58,9 +84,17 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
+        var validationSource = path == "/play/character-customization.html"
+            ? await client.GetStringAsync("/js/play-athlete-flow.js")
+            : html;
 
-        Assert.Contains("typeof value.Name === 'string'", html);
-        Assert.Contains("value.Name.trim()", html);
+        if (path == "/play/character-customization.html")
+        {
+            Assert.Contains("flow.readRequiredSelectedAthlete();", html);
+        }
+
+        Assert.Contains("typeof value.Name === \"string\"", validationSource.Replace('\'', '"'));
+        Assert.Contains("value.Name.trim()", validationSource);
     }
 
     [Theory]

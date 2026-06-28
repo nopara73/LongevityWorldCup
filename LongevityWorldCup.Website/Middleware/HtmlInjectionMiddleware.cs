@@ -267,7 +267,8 @@ namespace LongevityWorldCup.Website.Middleware
         private string ApplySharedCssPlaceholders(string html)
         {
             return html
-                .Replace("{{ASSET_MOBILE_ROUGHNESS_CSS}}", _assetVersionProvider.AppendVersion("/css/mobile-roughness.css"));
+                .Replace("{{ASSET_MOBILE_ROUGHNESS_CSS}}", _assetVersionProvider.AppendVersion("/css/mobile-roughness.css"))
+                .Replace("{{ASSET_PLAY_ATHLETE_FLOW_CSS}}", _assetVersionProvider.AppendVersion("/css/play-athlete-flow.css"));
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)
@@ -279,6 +280,10 @@ namespace LongevityWorldCup.Website.Middleware
                 sb.AppendLine("<script src=\"https://cdn.jsdelivr.net/npm/validator@13.9.0/validator.min.js\" crossorigin=\"anonymous\" defer></script>");
             }
 
+            if (config.ModulePaths.Contains("/js/play-athlete-flow.js"))
+            {
+                sb.AppendLine($"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/play-athlete-flow.css")}\">");
+            }
             return sb.ToString().TrimEnd();
         }
 
@@ -364,6 +369,7 @@ $@"<script type=""module"">
                     IncludeValidator: false,
                     ModulePaths:
                     [
+                        "/js/play-athlete-flow.js",
                         "/js/misc.js",
                         "/js/pheno-age.js",
                         "/js/bortz-age.js",
@@ -390,12 +396,14 @@ $@"<script type=""module"">
                     IncludeValidator: false,
                     ModulePaths:
                     [
+                        "/js/play-athlete-flow.js",
                         "/js/misc.js"
                     ]),
                 "/play/character-customization.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
                     [
+                        "/js/play-athlete-flow.js",
                         "/js/misc.js",
                         "/js/flags.js",
                         "/js/leagueIcons.js",
