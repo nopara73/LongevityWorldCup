@@ -75,6 +75,22 @@ public sealed class PaymentOfferHandoffPageTests
     }
 
     [Fact]
+    public async Task JoinGamePricing_DiscountBadgeSlotFitsMobileTapTarget()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/join-game.html");
+
+        Assert.Contains("#proDiscountBreakdown .pro-discount-badge-slot {\n        width: 44px;", html);
+        Assert.Contains("min-width: 44px;", html);
+        Assert.Contains("height: 44px;", html);
+        Assert.Contains("#proDiscountBreakdown .pro-discount-badge-slot:empty", html);
+        Assert.Contains("#proDiscountBreakdown .pro-discount-text", html);
+        Assert.Contains("overflow-wrap: anywhere;", html);
+    }
+
+    [Fact]
     public async Task SharedDashboardPaymentOffer_HaltsNavigationWhenStorageFails()
     {
         using var factory = new TestWebApplicationFactory();
