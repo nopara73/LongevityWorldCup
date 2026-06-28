@@ -1389,6 +1389,10 @@
         background:rgb(18,20,20);
         box-shadow:0 20px 42px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.06);
     }
+    #detailsModal .athlete-share-menu.is-above{
+        top:auto;
+        bottom:calc(100% + .45rem);
+    }
     #detailsModal .athlete-share-menu[hidden]{ display:none; }
     #detailsModal .athlete-share-menu a,
     #detailsModal .athlete-share-menu button{
@@ -6734,6 +6738,7 @@
         }
 
         menu.hidden = true;
+        menu.classList.remove('is-above');
         setShareMenuCopyState('Copy link', false);
 
         const button = document.getElementById('shareAthleteProfile');
@@ -6745,6 +6750,32 @@
         }
 
         return true;
+    }
+
+    function positionAthleteShareMenu(menu) {
+        if (!menu || menu.hidden) return;
+
+        menu.classList.remove('is-above');
+        const modalContent = document.querySelector('#detailsModal .modal-content');
+        const modalRect = modalContent ? modalContent.getBoundingClientRect() : null;
+        const viewportBottom = Math.min(window.innerHeight, modalRect ? modalRect.bottom : window.innerHeight);
+        const viewportTop = Math.max(0, modalRect ? modalRect.top : 0);
+        const padding = 12;
+        const belowRect = menu.getBoundingClientRect();
+
+        if (belowRect.bottom <= viewportBottom - padding) return;
+
+        menu.classList.add('is-above');
+        const aboveRect = menu.getBoundingClientRect();
+        if (aboveRect.top < viewportTop + padding) {
+            menu.classList.remove('is-above');
+        }
+    }
+
+    function keepAthleteShareMenuInView(menu) {
+        if (!menu || menu.hidden) return;
+        positionAthleteShareMenu(menu);
+        menu.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
 
     function getAthleteSharePayload(button) {
@@ -6820,6 +6851,8 @@
         if (copyButton) {
             copyButton.focus({ preventScroll: true });
         }
+        keepAthleteShareMenuInView(menu);
+        requestAnimationFrame(() => keepAthleteShareMenuInView(menu));
     }
 
     function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
