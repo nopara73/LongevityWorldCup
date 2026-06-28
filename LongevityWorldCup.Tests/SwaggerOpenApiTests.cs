@@ -252,6 +252,18 @@ public sealed class SwaggerOpenApiTests
             $"Unexpected /swagger status code: {(int)response.StatusCode} {response.StatusCode}.");
     }
 
+    [Fact]
+    public async Task SwaggerUiMobileCss_PreservesExpandedModelToggle()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var css = await client.GetStringAsync("/css/swagger-ui-mobile.css");
+
+        Assert.Contains(".swagger-ui .model-box-control > span:last-child:not(.model-toggle)", css);
+        Assert.DoesNotContain(".swagger-ui .model-box-control > span:last-child {", css);
+    }
+
     private static async Task<JsonDocument> LoadSwaggerDocumentAsync()
     {
         using var factory = CreateFactory();
