@@ -39,6 +39,8 @@ jobs:
         -p:WarningsAsErrors=NU1900%3BNU1901%3BNU1902%3BNU1903%3BNU1904%3BNU1905
     - name: Build
       run: dotnet build --no-restore
+    - name: Install Playwright Chromium
+      run: pwsh LongevityWorldCup.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
     - name: Test with coverage
       run: >
         dotnet test
