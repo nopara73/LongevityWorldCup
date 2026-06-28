@@ -19,6 +19,7 @@ public sealed class PageOgImageService
     private const float AccentY = 192f;
     private const float TitleY = 258f;
     private const float TitleWidth = 760f;
+    private const float ContentPanelWidth = ContentX + TitleWidth + 48f;
 
     private static readonly Color BackgroundTop = ParseHex("030708");
     private static readonly Color BackgroundBottom = ParseHex("111515");
@@ -258,7 +259,7 @@ public sealed class PageOgImageService
 
             image.Mutate(ctx =>
             {
-                ctx.DrawImage(backgroundLogo, new Point(610, -24), 0.20f);
+                ctx.DrawImage(backgroundLogo, new Point(884, -24), 0.20f);
                 ctx.DrawImage(smallLogo, new Point((int)ContentX, 52), 0.98f);
             });
         }
@@ -402,8 +403,8 @@ public sealed class PageOgImageService
 
         image.Mutate(ctx =>
         {
-            ctx.Fill(new Rgba32(0, 0, 0, 92), new RectangularPolygon(0, 0, 455f, CanvasHeight));
-            ctx.Fill(new Rgba32(255, 255, 255, 12), new RectangularPolygon(455f, 0, 1f, CanvasHeight));
+            ctx.Fill(new Rgba32(0, 0, 0, 92), new RectangularPolygon(0, 0, ContentPanelWidth, CanvasHeight));
+            ctx.Fill(new Rgba32(255, 255, 255, 12), new RectangularPolygon(ContentPanelWidth, 0, 1f, CanvasHeight));
         });
     }
 
@@ -425,7 +426,7 @@ public sealed class PageOgImageService
         var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
 
         var raw = string.Join("|",
-            "page-og-v9",
+            "page-og-v10",
             definition.Slug,
             definition.Kicker,
             definition.Title,
