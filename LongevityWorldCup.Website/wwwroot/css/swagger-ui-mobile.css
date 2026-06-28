@@ -86,6 +86,14 @@
         padding: 1rem 0.75rem;
     }
 
+    .swagger-ui .opblock pre code {
+        display: block;
+        max-width: 100%;
+        white-space: pre-wrap !important;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
     .swagger-ui .responses-table .response-col_status {
         width: 2.4rem;
         min-width: 2.4rem;
