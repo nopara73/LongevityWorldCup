@@ -327,6 +327,20 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BioagePages_UseExplicitBackDestinationsForUpdateAndOnboardingFlows(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("onclick=\"navigateBackFromBioage()\"", html);
+        Assert.Contains("function getBioageBackDestination()", html);
+        Assert.Contains("return isUpdate ? '/dashboard' : '/join';", html);
+        Assert.Contains("window.navigateToFlowDestination(getBioageBackDestination());", html);
+        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
+    }
+
+    [Theory]
     [InlineData("pheno-age.html", "phenoAgeRankPreview")]
     [InlineData("bortz-age.html", "bortzAgeRankPreview")]
     public void BioageRankPreview_WaitsForModulesDefensively(string fileName, string previewElementId)

@@ -20,6 +20,22 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationBackButton_UsesExplicitBioageDestinationOnFirstStage()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("function getConvergenceBackDestination()", html);
+        Assert.Contains("return paymentOffer && paymentOffer.offerType === 'pro'", html);
+        Assert.Contains("? '/bortz-age'", html);
+        Assert.Contains(": '/pheno-age';", html);
+        Assert.Contains("window.navigateToFlowDestination(getConvergenceBackDestination());", html);
+        Assert.DoesNotContain("window.history.back();", html);
+    }
+
+    [Fact]
     public async Task ApplicationSubmissionTimeout_WaitsForServerPublicWorkTimeout()
     {
         using var factory = new TestWebApplicationFactory();

@@ -367,13 +367,20 @@ window.highlightText = function (element, searchTerms) {
 }
 
 window.goBackOrHome = function () {
-    // Prefer history.back() whenever there is history (e.g. user came from join-game).
+    // Prefer history.back() for legacy generic back buttons.
     // Referrer can be empty or stripped, so do not rely on it; going back is safe for same-tab navigation.
     if (window.history.length > 1) {
         window.history.back();
     } else {
         window.location.href = '/';
     }
+}
+
+window.navigateToFlowDestination = function (destination) {
+    const target = typeof destination === 'string' && destination.trim()
+        ? destination
+        : '/';
+    window.location.replace(target);
 }
 
 window.optimizeImageClient = async function (dataUri, options) {

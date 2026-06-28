@@ -1343,7 +1343,7 @@
                 <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
             </button>
 
-            <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.goBackOrHome()">
+            <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="navigateBackFromBioage()">
                 <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
             </button>
         </div>
@@ -1357,6 +1357,14 @@
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
         const isUpdate = urlParams.get('update') === '1';
+
+        function getBioageBackDestination() {
+            return isUpdate ? '/dashboard' : '/join';
+        }
+
+        function navigateBackFromBioage() {
+            window.navigateToFlowDestination(getBioageBackDestination());
+        }
 
         function removeBrowserStorageItem(storageName, key) {
             try {
@@ -2784,7 +2792,7 @@
                 });
             }
 
-            // Back in .options-container (result section) always navigates away via onclick goBackOrHome();
+            // Back in .options-container (result section) always navigates to the page-level flow destination.
             // Step-2 Back (lwcToStep1Btn) goes to step 1 like the prev green dot, except update mode hides it.
 
             const unitSelects = Array.from(document.querySelectorAll('.input-group select'))
