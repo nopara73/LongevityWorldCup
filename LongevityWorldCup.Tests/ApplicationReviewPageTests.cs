@@ -135,4 +135,23 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("applicantName: normalizeOptionalString(pending.applicantName)", script);
         Assert.Contains("submissionType: normalizePaymentSubmissionType(pending.submissionType)", script);
     }
+
+    [Fact]
+    public async Task ApplicationReview_WrapsLongStoredContactEmail()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/application-review.html");
+        var ruleStart = html.IndexOf("#contactEmailPlaceholder", StringComparison.Ordinal);
+        Assert.True(ruleStart >= 0, "Could not find contact email wrapping rule.");
+
+        var ruleEnd = html.IndexOf('}', ruleStart);
+        Assert.True(ruleEnd > ruleStart, "Could not find end of contact email wrapping rule.");
+
+        var rule = html[ruleStart..ruleEnd];
+        Assert.Contains("overflow-wrap: anywhere;", rule);
+        Assert.Contains("word-break: break-word;", rule);
+        Assert.Contains("white-space: normal;", rule);
+    }
 }
