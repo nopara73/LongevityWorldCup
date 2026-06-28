@@ -799,6 +799,7 @@
 }
 
 .lmx-card-head {
+    min-width: 0;
     display: grid;
     gap: 0.45rem;
     margin-bottom: 0.8rem;
@@ -861,10 +862,12 @@
 
 .lmx-card h2,
 .lmx-card h3 {
+    min-width: 0;
     margin: 0 0 0.8rem;
     text-align: left;
     font-size: 1.2rem;
     letter-spacing: 0;
+    overflow-wrap: anywhere;
 }
 
 .lmx-form {
@@ -2219,6 +2222,7 @@ body.lmx-quote-open {
 }
 
 .lmx-participant-actions {
+    min-width: 0;
     display: grid;
     gap: 0.8rem;
 }
