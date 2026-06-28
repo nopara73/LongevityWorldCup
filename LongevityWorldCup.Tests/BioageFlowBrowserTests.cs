@@ -1,7 +1,4 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Playwright;
-using System.Net;
-using System.Net.Sockets;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -21,7 +18,7 @@ public sealed class BioageFlowBrowserTests
         string changedUnitValue,
         string changedPlaceholder)
     {
-        await using var app = await StartKestrelAppAsync();
+        await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
         await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
@@ -32,6 +29,7 @@ public sealed class BioageFlowBrowserTests
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US"
         });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
 
         await context.AddInitScriptAsync(
             """
@@ -51,47 +49,6 @@ public sealed class BioageFlowBrowserTests
                 errors.Add(message.Text);
         };
         page.PageError += (_, error) => errors.Add(error);
-
-        await page.RouteAsync("**/*", async route =>
-        {
-            var uri = new Uri(route.Request.Url);
-            if (uri.Host is "127.0.0.1" or "localhost")
-            {
-                await route.ContinueAsync();
-                return;
-            }
-
-            if (uri.Host.Equals("ipapi.co", StringComparison.OrdinalIgnoreCase))
-            {
-                await route.FulfillAsync(new RouteFulfillOptions
-                {
-                    Status = 200,
-                    ContentType = "application/json",
-                    Body = """{"country_code":"HU","region_code":""}"""
-                });
-                return;
-            }
-
-            if (route.Request.ResourceType == "script")
-            {
-                await route.FulfillAsync(new RouteFulfillOptions
-                {
-                    Status = 200,
-                    ContentType = "application/javascript",
-                    Body = uri.AbsolutePath.Contains("/aos/", StringComparison.OrdinalIgnoreCase)
-                        ? "window.AOS={init(){},refresh(){}};"
-                        : ""
-                });
-                return;
-            }
-
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = 200,
-                ContentType = route.Request.ResourceType == "stylesheet" ? "text/css" : "text/plain",
-                Body = ""
-            });
-        });
 
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
@@ -130,50 +87,5 @@ public sealed class BioageFlowBrowserTests
                 return card.classList.contains('active') ? header.textContent.trim() : '';
             }
             """);
-    }
-
-    private static async Task<KestrelApp> StartKestrelAppAsync()
-    {
-        var port = GetFreeTcpPort();
-        var baseAddress = new Uri($"http://127.0.0.1:{port}");
-        var factory = new TestWebApplicationFactory();
-        factory.UseKestrel(port);
-        factory.StartServer();
-
-        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false,
-            BaseAddress = baseAddress
-        });
-
-        using var response = await client.GetAsync("/health");
-        response.EnsureSuccessStatusCode();
-
-        return new KestrelApp(factory, client, baseAddress);
-    }
-
-    private static int GetFreeTcpPort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        try
-        {
-            return ((IPEndPoint)listener.LocalEndpoint).Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
-    }
-
-    private sealed class KestrelApp(TestWebApplicationFactory factory, HttpClient client, Uri baseAddress) : IAsyncDisposable
-    {
-        public Uri BaseAddress { get; } = baseAddress;
-
-        public async ValueTask DisposeAsync()
-        {
-            client.Dispose();
-            await factory.DisposeAsync();
-        }
     }
 }
