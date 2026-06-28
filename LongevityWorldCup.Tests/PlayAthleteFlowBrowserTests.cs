@@ -6,6 +6,55 @@ namespace LongevityWorldCup.Tests;
 public sealed class PlayAthleteFlowBrowserTests
 {
     [Fact]
+    public async Task NewAthleteNavigation_KeepsJoinUrlPanelAndBackActionsInSync()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await ExpectActivePlayPanelAsync(page, "playStartPanel");
+        Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
+
+        await page.Locator("#newGameBtn").ClickAsync();
+        await page.WaitForURLAsync("**/join");
+        await ExpectActivePlayPanelAsync(page, "joinTrackPanel");
+        Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
+        Assert.True(await page.GetByRole(AriaRole.Button, new() { Name = "Start amateur" }).IsVisibleAsync());
+        Assert.True(await page.GetByRole(AriaRole.Button, new() { Name = "Go pro" }).IsVisibleAsync());
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Back" }).ClickAsync();
+        await page.WaitForURLAsync("**/play");
+        await ExpectActivePlayPanelAsync(page, "playStartPanel");
+        Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
+
+        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await ExpectActivePlayPanelAsync(page, "joinTrackPanel");
+        Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task ExistingAthleteNavigation_KeepsUrlPanelAndBackActionsInSync()
     {
         await using var app = await BrowserTestApp.StartAsync();

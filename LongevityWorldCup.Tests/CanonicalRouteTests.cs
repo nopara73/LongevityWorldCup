@@ -12,6 +12,7 @@ public sealed class CanonicalRouteTests
     [InlineData("/leaderboard/leaderboard/", "/leaderboard")]
     [InlineData("/misc-pages/ruleset.html", "/ruleset")]
     [InlineData("/onboarding/convergence.html", "/apply")]
+    [InlineData("/onboarding/join-game.html", "/join")]
     [InlineData("/play/character-selection.html", "/select-athlete")]
     [InlineData("/play/character-customization.html", "/dashboard")]
     [InlineData("/RULES/?ref=docs", "/ruleset?ref=docs")]
@@ -54,6 +55,7 @@ public sealed class CanonicalRouteTests
 
     [Theory]
     [InlineData("/play", "/play")]
+    [InlineData("/join", "/join")]
     [InlineData("/select-athlete", "/select-athlete")]
     [InlineData("/dashboard", "/dashboard")]
     public async Task PlayFlowRoutes_ServeSharedShellWithoutRedirect(string path, string canonicalPath)
@@ -67,6 +69,7 @@ public sealed class CanonicalRouteTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Null(response.Headers.Location);
         Assert.Contains("id=\"playStartPanel\"", html);
+        Assert.Contains("id=\"joinTrackPanel\"", html);
         Assert.Contains("id=\"athleteSelectionPanel\"", html);
         Assert.Contains("id=\"athleteDashboardPanel\"", html);
         Assert.Contains($"<link rel=\"canonical\" href=\"https://longevityworldcup.com{canonicalPath}\" />", html);

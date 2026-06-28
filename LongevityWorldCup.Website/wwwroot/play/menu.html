@@ -54,13 +54,19 @@
             }
 
         .play-menu-actions,
+        .play-join-actions,
         .play-athlete-actions,
         .play-dashboard-actions {
             margin: 1.35rem auto 0;
         }
 
+        .play-hub-panel[hidden] {
+            display: none !important;
+        }
+
         .play-athlete-panel,
-        .play-dashboard-panel {
+        .play-dashboard-panel,
+        .play-join-panel {
             padding: 2.5rem 0 0;
             display: flex;
             flex-direction: column;
@@ -68,12 +74,252 @@
         }
 
         .play-athlete-title,
-        .play-dashboard-title {
+        .play-dashboard-title,
+        .play-join-title {
             max-width: 100%;
             margin: 0 0 1rem;
             text-align: center;
             line-height: 1.12;
             overflow-wrap: anywhere;
+        }
+
+        .play-hub-main--wide {
+            max-width: 1100px;
+        }
+
+        .play-join-intro {
+            width: min(100%, 760px);
+            margin: 0 auto 1.25rem;
+            padding: 0.85rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            font-size: 0.95rem;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .play-join-cards {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .play-join-card {
+            position: relative;
+            display: grid;
+            grid-template-rows: auto auto auto;
+            min-height: 0;
+            overflow: hidden;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            box-sizing: border-box;
+        }
+
+        .play-join-card--pro {
+            grid-template-rows: minmax(0, 0) auto auto auto;
+            border-color: var(--main-action-color, #2e7d32);
+            background: #f0fdf4;
+            box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
+        }
+
+        .play-join-ribbon-slot {
+            grid-row: 1;
+            position: relative;
+            width: 100%;
+            height: 0;
+            min-height: 0;
+            overflow: visible;
+        }
+
+        .play-join-ribbon {
+            position: absolute;
+            top: -1.5rem;
+            right: -1.5rem;
+            overflow: hidden;
+            width: 128px;
+            height: 128px;
+            pointer-events: none;
+        }
+
+        .play-join-ribbon > span {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            position: absolute;
+            right: -34px;
+            top: 30px;
+            width: 148px;
+            padding: 6px 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+            color: #5c4a0a;
+            background: linear-gradient(135deg, #f7931a 0%, #ffc107 50%, #f7931a 100%);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+            transform: rotate(45deg);
+        }
+
+        .play-join-card h2 {
+            margin: 0 0 0.35rem;
+            line-height: 1.2;
+            text-align: left;
+            white-space: normal;
+        }
+
+        .play-join-card--pro h2 {
+            grid-row: 2;
+            padding-right: 5.25rem;
+        }
+
+        .play-join-card .track-name {
+            display: inline;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 800;
+            letter-spacing: 0;
+            color: #111827;
+        }
+
+        .play-join-card .track-label {
+            display: inline;
+            margin-left: 0.25rem;
+            font-size: clamp(0.95rem, 2vw, 1.15rem);
+            font-weight: 700;
+            color: #475569;
+        }
+
+        .play-join-tagline {
+            margin: 0.25rem 0 1rem;
+            color: #64748b;
+        }
+
+        .play-join-card--pro .play-join-tagline {
+            grid-row: 3;
+        }
+
+        .play-join-meta {
+            display: grid;
+            grid-template-columns: minmax(7em, auto) 1fr;
+            gap: 0.45rem 1rem;
+            align-items: baseline;
+            margin: 0;
+            padding: 0;
+            color: #555;
+        }
+
+        .play-join-meta dt {
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .play-join-meta dd {
+            margin: 0;
+            color: #1e293b;
+        }
+
+        .join-pro-entry-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
+        .play-join-card--pro .play-join-details {
+            grid-row: 4;
+            position: relative;
+            z-index: 1;
+        }
+
+        .play-join-card .play-join-actions {
+            margin-top: 1.35rem;
+        }
+
+        .play-join-biomarkers {
+            margin-top: 0.75rem;
+            padding: 0.72rem 0.9rem 0.85rem;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #64748b;
+            background: #f8fafc;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+
+        .play-join-card--pro .play-join-biomarkers {
+            border-color: #bbf7d0;
+            border-left-color: var(--main-action-color, #16a34a);
+            background: #ecfdf5;
+        }
+
+        .play-join-biomarkers details {
+            margin: 0;
+        }
+
+        .play-join-biomarkers summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            min-height: 44px;
+            cursor: pointer;
+            list-style: none;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #475569;
+        }
+
+        .play-join-card--pro .play-join-biomarkers summary {
+            color: #166534;
+        }
+
+        .play-join-biomarkers summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .play-join-biomarkers summary::after {
+            content: "";
+            flex: 0 0 auto;
+            width: 0.55rem;
+            height: 0.55rem;
+            margin-right: 0.15rem;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg);
+            transition: transform 0.18s ease;
+        }
+
+        .play-join-biomarkers details[open] summary {
+            margin-bottom: 0.55rem;
+        }
+
+        .play-join-biomarkers details[open] summary::after {
+            transform: rotate(-135deg);
+        }
+
+        .play-join-biomarkers ul {
+            margin: 0;
+            padding-left: 1.1rem;
+            font-size: 0.82rem;
+            line-height: 1.35;
+            color: #334155;
+        }
+
+        .play-join-card--pro .play-join-biomarkers ul {
+            color: #14532d;
+        }
+
+        .play-join-back {
+            margin-top: 1.35rem;
         }
 
         .play-athlete-visual,
@@ -299,20 +545,45 @@
             }
 
             .play-menu-actions,
+            .play-join-actions,
             .play-athlete-actions,
             .play-dashboard-actions {
                 margin-top: 1.15rem;
             }
 
             .play-athlete-panel,
-            .play-dashboard-panel {
+            .play-dashboard-panel,
+            .play-join-panel {
                 padding-top: 2rem;
             }
 
             .play-athlete-title,
-            .play-dashboard-title {
+            .play-dashboard-title,
+            .play-join-title {
                 margin-bottom: 0.85rem;
                 font-size: clamp(1.65rem, 7vw, 1.9rem);
+            }
+
+            .play-join-intro {
+                margin-bottom: 1rem;
+            }
+
+            .play-join-cards {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .play-join-card {
+                padding: 1.35rem;
+            }
+
+            .play-join-card--pro h2 {
+                padding-right: 4rem;
+            }
+
+            .play-join-meta {
+                grid-template-columns: minmax(6.5em, auto) 1fr;
+                gap: 0.4rem 0.8rem;
             }
 
             .play-athlete-visual,
@@ -358,15 +629,35 @@
 
         @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
             .play-athlete-panel,
-            .play-dashboard-panel {
+            .play-dashboard-panel,
+            .play-join-panel {
                 padding-top: 0.6rem;
             }
 
             .play-athlete-title,
-            .play-dashboard-title {
+            .play-dashboard-title,
+            .play-join-title {
                 margin-bottom: 0.45rem;
                 font-size: clamp(1.55rem, 8vh, 2rem);
                 line-height: 1.05;
+            }
+
+            .play-join-cards {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .play-join-card {
+                padding: 1rem;
+            }
+
+            .play-join-card--pro h2 {
+                padding-right: 3rem;
+            }
+
+            .play-join-meta {
+                grid-template-columns: 1fr;
+                gap: 0.15rem;
             }
 
             .play-athlete-visual,
@@ -435,11 +726,144 @@
             </div>
 
             <div class="options-container play-menu-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-                <button id="newGameBtn" class="option-button grey flow-action flow-action--secondary" onclick="window.location.href='/join'">
+                <button id="newGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
                     <span class="flow-action__label">I'm a new athlete</span>
                 </button>
                 <button id="continueGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
                     <span class="flow-action__label">I'm already an athlete</span>
+                </button>
+            </div>
+        </section>
+
+        <section id="joinTrackPanel" class="play-hub-panel play-join-panel" hidden>
+            <h1 class="play-join-title">Choose your track</h1>
+            <div class="play-join-intro">
+                To calculate your biological age, get a <strong>blood test</strong>.
+                Your next choice determines which biomarkers need testing:
+            </div>
+
+            <div class="play-join-cards">
+                <article class="play-join-card">
+                    <h2>
+                        <span class="track-name">Amateur</span>
+                        <span class="track-label">athlete</span>
+                    </h2>
+                    <p class="play-join-tagline">
+                        Ranked after pros in the
+                        <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
+                    </p>
+                    <div class="play-join-details">
+                        <dl class="play-join-meta">
+                            <dt>Testing window:</dt>
+                            <dd>unrestricted</dd>
+                            <dt>Entry:</dt>
+                            <dd class="join-amateur-entry-cell"><span class="pro-new-price">$10</span></dd>
+                            <dt>Aging clock:</dt>
+                            <dd>
+                                <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf"
+                                   target="_blank"
+                                   rel="noopener">Pheno Age</a>
+                            </dd>
+                        </dl>
+                        <div class="options-container play-join-actions flow-action-stack">
+                            <button id="joinStartAmateurBtn" type="button" class="option-button grey flow-action flow-action--secondary">
+                                <span class="flow-action__label">Start amateur</span>
+                            </button>
+                        </div>
+                        <div class="play-join-biomarkers">
+                            <details>
+                                <summary>9 biomarkers needed:</summary>
+                                <ul>
+                                    <li>White blood cell count (WBC)</li>
+                                    <li>Lymphocytes</li>
+                                    <li>Mean corpuscular volume (MCV)</li>
+                                    <li>Red cell distribution width (RDW)</li>
+                                    <li>Albumin</li>
+                                    <li>Alkaline phosphatase (ALP)</li>
+                                    <li>Creatinine</li>
+                                    <li>Glucose (Blood Sugar)</li>
+                                    <li>C-reactive protein (CRP)</li>
+                                </ul>
+                            </details>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="play-join-card play-join-card--pro">
+                    <div class="play-join-ribbon-slot" aria-hidden="true">
+                        <span class="play-join-ribbon"><span><i class="fas fa-trophy" aria-hidden="true"></i> Prize money</span></span>
+                    </div>
+                    <h2>
+                        <span class="track-name">Professional</span>
+                        <span class="track-label">athlete</span>
+                    </h2>
+                    <p class="play-join-tagline">
+                        Ranked ahead of amateurs in the
+                        <a href="/leaderboard" target="_blank" rel="noopener noreferrer">Ultimate League</a>
+                    </p>
+                    <div class="play-join-details">
+                        <dl class="play-join-meta">
+                            <dt>Testing window:</dt>
+                            <dd>2026</dd>
+                            <dt>Entry:</dt>
+                            <dd class="join-pro-entry-cell">
+                                <span id="joinProEntryPrice">$100</span>
+                                <div id="joinProDiscountNote" class="pro-discount-box" aria-live="polite" style="display:none">
+                                    <p id="joinProDiscountBreakdown" class="pro-discount-breakdown"></p>
+                                </div>
+                            </dd>
+                            <dt>Aging clocks:</dt>
+                            <dd>
+                                <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/pheno-age.pdf"
+                                   target="_blank"
+                                   rel="noopener">Pheno Age</a>
+                                +
+                                <a href="https://www.nature.com/articles/s42003-023-05456-z"
+                                   target="_blank"
+                                   rel="noopener">Bortz Age</a>
+                            </dd>
+                        </dl>
+                        <div class="options-container play-join-actions flow-action-stack">
+                            <button id="joinGoProButton" type="button" class="option-button green flow-action">
+                                <span class="flow-action__label">Go pro</span>
+                            </button>
+                        </div>
+                        <div class="play-join-biomarkers">
+                            <details>
+                                <summary>22 biomarkers needed:</summary>
+                                <ul>
+                                    <li>White blood cell count (WBC)</li>
+                                    <li>Lymphocytes</li>
+                                    <li>Neutrophils</li>
+                                    <li>Monocytes</li>
+                                    <li>Red blood cell count (RBC)</li>
+                                    <li>Mean corpuscular volume (MCV)</li>
+                                    <li>Mean corpuscular hemoglobin (MCH)</li>
+                                    <li>Red cell distribution width (RDW)</li>
+                                    <li>Albumin</li>
+                                    <li>Alanine aminotransferase (ALT)</li>
+                                    <li>Alkaline phosphatase (ALP)</li>
+                                    <li>Gamma-glutamyl transferase (GGT)</li>
+                                    <li>Urea</li>
+                                    <li>Creatinine</li>
+                                    <li>Cystatin C</li>
+                                    <li>Glucose</li>
+                                    <li>Hemoglobin A1c (HbA1c)</li>
+                                    <li>Total cholesterol</li>
+                                    <li>Apolipoprotein A1 (ApoA1)</li>
+                                    <li>C-reactive protein (CRP)</li>
+                                    <li>Sex hormone-binding globulin (SHBG)</li>
+                                    <li>Vitamin D (25-OH)</li>
+                                </ul>
+                            </details>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <div class="options-container play-join-back flow-action-stack">
+                <button id="joinTrackBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                 </button>
             </div>
         </section>
@@ -505,6 +929,19 @@
     <!--FOOTER-->
     <script>
         (function () {
+            if (window.location.pathname.toLowerCase() !== '/join') return;
+
+            document.querySelector('.play-hub-main')?.classList.add('play-hub-main--wide');
+            const startPanel = document.getElementById('playStartPanel');
+            const joinPanel = document.getElementById('joinTrackPanel');
+            if (startPanel && joinPanel) {
+                startPanel.hidden = true;
+                joinPanel.hidden = false;
+            }
+        })();
+    </script>
+    <script>
+        (function () {
             const storageErrorMessage = 'Browser storage is unavailable. Enable storage and try again.';
             let flow = null;
             let athleteSelection = null;
@@ -521,6 +958,8 @@
 
             function getPlayRoute(panelName) {
                 switch (panelName) {
+                    case 'join':
+                        return '/join';
                     case 'selection':
                         return '/select-athlete';
                     case 'dashboard':
@@ -532,6 +971,7 @@
 
             function getPlayPanelForPath() {
                 const path = window.location.pathname.toLowerCase();
+                if (path === '/join') return 'join';
                 if (path === '/select-athlete') return 'selection';
                 if (path === '/dashboard') return 'dashboard';
                 return 'start';
@@ -557,6 +997,7 @@
             }
 
             function showPanel(panelId) {
+                document.querySelector('.play-hub-main')?.classList.toggle('play-hub-main--wide', panelId === 'joinTrackPanel');
                 document.querySelectorAll('.play-hub-panel').forEach(panel => {
                     const isActive = panel.id === panelId;
                     panel.hidden = !isActive;
@@ -569,6 +1010,14 @@
                 showPanel('playStartPanel');
                 athleteSelection.closeAllLists();
                 flow.focusWithoutScrolling(document.getElementById('continueGameBtn'));
+            }
+
+            function showJoinTrackPanel(options = {}) {
+                setPlayHistory('join', options.historyMode);
+                showPanel('joinTrackPanel');
+                athleteSelection.closeAllLists();
+                renderJoinPricing();
+                flow.focusWithoutScrolling(document.getElementById('joinStartAmateurBtn'));
             }
 
             function showAthleteSelection(options = {}) {
@@ -607,6 +1056,11 @@
                     return;
                 }
 
+                if (panelName === 'join') {
+                    showJoinTrackPanel({ historyMode: null });
+                    return;
+                }
+
                 if (panelName === 'selection') {
                     showAthleteSelection({ historyMode: null });
                     return;
@@ -634,6 +1088,85 @@
 
             function navigateToSelectionPanel() {
                 showAthleteSelection({ historyMode: 'replace' });
+            }
+
+            function getCheckoutQuerySuffix() {
+                const params = new URLSearchParams();
+                const freePassValue = window.getFreePassValue ? window.getFreePassValue() : null;
+                const discountValue = window.getDiscountValue ? window.getDiscountValue() : null;
+                if (freePassValue !== null) params.set('freepass', freePassValue);
+                if (discountValue !== null) params.set('discount', discountValue);
+                const query = params.toString();
+                return query ? `?${query}` : '';
+            }
+
+            function startAmateurApplication(retryButton) {
+                const stored = flow.setPendingPaymentOffer({
+                    source: 'join-game',
+                    offerType: 'amateur',
+                    currency: 'USD',
+                    amountUsd: 10
+                }, retryButton);
+                if (!stored) return;
+                window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;
+            }
+
+            function startProApplication(retryButton) {
+                const result = window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
+                    ? window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false })
+                    : null;
+                const amountUsd = result && Number.isFinite(result.finalPriceUsd) ? result.finalPriceUsd : 100;
+                const paymentOffer = flow.preserveAppliedDiscountMetadata({
+                    source: 'join-game',
+                    offerType: 'pro',
+                    currency: 'USD',
+                    amountUsd
+                }, result);
+                if (!flow.setPendingPaymentOffer(paymentOffer, retryButton)) return;
+                window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;
+            }
+
+            function renderJoinFreePassPricing() {
+                if (!window.hasFreePass || !window.hasFreePass()) return false;
+
+                const amateurPrice = document.querySelector('.join-amateur-entry-cell .pro-new-price');
+                const note = document.getElementById('joinProDiscountNote');
+                const breakdown = document.getElementById('joinProDiscountBreakdown');
+                const proEntryPrice = document.getElementById('joinProEntryPrice');
+
+                if (amateurPrice) amateurPrice.textContent = 'free';
+                if (proEntryPrice) proEntryPrice.innerHTML = '<span class="pro-new-price">free</span>';
+                if (breakdown) breakdown.textContent = '';
+                if (note) note.style.display = 'none';
+                return true;
+            }
+
+            function renderJoinPricing() {
+                if (renderJoinFreePassPricing()) return;
+                if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== 'function') return;
+
+                const result = window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false });
+                const note = document.getElementById('joinProDiscountNote');
+                const breakdown = document.getElementById('joinProDiscountBreakdown');
+                const proEntryPrice = document.getElementById('joinProEntryPrice');
+                if (!note || !breakdown || !proEntryPrice) return;
+
+                proEntryPrice.innerHTML = typeof window.proDiscounts.createPriceHtml === 'function'
+                    ? window.proDiscounts.createPriceHtml(result)
+                    : flow.createPriceHtmlFallback(result);
+
+                if (!Array.isArray(result.components) || result.components.length === 0) {
+                    breakdown.textContent = '';
+                    note.style.display = 'none';
+                    return;
+                }
+
+                if (typeof window.proDiscounts.createBreakdownHtml === 'function') {
+                    breakdown.innerHTML = window.proDiscounts.createBreakdownHtml(result);
+                } else {
+                    breakdown.textContent = window.proDiscounts.createBreakdownText(result);
+                }
+                note.style.display = '';
             }
 
             function promotePlayStartAction(button) {
@@ -681,7 +1214,11 @@
                         container.insertBefore(newBtn, container.firstChild);
                     }
 
+                    newBtn.addEventListener('click', () => showJoinTrackPanel({ historyMode: 'push' }));
                     contBtn.addEventListener('click', () => showAthleteSelection({ historyMode: 'push' }));
+                    document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);
+                    document.getElementById('joinStartAmateurBtn').addEventListener('click', event => startAmateurApplication(event.currentTarget));
+                    document.getElementById('joinGoProButton').addEventListener('click', event => startProApplication(event.currentTarget));
                     document.getElementById('playSelectionBackBtn').addEventListener('click', navigateToStartPanel);
                     document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);
 

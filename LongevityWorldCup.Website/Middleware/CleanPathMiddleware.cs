@@ -72,7 +72,7 @@ namespace LongevityWorldCup.Website.Middleware
                         break;
 
                     case "/join":
-                        context.Request.Path = "/onboarding/join-game.html";
+                        context.Request.Path = "/play/menu.html";
                         break;
 
                     case "/apply":
