@@ -221,7 +221,7 @@ namespace LongevityWorldCup.Website.Middleware
 
         private static bool ShouldRenderLeaderboardRows(HttpContext context)
         {
-            var canonicalPath = RouteCanonicalization.GetCanonicalPath(context.Request.Path.Value);
+            var canonicalPath = GetRequestCanonicalPath(context);
             return string.Equals(canonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) &&
                    !context.Request.QueryString.HasValue;
         }
@@ -392,25 +392,6 @@ $@"<script type=""module"">
                         "/js/misc.js",
                         "/js/proof-helpers.js"
                     ]),
-                "/play/character-selection.html" => new HeadAssetConfig(
-                    IncludeValidator: false,
-                    ModulePaths:
-                    [
-                        "/js/play-athlete-flow.js",
-                        "/js/misc.js"
-                    ]),
-                "/play/character-customization.html" => new HeadAssetConfig(
-                    IncludeValidator: false,
-                    ModulePaths:
-                    [
-                        "/js/play-athlete-flow.js",
-                        "/js/misc.js",
-                        "/js/flags.js",
-                        "/js/leagueIcons.js",
-                        "/js/badges.js",
-                        "/js/proof-helpers.js",
-                        "/js/pro-discounts.js"
-                    ]),
                 "/onboarding/pheno-age.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
@@ -459,7 +440,7 @@ $@"<script type=""module"">
 
         private SeoMeta GetSeoMeta(HttpContext context)
         {
-            var requestPath = context.Request.Path.Value ?? "/";
+            var requestPath = GetRequestCanonicalPath(context);
             var baseSeo = GetBaseSeoMeta(requestPath);
 
             if (TryGetAthleteSeoMeta(context, baseSeo, out var athleteSeo))
@@ -597,6 +578,15 @@ $@"<script type=""module"">
             };
         }
 
+        private static string GetRequestCanonicalPath(HttpContext context)
+        {
+            return context.Items.TryGetValue(RouteCanonicalization.CanonicalPathItemKey, out var value) &&
+                   value is string canonicalPath &&
+                   !string.IsNullOrWhiteSpace(canonicalPath)
+                ? canonicalPath
+                : RouteCanonicalization.GetCanonicalPath(context.Request.Path.Value);
+        }
+
         private string BuildDefaultOgImageUrl()
         {
             return BuildOgImageUrl(DefaultOgImagePath);
@@ -731,7 +721,7 @@ $@"<script type=""module"">
                 return false;
             }
 
-            var requestCanonicalPath = RouteCanonicalization.GetCanonicalPath(context.Request.Path.Value);
+            var requestCanonicalPath = GetRequestCanonicalPath(context);
             var canonicalPath = string.Equals(requestCanonicalPath, "/leaderboard", StringComparison.OrdinalIgnoreCase) &&
                                 string.Equals(payload.InternalSlug, "ultimate", StringComparison.OrdinalIgnoreCase)
                 ? "/leaderboard"
@@ -759,7 +749,7 @@ $@"<script type=""module"">
         private bool TryGetFlagSeoMeta(HttpContext context, out SeoMeta seo)
         {
             seo = null!;
-            var canonicalRequestPath = RouteCanonicalization.GetCanonicalPath(context.Request.Path.Value);
+            var canonicalRequestPath = GetRequestCanonicalPath(context);
             if (!IsFlagRoute(canonicalRequestPath))
             {
                 return false;
@@ -860,8 +850,7 @@ $@"<script type=""module"">
         private static bool TryResolveLeagueSlug(HttpContext context, out string leagueSlug)
         {
             leagueSlug = "";
-            var requestPath = context.Request.Path.Value ?? "";
-            var canonicalPath = RouteCanonicalization.GetCanonicalPath(requestPath);
+            var canonicalPath = GetRequestCanonicalPath(context);
 
             if (IsLeagueRoute(canonicalPath))
             {
@@ -898,8 +887,7 @@ $@"<script type=""module"">
         private static bool TryResolveLeaderboardViewSlug(HttpContext context, out string viewSlug)
         {
             viewSlug = "";
-            var requestPath = context.Request.Path.Value ?? "";
-            var canonicalPath = RouteCanonicalization.GetCanonicalPath(requestPath);
+            var canonicalPath = GetRequestCanonicalPath(context);
 
             if (IsLeagueRoute(canonicalPath))
             {

@@ -131,7 +131,7 @@ Your profile picture must show you facing the camera, but you can edit it freely
 ![image](https://github.com/user-attachments/assets/613afebb-4ec7-4b0d-a961-8a09e26391ab)
 
 #### I'm already an athlete. How can I make changes?
-Through the [Athlete Dashboard](https://www.longevityworldcup.com/play/character-selection.html) or by sending us an email to `hi@longevityworldcup.com`.
+Through the [Athlete Dashboard](https://www.longevityworldcup.com/select-athlete) or by sending us an email to `hi@longevityworldcup.com`.
 
 #### What will sponsorships include?
 Sponsorships are planned for future seasons. Future packages will let companies sponsor athletes for website visibility.

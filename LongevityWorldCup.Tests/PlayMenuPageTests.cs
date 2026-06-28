@@ -125,7 +125,7 @@ public sealed class PlayMenuPageTests
         Assert.True(showPanel > hydrate);
         Assert.True(load > showPanel);
         Assert.Contains("flow.createAthleteSelectionController({", html);
-        Assert.Contains("const selectedAthlete = athleteSelection.getCurrentAthlete() || flow.getStoredSelectedAthlete();", html);
+        Assert.Contains("const selectedAthlete = athleteSelection.getCurrentAthlete() || flow.readRequiredSelectedAthlete();", html);
     }
 
     [Fact]

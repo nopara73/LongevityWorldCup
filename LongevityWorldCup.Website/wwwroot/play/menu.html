@@ -662,7 +662,9 @@
             function showPanelForCurrentUrl() {
                 const panelName = getPlayPanelForPath();
                 if (panelName === 'dashboard') {
-                    const selectedAthlete = athleteSelection.getCurrentAthlete() || flow.getStoredSelectedAthlete();
+                    const selectedAthlete = athleteSelection.getCurrentAthlete() || flow.readRequiredSelectedAthlete();
+                    if (!selectedAthlete) return;
+
                     athleteSelection.setCurrentAthlete(selectedAthlete);
                     showAthleteDashboard(selectedAthlete, { historyMode: null });
                     return;

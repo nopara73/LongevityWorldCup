@@ -5,29 +5,23 @@ namespace LongevityWorldCup.Tests;
 public sealed class CharacterSelectionPageTests
 {
     [Fact]
-    public async Task AthleteSelection_NavigatesOnlyAfterSharedPersistenceSucceeds()
+    public async Task SelectAthleteRoute_UsesPlayShellSelectionPanel()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/play/character-selection.html");
-        var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+        var html = await client.GetStringAsync("/select-athlete");
 
-        Assert.Contains("<button disabled id=\"confirmBtn\" class=\"option-button green\">", html);
-        Assert.DoesNotContain("onclick=\"window.location.href='/dashboard'\"", html);
-        Assert.Contains("const currentAthlete = athleteSelection.getCurrentAthlete();", html);
-        Assert.Contains("if (!currentAthlete || !currentAthlete.Name) return;", html);
-        Assert.Contains("if (!flow.persistSelectedAthlete(currentAthlete))", html);
-        Assert.Contains("customAlert(storageErrorMessage);", html);
-        Assert.Contains("window.location.href = '/dashboard';", html);
-        Assert.Contains("type=\"button\" class=\"option-button back-button\" onclick=\"window.location.replace('/play')\"", html);
+        Assert.Contains("id=\"athleteSelectionPanel\"", html);
+        Assert.Contains("id=\"athleteSelectionPicture\" class=\"athlete-picture-frame\"", html);
+        Assert.Contains("id=\"playAthleteInput\"", html);
+        Assert.Contains("id=\"playConfirmAthleteBtn\"", html);
+        Assert.Contains("function navigateToStartPanel()", html);
+        Assert.Contains("showAthleteDashboard(currentAthlete, { historyMode: 'push' });", html);
+        Assert.DoesNotContain("character-selection-main", html);
+        Assert.DoesNotContain("id=\"confirmBtn\"", html);
+        Assert.DoesNotContain("window.location.href = '/dashboard';", html);
         Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
-        Assert.Contains("function persistSelectedAthlete(athlete)", flow);
-        Assert.Contains("const prevName = getLocalItem(\"selectedAthleteName\");", flow);
-        Assert.Contains("if (!isAthleteInputValue(athlete, prevName))", flow);
-        Assert.Contains("setSessionItem(\"selectedAthlete\", JSON.stringify(athlete))", flow);
-        Assert.Contains("setLocalItem(\"selectedAthleteName\", athlete.Name);", flow);
-        Assert.DoesNotContain("prevName !== currentAthlete.Name", html);
     }
 
     [Fact]
@@ -36,14 +30,14 @@ public sealed class CharacterSelectionPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/play/character-selection.html");
+        var html = await client.GetStringAsync("/select-athlete");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
 
         Assert.Contains("/js/play-athlete-flow.js", html);
         Assert.Contains("/css/play-athlete-flow.css", html);
         Assert.Contains("flow.createAthleteSelectionController({", html);
-        Assert.Contains("errorElement: document.getElementById('athleteError')", html);
-        Assert.Contains("}).start();", html);
+        Assert.Contains("errorElement: document.getElementById('playAthleteError')", html);
+        Assert.Contains("}).bind();", html);
         Assert.Contains("function getStoredSelectedAthlete()", flow);
         Assert.Contains("function hydrateStoredAthleteSelection()", flow);
         Assert.Contains("renderSelectedAthletePreview(storedAthlete, { transition: false });", flow);
@@ -143,11 +137,11 @@ public sealed class CharacterSelectionPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/play/character-selection.html");
+        var html = await client.GetStringAsync("/select-athlete");
         var css = await client.GetStringAsync("/css/play-athlete-flow.css");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
 
-        Assert.Contains("id=\"characterSelectionPicture\" class=\"athlete-picture-frame\"", html);
+        Assert.Contains("id=\"athleteSelectionPicture\" class=\"athlete-picture-frame\"", html);
         Assert.Contains("aspect-ratio: 1 / 1;", css);
         Assert.Contains("border: 4px solid var(--dark-text-color);", css);
         Assert.Contains("box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);", css);

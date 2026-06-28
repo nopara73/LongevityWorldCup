@@ -2,6 +2,8 @@ namespace LongevityWorldCup.Website.Middleware
 {
     internal static class RouteCanonicalization
     {
+        internal const string CanonicalPathItemKey = "__LwcCanonicalPath";
+
         private static readonly Dictionary<string, string> CanonicalAliases = new(StringComparer.OrdinalIgnoreCase)
         {
             ["/index.html"] = "/",

@@ -14,6 +14,7 @@ namespace LongevityWorldCup.Website.Middleware
             var rawPath = context.Request.Path.Value;
             var normalizedPath = RouteCanonicalization.NormalizePath(rawPath).ToLowerInvariant();
             var canonicalPath = RouteCanonicalization.GetCanonicalPath(rawPath);
+            context.Items[RouteCanonicalization.CanonicalPathItemKey] = canonicalPath;
 
             if (!string.Equals(normalizedPath, canonicalPath, StringComparison.Ordinal))
             {
@@ -87,11 +88,11 @@ namespace LongevityWorldCup.Website.Middleware
                         break;
 
                     case "/select-athlete":
-                        context.Request.Path = "/play/character-selection.html";
+                        context.Request.Path = "/play/menu.html";
                         break;
 
                     case "/dashboard":
-                        context.Request.Path = "/play/character-customization.html";
+                        context.Request.Path = "/play/menu.html";
                         break;
 
                     case "/edit-profile":

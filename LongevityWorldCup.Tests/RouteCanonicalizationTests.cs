@@ -23,6 +23,8 @@ public sealed class RouteCanonicalizationTests
     [InlineData("/RULES/?ref=docs", "/ruleset")]
     [InlineData("misc-pages/media.html", "/media")]
     [InlineData("/onboarding/BORTZ-AGE.html#form", "/bortz-age")]
+    [InlineData("/play/character-selection.html", "/select-athlete")]
+    [InlineData("/play/character-customization.html", "/dashboard")]
     [InlineData("/Some/New/Page/", "/some/new/page")]
     public void GetCanonicalPath_UsesAliasesAndLowercasesUnknownPaths(string rawPath, string expected)
     {
