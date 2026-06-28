@@ -5,6 +5,18 @@ namespace LongevityWorldCup.Tests;
 public sealed class EditProfilePageTests
 {
     [Fact]
+    public async Task EditProfile_BackButtonReturnsToDashboardWithoutHistoryFallback()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("type=\"button\" class=\"option-button back-button\" onclick=\"window.location.replace('/dashboard')\"", html);
+        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
+    }
+
+    [Fact]
     public async Task InvalidProfileFields_RemainEditableAfterValidationFailure()
     {
         using var factory = new TestWebApplicationFactory();

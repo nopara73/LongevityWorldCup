@@ -689,21 +689,11 @@
                 window.history.replaceState({ playPanel: panelName }, '', initialUrl);
             }
 
-            function returnToStartPanel() {
-                if (window.location.pathname.toLowerCase() === '/select-athlete' && window.history.length > 1) {
-                    window.history.back();
-                    return;
-                }
-
+            function navigateToStartPanel() {
                 showStartPanel({ historyMode: 'replace' });
             }
 
-            function returnToSelectionPanel() {
-                if (window.location.pathname.toLowerCase() === '/dashboard' && window.history.length > 1) {
-                    window.history.back();
-                    return;
-                }
-
+            function navigateToSelectionPanel() {
                 showAthleteSelection({ historyMode: 'replace' });
             }
 
@@ -743,8 +733,8 @@
                     }
 
                     contBtn.addEventListener('click', () => showAthleteSelection({ historyMode: 'push' }));
-                    document.getElementById('playSelectionBackBtn').addEventListener('click', returnToStartPanel);
-                    document.getElementById('playDashboardBackBtn').addEventListener('click', returnToSelectionPanel);
+                    document.getElementById('playSelectionBackBtn').addEventListener('click', navigateToStartPanel);
+                    document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);
 
                     document.getElementById('playConfirmAthleteBtn').addEventListener('click', () => {
                         const currentAthlete = athleteSelection.getCurrentAthlete();

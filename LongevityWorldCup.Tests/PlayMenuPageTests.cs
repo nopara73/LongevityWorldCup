@@ -44,6 +44,15 @@ public sealed class PlayMenuPageTests
         Assert.Contains("window.addEventListener('popstate', showPanelForCurrentUrl);", html);
         Assert.Contains("contBtn.addEventListener('click', () => showAthleteSelection({ historyMode: 'push' }));", html);
         Assert.Contains("showAthleteDashboard(currentAthlete, { historyMode: 'push' });", html);
+        Assert.Contains("function navigateToStartPanel()", html);
+        Assert.Contains("function navigateToSelectionPanel()", html);
+        Assert.Contains("showStartPanel({ historyMode: 'replace' });", html);
+        Assert.Contains("showAthleteSelection({ historyMode: 'replace' });", html);
+        Assert.Contains("document.getElementById('playSelectionBackBtn').addEventListener('click', navigateToStartPanel);", html);
+        Assert.Contains("document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);", html);
+        Assert.DoesNotContain("window.history.back()", html);
+        Assert.DoesNotContain("addEventListener('click', returnToStartPanel)", html);
+        Assert.DoesNotContain("addEventListener('click', returnToSelectionPanel)", html);
         Assert.DoesNotContain("onclick=\"window.location.href='/select-athlete'\"", html);
         Assert.DoesNotContain("window.location.href = '/dashboard';", html);
         Assert.DoesNotContain("function scrollPanelIntoView", html);
