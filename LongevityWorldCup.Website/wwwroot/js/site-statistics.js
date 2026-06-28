@@ -1,0 +1,1353 @@
+(function () {
+    "use strict";
+
+    const tabs = ["Onboarding", "Challenge", "Overview", "Traffic", "Reliability", "Review Queue", "Events"];
+    const state = {
+        tab: "Onboarding",
+        flow: "all",
+        selectedFlow: "pheno",
+        events: [],
+        previousEvents: [],
+        decisionActions: [],
+        selectedEventName: null,
+        selectedSession: null,
+        selectedLabel: "all events"
+    };
+
+    const funnelDefs = {
+        pheno: [
+            ["onboarding_entry_viewed", "Join page viewed"],
+            ["onboarding_clock_selected", "Amateur selected"],
+            ["onboarding_biomarker_requirements_opened", "Biomarkers inspected"],
+            ["onboarding_page_viewed", "Page viewed"],
+            ["calculator_form_visible", "Form visible"],
+            ["calculator_started", "Calculator started"],
+            ["calculator_field_touched", "First field touched"],
+            ["calculator_field_completed", "Field completed"],
+            ["calculator_required_progress_changed", "Required progress"],
+            ["calculator_all_required_fields_completed", "All fields completed"],
+            ["calculator_validation_failed", "Validation failed"],
+            ["calculator_result_generated", "Result generated"],
+            ["rank_preview_requested", "Rank preview requested"],
+            ["rank_preview_rendered", "Rank preview rendered"],
+            ["calculator_continue_clicked", "Continue clicked"],
+            ["payment_offer_stored", "Payment offer stored"],
+            ["biomarker_handoff_stored", "Biomarker handoff stored"],
+            ["proof_flow_opened", "Proof/profile opened"]
+        ],
+        bortz: [
+            ["onboarding_entry_viewed", "Join page viewed"],
+            ["onboarding_clock_selected", "Pro selected"],
+            ["onboarding_biomarker_requirements_opened", "Biomarkers inspected"],
+            ["onboarding_page_viewed", "Page viewed"],
+            ["calculator_form_visible", "Form visible"],
+            ["calculator_started", "Calculator started"],
+            ["calculator_field_touched", "First field touched"],
+            ["calculator_field_completed", "Field completed"],
+            ["calculator_required_progress_changed", "Required progress"],
+            ["calculator_all_required_fields_completed", "All fields completed"],
+            ["calculator_validation_failed", "Validation failed"],
+            ["calculator_result_generated", "Result generated"],
+            ["rank_preview_requested", "Rank preview requested"],
+            ["rank_preview_rendered", "Rank preview rendered"],
+            ["calculator_continue_clicked", "Continue clicked"],
+            ["payment_offer_stored", "Payment offer stored"],
+            ["biomarker_handoff_stored", "Biomarker handoff stored"],
+            ["proof_flow_opened", "Proof/profile opened"]
+        ],
+        application: [
+            ["proof_flow_opened", "Application/proof opened"],
+            ["biomarker_handoff_found", "Handoff found"],
+            ["proof_flow_missing_handoff", "Missing handoff"],
+            ["profile_picture_started", "Profile picture started"],
+            ["proof_upload_clicked", "Proof upload clicked"],
+            ["proof_camera_clicked", "Proof camera clicked"],
+            ["proof_files_selected", "Proof files selected"],
+            ["proof_file_rejected", "Proof file rejected"],
+            ["proof_processing_succeeded", "Proof processed"],
+            ["proof_processing_failed", "Proof processing failed"],
+            ["application_submit_clicked", "Submit clicked"],
+            ["application_submit_succeeded", "Submit accepted"],
+            ["application_submit_failed", "Submit failed"],
+            ["payment_unavailable", "Payment unavailable"],
+            ["checkout_redirect_started", "Checkout redirect"],
+            ["application_review_opened", "Review opened"],
+            ["application_review_context_found", "Review context found"],
+            ["application_review_context_missing", "Review context missing"],
+            ["payment_status_checked", "Payment status checked"],
+            ["payment_status_failed", "Payment status failed"]
+        ],
+        challenge: [
+            ["challenge_page_viewed", "Challenge viewed"],
+            ["challenge_public_state_loaded", "Public state loaded"],
+            ["challenge_signup_tab_opened", "Signup tab opened"],
+            ["challenge_signup_started", "Signup started"],
+            ["challenge_email_validation_failed", "Email validation failed"],
+            ["challenge_identity_selected", "Identity selected"],
+            ["challenge_athlete_search_started", "Athlete search started"],
+            ["challenge_athlete_search_result_selected", "Athlete selected"],
+            ["challenge_pledge_touched", "Pledge touched"],
+            ["challenge_pledge_validation_failed", "Pledge validation failed"],
+            ["challenge_pledge_completed", "Pledge completed"],
+            ["challenge_timezone_picker_opened", "Timezone opened"],
+            ["challenge_timezone_selected", "Timezone selected"],
+            ["challenge_signup_submitted", "Signup submitted"],
+            ["challenge_signup_succeeded", "Signup accepted"],
+            ["challenge_signup_failed", "Signup failed"],
+            ["challenge_confirmation_link_opened", "Confirmation opened"],
+            ["challenge_participant_page_opened", "Participant page opened"],
+            ["challenge_participant_state_loaded", "Participant state loaded"],
+            ["challenge_practice_checkin_started", "Practice started"],
+            ["challenge_practice_checkin_submitted", "Practice submitted"],
+            ["challenge_scored_checkin_started", "Scored check-in started"],
+            ["challenge_scored_checkin_submitted", "Scored check-in submitted"],
+            ["challenge_stop_email_clicked", "Stop emails clicked"],
+            ["challenge_commitment_payment_opened", "Commitment payment opened"],
+            ["challenge_commitment_resolved", "Commitment resolved"]
+        ]
+    };
+
+    const outcomeTiles = [
+        ["Visitors", ["site_page_viewed", "onboarding_entry_viewed", "onboarding_page_viewed", "challenge_page_viewed"]],
+        ["Calculator starts", ["calculator_started"]],
+        ["Calculator results", ["calculator_result_generated"]],
+        ["Rank previews", ["rank_preview_rendered"]],
+        ["Application starts", ["proof_flow_opened"]],
+        ["Applications submitted", ["application_submit_succeeded"]],
+        ["Challenge signups", ["challenge_signup_succeeded"]],
+        ["Practice check-ins", ["challenge_practice_checkin_submitted"]],
+        ["First scored", ["challenge_scored_checkin_submitted"]],
+        ["Pending review", ["application_review_opened"]],
+        ["Friction", []],
+        ["Error rate", []]
+    ];
+
+    document.addEventListener("DOMContentLoaded", init);
+
+    function init() {
+        wireControls();
+        renderTabs();
+        readUrlState();
+        loadDashboard();
+    }
+
+    function wireControls() {
+        for (const id of ["statsRange", "statsFlow", "statsDevice", "statsSource"]) {
+            el(id).addEventListener("change", () => {
+                if (id === "statsFlow") state.flow = el(id).value;
+                updateUrl();
+                loadDashboard();
+            });
+        }
+        el("statsReset").addEventListener("click", () => {
+            el("statsRange").value = "7d";
+            el("statsFlow").value = "all";
+            el("statsDevice").value = "all";
+            el("statsSource").value = "all";
+            state.tab = "Onboarding";
+            state.flow = "all";
+            state.selectedFlow = "pheno";
+            state.selectedEventName = null;
+            state.selectedSession = null;
+            updateUrl();
+            loadDashboard();
+        });
+        el("statsExport").addEventListener("click", exportCsv);
+        el("resetDrilldown").addEventListener("click", () => selectDrilldown(null, "all events"));
+        el("copyLink").addEventListener("click", copyLink);
+    }
+
+    function readUrlState() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("tab") && tabs.includes(params.get("tab"))) state.tab = params.get("tab");
+        if (params.get("selectedFlow")) state.selectedFlow = params.get("selectedFlow");
+        for (const [id, key] of [["statsRange", "range"], ["statsFlow", "flow"], ["statsDevice", "device"], ["statsSource", "source"]]) {
+            if (params.get(key)) el(id).value = params.get(key);
+        }
+        state.flow = el("statsFlow").value;
+        state.selectedEventName = params.get("event");
+        state.selectedSession = params.get("session");
+    }
+
+    function updateUrl() {
+        const params = new URLSearchParams();
+        params.set("tab", state.tab);
+        params.set("range", el("statsRange").value);
+        params.set("flow", el("statsFlow").value);
+        params.set("device", el("statsDevice").value);
+        params.set("source", el("statsSource").value);
+        params.set("selectedFlow", state.selectedFlow);
+        if (state.selectedEventName) params.set("event", state.selectedEventName);
+        if (state.selectedSession) params.set("session", state.selectedSession);
+        history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+    }
+
+    async function loadDashboard() {
+        setStatus("Loading redacted analytics...");
+        const params = new URLSearchParams({
+            range: el("statsRange").value,
+            flow: el("statsFlow").value,
+            device: el("statsDevice").value,
+            source: el("statsSource").value,
+            limit: "5000"
+        });
+
+        try {
+            const response = await fetch(`/api/site-statistics/dashboard?${params.toString()}`, { headers: { "Accept": "application/json" } });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const payload = await response.json();
+            state.events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
+            state.previousEvents = Array.isArray(payload.previousEvents) ? payload.previousEvents.map(normalizeEvent) : [];
+            setStatus(`${state.events.length} active and ${state.previousEvents.length} comparison redacted events loaded. Generated ${formatTime(payload.generatedAtUtc)}.`);
+            renderAll();
+        } catch (error) {
+            state.events = [];
+            state.previousEvents = [];
+            setStatus(`Dashboard data could not be loaded: ${error.message || "unknown error"}.`, true);
+            renderAll();
+        }
+    }
+
+    function renderAll() {
+        renderTabs();
+        renderDecisionLayer();
+        renderOutcomeStrip();
+        renderPrimaryPanel();
+        renderFriction();
+        renderDetailSections();
+        renderDrilldown();
+        updateUrl();
+    }
+
+    function renderDecisionLayer() {
+        state.decisionActions = [];
+        const active = decisionScopeEvents(state.events);
+        const previous = decisionScopeEvents(state.previousEvents);
+        const insights = buildDecisionInsights(active, previous).slice(0, 7);
+        renderDecisionBrief(insights, active, previous);
+        renderRecommendedInvestigations(insights, active);
+        renderSegmentComparisons(active, previous);
+        renderTrendWatch(active, previous);
+        wireDecisionActions();
+    }
+
+    function renderDecisionBrief(insights, active, previous) {
+        const host = el("decisionBrief");
+        el("decisionBriefMeta").textContent = `${uniqueSessions(active)} sessions / ${uniqueSessions(previous)} previous`;
+        if (!active.length) {
+            host.innerHTML = empty("No decision signal yet for the active filters.");
+            return;
+        }
+
+        if (!insights.length) {
+            host.innerHTML = `
+                <button type="button" class="decision-card calm" data-action="${registerDecisionAction("Inspect active onboarding sessions", active)}">
+                    <span class="decision-rank">0</span>
+                    <span class="decision-body">
+                        <span class="decision-title">No high-confidence product issue detected</span>
+                        <span class="decision-gridline"><strong>Flow</strong><span>${esc(decisionLensLabel())}</span></span>
+                        <span class="decision-gridline"><strong>Evidence</strong><span>${active.length} events across ${uniqueSessions(active)} sessions</span></span>
+                        <span class="decision-gridline"><strong>Hypothesis</strong><span>Current sample is too small or too healthy to prioritize a fix.</span></span>
+                        <span class="decision-gridline"><strong>Action</strong><span>Inspect recent sessions or wait for more data.</span></span>
+                        <span class="decision-footer"><span class="severity low">LOW</span><span>confidence low</span></span>
+                    </span>
+                </button>
+            `;
+            return;
+        }
+
+        host.innerHTML = insights.map((insight, index) => `
+            <button type="button" class="decision-card ${escAttr(insight.severity)}" data-action="${registerDecisionAction(insight.title, insight.events)}">
+                <span class="decision-rank">${index + 1}</span>
+                <span class="decision-body">
+                    <span class="decision-title">${esc(insight.title)}</span>
+                    <span class="decision-gridline"><strong>Flow</strong><span>${esc(flowLabel(insight.flow))}</span></span>
+                    <span class="decision-gridline"><strong>Evidence</strong><span>${esc(insight.evidence)}</span></span>
+                    <span class="decision-gridline"><strong>Hypothesis</strong><span>${esc(insight.hypothesis)}</span></span>
+                    <span class="decision-gridline"><strong>Action</strong><span>${esc(insight.action)}</span></span>
+                    <span class="decision-footer">
+                        <span class="severity ${escAttr(insight.severity)}">${esc(insight.severity.toUpperCase())}</span>
+                        <span>${esc(insight.confidence)} confidence</span>
+                        <span>${esc(insight.trend)}</span>
+                    </span>
+                </span>
+            </button>
+        `).join("");
+    }
+
+    function renderRecommendedInvestigations(insights, active) {
+        const host = el("recommendedInvestigations");
+        const investigations = buildRecommendedInvestigations(insights, active).slice(0, 6);
+        el("investigationMeta").textContent = `${investigations.length} next clicks`;
+        if (!investigations.length) {
+            host.innerHTML = empty("No concrete investigation is ready for this sample.");
+            return;
+        }
+
+        host.innerHTML = investigations.map(item => `
+            <button type="button" class="investigation-row" data-action="${registerDecisionAction(item.title, item.events)}">
+                <strong>${esc(item.title)}</strong>
+                <span>${esc(item.reason)}</span>
+                <em>${esc(item.sessions)} sessions</em>
+            </button>
+        `).join("");
+    }
+
+    function renderSegmentComparisons(active, previous) {
+        const host = el("segmentComparisons");
+        const rows = buildSegmentRows(active, previous).slice(0, 10);
+        el("segmentMeta").textContent = `${rows.length} segments`;
+        if (!rows.length) {
+            host.innerHTML = empty("No segment comparison is available yet.");
+            return;
+        }
+
+        host.innerHTML = rows.map(row => `
+            <button type="button" class="segment-row ${escAttr(row.level)}" data-action="${registerDecisionAction(`${row.dimension}: ${row.segment}`, row.events)}">
+                <span><strong>${esc(row.segment)}</strong><em>${esc(row.dimension)}</em></span>
+                <span>${row.sessions} sessions</span>
+                <span>${esc(row.frictionRate)} friction</span>
+                <span>${esc(row.delta)}</span>
+            </button>
+        `).join("");
+    }
+
+    function renderTrendWatch(active, previous) {
+        const host = el("trendWatch");
+        const rows = buildTrendRows(active, previous);
+        el("trendMeta").textContent = `${rows.length} metrics`;
+        if (!rows.length) {
+            host.innerHTML = empty("No previous-period trend data yet.");
+            return;
+        }
+
+        host.innerHTML = rows.map(row => `
+            <button type="button" class="trend-row ${escAttr(row.level)}" data-action="${registerDecisionAction(row.label, row.events)}">
+                <span><strong>${esc(row.label)}</strong><em>${esc(row.confidence)} confidence</em></span>
+                <span>${esc(row.current)}</span>
+                <span>${esc(row.previous)}</span>
+                <span>${esc(row.delta)}</span>
+            </button>
+        `).join("");
+    }
+
+    function buildDecisionInsights(active, previous) {
+        const insights = []
+            .concat(funnelBottleneckInsights(active, previous))
+            .concat(frictionInsights(active, previous))
+            .concat(continuationInsights(active, previous))
+            .concat(segmentIssueInsights(active, previous));
+
+        const seen = new Set();
+        return insights
+            .filter(item => {
+                const key = `${item.title}|${item.flow}|${item.evidence}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return item.events.length > 0;
+            })
+            .sort((a, b) => b.score - a.score);
+    }
+
+    function funnelBottleneckInsights(active, previous) {
+        const flows = state.tab === "Challenge" ? ["challenge"] : ["pheno", "bortz", "application", "challenge"];
+        const insights = [];
+        flows.forEach(flow => {
+            const defs = funnelDefs[flow] || [];
+            for (let index = 1; index < defs.length; index++) {
+                const [eventName, label] = defs[index];
+                const [priorName, priorLabel] = defs[index - 1];
+                const priorSessions = sessionsForFunnelStep(active, flow, priorName);
+                const reachedSessions = sessionsForFunnelStep(active, flow, eventName);
+                const base = priorSessions.size;
+                if (base < 3) continue;
+
+                const missing = difference(priorSessions, reachedSessions);
+                const dropRate = missing.length / base;
+                if (dropRate < 0.35 && missing.length < 3) continue;
+
+                const previousPrior = sessionsForFunnelStep(previous, flow, priorName).size;
+                const previousReached = sessionsForFunnelStep(previous, flow, eventName).size;
+                const previousDropRate = previousPrior ? Math.max(0, previousPrior - previousReached) / previousPrior : null;
+                const support = active.filter(e => missing.includes(e.sessionHash) || e.eventName === eventName || e.eventName === priorName);
+                const trend = trendPhrase(dropRate, previousDropRate, true);
+                insights.push({
+                    title: `${flowLabel(flow)} bottleneck at ${label}`,
+                    flow,
+                    evidence: `${missing.length} of ${base} sessions dropped after ${priorLabel} (${percentNumber(dropRate)})`,
+                    hypothesis: hypothesisFor(eventName),
+                    action: actionFor(eventName),
+                    confidence: confidenceFor(base, previousPrior),
+                    severity: severityFor(dropRate, missing.length),
+                    trend,
+                    score: 45 + dropRate * 70 + missing.length * 3 + flowPriority(flow) + trendScore(trend),
+                    events: support
+                });
+            }
+        });
+        return insights;
+    }
+
+    function frictionInsights(active, previous) {
+        const grouped = groupBy(frictionEvents(active), e => `${e.flow || "site"}|${e.eventName}|${e.step || e.errorCode || "general"}`);
+        return Array.from(grouped.entries()).map(([key, items]) => {
+            const [flow, eventName, step] = key.split("|");
+            const affected = uniqueSessions(items);
+            const previousCount = frictionEvents(previous).filter(e => e.flow === flow && e.eventName === eventName && (e.step || e.errorCode || "general") === step).length;
+            const trend = trendPhrase(items.length, previousCount, true);
+            return {
+                title: `${friendlyEvent(eventName)} repeats at ${step}`,
+                flow,
+                evidence: `${items.length} events across ${affected} sessions`,
+                hypothesis: hypothesisFor(eventName),
+                action: actionFor(eventName),
+                confidence: confidenceFor(affected, previousCount),
+                severity: severityFor(items.length / Math.max(3, uniqueSessions(active.filter(e => e.flow === flow))), affected),
+                trend,
+                score: 32 + items.length * 7 + affected * 4 + flowPriority(flow) + trendScore(trend),
+                events: items
+            };
+        }).filter(item => item.events.length >= 2 || uniqueSessions(item.events) >= 2);
+    }
+
+    function continuationInsights(active, previous) {
+        const insights = [];
+        const calcResults = sessionsForNames(active, ["calculator_result_generated"]);
+        const proofOpened = sessionsForNames(active, ["proof_flow_opened"]);
+        const calcMissing = difference(calcResults, proofOpened);
+        if (calcResults.size >= 2 && calcMissing.length > 0) {
+            const previousRate = missingRate(previous, ["calculator_result_generated"], ["proof_flow_opened"]);
+            const activeRate = calcMissing.length / calcResults.size;
+            const support = active.filter(e => calcMissing.includes(e.sessionHash));
+            const trend = trendPhrase(activeRate, previousRate, true);
+            insights.push({
+                title: "Calculator completions are not reaching proof flow",
+                flow: "application",
+                evidence: `${calcMissing.length} of ${calcResults.size} result sessions stopped before proof/profile upload`,
+                hypothesis: "The continue handoff, payment offer storage, or proof entry step may be unclear or brittle.",
+                action: "Inspect these sessions, then tighten the continue state and handoff recovery.",
+                confidence: confidenceFor(calcResults.size, sessionsForNames(previous, ["calculator_result_generated"]).size),
+                severity: severityFor(activeRate, calcMissing.length),
+                trend,
+                score: 54 + activeRate * 80 + calcMissing.length * 6 + trendScore(trend),
+                events: support
+            });
+        }
+
+        const signups = sessionsForNames(active, ["challenge_signup_succeeded"]);
+        const practice = sessionsForNames(active, ["challenge_practice_checkin_submitted"]);
+        const noPractice = difference(signups, practice);
+        if (signups.size >= 2 && noPractice.length > 0) {
+            const previousRate = missingRate(previous, ["challenge_signup_succeeded"], ["challenge_practice_checkin_submitted"]);
+            const activeRate = noPractice.length / signups.size;
+            const support = active.filter(e => noPractice.includes(e.sessionHash));
+            const trend = trendPhrase(activeRate, previousRate, true);
+            insights.push({
+                title: "Challenge signups are not reaching practice check-in",
+                flow: "challenge",
+                evidence: `${noPractice.length} of ${signups.size} signup sessions stopped before practice`,
+                hypothesis: "Post-confirmation or participant-page activation may not be obvious enough.",
+                action: "Inspect signup-to-practice sessions and improve the first check-in prompt.",
+                confidence: confidenceFor(signups.size, sessionsForNames(previous, ["challenge_signup_succeeded"]).size),
+                severity: severityFor(activeRate, noPractice.length),
+                trend,
+                score: 50 + activeRate * 72 + noPractice.length * 6 + trendScore(trend),
+                events: support
+            });
+        }
+
+        const missingReview = active.filter(e => e.eventName === "application_review_context_missing");
+        if (missingReview.length > 0) {
+            const previousCount = previous.filter(e => e.eventName === "application_review_context_missing").length;
+            const trend = trendPhrase(missingReview.length, previousCount, true);
+            insights.push({
+                title: "Application review opens without stored context",
+                flow: "application",
+                evidence: `${missingReview.length} missing-context events`,
+                hypothesis: "Review links or storage recovery may be losing the invoice/submission context.",
+                action: "Inspect review sessions and add clearer recovery for missing context.",
+                confidence: confidenceFor(uniqueSessions(missingReview), previousCount),
+                severity: severityFor(missingReview.length / Math.max(3, uniqueSessions(active)), uniqueSessions(missingReview)),
+                trend,
+                score: 46 + missingReview.length * 8 + trendScore(trend),
+                events: missingReview
+            });
+        }
+
+        return insights;
+    }
+
+    function segmentIssueInsights(active, previous) {
+        return buildSegmentRows(active, previous)
+            .filter(row => row.level === "high" || row.level === "med")
+            .slice(0, 3)
+            .map(row => ({
+                title: `${row.segment} ${row.dimension} segment is over-friction`,
+                flow: row.flow || "site",
+                evidence: `${row.frictionRate} friction across ${row.sessions} sessions (${row.delta})`,
+                hypothesis: "This segment may be hitting a device, traffic-quality, or flow-specific issue.",
+                action: "Inspect the segment sessions and compare the first failing step against healthier segments.",
+                confidence: row.confidence,
+                severity: row.level === "high" ? "high" : "med",
+                trend: row.trend,
+                score: row.score,
+                events: row.events
+            }));
+    }
+
+    function buildRecommendedInvestigations(insights, active) {
+        const items = insights.map(insight => ({
+            title: `Inspect: ${insight.title}`,
+            reason: insight.evidence,
+            sessions: uniqueSessions(insight.events),
+            events: insight.events
+        }));
+        addInvestigation(items, active, ["proof_processing_failed", "proof_file_rejected"], "Inspect failed proof upload sessions", "Proof upload friction blocks application completion.");
+        addInvestigation(items, active, ["application_review_context_missing"], "Inspect application-review sessions with missing context", "Missing review context points at brittle storage or handoff recovery.");
+        addInvestigation(items, active, ["challenge_signup_succeeded"], "Inspect Challenge signups that did not reach practice", "Activation depends on the first eligible practice check-in.", sessionsMissing(active, ["challenge_signup_succeeded"], ["challenge_practice_checkin_submitted"]));
+        addInvestigation(items, active, ["calculator_result_generated"], "Inspect calculator completions without proof flow", "These sessions generated a result but did not open proof/profile upload.", sessionsMissing(active, ["calculator_result_generated"], ["proof_flow_opened"]));
+        return items.filter(item => item.events.length > 0);
+    }
+
+    function addInvestigation(items, events, names, title, reason, sessionFilter) {
+        const filtered = events.filter(e => names.includes(e.eventName) && (!sessionFilter || sessionFilter.includes(e.sessionHash)));
+        if (!filtered.length || items.some(item => item.title === title)) return;
+        items.push({ title, reason, sessions: uniqueSessions(filtered), events: filtered });
+    }
+
+    function buildSegmentRows(active, previous) {
+        const previousSessions = new Set(previous.map(e => e.sessionHash));
+        const dimensions = [
+            ["device", e => e.deviceClass || "unknown"],
+            ["source", e => e.source || "direct"],
+            ["flow", e => flowLabel(e.flow || "site")],
+            ["session", e => previousSessions.has(e.sessionHash) ? "returning" : "new"]
+        ];
+        const overallRate = frictionSessionRate(active);
+        const rows = [];
+        dimensions.forEach(([dimension, picker]) => {
+            const grouped = groupBy(active, picker);
+            grouped.forEach((events, segment) => {
+                const sessions = uniqueSessions(events);
+                if (sessions < 2) return;
+                const rate = frictionSessionRate(events);
+                const previousMatching = previous.filter(e => picker(e) === segment);
+                const previousRate = frictionSessionRate(previousMatching);
+                const delta = rate - overallRate;
+                const trend = trendPhrase(rate, previousRate, true);
+                rows.push({
+                    dimension,
+                    segment,
+                    sessions,
+                    frictionRate: percentNumber(rate),
+                    delta: `${delta >= 0 ? "+" : ""}${percentNumber(delta)} vs avg`,
+                    confidence: confidenceFor(sessions, uniqueSessions(previousMatching)),
+                    level: delta >= 0.25 && sessions >= 4 ? "high" : delta >= 0.12 ? "med" : "low",
+                    trend,
+                    score: rate * 70 + delta * 80 + sessions * 2 + trendScore(trend),
+                    events,
+                    flow: mostCommon(events.map(e => e.flow || "site"))
+                });
+            });
+        });
+        return rows.sort((a, b) => b.score - a.score);
+    }
+
+    function buildTrendRows(active, previous) {
+        const rows = [
+            rateTrend("Calculator result conversion", active, previous, ["calculator_started"], ["calculator_result_generated"]),
+            rateTrend("Result to proof handoff", active, previous, ["calculator_result_generated"], ["proof_flow_opened"]),
+            rateTrend("Application submit conversion", active, previous, ["proof_flow_opened"], ["application_submit_succeeded"]),
+            rateTrend("Challenge signup to practice", active, previous, ["challenge_signup_succeeded"], ["challenge_practice_checkin_submitted"]),
+            frictionTrend("Friction rate", active, previous)
+        ].filter(Boolean);
+        return rows;
+    }
+
+    function rateTrend(label, active, previous, startNames, finishNames) {
+        const starts = sessionsForNames(active, startNames);
+        const previousStarts = sessionsForNames(previous, startNames);
+        if (starts.size === 0 && previousStarts.size === 0) return null;
+        const rate = starts.size ? intersectionSize(starts, sessionsForNames(active, finishNames)) / starts.size : 0;
+        const previousRate = previousStarts.size ? intersectionSize(previousStarts, sessionsForNames(previous, finishNames)) / previousStarts.size : 0;
+        const delta = rate - previousRate;
+        const events = active.filter(e => startNames.includes(e.eventName) || finishNames.includes(e.eventName));
+        return {
+            label,
+            current: `${percentNumber(rate)} (${starts.size} sessions)`,
+            previous: previousStarts.size ? percentNumber(previousRate) : "no prior",
+            delta: `${delta >= 0 ? "+" : ""}${percentNumber(delta)}`,
+            confidence: confidenceFor(starts.size, previousStarts.size),
+            level: delta <= -0.15 ? "high" : delta < -0.05 ? "med" : delta > 0.05 ? "good" : "low",
+            events
+        };
+    }
+
+    function frictionTrend(label, active, previous) {
+        const activeRate = frictionSessionRate(active);
+        const previousRate = frictionSessionRate(previous);
+        if (!active.length && !previous.length) return null;
+        const delta = activeRate - previousRate;
+        return {
+            label,
+            current: percentNumber(activeRate),
+            previous: previous.length ? percentNumber(previousRate) : "no prior",
+            delta: `${delta >= 0 ? "+" : ""}${percentNumber(delta)}`,
+            confidence: confidenceFor(uniqueSessions(active), uniqueSessions(previous)),
+            level: delta >= 0.15 ? "high" : delta > 0.05 ? "med" : delta < -0.05 ? "good" : "low",
+            events: frictionEvents(active)
+        };
+    }
+
+    function wireDecisionActions() {
+        document.querySelectorAll("[data-action]").forEach(node => {
+            node.addEventListener("click", () => {
+                const action = state.decisionActions[Number(node.dataset.action)];
+                if (!action) return;
+                drillToEvents(action.events, action.label);
+            });
+        });
+    }
+
+    function registerDecisionAction(label, events) {
+        const index = state.decisionActions.length;
+        state.decisionActions.push({ label, events: events || [] });
+        return index;
+    }
+
+    function drillToEvents(events, label) {
+        state.selectedEventName = null;
+        state.selectedSession = null;
+        state.selectedLabel = label || "Decision evidence";
+        renderDrilldown(events && events.length ? events : decisionScopeEvents(state.events));
+        el("drilldownTitle").scrollIntoView({ block: "nearest" });
+    }
+
+    function renderTabs() {
+        const host = el("statsTabs");
+        host.innerHTML = "";
+        tabs.forEach(tab => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `stats-tab${state.tab === tab ? " active" : ""}`;
+            button.textContent = tab;
+            button.addEventListener("click", () => {
+                state.tab = tab;
+                if (tab === "Challenge") state.selectedFlow = "challenge";
+                if (tab === "Onboarding" && state.selectedFlow === "challenge") state.selectedFlow = "pheno";
+                state.selectedEventName = null;
+                state.selectedLabel = `${tab} / all events`;
+                renderAll();
+            });
+            host.appendChild(button);
+        });
+    }
+
+    function renderOutcomeStrip() {
+        const host = el("outcomeStrip");
+        const events = scopedEvents();
+        const friction = frictionEvents(events);
+        host.innerHTML = "";
+        outcomeTiles.forEach(([label, names]) => {
+            const value = label === "Friction"
+                ? friction.length
+                : label === "Error rate"
+                    ? percent(friction.length, events.length)
+                    : countMatching(events, names);
+            const tile = document.createElement("button");
+            tile.type = "button";
+            tile.className = `metric-tile${state.selectedLabel === label ? " active" : ""}`;
+            tile.innerHTML = `
+                <span class="metric-label">${esc(label)}</span>
+                <strong class="metric-value">${esc(String(value))}</strong>
+                <span class="metric-footer"><span>${esc(uniqueSessionsFor(events, names))} sessions</span>${spark(events, names)}</span>
+            `;
+            tile.addEventListener("click", () => {
+                state.selectedEventName = names.length === 1 ? names[0] : null;
+                state.selectedSession = null;
+                state.selectedLabel = label;
+                renderDrilldown(names.length ? events.filter(e => names.includes(e.eventName)) : friction);
+            });
+            host.appendChild(tile);
+        });
+    }
+
+    function renderPrimaryPanel() {
+        const selected = state.tab === "Challenge" ? "challenge" : state.selectedFlow;
+        const title = state.tab === "Challenge"
+            ? "Challenge Activation Funnel"
+            : state.tab === "Traffic"
+                ? "Source Quality"
+                : state.tab === "Reliability"
+                    ? "Reliability Funnel"
+                    : state.tab === "Review Queue"
+                        ? "Review Handoff Funnel"
+                        : state.tab === "Events"
+                            ? "Public Event Funnel"
+                            : "Onboarding Funnel";
+        el("primaryTitle").textContent = title;
+        el("primaryMeta").textContent = `${scopedEvents().length} events`;
+        renderFlowSelectors();
+
+        const defs = state.tab === "Challenge"
+            ? funnelDefs.challenge
+            : state.tab === "Traffic"
+                ? sourceFunnelDefs()
+                : state.tab === "Reliability"
+                    ? reliabilityFunnelDefs()
+                    : state.tab === "Review Queue"
+                        ? funnelDefs.application.slice(10)
+                        : state.tab === "Events"
+                            ? eventsFunnelDefs()
+                            : funnelDefs[selected] || funnelDefs.pheno;
+        renderFunnel(defs, scopedEvents());
+    }
+
+    function renderFlowSelectors() {
+        const host = el("flowSelectors");
+        host.innerHTML = "";
+        if (state.tab !== "Onboarding") return;
+        ["pheno", "bortz", "application"].forEach(flow => {
+            const events = state.events.filter(e => e.flow === flow || (flow === "application" && e.flow === "application"));
+            const started = countMatching(events, flow === "application" ? ["proof_flow_opened"] : ["calculator_started"]);
+            const completed = countMatching(events, flow === "application" ? ["application_submit_succeeded"] : ["calculator_result_generated"]);
+            const failed = frictionEvents(events).length;
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `flow-card${state.selectedFlow === flow ? " active" : ""}`;
+            button.innerHTML = `
+                <strong>${flowLabel(flow)}</strong>
+                <span class="flow-card-grid">
+                    <span>started ${started}</span><span>done ${completed}</span>
+                    <span>conv ${percent(completed, started)}</span><span>fail ${failed}</span>
+                </span>
+            `;
+            button.addEventListener("click", () => {
+                state.selectedFlow = flow;
+                state.selectedEventName = null;
+                state.selectedSession = null;
+                renderAll();
+            });
+            host.appendChild(button);
+        });
+    }
+
+    function renderFunnel(defs, events) {
+        const host = el("primaryFunnel");
+        host.innerHTML = "";
+        if (!defs.length) {
+            host.innerHTML = empty("No funnel data for the active filters.");
+            return;
+        }
+        const first = Math.max(1, countMatching(events, [defs[0][0]]));
+        let previous = first;
+        defs.forEach(([name, label]) => {
+            const count = countMatching(events, [name]);
+            const fromPrev = percent(count, previous);
+            const fromFirst = percent(count, first);
+            const drop = Math.max(0, previous - count);
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = `funnel-row${state.selectedEventName === name ? " active" : ""}`;
+            row.innerHTML = `
+                <span class="funnel-name">${esc(label)}</span>
+                <span class="funnel-bar"><span class="funnel-fill" style="width:${Math.min(100, Math.round((count / first) * 100))}%"></span></span>
+                <span class="funnel-number">${count}</span>
+                <span class="funnel-rate">${fromPrev}</span>
+                <span class="funnel-drop${drop > Math.max(2, previous * 0.35) ? " high" : ""}">drop ${drop}</span>
+            `;
+            row.addEventListener("click", () => selectDrilldown(name, label));
+            host.appendChild(row);
+            if (count > 0) previous = count;
+        });
+    }
+
+    function renderFriction() {
+        const host = el("frictionRadar");
+        const events = frictionEvents(scopedEvents());
+        el("frictionMeta").textContent = `${events.length} failures / friction`;
+        if (!events.length) {
+            host.innerHTML = empty("No friction events for the active filters.");
+            return;
+        }
+
+        const grouped = groupBy(events, e => `${e.eventName}|${e.step || e.errorCode || "general"}`);
+        const rows = Array.from(grouped.entries()).map(([key, items]) => {
+            const [eventName, step] = key.split("|");
+            return {
+                eventName,
+                step,
+                count: items.length,
+                sessions: new Set(items.map(i => i.sessionHash)).size,
+                flow: mostCommon(items.map(i => i.flow || "site")),
+                error: mostCommon(items.map(i => i.errorCode || i.outcome || "friction"))
+            };
+        }).sort((a, b) => b.count - a.count).slice(0, 12);
+
+        host.innerHTML = "";
+        rows.forEach(row => {
+            const severity = row.count >= 10 ? "high" : row.count >= 3 ? "med" : "low";
+            const node = document.createElement("button");
+            node.type = "button";
+            node.className = `friction-row${state.selectedEventName === row.eventName ? " active" : ""}`;
+            node.innerHTML = `
+                <span class="friction-name">
+                    <strong>${esc(row.error)}</strong>
+                    <span>${esc(row.flow)} / ${esc(row.step)} / ${esc(row.eventName)}</span>
+                </span>
+                <span class="friction-count">${row.count} events<br>${row.sessions} sessions</span>
+                <span class="friction-severity ${severity}">${severity}</span>
+            `;
+            node.addEventListener("click", () => selectDrilldown(row.eventName, row.error));
+            host.appendChild(node);
+        });
+    }
+
+    function renderDetailSections() {
+        const host = el("detailSections");
+        const events = scopedEvents();
+        if (state.tab === "Challenge") {
+            host.innerHTML = [
+                detailPanel("Challenge activation", challengeActivationTable(events)),
+                detailPanel("Check-in detail", groupedTable(events, ["challenge_practice_checkin_started", "challenge_practice_checkin_submitted", "challenge_scored_checkin_started", "challenge_scored_checkin_submitted", "challenge_scored_checkin_failed"])),
+                detailPanel("Commitment status", groupedTable(events, ["challenge_commitment_block_seen", "challenge_commitment_payment_opened", "challenge_commitment_payment_status_checked", "challenge_commitment_resolved"]))
+            ].join("");
+            return;
+        }
+        if (state.tab === "Traffic") {
+            host.innerHTML = [
+                detailPanel("Source quality", sourceQualityTable(events)),
+                detailPanel("Device split", splitTable(events, e => e.deviceClass || "unknown")),
+                detailPanel("Referrers", splitTable(events, e => e.referrerDomain || e.source || "direct"))
+            ].join("");
+            return;
+        }
+        if (state.tab === "Reliability") {
+            host.innerHTML = [
+                detailPanel("Error codes", splitTable(frictionEvents(events), e => e.errorCode || e.eventName)),
+                detailPanel("Affected components", splitTable(frictionEvents(events), e => e.component || "unknown")),
+                detailPanel("Slow steps", slowStepTable(events))
+            ].join("");
+            return;
+        }
+        if (state.tab === "Review Queue") {
+            host.innerHTML = [
+                detailPanel("Review states", groupedTable(events, ["application_review_opened", "application_review_context_found", "application_review_context_missing", "payment_status_checked", "payment_status_failed"])),
+                detailPanel("Payment handoff", groupedTable(events, ["payment_offer_stored", "payment_unavailable", "checkout_redirect_started", "payment_status_checked"])),
+                detailPanel("Recent sessions", sessionStateTable(events))
+            ].join("");
+            return;
+        }
+        if (state.tab === "Events") {
+            host.innerHTML = [
+                detailPanel("Public events", groupedTable(events, ["event_viewed", "event_link_clicked", "homepage_highlight_viewed", "homepage_highlight_clicked"])),
+                detailPanel("Profile traffic", groupedTable(events, ["athlete_profile_viewed", "league_viewed"])),
+                detailPanel("Social/output", splitTable(events.filter(e => /event|highlight|social/i.test(e.eventName)), e => e.eventName))
+            ].join("");
+            return;
+        }
+        host.innerHTML = [
+            detailPanel("Calculator fields", fieldFrictionTable(events)),
+            detailPanel("Proof upload", proofUploadTable(events)),
+            detailPanel("Handoff integrity", handoffTable(events))
+        ].join("");
+    }
+
+    function renderDrilldown(explicitEvents) {
+        const events = explicitEvents || selectedEvents();
+        const selected = events.length ? events : scopedEvents();
+        const session = state.selectedSession || (selected[0] && selected[0].sessionHash);
+        el("drilldownTitle").textContent = state.selectedLabel || "Drilldown";
+        el("drilldownBreadcrumb").textContent = `${state.tab} / ${flowLabel(state.selectedFlow)} / ${state.selectedLabel || "all events"}`;
+        renderSummary(selected);
+        renderSamples(selected);
+        renderTimeline(session, selected);
+    }
+
+    function renderSummary(events) {
+        const sessions = new Set(events.map(e => e.sessionHash)).size;
+        const failures = frictionEvents(events).length;
+        const median = medianDuration(events);
+        el("drilldownSummary").innerHTML = `
+            <div class="summary-grid">
+                ${summaryItem("Events", events.length)}
+                ${summaryItem("Sessions", sessions)}
+                ${summaryItem("Friction", failures)}
+                ${summaryItem("Median duration", median)}
+                ${summaryItem("Top source", mostCommon(events.map(e => e.source || "direct")))}
+                ${summaryItem("Top device", mostCommon(events.map(e => e.deviceClass || "unknown")))}
+            </div>
+            <div class="chip-row" style="margin-top:10px">
+                ${Array.from(new Set(events.slice(0, 40).map(e => e.flow || "site"))).map(v => `<span class="chip">${esc(v)}</span>`).join("")}
+            </div>
+        `;
+    }
+
+    function renderSamples(events) {
+        const host = el("eventSamples");
+        const rows = events.slice().sort((a, b) => b.time - a.time).slice(0, 50);
+        if (!rows.length) {
+            host.innerHTML = empty("No event samples.");
+            return;
+        }
+        host.innerHTML = rows.map(e => `
+            <button type="button" class="sample-row${state.selectedSession === e.sessionHash ? " active" : ""}" data-session="${escAttr(e.sessionHash)}">
+                <span class="sample-main"><strong>${esc(e.eventName)}</strong><span>${esc(e.sessionHash)}</span></span>
+                <span class="sample-meta">${esc(formatTime(e.occurredAtUtc))} / ${esc(e.flow || "site")} / ${esc(e.step || e.component || "-")} / ${esc(e.errorCode || e.outcome || "-")}</span>
+            </button>
+        `).join("");
+        host.querySelectorAll(".sample-row").forEach(row => {
+            row.addEventListener("click", () => {
+                state.selectedSession = row.dataset.session;
+                renderDrilldown(events);
+            });
+        });
+    }
+
+    function renderTimeline(sessionHash, contextEvents) {
+        const host = el("sessionTimeline");
+        if (!sessionHash) {
+            host.innerHTML = empty("Select an event sample to inspect an anonymous session timeline.");
+            return;
+        }
+        const rows = state.events
+            .filter(e => e.sessionHash === sessionHash)
+            .sort((a, b) => a.time - b.time);
+        if (!rows.length) {
+            host.innerHTML = empty("No events found for that session.");
+            return;
+        }
+        const started = rows[0].time || 0;
+        host.innerHTML = `
+            <h3 style="margin-bottom:8px">Session ${esc(sessionHash)}</h3>
+            ${rows.map(e => `
+                <div class="timeline-row">
+                    <span class="timeline-main"><strong>${esc(offset(e.time - started))}</strong><span>${esc(e.eventName)}</span></span>
+                    <span class="timeline-meta">${esc(e.route || "-")} / ${esc(e.step || e.component || "-")} / ${esc(e.errorCode || e.outcome || "-")}${metadataChips(e.metadata)}</span>
+                </div>
+            `).join("")}
+        `;
+    }
+
+    function decisionScopeEvents(events) {
+        if (state.tab === "Onboarding") {
+            return events.filter(e => ["onboarding", "pheno", "bortz", "application", "challenge"].includes(e.flow || ""));
+        }
+        return scopeEventsFor(events, state.tab, state.selectedFlow);
+    }
+
+    function scopeEventsFor(events, tab, selectedFlow) {
+        events = events.slice();
+        if (tab === "Onboarding") {
+            if (selectedFlow === "application") return events.filter(e => e.flow === "application");
+            return events.filter(e => e.flow === selectedFlow || e.flow === "onboarding");
+        }
+        if (tab === "Challenge") return events.filter(e => e.flow === "challenge");
+        if (tab === "Reliability") return frictionEvents(events);
+        if (tab === "Review Queue") return events.filter(e => e.flow === "application" || /application|payment|review/.test(e.eventName));
+        if (tab === "Events") return events.filter(e => /event|highlight|athlete_profile|league/.test(e.eventName));
+        return events;
+    }
+
+    function decisionLensLabel() {
+        return state.tab === "Onboarding" ? "onboarding + activation" : state.tab;
+    }
+
+    function scopedEvents() {
+        return scopeEventsFor(state.events, state.tab, state.selectedFlow);
+    }
+
+    function selectedEvents() {
+        let events = scopedEvents();
+        if (state.selectedEventName) events = events.filter(e => e.eventName === state.selectedEventName);
+        if (state.selectedSession) events = events.filter(e => e.sessionHash === state.selectedSession);
+        return events;
+    }
+
+    function selectDrilldown(eventName, label) {
+        state.selectedEventName = eventName;
+        state.selectedSession = null;
+        state.selectedLabel = label || eventName || "all events";
+        renderOutcomeStrip();
+        renderFriction();
+        renderFunnel(state.tab === "Challenge" ? funnelDefs.challenge : (funnelDefs[state.selectedFlow] || funnelDefs.pheno), scopedEvents());
+        renderDrilldown();
+        updateUrl();
+    }
+
+    function frictionEvents(events) {
+        return events.filter(e =>
+            /failed|failure|missing|rejected|unavailable|invalid|error|blocked/.test(e.eventName) ||
+            /failed|missing|error|blocked/.test(e.outcome || "") ||
+            !!e.errorCode);
+    }
+
+    function sessionsForNames(events, names) {
+        return new Set(events.filter(e => names.includes(e.eventName)).map(e => e.sessionHash));
+    }
+
+    function sessionsForFunnelStep(events, flow, name) {
+        return new Set(events.filter(e => e.eventName === name && eventBelongsToFlowStep(e, flow, name)).map(e => e.sessionHash));
+    }
+
+    function eventBelongsToFlowStep(event, flow, name) {
+        if (flow === "pheno" || flow === "bortz") {
+            if (name === "onboarding_entry_viewed") return event.flow === "onboarding" || event.flow === flow;
+            return event.flow === flow;
+        }
+        return event.flow === flow;
+    }
+
+    function difference(left, right) {
+        return Array.from(left).filter(item => !right.has(item));
+    }
+
+    function intersectionSize(left, right) {
+        let count = 0;
+        left.forEach(item => {
+            if (right.has(item)) count++;
+        });
+        return count;
+    }
+
+    function sessionsMissing(events, startNames, finishNames) {
+        return difference(sessionsForNames(events, startNames), sessionsForNames(events, finishNames));
+    }
+
+    function missingRate(events, startNames, finishNames) {
+        const starts = sessionsForNames(events, startNames);
+        if (!starts.size) return null;
+        return difference(starts, sessionsForNames(events, finishNames)).length / starts.size;
+    }
+
+    function frictionSessionRate(events) {
+        const sessions = uniqueSessions(events);
+        if (!sessions) return 0;
+        return uniqueSessions(frictionEvents(events)) / sessions;
+    }
+
+    function percentNumber(value) {
+        value = Number(value);
+        if (!Number.isFinite(value)) return "0%";
+        return `${Math.round(value * 100)}%`;
+    }
+
+    function severityFor(rate, count) {
+        if (rate >= 0.6 || count >= 10) return "high";
+        if (rate >= 0.35 || count >= 4) return "med";
+        return "low";
+    }
+
+    function confidenceFor(currentSessions, previousSessions) {
+        const total = (Number(currentSessions) || 0) + (Number(previousSessions) || 0);
+        if (total >= 30 && currentSessions >= 10) return "high";
+        if (total >= 10 && currentSessions >= 4) return "medium";
+        return "low";
+    }
+
+    function trendPhrase(current, previous, higherIsBad) {
+        if (previous === null || previous === undefined || !Number.isFinite(Number(previous))) return "trend sparse";
+        current = Number(current) || 0;
+        previous = Number(previous) || 0;
+        const delta = current - previous;
+        if (Math.abs(delta) < 0.03) return "flat";
+        const bad = higherIsBad ? delta > 0 : delta < 0;
+        return bad ? "worse vs previous" : "better vs previous";
+    }
+
+    function trendScore(trend) {
+        if (trend === "worse vs previous") return 18;
+        if (trend === "trend sparse") return -4;
+        if (trend === "better vs previous") return -8;
+        return 0;
+    }
+
+    function flowPriority(flow) {
+        if (flow === "application") return 14;
+        if (flow === "pheno" || flow === "bortz") return 12;
+        if (flow === "challenge") return 10;
+        return 0;
+    }
+
+    function friendlyEvent(eventName) {
+        return String(eventName || "event").replace(/_/g, " ");
+    }
+
+    function hypothesisFor(eventName) {
+        if (/validation/.test(eventName)) return "The field expectation, default, or browser validation state is unclear.";
+        if (/missing_handoff|context_missing/.test(eventName)) return "Browser storage or handoff recovery is failing for some sessions.";
+        if (/proof|upload|file_rejected/.test(eventName)) return "File type, file size, camera, or PDF processing may be blocking submission.";
+        if (/rank_preview/.test(eventName)) return "Rank preview latency or API failure may be weakening result confidence.";
+        if (/payment|checkout|commitment/.test(eventName)) return "Payment handoff or commitment recovery may be interrupting continuation.";
+        if (/challenge_.*signup|practice|checkin/.test(eventName)) return "Challenge activation may not make the next required action obvious.";
+        if (/calculator_continue|biomarker_handoff/.test(eventName)) return "The result-to-application transition may not be durable enough.";
+        return "This step is behaving worse than nearby steps or segments.";
+    }
+
+    function actionFor(eventName) {
+        if (/validation/.test(eventName)) return "Inspect field-level failures, then adjust labels, defaults, or validation recovery.";
+        if (/missing_handoff|context_missing/.test(eventName)) return "Inspect affected timelines and add a visible recovery path for missing context.";
+        if (/proof|upload|file_rejected/.test(eventName)) return "Compare failed uploads by device and file bucket, then improve upload guidance or fallback handling.";
+        if (/rank_preview/.test(eventName)) return "Check API latency/failures and keep the result state useful when preview is unavailable.";
+        if (/payment|checkout|commitment/.test(eventName)) return "Verify handoff state, failure copy, and retry paths before changing payment logic.";
+        if (/challenge_.*signup|practice|checkin/.test(eventName)) return "Inspect signup-to-practice sessions and sharpen the first check-in call to action.";
+        if (/calculator_continue|biomarker_handoff/.test(eventName)) return "Inspect stopped calculator sessions and harden the continue/handoff state.";
+        return "Open supporting sessions and compare the failing step against healthier cohorts.";
+    }
+
+    function countMatching(events, names) {
+        if (!names.length) return 0;
+        return events.filter(e => names.includes(e.eventName)).length;
+    }
+
+    function uniqueSessionsFor(events, names) {
+        const filtered = names && names.length ? events.filter(e => names.includes(e.eventName)) : events;
+        return new Set(filtered.map(e => e.sessionHash)).size;
+    }
+
+    function fieldFrictionTable(events) {
+        const relevant = events.filter(e => /^calculator_field_|calculator_validation_failed/.test(e.eventName));
+        if (!relevant.length) return empty("No calculator field events yet.");
+        const rows = Array.from(groupBy(relevant, e => e.step || "unknown").entries()).map(([field, items]) => ({
+            field,
+            touched: countMatching(items, ["calculator_field_touched"]),
+            completed: countMatching(items, ["calculator_field_completed"]),
+            failed: countMatching(items, ["calculator_validation_failed"]),
+            topError: mostCommon(items.map(i => i.errorCode || i.outcome || "-"))
+        })).sort((a, b) => b.failed - a.failed || b.touched - a.touched).slice(0, 12);
+        return table(["Field", "Touched", "Done", "Failed", "Top error"], rows.map(r => [r.field, r.touched, r.completed, r.failed, r.topError]));
+    }
+
+    function proofUploadTable(events) {
+        const names = ["proof_upload_clicked", "proof_camera_clicked", "proof_files_selected", "proof_file_rejected", "proof_processing_succeeded", "proof_processing_failed"];
+        const relevant = events.filter(e => names.includes(e.eventName));
+        if (!relevant.length) return empty("No proof upload events yet.");
+        return groupedTable(relevant, names);
+    }
+
+    function handoffTable(events) {
+        const relevant = events.filter(e => /handoff|context|payment_offer|browser_storage|review/.test(e.eventName));
+        if (!relevant.length) return empty("No handoff events yet.");
+        return splitTable(relevant, e => e.eventName);
+    }
+
+    function challengeActivationTable(events) {
+        return groupedTable(events, [
+            "challenge_signup_started",
+            "challenge_signup_succeeded",
+            "challenge_participant_page_opened",
+            "challenge_practice_checkin_submitted",
+            "challenge_scored_checkin_submitted"
+        ]);
+    }
+
+    function sourceQualityTable(events) {
+        const rows = Array.from(groupBy(events, e => e.source || "direct").entries()).map(([source, items]) => {
+            const results = countMatching(items, ["calculator_result_generated"]);
+            const applications = countMatching(items, ["application_submit_succeeded"]);
+            const challenge = countMatching(items, ["challenge_scored_checkin_submitted"]);
+            const quality = applications * 5 + challenge * 4 + results;
+            return [source, uniqueSessions(items), results, applications, challenge, quality];
+        }).sort((a, b) => b[5] - a[5]);
+        return table(["Source", "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
+    }
+
+    function slowStepTable(events) {
+        const rows = events.filter(e => Number(e.durationMs) > 5000)
+            .sort((a, b) => Number(b.durationMs) - Number(a.durationMs))
+            .slice(0, 12)
+            .map(e => [e.eventName, e.step || e.component || "-", ms(e.durationMs), e.sessionHash]);
+        return rows.length ? table(["Event", "Step", "Duration", "Session"], rows) : empty("No slow events over 5s.");
+    }
+
+    function sessionStateTable(events) {
+        const rows = Array.from(groupBy(events, e => e.sessionHash).entries()).map(([session, items]) => {
+            const sorted = items.slice().sort((a, b) => b.time - a.time);
+            const last = sorted[0];
+            return [session, last.eventName, last.outcome || "-", formatTime(last.occurredAtUtc)];
+        }).slice(0, 12);
+        return rows.length ? table(["Session", "Last event", "State", "Time"], rows) : empty("No review sessions yet.");
+    }
+
+    function groupedTable(events, names) {
+        const rows = names.map(name => {
+            const items = events.filter(e => e.eventName === name);
+            return [name, items.length, new Set(items.map(i => i.sessionHash)).size, mostCommon(items.map(i => i.source || "direct"))];
+        }).filter(r => r[1] > 0);
+        return rows.length ? table(["Event", "Events", "Sessions", "Top source"], rows) : empty("No matching events yet.");
+    }
+
+    function splitTable(events, picker) {
+        const rows = Array.from(groupBy(events, picker).entries())
+            .map(([key, items]) => [key || "unknown", items.length, new Set(items.map(i => i.sessionHash)).size])
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 12);
+        return rows.length ? table(["Segment", "Events", "Sessions"], rows) : empty("No data for this split.");
+    }
+
+    function sourceFunnelDefs() {
+        return [["site_page_viewed", "Site viewed"], ["calculator_result_generated", "Calculator result"], ["application_submit_succeeded", "Application submitted"], ["challenge_signup_succeeded", "Challenge signup"], ["challenge_scored_checkin_submitted", "Scored check-in"]];
+    }
+
+    function reliabilityFunnelDefs() {
+        return [["client_error_observed", "Client errors"], ["api_request_failed", "API failures"], ["calculator_validation_failed", "Calculator validation"], ["rank_preview_failed", "Rank preview failed"], ["application_submit_failed", "Application submit failed"], ["challenge_signup_failed", "Challenge signup failed"], ["challenge_scored_checkin_failed", "Check-in failed"]];
+    }
+
+    function eventsFunnelDefs() {
+        return [["homepage_highlight_viewed", "Highlight viewed"], ["homepage_highlight_clicked", "Highlight clicked"], ["event_viewed", "Event viewed"], ["event_link_clicked", "Event link clicked"], ["athlete_profile_viewed", "Athlete profile"], ["league_viewed", "League viewed"]];
+    }
+
+    function normalizeEvent(event) {
+        return Object.assign({}, event, {
+            eventName: event.eventName || "",
+            sessionHash: event.sessionHash || "S-UNKNOWN",
+            metadata: event.metadata || {},
+            time: Date.parse(event.occurredAtUtc || "") || 0
+        });
+    }
+
+    function table(headers, rows) {
+        return `
+            <table class="compact-table">
+                <thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead>
+                <tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${esc(String(cell ?? ""))}</td>`).join("")}</tr>`).join("")}</tbody>
+            </table>
+        `;
+    }
+
+    function detailPanel(title, content) {
+        return `<section class="detail-panel"><div class="panel-heading"><h2>${esc(title)}</h2></div>${content}</section>`;
+    }
+
+    function summaryItem(label, value) {
+        return `<div class="summary-item"><span>${esc(label)}</span><strong>${esc(String(value))}</strong></div>`;
+    }
+
+    function spark(events, names) {
+        const buckets = Array.from({ length: 7 }, () => 0);
+        const now = Date.now();
+        const day = 24 * 60 * 60 * 1000;
+        const filtered = names && names.length ? events.filter(e => names.includes(e.eventName)) : events;
+        filtered.forEach(e => {
+            const index = 6 - Math.floor((now - e.time) / day);
+            if (index >= 0 && index < buckets.length) buckets[index]++;
+        });
+        const max = Math.max(1, ...buckets);
+        return `<span class="spark" aria-hidden="true">${buckets.map(v => `<span style="height:${Math.max(2, Math.round((v / max) * 18))}px"></span>`).join("")}</span>`;
+    }
+
+    function groupBy(items, picker) {
+        const map = new Map();
+        items.forEach(item => {
+            const key = picker(item) || "unknown";
+            if (!map.has(key)) map.set(key, []);
+            map.get(key).push(item);
+        });
+        return map;
+    }
+
+    function mostCommon(values) {
+        const map = new Map();
+        values.filter(Boolean).forEach(v => map.set(v, (map.get(v) || 0) + 1));
+        return Array.from(map.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "-";
+    }
+
+    function medianDuration(events) {
+        const values = events.map(e => Number(e.durationMs)).filter(Number.isFinite).sort((a, b) => a - b);
+        if (!values.length) return "-";
+        return ms(values[Math.floor(values.length / 2)]);
+    }
+
+    function percent(value, total) {
+        if (!total) return "0%";
+        return `${Math.round((value / total) * 100)}%`;
+    }
+
+    function uniqueSessions(items) {
+        return new Set(items.map(i => i.sessionHash)).size;
+    }
+
+    function ms(value) {
+        value = Number(value);
+        if (!Number.isFinite(value)) return "-";
+        if (value < 1000) return `${Math.round(value)}ms`;
+        return `${(value / 1000).toFixed(1)}s`;
+    }
+
+    function offset(value) {
+        value = Math.max(0, Number(value) || 0);
+        const total = Math.floor(value / 1000);
+        const min = Math.floor(total / 60);
+        const sec = total % 60;
+        return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    }
+
+    function metadataChips(metadata) {
+        const entries = Object.entries(metadata || {}).slice(0, 4);
+        if (!entries.length) return "";
+        return ` / ${entries.map(([k, v]) => `${k}=${v}`).join(" / ")}`;
+    }
+
+    function formatTime(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "-";
+        return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function flowLabel(flow) {
+        return flow === "pheno" ? "pheno age" : flow === "bortz" ? "bortz age" : flow === "challenge" ? "Challenge" : flow === "application" ? "application" : "all";
+    }
+
+    function setStatus(message, error) {
+        const host = el("statsStatus");
+        host.textContent = message;
+        host.classList.toggle("error", !!error);
+    }
+
+    function exportCsv() {
+        const events = selectedEvents();
+        const headers = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source"];
+        const lines = [headers.join(",")].concat(events.map(e => headers.map(h => csv(e[h])).join(",")));
+        const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "site-statistics-redacted.csv";
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 500);
+    }
+
+    async function copyLink() {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            setStatus("Copied dashboard link.");
+        } catch (_) {
+            setStatus("Copy failed; the URL is already in the address bar.", true);
+        }
+    }
+
+    function csv(value) {
+        const text = String(value ?? "");
+        return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    function empty(message) {
+        return `<div class="empty-state">${esc(message)}</div>`;
+    }
+
+    function el(id) {
+        return document.getElementById(id);
+    }
+
+    function esc(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function escAttr(value) {
+        return esc(value).replace(/'/g, "&#39;");
+    }
+})();
