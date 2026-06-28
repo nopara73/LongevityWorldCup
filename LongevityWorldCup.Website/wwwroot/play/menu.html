@@ -56,24 +56,7 @@
         .play-menu-actions,
         .play-athlete-actions,
         .play-dashboard-actions {
-            width: min(100%, 408px);
-            min-width: 0;
-            max-width: 408px;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
             margin: 1.35rem auto 0;
-        }
-
-        .play-menu-actions .option-button,
-        .play-athlete-actions .option-button,
-        .play-dashboard-actions .option-button {
-            width: 100%;
-            min-width: 0;
-            max-width: none;
-            margin: 0;
-            box-sizing: border-box;
         }
 
         .play-athlete-panel,
@@ -233,48 +216,6 @@
             gap: 0.85rem;
         }
 
-        .play-dashboard-actions .option-button {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding-inline: 3rem;
-            column-gap: 0.55rem;
-            row-gap: 0.25rem;
-            line-height: 1.25;
-            text-align: center;
-            white-space: normal;
-        }
-
-        .play-dashboard-actions .dashboard-action-label {
-            display: block;
-            width: 100%;
-            min-width: 0;
-            text-align: center;
-        }
-
-        .play-dashboard-actions .option-button i {
-            position: absolute;
-            top: 50%;
-            right: 1.35rem;
-            flex: 0 0 auto;
-            transform: translateY(-50%);
-        }
-
-        .play-inline-back {
-            align-self: center;
-            width: auto !important;
-            min-width: 10rem !important;
-            min-height: 44px;
-            padding: 0.55rem 1.2rem;
-        }
-
-        .play-inline-back i {
-            position: static !important;
-            transform: none !important;
-            margin-right: 0.35rem;
-        }
-
         .pro-discount-box {
             width: 100%;
             max-width: none;
@@ -350,15 +291,7 @@
             .play-menu-actions,
             .play-athlete-actions,
             .play-dashboard-actions {
-                width: min(100%, 408px);
                 margin-top: 1.15rem;
-            }
-
-            .play-menu-actions .option-button {
-                padding-inline: 1.25rem;
-                line-height: 1.2;
-                white-space: normal;
-                overflow-wrap: anywhere;
             }
 
             .play-athlete-panel,
@@ -410,14 +343,6 @@
             .play-dashboard-actions {
                 gap: 0.65rem;
                 margin-top: 0.1rem;
-            }
-
-            .play-dashboard-actions .option-button {
-                padding-inline: 2.75rem;
-            }
-
-            .play-dashboard-actions .option-button i {
-                right: 1.2rem;
             }
         }
 
@@ -499,12 +424,12 @@
                 </div>
             </div>
 
-            <div class="options-container play-menu-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-                <button id="newGameBtn" class="option-button grey" onclick="window.location.href='/join'">
-                    I'm a new athlete
+            <div class="options-container play-menu-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                <button id="newGameBtn" class="option-button grey flow-action flow-action--secondary" onclick="window.location.href='/join'">
+                    <span class="flow-action__label">I'm a new athlete</span>
                 </button>
-                <button id="continueGameBtn" type="button" class="option-button grey">
-                    I'm already an athlete
+                <button id="continueGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
+                    <span class="flow-action__label">I'm already an athlete</span>
                 </button>
             </div>
         </section>
@@ -535,12 +460,12 @@
                     <span id="playAthleteError" class="error-message" aria-live="polite"></span>
                 </div>
             </div>
-            <div class="options-container play-athlete-actions">
-                <button disabled id="playConfirmAthleteBtn" type="button" class="option-button green">
-                    Select&nbsp;<i class="fas fa-arrow-right"></i>
+            <div class="options-container play-athlete-actions flow-action-stack">
+                <button disabled id="playConfirmAthleteBtn" type="button" class="option-button green flow-action">
+                    <span class="flow-action__label">Select</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
                 </button>
-                <button id="playSelectionBackBtn" type="button" class="option-button back-button play-inline-back">
-                    <i class="fas fa-arrow-left"></i>Back
+                <button id="playSelectionBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                 </button>
             </div>
         </section>
@@ -556,13 +481,13 @@
                     </picture>
                 </div>
             </div>
-            <div id="athleteDashboardActions" class="options-container play-dashboard-actions">
-                <button type="button" class="option-button grey" onclick="window.location.href='/edit-profile'">
-                    <span class="dashboard-action-label">Edit profile</span><i class="fas fa-pen"></i>
+            <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack">
+                <button type="button" class="option-button grey flow-action flow-action--secondary" onclick="window.location.href='/edit-profile'">
+                    <span class="dashboard-action-label flow-action__label">Edit profile</span><i class="fas fa-pen" aria-hidden="true"></i>
                 </button>
                 <div id="athleteDashboardDynamicActions"></div>
-                <button id="playDashboardBackBtn" type="button" class="option-button back-button play-inline-back">
-                    <i class="fas fa-arrow-left"></i>Change athlete
+                <button id="playDashboardBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Change athlete</span>
                 </button>
             </div>
         </section>
@@ -701,6 +626,16 @@
                 showAthleteSelection({ historyMode: 'replace' });
             }
 
+            function promotePlayStartAction(button) {
+                button.classList.remove('grey', 'flow-action--secondary');
+                button.classList.add('green');
+            }
+
+            function demotePlayStartAction(button) {
+                button.classList.remove('green');
+                button.classList.add('grey', 'flow-action--secondary');
+            }
+
             document.addEventListener('DOMContentLoaded', function () {
                 getFlowReady().then(() => {
                     if (window.captureFreePassFromUrl) {
@@ -727,12 +662,12 @@
                     const contBtn = document.getElementById('continueGameBtn');
 
                     if (hasApp) {
-                        contBtn.classList.remove('grey');
-                        contBtn.classList.add('green');
+                        promotePlayStartAction(contBtn);
+                        demotePlayStartAction(newBtn);
                         container.insertBefore(contBtn, container.firstChild);
                     } else {
-                        newBtn.classList.remove('grey');
-                        newBtn.classList.add('green');
+                        promotePlayStartAction(newBtn);
+                        demotePlayStartAction(contBtn);
                         container.insertBefore(newBtn, container.firstChild);
                     }
 

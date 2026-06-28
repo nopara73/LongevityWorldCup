@@ -81,6 +81,26 @@ public sealed class PlayMenuPageTests
     }
 
     [Fact]
+    public async Task PlayMenu_ContextualPrimaryActionDoesNotKeepSecondaryFlowStyling()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/menu.html");
+
+        Assert.Contains("function promotePlayStartAction(button)", html);
+        Assert.Contains("button.classList.remove('grey', 'flow-action--secondary');", html);
+        Assert.Contains("button.classList.add('green');", html);
+        Assert.Contains("function demotePlayStartAction(button)", html);
+        Assert.Contains("button.classList.remove('green');", html);
+        Assert.Contains("button.classList.add('grey', 'flow-action--secondary');", html);
+        Assert.Contains("promotePlayStartAction(contBtn);", html);
+        Assert.Contains("demotePlayStartAction(newBtn);", html);
+        Assert.Contains("promotePlayStartAction(newBtn);", html);
+        Assert.Contains("demotePlayStartAction(contBtn);", html);
+    }
+
+    [Fact]
     public async Task PlayMenu_AthletePicturesUseSharedFrameAndTransitionBehavior()
     {
         using var factory = new TestWebApplicationFactory();

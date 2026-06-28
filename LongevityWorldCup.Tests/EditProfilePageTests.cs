@@ -12,7 +12,7 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
 
-        Assert.Contains("type=\"button\" class=\"option-button back-button\" onclick=\"window.location.replace('/dashboard')\"", html);
+        Assert.Contains("type=\"button\" class=\"option-button back-button flow-action flow-action--secondary flow-action--icon-left\" onclick=\"window.location.replace('/dashboard')\"", html);
         Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
     }
 
@@ -492,9 +492,9 @@ public sealed class EditProfilePageTests
         Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
         Assert.Contains("const alertMessage = 'Change request could not be submitted. Please check your connection and try again.';", html);
         Assert.Contains("message: displayError", html);
-        Assert.Contains("submitButton.innerHTML = 'Submit change request <i class=\"fa fa-rocket\"></i>';\n                                    submitButton.focus();", html);
+        Assert.Contains("submitButton.innerHTML = '<span class=\"flow-action__label\">Submit change request</span><i class=\"fa fa-rocket\" aria-hidden=\"true\"></i>';\n                                    submitButton.focus();", html);
         Assert.Contains("customAlert(alertMessage).then(() => {\n                            isEditProfileSubmitting = false;", html);
-        Assert.Contains("submitButton.innerHTML = 'Submit change request <i class=\"fa fa-rocket\"></i>';\n                            submitButton.focus();", html);
+        Assert.Contains("submitButton.innerHTML = '<span class=\"flow-action__label\">Submit change request</span><i class=\"fa fa-rocket\" aria-hidden=\"true\"></i>';\n                            submitButton.focus();", html);
         Assert.DoesNotContain("customAlert(`Submission failed:\\n\\n${displayError}`)", html);
     }
 

@@ -1,0 +1,144 @@
+.flow-action-stack {
+    width: min(100%, 408px);
+    max-width: 408px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+    margin: 1.25rem auto 0;
+    box-sizing: border-box;
+}
+
+.flow-action-stack.flow-action-stack--flush {
+    margin-top: 0;
+}
+
+.flow-action-stack .flow-action,
+.option-button.flow-action {
+    width: 100%;
+    min-width: 0;
+    max-width: 408px;
+    min-height: 60px;
+    margin: 0;
+    padding: 0.85rem 3.25rem;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border-radius: 50px;
+    font: inherit;
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.22;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.flow-action-stack .flow-action {
+    max-width: none;
+}
+
+.flow-action__label,
+.flow-action .dashboard-action-label {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+}
+
+.option-button.flow-action > i,
+.flow-action__icon {
+    position: absolute;
+    top: 50%;
+    right: 1.35rem;
+    width: 1.25rem;
+    margin: 0 !important;
+    text-align: center;
+    transform: translateY(-50%);
+}
+
+.option-button.flow-action.flow-action--icon-left {
+    padding-right: 2rem;
+}
+
+.option-button.flow-action.flow-action--icon-left > i,
+.flow-action--icon-left .flow-action__icon {
+    right: auto;
+    left: 1.35rem;
+}
+
+.option-button.flow-action.back-button,
+.option-button.flow-action.flow-action--secondary {
+    background: #f8fafc;
+    border: 1px solid rgba(96, 125, 139, 0.16);
+    color: #526d7a;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.option-button.flow-action.back-button:hover,
+.option-button.flow-action.flow-action--secondary:hover {
+    background: #eef2f7;
+    border-color: rgba(96, 125, 139, 0.22);
+    color: #405866;
+}
+
+.option-button.flow-action:disabled,
+.option-button.flow-action:disabled:hover {
+    background: #eef2f7 !important;
+    border: 1px solid rgba(100, 116, 139, 0.16);
+    color: #64748b;
+    box-shadow: none !important;
+    cursor: not-allowed;
+    opacity: 1;
+    pointer-events: none;
+    transform: none;
+    user-select: none;
+}
+
+.flow-note {
+    width: min(100%, 408px);
+    max-width: 408px;
+    min-width: 0;
+    margin-inline: auto;
+    box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+    .flow-action-stack {
+        width: min(100%, 408px);
+        gap: 0.7rem;
+    }
+
+    .flow-action-stack .flow-action,
+    .option-button.flow-action {
+        min-height: 56px;
+        padding-inline: 3rem;
+        font-size: 1rem;
+    }
+
+    .option-button.flow-action > i,
+    .flow-action__icon {
+        right: 1.2rem;
+    }
+
+    .option-button.flow-action.flow-action--icon-left > i,
+    .flow-action--icon-left .flow-action__icon {
+        left: 1.2rem;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    .flow-action-stack {
+        gap: 0.55rem;
+        margin-top: 0.65rem;
+    }
+
+    .flow-action-stack .flow-action,
+    .option-button.flow-action {
+        min-height: 44px;
+        padding-block: 0.55rem;
+    }
+}

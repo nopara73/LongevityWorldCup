@@ -757,10 +757,10 @@
             </div>
             <div class="card-cta">
               <button
-                class="option-button grey"
+                class="option-button grey flow-action flow-action--secondary"
                 onclick="startAmateurApplication(this)"
               >
-                Start amateur
+                <span class="flow-action__label">Start amateur</span>
               </button>
             </div>
           </article>
@@ -895,26 +895,26 @@
             <div class="card-cta">
               <button
                 id="goProJoinButton"
-                class="option-button green"
+                class="option-button green flow-action"
                 onclick="startProApplication(this)"
               >
-                Go pro
+                <span class="flow-action__label">Go pro</span>
               </button>
             </div>
           </article>
         </div>
 
         <div
-          class="options-container"
+          class="options-container flow-action-stack"
           data-aos="fade"
           data-aos-duration="700"
           data-aos-delay="450"
         >
           <button
-            class="option-button back-button"
+            class="option-button back-button flow-action flow-action--secondary flow-action--icon-left"
             onclick="window.goBackOrHome()"
           >
-            <i class="fas fa-arrow-left"></i>&nbsp;Back
+            <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
           </button>
         </div>
       </div>
@@ -1070,7 +1070,7 @@
         if (note) note.style.display = "none";
         if (proEntryCell) proEntryCell.classList.remove("has-discount");
         if (amateurEntryCell) amateurEntryCell.classList.remove("has-discount");
-        if (goProJoinButton) goProJoinButton.textContent = "Go pro";
+        if (goProJoinButton) goProJoinButton.innerHTML = '<span class="flow-action__label">Go pro</span>';
         return true;
       }
 
@@ -1093,7 +1093,7 @@
           ? window.proDiscounts.createPriceHtml(result)
           : createPriceHtmlFallback(result);
         proEntryPrice.innerHTML = priceHtml;
-        goProJoinButton.textContent = "Go pro";
+        goProJoinButton.innerHTML = '<span class="flow-action__label">Go pro</span>';
 
         if (!Array.isArray(result.components) || result.components.length === 0) {
           breakdown.textContent = "";
