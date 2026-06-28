@@ -1,20 +1,25 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Hosting;
 using LongevityWorldCup.Website.Tools;
 
 namespace LongevityWorldCup.Website.Business;
 
-public sealed class SiteStatisticsService
+public sealed class SiteStatisticsService : IHostedService
 {
     private const int MaxEventNameLength = 96;
     private const int MaxTextLength = 160;
     private const int MaxMetadataJsonLength = 4096;
     private const int DefaultDashboardLimit = 2500;
     private const int MaxDashboardLimit = 5000;
+    private const int MaxQueuedEvents = 2000;
+    private const int FlushBatchSize = 250;
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(1);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan DefaultDashboardRange = TimeSpan.FromDays(30);
     private static readonly string[] SensitiveQueryKeys =
@@ -32,13 +37,50 @@ public sealed class SiteStatisticsService
 
     private readonly DatabaseManager _database;
     private readonly ILogger<SiteStatisticsService> _logger;
+    private readonly ConcurrentQueue<QueuedSiteStatisticEvent> _queuedEvents = new();
+    private readonly SemaphoreSlim _flushGate = new(1, 1);
     private readonly object _initLock = new();
+    private CancellationTokenSource? _backgroundCts;
+    private Task? _backgroundTask;
+    private int _queuedEventCount;
     private bool _initialized;
 
     public SiteStatisticsService(DatabaseManager database, ILogger<SiteStatisticsService> logger)
     {
         _database = database;
         _logger = logger;
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _backgroundCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        _backgroundTask = Task.Run(() => FlushLoopAsync(_backgroundCts.Token), CancellationToken.None);
+        return Task.CompletedTask;
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _backgroundCts?.Cancel();
+
+        if (_backgroundTask is not null)
+        {
+            try
+            {
+                await Task.WhenAny(_backgroundTask, Task.Delay(TimeSpan.FromSeconds(2), cancellationToken)).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        try
+        {
+            await FlushQueuedEventsAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Site statistics queued events were dropped during shutdown.");
+        }
     }
 
     public Task RecordClientEventAsync(SiteStatisticsEventRequest? request, HttpContext context, CancellationToken ct = default)
@@ -84,6 +126,7 @@ public sealed class SiteStatisticsService
     public async Task<SiteStatisticsDashboardResponse> GetDashboardAsync(SiteStatisticsDashboardQuery query, CancellationToken ct = default)
     {
         EnsureInitialized();
+        await FlushQueuedEventsAsync(ct).ConfigureAwait(false);
 
         var now = DateTimeOffset.UtcNow;
         var from = ResolveFrom(query.Range, now);
@@ -172,60 +215,179 @@ public sealed class SiteStatisticsService
     {
         try
         {
-            EnsureInitialized();
-
-            var occurredAt = DateTimeOffset.UtcNow;
-            var eventName = SafeToken(request.EventName, MaxEventNameLength);
-            if (string.IsNullOrWhiteSpace(eventName))
-                return;
-            if (LooksSensitiveValue(eventName))
+            var queued = BuildQueuedEvent(request, context, actorId);
+            if (queued is null)
                 return;
 
-            var route = SanitizeRoute(request.Route ?? context?.Request.Path.Value ?? string.Empty);
-            var metadata = SanitizeMetadata(request.Metadata);
-            var metadataJson = metadata.Count == 0 ? null : JsonSerializer.Serialize(metadata, JsonOptions);
-            if (metadataJson is { Length: > MaxMetadataJsonLength })
+            if (Interlocked.Increment(ref _queuedEventCount) > MaxQueuedEvents)
             {
-                metadataJson = metadataJson[..MaxMetadataJsonLength];
+                Interlocked.Decrement(ref _queuedEventCount);
+                _logger.LogDebug("Site statistics event was dropped because the queue is full.");
+                return;
             }
 
-            await _database.RunAsync(sqlite =>
-            {
-                using var cmd = sqlite.CreateCommand();
-                cmd.CommandText =
-                    """
-                    INSERT INTO SiteStatisticEvents
-                    (Id, OccurredAtUtc, SessionHash, ActorHash, EventName, Flow, Route, Component, Step, Outcome,
-                     ErrorCode, DurationMs, DeviceClass, BrowserFamily, ReferrerDomain, Source, MetadataJson)
-                    VALUES
-                    (@id, @occurred, @session, @actor, @eventName, @flow, @route, @component, @step, @outcome,
-                     @errorCode, @duration, @device, @browser, @referrer, @source, @metadata);
-                    """;
-                Add(cmd, "@id", Guid.NewGuid().ToString("N"));
-                Add(cmd, "@occurred", occurredAt.ToString("O", CultureInfo.InvariantCulture));
-                Add(cmd, "@session", BuildHash("S", request.SessionId ?? ClientIdentifier.From(context ?? new DefaultHttpContext())));
-                Add(cmd, "@actor", string.IsNullOrWhiteSpace(actorId) ? DBNull.Value : BuildHash("A", actorId));
-                Add(cmd, "@eventName", eventName);
-                Add(cmd, "@flow", SafeDisplayToken(request.Flow, MaxTextLength));
-                Add(cmd, "@route", route);
-                Add(cmd, "@component", SafeDisplayToken(request.Component, MaxTextLength));
-                Add(cmd, "@step", SafeDisplayToken(request.Step, MaxTextLength));
-                Add(cmd, "@outcome", SafeDisplayToken(request.Outcome, MaxTextLength));
-                Add(cmd, "@errorCode", SafeDisplayToken(request.ErrorCode, MaxTextLength));
-                Add(cmd, "@duration", request.DurationMs is >= 0 and < 86_400_000 ? request.DurationMs.Value : DBNull.Value);
-                Add(cmd, "@device", SafeDisplayToken(request.DeviceClass, MaxTextLength) ?? DetectDeviceClass(context));
-                Add(cmd, "@browser", SafeDisplayToken(request.BrowserFamily, MaxTextLength) ?? DetectBrowserFamily(context));
-                Add(cmd, "@referrer", SafeDomain(request.ReferrerDomain) ?? SafeDomain(context?.Request.Headers.Referer.FirstOrDefault()));
-                Add(cmd, "@source", SafeDisplayToken(request.Source, MaxTextLength) ?? "direct");
-                Add(cmd, "@metadata", metadataJson is null ? DBNull.Value : metadataJson);
-                cmd.ExecuteNonQuery();
-                return Task.CompletedTask;
-            }, ct).ConfigureAwait(false);
+            _queuedEvents.Enqueue(queued);
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Site statistics event was dropped.");
         }
+    }
+
+    private QueuedSiteStatisticEvent? BuildQueuedEvent(SiteStatisticsEventRequest request, HttpContext? context, string? actorId)
+    {
+        var occurredAt = DateTimeOffset.UtcNow;
+        var eventName = SafeToken(request.EventName, MaxEventNameLength);
+        if (string.IsNullOrWhiteSpace(eventName) || LooksSensitiveValue(eventName))
+            return null;
+
+        var route = SanitizeRoute(request.Route ?? context?.Request.Path.Value ?? string.Empty);
+        var metadata = SanitizeMetadata(request.Metadata);
+        var metadataJson = metadata.Count == 0 ? null : JsonSerializer.Serialize(metadata, JsonOptions);
+        if (metadataJson is { Length: > MaxMetadataJsonLength })
+        {
+            metadataJson = metadataJson[..MaxMetadataJsonLength];
+        }
+
+        return new QueuedSiteStatisticEvent(
+            Id: Guid.NewGuid().ToString("N"),
+            OccurredAtUtc: occurredAt.ToString("O", CultureInfo.InvariantCulture),
+            SessionHash: BuildHash("S", request.SessionId ?? ClientIdentifier.From(context ?? new DefaultHttpContext())),
+            ActorHash: string.IsNullOrWhiteSpace(actorId) ? null : BuildHash("A", actorId),
+            EventName: eventName,
+            Flow: SafeDisplayToken(request.Flow, MaxTextLength),
+            Route: route,
+            Component: SafeDisplayToken(request.Component, MaxTextLength),
+            Step: SafeDisplayToken(request.Step, MaxTextLength),
+            Outcome: SafeDisplayToken(request.Outcome, MaxTextLength),
+            ErrorCode: SafeDisplayToken(request.ErrorCode, MaxTextLength),
+            DurationMs: request.DurationMs is >= 0 and < 86_400_000 ? request.DurationMs.Value : null,
+            DeviceClass: SafeDisplayToken(request.DeviceClass, MaxTextLength) ?? DetectDeviceClass(context),
+            BrowserFamily: SafeDisplayToken(request.BrowserFamily, MaxTextLength) ?? DetectBrowserFamily(context),
+            ReferrerDomain: SafeDomain(request.ReferrerDomain) ?? SafeDomain(context?.Request.Headers.Referer.FirstOrDefault()),
+            Source: SafeDisplayToken(request.Source, MaxTextLength) ?? "direct",
+            MetadataJson: metadataJson);
+    }
+
+    private async Task FlushLoopAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(FlushInterval, ct).ConfigureAwait(false);
+                await FlushQueuedEventsAsync(ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Site statistics queued events were dropped.");
+            }
+        }
+    }
+
+    private async Task FlushQueuedEventsAsync(CancellationToken ct)
+    {
+        if (Volatile.Read(ref _queuedEventCount) <= 0)
+            return;
+
+        await _flushGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            if (Volatile.Read(ref _queuedEventCount) <= 0)
+                return;
+
+            EnsureInitialized();
+            var batch = new List<QueuedSiteStatisticEvent>(FlushBatchSize);
+            while (_queuedEvents.TryDequeue(out var item))
+            {
+                Interlocked.Decrement(ref _queuedEventCount);
+                batch.Add(item);
+                if (batch.Count >= FlushBatchSize)
+                {
+                    await WriteQueuedEventsAsync(batch, ct).ConfigureAwait(false);
+                    batch.Clear();
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                await WriteQueuedEventsAsync(batch, ct).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            _flushGate.Release();
+        }
+    }
+
+    private Task WriteQueuedEventsAsync(IReadOnlyList<QueuedSiteStatisticEvent> events, CancellationToken ct)
+    {
+        if (events.Count == 0)
+            return Task.CompletedTask;
+
+        return _database.RunAsync(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+            using var cmd = sqlite.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText =
+                """
+                INSERT INTO SiteStatisticEvents
+                (Id, OccurredAtUtc, SessionHash, ActorHash, EventName, Flow, Route, Component, Step, Outcome,
+                 ErrorCode, DurationMs, DeviceClass, BrowserFamily, ReferrerDomain, Source, MetadataJson)
+                VALUES
+                (@id, @occurred, @session, @actor, @eventName, @flow, @route, @component, @step, @outcome,
+                 @errorCode, @duration, @device, @browser, @referrer, @source, @metadata);
+                """;
+
+            var id = cmd.Parameters.Add("@id", SqliteType.Text);
+            var occurred = cmd.Parameters.Add("@occurred", SqliteType.Text);
+            var session = cmd.Parameters.Add("@session", SqliteType.Text);
+            var actor = cmd.Parameters.Add("@actor", SqliteType.Text);
+            var eventName = cmd.Parameters.Add("@eventName", SqliteType.Text);
+            var flow = cmd.Parameters.Add("@flow", SqliteType.Text);
+            var route = cmd.Parameters.Add("@route", SqliteType.Text);
+            var component = cmd.Parameters.Add("@component", SqliteType.Text);
+            var step = cmd.Parameters.Add("@step", SqliteType.Text);
+            var outcome = cmd.Parameters.Add("@outcome", SqliteType.Text);
+            var errorCode = cmd.Parameters.Add("@errorCode", SqliteType.Text);
+            var duration = cmd.Parameters.Add("@duration", SqliteType.Integer);
+            var device = cmd.Parameters.Add("@device", SqliteType.Text);
+            var browser = cmd.Parameters.Add("@browser", SqliteType.Text);
+            var referrer = cmd.Parameters.Add("@referrer", SqliteType.Text);
+            var source = cmd.Parameters.Add("@source", SqliteType.Text);
+            var metadata = cmd.Parameters.Add("@metadata", SqliteType.Text);
+
+            foreach (var item in events)
+            {
+                id.Value = item.Id;
+                occurred.Value = item.OccurredAtUtc;
+                session.Value = item.SessionHash;
+                actor.Value = item.ActorHash ?? (object)DBNull.Value;
+                eventName.Value = item.EventName;
+                flow.Value = item.Flow ?? (object)DBNull.Value;
+                route.Value = item.Route ?? (object)DBNull.Value;
+                component.Value = item.Component ?? (object)DBNull.Value;
+                step.Value = item.Step ?? (object)DBNull.Value;
+                outcome.Value = item.Outcome ?? (object)DBNull.Value;
+                errorCode.Value = item.ErrorCode ?? (object)DBNull.Value;
+                duration.Value = item.DurationMs ?? (object)DBNull.Value;
+                device.Value = item.DeviceClass ?? (object)DBNull.Value;
+                browser.Value = item.BrowserFamily ?? (object)DBNull.Value;
+                referrer.Value = item.ReferrerDomain ?? (object)DBNull.Value;
+                source.Value = item.Source ?? (object)DBNull.Value;
+                metadata.Value = item.MetadataJson ?? (object)DBNull.Value;
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return Task.CompletedTask;
+        }, ct);
     }
 
     private void EnsureInitialized()
@@ -523,6 +685,25 @@ public sealed class SiteStatisticsService
     private static void Add(SqliteCommand cmd, string name, object? value)
         => cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
 }
+
+internal sealed record QueuedSiteStatisticEvent(
+    string Id,
+    string OccurredAtUtc,
+    string SessionHash,
+    string? ActorHash,
+    string EventName,
+    string? Flow,
+    string? Route,
+    string? Component,
+    string? Step,
+    string? Outcome,
+    string? ErrorCode,
+    long? DurationMs,
+    string? DeviceClass,
+    string? BrowserFamily,
+    string? ReferrerDomain,
+    string? Source,
+    string? MetadataJson);
 
 public sealed class SiteStatisticsEventRequest
 {

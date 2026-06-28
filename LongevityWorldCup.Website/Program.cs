@@ -23,7 +23,9 @@ namespace LongevityWorldCup.Website
         private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true }; // Cached options
         private static readonly JsonSerializerOptions HealthCheckJsonOptions = new(JsonSerializerDefaults.Web);
         private static readonly TimeSpan PublicPostRateLimitWindow = TimeSpan.FromMinutes(1);
+        private static readonly TimeSpan PublicAnalyticsPostRateLimitWindow = TimeSpan.FromMinutes(1);
         private const int PublicPostRateLimitPermitLimit = 120;
+        private const int PublicAnalyticsPostRateLimitPermitLimit = 240;
 
         public static void Main(string[] args)
         {
@@ -114,8 +116,23 @@ namespace LongevityWorldCup.Website
                     if (!HttpMethods.IsPost(context.Request.Method))
                         return RateLimitPartition.GetNoLimiter("non-post");
 
+                    var clientIdentifier = ClientIdentifier.From(context);
+                    if (string.Equals(context.Request.Path.Value, "/api/site-statistics/event", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RateLimitPartition.GetFixedWindowLimiter(
+                            $"analytics-post:{clientIdentifier}",
+                            _ => new FixedWindowRateLimiterOptions
+                            {
+                                PermitLimit = PublicAnalyticsPostRateLimitPermitLimit,
+                                Window = PublicAnalyticsPostRateLimitWindow,
+                                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                                QueueLimit = 0,
+                                AutoReplenishment = true
+                            });
+                    }
+
                     return RateLimitPartition.GetFixedWindowLimiter(
-                        $"post:{ClientIdentifier.From(context)}",
+                        $"post:{clientIdentifier}",
                         _ => new FixedWindowRateLimiterOptions
                         {
                             PermitLimit = PublicPostRateLimitPermitLimit,
@@ -170,6 +187,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<LeaderboardFactsService>();
             builder.Services.AddSingleton<SitemapService>();
             builder.Services.AddSingleton<SiteStatisticsService>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteStatisticsService>());
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);
