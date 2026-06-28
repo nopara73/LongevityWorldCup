@@ -47,7 +47,16 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains(".convergence-visual", html);
         Assert.Contains("#profileImage.illustration", html);
         Assert.Contains("aspect-ratio: 4 / 3;", html);
-        Assert.Contains("object-fit: cover;", html);
+        var profileRuleStart = html.IndexOf("#profileImage.illustration", StringComparison.Ordinal);
+        Assert.True(profileRuleStart >= 0, "Could not find profile image rule.");
+
+        var profileRuleEnd = html.IndexOf('}', profileRuleStart);
+        Assert.True(profileRuleEnd > profileRuleStart, "Could not find end of profile image rule.");
+
+        var profileRule = html[profileRuleStart..profileRuleEnd];
+        Assert.Contains("object-fit: contain;", profileRule);
+        Assert.DoesNotContain("object-fit: cover;", profileRule);
+        Assert.Contains("#descriptionForm #profileImage.illustration", html);
     }
 
     [Fact]
