@@ -1177,108 +1177,35 @@
         // Check if the URL has the query parameter "fake=1"
         const urlParams = new URLSearchParams(window.location.search);
         const isFake = urlParams.get('fake') === '1';
-        const isUpdate = urlParams.get('update') === '1';
+        const bioageFlow = window.LwcBioageFlow;
+        const isUpdate = bioageFlow.isUpdateMode(window.location.search);
 
         function getBioageBackDestination() {
-            return isUpdate ? '/dashboard' : '/join';
+            return bioageFlow.getBackDestination(isUpdate);
         }
 
         function navigateBackFromBioage() {
-            window.navigateToFlowDestination(getBioageBackDestination());
+            bioageFlow.navigateBack(isUpdate);
         }
 
-        function removeBrowserStorageItem(storageName, key) {
-            try {
-                window[storageName].removeItem(key);
-            } catch (_) {
-            }
-        }
-
-        function getBrowserStorageItem(storageName, key) {
-            try {
-                return window[storageName].getItem(key);
-            } catch (_) {
-                return null;
-            }
-        }
-
-        function setBrowserStorageItem(storageName, key, value) {
-            try {
-                window[storageName].setItem(key, value);
-                return true;
-            } catch (_) {
-                return false;
-            }
-        }
-
-        function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
-        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
-        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
-        function setLocalItem(key, value) { return setBrowserStorageItem('localStorage', key, value); }
-        function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
-        function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
-
-        function isValidSelectedAthlete(value) {
-            return value
-                && typeof value === 'object'
-                && !Array.isArray(value)
-                && typeof value.Name === 'string'
-                && value.Name.trim()
-                && hasSelectedAthleteDateOfBirth(value.DateOfBirth);
-        }
-
-        function hasSelectedAthleteDateOfBirth(value) {
-            if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-
-            const year = toSelectedAthleteDatePart(value.Year, 1, 9999);
-            const month = toSelectedAthleteDatePart(value.Month, 1, 12);
-            const day = toSelectedAthleteDatePart(value.Day, 1, 31);
-
-            if (year === null || month === null || day === null) return false;
-
-            const date = new Date(0);
-            date.setUTCFullYear(year, month - 1, day);
-            date.setUTCHours(0, 0, 0, 0);
-            return date.getUTCFullYear() === year
-                && date.getUTCMonth() === month - 1
-                && date.getUTCDate() === day;
-        }
-
-        function toSelectedAthleteDatePart(value, min, max) {
-            if (typeof value === 'boolean' || value === null || value === undefined) return null;
-
-            const number = typeof value === 'string' && value.trim()
-                ? Number(value)
-                : value;
-            return Number.isInteger(number) && number >= min && number <= max
-                ? number
-                : null;
-        }
-
-        function clearStoredBiomarkerHandoff() {
-            removeSessionItem('biomarkerData');
-            removeSessionItem('chronoPhenoDifference');
-            removeSessionItem('chronoBortzDifference');
-        }
+        const setSessionItem = bioageFlow.setSessionItem;
+        const getSessionItem = bioageFlow.getSessionItem;
+        const removeSessionItem = bioageFlow.removeSessionItem;
+        const setLocalItem = bioageFlow.setLocalItem;
+        const getLocalItem = bioageFlow.getLocalItem;
+        const removeLocalItem = bioageFlow.removeLocalItem;
+        const isValidSelectedAthlete = bioageFlow.isValidSelectedAthlete;
+        const clearStoredBiomarkerHandoff = () => bioageFlow.clearStoredBiomarkerHandoff(removeSessionItem);
 
         function clearPendingPaymentOffer() {
             removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
         }
 
-        let athlete = null;
-
-        try {
-            const selectedAthleteJson = getSessionItem('selectedAthlete');
-            athlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
-        } catch {
-            athlete = null;
-        }
+        let athlete = bioageFlow.readSelectedAthlete(getSessionItem);
 
         const hasSelectedAthlete = isValidSelectedAthlete(athlete);
         if (isUpdate && !hasSelectedAthlete) {
-            removeSessionItem('selectedAthlete');
-            removeSessionItem('tempAthlete');
-            window.location.replace('/select-athlete');
+            bioageFlow.redirectMissingSelectedAthlete(removeSessionItem);
             athlete = null;
         }
 
@@ -1674,16 +1601,7 @@
         }
 
         function updateCalculateButton() {
-            const calculateButton = document.querySelector('form button[type="submit"]');
-            const nextButton = document.getElementById('continueButton');
-
-            if (nextButton.classList.contains('show')) {
-                calculateButton.classList.remove('green'); // Reset style
-                calculateButton.classList.add('grey', 'flow-action--secondary');
-            } else {
-                calculateButton.classList.remove('grey', 'flow-action--secondary');
-                calculateButton.classList.add('green'); // Apply matching style
-            }
+            bioageFlow.updateCalculateButton();
         }
 
         updateCalculateButton();
@@ -1697,7 +1615,13 @@
 
         function correctCorrectableUnits() {
             const parse = (id) => parseFloat(document.getElementById(id).value);
-            const setUnit = (id, val) => { document.getElementById(id).value = String(val); };
+            const setUnit = (id, val) => {
+                const unitEl = document.getElementById(id);
+                if (!unitEl) return;
+
+                unitEl.value = String(val);
+                bioageFlow.updateBiomarkerExamplePlaceholder(unitEl);
+            };
 
             // Albumin
             const albuminValue = parse('albumin');
@@ -2266,17 +2190,14 @@
         }
 
         function hideUpdateModeStepNavigation() {
-            const wizardNav = document.querySelector('.lwc-wizard-nav');
-            if (wizardNav) wizardNav.hidden = true;
-
-            const stepBackButton = document.getElementById('lwcToStep1Btn');
-            const stepBackActions = stepBackButton?.closest('.lwc-step-actions');
-            if (stepBackActions) stepBackActions.hidden = true;
+            bioageFlow.hideUpdateModeStepNavigation();
         }
 
 
         document.addEventListener('DOMContentLoaded', function () {
             // Step navigation buttons
+            bioageFlow.syncBiomarkerExamplePlaceholders();
+
             const toStep2Btn = document.getElementById('lwcToStep2Btn');
             const toStep1Btn = document.getElementById('lwcToStep1Btn');
 
@@ -2398,6 +2319,7 @@
             }
 
             updateModeFormInitializerUnique();
+            bioageFlow.syncBiomarkerExamplePlaceholders();
 
             if (isUpdate && hasSelectedAthlete) {
                 hideUpdateModeStepNavigation();
@@ -2497,7 +2419,10 @@
             }
         }
 
-        window.addEventListener('pageshow', updateModeFormInitializerUnique);
+        window.addEventListener('pageshow', () => {
+            updateModeFormInitializerUnique();
+            bioageFlow.syncBiomarkerExamplePlaceholders();
+        });
 
         // Detect and apply preferences based on language
         function applyLanguagePreferences() {
@@ -2718,6 +2643,7 @@
                 crpUnit.disabled = false; // Enable unit selector
             }
 
+            bioageFlow.updateBiomarkerExamplePlaceholder(crpUnit);
             calculateResultIfResultAlreadyCalculated();
 
             const card = document.getElementById('crp').closest('.biomarker-card');

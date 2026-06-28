@@ -78,6 +78,19 @@ public sealed class FlowControlsPageTests
     }
 
     [Theory]
+    [InlineData("/pheno-age")]
+    [InlineData("/bortz-age")]
+    public async Task BioagePages_LoadVersionedBioageFlowScript(string path)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains("/js/bioage-flow.js?v=", html);
+    }
+
+    [Theory]
     [InlineData("/join", "onclick=\"window.navigateToFlowDestination('/play')\"")]
     [InlineData("/edit-profile", "onclick=\"window.navigateToFlowDestination('/dashboard')\"")]
     [InlineData("/proofs", "onclick=\"window.navigateToFlowDestination('/dashboard')\"")]
