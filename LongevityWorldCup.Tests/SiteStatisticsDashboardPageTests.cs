@@ -1,4 +1,5 @@
 using Xunit;
+using System.Runtime.CompilerServices;
 
 namespace LongevityWorldCup.Tests;
 
@@ -40,5 +41,32 @@ public sealed class SiteStatisticsDashboardPageTests
 
         Assert.Contains("/js/site-statistics-tracking.js", html);
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_TRACKING_JS}}", html);
+    }
+
+    [Fact]
+    public void SiteStatisticsTracker_SupportsCurrentJoinMenuControls()
+    {
+        var repoRoot = FindRepoRoot();
+        var menu = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "play", "menu.html"));
+        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
+
+        Assert.Contains("id=\"joinStartAmateurBtn\"", menu);
+        Assert.Contains("id=\"joinGoProButton\"", menu);
+        Assert.Contains("play-join-biomarkers", menu);
+        Assert.Contains("joinStartAmateurBtn", tracker);
+        Assert.Contains("joinGoProButton", tracker);
+        Assert.Contains(".play-join-biomarkers details", tracker);
+        Assert.Contains(".play-join-card--pro", tracker);
+    }
+
+    private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")
+    {
+        var dir = Path.GetDirectoryName(sourceFilePath)!;
+        while (dir is not null && !File.Exists(Path.Combine(dir, "LongevityWorldCup.sln")))
+        {
+            dir = Directory.GetParent(dir)?.FullName;
+        }
+
+        return dir ?? throw new InvalidOperationException("Could not find repository root.");
     }
 }

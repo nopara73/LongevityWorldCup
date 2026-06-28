@@ -36,21 +36,22 @@ public sealed class PlayMenuPageTests
         Assert.Contains("id=\"continueGameBtn\" type=\"button\"", html);
         Assert.Contains("id=\"athleteSelectionPanel\"", html);
         Assert.Contains("id=\"athleteDashboardPanel\"", html);
-        Assert.Contains("function showAthleteSelection(options = {})", html);
-        Assert.Contains("function showAthleteDashboard(athlete, options = {})", html);
-        Assert.Contains("return '/select-athlete';", html);
-        Assert.Contains("return '/dashboard';", html);
+        Assert.Contains("const playRouteStates = Object.freeze({", html);
+        Assert.Contains("selection: Object.freeze({ route: '/select-athlete', panelId: 'athleteSelectionPanel', isWide: false })", html);
+        Assert.Contains("dashboard: Object.freeze({ route: '/dashboard', panelId: 'athleteDashboardPanel', isWide: false })", html);
+        Assert.Contains("function showPlayPanel(requestedPanelName, options = {})", html);
+        Assert.Contains("function navigateToPreviousPlayPanel(fallbackPanelName)", html);
         Assert.Contains("window.history.pushState(state, '', route);", html);
         Assert.Contains("window.addEventListener('popstate', showPanelForCurrentUrl);", html);
-        Assert.Contains("contBtn.addEventListener('click', () => showAthleteSelection({ historyMode: 'push' }));", html);
-        Assert.Contains("showAthleteDashboard(currentAthlete, { historyMode: 'push' });", html);
+        Assert.Contains("window.history.back();", html);
+        Assert.Contains("contBtn.addEventListener('click', () => showPlayPanel('selection', { historyMode: 'push' }));", html);
+        Assert.Contains("showPlayPanel('dashboard', { historyMode: 'push' });", html);
         Assert.Contains("function navigateToStartPanel()", html);
         Assert.Contains("function navigateToSelectionPanel()", html);
-        Assert.Contains("showStartPanel({ historyMode: 'replace' });", html);
-        Assert.Contains("showAthleteSelection({ historyMode: 'replace' });", html);
+        Assert.Contains("navigateToPreviousPlayPanel('start');", html);
+        Assert.Contains("navigateToPreviousPlayPanel('selection');", html);
         Assert.Contains("document.getElementById('playSelectionBackBtn').addEventListener('click', navigateToStartPanel);", html);
         Assert.Contains("document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);", html);
-        Assert.DoesNotContain("window.history.back()", html);
         Assert.DoesNotContain("addEventListener('click', returnToStartPanel)", html);
         Assert.DoesNotContain("addEventListener('click', returnToSelectionPanel)", html);
         Assert.DoesNotContain("onclick=\"window.location.href='/select-athlete'\"", html);
@@ -70,10 +71,9 @@ public sealed class PlayMenuPageTests
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
 
         Assert.Contains("id=\"joinTrackPanel\"", html);
-        Assert.Contains("return '/join';", html);
+        Assert.Contains("join: Object.freeze({ route: '/join', panelId: 'joinTrackPanel', isWide: true })", html);
         Assert.Contains("if (path === '/join') return 'join';", html);
-        Assert.Contains("function showJoinTrackPanel(options = {})", html);
-        Assert.Contains("newBtn.addEventListener('click', () => showJoinTrackPanel({ historyMode: 'push' }));", html);
+        Assert.Contains("newBtn.addEventListener('click', () => showPlayPanel('join', { historyMode: 'push' }));", html);
         Assert.Contains("document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);", html);
         Assert.DoesNotContain("onclick=\"window.location.href='/join'\"", html);
         Assert.Contains("flow.setPendingPaymentOffer({", html);
@@ -157,17 +157,35 @@ public sealed class PlayMenuPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
-        var showStart = html.IndexOf("function showAthleteSelection(options = {})", StringComparison.Ordinal);
-        var hydrate = html.IndexOf("athleteSelection.hydrateStoredAthleteSelection();", showStart, StringComparison.Ordinal);
-        var showPanel = html.IndexOf("showPanel('athleteSelectionPanel');", showStart, StringComparison.Ordinal);
-        var load = html.IndexOf("athleteSelection.loadAthletes().catch(() => {});", showStart, StringComparison.Ordinal);
+        var selectionBranch = html.IndexOf("if (panelName === 'selection')", StringComparison.Ordinal);
+        var hydrate = html.IndexOf("athleteSelection.hydrateStoredAthleteSelection();", selectionBranch, StringComparison.Ordinal);
+        var showPanel = html.IndexOf("showPanelByName(panelName);", hydrate, StringComparison.Ordinal);
+        var load = html.IndexOf("athleteSelection.loadAthletes().catch(() => {});", showPanel, StringComparison.Ordinal);
 
-        Assert.True(showStart >= 0);
-        Assert.True(hydrate > showStart);
+        Assert.True(selectionBranch >= 0);
+        Assert.True(hydrate > selectionBranch);
         Assert.True(showPanel > hydrate);
         Assert.True(load > showPanel);
         Assert.Contains("flow.createAthleteSelectionController({", html);
-        Assert.Contains("const selectedAthlete = athleteSelection.getCurrentAthlete() || flow.readRequiredSelectedAthlete();", html);
+        Assert.Contains("const dashboardAthlete = athleteSelection.getCurrentAthlete() || flow.getStoredSelectedAthlete();", html);
+    }
+
+    [Fact]
+    public async Task PlayMenu_DashboardRendersStoredAthleteBeforePanelShows()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/menu.html");
+        var dashboardBranch = html.IndexOf("if (panelName === 'dashboard')", StringComparison.Ordinal);
+        var renderHeader = html.IndexOf("flow.renderAthleteDashboardHeader(athlete, {", dashboardBranch, StringComparison.Ordinal);
+        var renderActions = html.IndexOf("flow.renderDashboardActions(athlete, {", renderHeader, StringComparison.Ordinal);
+        var showPanel = html.IndexOf("showPanelByName(panelName);", renderActions, StringComparison.Ordinal);
+
+        Assert.True(dashboardBranch >= 0);
+        Assert.True(renderHeader > dashboardBranch);
+        Assert.True(renderActions > renderHeader);
+        Assert.True(showPanel > renderActions);
     }
 
     [Fact]

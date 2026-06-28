@@ -19,6 +19,15 @@
         try { return fn(); } catch (_) { return null; }
     }
 
+    function listen(target, type, handler, options) {
+        if (!target || typeof target.addEventListener !== "function") return;
+        safe(() => {
+            target.addEventListener(type, event => {
+                safe(() => handler(event));
+            }, options);
+        });
+    }
+
     function getSessionId() {
         const existing = safe(() => sessionStorage.getItem(sessionKey));
         if (existing) return existing;
@@ -217,11 +226,11 @@
         const form = document.getElementById("phenoAgeForm") || document.getElementById("bortzAgeForm");
         if (!form) return;
 
-        form.addEventListener("submit", () => {
+        listen(form, "submit", () => {
             track("calculator_started", { component: "calculator", outcome: "submitted" });
         }, true);
 
-        form.addEventListener("invalid", event => {
+        listen(form, "invalid", event => {
             track("calculator_validation_failed", {
                 component: "calculator",
                 step: safeFieldKey(event.target),
@@ -232,14 +241,14 @@
 
         const required = Array.from(form.querySelectorAll("input[required], select[required], textarea[required]"));
         required.forEach(el => {
-            el.addEventListener("focus", () => {
+            listen(el, "focus", () => {
                 const key = safeFieldKey(el);
                 if (touchedFields.has(key)) return;
                 touchedFields.add(key);
                 track("calculator_field_touched", { component: "calculator", step: key, outcome: "touched" });
             }, { passive: true });
 
-            el.addEventListener("change", () => {
+            listen(el, "change", () => {
                 const key = safeFieldKey(el);
                 if (el.value && !completedFields.has(key)) {
                     completedFields.add(key);
@@ -266,7 +275,7 @@
         const rank = document.getElementById("phenoAgeRankPreview") || document.getElementById("bortzAgeRankPreview");
         const continueButton = document.getElementById("continueButton");
         if (continueButton) {
-            continueButton.addEventListener("click", () => {
+            listen(continueButton, "click", () => {
                 track("calculator_continue_clicked", { component: "calculator", outcome: "clicked" });
                 const paymentOffer = !!safe(() => sessionStorage.getItem("pendingPaymentOffer"));
                 const biomarkerData = !!safe(() => sessionStorage.getItem("biomarkerData"));
@@ -277,12 +286,14 @@
 
         if (result) {
             const observer = new MutationObserver(() => {
-                if (!result.classList.contains("show")) return;
-                const yearsText = document.getElementById("yearsText");
-                trackOnce(`result-${flowFromPath()}`, "calculator_result_generated", {
-                    component: "calculator",
-                    outcome: "succeeded",
-                    metadata: { ageReductionBucket: ageReductionBucketFromText(yearsText && yearsText.textContent) }
+                safe(() => {
+                    if (!result.classList.contains("show")) return;
+                    const yearsText = document.getElementById("yearsText");
+                    trackOnce(`result-${flowFromPath()}`, "calculator_result_generated", {
+                        component: "calculator",
+                        outcome: "succeeded",
+                        metadata: { ageReductionBucket: ageReductionBucketFromText(yearsText && yearsText.textContent) }
+                    });
                 });
             });
             observer.observe(result, { attributes: true, attributeFilter: ["class"] });
@@ -290,10 +301,12 @@
 
         if (rank) {
             const observer = new MutationObserver(() => {
-                if (rank.hidden || !rank.textContent.trim()) return;
-                trackOnce(`rank-${flowFromPath()}`, "rank_preview_rendered", {
-                    component: "rank_preview",
-                    outcome: "rendered"
+                safe(() => {
+                    if (rank.hidden || !rank.textContent.trim()) return;
+                    trackOnce(`rank-${flowFromPath()}`, "rank_preview_rendered", {
+                        component: "rank_preview",
+                        outcome: "rendered"
+                    });
                 });
             });
             observer.observe(rank, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "aria-busy"] });
@@ -304,7 +317,7 @@
         ["proofPicInput", "proofCameraInput", "profilePicInput", "profileCameraInput"].forEach(id => {
             const input = document.getElementById(id);
             if (!input) return;
-            input.addEventListener("change", () => {
+            listen(input, "change", () => {
                 const files = Array.from(input.files || []);
                 const isProof = id.toLowerCase().includes("proof");
                 const first = files[0];
@@ -321,13 +334,13 @@
             }, { passive: true });
         });
 
-        document.getElementById("uploadProofButton")?.addEventListener("click", () => {
+        listen(document.getElementById("uploadProofButton"), "click", () => {
             track("proof_upload_clicked", { component: "proof_upload", outcome: "clicked" });
         }, { passive: true });
-        document.getElementById("takeProofPhotoButton")?.addEventListener("click", () => {
+        listen(document.getElementById("takeProofPhotoButton"), "click", () => {
             track("proof_camera_clicked", { component: "proof_upload", outcome: "clicked" });
         }, { passive: true });
-        document.getElementById("nextButton")?.addEventListener("click", () => {
+        listen(document.getElementById("nextButton"), "click", () => {
             const applyDetailsVisible = document.getElementById("applyDetails")?.style.display !== "none";
             if (applyDetailsVisible) {
                 track("application_submit_clicked", { component: "application", outcome: "clicked" });
@@ -336,9 +349,9 @@
     }
 
     function setupJoinGameTracking() {
-        const amateur = document.querySelector("[onclick*='startAmateurApplication']");
-        const pro = document.querySelector("[onclick*='startProApplication']");
-        amateur?.addEventListener("click", () => {
+        const amateur = document.getElementById("joinStartAmateurBtn") || document.querySelector("[onclick*='startAmateurApplication']");
+        const pro = document.getElementById("joinGoProButton") || document.querySelector("[onclick*='startProApplication']");
+        listen(amateur, "click", () => {
             track("onboarding_clock_selected", {
                 flow: "pheno",
                 component: "join_game",
@@ -347,7 +360,7 @@
                 metadata: { track: "amateur" }
             });
         }, { passive: true });
-        pro?.addEventListener("click", () => {
+        listen(pro, "click", () => {
             track("onboarding_clock_selected", {
                 flow: "bortz",
                 component: "join_game",
@@ -357,10 +370,10 @@
             });
         }, { passive: true });
 
-        document.querySelectorAll(".biomarker-disclosure").forEach(details => {
-            details.addEventListener("toggle", () => {
+        document.querySelectorAll(".biomarker-disclosure, .play-join-biomarkers details").forEach(details => {
+            listen(details, "toggle", () => {
                 if (!details.open) return;
-                const isPro = !!details.closest(".track-card.pro");
+                const isPro = !!details.closest(".track-card.pro, .play-join-card--pro");
                 track("onboarding_biomarker_requirements_opened", {
                     flow: isPro ? "bortz" : "pheno",
                     component: "join_game",
@@ -376,7 +389,7 @@
         const signupForm = document.getElementById("lmxSignupForm");
         if (!signupForm) return;
 
-        signupForm.addEventListener("input", event => {
+        listen(signupForm, "input", event => {
             const target = event.target;
             if (!target) return;
             if (target.id === "lmxSignupEmail") {
@@ -400,7 +413,7 @@
             }
         }, { passive: true });
 
-        signupForm.addEventListener("invalid", event => {
+        listen(signupForm, "invalid", event => {
             const key = safeFieldKey(event.target);
             track(key === "lmxSignupCommitmentAmount" ? "challenge_pledge_validation_failed" : "challenge_email_validation_failed", {
                 component: "signup",
@@ -410,12 +423,12 @@
             });
         }, true);
 
-        signupForm.addEventListener("submit", () => {
+        listen(signupForm, "submit", () => {
             track("challenge_signup_submitted", { component: "signup", outcome: "submitted" });
         }, true);
 
         document.querySelectorAll("[name='lmxSignupIdentity']").forEach(input => {
-            input.addEventListener("change", () => {
+            listen(input, "change", () => {
                 track("challenge_identity_selected", {
                     component: "signup",
                     step: "identity",
@@ -425,20 +438,20 @@
             }, { passive: true });
         });
 
-        document.getElementById("lmxSignupAthlete")?.addEventListener("input", () => {
+        listen(document.getElementById("lmxSignupAthlete"), "input", () => {
             trackOnce("challenge-athlete-search-started", "challenge_athlete_search_started", { component: "signup", step: "athlete_search", outcome: "started" });
         }, { passive: true });
-        document.getElementById("lmxSignupTimeZoneButton")?.addEventListener("click", () => {
+        listen(document.getElementById("lmxSignupTimeZoneButton"), "click", () => {
             track("challenge_timezone_picker_opened", { component: "signup", step: "timezone", outcome: "opened" });
         }, { passive: true });
-        document.getElementById("lmxSignupTimeZoneSearch")?.addEventListener("input", () => {
+        listen(document.getElementById("lmxSignupTimeZoneSearch"), "input", () => {
             trackOnce("challenge-timezone-searched", "challenge_timezone_searched", { component: "signup", step: "timezone", outcome: "searched" });
         }, { passive: true });
-        document.getElementById("lmxSignupTimeZone")?.addEventListener("change", () => {
+        listen(document.getElementById("lmxSignupTimeZone"), "change", () => {
             track("challenge_timezone_selected", { component: "signup", step: "timezone", outcome: "selected" });
         }, { passive: true });
 
-        document.addEventListener("submit", event => {
+        listen(document, "submit", event => {
             const form = event.target;
             if (!(form instanceof HTMLFormElement) || !form.classList.contains("lmx-checkin-card")) return;
             const day = Number(form.dataset.day || form.querySelector("[name='challengeDay']")?.value);
@@ -458,11 +471,30 @@
 
         window.fetch = function () {
             const args = arguments;
-            const url = String(args[0] && args[0].url || args[0] || "");
+            const url = safe(() => String(args[0] && args[0].url || args[0] || "")) || "";
             const started = now();
-            const observed = classifyFetch(url);
-            return originalFetch.apply(this, args).then(response => {
-                if (observed) {
+            const observed = safe(() => classifyFetch(url));
+            let request;
+            try {
+                request = originalFetch.apply(this, args);
+            } catch (error) {
+                safe(() => {
+                    if (observed) {
+                        track(observed.failureEvent, {
+                            component: observed.component,
+                            step: observed.step,
+                            outcome: "failed",
+                            errorCode: error && error.name ? error.name : "fetch_failed",
+                            durationMs: Math.round(now() - started)
+                        });
+                    }
+                });
+                throw error;
+            }
+
+            return Promise.resolve(request).then(response => {
+                safe(() => {
+                    if (!observed) return;
                     track(observed.successEvent(response), {
                         component: observed.component,
                         step: observed.step,
@@ -470,10 +502,11 @@
                         errorCode: response.ok ? null : `http_${response.status}`,
                         durationMs: Math.round(now() - started)
                     });
-                }
+                });
                 return response;
             }, error => {
-                if (observed) {
+                safe(() => {
+                    if (!observed) return;
                     track(observed.failureEvent, {
                         component: observed.component,
                         step: observed.step,
@@ -481,7 +514,7 @@
                         errorCode: error && error.name ? error.name : "network_failed",
                         durationMs: Math.round(now() - started)
                     });
-                }
+                });
                 throw error;
             });
         };
@@ -576,14 +609,14 @@
     };
 
     setupFetchTracking();
-    document.addEventListener("DOMContentLoaded", () => {
-        setupPageViews();
-        setupJoinGameTracking();
-        setupCalculatorTracking();
-        setupProofTracking();
-        setupChallengeTracking();
+    listen(document, "DOMContentLoaded", () => {
+        safe(setupPageViews);
+        safe(setupJoinGameTracking);
+        safe(setupCalculatorTracking);
+        safe(setupProofTracking);
+        safe(setupChallengeTracking);
     });
-    window.addEventListener("error", event => {
+    listen(window, "error", event => {
         track("client_error_observed", {
             component: "client",
             outcome: "failed",

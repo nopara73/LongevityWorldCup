@@ -930,15 +930,30 @@
     <!--FOOTER-->
     <script>
         (function () {
-            if (window.location.pathname.toLowerCase() !== '/join') return;
+            const panelByPath = {
+                '/join': { panelId: 'joinTrackPanel', isWide: true },
+                '/select-athlete': { panelId: 'athleteSelectionPanel', isWide: false },
+                '/dashboard': { panelId: 'athleteDashboardPanel', isWide: false }
+            };
+            const path = window.location.pathname.toLowerCase();
+            let target = panelByPath[path];
+            if (!target) return;
 
-            document.querySelector('.play-hub-main')?.classList.add('play-hub-main--wide');
-            const startPanel = document.getElementById('playStartPanel');
-            const joinPanel = document.getElementById('joinTrackPanel');
-            if (startPanel && joinPanel) {
-                startPanel.hidden = true;
-                joinPanel.hidden = false;
+            if (path === '/dashboard') {
+                try {
+                    const athlete = JSON.parse(window.sessionStorage.getItem('selectedAthlete') || 'null');
+                    if (!athlete || typeof athlete.Name !== 'string' || !athlete.Name.trim()) {
+                        target = panelByPath['/select-athlete'];
+                    }
+                } catch (_) {
+                    target = panelByPath['/select-athlete'];
+                }
             }
+
+            document.querySelector('.play-hub-main')?.classList.toggle('play-hub-main--wide', target.isWide);
+            document.querySelectorAll('.play-hub-panel').forEach(panel => {
+                panel.hidden = panel.id !== target.panelId;
+            });
         })();
     </script>
     <script>
@@ -946,6 +961,13 @@
             const storageErrorMessage = 'Browser storage is unavailable. Enable storage and try again.';
             let flow = null;
             let athleteSelection = null;
+            let activePlayPanelName = null;
+            const playRouteStates = Object.freeze({
+                start: Object.freeze({ route: '/play', panelId: 'playStartPanel', isWide: false }),
+                join: Object.freeze({ route: '/join', panelId: 'joinTrackPanel', isWide: true }),
+                selection: Object.freeze({ route: '/select-athlete', panelId: 'athleteSelectionPanel', isWide: false }),
+                dashboard: Object.freeze({ route: '/dashboard', panelId: 'athleteDashboardPanel', isWide: false })
+            });
 
             function getFlowReady() {
                 return Promise.resolve(window.modulesReady || undefined)
@@ -957,39 +979,59 @@
                     });
             }
 
-            function getPlayRoute(panelName) {
-                switch (panelName) {
-                    case 'join':
-                        return '/join';
-                    case 'selection':
-                        return '/select-athlete';
-                    case 'dashboard':
-                        return '/dashboard';
-                    default:
-                        return '/play';
-                }
+            function getPlayRouteState(panelName) {
+                return playRouteStates[panelName] || playRouteStates.start;
             }
 
-            function getPlayPanelForPath() {
-                const path = window.location.pathname.toLowerCase();
+            function getPlayRoute(panelName) {
+                return getPlayRouteState(panelName).route;
+            }
+
+            function getPlayPanelNameForPath(pathname = window.location.pathname) {
+                const path = pathname.toLowerCase();
                 if (path === '/join') return 'join';
                 if (path === '/select-athlete') return 'selection';
                 if (path === '/dashboard') return 'dashboard';
                 return 'start';
             }
 
-            function setPlayHistory(panelName, historyMode) {
+            function getCurrentPlayPanelName() {
+                const statePanel = window.history && window.history.state && window.history.state.playPanel;
+                return activePlayPanelName || (playRouteStates[statePanel] ? statePanel : getPlayPanelNameForPath());
+            }
+
+            function getPlayUrl(panelName, options = {}) {
+                const route = getPlayRoute(panelName);
+                return options.preserveCurrentUrlParts
+                    ? `${route}${window.location.search}${window.location.hash}`
+                    : route;
+            }
+
+            function createPlayHistoryState(panelName, previousPlayPanel = null) {
+                return {
+                    playPanel: panelName,
+                    previousPlayPanel: playRouteStates[previousPlayPanel] ? previousPlayPanel : null
+                };
+            }
+
+            function setPlayHistory(panelName, historyMode, options = {}) {
                 if (!historyMode || !window.history) return;
 
-                const route = getPlayRoute(panelName);
-                const state = { playPanel: panelName };
+                const route = getPlayUrl(panelName, options);
+                const currentPath = window.location.pathname.toLowerCase();
+                const currentPanelName = getCurrentPlayPanelName();
+                const currentPreviousPanel = window.history.state && window.history.state.previousPlayPanel;
+                const nextPreviousPanel = historyMode === 'push' && currentPanelName !== panelName
+                    ? currentPanelName
+                    : currentPreviousPanel;
+                const state = createPlayHistoryState(panelName, nextPreviousPanel);
                 if (historyMode === 'replace') {
                     window.history.replaceState(state, '', route);
                     return;
                 }
 
                 if (historyMode === 'push') {
-                    if (window.location.pathname.toLowerCase() === route) {
+                    if (currentPath === getPlayRoute(panelName)) {
                         window.history.replaceState(state, '', route);
                     } else {
                         window.history.pushState(state, '', route);
@@ -997,77 +1039,75 @@
                 }
             }
 
-            function showPanel(panelId) {
-                document.querySelector('.play-hub-main')?.classList.toggle('play-hub-main--wide', panelId === 'joinTrackPanel');
+            function showPanelByName(panelName) {
+                const state = getPlayRouteState(panelName);
+                activePlayPanelName = panelName;
+                document.querySelector('.play-hub-main')?.classList.toggle('play-hub-main--wide', state.isWide);
                 document.querySelectorAll('.play-hub-panel').forEach(panel => {
-                    const isActive = panel.id === panelId;
+                    const isActive = panel.id === state.panelId;
                     panel.hidden = !isActive;
                 });
                 window.scrollTo(0, 0);
             }
 
-            function showStartPanel(options = {}) {
-                setPlayHistory('start', options.historyMode);
-                showPanel('playStartPanel');
-                athleteSelection.closeAllLists();
-                flow.focusWithoutScrolling(document.getElementById('continueGameBtn'));
-            }
-
-            function showJoinTrackPanel(options = {}) {
-                setPlayHistory('join', options.historyMode);
-                showPanel('joinTrackPanel');
-                athleteSelection.closeAllLists();
-                renderJoinPricing();
-                flow.focusWithoutScrolling(document.getElementById('joinStartAmateurBtn'));
-            }
-
-            function showAthleteSelection(options = {}) {
-                setPlayHistory('selection', options.historyMode);
-                athleteSelection.hydrateStoredAthleteSelection();
-                showPanel('athleteSelectionPanel');
-                athleteSelection.loadAthletes().catch(() => {});
-                requestAnimationFrame(() => flow.focusWithoutScrolling(document.getElementById('playAthleteInput')));
-            }
-
-            function showAthleteDashboard(athlete, options = {}) {
-                if (!athlete || !athlete.Name) {
-                    showAthleteSelection({ historyMode: options.historyMode || 'replace' });
-                    return;
+            function resolveRequestedPlayPanel(panelName) {
+                if (panelName !== 'dashboard') {
+                    return { panelName, dashboardAthlete: null };
                 }
 
-                setPlayHistory('dashboard', options.historyMode);
-                flow.renderAthleteDashboardHeader(athlete, {
-                    titleElement: document.getElementById('athleteDashboardTitle'),
-                    frameElement: document.getElementById('athleteDashboardPicture')
-                });
-                showPanel('athleteDashboardPanel');
-                flow.renderDashboardActions(athlete, {
-                    dynamicActionsElement: document.getElementById('athleteDashboardDynamicActions')
-                });
+                const dashboardAthlete = athleteSelection.getCurrentAthlete() || flow.getStoredSelectedAthlete();
+                if (!dashboardAthlete || !dashboardAthlete.Name) {
+                    return { panelName: 'selection', dashboardAthlete: null };
+                }
+
+                athleteSelection.setCurrentAthlete(dashboardAthlete);
+                return { panelName: 'dashboard', dashboardAthlete };
             }
 
-            function showPanelForCurrentUrl() {
-                const panelName = getPlayPanelForPath();
-                if (panelName === 'dashboard') {
-                    const selectedAthlete = athleteSelection.getCurrentAthlete() || flow.readRequiredSelectedAthlete();
-                    if (!selectedAthlete) return;
+            function showPlayPanel(requestedPanelName, options = {}) {
+                const requested = playRouteStates[requestedPanelName] ? requestedPanelName : 'start';
+                const resolved = resolveRequestedPlayPanel(requested);
+                const panelName = resolved.panelName;
+                const historyMode = requested === panelName ? options.historyMode : (options.historyMode || 'replace');
 
-                    athleteSelection.setCurrentAthlete(selectedAthlete);
-                    showAthleteDashboard(selectedAthlete, { historyMode: null });
-                    return;
-                }
+                setPlayHistory(panelName, historyMode, options);
 
                 if (panelName === 'join') {
-                    showJoinTrackPanel({ historyMode: null });
+                    athleteSelection.closeAllLists();
+                    renderJoinPricing();
+                    showPanelByName(panelName);
+                    flow.focusWithoutScrolling(document.getElementById('joinStartAmateurBtn'));
                     return;
                 }
 
                 if (panelName === 'selection') {
-                    showAthleteSelection({ historyMode: null });
+                    athleteSelection.hydrateStoredAthleteSelection();
+                    showPanelByName(panelName);
+                    athleteSelection.loadAthletes().catch(() => {});
+                    requestAnimationFrame(() => flow.focusWithoutScrolling(document.getElementById('playAthleteInput')));
                     return;
                 }
 
-                showStartPanel({ historyMode: null });
+                if (panelName === 'dashboard') {
+                    const athlete = resolved.dashboardAthlete;
+                    flow.renderAthleteDashboardHeader(athlete, {
+                        titleElement: document.getElementById('athleteDashboardTitle'),
+                        frameElement: document.getElementById('athleteDashboardPicture')
+                    });
+                    flow.renderDashboardActions(athlete, {
+                        dynamicActionsElement: document.getElementById('athleteDashboardDynamicActions')
+                    });
+                    showPanelByName(panelName);
+                    return;
+                }
+
+                athleteSelection.closeAllLists();
+                showPanelByName(panelName);
+                flow.focusWithoutScrolling(document.getElementById('continueGameBtn'));
+            }
+
+            function showPanelForCurrentUrl() {
+                showPlayPanel(getPlayPanelNameForPath(), { historyMode: null });
             }
 
             function initializePlayHistory() {
@@ -1078,17 +1118,31 @@
                 } catch (_) {
                 }
 
-                const panelName = getPlayPanelForPath();
-                const initialUrl = getPlayRoute(panelName) + window.location.search + window.location.hash;
-                window.history.replaceState({ playPanel: panelName }, '', initialUrl);
+                const requestedPanelName = getPlayPanelNameForPath();
+                const resolved = resolveRequestedPlayPanel(requestedPanelName);
+                window.history.replaceState(
+                    createPlayHistoryState(resolved.panelName),
+                    '',
+                    getPlayUrl(resolved.panelName, { preserveCurrentUrlParts: true })
+                );
+            }
+
+            function navigateToPreviousPlayPanel(fallbackPanelName) {
+                const previousPanelName = window.history && window.history.state && window.history.state.previousPlayPanel;
+                if (previousPanelName === fallbackPanelName && window.history.length > 1) {
+                    window.history.back();
+                    return;
+                }
+
+                showPlayPanel(fallbackPanelName, { historyMode: 'replace' });
             }
 
             function navigateToStartPanel() {
-                showStartPanel({ historyMode: 'replace' });
+                navigateToPreviousPlayPanel('start');
             }
 
             function navigateToSelectionPanel() {
-                showAthleteSelection({ historyMode: 'replace' });
+                navigateToPreviousPlayPanel('selection');
             }
 
             function getCheckoutQuerySuffix() {
@@ -1215,8 +1269,8 @@
                         container.insertBefore(newBtn, container.firstChild);
                     }
 
-                    newBtn.addEventListener('click', () => showJoinTrackPanel({ historyMode: 'push' }));
-                    contBtn.addEventListener('click', () => showAthleteSelection({ historyMode: 'push' }));
+                    newBtn.addEventListener('click', () => showPlayPanel('join', { historyMode: 'push' }));
+                    contBtn.addEventListener('click', () => showPlayPanel('selection', { historyMode: 'push' }));
                     document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);
                     document.getElementById('joinStartAmateurBtn').addEventListener('click', event => startAmateurApplication(event.currentTarget));
                     document.getElementById('joinGoProButton').addEventListener('click', event => startProApplication(event.currentTarget));
@@ -1229,7 +1283,7 @@
                             customAlert(storageErrorMessage);
                             return;
                         }
-                        showAthleteDashboard(currentAthlete, { historyMode: 'push' });
+                        showPlayPanel('dashboard', { historyMode: 'push' });
                     });
 
                     window.addEventListener('popstate', showPanelForCurrentUrl);

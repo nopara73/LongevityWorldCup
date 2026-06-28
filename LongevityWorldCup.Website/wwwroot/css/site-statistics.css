@@ -748,6 +748,266 @@ select:focus,
     font-size: 10px;
 }
 
+@media (min-width: 1181px) {
+    .stats-page {
+        padding: 10px 14px;
+        gap: 8px;
+    }
+
+    .stats-header {
+        padding: 9px 10px;
+        gap: 10px;
+    }
+
+    .stats-title {
+        gap: 2px;
+    }
+
+    h1 {
+        font-size: 30px;
+    }
+
+    h2 {
+        font-size: 13px;
+    }
+
+    .stats-controls {
+        gap: 6px;
+    }
+
+    .stats-controls label {
+        min-width: 92px;
+        gap: 2px;
+    }
+
+    select,
+    .stats-button {
+        min-height: 30px;
+        padding: 5px 8px;
+    }
+
+    .stats-tabs,
+    .flow-selectors {
+        gap: 6px;
+    }
+
+    .stats-tab {
+        min-height: 30px;
+        padding: 5px 9px;
+        font-size: 12px;
+    }
+
+    .stats-status {
+        min-height: 16px;
+        font-size: 11px;
+    }
+
+    .decision-grid,
+    .decision-support-grid,
+    .stats-main-grid,
+    .detail-sections {
+        gap: 8px;
+    }
+
+    .decision-grid {
+        grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.75fr);
+    }
+
+    .decision-support-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
+    }
+
+    .stats-panel {
+        padding: 10px;
+    }
+
+    .panel-heading {
+        min-height: 24px;
+        gap: 7px;
+        margin-bottom: 6px;
+    }
+
+    .decision-brief,
+    .investigation-list,
+    .segment-comparisons,
+    .trend-watch {
+        gap: 6px;
+    }
+
+    .decision-brief,
+    .investigation-list {
+        max-height: 140px;
+        overflow: auto;
+        padding-right: 2px;
+    }
+
+    .segment-comparisons,
+    .trend-watch {
+        max-height: 88px;
+        overflow: auto;
+        padding-right: 2px;
+    }
+
+    .decision-card {
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 7px;
+        padding: 7px;
+    }
+
+    .decision-rank {
+        width: 26px;
+        height: 26px;
+        font-size: 12px;
+    }
+
+    .decision-body {
+        gap: 4px;
+    }
+
+    .decision-title {
+        font-size: 12px;
+    }
+
+    .decision-gridline {
+        grid-template-columns: 64px minmax(0, 1fr);
+        gap: 5px;
+        font-size: 10px;
+    }
+
+    .decision-gridline strong,
+    .decision-footer {
+        font-size: 9px;
+    }
+
+    .investigation-row,
+    .segment-row,
+    .trend-row {
+        gap: 3px;
+        padding: 7px;
+    }
+
+    .investigation-row strong,
+    .segment-row strong,
+    .trend-row strong {
+        font-size: 11px;
+    }
+
+    .investigation-row span,
+    .segment-row span,
+    .trend-row span {
+        font-size: 10px;
+    }
+
+    .investigation-row em,
+    .segment-row em,
+    .trend-row em {
+        font-size: 9px;
+    }
+
+    .segment-row,
+    .trend-row {
+        grid-template-columns: minmax(120px, 1fr) 72px 72px 82px;
+    }
+
+    .outcome-strip {
+        grid-template-columns: repeat(12, minmax(76px, 1fr));
+        gap: 6px;
+    }
+
+    .metric-tile {
+        min-height: 50px;
+        padding: 6px;
+        gap: 4px;
+    }
+
+    .metric-label,
+    .metric-footer {
+        font-size: 9px;
+        line-height: 1.1;
+    }
+
+    .metric-value {
+        font-size: 18px;
+    }
+
+    .spark {
+        height: 12px;
+        min-width: 36px;
+    }
+
+    .drilldown-panel {
+        gap: 4px;
+        padding: 7px 10px;
+    }
+
+    .drilldown-panel .panel-heading {
+        min-height: 20px;
+        margin-bottom: 0;
+    }
+
+    .drilldown-actions {
+        gap: 5px;
+    }
+
+    .drilldown-panel .stats-button.small {
+        min-height: 24px;
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+
+    .breadcrumb {
+        min-height: 18px;
+        padding: 3px 6px;
+        font-size: 10px;
+    }
+
+    .drilldown-grid {
+        grid-template-columns: minmax(170px, 0.65fr) minmax(260px, 1fr) minmax(260px, 1.1fr);
+        gap: 8px;
+    }
+
+    .drilldown-summary,
+    .event-samples,
+    .session-timeline {
+        min-height: 76px;
+        max-height: 92px;
+        padding: 6px;
+    }
+
+    .summary-grid {
+        gap: 5px;
+    }
+
+    .summary-item {
+        padding: 6px;
+    }
+
+    .summary-item strong {
+        font-size: 15px;
+    }
+
+    .sample-row,
+    .timeline-row {
+        gap: 2px;
+        padding: 5px;
+    }
+
+    .sample-main,
+    .timeline-main {
+        font-size: 10px;
+    }
+
+    .sample-meta,
+    .timeline-meta {
+        font-size: 9px;
+    }
+
+    .empty-state {
+        min-height: 64px;
+        padding: 8px;
+    }
+}
+
 @media (max-width: 1180px) {
     .outcome-strip {
         grid-template-columns: repeat(4, minmax(120px, 1fr));
