@@ -36,6 +36,30 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationProfilePreview_UsesStableIllustrationFrame()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("class=\"convergence-visual\"", html);
+        Assert.Contains(".convergence-visual", html);
+        Assert.Contains("#profileImage.illustration", html);
+        Assert.Contains("aspect-ratio: 4 / 3;", html);
+        var profileRuleStart = html.IndexOf("#profileImage.illustration", StringComparison.Ordinal);
+        Assert.True(profileRuleStart >= 0, "Could not find profile image rule.");
+
+        var profileRuleEnd = html.IndexOf('}', profileRuleStart);
+        Assert.True(profileRuleEnd > profileRuleStart, "Could not find end of profile image rule.");
+
+        var profileRule = html[profileRuleStart..profileRuleEnd];
+        Assert.Contains("object-fit: contain;", profileRule);
+        Assert.DoesNotContain("object-fit: cover;", profileRule);
+        Assert.Contains("#descriptionForm #profileImage.illustration", html);
+    }
+
+    [Fact]
     public async Task ApplicationSubmissionTimeout_WaitsForServerPublicWorkTimeout()
     {
         using var factory = new TestWebApplicationFactory();

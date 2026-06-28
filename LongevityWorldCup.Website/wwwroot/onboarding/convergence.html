@@ -440,6 +440,18 @@
             color: #1f2937;
         }
 
+        .convergence-visual {
+            width: 100%;
+            text-align: center;
+        }
+
+        #profileImage.illustration {
+            width: 100%;
+            max-width: 408px;
+            aspect-ratio: 4 / 3;
+            object-fit: contain;
+        }
+
         .convergence-application-copy {
             margin: 0.75rem 0 1.1rem;
             padding: 0.85rem 0.95rem;
@@ -485,9 +497,16 @@
             #descriptionForm .illustration {
                 width: min(100%, 290px);
                 max-height: 218px;
-                object-fit: cover;
                 border-width: 3px;
                 margin-bottom: 1rem;
+            }
+
+            #descriptionForm #illustrationImage.illustration {
+                object-fit: cover;
+            }
+
+            #descriptionForm #profileImage.illustration {
+                object-fit: contain;
             }
 
             #descriptionForm .sub-progress-container {
@@ -525,7 +544,7 @@
         <!--MAIN-PROGRESS-BAR-->
         <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="400">1. Enter the arena</h1>
         <form id="descriptionForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <div style="text-align: center;">
+            <div class="convergence-visual">
                 <picture id="illustrationPicture" style="display:''">
                     <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
                     <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
@@ -807,7 +826,7 @@
         }
 
         function fillFakeData() {
-            const tinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9pQ9JxwAAAAASUVORK5CYII=';
+            const tinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAANSURBVBhXY5izeP1/AAa7Au6XP8FKAAAAAElFTkSuQmCC';
 
             const nameInput = document.getElementById('name');
             const flagInput = document.getElementById('flag');
