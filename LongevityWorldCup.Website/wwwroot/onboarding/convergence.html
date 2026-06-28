@@ -749,7 +749,9 @@
             const nextButton = document.getElementById('nextButton');
 
             updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton);
-            window.updateProofUploadButtons(nextButton, uploadProofButton, takeProofPhotoButton);
+            if (typeof window.updateProofUploadButtons === 'function') {
+                window.updateProofUploadButtons(nextButton, uploadProofButton, takeProofPhotoButton);
+            }
         }
 
         function updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton) {
@@ -1457,20 +1459,14 @@
                     const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
                     // Proof Tracker: show only biomarkers present in sessionStorage, in bortz-age UI order
-                    var checklistLabels = window.getProofChecklistLabelsFromSession && window.getProofChecklistLabelsFromSession() || [];
-                    window.setupProofUploadHTML(
+                    setupProofUploadStageControls(
                         nextButton,
                         uploadProofButton,
                         proofPicInput,
                         proofImageContainer,
-                        proofPics,
                         biomarkerChecklistContainer,
-                        checklistLabels,
-                        {
-                            cameraButton: takeProofPhotoButton,
-                            cameraInput: proofCameraInput
-                        }
-                    );
+                        takeProofPhotoButton,
+                        proofCameraInput);
 
                     break;
                 case 6:
@@ -1529,9 +1525,56 @@
             updateUploadButtons();
         }
 
+        async function waitForPageModules() {
+            try {
+                await Promise.resolve(window.modulesReady || undefined);
+            } catch (error) {
+                console.error('Page modules failed to load:', error);
+            }
+        }
+
+        function applyProofInstructionCopy() {
+            const mainProofInstructions = document.getElementById('mainProofInstructions');
+            if (mainProofInstructions && typeof window.getMainProofInstructionsInnerHTML === 'function') {
+                mainProofInstructions.innerHTML = window.getMainProofInstructionsInnerHTML();
+            }
+
+            const subProofInstructions = document.getElementById('subProofInstructions');
+            if (subProofInstructions && typeof window.getSubProofInstructionsInnerHTML === 'function') {
+                subProofInstructions.innerHTML = window.getSubProofInstructionsInnerHTML();
+            }
+        }
+
+        function setupProofUploadStageControls(nextButton, uploadProofButton, proofPicInput, proofImageContainer, biomarkerChecklistContainer, takeProofPhotoButton, proofCameraInput) {
+            if (typeof window.setupProofUploadHTML !== 'function') {
+                nextButton.disabled = true;
+                console.error('Proof upload helper is unavailable.');
+                return;
+            }
+
+            const checklistLabels = typeof window.getProofChecklistLabelsFromSession === 'function'
+                ? window.getProofChecklistLabelsFromSession()
+                : [];
+            window.setupProofUploadHTML(
+                nextButton,
+                uploadProofButton,
+                proofPicInput,
+                proofImageContainer,
+                proofPics,
+                biomarkerChecklistContainer,
+                checklistLabels,
+                {
+                    cameraButton: takeProofPhotoButton,
+                    cameraInput: proofCameraInput
+                }
+            );
+        }
+
         let existingAthleteNames;
         // Flag Autocomplete Implementation
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
+            await waitForPageModules();
+
             // Initialize the first stage
             goToStage(currentStage);
             applyFakeDataIfNeeded();
@@ -1728,15 +1771,7 @@
                     populateDivisionSelect(fallbackDivisions);
                 });
 
-            const mainProofInstructions = document.getElementById('mainProofInstructions');
-            if (mainProofInstructions) {
-                mainProofInstructions.innerHTML = window.getMainProofInstructionsInnerHTML();
-            }
-
-            const subProofInstructions = document.getElementById('subProofInstructions');
-            if (subProofInstructions) {
-                subProofInstructions.innerHTML = window.getSubProofInstructionsInnerHTML();
-            }
+            applyProofInstructionCopy();
 
             // catch Enter anywhere in the inputForm (but not in the textarea)
             const inputForm = document.getElementById('inputForm');

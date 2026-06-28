@@ -735,25 +735,56 @@
             return typeof athlete?.Name === 'string' ? athlete.Name : '';
         }
 
+        async function waitForPageModules() {
+            try {
+                await Promise.resolve(window.modulesReady || undefined);
+            } catch (error) {
+                console.error('Page modules failed to load:', error);
+            }
+        }
+
+        function applyProofInstructionCopy() {
+            const mainProofInstructions = document.getElementById('mainProofInstructions');
+            if (mainProofInstructions && typeof window.getMainProofInstructionsInnerHTML === 'function') {
+                mainProofInstructions.innerHTML = window.getMainProofInstructionsInnerHTML();
+            }
+
+            const subProofInstructions = document.getElementById('subProofInstructions');
+            if (subProofInstructions && typeof window.getSubProofInstructionsInnerHTML === 'function') {
+                subProofInstructions.innerHTML = window.getSubProofInstructionsInnerHTML();
+            }
+        }
+
+        function setupProofUploadControls(submitButton, uploadProofButton, proofPicInput, proofImageContainer, biomarkerChecklistContainer, takeProofPhotoButton, proofCameraInput) {
+            if (typeof window.setupProofUploadHTML !== 'function') {
+                submitButton.disabled = true;
+                console.error('Proof upload helper is unavailable.');
+                return;
+            }
+
+            // Proof Tracker: biomarkers present in sessionStorage, ordered by bortz-age UI
+            const checklistItems = typeof window.getProofChecklistLabelsFromSession === 'function'
+                ? window.getProofChecklistLabelsFromSession()
+                : [];
+            window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems, {
+                cameraButton: takeProofPhotoButton,
+                cameraInput: proofCameraInput
+            });
+        }
+
         setSubmitButtonLabel();
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
             setTimeout(() => {
                 const viewTarget = document.querySelector('h1');
                 viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }, 500);
 
+            await waitForPageModules();
+
             document.getElementById('character-title').textContent = getAthleteDisplayName();
 
-            const mainProofInstructions = document.getElementById('mainProofInstructions');
-            if (mainProofInstructions) {
-                mainProofInstructions.innerHTML = window.getMainProofInstructionsInnerHTML();
-            }
-
-            const subProofInstructions = document.getElementById('subProofInstructions');
-            if (subProofInstructions) {
-                subProofInstructions.innerHTML = window.getSubProofInstructionsInnerHTML();
-            }
+            applyProofInstructionCopy();
 
             var submitButton = document.getElementById('submitButton');
             const uploadProofButton = document.getElementById('uploadProofButton');
@@ -763,12 +794,14 @@
             const proofImageContainer = document.getElementById('proofImageContainer');
             const biomarkerChecklistContainer = document.getElementById('biomarker-checklist');
 
-            // Proof Tracker: biomarkers present in sessionStorage, ordered by bortz-age UI
-            const checklistItems = window.getProofChecklistLabelsFromSession && window.getProofChecklistLabelsFromSession() || [];
-            window.setupProofUploadHTML(submitButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, checklistItems, {
-                cameraButton: takeProofPhotoButton,
-                cameraInput: proofCameraInput
-            });
+            setupProofUploadControls(
+                submitButton,
+                uploadProofButton,
+                proofPicInput,
+                proofImageContainer,
+                biomarkerChecklistContainer,
+                takeProofPhotoButton,
+                proofCameraInput);
 
             submitButton.addEventListener('click', async function () {
                 if (isResultUploadSubmitting || submitButton.disabled) return;
