@@ -1270,7 +1270,8 @@
                     : `<span class="athlete-name-text">${esc(name)}</span>`;
 
                 const extra=typeof afterSlug==="function"?afterSlug(key,a):"";
-                out += `<span class="name-and-rank">${piece}${extra}</span>`;
+                const extraSeparator=extra ? "&nbsp;" : "";
+                out += `<span class="name-and-rank">${piece}${extraSeparator}${extra}</span>`;
                 last=rx.lastIndex;
             }
             out += esc(s.slice(last));
