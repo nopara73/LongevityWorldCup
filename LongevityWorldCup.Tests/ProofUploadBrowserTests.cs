@@ -1,7 +1,4 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Playwright;
-using System.Net;
-using System.Net.Sockets;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -11,17 +8,11 @@ public sealed class ProofUploadBrowserTests
     [Fact]
     public async Task ResultUpload_WaitsForDelayedProofHelperBeforeBindingUploadControls()
     {
-        await using var app = await StartKestrelAppAsync();
+        await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US"
-        });
+        await using var browser = await LaunchBrowserAsync(playwright);
+        await using var context = await NewContextAsync(browser, app);
+        await RoutePageDependenciesAsync(context, delayProofHelper: true);
 
         await context.AddInitScriptAsync(
             """
@@ -46,8 +37,6 @@ public sealed class ProofUploadBrowserTests
         };
         page.PageError += (_, error) => errors.Add(error);
 
-        await RoutePageDependenciesAsync(page, delayProofHelper: true);
-
         await page.GotoAsync("/play/proof-upload.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
@@ -59,97 +48,82 @@ public sealed class ProofUploadBrowserTests
         Assert.Empty(errors);
     }
 
-    private static async Task RoutePageDependenciesAsync(IPage page, bool delayProofHelper)
+    [Fact]
+    public async Task OnboardingProofStage_WaitsForDelayedProofHelperBeforeBindingUploadControls()
     {
-        await page.RouteAsync("**/*", async route =>
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await LaunchBrowserAsync(playwright);
+        await using var context = await NewContextAsync(browser, app);
+        await RoutePageDependenciesAsync(context, delayProofHelper: true);
+
+        await context.AddInitScriptAsync(
+            """
+            window.sessionStorage.setItem('biomarkerData', JSON.stringify({
+                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
+                Biomarkers: [
+                    { Date: '2026-06-19', AlbGL: 45, GluMmolL: 5.1 }
+                ]
+            }));
+            """);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
         {
-            var uri = new Uri(route.Request.Url);
-            if (uri.Host is "127.0.0.1" or "localhost")
-            {
-                if (delayProofHelper && uri.AbsolutePath.Equals("/js/proof-helpers.js", StringComparison.OrdinalIgnoreCase))
-                {
-                    await Task.Delay(350);
-                }
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
 
-                await route.ContinueAsync();
-                return;
-            }
+        await page.GotoAsync("/onboarding/convergence.html?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
 
-            if (uri.Host.Equals("ipapi.co", StringComparison.OrdinalIgnoreCase))
-            {
-                await route.FulfillAsync(new RouteFulfillOptions
-                {
-                    Status = 200,
-                    ContentType = "application/json",
-                    Body = """{"country_code":"HU","region_code":""}"""
-                });
-                return;
-            }
+        await AdvanceOnboardingStageAsync(page, "2. Finding your why");
+        await AdvanceOnboardingStageAsync(page, "3. The price of glory");
+        await AdvanceOnboardingStageAsync(page, "4/a. Almost there");
+        await AdvanceOnboardingStageAsync(page, "4/b. Don't trust, verify");
 
-            if (route.Request.ResourceType == "script")
-            {
-                await route.FulfillAsync(new RouteFulfillOptions
-                {
-                    Status = 200,
-                    ContentType = "application/javascript",
-                    Body = uri.AbsolutePath.Contains("/aos/", StringComparison.OrdinalIgnoreCase)
-                        ? "window.AOS={init(){},refresh(){}};"
-                        : ""
-                });
-                return;
-            }
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
 
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = 200,
-                ContentType = route.Request.ResourceType == "stylesheet" ? "text/css" : "text/plain",
-                Body = ""
-            });
+        Assert.Contains("Upload", await page.Locator("#mainProofInstructions").InnerHTMLAsync());
+        Assert.Contains("proofs", await page.Locator("#mainProofInstructions").InnerHTMLAsync());
+        Assert.Contains("Albumin", await page.Locator("#biomarker-checklist").InnerTextAsync());
+        Assert.Contains("Glucose", await page.Locator("#biomarker-checklist").InnerTextAsync());
+        Assert.True(await page.Locator("#nextButton").IsEnabledAsync());
+        Assert.Empty(errors);
+    }
+
+    private static async Task<IBrowser> LaunchBrowserAsync(IPlaywright playwright)
+    {
+        return await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
         });
     }
 
-    private static async Task<KestrelApp> StartKestrelAppAsync()
+    private static async Task<IBrowserContext> NewContextAsync(IBrowser browser, BrowserTestApp app)
     {
-        var port = GetFreeTcpPort();
-        var baseAddress = new Uri($"http://127.0.0.1:{port}");
-        var factory = new TestWebApplicationFactory();
-        factory.UseKestrel(port);
-        factory.StartServer();
-
-        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        return await browser.NewContextAsync(new BrowserNewContextOptions
         {
-            AllowAutoRedirect = false,
-            BaseAddress = baseAddress
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US"
         });
-
-        using var response = await client.GetAsync("/health");
-        response.EnsureSuccessStatusCode();
-
-        return new KestrelApp(factory, client, baseAddress);
     }
 
-    private static int GetFreeTcpPort()
+    private static async Task RoutePageDependenciesAsync(IBrowserContext context, bool delayProofHelper)
     {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        try
+        await BrowserTestApp.RouteExternalResourcesAsync(context, async uri =>
         {
-            return ((IPEndPoint)listener.LocalEndpoint).Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
+            if (delayProofHelper && uri.AbsolutePath.Equals("/js/proof-helpers.js", StringComparison.OrdinalIgnoreCase))
+                await Task.Delay(1200);
+        });
     }
 
-    private sealed class KestrelApp(TestWebApplicationFactory factory, HttpClient client, Uri baseAddress) : IAsyncDisposable
+    private static async Task AdvanceOnboardingStageAsync(IPage page, string expectedHeading)
     {
-        public Uri BaseAddress { get; } = baseAddress;
-
-        public async ValueTask DisposeAsync()
-        {
-            client.Dispose();
-            await factory.DisposeAsync();
-        }
+        await page.WaitForFunctionAsync("() => !document.getElementById('nextButton')?.disabled");
+        await page.Locator("#nextButton").ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = expectedHeading }).WaitForAsync();
     }
 }
