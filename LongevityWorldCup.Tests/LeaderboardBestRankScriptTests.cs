@@ -97,6 +97,16 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("https://www.linkedin.com/sharing/share-offsite/?url=", html);
         Assert.Contains("mailto:?subject=", html);
         Assert.Contains("openAthleteShareMenu(button, sharePayload)", html);
+        Assert.Contains("#detailsModal .athlete-share-menu.is-above", html);
+        Assert.Contains("function positionAthleteShareMenu(menu)", html);
+        Assert.Contains("const viewportBottom = Math.min(window.innerHeight, modalRect ? modalRect.bottom : window.innerHeight);", html);
+        Assert.Contains("menu.classList.add('is-above');", html);
+        Assert.Contains("positionAthleteShareMenu(menu);", html);
+        Assert.Contains("function keepAthleteShareMenuInView(menu)", html);
+        Assert.Contains("menu.scrollIntoView({ block: 'nearest', inline: 'nearest' });", html);
+        Assert.Contains("keepAthleteShareMenuInView(menu);", html);
+        Assert.Contains("requestAnimationFrame(() => keepAthleteShareMenuInView(menu));", html);
+        Assert.Contains("menu.classList.remove('is-above');", html);
         Assert.Contains("copyTextToClipboard(sharePayload.url)", html);
         Assert.Contains("if (shouldUseNativeAthleteShare(sharePayload))", html);
         Assert.DoesNotContain("if (navigator.share &&", html);
