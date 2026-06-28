@@ -449,7 +449,7 @@
             width: 100%;
             max-width: 408px;
             aspect-ratio: 4 / 3;
-            object-fit: cover;
+            object-fit: contain;
         }
 
         .convergence-application-copy {
@@ -497,9 +497,16 @@
             #descriptionForm .illustration {
                 width: min(100%, 290px);
                 max-height: 218px;
-                object-fit: cover;
                 border-width: 3px;
                 margin-bottom: 1rem;
+            }
+
+            #descriptionForm #illustrationImage.illustration {
+                object-fit: cover;
+            }
+
+            #descriptionForm #profileImage.illustration {
+                object-fit: contain;
             }
 
             #descriptionForm .sub-progress-container {
