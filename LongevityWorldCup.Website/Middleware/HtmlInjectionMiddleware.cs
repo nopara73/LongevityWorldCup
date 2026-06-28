@@ -281,6 +281,11 @@ namespace LongevityWorldCup.Website.Middleware
                 sb.AppendLine("<script src=\"https://cdn.jsdelivr.net/npm/validator@13.9.0/validator.min.js\" crossorigin=\"anonymous\" defer></script>");
             }
 
+            foreach (var path in config.BlockingScriptPaths ?? Array.Empty<string>())
+            {
+                sb.AppendLine($"<script src=\"{_assetVersionProvider.AppendVersion(path)}\"></script>");
+            }
+
             if (config.ModulePaths.Contains("/js/play-athlete-flow.js"))
             {
                 sb.AppendLine($"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/play-athlete-flow.css")}\">");
@@ -400,7 +405,8 @@ $@"<script type=""module"">
                         "/js/misc.js",
                         "/js/pheno-age.js",
                         "/js/bioage-rank-preview.js"
-                    ]),
+                    ],
+                    BlockingScriptPaths: ["/js/bioage-flow.js"]),
                 "/onboarding/bortz-age.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
@@ -410,7 +416,8 @@ $@"<script type=""module"">
                         "/js/bortz-age.js",
                         "/js/bioage-rank-preview.js",
                         "/js/pro-discounts.js"
-                    ]),
+                    ],
+                    BlockingScriptPaths: ["/js/bioage-flow.js"]),
                 "/onboarding/convergence.html" => new HeadAssetConfig(
                     IncludeValidator: true,
                     ModulePaths:
@@ -1332,7 +1339,10 @@ $@"<script type=""module"">
 
         private sealed record LeaderboardViewSeo(string Title, string Description);
 
-        private sealed record HeadAssetConfig(bool IncludeValidator, IReadOnlyList<string> ModulePaths)
+        private sealed record HeadAssetConfig(
+            bool IncludeValidator,
+            IReadOnlyList<string> ModulePaths,
+            IReadOnlyList<string>? BlockingScriptPaths = null)
         {
             public static readonly HeadAssetConfig Empty = new(false, Array.Empty<string>());
         }

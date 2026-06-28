@@ -16,6 +16,7 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
+        var isBioagePage = path is "/onboarding/pheno-age.html" or "/onboarding/bortz-age.html";
         if (path == "/dashboard")
         {
             var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
@@ -31,6 +32,24 @@ public sealed class SelectedAthleteBootstrapPageTests
             Assert.Contains("function removeSessionItem(key)", flow);
             Assert.Contains("removeSessionItem(\"selectedAthlete\");", recoveryBody);
             Assert.Contains("removeSessionItem(\"tempAthlete\");", recoveryBody);
+            return;
+        }
+
+        if (isBioagePage)
+        {
+            var flow = await client.GetStringAsync("/js/bioage-flow.js");
+            var recoveryStart = flow.IndexOf("function redirectMissingSelectedAthlete(removeItem)", StringComparison.Ordinal);
+            var redirectIndex = flow.IndexOf("window.location.replace('/select-athlete');", recoveryStart, StringComparison.Ordinal);
+
+            Assert.Contains("bioageFlow.redirectMissingSelectedAthlete(removeSessionItem);", html);
+            Assert.True(recoveryStart >= 0);
+            Assert.True(redirectIndex > recoveryStart);
+
+            var recoveryBody = flow[recoveryStart..redirectIndex];
+
+            Assert.Contains("const removeSessionItem = bioageFlow.removeSessionItem;", html);
+            Assert.Contains("remove('selectedAthlete');", recoveryBody);
+            Assert.Contains("remove('tempAthlete');", recoveryBody);
             return;
         }
 
@@ -59,13 +78,20 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
+        var isBioagePage = path is "/onboarding/pheno-age.html" or "/onboarding/bortz-age.html";
         var validationSource = path == "/dashboard"
             ? await client.GetStringAsync("/js/play-athlete-flow.js")
-            : html;
+            : isBioagePage
+                ? await client.GetStringAsync("/js/bioage-flow.js")
+                : html;
 
         if (path == "/dashboard")
         {
             Assert.Contains("flow.readRequiredSelectedAthlete();", html);
+        }
+        else if (isBioagePage)
+        {
+            Assert.Contains("const isValidSelectedAthlete = bioageFlow.isValidSelectedAthlete;", html);
         }
 
         Assert.Contains("function isValidSelectedAthlete(value)", validationSource);
@@ -84,13 +110,20 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
+        var isBioagePage = path is "/onboarding/pheno-age.html" or "/onboarding/bortz-age.html";
         var validationSource = path == "/dashboard"
             ? await client.GetStringAsync("/js/play-athlete-flow.js")
-            : html;
+            : isBioagePage
+                ? await client.GetStringAsync("/js/bioage-flow.js")
+                : html;
 
         if (path == "/dashboard")
         {
             Assert.Contains("flow.readRequiredSelectedAthlete();", html);
+        }
+        else if (isBioagePage)
+        {
+            Assert.Contains("const isValidSelectedAthlete = bioageFlow.isValidSelectedAthlete;", html);
         }
 
         Assert.Contains("typeof value.Name === \"string\"", validationSource.Replace('\'', '"'));
@@ -106,25 +139,27 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
+        var flow = await client.GetStringAsync("/js/bioage-flow.js");
 
-        Assert.Contains("hasSelectedAthleteDateOfBirth(value.DateOfBirth)", html);
-        Assert.Contains("function hasSelectedAthleteDateOfBirth(value)", html);
-        Assert.Contains("if (!value || typeof value !== 'object' || Array.isArray(value)) return false;", html);
-        Assert.Contains("const year = toSelectedAthleteDatePart(value.Year, 1, 9999);", html);
-        Assert.Contains("const month = toSelectedAthleteDatePart(value.Month, 1, 12);", html);
-        Assert.Contains("const day = toSelectedAthleteDatePart(value.Day, 1, 31);", html);
-        Assert.Contains("const date = new Date(0);", html);
-        Assert.Contains("date.setUTCFullYear(year, month - 1, day);", html);
-        Assert.Contains("date.setUTCHours(0, 0, 0, 0);", html);
-        Assert.Contains("date.getUTCFullYear() === year", html);
-        Assert.Contains("date.getUTCMonth() === month - 1", html);
-        Assert.Contains("date.getUTCDate() === day", html);
-        Assert.Contains("function toSelectedAthleteDatePart(value, min, max)", html);
-        Assert.Contains("if (typeof value === 'boolean' || value === null || value === undefined) return null;", html);
-        Assert.Contains("? number", html);
-        Assert.Contains(": null", html);
-        Assert.DoesNotContain("typeof value.DateOfBirth === 'string'", html);
-        Assert.DoesNotContain("value.DateOfBirth.trim()", html);
+        Assert.Contains("const isValidSelectedAthlete = bioageFlow.isValidSelectedAthlete;", html);
+        Assert.Contains("hasSelectedAthleteDateOfBirth(value.DateOfBirth)", flow);
+        Assert.Contains("function hasSelectedAthleteDateOfBirth(value)", flow);
+        Assert.Contains("if (!value || typeof value !== 'object' || Array.isArray(value)) return false;", flow);
+        Assert.Contains("const year = toSelectedAthleteDatePart(value.Year, 1, 9999);", flow);
+        Assert.Contains("const month = toSelectedAthleteDatePart(value.Month, 1, 12);", flow);
+        Assert.Contains("const day = toSelectedAthleteDatePart(value.Day, 1, 31);", flow);
+        Assert.Contains("const date = new Date(0);", flow);
+        Assert.Contains("date.setUTCFullYear(year, month - 1, day);", flow);
+        Assert.Contains("date.setUTCHours(0, 0, 0, 0);", flow);
+        Assert.Contains("date.getUTCFullYear() === year", flow);
+        Assert.Contains("date.getUTCMonth() === month - 1", flow);
+        Assert.Contains("date.getUTCDate() === day", flow);
+        Assert.Contains("function toSelectedAthleteDatePart(value, min, max)", flow);
+        Assert.Contains("if (typeof value === 'boolean' || value === null || value === undefined) return null;", flow);
+        Assert.Contains("? number", flow);
+        Assert.Contains(": null", flow);
+        Assert.DoesNotContain("typeof value.DateOfBirth === 'string'", flow);
+        Assert.DoesNotContain("value.DateOfBirth.trim()", flow);
     }
 
     [Fact]
