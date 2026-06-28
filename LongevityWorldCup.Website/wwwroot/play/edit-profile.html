@@ -42,7 +42,8 @@
 
         .autocomplete-items {
             position: absolute;
-            top: calc(100% + 0.45rem);
+            top: auto;
+            bottom: calc(100% + 0.45rem);
             left: 0;
             right: 0;
             padding: 0.25rem;
@@ -101,7 +102,7 @@
 
         @supports selector(:has(*)) {
             .niceInputFieldDisplayWrapper:has(.autocomplete-items) {
-                margin-bottom: calc(min(12rem, 36vh) + 0.65rem);
+                margin-bottom: 0;
             }
         }
 
@@ -234,7 +235,7 @@
 
         @supports selector(:has(*)) {
             .options-container.inline-option-group.niceInputFieldDisplayWrapper:has(.autocomplete-items) {
-                margin-bottom: calc(min(12rem, 36vh) + 0.65rem);
+                margin-bottom: 0;
             }
         }
 
