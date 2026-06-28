@@ -317,11 +317,13 @@
 
             @supports selector(:has(*)) {
                 .autocomplete-wrapper:has(.autocomplete-items) {
-                    margin-bottom: calc(0.65rem + min(8.5rem, 42vh));
+                    margin-bottom: 0.65rem;
                 }
             }
 
             .autocomplete-items {
+                top: auto;
+                bottom: calc(100% + 0.45rem);
                 max-height: min(8.5rem, 42vh);
             }
 
