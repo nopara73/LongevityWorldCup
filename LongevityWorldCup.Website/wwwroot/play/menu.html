@@ -157,8 +157,7 @@
         }
 
             .autocomplete-items div {
-                display: flex;
-                align-items: center;
+                display: block;
                 min-height: 44px;
                 padding: 0.6rem 0.7rem;
                 border-radius: 6px;
@@ -167,6 +166,7 @@
                 cursor: pointer;
                 font-size: 1rem;
                 line-height: 1.25;
+                overflow-wrap: anywhere;
             }
 
                 .autocomplete-items div + div {
@@ -180,6 +180,7 @@
                 }
 
                 .autocomplete-items div strong {
+                    display: inline;
                     padding: 0 0.12rem;
                     border-radius: 4px;
                     background: rgba(0, 188, 212, 0.16);
