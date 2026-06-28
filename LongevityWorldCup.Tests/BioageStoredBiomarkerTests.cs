@@ -296,6 +296,37 @@ public sealed class BioageStoredBiomarkerTests
     }
 
     [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BioageUpdatePages_HideWizardNavigationAndForceBiomarkerStep(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("function hideUpdateModeStepNavigation()", html);
+        Assert.Contains("const wizardNav = document.querySelector('.lwc-wizard-nav');", html);
+        Assert.Contains("if (wizardNav) wizardNav.hidden = true;", html);
+        Assert.Contains("const stepBackButton = document.getElementById('lwcToStep1Btn');", html);
+        Assert.Contains("const stepBackActions = stepBackButton?.closest('.lwc-step-actions');", html);
+        Assert.Contains("if (stepBackActions) stepBackActions.hidden = true;", html);
+        Assert.Contains("if (isUpdate && hasSelectedAthlete) {\n                hideUpdateModeStepNavigation();\n                lwcSetStep(2);\n                setSessionItem('lwcStep', '2');\n            } else {", html);
+        Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BioagePages_PromoteCalculateButtonWithoutSecondaryStylingConflict(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+        var updateButtonBody = GetFunctionBody(html, "function updateCalculateButton()", "updateCalculateButton();");
+
+        Assert.Contains("calculateButton.classList.remove('green');", updateButtonBody);
+        Assert.Contains("calculateButton.classList.add('grey', 'flow-action--secondary');", updateButtonBody);
+        Assert.Contains("calculateButton.classList.remove('grey', 'flow-action--secondary');", updateButtonBody);
+        Assert.Contains("calculateButton.classList.add('green');", updateButtonBody);
+    }
+
+    [Theory]
     [InlineData("pheno-age.html", "phenoAgeRankPreview")]
     [InlineData("bortz-age.html", "bortzAgeRankPreview")]
     public void BioageRankPreview_WaitsForModulesDefensively(string fileName, string previewElementId)

@@ -661,14 +661,14 @@ function renderDashboardActions(athlete, options) {
 
         if (isPro) {
             const phenoButton = createDashboardButton(
-                "<span class=\"dashboard-action-label\">Submit new Pheno&nbsp;Age</span><i class=\"fas fa-rocket\"></i>",
-                "option-button grey",
+                "<span class=\"dashboard-action-label flow-action__label\">Submit new Pheno&nbsp;Age</span><i class=\"fas fa-rocket\" aria-hidden=\"true\"></i>",
+                "option-button grey flow-action flow-action--secondary",
                 "/pheno-age?update=1",
                 () => clearPendingPaymentOffer()
             );
             const bortzButton = createDashboardButton(
-                "<span class=\"dashboard-action-label\">Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age</span><i class=\"fas fa-rocket\"></i>",
-                "option-button grey",
+                "<span class=\"dashboard-action-label flow-action__label\">Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age</span><i class=\"fas fa-rocket\" aria-hidden=\"true\"></i>",
+                "option-button grey flow-action flow-action--secondary",
                 "/bortz-age?update=1",
                 () => clearPendingPaymentOffer()
             );
@@ -677,8 +677,8 @@ function renderDashboardActions(athlete, options) {
         }
 
         const submitButton = createDashboardButton(
-            "<span class=\"dashboard-action-label\">Submit new results</span><i class=\"fas fa-rocket\"></i>",
-            "option-button grey",
+            "<span class=\"dashboard-action-label flow-action__label\">Submit new results</span><i class=\"fas fa-rocket\" aria-hidden=\"true\"></i>",
+            "option-button grey flow-action flow-action--secondary",
             "/pheno-age?update=1",
             () => clearPendingPaymentOffer()
         );
@@ -693,9 +693,9 @@ function renderDashboardActions(athlete, options) {
                 : null;
         const goProButton = createDashboardButton(
             goProPriceHtml
-                ? `<span class="dashboard-action-label">Go pro for&nbsp;${goProPriceHtml}</span><i class="fas fa-bolt"></i>`
-                : "<span class=\"dashboard-action-label\">Go pro</span><i class=\"fas fa-bolt\"></i>",
-            "option-button green",
+                ? `<span class="dashboard-action-label flow-action__label">Go pro for&nbsp;${goProPriceHtml}</span><i class="fas fa-bolt" aria-hidden="true"></i>`
+                : "<span class=\"dashboard-action-label flow-action__label\">Go pro</span><i class=\"fas fa-bolt\" aria-hidden=\"true\"></i>",
+            "option-button green flow-action",
             "/bortz-age?update=1",
             button => {
                 const amountUsd =

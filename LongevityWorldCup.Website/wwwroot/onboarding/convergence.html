@@ -350,9 +350,9 @@
         }
 
         .convergence-actions {
-            width: min(100%, 400px);
+            width: min(100%, 408px);
             min-width: 0;
-            max-width: 400px;
+            max-width: 408px;
             display: flex;
             flex-direction: column;
             align-items: stretch;
@@ -474,7 +474,7 @@
 
         @media (max-width: 600px) {
             .convergence-actions {
-                width: min(100%, 320px);
+                width: min(100%, 408px);
                 margin-top: 1.25rem;
             }
 
@@ -498,7 +498,7 @@
             .convergence-upload-guidance,
             .convergence-upload-action,
             .convergence-crop-preview {
-                width: min(100%, 320px);
+                width: min(100%, 408px);
             }
 
             #biomarker-checklist {
@@ -598,17 +598,15 @@
                         <li>Face the camera directly.</li>
                         <li>Include head and shoulders.</li>
                     </ol>
-                    <div class="convergence-upload-action">
+                    <div class="convergence-upload-action flow-action-stack">
                         <input type="file" id="profilePicInput" accept="image/*,.heic,.heif" style="display: none;">
                         <input type="file" id="profileCameraInput" accept="image/*,.heic,.heif" capture="user" style="display: none;">
-                        <button type="button" id="takeProfileSelfieButton" class="option-button grey">
-                            <i class="fa fa-camera"></i>
-                            Take selfie
+                        <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
+                            <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
                         </button>
                         <span class="upload-choice-divider" aria-hidden="true">or</span>
-                        <button type="button" id="uploadButton" class="option-button grey">
-                            <i class="fa fa-image"></i>
-                            Upload profile picture
+                        <button type="button" id="uploadButton" class="option-button grey flow-action flow-action--secondary">
+                            <span class="flow-action__label">Upload profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
@@ -616,29 +614,27 @@
                     <div class="convergence-crop-preview">
                         <img id="cropperImage" src="" alt="Selected profile image preview for cropping">
                     </div>
-                    <div class="convergence-upload-action">
-                        <button type="button" id="cropButton" class="option-button">
-                            Crop and save
+                    <div class="convergence-upload-action flow-action-stack">
+                        <button type="button" id="cropButton" class="option-button flow-action">
+                            <span class="flow-action__label">Crop and save</span>
                         </button>
-                        <button type="button" id="cancelProfileCropButton" class="option-button grey">
-                            Cancel
+                        <button type="button" id="cancelProfileCropButton" class="option-button grey flow-action flow-action--secondary">
+                            <span class="flow-action__label">Cancel</span>
                         </button>
                     </div>
                 </div>
             </fieldset>
             <fieldset id="proofUploadSection">
                 <legend>Proof upload</legend>
-                <div class="convergence-upload-action">
+                <div class="convergence-upload-action flow-action-stack">
                     <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
                     <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
-                    <button type="button" id="takeProofPhotoButton" class="option-button grey camera-capture-action">
-                        <i class="fa fa-camera"></i>
-                        Take proof photo
+                    <button type="button" id="takeProofPhotoButton" class="option-button grey flow-action flow-action--secondary camera-capture-action">
+                        <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
                     </button>
                     <span class="upload-choice-divider" aria-hidden="true">or</span>
-                    <button type="button" id="uploadProofButton" class="option-button grey">
-                        <i class="fa fa-file-upload"></i>
-                        Upload proofs
+                    <button type="button" id="uploadProofButton" class="option-button grey flow-action flow-action--secondary">
+                        <span class="flow-action__label">Upload proofs</span><i class="fa fa-file-upload" aria-hidden="true"></i>
                     </button>
                 </div>
                 <!-- Proof Image Container -->
@@ -682,10 +678,12 @@
                 <div id="whyCharCounter" class="char-counter">0/250</div>
             </fieldset>
 
-            <div class="options-container convergence-actions">
-                <button type="button" class="option-button green" id="nextButton" aria-label="Proceed to the next stage">Next</button>
-                <button type="button" class="option-button back-button" id="backButton">
-                    <i class="fas fa-arrow-left"></i>&nbsp;Back
+            <div class="options-container convergence-actions flow-action-stack">
+                <button type="button" class="option-button green flow-action" id="nextButton" aria-label="Proceed to the next stage">
+                    <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" id="backButton">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                 </button>
             </div>
         </form>
@@ -756,7 +754,8 @@
 
         function updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton) {
             if (uploadProfileButton) {
-                uploadProfileButton.innerHTML = `<i class="fa fa-image"></i>${profilePic ? 'Change profile picture' : 'Upload profile picture'}`;
+                const label = profilePic ? 'Change profile picture' : 'Upload profile picture';
+                uploadProfileButton.innerHTML = `<span class="flow-action__label">${label}</span><i class="fa fa-image" aria-hidden="true"></i>`;
             }
 
             // Toggle "green" class for "Upload Profile Picture" button
@@ -1251,7 +1250,7 @@
 
         function setNextButtonToApply() {
             const nextButton = document.getElementById('nextButton');
-            nextButton.innerHTML = 'Apply&nbsp;<i class="fa fa-rocket"></i>';
+            nextButton.innerHTML = '<span class="flow-action__label">Apply</span><i class="fa fa-rocket" aria-hidden="true"></i>';
             nextButton.setAttribute('type', 'submit');
         }
 
@@ -1311,7 +1310,7 @@
                     illustrationImage.alt = "Longevity World Cup logo";
                     illustrationImage.loading = "lazy";
                     document.getElementById('personalDetails').style.display = '';
-                    nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
+                    nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
                     updateSubProgress(1);
 
                     // Disable Next button initially
@@ -1372,7 +1371,7 @@
                     illustrationImage.alt = "Eye";
                     illustrationImage.loading = "lazy";
                     document.getElementById('whyField').style.display = 'block';
-                    nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
+                    nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
                     updateSubProgress(2);
 
                     // Disable Next button initially
@@ -1395,9 +1394,9 @@
                     document.getElementById('privacyText').style.display = '';
                     document.getElementById('privacyDetails').style.display = '';
                     // In the goToStage function, within case 3, replace the existing line with the following:
-                    nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
+                    nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
                     updateSubProgress(3);
-                    nextButton.textContent = 'Bring it on!';
+                    nextButton.innerHTML = '<span class="flow-action__label">Bring it on!</span>';
 
                     // Enable Next button
                     nextButton.disabled = false;
@@ -1412,7 +1411,7 @@
                     document.getElementById('profileUploadSection').style.display = '';
 
                     illustrationImage.classList.add('clickable');
-                    nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
+                    nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
                     updateSubProgress(4);
 
                     // Disable Next button initially
@@ -1441,7 +1440,7 @@
                     document.getElementById('proofUploadSection').style.display = '';
 
                     illustrationImage.classList.remove('clickable');
-                    nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
+                    nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
 
                     const uploadProofButton = document.getElementById('uploadProofButton');
                     const takeProofPhotoButton = document.getElementById('takeProofPhotoButton');
@@ -1478,7 +1477,7 @@
                     updateSubProgress(5);
 
                     illustrationImage.classList.remove('clickable');
-                    nextButton.innerHTML = 'Next&nbsp;<i class="fas fa-arrow-right"></i>';
+                    nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
 
                     // Add event listener for validation
                     const mediaContactInput = document.getElementById('mediaContact');

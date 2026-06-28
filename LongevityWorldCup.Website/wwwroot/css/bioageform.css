@@ -100,7 +100,7 @@
     margin-top: 1rem;
 }
 
-.bioageform .lwc-step-actions .option-button {
+.bioageform .lwc-step-actions .option-button:not(.flow-action) {
     box-sizing: border-box;
     width: auto;
     max-width: 100%;

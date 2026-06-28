@@ -81,13 +81,12 @@
         }
 
         .application-review-actions .option-button {
-            width: auto;
-            min-width: 10rem;
+            width: 100%;
+            min-width: 0;
             max-width: none;
             margin-bottom: 0;
             margin-left: auto;
             margin-right: auto;
-            padding-inline: 1.35rem;
         }
 
         @media (max-width: 600px) {
@@ -184,9 +183,9 @@
                 Want to hang out with other longevity athletes? Join the <span class="application-review-highlight">#longevity-world-cup</span> room on the <a href="https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ">TumbleBit Slack</a>!
             </span>
             </p>
-            <div class="options-container application-review-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-                <button class="option-button back-button" onclick="window.location.href='/'">
-                    <i class="fas fa-home"></i>&nbsp;Home
+            <div class="options-container application-review-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+                <button class="option-button back-button flow-action flow-action--secondary" onclick="window.location.href='/'">
+                    <span class="flow-action__label">Home</span><i class="fas fa-home" aria-hidden="true"></i>
                 </button>
             </div>
         </section>

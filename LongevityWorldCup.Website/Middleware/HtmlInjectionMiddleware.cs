@@ -268,6 +268,7 @@ namespace LongevityWorldCup.Website.Middleware
         {
             return html
                 .Replace("{{ASSET_MOBILE_ROUGHNESS_CSS}}", _assetVersionProvider.AppendVersion("/css/mobile-roughness.css"))
+                .Replace("{{ASSET_FLOW_CONTROLS_CSS}}", _assetVersionProvider.AppendVersion("/css/flow-controls.css"))
                 .Replace("{{ASSET_PLAY_ATHLETE_FLOW_CSS}}", _assetVersionProvider.AppendVersion("/css/play-athlete-flow.css"));
         }
 

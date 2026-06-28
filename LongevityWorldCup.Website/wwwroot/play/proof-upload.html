@@ -425,17 +425,15 @@
         <p id="mainProofInstructions" class="proof-upload-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="350"></p>
         <p id="subProofInstructions" class="proof-upload-copy smaller-text" data-aos="fade" data-aos-duration="700" data-aos-delay="400"></p>
 
-        <div class="options-container proof-upload-primary-action" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+        <div class="options-container proof-upload-primary-action flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
             <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
-            <button type="button" id="takeProofPhotoButton" class="option-button grey green camera-capture-action">
-                <i class="fa fa-camera"></i>
-                Take proof photo
+            <button type="button" id="takeProofPhotoButton" class="option-button green flow-action camera-capture-action">
+                <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
             </button>
             <span class="upload-choice-divider" aria-hidden="true">or</span>
-            <button type="button" id="uploadProofButton" class="option-button grey green">
-                <i class="fa fa-file-upload"></i>
-                Upload proofs
+            <button type="button" id="uploadProofButton" class="option-button green flow-action">
+                <span class="flow-action__label">Upload proofs</span><i class="fa fa-file-upload" aria-hidden="true"></i>
             </button>
         </div>
 
@@ -443,10 +441,10 @@
 
         <div id="biomarker-checklist"></div>
 
-        <div class="options-container proof-upload-final-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <button id="submitButton" type="submit" class="option-button green"></button>
-            <button class="option-button back-button" onclick="window.goBackOrHome()">
-                <i class="fas fa-arrow-left"></i>&nbsp;Back
+        <div class="options-container proof-upload-final-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+            <button id="submitButton" type="submit" class="option-button green flow-action"></button>
+            <button class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.goBackOrHome()">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
             </button>
         </div>
     </main>
@@ -937,7 +935,7 @@
 
         function setSubmitButtonLabel() {
             const submitButton = document.getElementById('submitButton');
-            submitButton.innerHTML = 'Submit new results&nbsp;<i class="fa fa-rocket"></i>';
+            submitButton.innerHTML = '<span class="flow-action__label">Submit new results</span><i class="fa fa-rocket" aria-hidden="true"></i>';
             submitButton.setAttribute('type', 'submit');
         }
     </script>

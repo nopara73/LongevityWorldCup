@@ -229,7 +229,7 @@
             justify-content: center;
             gap: 0.65rem;
             width: min(100%, 408px);
-            max-width: 400px;
+            max-width: 408px;
             margin: 0 auto;
         }
 
@@ -432,15 +432,13 @@
             </picture>
         </div>
         <div id="editOptionsGroup" cdata-aos="fade" data-aos-duration="700" data-aos-delay="350">
-            <div id="changeProfilePicWrapper" class="options-container inline-option-group">
-                <button type="button" id="takeProfileSelfieButton" class="option-button grey">
-                    <i class="fa fa-camera"></i>
-                    Take selfie
+            <div id="changeProfilePicWrapper" class="options-container flow-action-stack flow-action-stack--flush">
+                <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
+                    <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
                 </button>
                 <span class="upload-choice-divider" aria-hidden="true">or</span>
-                <button type="button" id="changeProfilePicButton" class="option-button grey">
-                    <i class="fa fa-image"></i>
-                    Change profile picture
+                <button type="button" id="changeProfilePicButton" class="option-button grey flow-action flow-action--secondary">
+                    <span class="flow-action__label">Change profile picture</span><i class="fa fa-image" aria-hidden="true"></i>
                 </button>
                 <input type="file" id="profilePicInputModal" accept="image/*,.heic,.heif" style="display: none;">
                 <input type="file" id="profileCameraInputModal" accept="image/*,.heic,.heif" capture="user" style="display: none;">
@@ -511,18 +509,22 @@
                 </button>
             </div>
         </div>
-        <div class="options-container edit-profile-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button id="submitButton" type="submit" disabled class="option-button green"></button>
-            <button type="button" class="option-button back-button" onclick="window.location.replace('/dashboard')">
-                <i class="fas fa-arrow-left"></i>&nbsp;Back
+        <div class="options-container edit-profile-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+            <button id="submitButton" type="submit" disabled class="option-button green flow-action"></button>
+            <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.location.replace('/dashboard')">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
             </button>
         </div>
 
         <div id="changeProfileCropperModal" style="display:none">
             <img id="changeProfileCropperImage" src="" alt="Cropper Preview">
-            <div class="options-container">
-                <button id="changeProfileCropButton" class="option-button green">Crop and save</button>
-                <button id="changeProfileCancelButton" class="option-button grey">Cancel</button>
+            <div class="options-container flow-action-stack flow-action-stack--flush">
+                <button id="changeProfileCropButton" class="option-button green flow-action">
+                    <span class="flow-action__label">Crop and save</span>
+                </button>
+                <button id="changeProfileCancelButton" class="option-button grey flow-action flow-action--secondary">
+                    <span class="flow-action__label">Cancel</span>
+                </button>
             </div>
         </div>
         <div id="modalOverlay"></div>
@@ -955,7 +957,7 @@
                                 customAlert(`Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {
                                     isEditProfileSubmitting = false;
                                     submitButton.disabled = false;
-                                    submitButton.innerHTML = 'Submit change request <i class="fa fa-rocket"></i>';
+                                    submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
                                     submitButton.focus();
                                 });
                             });
@@ -972,7 +974,7 @@
                         customAlert(alertMessage).then(() => {
                             isEditProfileSubmitting = false;
                             submitButton.disabled = false;
-                            submitButton.innerHTML = 'Submit change request <i class="fa fa-rocket"></i>';
+                            submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
                             submitButton.focus();
                         });
                     });
@@ -1146,7 +1148,7 @@
 
         function setSubmitChangeRequestButton() {
             const submitButton = document.getElementById('submitButton');
-            submitButton.innerHTML = 'Submit change request&nbsp;<i class="fa fa-rocket"></i>';
+            submitButton.innerHTML = '<span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i>';
             submitButton.setAttribute('type', 'submit');
         }
 

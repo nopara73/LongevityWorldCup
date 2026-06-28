@@ -699,9 +699,9 @@
         }
 
         .bioage-result-actions {
-            width: min(100%, 400px);
+            width: min(100%, 408px);
             min-width: 0;
-            max-width: 400px;
+            max-width: 408px;
             display: flex;
             flex-direction: column;
             align-items: stretch;
@@ -734,7 +734,7 @@
 
         @media (max-width: 600px) {
             .bioage-result-actions {
-                width: min(100%, 320px);
+                width: min(100%, 408px);
                 margin-top: 1rem;
             }
         }
@@ -833,12 +833,12 @@
         .bioageform button.bioage-calculate-button {
             width: 100%;
             min-width: 0;
-            max-width: 400px;
+            max-width: 408px;
             display: flex;
             box-sizing: border-box;
             margin: 1.35rem auto 0;
             line-height: 1.2;
-            white-space: nowrap;
+            white-space: normal;
         }
 
         @media (max-width: 480px) {
@@ -952,18 +952,18 @@
                             <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
                         </div>
                     </fieldset>
-                    <div class="lwc-step-actions">
-                        <button type="button" id="lwcToStep2Btn" class="option-button green" aria-label="Continue to biomarkers">
-                            Continue&nbsp;<i class="fas fa-arrow-right"></i>
+                    <div class="lwc-step-actions flow-action-stack">
+                        <button type="button" id="lwcToStep2Btn" class="option-button green flow-action" aria-label="Continue to biomarkers">
+                            <span class="flow-action__label">Continue</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
                         </button>
                     </div>
                 </section>
 
                 <section id="lwc-step-2" class="lwc-step" aria-labelledby="lwcStep2Title">
                     <h2 id="lwcStep2Title" class="visually-hidden">Step 2: Enter biomarkers</h2>
-                    <div class="lwc-step-actions" style="justify-content:flex-start">
-                        <button type="button" id="lwcToStep1Btn" class="option-button back-button">
-                            <i class="fas fa-arrow-left"></i>&nbsp;Back
+                    <div class="lwc-step-actions flow-action-stack">
+                        <button type="button" id="lwcToStep1Btn" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                         </button>
                     </div>
 
@@ -1314,8 +1314,8 @@
                     </fieldset>
 
                     <!-- Calculate Button -->
-                    <button type="submit" class="option-button grey bioage-calculate-button" aria-label="Calculate your biological age">
-                        <i class="fas fa-heartbeat"></i>&nbsp;Calculate my biological&nbsp;age
+                    <button type="submit" class="option-button grey flow-action flow-action--secondary bioage-calculate-button" aria-label="Calculate your biological age">
+                        <span class="flow-action__label">Calculate my biological&nbsp;age</span><i class="fas fa-heartbeat" aria-hidden="true"></i>
                     </button>
                 </section>
             </form>
@@ -1338,13 +1338,13 @@
             <div id="bortzAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
         </div>
 
-        <div class="options-container bioage-result-actions" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
-            <button type="button" id="continueButton" class="option-button green" onclick="proceedToNextPage()">
-                Next&nbsp;<i class="fas fa-arrow-right"></i>
+        <div class="options-container bioage-result-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+            <button type="button" id="continueButton" class="option-button green flow-action" onclick="proceedToNextPage()">
+                <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
             </button>
 
-            <button type="button" class="option-button back-button" onclick="window.goBackOrHome()">
-                <i class="fas fa-arrow-left"></i>&nbsp;Back
+            <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.goBackOrHome()">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
             </button>
         </div>
     </main>
@@ -1957,7 +1957,9 @@
 
             if (nextButton.classList.contains('show')) {
                 calculateButton.classList.remove('green'); // Reset style
+                calculateButton.classList.add('grey', 'flow-action--secondary');
             } else {
+                calculateButton.classList.remove('grey', 'flow-action--secondary');
                 calculateButton.classList.add('green'); // Apply matching style
             }
         }
@@ -2733,6 +2735,15 @@
             return true;
         }
 
+        function hideUpdateModeStepNavigation() {
+            const wizardNav = document.querySelector('.lwc-wizard-nav');
+            if (wizardNav) wizardNav.hidden = true;
+
+            const stepBackButton = document.getElementById('lwcToStep1Btn');
+            const stepBackActions = stepBackButton?.closest('.lwc-step-actions');
+            if (stepBackActions) stepBackActions.hidden = true;
+        }
+
 
         document.addEventListener('DOMContentLoaded', function () {
             // Step navigation buttons
@@ -2774,7 +2785,7 @@
             }
 
             // Back in .options-container (result section) always navigates away via onclick goBackOrHome();
-            // Step-2 Back (lwcToStep1Btn) goes to step 1 like the prev green dot.
+            // Step-2 Back (lwcToStep1Btn) goes to step 1 like the prev green dot, except update mode hides it.
 
             const unitSelects = Array.from(document.querySelectorAll('.input-group select'))
                 .filter(select => !select.closest('.biomarker-card-content'));
@@ -2858,17 +2869,23 @@
 
             updateModeFormInitializerUnique();
 
-            // Restore step 2 after refresh if user had navigated there and step 1 is valid
-            let restoredStep = false;
-            try {
-                if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true)) {
-                    lwcSetStep(2);
-                    restoredStep = true;
+            if (isUpdate && hasSelectedAthlete) {
+                hideUpdateModeStepNavigation();
+                lwcSetStep(2);
+                setSessionItem('lwcStep', '2');
+            } else {
+                // Restore step 2 after refresh if user had navigated there and step 1 is valid
+                let restoredStep = false;
+                try {
+                    if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true)) {
+                        lwcSetStep(2);
+                        restoredStep = true;
+                    }
+                } catch (e) {}
+                if (!restoredStep) {
+                    lwcSetStep(1);
+                    setSessionItem('lwcStep', '1');
                 }
-            } catch (e) {}
-            if (!restoredStep) {
-                lwcSetStep(1);
-                setSessionItem('lwcStep', '1');
             }
         });
 
