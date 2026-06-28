@@ -286,6 +286,22 @@ public sealed class ProofUploadPageTests
     }
 
     [Fact]
+    public async Task ApplicationProofUploadButtons_TolerateMissingProofHelper()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var helperCall = html.IndexOf("window.updateProofUploadButtons(nextButton, uploadProofButton, takeProofPhotoButton);", StringComparison.Ordinal);
+
+        Assert.True(helperCall >= 0);
+        var guardStart = html.LastIndexOf("if (typeof window.updateProofUploadButtons === 'function')", helperCall, StringComparison.Ordinal);
+
+        Assert.True(guardStart >= 0);
+        Assert.True(guardStart < helperCall);
+    }
+
+    [Fact]
     public async Task ProofHelper_UsesSafeStorageForChecklistBiomarkerHandoff()
     {
         using var factory = new TestWebApplicationFactory();
