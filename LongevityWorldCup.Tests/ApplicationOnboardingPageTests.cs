@@ -36,6 +36,21 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationProfilePreview_UsesStableIllustrationFrame()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("class=\"convergence-visual\"", html);
+        Assert.Contains(".convergence-visual", html);
+        Assert.Contains("#profileImage.illustration", html);
+        Assert.Contains("aspect-ratio: 4 / 3;", html);
+        Assert.Contains("object-fit: cover;", html);
+    }
+
+    [Fact]
     public async Task ApplicationSubmissionTimeout_WaitsForServerPublicWorkTimeout()
     {
         using var factory = new TestWebApplicationFactory();
