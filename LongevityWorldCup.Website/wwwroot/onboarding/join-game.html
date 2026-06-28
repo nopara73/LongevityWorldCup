@@ -3,6 +3,7 @@
   <head>
     <title>Longevity World Cup - Join game</title>
     <!--HEAD-->
+    <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
     <style>
       /* Hide the join-game button in the header */
       .join-game {
@@ -31,6 +32,13 @@
       @media (max-width: 700px) {
         .track-cards {
           grid-template-columns: 1fr;
+          gap: 1rem;
+          margin: 1.25rem 0;
+        }
+
+        .lab-reassurance {
+          margin-top: 1rem;
+          padding: 0.85rem 1rem;
         }
       }
 
@@ -51,7 +59,7 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         background: #fff;
         display: grid;
-        grid-template-rows: auto auto auto auto;
+        grid-template-rows: auto auto auto;
         min-height: 0;
         overflow: hidden;
         transition:
@@ -59,9 +67,9 @@
           box-shadow 0.2s ease;
       }
 
-      /* Pro card has 5 grid children (ribbon, h2, tagline, details, cta): row 1 forced to 0 so content aligns with Amateur card */
+      /* Pro card has a ribbon slot plus content; row 1 stays 0 so content aligns with Amateur */
       .track-card.pro {
-        grid-template-rows: minmax(0, 0) auto auto auto auto;
+        grid-template-rows: minmax(0, 0) auto auto auto;
       }
 
       /* Ribbon lives in a slot so it’s anchored to the card corner, not the grid area */
@@ -83,12 +91,10 @@
       .track-card h2 { grid-row: 1; }
       .track-card .track-card-tagline { grid-row: 2; }
       .track-card .track-card-details { grid-row: 3; }
-      .track-card .card-cta { grid-row: 4; }
       .track-card.pro .track-card-ribbon-slot { grid-row: 1; }
       .track-card.pro h2 { grid-row: 2; }
       .track-card.pro .track-card-tagline { grid-row: 3; }
       .track-card.pro .track-card-details { grid-row: 4; }
-      .track-card.pro .card-cta { grid-row: 5; }
 
       .track-card:hover {
         border-color: #b0bec5;
@@ -244,7 +250,7 @@
         margin: 0.25rem 0;
       }
 
-      /* Biomarkers section: distinct panel with label + list */
+      /* Biomarkers section: distinct disclosure so the track choice stays primary */
       .biomarkers-section {
         margin-top: 0.75rem;
         padding: 0.72rem 0.9rem 0.85rem;
@@ -276,13 +282,51 @@
         box-shadow: 0 1px 2px rgba(22, 163, 74, 0.08);
       }
 
+      .biomarker-disclosure {
+        margin: 0;
+      }
+
+      .biomarker-disclosure > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        min-height: 44px;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .biomarker-disclosure > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .biomarker-disclosure > summary::after {
+        content: "";
+        flex: 0 0 auto;
+        width: 0.55rem;
+        height: 0.55rem;
+        margin-right: 0.15rem;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(45deg);
+        transition: transform 0.18s ease;
+      }
+
+      .biomarker-disclosure[open] > summary {
+        margin-bottom: 0.55rem;
+      }
+
+      .biomarker-disclosure[open] > summary::after {
+        transform: rotate(-135deg);
+      }
+
       .track-card .biomarkers-section .biomarker-count {
         font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.06em;
         color: #475569;
-        margin: 0 0 0.45rem;
+        margin: 0;
       }
 
       .track-card.pro .biomarkers-section .biomarker-count {
@@ -537,7 +581,7 @@
 
       @media (max-width: 300px) {
         .track-card.pro {
-          grid-template-rows: auto auto auto auto auto;
+          grid-template-rows: auto auto auto auto;
         }
 
         .track-card.pro .track-card-ribbon-slot {
@@ -679,7 +723,7 @@
       <!--MAIN-PROGRESS-BAR-->
       <div class="join-game-content">
         <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">
-          How bad do you want it?
+          Choose your track
         </h1>
 
         <div
@@ -723,8 +767,17 @@
                   >
                 </dd>
               </dl>
+              <div class="card-cta">
+                <button
+                  class="option-button grey flow-action flow-action--secondary"
+                  onclick="startAmateurApplication(this)"
+                >
+                  <span class="flow-action__label">Start amateur</span>
+                </button>
+              </div>
               <div class="biomarkers-section">
-                <div class="biomarker-count">9 biomarkers needed:</div>
+                <details class="biomarker-disclosure">
+                  <summary><span class="biomarker-count">9 biomarkers needed:</span></summary>
                 <ul class="card-bio-list">
                 <li>
                   <i class="fas fa-virus bio-icon" aria-hidden="true"></i>White blood cell count (WBC)
@@ -762,15 +815,8 @@
                   >C-reactive protein (CRP)
                 </li>
               </ul>
+                </details>
             </div>
-            </div>
-            <div class="card-cta">
-              <button
-                class="option-button grey flow-action flow-action--secondary"
-                onclick="startAmateurApplication(this)"
-              >
-                <span class="flow-action__label">Start amateur</span>
-              </button>
             </div>
           </article>
           <article class="track-card pro">
@@ -818,8 +864,18 @@
                   >
                 </dd>
               </dl>
+              <div class="card-cta">
+                <button
+                  id="goProJoinButton"
+                  class="option-button green flow-action"
+                  onclick="startProApplication(this)"
+                >
+                  <span class="flow-action__label">Go pro</span>
+                </button>
+              </div>
               <div class="biomarkers-section">
-                <div class="biomarker-count">22 biomarkers needed:</div>
+                <details class="biomarker-disclosure">
+                  <summary><span class="biomarker-count">22 biomarkers needed:</span></summary>
                 <ul class="card-bio-list">
                 <li>
                   <i class="fas fa-virus bio-icon" aria-hidden="true"></i>White blood cell count (WBC)
@@ -899,16 +955,8 @@
                   >Vitamin D (25-OH)
                 </li>
                 </ul>
+                </details>
               </div>
-            </div>
-            <div class="card-cta">
-              <button
-                id="goProJoinButton"
-                class="option-button green flow-action"
-                onclick="startProApplication(this)"
-              >
-                <span class="flow-action__label">Go pro</span>
-              </button>
             </div>
           </article>
         </div>
