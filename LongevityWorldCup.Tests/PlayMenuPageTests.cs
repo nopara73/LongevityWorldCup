@@ -164,4 +164,20 @@ public sealed class PlayMenuPageTests
         Assert.Contains("/js/proof-helpers.js", html);
         Assert.Contains("/js/pro-discounts.js", html);
     }
+
+    [Fact]
+    public async Task PlayMenu_DiscountBadgeSlotFitsMobileTapTarget()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/menu.html");
+
+        Assert.Contains(".pro-discount-badge-slot {\n            width: 44px;", html);
+        Assert.Contains("min-width: 44px;", html);
+        Assert.Contains("height: 44px;", html);
+        Assert.Contains(".pro-discount-badge-slot:empty", html);
+        Assert.Contains(".pro-discount-text", html);
+        Assert.Contains("overflow-wrap: anywhere;", html);
+    }
 }
