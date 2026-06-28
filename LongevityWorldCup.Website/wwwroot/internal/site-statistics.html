@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Site Statistics Dashboard</title>
+    <style>
+        @font-face {
+            font-family: "Poppins";
+            src: url("{{ASSET_POPPINS_REGULAR}}") format("truetype");
+            font-weight: 400;
+        }
+
+        @font-face {
+            font-family: "Poppins";
+            src: url("{{ASSET_POPPINS_BOLD}}") format("truetype");
+            font-weight: 700;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ASSET_SITE_STATISTICS_CSS}}">
+    <script src="{{ASSET_SITE_STATISTICS_JS}}" defer></script>
+</head>
+<body>
+    <main class="stats-page">
+        <header class="stats-header">
+            <div class="stats-title">
+                <span class="stats-kicker">internal / public-safe</span>
+                <h1>Site Statistics</h1>
+            </div>
+            <div class="stats-controls" aria-label="Dashboard filters">
+                <label>
+                    <span>Date</span>
+                    <select id="statsRange">
+                        <option value="today">Today</option>
+                        <option value="7d" selected>7D</option>
+                        <option value="30d">30D</option>
+                        <option value="season">Season</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Flow</span>
+                    <select id="statsFlow">
+                        <option value="all">All</option>
+                        <option value="pheno">pheno age</option>
+                        <option value="bortz">bortz age</option>
+                        <option value="application">application</option>
+                        <option value="challenge">Challenge</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Device</span>
+                    <select id="statsDevice">
+                        <option value="all">All</option>
+                        <option value="desktop">Desktop</option>
+                        <option value="mobile">Mobile</option>
+                        <option value="tablet">Tablet</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Source</span>
+                    <select id="statsSource">
+                        <option value="all">All</option>
+                        <option value="direct">Direct</option>
+                        <option value="search">Search</option>
+                        <option value="social">Social</option>
+                        <option value="referral">Referral</option>
+                    </select>
+                </label>
+                <button id="statsReset" class="stats-button" type="button">Reset</button>
+                <button id="statsExport" class="stats-button primary" type="button">Export CSV</button>
+            </div>
+        </header>
+
+        <nav id="statsTabs" class="stats-tabs" aria-label="Dashboard tabs"></nav>
+
+        <section id="statsStatus" class="stats-status" role="status" aria-live="polite">Loading redacted analytics...</section>
+
+        <section class="decision-grid" aria-label="Decision brief">
+            <div class="stats-panel decision-brief-panel">
+                <div class="panel-heading">
+                    <h2>Decision Brief</h2>
+                    <span id="decisionBriefMeta" class="panel-meta"></span>
+                </div>
+                <div id="decisionBrief" class="decision-brief"></div>
+            </div>
+
+            <div class="stats-panel investigation-panel">
+                <div class="panel-heading">
+                    <h2>Recommended Investigations</h2>
+                    <span id="investigationMeta" class="panel-meta"></span>
+                </div>
+                <div id="recommendedInvestigations" class="investigation-list"></div>
+            </div>
+        </section>
+
+        <section class="decision-support-grid" aria-label="Decision diagnostics">
+            <div class="stats-panel segment-panel">
+                <div class="panel-heading">
+                    <h2>Segment Comparison</h2>
+                    <span id="segmentMeta" class="panel-meta"></span>
+                </div>
+                <div id="segmentComparisons" class="segment-comparisons"></div>
+            </div>
+
+            <div class="stats-panel trend-panel">
+                <div class="panel-heading">
+                    <h2>Trend Watch</h2>
+                    <span id="trendMeta" class="panel-meta"></span>
+                </div>
+                <div id="trendWatch" class="trend-watch"></div>
+            </div>
+        </section>
+
+        <section id="outcomeStrip" class="outcome-strip" aria-label="Outcome metrics"></section>
+
+        <section class="stats-main-grid">
+            <div class="stats-panel primary-panel">
+                <div class="panel-heading">
+                    <h2 id="primaryTitle">Onboarding Funnel</h2>
+                    <span id="primaryMeta" class="panel-meta"></span>
+                </div>
+                <div id="flowSelectors" class="flow-selectors"></div>
+                <div id="primaryFunnel" class="funnel"></div>
+            </div>
+
+            <div class="stats-panel friction-panel">
+                <div class="panel-heading">
+                    <h2>Friction Radar</h2>
+                    <span id="frictionMeta" class="panel-meta"></span>
+                </div>
+                <div id="frictionRadar" class="friction-list"></div>
+            </div>
+        </section>
+
+        <section id="detailSections" class="detail-sections"></section>
+
+        <section class="stats-panel drilldown-panel">
+            <div class="panel-heading">
+                <h2 id="drilldownTitle">Drilldown</h2>
+                <div class="drilldown-actions">
+                    <button id="copyLink" class="stats-button small" type="button">Copy link</button>
+                    <button id="resetDrilldown" class="stats-button small" type="button">Reset drilldown</button>
+                </div>
+            </div>
+            <div id="drilldownBreadcrumb" class="breadcrumb">Onboarding / all events</div>
+            <div class="drilldown-grid">
+                <div class="drilldown-summary" id="drilldownSummary"></div>
+                <div class="event-samples" id="eventSamples"></div>
+                <div class="session-timeline" id="sessionTimeline"></div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
