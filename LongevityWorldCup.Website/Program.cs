@@ -342,6 +342,7 @@ namespace LongevityWorldCup.Website
 
             var lf = app.Services.GetRequiredService<ILoggerFactory>();
             EnvironmentHelpers.Log = lf.CreateLogger(nameof(EnvironmentHelpers));
+            var assetVersionProvider = app.Services.GetRequiredService<AssetVersionProvider>();
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -382,6 +383,7 @@ namespace LongevityWorldCup.Website
                 options.DisplayRequestDuration();
                 options.EnableDeepLinking();
                 options.EnableFilter();
+                options.InjectStylesheet(assetVersionProvider.AppendVersion("/css/swagger-ui-mobile.css"));
                 options.EnableTryItOutByDefault();
                 options.ShowCommonExtensions();
                 options.ShowExtensions();
