@@ -101,6 +101,51 @@
         overflow-wrap: anywhere;
         word-break: normal;
     }
+
+    .swagger-ui .models .model-container {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .swagger-ui .model-container .model-box-control {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 1.75rem;
+        align-items: center;
+        column-gap: 0.5rem;
+        width: 100% !important;
+        min-height: 4rem;
+        margin: 0 !important;
+        padding: 0.85rem;
+        text-align: left;
+    }
+
+    .swagger-ui .model-box-control > .pointer,
+    .swagger-ui .model-box-control .model-box,
+    .swagger-ui .model-box-control .model-title {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .swagger-ui .model-box-control .model-box {
+        padding: 0;
+    }
+
+    .swagger-ui .model-box-control .model-title {
+        font-size: clamp(0.82rem, 3.45vw, 0.95rem);
+        line-height: 1.18;
+        text-align: left;
+    }
+
+    .swagger-ui .model-box-control .model-toggle {
+        justify-self: end;
+        min-width: 1.75rem;
+    }
+
+    .swagger-ui .model-box-control > span:last-child:not(.model-toggle) {
+        display: none;
+    }
 }
 
 @media (max-width: 360px) {
