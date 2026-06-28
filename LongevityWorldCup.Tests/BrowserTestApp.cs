@@ -29,7 +29,9 @@ internal sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClie
         return new BrowserTestApp(factory, client, baseAddress);
     }
 
-    public static async Task RouteExternalResourcesAsync(IBrowserContext context)
+    public static async Task RouteExternalResourcesAsync(
+        IBrowserContext context,
+        Func<Uri, Task>? beforeLoopbackContinueAsync = null)
     {
         await context.RouteAsync("**/*", async route =>
         {
@@ -41,6 +43,9 @@ internal sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClie
 
             if ((uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) && uri.IsLoopback)
             {
+                if (beforeLoopbackContinueAsync is not null)
+                    await beforeLoopbackContinueAsync(uri);
+
                 await route.ContinueAsync();
                 return;
             }
