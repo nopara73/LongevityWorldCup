@@ -170,10 +170,19 @@ a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.
     #detailsModal .modal-badge-item.expanded .modal-badge-detail{
         display:block;
     }
+    #detailsModal .modal-badge-strip .modal-badge-item.expanded{
+        flex-basis:100%;
+        width:100%;
+        max-width:100%;
+    }
     #detailsModal .modal-badge-item.expanded .modal-badge-name{
         -webkit-line-clamp:unset;
         max-height:none;
+        max-width:min(100%, 18rem);
+        font-size:.74rem;
+        line-height:1.18;
         overflow:visible;
+        margin-inline:auto;
     }
     #detailsModal .badge-class{pointer-events:none;cursor:default}
     #detailsModal .badge-class.badge-podcast{pointer-events:auto!important;cursor:pointer!important}
