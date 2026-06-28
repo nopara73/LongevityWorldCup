@@ -645,12 +645,21 @@
       }
 
       #proDiscountBreakdown .pro-discount-badge-slot {
-        width: 22px;
-        min-width: 22px;
-        height: 22px;
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+      }
+
+      #proDiscountBreakdown .pro-discount-badge-slot:empty {
+        display: none;
+      }
+
+      #proDiscountBreakdown .pro-discount-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       .pro-old-price {
