@@ -82,6 +82,42 @@
         padding: 0;
     }
 
+    .swagger-ui .responses-inner {
+        padding: 1rem 0.75rem;
+    }
+
+    .swagger-ui .responses-table .response-col_status {
+        width: 2.4rem;
+        min-width: 2.4rem;
+    }
+
+    .swagger-ui .responses-table .response-col_links {
+        width: 3rem;
+        min-width: 3rem;
+        max-width: 3rem;
+    }
+
+    .swagger-ui .responses-table .response-col_description {
+        max-width: none;
+    }
+
+    .swagger-ui .response-controls,
+    .swagger-ui .response-control-media-type,
+    .swagger-ui .content-type-wrapper {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .swagger-ui .response-controls {
+        display: block;
+    }
+
+    .swagger-ui .content-type-wrapper select.content-type {
+        width: min(100%, 11rem);
+        min-width: min(100%, 11rem);
+        max-width: 100%;
+    }
+
     .swagger-ui .models,
     .swagger-ui .model-container,
     .swagger-ui .model-box,

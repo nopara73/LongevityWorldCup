@@ -264,6 +264,21 @@ public sealed class SwaggerOpenApiTests
         Assert.DoesNotContain(".swagger-ui .model-box-control > span:last-child {", css);
     }
 
+    [Fact]
+    public async Task SwaggerUiMobileCss_PreservesResponseMediaTypeControls()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var css = await client.GetStringAsync("/css/swagger-ui-mobile.css");
+
+        Assert.Contains(".swagger-ui .responses-inner", css);
+        Assert.Contains(".swagger-ui .responses-table .response-col_status", css);
+        Assert.Contains(".swagger-ui .responses-table .response-col_links", css);
+        Assert.Contains(".swagger-ui .content-type-wrapper select.content-type", css);
+        Assert.Contains("width: min(100%, 11rem);", css);
+    }
+
     private static async Task<JsonDocument> LoadSwaggerDocumentAsync()
     {
         using var factory = CreateFactory();
