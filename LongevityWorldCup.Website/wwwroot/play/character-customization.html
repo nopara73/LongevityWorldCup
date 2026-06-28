@@ -43,49 +43,6 @@
             box-sizing: border-box;
         }
 
-        .athlete-picture-frame {
-            position: relative;
-            display: block;
-            width: min(100%, 408px);
-            aspect-ratio: 1 / 1;
-            margin-inline: auto;
-            overflow: hidden;
-            border: 4px solid var(--dark-text-color);
-            border-radius: 8px;
-            background: #d4d4d4;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-            box-sizing: border-box;
-            line-height: 0;
-        }
-
-        .athlete-picture-frame > picture,
-        .athlete-picture-frame > img {
-            position: absolute;
-            inset: 0;
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        .athlete-picture-frame .illustration {
-            display: block;
-            width: 100%;
-            height: 100%;
-            margin-bottom: 0;
-            max-width: none;
-            border: 0;
-            border-radius: 0;
-            box-shadow: none;
-            object-fit: contain;
-            object-position: center;
-            box-sizing: border-box;
-        }
-
-        .athlete-picture-frame .athlete-picture-placeholder {
-            object-fit: cover;
-            transform: scale(1.035);
-        }
-
         .character-dashboard-actions {
             width: min(100%, 408px);
             min-width: 0;
@@ -382,6 +339,7 @@
             <button class="option-button grey" onclick="window.location.href='/edit-profile'">
                 <span class="dashboard-action-label">Edit profile</span><i class="fas fa-pen"></i>
             </button>
+            <div id="characterDashboardDynamicActions"></div>
             <button id="characterBackButton" class="option-button back-button" onclick="window.goBackOrHome()">
                 <i class="fas fa-arrow-left"></i><span class="dashboard-action-label">Back</span>
             </button>
@@ -389,275 +347,48 @@
     </main>
     <!--FOOTER-->
     <script>
-        function removeBrowserStorageItem(storageName, key) {
-            try {
-                window[storageName].removeItem(key);
-            } catch (_) {
-            }
-        }
-
-        function setBrowserStorageItem(storageName, key, value) {
-            try {
-                window[storageName].setItem(key, value);
-                return true;
-            } catch (_) {
-                return false;
-            }
-        }
-
-        function getBrowserStorageItem(storageName, key) {
-            try {
-                return window[storageName].getItem(key);
-            } catch (_) {
-                return null;
-            }
-        }
-
-        function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
-        function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
-        function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
-
-        function isValidSelectedAthlete(value) {
-            return value
-                && typeof value === 'object'
-                && !Array.isArray(value)
-                && typeof value.Name === 'string'
-                && value.Name.trim();
-        }
-
-        let athlete = null;
-
-        try {
-            const selectedAthleteJson = getSessionItem('selectedAthlete');
-            athlete = selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
-        } catch {
-            athlete = null;
-        }
-
-        if (!isValidSelectedAthlete(athlete)) {
-            removeSessionItem('selectedAthlete');
-            removeSessionItem('tempAthlete');
-            window.location.replace('/select-athlete');
-            athlete = {};
-        }
-
-        const PENDING_PAYMENT_OFFER_KEY = 'pendingPaymentOffer';
-
-        if (window.captureFreePassFromUrl) {
-            window.captureFreePassFromUrl();
-        }
-        if (window.captureDiscountFromUrl) {
-            window.captureDiscountFromUrl();
-        }
-
-        function getAthleteDisplayName() {
-            if (typeof athlete?.DisplayName === 'string' && athlete.DisplayName.trim()) {
-                return athlete.DisplayName.trim();
-            }
-
-            return typeof athlete?.Name === 'string' ? athlete.Name : '';
-        }
-
-        function getAthletePictureImageSrc(value) {
-            return value && (value.ProfilePic || value.ProfilePicLeaderboardThumb || value.ProfilePicThumb)
-                ? value.ProfilePic || value.ProfilePicLeaderboardThumb || value.ProfilePicThumb
-                : '../assets/content-images/headshot.jpg';
-        }
-
-        function serializePendingPaymentOffer(offer) {
-            if (!isUsablePaymentOffer(offer)) return null;
-
-            try {
-                const serializedOffer = JSON.stringify(offer);
-                return typeof serializedOffer === 'string' && serializedOffer
-                    ? serializedOffer
-                    : null;
-            } catch (_) {
-                return null;
-            }
-        }
-
-        function isUsablePaymentOffer(paymentOffer) {
-            return paymentOffer
-                && typeof paymentOffer === 'object'
-                && !Array.isArray(paymentOffer)
-                && typeof paymentOffer.source === 'string'
-                && paymentOffer.source.trim()
-                && typeof paymentOffer.offerType === 'string'
-                && paymentOffer.offerType.trim()
-                && typeof paymentOffer.currency === 'string'
-                && paymentOffer.currency.trim()
-                && typeof paymentOffer.amountUsd === 'number'
-                && Number.isFinite(paymentOffer.amountUsd)
-                && paymentOffer.amountUsd >= 0;
-        }
-
-        function preserveAppliedDiscountMetadata(offer, result) {
-            const hasDiscountCode = result
-                && Array.isArray(result.components)
-                && result.components.some(component => component && component.kind === 'discountCode');
-            if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
-
-            try {
-                return window.addActiveDiscountMetadataToPaymentOffer(offer);
-            } catch (_) {
-                return null;
-            }
-        }
-
-        function setPendingPaymentOffer(offer, retryButton) {
-            let effectiveOffer = offer;
-            try {
-                effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
-                    ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
-                    : window.applyFreePassToPaymentOffer
-                        ? window.applyFreePassToPaymentOffer(offer)
-                        : offer;
-            } catch (_) {
-                customAlert('Payment details could not be saved. Enable browser storage and try again.')
-                    .then(() => retryButton?.focus());
-                return false;
-            }
-
-            const serializedOffer = serializePendingPaymentOffer(effectiveOffer);
-            if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) {
-                return true;
-            }
-
-            customAlert('Payment details could not be saved. Enable browser storage and try again.')
-                .then(() => retryButton?.focus());
-            return false;
-        }
-
-        function clearPendingPaymentOffer() {
-            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const createPriceHtmlFallback = (result) => {
-                const oldText = `$${result.basePriceUsd}`;
-                if (result.finalPriceUsd < result.basePriceUsd) {
-                    return `<span class="pro-old-price">${oldText}</span> <span class="pro-new-price">${result.finalPriceText}</span>`;
-                }
-                return `<span class="pro-new-price">${oldText}</span>`;
-            };
-            const ensureProDiscountsLoaded = () => {
-                return Promise.resolve();
-            };
-            setTimeout(() => {
-                const viewTarget = document.querySelector('h1');
-                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
-
-            const athleteDisplayName = getAthleteDisplayName();
-            document.getElementById('character-title').textContent = athleteDisplayName;
-            const athleteImage = document.createElement('img');
-            athleteImage.src = getAthletePictureImageSrc(athlete);
-            athleteImage.alt = `${athleteDisplayName} headshot`;
-            athleteImage.className = 'illustration';
-            athleteImage.loading = 'lazy';
-            athleteImage.decoding = 'async';
-            document.getElementById('characterDashboardPicture').replaceChildren(athleteImage);
-
-            const optionsContainer = document.querySelector('.options-container');
-            const backButton = document.getElementById('characterBackButton');
-            const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});
-
-            ready.then(() => ensureProDiscountsLoaded()).catch(() => {}).then(() => {
-                if (!optionsContainer || !backButton) return;
-
-                const urlParams = new URLSearchParams(window.location.search || '');
-                const isDemoPro = urlParams.get('demopro') === '1';
-                const isPro = isDemoPro || (window.isAthletePro ? window.isAthletePro(athlete) : false);
-                const createButton = (label, className, href, beforeNavigate) => {
-                    const button = document.createElement('button');
-                    button.className = className;
-                    button.innerHTML = label;
-                    button.addEventListener('click', () => {
-                        if (typeof beforeNavigate === 'function' && beforeNavigate(button) === false) return;
-                        window.location.href = href;
+        (function () {
+            function getFlowReady() {
+                return Promise.resolve(window.modulesReady || undefined)
+                    .catch(() => {})
+                    .then(() => {
+                        if (!window.playAthleteFlow) throw new Error('Athlete flow module did not load.');
+                        return window.playAthleteFlow;
                     });
-                    return button;
-                };
-                const createGoProDiscountSummary = (result) => {
-                    if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== 'function') {
-                        return null;
-                    }
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'pro-discount-box';
+            }
 
-                    const breakdownLine = document.createElement('p');
-                    breakdownLine.className = 'pro-discount-breakdown';
-                    if (typeof window.proDiscounts.createBreakdownHtml === 'function') {
-                        breakdownLine.innerHTML = window.proDiscounts.createBreakdownHtml(result);
-                    } else {
-                        breakdownLine.textContent = window.proDiscounts.createBreakdownText(result);
+            document.addEventListener('DOMContentLoaded', function () {
+                getFlowReady().then(flow => {
+                    const athlete = flow.readRequiredSelectedAthlete();
+                    if (!athlete) return;
+
+                    if (window.captureFreePassFromUrl) {
+                        window.captureFreePassFromUrl();
+                    }
+                    if (window.captureDiscountFromUrl) {
+                        window.captureDiscountFromUrl();
                     }
 
-                    wrapper.appendChild(breakdownLine);
-                    return wrapper;
-                };
+                    setTimeout(() => {
+                        const viewTarget = document.querySelector('h1');
+                        viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 500);
 
-                if (isPro) {
-                    const phenoButton = createButton(
-                        '<span class="dashboard-action-label">Submit new Pheno&nbsp;Age</span><i class="fas fa-rocket"></i>',
-                        'option-button grey',
-                        '/pheno-age?update=1',
-                        () => clearPendingPaymentOffer()
-                    );
-                    const bortzButton = createButton(
-                        '<span class="dashboard-action-label">Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age</span><i class="fas fa-rocket"></i>',
-                        'option-button grey',
-                        '/bortz-age?update=1',
-                        () => clearPendingPaymentOffer()
-                    );
-                    optionsContainer.insertBefore(phenoButton, backButton);
-                    optionsContainer.insertBefore(bortzButton, backButton);
-                } else {
-                    const submitButton = createButton(
-                        '<span class="dashboard-action-label">Submit new results</span><i class="fas fa-rocket"></i>',
-                        'option-button grey',
-                        '/pheno-age?update=1',
-                        () => clearPendingPaymentOffer()
-                    );
-                    const goProDiscountResult =
-                        window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
-                            ? window.proDiscounts.buildDiscountBreakdown(athlete, { isOnLeaderboard: true })
-                            : null;
-                    const goProPriceHtml = window.hasFreePass && window.hasFreePass()
-                        ? '<span class="pro-new-price">free</span>'
-                        : goProDiscountResult
-                            ? (typeof window.proDiscounts.createPriceHtml === 'function' ? window.proDiscounts.createPriceHtml(goProDiscountResult) : createPriceHtmlFallback(goProDiscountResult))
-                            : null;
-                    const goProButton = createButton(
-                        goProPriceHtml
-                            ? `<span class="dashboard-action-label">Go pro for&nbsp;${goProPriceHtml}</span><i class="fas fa-bolt"></i>`
-                            : '<span class="dashboard-action-label">Go pro for</span><i class="fas fa-bolt"></i>',
-                        'option-button green',
-                        '/bortz-age?update=1',
-                        button => {
-                            const amountUsd =
-                                goProDiscountResult && Number.isFinite(goProDiscountResult.finalPriceUsd)
-                                    ? goProDiscountResult.finalPriceUsd
-                                    : 100;
-                            const paymentOffer = preserveAppliedDiscountMetadata({
-                                source: 'go-pro-upgrade',
-                                offerType: 'pro',
-                                currency: 'USD',
-                                amountUsd
-                            }, goProDiscountResult);
-                            return setPendingPaymentOffer(paymentOffer, button);
-                        }
-                    );
-                    optionsContainer.insertBefore(submitButton, backButton);
-                    optionsContainer.insertBefore(goProButton, backButton);
-                    const goProDiscountSummary = goProDiscountResult ? createGoProDiscountSummary(goProDiscountResult) : null;
-                    if (goProDiscountSummary) {
-                        optionsContainer.insertBefore(goProDiscountSummary, backButton);
-                    }
-                }
+                    flow.renderAthleteDashboardHeader(athlete, {
+                        titleElement: document.getElementById('character-title'),
+                        frameElement: document.getElementById('characterDashboardPicture')
+                    });
+
+                    const urlParams = new URLSearchParams(window.location.search || '');
+                    flow.renderDashboardActions(athlete, {
+                        dynamicActionsElement: document.getElementById('characterDashboardDynamicActions'),
+                        demoPro: urlParams.get('demopro') === '1'
+                    });
+                }).catch(error => {
+                    console.error('Unable to initialize athlete dashboard:', error);
+                });
             });
-        });
+        })();
     </script>
 </body>
 </html>

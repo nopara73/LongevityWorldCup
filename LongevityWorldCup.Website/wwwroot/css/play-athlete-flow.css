@@ -1,0 +1,66 @@
+.athlete-picture-frame {
+    position: relative;
+    display: block;
+    width: min(100%, 408px);
+    aspect-ratio: 1 / 1;
+    margin-inline: auto;
+    overflow: hidden;
+    border: 4px solid var(--dark-text-color);
+    border-radius: 8px;
+    background: #d4d4d4;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
+    line-height: 0;
+}
+
+.athlete-picture-frame > picture,
+.athlete-picture-frame > img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.athlete-picture-frame > img.illustration,
+.athlete-picture-frame picture img.illustration {
+    display: block;
+    width: 100%;
+    height: 100%;
+    margin-bottom: 0;
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    object-fit: contain;
+    object-position: center;
+    box-sizing: border-box;
+    opacity: 1;
+    transition: opacity 160ms ease;
+}
+
+.athlete-picture-frame > img.athlete-picture-placeholder,
+.athlete-picture-frame picture img.athlete-picture-placeholder {
+    object-fit: cover;
+    transform: scale(1.035);
+}
+
+.athlete-picture-frame > img.athlete-picture-next {
+    opacity: 0;
+}
+
+.athlete-picture-frame > img.athlete-picture-next.is-visible {
+    opacity: 1;
+}
+
+.athlete-picture-frame .is-exiting img.illustration,
+.athlete-picture-frame img.illustration.is-exiting {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .athlete-picture-frame > img.illustration,
+    .athlete-picture-frame picture img.illustration {
+        transition: none;
+    }
+}
