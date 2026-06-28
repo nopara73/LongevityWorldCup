@@ -80,7 +80,7 @@ public sealed class PaymentOfferHandoffPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/play/character-customization.html");
+        var html = await client.GetStringAsync("/dashboard");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
         var offerStart = flow.IndexOf("function setPendingPaymentOffer(offer, retryButton)", StringComparison.Ordinal);
         var serializeStart = flow.IndexOf("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", offerStart, StringComparison.Ordinal);

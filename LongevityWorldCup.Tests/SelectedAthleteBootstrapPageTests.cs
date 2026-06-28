@@ -8,7 +8,7 @@ public sealed class SelectedAthleteBootstrapPageTests
     [InlineData("/onboarding/pheno-age.html", "if (isUpdate && !hasSelectedAthlete)")]
     [InlineData("/onboarding/bortz-age.html", "if (isUpdate && !hasSelectedAthlete)")]
     [InlineData("/play/proof-upload.html", "if (!isValidSelectedAthlete(athlete))")]
-    [InlineData("/play/character-customization.html", "if (!isValidSelectedAthlete(athlete))")]
+    [InlineData("/dashboard", "if (!isValidSelectedAthlete(athlete))")]
     [InlineData("/play/edit-profile.html", "if (!isValidSelectedAthlete(originalAthlete))")]
     public async Task SelectedAthleteRecovery_UsesSafeStorageCleanup(string path, string guard)
     {
@@ -16,7 +16,7 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
-        if (path == "/play/character-customization.html")
+        if (path == "/dashboard")
         {
             var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
             var recoveryStart = flow.IndexOf("function readRequiredSelectedAthlete()", StringComparison.Ordinal);
@@ -51,7 +51,7 @@ public sealed class SelectedAthleteBootstrapPageTests
     [InlineData("/onboarding/pheno-age.html")]
     [InlineData("/onboarding/bortz-age.html")]
     [InlineData("/play/proof-upload.html")]
-    [InlineData("/play/character-customization.html")]
+    [InlineData("/dashboard")]
     [InlineData("/play/edit-profile.html")]
     public async Task SelectedAthleteValidation_RejectsArrays(string path)
     {
@@ -59,11 +59,11 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
-        var validationSource = path == "/play/character-customization.html"
+        var validationSource = path == "/dashboard"
             ? await client.GetStringAsync("/js/play-athlete-flow.js")
             : html;
 
-        if (path == "/play/character-customization.html")
+        if (path == "/dashboard")
         {
             Assert.Contains("flow.readRequiredSelectedAthlete();", html);
         }
@@ -76,7 +76,7 @@ public sealed class SelectedAthleteBootstrapPageTests
     [InlineData("/onboarding/pheno-age.html")]
     [InlineData("/onboarding/bortz-age.html")]
     [InlineData("/play/proof-upload.html")]
-    [InlineData("/play/character-customization.html")]
+    [InlineData("/dashboard")]
     [InlineData("/play/edit-profile.html")]
     public async Task SelectedAthleteValidation_RejectsBlankNames(string path)
     {
@@ -84,11 +84,11 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
-        var validationSource = path == "/play/character-customization.html"
+        var validationSource = path == "/dashboard"
             ? await client.GetStringAsync("/js/play-athlete-flow.js")
             : html;
 
-        if (path == "/play/character-customization.html")
+        if (path == "/dashboard")
         {
             Assert.Contains("flow.readRequiredSelectedAthlete();", html);
         }
