@@ -12,7 +12,7 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
 
-        Assert.Contains("type=\"button\" class=\"option-button back-button flow-action flow-action--secondary flow-action--icon-left\" onclick=\"window.location.replace('/dashboard')\"", html);
+        Assert.Contains("type=\"button\" class=\"option-button back-button flow-action flow-action--secondary flow-action--icon-left\" onclick=\"window.navigateToFlowDestination('/dashboard')\"", html);
         Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
     }
 

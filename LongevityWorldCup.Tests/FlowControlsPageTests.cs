@@ -65,6 +65,33 @@ public sealed class FlowControlsPageTests
         Assert.DoesNotContain("#607D8B", css);
     }
 
+    [Fact]
+    public async Task FlowNavigation_DefinesExplicitDestinationHelper()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/misc.js");
+
+        Assert.Contains("window.navigateToFlowDestination = function (destination)", javascript);
+        Assert.Contains("window.location.replace(target);", javascript);
+    }
+
+    [Theory]
+    [InlineData("/join", "onclick=\"window.navigateToFlowDestination('/play')\"")]
+    [InlineData("/edit-profile", "onclick=\"window.navigateToFlowDestination('/dashboard')\"")]
+    [InlineData("/proofs", "onclick=\"window.navigateToFlowDestination('/dashboard')\"")]
+    public async Task FlowPageBackButtons_UseExplicitRouteDestinations(string path, string expectedBackDestination)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains(expectedBackDestination, html);
+        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
+    }
+
     [Theory]
     [InlineData("/play", "play-dashboard-actions flow-action-stack", "option-button back-button flow-action flow-action--secondary flow-action--icon-left")]
     [InlineData("/join", "options-container flow-action-stack", "option-button back-button flow-action flow-action--secondary flow-action--icon-left")]

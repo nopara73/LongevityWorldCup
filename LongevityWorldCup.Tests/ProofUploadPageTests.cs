@@ -4,6 +4,18 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class ProofUploadPageTests
 {
+    [Fact]
+    public async Task ResultUpload_BackButtonReturnsToDashboardWithoutHistoryFallback()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+
+        Assert.Contains("type=\"button\" class=\"option-button back-button flow-action flow-action--secondary flow-action--icon-left\" onclick=\"window.navigateToFlowDestination('/dashboard')\"", html);
+        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
+    }
+
     [Theory]
     [InlineData("/onboarding/convergence.html")]
     [InlineData("/play/proof-upload.html")]
