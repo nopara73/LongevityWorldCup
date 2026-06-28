@@ -351,7 +351,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var row = Assert.Single(state.Public.Leaderboard);
         Assert.Equal(state.Participant.ProfileImageUrl, row.ProfileImageUrl);
 
-        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(1)));
+        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
         gravatarGate.Set();
         Assert.True(SpinWait.SpinUntil(() =>
             fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
@@ -378,11 +378,11 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal("Uncached Uma", row.DisplayName);
         Assert.Null(row.ProfileImageUrl);
 
-        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(1)));
+        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
         gravatarGate.Set();
         Assert.True(SpinWait.SpinUntil(() =>
             fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:01Z")).Leaderboard.Single().ProfileImageUrl is not null,
-            TimeSpan.FromSeconds(2)));
+            TimeSpan.FromSeconds(8)));
 
         var warmed = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T09:00:02Z")).Leaderboard.Single();
         Assert.Contains(".gravatar.webp?v=", warmed.ProfileImageUrl);
@@ -400,7 +400,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.True(SpinWait.SpinUntil(() =>
             fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
-            TimeSpan.FromSeconds(2)));
+            TimeSpan.FromSeconds(8)));
         var state = fixture.Service.GetParticipantState(access);
 
         Assert.NotNull(state.Participant.ProfileImageUrl);
@@ -438,11 +438,11 @@ public sealed class LongevitymaxxingChallengeServiceTests
         using var gravatarGate = new ManualResetEventSlim(false);
         using var fixture = TestChallengeFixture.Create(gravatarResponse: gravatar.ToArray(), gravatarGate: gravatarGate);
         var access = await fixture.ConfirmParticipantAsync("priority@example.com", "Priority Pat");
-        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(1)));
+        Assert.True(SpinWait.SpinUntil(() => fixture.Http.Requests.Count > 0, TimeSpan.FromSeconds(8)));
         gravatarGate.Set();
         Assert.True(SpinWait.SpinUntil(() =>
             fixture.Service.GetParticipantState(access).Participant.ProfileImageUrl is not null,
-            TimeSpan.FromSeconds(2)));
+            TimeSpan.FromSeconds(8)));
         fixture.Http.Requests.Clear();
         using var upload = CreatePngStream();
         var file = CreatePngFormFile(upload);

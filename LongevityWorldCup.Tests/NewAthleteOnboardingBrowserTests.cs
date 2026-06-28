@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Globalization;
 using System.Text.Json;
 using Xunit;
 
@@ -113,6 +114,44 @@ public sealed class NewAthleteOnboardingBrowserTests
         });
     }
 
+    [Fact]
+    public async Task AmateurOnboarding_SubmitsExpectedApplicationPayload()
+    {
+        var bloodDrawDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
+
+        await RunOnboardingBrowserAsync(async (page, errors) =>
+        {
+            await CompleteAmateurHandoffToApplicationAsync(page, bloodDrawDate);
+
+            var payload = await SubmitFakeApplicationAndCapturePayloadAsync(page);
+
+            AssertSubmittedApplicantBasics(payload, "amateur", 10);
+            AssertSubmittedApplicantAgeDifferences(payload, expectBortzDifference: false);
+            AssertSubmittedApplicantDateOfBirth(payload);
+            AssertSubmittedPhenoBiomarkers(payload, bloodDrawDate);
+            Assert.Empty(errors);
+        });
+    }
+
+    [Fact]
+    public async Task ProOnboarding_SubmitsExpectedApplicationPayload()
+    {
+        var bloodDrawDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
+
+        await RunOnboardingBrowserAsync(async (page, errors) =>
+        {
+            await CompleteProHandoffToApplicationAsync(page, bloodDrawDate);
+
+            var payload = await SubmitFakeApplicationAndCapturePayloadAsync(page);
+
+            AssertSubmittedApplicantBasics(payload, "pro", 100);
+            AssertSubmittedApplicantAgeDifferences(payload, expectBortzDifference: true);
+            AssertSubmittedApplicantDateOfBirth(payload);
+            AssertSubmittedBortzBiomarkers(payload, bloodDrawDate);
+            Assert.Empty(errors);
+        });
+    }
+
     private static async Task RunOnboardingBrowserAsync(Func<IPage, List<string>, Task> testBody)
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -139,6 +178,28 @@ public sealed class NewAthleteOnboardingBrowserTests
         page.PageError += (_, error) => errors.Add(error);
 
         await testBody(page, errors);
+    }
+
+    private static async Task CompleteAmateurHandoffToApplicationAsync(IPage page, string bloodDrawDate)
+    {
+        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GetByRole(AriaRole.Button, new() { Name = "Start amateur" }).ClickAsync();
+        await page.WaitForURLAsync("**/pheno-age");
+        await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
+        await page.Locator("#continueButton").ClickAsync();
+        await page.WaitForURLAsync("**/apply");
+        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+    }
+
+    private static async Task CompleteProHandoffToApplicationAsync(IPage page, string bloodDrawDate)
+    {
+        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.GetByRole(AriaRole.Button, new() { Name = "Go pro" }).ClickAsync();
+        await page.WaitForURLAsync("**/bortz-age");
+        await FillAndCalculateBortzAgeAsync(page, bloodDrawDate);
+        await page.Locator("#continueButton").ClickAsync();
+        await page.WaitForURLAsync("**/apply");
+        await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
     }
 
     private static async Task FillAndCalculatePhenoAgeAsync(IPage page, string bloodDrawDate)
@@ -470,6 +531,210 @@ public sealed class NewAthleteOnboardingBrowserTests
                 "Wbc1000cellsuL"
             ],
             markerKeys);
+    }
+
+    private static async Task<JsonElement> SubmitFakeApplicationAndCapturePayloadAsync(IPage page)
+    {
+        var payloadTask = await CaptureApplicationPostPayloadAsync(page);
+
+        await GoToFakeApplicationFinalStageAsync(page);
+        await page.Locator("#nextButton").ClickAsync();
+
+        return await payloadTask.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    private static async Task<Task<JsonElement>> CaptureApplicationPostPayloadAsync(IPage page)
+    {
+        var payloadSource = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await page.RouteAsync("**/api/application/submission-report", async route =>
+        {
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 204,
+                Body = ""
+            });
+        });
+
+        await page.RouteAsync("**/api/application/application", async route =>
+        {
+            if (!route.Request.Method.Equals("POST", StringComparison.OrdinalIgnoreCase))
+            {
+                await route.ContinueAsync();
+                return;
+            }
+
+            try
+            {
+                using var document = JsonDocument.Parse(route.Request.PostData ?? "{}");
+                payloadSource.TrySetResult(document.RootElement.Clone());
+            }
+            catch (Exception exception)
+            {
+                payloadSource.TrySetException(exception);
+            }
+
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = """{"paymentRequired":false}"""
+            });
+        });
+
+        return payloadSource.Task;
+    }
+
+    private static void AssertSubmittedApplicantBasics(JsonElement payload, string expectedOfferType, double expectedAmountUsd)
+    {
+        Assert.Equal("Fake Athlete", payload.GetProperty("name").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(payload.GetProperty("division").GetString()));
+        Assert.Equal("Cyberspace", payload.GetProperty("flag").GetString());
+        Assert.Contains("quantify healthy aging", payload.GetProperty("why").GetString());
+        Assert.Equal("media+fake@longevityworldcup.com", payload.GetProperty("mediaContact").GetString());
+        Assert.Equal("fake.athlete@longevityworldcup.com", payload.GetProperty("accountEmail").GetString());
+        Assert.Equal("https://example.com/fake-athlete", payload.GetProperty("personalLink").GetString());
+        var submissionId = payload.GetProperty("submissionId").GetString();
+        Assert.True(
+            Guid.TryParse(submissionId, out _)
+            || (submissionId?.StartsWith("submission-", StringComparison.Ordinal) ?? false));
+        Assert.Equal(JsonValueKind.Null, payload.GetProperty("freePass").ValueKind);
+        Assert.Equal(JsonValueKind.Null, payload.GetProperty("discount").ValueKind);
+
+        var profilePic = payload.GetProperty("profilePic").GetString();
+        Assert.StartsWith("data:image/png;base64,", profilePic);
+
+        var proofPics = payload.GetProperty("proofPics").EnumerateArray().ToArray();
+        var proofPic = Assert.Single(proofPics).GetString();
+        Assert.StartsWith("data:image/png;base64,", proofPic);
+
+        var paymentOffer = payload.GetProperty("paymentOffer");
+        Assert.Equal("join-game", paymentOffer.GetProperty("source").GetString());
+        Assert.Equal(expectedOfferType, paymentOffer.GetProperty("offerType").GetString());
+        Assert.Equal("USD", paymentOffer.GetProperty("currency").GetString());
+        Assert.Equal(expectedAmountUsd, paymentOffer.GetProperty("amountUsd").GetDouble());
+    }
+
+    private static void AssertSubmittedApplicantAgeDifferences(JsonElement payload, bool expectBortzDifference)
+    {
+        AssertFiniteNumericString(payload.GetProperty("chronoPhenoDifference"));
+        if (expectBortzDifference)
+        {
+            AssertFiniteNumericString(payload.GetProperty("chronoBortzDifference"));
+        }
+        else
+        {
+            Assert.Equal(JsonValueKind.Null, payload.GetProperty("chronoBortzDifference").ValueKind);
+        }
+    }
+
+    private static void AssertSubmittedApplicantDateOfBirth(JsonElement payload)
+    {
+        var dateOfBirth = payload.GetProperty("dateOfBirth");
+        Assert.Equal(1980, dateOfBirth.GetProperty("Year").GetInt32());
+        Assert.Equal(5, dateOfBirth.GetProperty("Month").GetInt32());
+        Assert.Equal(20, dateOfBirth.GetProperty("Day").GetInt32());
+    }
+
+    private static void AssertSubmittedPhenoBiomarkers(JsonElement payload, string bloodDrawDate)
+    {
+        var marker = Assert.Single(payload.GetProperty("biomarkers").EnumerateArray().ToArray());
+        Assert.Equal(bloodDrawDate, marker.GetProperty("Date").GetString());
+        Assert.Equal(45, marker.GetProperty("AlbGL").GetDouble());
+        Assert.Equal(83, marker.GetProperty("AlpUL").GetDouble());
+        Assert.Equal(72, marker.GetProperty("CreatUmolL").GetDouble());
+        Assert.Equal(1.35, marker.GetProperty("CrpMgL").GetDouble(), 2);
+        Assert.Equal(5, marker.GetProperty("GluMmolL").GetDouble());
+        Assert.Equal(28.6, marker.GetProperty("LymPc").GetDouble(), 1);
+        Assert.Equal(92, marker.GetProperty("McvFL").GetDouble());
+        Assert.Equal(13.4, marker.GetProperty("RdwPc").GetDouble(), 1);
+        Assert.Equal(6.54, marker.GetProperty("Wbc1000cellsuL").GetDouble(), 2);
+
+        Assert.Equal(
+            [
+                "AlbGL",
+                "AlpUL",
+                "CreatUmolL",
+                "CrpMgL",
+                "Date",
+                "GluMmolL",
+                "LymPc",
+                "McvFL",
+                "RdwPc",
+                "Wbc1000cellsuL"
+            ],
+            marker.EnumerateObject().Select(property => property.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray());
+    }
+
+    private static void AssertSubmittedBortzBiomarkers(JsonElement payload, string bloodDrawDate)
+    {
+        var marker = Assert.Single(payload.GetProperty("biomarkers").EnumerateArray().ToArray());
+        Assert.Equal(bloodDrawDate, marker.GetProperty("Date").GetString());
+        Assert.Equal(45, marker.GetProperty("AlbGL").GetDouble());
+        Assert.Equal(83, marker.GetProperty("AlpUL").GetDouble());
+        Assert.Equal(22, marker.GetProperty("AltUL").GetDouble());
+        Assert.Equal(1.52, marker.GetProperty("ApoA1GL").GetDouble(), 2);
+        Assert.Equal(5.6, marker.GetProperty("CholesterolMmolL").GetDouble(), 1);
+        Assert.Equal(72, marker.GetProperty("CreatUmolL").GetDouble());
+        Assert.Equal(1.35, marker.GetProperty("CrpMgL").GetDouble(), 2);
+        Assert.Equal(0.9, marker.GetProperty("CystatinCMgL").GetDouble(), 1);
+        Assert.Equal(5, marker.GetProperty("GluMmolL").GetDouble());
+        Assert.Equal(29, marker.GetProperty("GgtUL").GetDouble());
+        Assert.Equal(35.5, marker.GetProperty("Hba1cMmolMol").GetDouble(), 1);
+        Assert.Equal(28.6, marker.GetProperty("LymPc").GetDouble(), 1);
+        Assert.Equal(31.8, marker.GetProperty("MchPg").GetDouble(), 1);
+        Assert.Equal(92, marker.GetProperty("McvFL").GetDouble());
+        Assert.Equal(7.2, marker.GetProperty("MonocytePc").GetDouble(), 1);
+        Assert.Equal(64.2, marker.GetProperty("NeutrophilPc").GetDouble(), 1);
+        Assert.Equal(4.5, marker.GetProperty("Rbc10e12L").GetDouble(), 1);
+        Assert.Equal(13.4, marker.GetProperty("RdwPc").GetDouble(), 1);
+        Assert.Equal(45.6, marker.GetProperty("ShbgNmolL").GetDouble(), 1);
+        Assert.Equal(5.4, marker.GetProperty("UreaMmolL").GetDouble(), 1);
+        Assert.Equal(50, marker.GetProperty("VitaminDNmolL").GetDouble());
+        Assert.Equal(6.54, marker.GetProperty("Wbc1000cellsuL").GetDouble(), 2);
+
+        Assert.Equal(
+            [
+                "AlbGL",
+                "AlpUL",
+                "AltUL",
+                "ApoA1GL",
+                "CholesterolMmolL",
+                "CreatUmolL",
+                "CrpMgL",
+                "CystatinCMgL",
+                "Date",
+                "GgtUL",
+                "GluMmolL",
+                "Hba1cMmolMol",
+                "LymPc",
+                "MchPg",
+                "McvFL",
+                "MonocytePc",
+                "NeutrophilPc",
+                "Rbc10e12L",
+                "RdwPc",
+                "ShbgNmolL",
+                "UreaMmolL",
+                "VitaminDNmolL",
+                "Wbc1000cellsuL"
+            ],
+            marker.EnumerateObject().Select(property => property.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray());
+    }
+
+    private static void AssertFiniteNumericString(JsonElement value)
+    {
+        Assert.Equal(JsonValueKind.String, value.ValueKind);
+        Assert.True(double.TryParse(value.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed));
+        Assert.True(double.IsFinite(parsed));
+    }
+
+    private static async Task GoToFakeApplicationFinalStageAsync(IPage page)
+    {
+        await GoToFakeProofStageAsync(page);
+        await AdvanceOnboardingStageAsync(page, "5. Final details");
+        await AdvanceOnboardingStageAsync(page, "Application");
+        await page.WaitForFunctionAsync("() => !document.getElementById('nextButton')?.disabled");
     }
 
     private static async Task GoToFakeProofStageAsync(IPage page)
