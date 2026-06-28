@@ -1,0 +1,124 @@
+@media (max-width: 640px) {
+    .swagger-ui .wrapper {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    .swagger-ui .topbar .wrapper,
+    .swagger-ui .scheme-container .schemes,
+    .swagger-ui .servers,
+    .swagger-ui .schemes-server-container,
+    .swagger-ui .download-url-wrapper {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .swagger-ui .topbar .download-url-wrapper select,
+    .swagger-ui .servers select {
+        min-width: 0;
+        max-width: 100%;
+        text-overflow: ellipsis;
+    }
+
+    .swagger-ui .opblock .opblock-summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 2.75rem;
+        align-items: start;
+        gap: 0.35rem;
+    }
+
+    .swagger-ui .opblock .opblock-summary-control {
+        display: grid;
+        grid-template-columns: minmax(4.35rem, auto) minmax(0, 1fr);
+        grid-template-areas:
+            "method path"
+            "description description"
+            "operation operation";
+        grid-column: 1;
+        min-width: 0;
+        width: 100%;
+        gap: 0.35rem 0.55rem;
+        text-align: left;
+    }
+
+    .swagger-ui .opblock .opblock-summary-method {
+        grid-area: method;
+        align-self: start;
+    }
+
+    .swagger-ui .opblock .opblock-summary-path-description-wrapper {
+        display: contents;
+    }
+
+    .swagger-ui .opblock .opblock-summary-path {
+        grid-area: path;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .swagger-ui .opblock .opblock-summary-operation-id {
+        grid-area: operation;
+        min-width: 0;
+        display: block;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .swagger-ui .opblock .opblock-summary-description {
+        grid-area: description;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: normal;
+    }
+
+    .swagger-ui .opblock .opblock-control-arrow {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+        padding: 0;
+    }
+
+    .swagger-ui .models,
+    .swagger-ui .model-container,
+    .swagger-ui .model-box,
+    .swagger-ui .model-box-control,
+    .swagger-ui .model-title,
+    .swagger-ui .model-title__text,
+    .swagger-ui .model {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .swagger-ui .model-box-control,
+    .swagger-ui .model-title,
+    .swagger-ui .model-title__text,
+    .swagger-ui .model {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+}
+
+@media (max-width: 360px) {
+    .swagger-ui .wrapper {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .swagger-ui .opblock .opblock-summary {
+        grid-template-columns: minmax(0, 1fr) 2.5rem;
+    }
+
+    .swagger-ui .opblock .opblock-summary-control {
+        grid-template-columns: minmax(3.8rem, auto) minmax(0, 1fr);
+    }
+
+    .swagger-ui .opblock .opblock-control-arrow {
+        min-width: 2.5rem;
+        min-height: 2.5rem;
+    }
+}
