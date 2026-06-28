@@ -30,13 +30,36 @@
         }
 
         .edit-profile-visual {
+            position: relative;
+            width: min(100%, 408px, 52dvh);
+            aspect-ratio: 1 / 1;
             margin: 0 auto 1.45rem;
-            text-align: center;
+            overflow: hidden;
+            border: 4px solid var(--dark-text-color);
+            border-radius: 8px;
+            background: #d4d4d4;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+            line-height: 0;
+        }
+
+        .edit-profile-visual picture {
+            display: block;
+            width: 100%;
+            height: 100%;
         }
 
         .edit-profile-visual .illustration {
-            width: min(100%, 408px);
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-width: none;
             margin-bottom: 0;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            object-fit: contain;
+            object-position: center;
             box-sizing: border-box;
         }
 
@@ -374,14 +397,15 @@
             }
 
             .edit-profile-visual {
+                width: min(100%, 240px, 52dvh);
                 margin-bottom: 0.65rem;
             }
 
             .edit-profile-visual .illustration {
-                width: auto;
-                max-width: min(100%, 240px);
-                max-height: 26dvh;
-                object-fit: contain;
+                width: 100%;
+                height: 100%;
+                max-width: none;
+                max-height: none;
             }
 
             #editOptionsGroup {
