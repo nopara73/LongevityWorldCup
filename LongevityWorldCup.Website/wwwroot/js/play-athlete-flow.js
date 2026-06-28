@@ -752,6 +752,7 @@ window.playAthleteFlow = {
     serializePendingPaymentOffer,
     isUsablePaymentOffer,
     preserveAppliedDiscountMetadata,
+    createPriceHtmlFallback,
     setPendingPaymentOffer,
     clearPendingPaymentOffer,
     renderAthleteDashboardHeader,

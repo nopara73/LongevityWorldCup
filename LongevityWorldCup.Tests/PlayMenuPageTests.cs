@@ -61,6 +61,29 @@ public sealed class PlayMenuPageTests
     }
 
     [Fact]
+    public async Task PlayMenu_NewAthletePathStaysInlineAndPreservesJoinUrl()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/menu.html");
+        var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+
+        Assert.Contains("id=\"joinTrackPanel\"", html);
+        Assert.Contains("return '/join';", html);
+        Assert.Contains("if (path === '/join') return 'join';", html);
+        Assert.Contains("function showJoinTrackPanel(options = {})", html);
+        Assert.Contains("newBtn.addEventListener('click', () => showJoinTrackPanel({ historyMode: 'push' }));", html);
+        Assert.Contains("document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);", html);
+        Assert.DoesNotContain("onclick=\"window.location.href='/join'\"", html);
+        Assert.Contains("flow.setPendingPaymentOffer({", html);
+        Assert.Contains("source: 'join-game'", html);
+        Assert.Contains("window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;", html);
+        Assert.Contains("window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;", html);
+        Assert.Contains("createPriceHtmlFallback", flow);
+    }
+
+    [Fact]
     public async Task PlayMenu_InlineDashboardKeepsRealTasksAsNavigations()
     {
         using var factory = new TestWebApplicationFactory();
@@ -69,7 +92,6 @@ public sealed class PlayMenuPageTests
         var html = await client.GetStringAsync("/play/menu.html");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
 
-        Assert.Contains("onclick=\"window.location.href='/join'\"", html);
         Assert.Contains("window.location.href='/edit-profile'", html);
         Assert.Contains("flow.persistSelectedAthlete(currentAthlete)", html);
         Assert.Contains("customAlert(storageErrorMessage);", html);

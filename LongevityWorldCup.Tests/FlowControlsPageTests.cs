@@ -91,7 +91,7 @@ public sealed class FlowControlsPageTests
     }
 
     [Theory]
-    [InlineData("/join", "onclick=\"window.navigateToFlowDestination('/play')\"")]
+    [InlineData("/join", "document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);")]
     [InlineData("/edit-profile", "onclick=\"window.navigateToFlowDestination('/dashboard')\"")]
     [InlineData("/proofs", "onclick=\"window.navigateToFlowDestination('/dashboard')\"")]
     public async Task FlowPageBackButtons_UseExplicitRouteDestinations(string path, string expectedBackDestination)
@@ -107,7 +107,7 @@ public sealed class FlowControlsPageTests
 
     [Theory]
     [InlineData("/play", "play-dashboard-actions flow-action-stack", "option-button back-button flow-action flow-action--secondary flow-action--icon-left")]
-    [InlineData("/join", "options-container flow-action-stack", "option-button back-button flow-action flow-action--secondary flow-action--icon-left")]
+    [InlineData("/join", "play-join-back flow-action-stack", "option-button back-button flow-action flow-action--secondary flow-action--icon-left")]
     [InlineData("/apply", "convergence-actions flow-action-stack", "option-button green flow-action")]
     [InlineData("/review", "application-review-actions flow-action-stack", "option-button back-button flow-action flow-action--secondary")]
     [InlineData("/pheno-age", "phenoage-result-actions flow-action-stack", "bioage-calculate-button")]
