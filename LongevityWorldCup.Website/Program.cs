@@ -375,6 +375,7 @@ namespace LongevityWorldCup.Website
                 options.RoutePrefix = "swagger";
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "Longevity World Cup Public API v1");
                 options.DocumentTitle = "Longevity World Cup Public API";
+                options.HeadContent = "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
                 options.DocExpansion(DocExpansion.List);
                 options.DefaultModelExpandDepth(2);
                 options.DefaultModelsExpandDepth(1);
