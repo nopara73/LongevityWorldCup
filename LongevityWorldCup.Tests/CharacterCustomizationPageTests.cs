@@ -19,6 +19,9 @@ public sealed class CharacterCustomizationPageTests
         Assert.Contains("flow.readRequiredSelectedAthlete();", html);
         Assert.Contains("id=\"characterDashboardPicture\" class=\"athlete-picture-frame\"", html);
         Assert.Contains("id=\"characterDashboardDynamicActions\"", html);
+        Assert.Contains("#characterDashboardDynamicActions", html);
+        Assert.Contains("width: 100%;", html);
+        Assert.Contains("align-items: stretch;", html);
         Assert.Contains("flow.renderAthleteDashboardHeader(athlete, {", html);
         Assert.Contains("flow.renderDashboardActions(athlete, {", html);
         Assert.Contains("aspect-ratio: 1 / 1;", css);
@@ -48,5 +51,19 @@ public sealed class CharacterCustomizationPageTests
         Assert.Contains("const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});", flow);
         Assert.Contains("return ready.catch(() => {}).then(() => {", flow);
         Assert.DoesNotContain("const ready = window.modulesReady || Promise.resolve();", html);
+    }
+
+    [Fact]
+    public async Task CharacterCustomization_ChangeAthleteUsesExplicitRouteInsteadOfHistoryFallback()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/character-customization.html");
+
+        Assert.Contains("id=\"characterBackButton\" type=\"button\"", html);
+        Assert.Contains("onclick=\"window.location.replace('/select-athlete')\"", html);
+        Assert.Contains("<span class=\"dashboard-action-label\">Change athlete</span>", html);
+        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
     }
 }

@@ -20,6 +20,8 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("if (!flow.persistSelectedAthlete(currentAthlete))", html);
         Assert.Contains("customAlert(storageErrorMessage);", html);
         Assert.Contains("window.location.href = '/dashboard';", html);
+        Assert.Contains("type=\"button\" class=\"option-button back-button\" onclick=\"window.location.replace('/play')\"", html);
+        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
         Assert.Contains("function persistSelectedAthlete(athlete)", flow);
         Assert.Contains("const prevName = getLocalItem(\"selectedAthleteName\");", flow);
         Assert.Contains("if (!isAthleteInputValue(athlete, prevName))", flow);
