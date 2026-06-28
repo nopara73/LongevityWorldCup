@@ -3709,7 +3709,10 @@
         if (input) {
             input.value = "";
             renderTimeZoneOptions(picker, "");
-            requestAnimationFrame(() => input.focus());
+            requestAnimationFrame(() => {
+                popover?.scrollIntoView({ block: "nearest" });
+                input.focus({ preventScroll: true });
+            });
         }
     }
 

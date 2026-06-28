@@ -1507,6 +1507,17 @@
     font-weight: 750;
 }
 
+@media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+    .lmx-timezone-list {
+        max-height: min(8rem, 34vh);
+    }
+
+    .lmx-timezone-option {
+        min-height: 38px;
+        padding-block: 0.34rem;
+    }
+}
+
 .lmx-profile-upload {
     display: grid;
     grid-template-columns: 3.25rem minmax(0, 1fr);
