@@ -173,21 +173,33 @@
 
         @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
             .character-dashboard-main {
-                padding: 0.6rem 1rem 1.25rem;
+                display: grid;
+                grid-template-columns: minmax(10.5rem, 14rem) minmax(0, 1fr);
+                grid-template-areas:
+                    "title actions"
+                    "visual actions";
+                column-gap: 1rem;
+                row-gap: 0.45rem;
+                align-items: start;
+                max-width: 42rem;
+                padding: 0.6rem 1rem 1rem;
             }
 
             .character-dashboard-title {
+                grid-area: title;
+                width: 100%;
                 margin-bottom: 0.45rem;
                 font-size: clamp(1.55rem, 8vh, 2rem);
                 line-height: 1.05;
             }
 
             .character-dashboard-visual {
-                margin-bottom: 0.65rem;
+                grid-area: visual;
+                margin-bottom: 0;
             }
 
             .athlete-picture-frame {
-                width: min(100%, 240px);
+                width: min(100%, 14rem, calc(100dvh - 8.25rem));
             }
 
             .athlete-picture-frame .illustration {
@@ -197,13 +209,21 @@
             }
 
             .character-dashboard-actions {
+                grid-area: actions;
+                align-self: start;
+                width: 100%;
+                max-width: none;
+                max-height: calc(100dvh - 4.7rem);
+                overflow-y: auto;
                 gap: 0.55rem;
                 margin-top: 0;
+                padding-right: 0.15rem;
+                scrollbar-width: thin;
             }
 
             .character-dashboard-actions .option-button {
-                min-height: 42px;
-                padding-block: 0.55rem;
+                min-height: 40px;
+                padding-block: 0.48rem;
             }
 
             .pro-discount-box {
