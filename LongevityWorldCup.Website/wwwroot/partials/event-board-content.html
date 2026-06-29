@@ -209,6 +209,8 @@
 
     .events-board.athlete-scroll td.event-message .event-message-cell > *{min-width:0}
     .events-board.athlete-scroll td.event-message .event-message-cell{
+        display:block;
+        line-height:1.35;
         white-space:normal;
         overflow:visible;
         flex-wrap:wrap;
@@ -1932,7 +1934,7 @@
                     const placeText = placeN ? ordinal(placeN) : "?";
                     const movementText = previousPlaceN
                         ? (previousPlaceN > placeN ? `climbed from ${ordinal(previousPlaceN)} to ${placeText}` : `moved from ${ordinal(previousPlaceN)} to ${placeText}`)
-                        : `entered the top 10 at ${placeText}`;
+                        : (placeN === 1 ? `took ${placeText} place` : `entered the top 10 at ${placeText}`);
                     const clockNorm = String(r.clockId || "").toLowerCase().replace(/\s+/g,"");
                     const leaderboardName = clockNorm === "bortz" || clockNorm === "bortzage" ? "Bortz Improvement" : "Pheno Improvement";
                     const improvementText = Number.isFinite(r.eventImprovement)
