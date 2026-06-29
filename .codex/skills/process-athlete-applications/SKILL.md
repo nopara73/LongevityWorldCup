@@ -1,6 +1,6 @@
 ---
 name: process-athlete-applications
-description: Review and process Longevity World Cup athlete submission emails from Gmail, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, understand related email history even across multiple requester addresses, download ZIP attachments into the repo athlete folder, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
+description: Review and process Longevity World Cup athlete submission emails from Gmail, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, understand related email history even across multiple requester addresses, download ZIP attachments into the repo athlete folder, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester or athlete security-verification replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
 ---
 
 # Process Athlete Submissions
@@ -91,6 +91,38 @@ Read all likely related threads, including sent replies and old follow-ups. If r
 
 Carry forward facts from earlier messages: prior missing-proof requests, promised corrections, alternate contact addresses, payment explanations, previous submissions, prior rejection reasons, and any human decisions. If related history contradicts the current submission, mark the decision as needs human judgment unless the contradiction is clearly resolved in later messages.
 
+## Existing Athlete Security Verification
+
+For an existing athlete submission, such as a new biological-age result upload or profile metadata change for an athlete folder that already exists, decide whether a security verification draft is required before finalizing.
+
+Default: draft a verification email to the athlete and stop for human approval before committing/pushing the change.
+
+Skip the verification draft only when related email history makes it clear that the current submission came from the athlete or an already-trusted requester. The skip must cite evidence, such as:
+
+- the current submission is part of an ongoing direct conversation where the athlete requested or confirmed this exact result/profile change,
+- the sender or `Account email` matches an address previously used by this athlete for accepted submissions,
+- a later message in the related history confirms the submission from the athlete or trusted requester, or
+- the user explicitly says to skip verification for this named submission.
+
+Do not treat a matching name, public social profile, or LWC audit email alone as enough to skip verification. If no reliable athlete contact address is known, mark the decision as needs human judgment and explain which possible contact addresses were found.
+
+Draft this verification email when required:
+
+```text
+Hi {name},
+
+I received a Longevity World Cup submission that would update your athlete profile:
+
+{short description of submitted result or profile change}
+
+For security, please reply to confirm that you submitted this and that the update should be applied.
+
+Best,
+Longevity World Cup
+```
+
+Do not commit, push, or send an update/welcome email for an existing athlete submission while verification is pending, unless the user explicitly overrides after seeing the summary.
+
 ## Prepare The Repo Files
 
 Download the ZIP attachment into:
@@ -166,6 +198,7 @@ Mark the submission blocked and prepare a draft reply when any of these are true
 - The applicant's identity, test date, or result ownership cannot be reasonably verified.
 - Related email history was not searched, or it contains unresolved contradictions about proof, payment, identity, or requested changes.
 - The processed ledger was not checked before ZIP download/reviewer work, unless the user explicitly requested a named submission.
+- Existing athlete result/profile-change submissions do not have either a drafted security verification email or a cited related-history reason to skip verification.
 
 For obvious issues, draft the email directly. For uncertain medical/unit interpretation issues, explain the uncertainty in the summary and wait for the human decision.
 
@@ -220,6 +253,7 @@ Stop after review and present a summary before any send/commit/push. Include:
 - Gmail thread/message used and whether a draft reply was created.
 - Related email history reviewed: search anchors used, additional threads found, alternate requester addresses, and relevant prior context.
 - Processed ledger: whether this was new, reprocessed because of newer email, or explicitly overridden by the user.
+- Existing-athlete security verification: draft created, skipped with cited evidence, pending athlete reply, or explicitly overridden by the user.
 - Payment status from the audit email and any confirmation found.
 - Files changed from `git status --short`.
 - JSON highlights: name, division, flag, date of birth, biomarker record dates, pheno/bortz availability.
