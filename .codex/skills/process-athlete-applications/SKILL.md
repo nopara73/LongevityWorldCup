@@ -1,6 +1,6 @@
 ---
 name: process-athlete-applications
-description: Review and process Longevity World Cup athlete submission emails from Gmail, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, understand related email history even across multiple requester addresses, download ZIP attachments into the repo athlete folder, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester or athlete security-verification replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
+description: Review and process Longevity World Cup athlete submission emails from Gmail, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails or related personal-email conversations, understand related email history even across multiple requester addresses, download ZIP attachments into the repo athlete folder, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester or athlete security-verification replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
 ---
 
 # Process Athlete Submissions
@@ -16,13 +16,14 @@ description: Review and process Longevity World Cup athlete submission emails fr
 
 ## Find The Submission Email
 
-Search Gmail flexibly. Do not depend on one exact sender or subject because applicants sometimes reply from personal accounts.
+Search Gmail flexibly. Do not depend on one exact sender, recipient, domain, or subject because applicant and athlete conversations may happen through personal email threads that do not touch `longevityworldcup@gmail.com` or any `@longevityworldcup.com` address.
 
 Strong signals:
 
-- Any message where `longevityworldcup@gmail.com` or any address ending in `@longevityworldcup.com` appears in from, to, cc, bcc, reply-to, or body.
 - ZIP attachments whose names look like athlete folder keys.
 - Audit body text such as `[LWC26] Application:`, `Archive folder key:`, `Payment due:`, `Submitted biomarkers/results summary:`, `New biological age result posted.`, or `Update profile request...`.
+- Identity anchors such as athlete name, display name, folder key, profile slug, profile URL, known personal email addresses, social handles, personal websites, invoice IDs, or submission IDs.
+- Any message where `longevityworldcup@gmail.com` or any address ending in `@longevityworldcup.com` appears in from, to, cc, bcc, reply-to, or body. Treat this as useful, not required.
 
 When multiple candidates exist, prefer the most recent unprocessed thread with a ZIP attachment or a payment-follow-up/application-audit pair. Summarize ambiguity instead of guessing silently.
 
@@ -85,7 +86,7 @@ Search Gmail broadly enough to catch separate threads:
 - known email addresses one by one
 - personal-link domains and social handles
 - invoice/submission IDs when payment or checkout context matters
-- LWC domain participants combined with the athlete name or slug
+- LWC domain participants combined with the athlete name or slug, when present; do not stop if no LWC-domain thread exists
 
 Read all likely related threads, including sent replies and old follow-ups. If results are numerous, narrow by the identity anchors above, but still summarize what was searched and why excluded hits were not relevant.
 
