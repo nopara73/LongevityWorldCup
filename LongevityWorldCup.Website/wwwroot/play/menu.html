@@ -939,14 +939,25 @@
             let target = panelByPath[path];
             if (!target) return;
 
+            function redirectToSelectionPanel() {
+                try {
+                    window.sessionStorage.removeItem('selectedAthlete');
+                    window.sessionStorage.removeItem('tempAthlete');
+                } catch (_) {
+                }
+                window.location.replace('/select-athlete');
+            }
+
             if (path === '/dashboard') {
                 try {
                     const athlete = JSON.parse(window.sessionStorage.getItem('selectedAthlete') || 'null');
                     if (!athlete || typeof athlete.Name !== 'string' || !athlete.Name.trim()) {
-                        target = panelByPath['/select-athlete'];
+                        redirectToSelectionPanel();
+                        return;
                     }
                 } catch (_) {
-                    target = panelByPath['/select-athlete'];
+                    redirectToSelectionPanel();
+                    return;
                 }
             }
 
@@ -1058,6 +1069,10 @@
                 const dashboardAthlete = athleteSelection.getCurrentAthlete()
                     || flow.getStoredSelectedAthlete();
                 if (!dashboardAthlete || !dashboardAthlete.Name) {
+                    if (window.location.pathname.toLowerCase() === getPlayRoute('dashboard')) {
+                        window.location.replace(getPlayRoute('selection'));
+                        return { panelName: 'selection', dashboardAthlete: null, isRedirecting: true };
+                    }
                     return { panelName: 'selection', dashboardAthlete: null };
                 }
 
@@ -1068,6 +1083,7 @@
             function showPlayPanel(requestedPanelName, options = {}) {
                 const requested = playRouteStates[requestedPanelName] ? requestedPanelName : 'start';
                 const resolved = resolveRequestedPlayPanel(requested);
+                if (resolved.isRedirecting) return;
                 const panelName = resolved.panelName;
                 const historyMode = requested === panelName ? options.historyMode : (options.historyMode || 'replace');
 

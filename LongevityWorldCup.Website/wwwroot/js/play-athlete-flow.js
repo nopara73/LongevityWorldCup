@@ -85,12 +85,15 @@ function getStoredSelectedAthlete() {
 
     try {
         const athlete = JSON.parse(json);
-        return athlete && typeof athlete === "object" && typeof athlete.Name === "string"
-            ? athlete
-            : null;
+        if (isValidSelectedAthlete(athlete)) {
+            return athlete;
+        }
     } catch (_) {
-        return null;
     }
+
+    removeSessionItem("selectedAthlete");
+    removeSessionItem("tempAthlete");
+    return null;
 }
 
 function isValidSelectedAthlete(value) {
