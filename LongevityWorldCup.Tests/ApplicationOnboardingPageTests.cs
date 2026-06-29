@@ -610,7 +610,7 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains(".map(name => name.trim())", html);
         Assert.Contains(".filter(Boolean)", html);
         Assert.Contains(".then(response => response.ok ? response.json() : [])", html);
-        Assert.Contains("console.error('Error fetching flags:', error);", html);
+        Assert.Contains("console.warn('Error fetching flags:', error);", html);
         Assert.Contains("return [];", html);
         Assert.Contains("const flagOptions = window.LwcFlags.buildFlagOptions(flags, athletes);", html);
     }

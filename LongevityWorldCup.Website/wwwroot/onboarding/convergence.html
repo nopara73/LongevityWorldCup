@@ -1602,7 +1602,7 @@
             const athletesPromise = fetch('/api/data/athletes')
                 .then(response => response.ok ? response.json() : [])
                 .catch(error => {
-                    console.error('Error fetching athlete names:', error);
+                    console.warn('Error fetching athlete names:', error);
                     return [];
                 });
 
@@ -1619,7 +1619,7 @@
                 fetch('/api/data/flags')
                     .then(response => response.ok ? response.json() : [])
                     .catch(error => {
-                        console.error('Error fetching flags:', error);
+                        console.warn('Error fetching flags:', error);
                         return [];
                     }),
                 athletesPromise
@@ -1787,7 +1787,7 @@
                 .then(response => response.ok ? response.json() : fallbackDivisions)
                 .then(populateDivisionSelect)
                 .catch(error => {
-                    console.error('Error fetching divisions:', error);
+                    console.warn('Error fetching divisions:', error);
                     populateDivisionSelect(fallbackDivisions);
                 });
 
