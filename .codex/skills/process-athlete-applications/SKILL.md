@@ -9,7 +9,7 @@ description: Review and process Longevity World Cup athlete submission emails fr
 
 - Read `UBIQUITOUS_LANGUAGE.md` before judging applications, results, rankings, athlete onboarding, badges, Events, or competition copy.
 - Use Gmail connector tools when available. If Gmail tools are not loaded, search for them with `tool_search` before using browser workarounds.
-- Keep temporary downloads, OCR output, screenshots, and notes under `.artifacts/` unless the ZIP must be placed in the athlete folder for the reviewer.
+- Keep temporary downloads, OCR output, screenshots, notes, and the processing ledger under `.artifacts/` unless the ZIP must be placed in the athlete folder for the reviewer.
 - Never send email, commit, or push until the user explicitly approves the prepared summary and draft.
 - Never stage unrelated work. If the worktree is dirty, identify unrelated changes and leave them alone.
 - Do not add Node tooling for browser checks; this repo is a .NET solution.
@@ -34,6 +34,38 @@ Extract from the thread when available:
 - payment due and whether a payment confirmation/follow-up appears in the same thread
 - submitted biomarker record count and proof file count
 - attachment filename
+
+## Skip Already Processed Threads
+
+Before downloading attachments or running the reviewer, check `.artifacts/lwc-submission-processing-ledger.jsonl`. Treat it as local private state; do not commit it.
+
+Each processed summary should append one JSON object with:
+
+- `processedAtUtc`
+- `status`: `approved`, `blocked`, `needs-human`, `drafted`, or `finalized`
+- `athleteName`, `folderKey`, `profileUrl`
+- `gmailThreadIds` and `gmailMessageIds` reviewed
+- `latestMessageAt` and, when available, the latest Gmail message id/internal date for every reviewed thread
+- `requesterEmails` and other identity anchors used
+- `attachmentNames` and optional attachment checksums if already computed
+- `summary`: one short sentence explaining the decision or blocker
+
+When scanning candidates, compute the same thread/message identity before doing heavy work. Skip immediately when all are true:
+
+- the candidate or related thread appears in the ledger,
+- the latest Gmail message id/date for the thread is unchanged from the ledger, and
+- the user asked for the next submission generally rather than naming this athlete, thread, message, or folder key.
+
+When skipping, report the skip reason and the ledger summary in one or two lines, then continue to the next candidate if the user asked for "next". Do not download the ZIP, run the reviewer, create drafts, or re-review proofs for unchanged skipped work.
+
+Reprocess despite a ledger hit when:
+
+- any related thread has a newer message than the recorded `latestMessageAt` or latest message id,
+- a new ZIP/payment/context email is found for the same identity,
+- the user explicitly asks to process/reprocess a named athlete, thread, message, or folder key, or
+- the ledger entry is ambiguous, malformed, or missing the thread identifiers needed to prove it is unchanged.
+
+After presenting the human approval summary, append/update the ledger before stopping. After final approval actions, append a new `finalized` entry with the commit hash, push status, and email-send status.
 
 ## Review Related Email History
 
@@ -133,6 +165,7 @@ Mark the submission blocked and prepare a draft reply when any of these are true
 - The ZIP/reviewer output modifies the wrong athlete folder or creates an unexpected folder key.
 - The applicant's identity, test date, or result ownership cannot be reasonably verified.
 - Related email history was not searched, or it contains unresolved contradictions about proof, payment, identity, or requested changes.
+- The processed ledger was not checked before ZIP download/reviewer work, unless the user explicitly requested a named submission.
 
 For obvious issues, draft the email directly. For uncertain medical/unit interpretation issues, explain the uncertainty in the summary and wait for the human decision.
 
@@ -186,6 +219,7 @@ Stop after review and present a summary before any send/commit/push. Include:
 - Athlete folder path and public profile URL. Folder keys use underscores; profile URLs use hyphens.
 - Gmail thread/message used and whether a draft reply was created.
 - Related email history reviewed: search anchors used, additional threads found, alternate requester addresses, and relevant prior context.
+- Processed ledger: whether this was new, reprocessed because of newer email, or explicitly overridden by the user.
 - Payment status from the audit email and any confirmation found.
 - Files changed from `git status --short`.
 - JSON highlights: name, division, flag, date of birth, biomarker record dates, pheno/bortz availability.
