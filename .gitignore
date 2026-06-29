@@ -42,6 +42,8 @@ AppData
 .codex/*
 !.codex/environments/
 !.codex/environments/environment.toml
+!.codex/skills/
+!.codex/skills/**
 .codex-temp-build/
 
 # Local review artifacts
