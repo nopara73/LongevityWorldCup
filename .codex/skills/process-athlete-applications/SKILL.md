@@ -1,6 +1,6 @@
 ---
 name: process-athlete-applications
-description: Review and process Longevity World Cup athlete submission emails from Gmail, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, download ZIP attachments into the repo athlete folder, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
+description: Review and process Longevity World Cup athlete submission emails from Gmail, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, understand related email history even across multiple requester addresses, download ZIP attachments into the repo athlete folder, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
 ---
 
 # Process Athlete Submissions
@@ -34,6 +34,30 @@ Extract from the thread when available:
 - payment due and whether a payment confirmation/follow-up appears in the same thread
 - submitted biomarker record count and proof file count
 - attachment filename
+
+## Review Related Email History
+
+Before deciding, drafting, or concluding that context is missing, build a small identity map for the athlete/requester and search Gmail for related history. Do not assume all relevant messages are in the ZIP thread or from the same email address.
+
+Use every anchor you can infer:
+
+- athlete name, display name, folder key, profile slug, profile URL, and attachment filename
+- `Account email`, `Reply-To`, sender, recipients, cc, and any email addresses mentioned in bodies
+- personal links, social handles, website domains, invoice IDs, submission IDs, and prior athlete folder keys
+- alternate spellings from underscores, hyphens, accents, nicknames, or casing
+
+Search Gmail broadly enough to catch separate threads:
+
+- exact athlete name and display name
+- folder key with underscores and hyphens
+- known email addresses one by one
+- personal-link domains and social handles
+- invoice/submission IDs when payment or checkout context matters
+- LWC domain participants combined with the athlete name or slug
+
+Read all likely related threads, including sent replies and old follow-ups. If results are numerous, narrow by the identity anchors above, but still summarize what was searched and why excluded hits were not relevant.
+
+Carry forward facts from earlier messages: prior missing-proof requests, promised corrections, alternate contact addresses, payment explanations, previous submissions, prior rejection reasons, and any human decisions. If related history contradicts the current submission, mark the decision as needs human judgment unless the contradiction is clearly resolved in later messages.
 
 ## Prepare The Repo Files
 
@@ -108,6 +132,7 @@ Mark the submission blocked and prepare a draft reply when any of these are true
 - Payment is due and no payment confirmation/follow-up is visible in Gmail.
 - The ZIP/reviewer output modifies the wrong athlete folder or creates an unexpected folder key.
 - The applicant's identity, test date, or result ownership cannot be reasonably verified.
+- Related email history was not searched, or it contains unresolved contradictions about proof, payment, identity, or requested changes.
 
 For obvious issues, draft the email directly. For uncertain medical/unit interpretation issues, explain the uncertainty in the summary and wait for the human decision.
 
@@ -160,6 +185,7 @@ Stop after review and present a summary before any send/commit/push. Include:
 - Recommended decision: approve, block, or needs human judgment.
 - Athlete folder path and public profile URL. Folder keys use underscores; profile URLs use hyphens.
 - Gmail thread/message used and whether a draft reply was created.
+- Related email history reviewed: search anchors used, additional threads found, alternate requester addresses, and relevant prior context.
 - Payment status from the audit email and any confirmation found.
 - Files changed from `git status --short`.
 - JSON highlights: name, division, flag, date of birth, biomarker record dates, pheno/bortz availability.
