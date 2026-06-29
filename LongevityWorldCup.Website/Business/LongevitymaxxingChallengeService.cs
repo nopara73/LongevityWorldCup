@@ -42,6 +42,7 @@ public sealed class LongevitymaxxingChallengeService
     private const string GravatarUserAgent = "LongevityWorldCup/1.0 (+https://longevityworldcup.com)";
     private const int CallScheduleUpdateNoticeDay = 0;
     private const string CallScheduleUpdateReminderKind = "call-schedule-update-weekly-community-sunday";
+    private const string CallSocialAnnouncementReminderKind = "1h";
     private const int CommunityCallGenerationPastDays = 7;
     private const int CommunityCallGenerationFutureDays = 42;
     private const int UpcomingCommunityCallDisplayCount = 4;
@@ -1100,6 +1101,71 @@ public sealed class LongevitymaxxingChallengeService
         });
     }
 
+    public IReadOnlyList<LongevitymaxxingCallAnnouncementCandidate> GetCallAnnouncementCandidates(DateTimeOffset? nowUtc = null)
+    {
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        var settings = BuildSettings(now);
+        if (string.IsNullOrWhiteSpace(settings.VideoCallUrl))
+            return [];
+
+        TrySelectCallSlots(now);
+        var selectedCalls = BuildParticipantCalls(settings)
+            .Where(call => call.SelectedSlot is not null)
+            .ToList();
+        if (selectedCalls.Count == 0)
+            return [];
+
+        var candidates = new List<LongevitymaxxingCallAnnouncementCandidate>();
+        foreach (var call in selectedCalls)
+        {
+            if (!DateTimeOffset.TryParse(call.SelectedSlot!.StartsAtUtc, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var startsAt))
+                continue;
+
+            var dueAt = startsAt.ToUniversalTime() - TimeSpan.FromHours(1);
+            if (now < dueAt || now >= dueAt.AddHours(1))
+                continue;
+
+            if (WasCallAnnouncementQueued(call.Key, CallSocialAnnouncementReminderKind))
+                continue;
+
+            candidates.Add(new LongevitymaxxingCallAnnouncementCandidate(
+                call.Key,
+                call.Label,
+                call.SelectedSlot.StartsAtUtc,
+                CallSocialAnnouncementReminderKind,
+                settings.VideoCallUrl));
+        }
+
+        return candidates;
+    }
+
+    public void MarkCallAnnouncementQueued(string callKey, string reminderKind, string eventId, DateTimeOffset? nowUtc = null)
+    {
+        if (string.IsNullOrWhiteSpace(callKey))
+            throw new ArgumentNullException(nameof(callKey));
+        if (string.IsNullOrWhiteSpace(reminderKind))
+            throw new ArgumentNullException(nameof(reminderKind));
+        if (string.IsNullOrWhiteSpace(eventId))
+            throw new ArgumentNullException(nameof(eventId));
+
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        _db.Run(sqlite =>
+        {
+            using var insert = sqlite.CreateCommand();
+            insert.CommandText =
+                """
+                INSERT OR IGNORE INTO LongevitymaxxingCallAnnouncementLog
+                (CallKey, ReminderKind, EventId, QueuedAtUtc)
+                VALUES (@callKey, @kind, @eventId, @queued);
+                """;
+            Add(insert, "@callKey", callKey);
+            Add(insert, "@kind", reminderKind);
+            Add(insert, "@eventId", eventId);
+            Add(insert, "@queued", now.ToString("o"));
+            insert.ExecuteNonQuery();
+        });
+    }
+
     public void TrySelectCallSlots(DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
@@ -1208,6 +1274,14 @@ public sealed class LongevitymaxxingChallengeService
                     ReminderKind TEXT NOT NULL,
                     SentAtUtc TEXT NOT NULL,
                     PRIMARY KEY (ParticipantId, CallKey, ReminderKind)
+                );
+
+                CREATE TABLE IF NOT EXISTS LongevitymaxxingCallAnnouncementLog (
+                    CallKey TEXT NOT NULL,
+                    ReminderKind TEXT NOT NULL,
+                    EventId TEXT NOT NULL,
+                    QueuedAtUtc TEXT NOT NULL,
+                    PRIMARY KEY (CallKey, ReminderKind)
                 );
 
                 CREATE TABLE IF NOT EXISTS LongevitymaxxingChallengeStartEmailLog (
@@ -2803,6 +2877,23 @@ public sealed class LongevitymaxxingChallengeService
                 LIMIT 1;
                 """;
             Add(cmd, "@participantId", participantId);
+            Add(cmd, "@callKey", callKey);
+            Add(cmd, "@kind", reminderKind);
+            return cmd.ExecuteScalar() is not null;
+        });
+    }
+
+    private bool WasCallAnnouncementQueued(string callKey, string reminderKind)
+    {
+        return _db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT 1 FROM LongevitymaxxingCallAnnouncementLog
+                WHERE CallKey = @callKey AND ReminderKind = @kind
+                LIMIT 1;
+                """;
             Add(cmd, "@callKey", callKey);
             Add(cmd, "@kind", reminderKind);
             return cmd.ExecuteScalar() is not null;

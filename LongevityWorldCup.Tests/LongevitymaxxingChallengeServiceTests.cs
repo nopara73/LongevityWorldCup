@@ -1,7 +1,9 @@
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Jobs;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
@@ -1204,6 +1206,56 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public void CallAnnouncementCandidatesUseOneHourWindowAndSendOncePerCall()
+    {
+        using var fixture = TestChallengeFixture.Create();
+
+        Assert.Empty(fixture.Service.GetCallAnnouncementCandidates(DateTimeOffset.Parse("2026-06-07T05:29:59Z")));
+
+        var candidate = Assert.Single(fixture.Service.GetCallAnnouncementCandidates(DateTimeOffset.Parse("2026-06-07T05:35:00Z")));
+        Assert.Equal("community-2026-06-07", candidate.CallKey);
+        Assert.Equal("Community call", candidate.CallLabel);
+        Assert.Equal("1h", candidate.ReminderKind);
+        Assert.Equal("2026-06-07T06:30:00.0000000+00:00", candidate.StartsAtUtc);
+        Assert.Equal("https://meet.example.test", candidate.VideoCallUrl);
+
+        fixture.Service.MarkCallAnnouncementQueued(candidate.CallKey, candidate.ReminderKind, "event-1", DateTimeOffset.Parse("2026-06-07T05:36:00Z"));
+
+        Assert.Empty(fixture.Service.GetCallAnnouncementCandidates(DateTimeOffset.Parse("2026-06-07T05:37:00Z")));
+        Assert.Empty(fixture.Service.GetCallAnnouncementCandidates(DateTimeOffset.Parse("2026-06-07T06:30:00Z")));
+    }
+
+    [Fact]
+    public async Task ReminderJobQueuesHiddenSocialOnlyCallAnnouncementEvent()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        using var events = CreateEventDataService(fixture);
+        var job = new LongevitymaxxingReminderJob(
+            fixture.Service,
+            events,
+            fixture.Email,
+            NullLogger<LongevitymaxxingReminderJob>.Instance);
+
+        await job.ExecuteAtAsync(DateTimeOffset.Parse("2026-06-07T05:35:00Z"));
+        await job.ExecuteAtAsync(DateTimeOffset.Parse("2026-06-07T05:36:00Z"));
+
+        var row = Assert.Single(ReadCustomEvents(fixture.Db));
+        Assert.Contains("Longevitymaxxing community call starts at 06:30 UTC", row.Text);
+        Assert.Contains("Participation is open. Join here:\nhttps://meet.example.test", row.Text);
+        Assert.DoesNotContain("token=", row.Text);
+        Assert.Equal(0, row.VisibleOnWebsite);
+        Assert.Equal(1, row.SlackProcessed);
+        Assert.Equal(0, row.XProcessed);
+        Assert.Equal(0, row.ThreadsProcessed);
+        Assert.Equal(0, row.FacebookProcessed);
+
+        var log = Assert.Single(ReadCallAnnouncementLogs(fixture.Db));
+        Assert.Equal("community-2026-06-07", log.CallKey);
+        Assert.Equal("1h", log.ReminderKind);
+        Assert.Equal(row.Id, log.EventId);
+    }
+
+    [Fact]
     public async Task CallReminderEmailIncludesTimeLinkParticipantPageAndCalendarInvite()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -2049,6 +2101,115 @@ public sealed class LongevitymaxxingChallengeServiceTests
         };
     }
 
+    private static EventDataService CreateEventDataService(TestChallengeFixture fixture)
+    {
+        var appConfig = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["EnableEventDispatch"] = "false",
+                ["EnableXDevPreviewBrowser"] = "false"
+            })
+            .Build();
+        var customImages = new CustomEventImageService(fixture.Environment, NullLogger<CustomEventImageService>.Instance);
+        var services = new EmptyServiceProvider();
+        var xClient = new XApiClient(
+            new HttpClient(new StaticHttpMessageHandler()),
+            fixture.Config,
+            fixture.Environment,
+            NullLogger<XApiClient>.Instance,
+            new XDevPreviewService(NullLogger<XDevPreviewService>.Instance, fixture.Http, appConfig));
+        var threadsClient = new ThreadsApiClient(
+            new HttpClient(new StaticHttpMessageHandler()),
+            fixture.Config,
+            NullLogger<ThreadsApiClient>.Instance);
+        var facebookClient = new FacebookApiClient(
+            new HttpClient(new StaticHttpMessageHandler()),
+            fixture.Config,
+            NullLogger<FacebookApiClient>.Instance);
+        var slackEvents = new SlackEventService(
+            new SlackWebhookClient(
+                new HttpClient(new StaticHttpMessageHandler()),
+                fixture.Config,
+                NullLogger<SlackWebhookClient>.Instance),
+            NullLogger<SlackEventService>.Instance);
+
+        return new EventDataService(
+            fixture.Environment,
+            slackEvents,
+            new XEventService(xClient, NullLogger<XEventService>.Instance, services, customImages),
+            new ThreadsEventService(threadsClient, NullLogger<ThreadsEventService>.Instance, services, customImages),
+            new FacebookEventService(facebookClient, NullLogger<FacebookEventService>.Instance, customImages),
+            fixture.Db,
+            NullLogger<EventDataService>.Instance,
+            appConfig);
+    }
+
+    private static IReadOnlyList<(string Id, string Text, int VisibleOnWebsite, int SlackProcessed, int XProcessed, int ThreadsProcessed, int FacebookProcessed)> ReadCustomEvents(DatabaseManager db)
+    {
+        return db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT Id, Text, VisibleOnWebsite, SlackProcessed, XProcessed, ThreadsProcessed, FacebookProcessed
+                FROM Events
+                WHERE Type = @type
+                ORDER BY OccurredAt ASC;
+                """;
+            cmd.Parameters.AddWithValue("@type", (int)EventType.CustomEvent);
+            using var reader = cmd.ExecuteReader();
+            var rows = new List<(string Id, string Text, int VisibleOnWebsite, int SlackProcessed, int XProcessed, int ThreadsProcessed, int FacebookProcessed)>();
+            while (reader.Read())
+            {
+                rows.Add((
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetInt32(2),
+                    reader.GetInt32(3),
+                    reader.GetInt32(4),
+                    reader.GetInt32(5),
+                    reader.GetInt32(6)));
+            }
+
+            return rows;
+        });
+    }
+
+    private static IReadOnlyList<(string CallKey, string ReminderKind, string EventId)> ReadCallAnnouncementLogs(DatabaseManager db)
+    {
+        return db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT CallKey, ReminderKind, EventId
+                FROM LongevitymaxxingCallAnnouncementLog
+                ORDER BY QueuedAtUtc ASC;
+                """;
+            using var reader = cmd.ExecuteReader();
+            var rows = new List<(string CallKey, string ReminderKind, string EventId)>();
+            while (reader.Read())
+                rows.Add((reader.GetString(0), reader.GetString(1), reader.GetString(2)));
+            return rows;
+        });
+    }
+
+    private sealed class EmptyServiceProvider : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => null;
+    }
+
+    private sealed class StaticHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}")
+            });
+        }
+    }
+
     private sealed class TestChallengeFixture : IDisposable
     {
         private TestChallengeFixture(
@@ -2058,6 +2219,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
             FakeHttpClientFactory http,
             FakeAthleteSnapshotProvider athletes,
             FakeBtcpayInvoiceClient btcpay,
+            Config config,
+            FakeEnvironment environment,
             LongevitymaxxingChallengeService service)
         {
             ContentRoot = root;
@@ -2066,6 +2229,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
             Http = http;
             Athletes = athletes;
             Btcpay = btcpay;
+            Config = config;
+            Environment = environment;
             Service = service;
         }
 
@@ -2075,6 +2240,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
         public FakeHttpClientFactory Http { get; }
         public FakeAthleteSnapshotProvider Athletes { get; }
         public FakeBtcpayInvoiceClient Btcpay { get; }
+        public Config Config { get; }
+        public FakeEnvironment Environment { get; }
         public LongevitymaxxingChallengeService Service { get; }
 
         public static TestChallengeFixture Create(
@@ -2123,7 +2290,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 NullLogger<LongevitymaxxingChallengeService>.Instance,
                 athletes,
                 btcpay);
-            return new TestChallengeFixture(root, db, email, http, athletes, btcpay, service);
+            return new TestChallengeFixture(root, db, email, http, athletes, btcpay, config, env, service);
         }
 
         public void AddAthleteTieBreak(string slug, int? currentPlacement, int birthYear, int birthMonth, int birthDay)
