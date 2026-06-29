@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -55,6 +56,36 @@ public sealed class HomepageHighlightSelectionTests
         var podcastRendering = eventBoardHtml[podcastStart..podcastEnd];
         Assert.Contains("target=\"_blank\" rel=\"noopener\">episode</a>", podcastRendering);
         Assert.DoesNotContain("target=\"_top\" rel=\"noopener\">episode</a>", podcastRendering);
+    }
+
+    [Fact]
+    public void HomepageAthleteHighlightSelection_PrioritizesImprovementLeaderboardChangesOverPlainBioageImprovements()
+    {
+        var repoRoot = FindRepoRoot();
+        var eventBoardHtml = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "partials",
+            "event-board-content.html"));
+
+        var biologicalAgeImprovedBase = ExtractHomepageImportanceBase(eventBoardHtml, "BiologicalAgeImproved");
+        var ageImprovementTop10ChangeBase = ExtractHomepageImportanceBase(eventBoardHtml, "AgeImprovementTop10Change");
+
+        Assert.True(
+            ageImprovementTop10ChangeBase > biologicalAgeImprovedBase,
+            "Improvement leaderboard placement Events should outrank plain biological-age improvement Events for homepage athlete highlights.");
+    }
+
+    private static int ExtractHomepageImportanceBase(string eventBoardHtml, string eventTypeName)
+    {
+        var match = Regex.Match(
+            eventBoardHtml,
+            $@"case\s+EVENT_TYPE\.{Regex.Escape(eventTypeName)}:[\s\S]*?return\s+(\d+)\s*\+\s*relevance",
+            RegexOptions.CultureInvariant);
+
+        Assert.True(match.Success, $"Could not find homepage importance return for {eventTypeName}.");
+        return int.Parse(match.Groups[1].Value);
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

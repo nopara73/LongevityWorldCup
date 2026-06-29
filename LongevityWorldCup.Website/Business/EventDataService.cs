@@ -92,7 +92,7 @@ public sealed class EventDataService : IDisposable
     private const double DefaultRelevanceBecamePro = 9d;
     private const double DefaultRelevanceBiologicalAgeImproved = 9d;
     private const double DefaultRelevanceCrowdAgeTop10Change = 8d;
-    private const double DefaultRelevanceAgeImprovementTop10Change = 8d;
+    private const double DefaultRelevanceAgeImprovementTop10Change = 10d;
     private const int MaxCustomEventRetries = 3;
     private const int MinimumActiveAthleteSlugCountForEventCleanup = 10;
     private static readonly TimeSpan AmateurAgeReductionGraduationCleanupWindow = TimeSpan.FromHours(2);
