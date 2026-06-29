@@ -16,13 +16,6 @@
             padding: 0 1rem 3.25rem;
         }
 
-        .play-hub-panel[data-aos]:not(.aos-animate),
-        .play-menu-hero[data-aos]:not(.aos-animate),
-        .play-menu-actions[data-aos]:not(.aos-animate) {
-            opacity: 1;
-            transform: none;
-        }
-
         .play-menu-hero {
             text-align: center;
             padding: clamp(1.4rem, 3vh, 2.25rem) 1rem 0;
@@ -63,6 +56,18 @@
 
         .play-hub-panel[hidden] {
             display: none !important;
+        }
+
+        .play-hub-panel--entering {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 120ms ease-out, transform 120ms ease-out;
+            will-change: opacity, transform;
+        }
+
+        .play-hub-panel--entering.play-hub-panel--from {
+            opacity: 0;
+            transform: translateY(5px);
         }
 
         .play-athlete-panel,
@@ -708,6 +713,17 @@
             }
         }
 
+        @media (prefers-reduced-motion: reduce) {
+            .play-hub-panel--entering {
+                transition: none;
+            }
+
+            .play-hub-panel--entering.play-hub-panel--from {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
 </style>
 </head>
 <body>
@@ -715,7 +731,7 @@
     <main class="play-hub-main">
         <section id="playStartPanel" class="play-hub-panel play-start-panel">
             <h1 class="visually-hidden">Game menu</h1>
-            <div class="play-menu-hero" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
+            <div class="play-menu-hero">
                 <div class="img-crop">
                     <img src="../assets/content-images/JustTrackIt.jpg"
                          alt="Illustration encouraging athletes to track their progress"
@@ -726,7 +742,7 @@
                 </div>
             </div>
 
-            <div class="options-container play-menu-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+            <div class="options-container play-menu-actions flow-action-stack">
                 <button id="newGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
                     <span class="flow-action__label">I'm a new athlete</span>
                 </button>
@@ -970,9 +986,12 @@
     <script>
         (function () {
             const storageErrorMessage = 'Browser storage is unavailable. Enable storage and try again.';
+            const PLAY_PANEL_TRANSITION_MS = 120;
             let flow = null;
             let athleteSelection = null;
             let activePlayPanelName = null;
+            let hasRenderedPlayPanel = false;
+            let playPanelTransitionTimer = 0;
             const playRouteStates = Object.freeze({
                 start: Object.freeze({ route: '/play', panelId: 'playStartPanel', isWide: false }),
                 join: Object.freeze({ route: '/join', panelId: 'joinTrackPanel', isWide: true }),
@@ -1050,15 +1069,58 @@
                 }
             }
 
+            function prefersReducedPlayMotion() {
+                return window.matchMedia
+                    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            }
+
+            function clearPlayPanelAnimation(panel) {
+                panel.classList.remove(
+                    'play-hub-panel--entering',
+                    'play-hub-panel--from'
+                );
+            }
+
+            function completePlayPanelTransition(targetPanel, panelName) {
+                window.clearTimeout(playPanelTransitionTimer);
+                playPanelTransitionTimer = 0;
+                clearPlayPanelAnimation(targetPanel);
+                activePlayPanelName = panelName;
+                hasRenderedPlayPanel = true;
+            }
+
             function showPanelByName(panelName) {
                 const state = getPlayRouteState(panelName);
-                activePlayPanelName = panelName;
-                document.querySelector('.play-hub-main')?.classList.toggle('play-hub-main--wide', state.isWide);
+                const main = document.querySelector('.play-hub-main');
+                const targetPanel = document.getElementById(state.panelId);
+                if (!main || !targetPanel) return;
+
+                const shouldAnimate = hasRenderedPlayPanel
+                    && activePlayPanelName !== panelName
+                    && !prefersReducedPlayMotion();
+
+                window.clearTimeout(playPanelTransitionTimer);
+                playPanelTransitionTimer = 0;
+                document.querySelectorAll('.play-hub-panel').forEach(clearPlayPanelAnimation);
+                main.classList.toggle('play-hub-main--wide', state.isWide);
                 document.querySelectorAll('.play-hub-panel').forEach(panel => {
-                    const isActive = panel.id === state.panelId;
-                    panel.hidden = !isActive;
+                    panel.hidden = panel !== targetPanel;
                 });
+                activePlayPanelName = panelName;
                 window.scrollTo(0, 0);
+
+                if (!shouldAnimate) {
+                    completePlayPanelTransition(targetPanel, panelName);
+                    return;
+                }
+
+                targetPanel.classList.add('play-hub-panel--entering', 'play-hub-panel--from');
+                window.requestAnimationFrame(() => {
+                    targetPanel.classList.remove('play-hub-panel--from');
+                });
+                playPanelTransitionTimer = window.setTimeout(() => {
+                    completePlayPanelTransition(targetPanel, panelName);
+                }, PLAY_PANEL_TRANSITION_MS);
             }
 
             function resolveRequestedPlayPanel(panelName) {

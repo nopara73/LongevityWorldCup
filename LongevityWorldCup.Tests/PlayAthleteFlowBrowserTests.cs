@@ -38,6 +38,7 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.Locator("#newGameBtn").ClickAsync();
         await page.WaitForURLAsync("**/join");
         await ExpectActivePlayPanelAsync(page, "joinTrackPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
         Assert.True(await page.GetByRole(AriaRole.Button, new() { Name = "Start amateur" }).IsVisibleAsync());
         Assert.True(await page.GetByRole(AriaRole.Button, new() { Name = "Go pro" }).IsVisibleAsync());
@@ -45,20 +46,24 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.GoBackAsync();
         await page.WaitForURLAsync("**/play");
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
 
         await page.GoForwardAsync();
         await page.WaitForURLAsync("**/join");
         await ExpectActivePlayPanelAsync(page, "joinTrackPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Back" }).ClickAsync();
         await page.WaitForURLAsync("**/play");
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
 
         await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await ExpectActivePlayPanelAsync(page, "joinTrackPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
 
         Assert.Empty(errors);
@@ -116,6 +121,7 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.Locator("#continueGameBtn").ClickAsync();
         await page.WaitForURLAsync("**/select-athlete");
         await ExpectActivePlayPanelAsync(page, "athleteSelectionPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/select-athlete", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#athleteSelectionTitle").InnerTextAsync());
         Assert.Equal("Browser Test Athlete", await page.Locator("#playAthleteInput").InputValueAsync());
@@ -124,12 +130,14 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.Locator("#playConfirmAthleteBtn").ClickAsync();
         await page.WaitForURLAsync("**/dashboard");
         await ExpectActivePlayPanelAsync(page, "athleteDashboardPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#athleteDashboardTitle").InnerTextAsync());
 
         await page.GoBackAsync();
         await page.WaitForURLAsync("**/select-athlete");
         await ExpectActivePlayPanelAsync(page, "athleteSelectionPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/select-athlete", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#playAthleteInput").InputValueAsync());
         Assert.True(await page.Locator("#playConfirmAthleteBtn").IsEnabledAsync());
@@ -137,6 +145,7 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.GoForwardAsync();
         await page.WaitForURLAsync("**/dashboard");
         await ExpectActivePlayPanelAsync(page, "athleteDashboardPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#athleteDashboardTitle").InnerTextAsync());
 
@@ -150,12 +159,14 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.GetByRole(AriaRole.Button, new() { Name = "Back" }).ClickAsync();
         await page.WaitForURLAsync("**/dashboard");
         await ExpectActivePlayPanelAsync(page, "athleteDashboardPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#athleteDashboardTitle").InnerTextAsync());
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Change athlete" }).ClickAsync();
         await page.WaitForURLAsync("**/select-athlete");
         await ExpectActivePlayPanelAsync(page, "athleteSelectionPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/select-athlete", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#playAthleteInput").InputValueAsync());
         Assert.True(await page.Locator("#playConfirmAthleteBtn").IsEnabledAsync());
@@ -192,6 +203,7 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.GotoAsync("/dashboard", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => window.location.pathname === '/select-athlete'");
         await ExpectActivePlayPanelAsync(page, "athleteSelectionPanel");
+        await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/select-athlete", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Athlete selection", await page.Locator("#athleteSelectionTitle").InnerTextAsync());
 
@@ -211,5 +223,15 @@ public sealed class PlayAthleteFlowBrowserTests
             }
             """,
             activePanelId);
+    }
+
+    private static async Task ExpectNoPlayPanelTransitionAsync(IPage page)
+    {
+        await page.WaitForFunctionAsync(
+            """
+            () => !document.querySelector(
+                '.play-hub-panel--entering, .play-hub-panel--from'
+            )
+            """);
     }
 }

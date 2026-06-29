@@ -123,6 +123,31 @@ public sealed class PlayMenuPageTests
     }
 
     [Fact]
+    public async Task PlayMenu_UsesOneReducedMotionSafePanelTransition()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/menu.html");
+
+        Assert.Contains("const PLAY_PANEL_TRANSITION_MS = 120;", html);
+        Assert.Contains(".play-hub-panel--entering", html);
+        Assert.Contains(".play-hub-panel--entering.play-hub-panel--from", html);
+        Assert.Contains("@media (prefers-reduced-motion: reduce)", html);
+        Assert.Contains("let hasRenderedPlayPanel = false;", html);
+        Assert.Contains("function prefersReducedPlayMotion()", html);
+        Assert.Contains("completePlayPanelTransition(targetPanel, panelName);", html);
+        Assert.Contains("&& !prefersReducedPlayMotion();", html);
+        Assert.Contains("targetPanel.classList.add('play-hub-panel--entering', 'play-hub-panel--from');", html);
+        Assert.DoesNotContain("function measurePlayPanelHeight(panel)", html);
+        Assert.DoesNotContain(".play-hub-main--transitioning", html);
+        Assert.DoesNotContain(".play-hub-panel--animating", html);
+        Assert.DoesNotContain(".play-hub-panel--leaving", html);
+        Assert.DoesNotContain("play-menu-hero\" data-aos", html);
+        Assert.DoesNotContain("play-menu-actions flow-action-stack\" data-aos", html);
+    }
+
+    [Fact]
     public async Task PlayMenu_AthletePicturesUseSharedFrameAndTransitionBehavior()
     {
         using var factory = new TestWebApplicationFactory();
