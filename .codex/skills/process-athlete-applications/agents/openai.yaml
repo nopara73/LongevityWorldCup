@@ -1,4 +1,4 @@
 interface:
-  display_name: "Process Athlete Applications"
-  short_description: "Review LWC athlete application emails"
-  default_prompt: "Use $process-athlete-applications to process the next Longevity World Cup athlete application."
+  display_name: "Process Athlete Submissions"
+  short_description: "Review LWC athlete submission emails"
+  default_prompt: "Use $process-athlete-applications to process the next Longevity World Cup athlete submission."
