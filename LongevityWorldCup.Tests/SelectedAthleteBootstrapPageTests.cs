@@ -20,14 +20,14 @@ public sealed class SelectedAthleteBootstrapPageTests
         if (path == "/dashboard")
         {
             var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
-            var recoveryStart = flow.IndexOf("function readRequiredSelectedAthlete()", StringComparison.Ordinal);
-            var redirectIndex = flow.IndexOf("window.location.replace(\"/select-athlete\");", recoveryStart, StringComparison.Ordinal);
+            var recoveryStart = flow.IndexOf("function getStoredSelectedAthlete()", StringComparison.Ordinal);
+            var recoveryEnd = flow.IndexOf("function isValidSelectedAthlete(value)", recoveryStart, StringComparison.Ordinal);
 
-            Assert.Contains("flow.readRequiredSelectedAthlete();", html);
+            Assert.Contains("flow.getStoredSelectedAthlete();", html);
             Assert.True(recoveryStart >= 0);
-            Assert.True(redirectIndex > recoveryStart);
+            Assert.True(recoveryEnd > recoveryStart);
 
-            var recoveryBody = flow[recoveryStart..redirectIndex];
+            var recoveryBody = flow[recoveryStart..recoveryEnd];
 
             Assert.Contains("function removeSessionItem(key)", flow);
             Assert.Contains("removeSessionItem(\"selectedAthlete\");", recoveryBody);
@@ -87,7 +87,7 @@ public sealed class SelectedAthleteBootstrapPageTests
 
         if (path == "/dashboard")
         {
-            Assert.Contains("flow.readRequiredSelectedAthlete();", html);
+            Assert.Contains("flow.getStoredSelectedAthlete();", html);
         }
         else if (isBioagePage)
         {
@@ -119,7 +119,7 @@ public sealed class SelectedAthleteBootstrapPageTests
 
         if (path == "/dashboard")
         {
-            Assert.Contains("flow.readRequiredSelectedAthlete();", html);
+            Assert.Contains("flow.getStoredSelectedAthlete();", html);
         }
         else if (isBioagePage)
         {
