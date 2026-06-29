@@ -194,6 +194,13 @@ public sealed record LongevitymaxxingCallReminderCandidate(
     string? VideoCallUrl,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
 
+public sealed record LongevitymaxxingCallAnnouncementCandidate(
+    string CallKey,
+    string CallLabel,
+    string StartsAtUtc,
+    string ReminderKind,
+    string VideoCallUrl);
+
 public sealed record LongevitymaxxingChallengeStartCandidate(
     string ParticipantId,
     string Email,
