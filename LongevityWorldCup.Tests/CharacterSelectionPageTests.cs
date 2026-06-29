@@ -152,12 +152,17 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("border: 0;", css);
         Assert.Contains("class=\"illustration athlete-picture-placeholder\"", html);
         Assert.Contains("const ATHLETE_PICTURE_TRANSITION_MS = 180;", flow);
+        Assert.Contains("const MIN_USABLE_ATHLETE_PICTURE_SIDE = 16;", flow);
         Assert.Contains("function transitionAthletePicture(frame, image, src)", flow);
+        Assert.Contains("function shouldUseDefaultForLoadedAthleteImage(image)", flow);
+        Assert.Contains("function setDefaultAthleteImageSource(image)", flow);
+        Assert.Contains("function watchAthleteImageLoad(image, onLoaded, shouldIgnore = () => false)", flow);
         Assert.Contains("function getAthletePictureImageSrc(athlete)", flow);
         Assert.Contains("athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb", flow);
         Assert.Contains("let hasFinished = false;", flow);
         Assert.Contains("image.loading = \"eager\";", flow);
-        Assert.Contains("image.addEventListener(\"load\", finishImageSwap, { once: true });", flow);
+        Assert.Contains("image.addEventListener(\"load\", handleImageLoad);", flow);
+        Assert.Contains("image.addEventListener(\"error\", handleImageError);", flow);
         Assert.Contains("frame.appendChild(image);", flow);
         Assert.Contains("currentMedia.classList.add(\"is-exiting\");", flow);
         Assert.Contains("frame.replaceChildren(image);", flow);

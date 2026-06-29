@@ -1,6 +1,7 @@
 const DEFAULT_HEADSHOT_WEBP = "../assets/content-images/headshot.webp";
 const DEFAULT_HEADSHOT_JPEG = "../assets/content-images/headshot.jpg";
 const ATHLETE_PICTURE_TRANSITION_MS = 180;
+const MIN_USABLE_ATHLETE_PICTURE_SIDE = 16;
 const PENDING_PAYMENT_OFFER_KEY = "pendingPaymentOffer";
 
 const pictureTransitionTokens = new WeakMap();
@@ -199,6 +200,72 @@ function createAthletePictureImage(altText, loading = "eager") {
     return image;
 }
 
+function isDefaultHeadshotSrc(src) {
+    if (!src) return false;
+
+    try {
+        return new URL(src, window.location.href).pathname.endsWith("/assets/content-images/headshot.jpg");
+    } catch (_) {
+        return src.endsWith(DEFAULT_HEADSHOT_JPEG) || src.endsWith("/assets/content-images/headshot.jpg");
+    }
+}
+
+function shouldUseDefaultForLoadedAthleteImage(image) {
+    return image
+        && image.naturalWidth > 0
+        && image.naturalHeight > 0
+        && !isDefaultHeadshotSrc(image.currentSrc || image.src)
+        && (image.naturalWidth < MIN_USABLE_ATHLETE_PICTURE_SIDE || image.naturalHeight < MIN_USABLE_ATHLETE_PICTURE_SIDE);
+}
+
+function setDefaultAthleteImageSource(image) {
+    if (!image || isDefaultHeadshotSrc(image.currentSrc || image.src)) {
+        return false;
+    }
+
+    image.classList.add("athlete-picture-placeholder");
+    image.src = DEFAULT_HEADSHOT_JPEG;
+    return true;
+}
+
+function watchAthleteImageLoad(image, onLoaded, shouldIgnore = () => false) {
+    function cleanupImageLoadListeners() {
+        image.removeEventListener("load", handleImageLoad);
+        image.removeEventListener("error", handleImageError);
+    }
+
+    function handleImageLoad() {
+        if (shouldIgnore()) {
+            cleanupImageLoadListeners();
+            return;
+        }
+
+        if (shouldUseDefaultForLoadedAthleteImage(image) && setDefaultAthleteImageSource(image)) {
+            return;
+        }
+
+        cleanupImageLoadListeners();
+        onLoaded();
+    }
+
+    function handleImageError() {
+        if (shouldIgnore()) {
+            cleanupImageLoadListeners();
+            return;
+        }
+
+        if (setDefaultAthleteImageSource(image)) {
+            return;
+        }
+
+        cleanupImageLoadListeners();
+    }
+
+    image.addEventListener("load", handleImageLoad);
+    image.addEventListener("error", handleImageError);
+    return handleImageLoad;
+}
+
 function nextPictureTransitionToken(frame) {
     const token = (pictureTransitionTokens.get(frame) || 0) + 1;
     pictureTransitionTokens.set(frame, token);
@@ -236,32 +303,32 @@ function transitionAthletePicture(frame, image, src) {
         });
     }
 
-    image.addEventListener("load", finishImageSwap, { once: true });
-    image.addEventListener("error", () => {
-        if (transitionToken !== pictureTransitionTokens.get(frame)) return;
-        if (!image.src.endsWith("/assets/content-images/headshot.jpg")) {
-            image.src = DEFAULT_HEADSHOT_JPEG;
-        }
-    }, { once: true });
+    const inspectLoadedImage = watchAthleteImageLoad(
+        image,
+        finishImageSwap,
+        () => transitionToken !== pictureTransitionTokens.get(frame)
+    );
     image.src = src || DEFAULT_HEADSHOT_JPEG;
 
     if (image.complete && image.naturalWidth > 0) {
-        finishImageSwap();
+        inspectLoadedImage();
     }
 }
 
 function replaceAthletePictureImmediately(frame, image, src) {
     nextPictureTransitionToken(frame);
     image.classList.remove("athlete-picture-next", "is-visible");
+    const inspectLoadedImage = watchAthleteImageLoad(image, () => {});
     image.src = src || DEFAULT_HEADSHOT_JPEG;
     frame.replaceChildren(image);
+    if (image.complete && image.naturalWidth > 0) {
+        inspectLoadedImage();
+    }
 }
 
 function renderAthletePicture(frame, athlete, altText) {
     const image = createAthletePictureImage(altText, "lazy");
-    image.classList.remove("athlete-picture-next");
-    image.src = getAthletePictureImageSrc(athlete);
-    frame.replaceChildren(image);
+    replaceAthletePictureImmediately(frame, image, getAthletePictureImageSrc(athlete));
 }
 
 function resetAthletePreview({ titleElement, frameElement, defaultTitle }) {

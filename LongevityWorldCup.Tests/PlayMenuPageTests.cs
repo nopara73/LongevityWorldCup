@@ -167,8 +167,15 @@ public sealed class PlayMenuPageTests
         Assert.Contains("object-fit: cover;", css);
         Assert.Contains("transform: scale(1.035);", css);
         Assert.Contains("const ATHLETE_PICTURE_TRANSITION_MS = 180;", flow);
+        Assert.Contains("const MIN_USABLE_ATHLETE_PICTURE_SIDE = 16;", flow);
+        Assert.Contains("function shouldUseDefaultForLoadedAthleteImage(image)", flow);
+        Assert.Contains("function setDefaultAthleteImageSource(image)", flow);
+        Assert.Contains("function watchAthleteImageLoad(image, onLoaded, shouldIgnore = () => false)", flow);
         Assert.Contains("function transitionAthletePicture(frame, image, src)", flow);
-        Assert.Contains("image.addEventListener(\"load\", finishImageSwap, { once: true });", flow);
+        Assert.Contains("image.addEventListener(\"load\", handleImageLoad);", flow);
+        Assert.Contains("image.addEventListener(\"error\", handleImageError);", flow);
+        Assert.Contains("if (shouldUseDefaultForLoadedAthleteImage(image) && setDefaultAthleteImageSource(image))", flow);
+        Assert.Contains("const inspectLoadedImage = watchAthleteImageLoad(", flow);
         Assert.Contains("frame.appendChild(image);", flow);
         Assert.Contains("currentMedia.classList.add(\"is-exiting\");", flow);
         Assert.Contains("frame.replaceChildren(image);", flow);
