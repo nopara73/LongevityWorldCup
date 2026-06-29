@@ -253,14 +253,14 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         ReloadCrowdStats();
         SyncCrowdAgeTop10Placements(emitEvents: false);
         HydrateAgeImprovementIntoAthletesJson();
-        SyncAgeImprovementTop10Placements(emitEvents: false);
-        HydratePlacementsIntoAthletesJson();
         HydrateNewFlagsIntoAthletesJson();
         HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
         HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
 
         // persist biomarker/test signature for all athletes (so we can detect new/changed tests later)
         var changedSigsAtStartup = SyncBiomarkerSignatures(); // returns slugs whose signatures changed
+        SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigsAtStartup);
+        HydratePlacementsIntoAthletesJson();
         var becameProAtStartup = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
         var bioAgeImprovementsAtStartup = SyncBestBioAgeStates(
             changedSigsAtStartup,
