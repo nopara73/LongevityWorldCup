@@ -152,6 +152,42 @@ public sealed class NewAthleteOnboardingBrowserTests
         });
     }
 
+    [Fact]
+    public async Task DirectPhenoSignup_ReplacesStaleProPaymentOffer()
+    {
+        var bloodDrawDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
+
+        await RunOnboardingBrowserAsync(async (page, errors) =>
+        {
+            await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await SetPendingPaymentOfferAsync(page, "join-game", "pro", 100);
+            await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
+            await page.Locator("#continueButton").ClickAsync();
+            await page.WaitForURLAsync("**/apply");
+
+            await AssertPaymentOfferAsync(page, "direct-pheno-age", "amateur", 10);
+            Assert.Empty(errors);
+        });
+    }
+
+    [Fact]
+    public async Task DirectBortzSignup_ReplacesStaleAmateurPaymentOffer()
+    {
+        var bloodDrawDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");
+
+        await RunOnboardingBrowserAsync(async (page, errors) =>
+        {
+            await page.GotoAsync("/bortz-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await SetPendingPaymentOfferAsync(page, "join-game", "amateur", 10);
+            await FillAndCalculateBortzAgeAsync(page, bloodDrawDate);
+            await page.Locator("#continueButton").ClickAsync();
+            await page.WaitForURLAsync("**/apply");
+
+            await AssertPaymentOfferAsync(page, "direct-bortz-age", "pro", 100);
+            Assert.Empty(errors);
+        });
+    }
+
     private static async Task RunOnboardingBrowserAsync(Func<IPage, List<string>, Task> testBody)
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -323,6 +359,25 @@ public sealed class NewAthleteOnboardingBrowserTests
     }
 
     private static async Task AssertPendingPaymentOfferAsync(IPage page, string expectedOfferType, double expectedAmountUsd)
+        => await AssertPaymentOfferAsync(page, "join-game", expectedOfferType, expectedAmountUsd);
+
+    private static async Task SetPendingPaymentOfferAsync(IPage page, string source, string offerType, double amountUsd)
+    {
+        await page.EvaluateAsync(
+            """
+            offer => {
+                sessionStorage.setItem('pendingPaymentOffer', JSON.stringify({
+                    source: offer.source,
+                    offerType: offer.offerType,
+                    currency: 'USD',
+                    amountUsd: offer.amountUsd
+                }));
+            }
+            """,
+            new { source, offerType, amountUsd });
+    }
+
+    private static async Task AssertPaymentOfferAsync(IPage page, string expectedSource, string expectedOfferType, double expectedAmountUsd)
     {
         var offer = await page.EvaluateAsync<JsonElement>(
             """
@@ -337,7 +392,7 @@ public sealed class NewAthleteOnboardingBrowserTests
             }
             """);
 
-        Assert.Equal("join-game", offer.GetProperty("source").GetString());
+        Assert.Equal(expectedSource, offer.GetProperty("source").GetString());
         Assert.Equal(expectedOfferType, offer.GetProperty("offerType").GetString());
         Assert.Equal("USD", offer.GetProperty("currency").GetString());
         Assert.Equal(expectedAmountUsd, offer.GetProperty("amountUsd").GetDouble());

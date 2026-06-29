@@ -423,11 +423,12 @@ public sealed class BioageStoredBiomarkerTests
     public void BioagePages_ReplaceMalformedPendingPaymentOfferBeforeHandoff(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
+        var expectedOfferType = fileName == "pheno-age.html" ? "amateur" : "pro";
 
-        Assert.Contains("function hasUsablePendingPaymentOffer()", html);
+        Assert.Contains("function hasUsablePendingPaymentOffer(expectedOfferType)", html);
         Assert.Contains("const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.Contains("const parsedOffer = JSON.parse(rawOffer);", html);
-        Assert.Contains("if (isUsablePaymentOffer(parsedOffer)) return true;", html);
+        Assert.Contains("if (isUsablePaymentOffer(parsedOffer) && parsedOffer.offerType === expectedOfferType) return true;", html);
         Assert.Contains("function isUsablePaymentOffer(paymentOffer)", html);
         Assert.Contains("typeof paymentOffer.source === 'string'", html);
         Assert.Contains("typeof paymentOffer.offerType === 'string'", html);
@@ -438,7 +439,8 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("function clearPendingPaymentOffer()", html);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.Contains("clearPendingPaymentOffer();", html);
-        Assert.Contains("if (!isUpdate && !hasUsablePendingPaymentOffer())", html);
+        Assert.Contains("if (isUpdate) {\n            clearPendingPaymentOffer();\n        }", html);
+        Assert.Contains($"if (!isUpdate && !hasUsablePendingPaymentOffer('{expectedOfferType}'))", html);
         Assert.DoesNotContain("if (!isUpdate && !sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY))", html);
     }
 
