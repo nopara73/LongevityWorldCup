@@ -139,7 +139,56 @@ public sealed class SiteStatisticsServiceTests
         Assert.Equal(dashboard.Filters.FromUtc, dashboard.Filters.PreviousToUtc);
     }
 
-    private static void InsertDashboardEvent(DatabaseManager database, DateTimeOffset occurredAtUtc, string sessionHash, string eventName, string flow)
+    [Fact]
+    public async Task Dashboard_ClassifiesSameDomainReferrersAsInternal()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        InsertDashboardEvent(
+            database,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            "S-OLD",
+            "site_page_viewed",
+            "site",
+            source: "referral",
+            referrerDomain: "longevityworldcup.com");
+
+        var context = new DefaultHttpContext();
+        context.Request.Headers.Referer = "https://www.longevityworldcup.com/join";
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "site_page_viewed",
+            SessionId = "same-domain-referrer",
+            Flow = "site",
+            Route = "/pheno-age",
+            Source = "referral",
+            ReferrerDomain = "www.longevityworldcup.com"
+        }, context);
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.All(dashboard.Events, ev => Assert.Equal("internal", ev.Source));
+
+        var internalOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Source = "internal" });
+        Assert.Equal(2, internalOnly.Events.Count);
+
+        var referralOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Source = "referral" });
+        Assert.Empty(referralOnly.Events);
+    }
+
+    private static void InsertDashboardEvent(
+        DatabaseManager database,
+        DateTimeOffset occurredAtUtc,
+        string sessionHash,
+        string eventName,
+        string flow,
+        string source = "direct",
+        string? referrerDomain = null)
     {
         database.Run(sqlite =>
         {
@@ -151,7 +200,7 @@ public sealed class SiteStatisticsServiceTests
                  ErrorCode, DurationMs, DeviceClass, BrowserFamily, ReferrerDomain, Source, MetadataJson)
                 VALUES
                 (@id, @occurred, @session, @eventName, @flow, @route, @component, @step, @outcome,
-                 NULL, NULL, @device, @browser, NULL, @source, NULL);
+                 NULL, NULL, @device, @browser, @referrer, @source, NULL);
                 """;
             cmd.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N"));
             cmd.Parameters.AddWithValue("@occurred", occurredAtUtc.ToString("O"));
@@ -164,7 +213,8 @@ public sealed class SiteStatisticsServiceTests
             cmd.Parameters.AddWithValue("@outcome", "failed");
             cmd.Parameters.AddWithValue("@device", "desktop");
             cmd.Parameters.AddWithValue("@browser", "Chrome");
-            cmd.Parameters.AddWithValue("@source", "direct");
+            cmd.Parameters.AddWithValue("@source", source);
+            cmd.Parameters.AddWithValue("@referrer", referrerDomain ?? (object)DBNull.Value);
             cmd.ExecuteNonQuery();
         });
     }

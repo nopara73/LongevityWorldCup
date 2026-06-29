@@ -19,6 +19,8 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("Recommended Investigations", html);
         Assert.Contains("Segment Comparison", html);
         Assert.Contains("Trend Watch", html);
+        Assert.Contains("dataQualityStrip", html);
+        Assert.Contains("<option value=\"internal\">Internal</option>", html);
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_CSS}}", html);
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_JS}}", html);
         Assert.DoesNotContain("{{ASSET_POPPINS_REGULAR}}", html);
@@ -57,6 +59,7 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("joinGoProButton", tracker);
         Assert.Contains(".play-join-biomarkers details", tracker);
         Assert.Contains(".play-join-card--pro", tracker);
+        Assert.Contains("return \"internal\";", tracker);
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

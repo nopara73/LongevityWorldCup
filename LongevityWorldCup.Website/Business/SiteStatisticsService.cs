@@ -22,6 +22,11 @@ public sealed class SiteStatisticsService : IHostedService
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(1);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan DefaultDashboardRange = TimeSpan.FromDays(30);
+    private static readonly HashSet<string> InternalReferrerDomains = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "longevityworldcup.com",
+        "www.longevityworldcup.com"
+    };
     private static readonly string[] SensitiveQueryKeys =
     [
         "token", "confirm", "stop", "accessToken", "stopToken", "invoiceId", "checkoutLink",
@@ -174,7 +179,12 @@ public sealed class SiteStatisticsService : IHostedService
               AND OccurredAtUtc < @to
               AND (@flow = '' OR Flow = @flow)
               AND (@device = '' OR DeviceClass = @device)
-              AND (@source = '' OR Source = @source)
+              AND (
+                    @source = ''
+                    OR (@source = 'internal' AND lower(coalesce(ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com'))
+                    OR (@source = 'referral' AND Source = 'referral' AND lower(coalesce(ReferrerDomain, '')) NOT IN ('longevityworldcup.com', 'www.longevityworldcup.com'))
+                    OR (@source NOT IN ('internal', 'referral') AND Source = @source AND lower(coalesce(ReferrerDomain, '')) NOT IN ('longevityworldcup.com', 'www.longevityworldcup.com'))
+                  )
             ORDER BY OccurredAtUtc DESC
             LIMIT @limit;
             """;
@@ -189,6 +199,7 @@ public sealed class SiteStatisticsService : IHostedService
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
         {
+            var referrerDomain = ReadNullableString(reader, 13);
             events.Add(new SiteStatisticsDashboardEvent(
                 OccurredAtUtc: RoundToMinute(ReadString(reader, 0)),
                 SessionHash: ReadString(reader, 1),
@@ -203,8 +214,8 @@ public sealed class SiteStatisticsService : IHostedService
                 DurationMs: reader.IsDBNull(10) ? null : reader.GetInt64(10),
                 DeviceClass: ReadNullableString(reader, 11),
                 BrowserFamily: ReadNullableString(reader, 12),
-                ReferrerDomain: ReadNullableString(reader, 13),
-                Source: ReadNullableString(reader, 14),
+                ReferrerDomain: referrerDomain,
+                Source: NormalizeSource(ReadNullableString(reader, 14), referrerDomain),
                 Metadata: ReadMetadata(ReadNullableString(reader, 15))));
         }
 
@@ -250,6 +261,8 @@ public sealed class SiteStatisticsService : IHostedService
             metadataJson = metadataJson[..MaxMetadataJsonLength];
         }
 
+        var referrerDomain = SafeDomain(request.ReferrerDomain) ?? SafeDomain(context?.Request.Headers.Referer.FirstOrDefault());
+
         return new QueuedSiteStatisticEvent(
             Id: Guid.NewGuid().ToString("N"),
             OccurredAtUtc: occurredAt.ToString("O", CultureInfo.InvariantCulture),
@@ -265,8 +278,8 @@ public sealed class SiteStatisticsService : IHostedService
             DurationMs: request.DurationMs is >= 0 and < 86_400_000 ? request.DurationMs.Value : null,
             DeviceClass: SafeDisplayToken(request.DeviceClass, MaxTextLength) ?? DetectDeviceClass(context),
             BrowserFamily: SafeDisplayToken(request.BrowserFamily, MaxTextLength) ?? DetectBrowserFamily(context),
-            ReferrerDomain: SafeDomain(request.ReferrerDomain) ?? SafeDomain(context?.Request.Headers.Referer.FirstOrDefault()),
-            Source: SafeDisplayToken(request.Source, MaxTextLength) ?? "direct",
+            ReferrerDomain: referrerDomain,
+            Source: NormalizeSource(request.Source, referrerDomain),
             MetadataJson: metadataJson);
     }
 
@@ -637,6 +650,26 @@ public sealed class SiteStatisticsService : IHostedService
             return null;
 
         return SafeToken(cleaned, 96);
+    }
+
+    private static string NormalizeSource(string? source, string? referrerDomain)
+    {
+        if (IsInternalReferrerDomain(referrerDomain))
+            return "internal";
+
+        return SafeDisplayToken(source, MaxTextLength) ?? "direct";
+    }
+
+    private static bool IsInternalReferrerDomain(string? referrerDomain)
+    {
+        if (string.IsNullOrWhiteSpace(referrerDomain))
+            return false;
+
+        var normalized = referrerDomain.Trim().ToLowerInvariant();
+        if (normalized.StartsWith("www.", StringComparison.Ordinal))
+            normalized = normalized[4..];
+
+        return InternalReferrerDomains.Contains(referrerDomain) || string.Equals(normalized, "longevityworldcup.com", StringComparison.Ordinal);
     }
 
     private static string? DetectDeviceClass(HttpContext? context)
