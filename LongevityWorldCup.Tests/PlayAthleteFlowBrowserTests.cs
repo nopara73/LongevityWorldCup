@@ -126,6 +126,7 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.Equal("Browser Test Athlete", await page.Locator("#athleteSelectionTitle").InnerTextAsync());
         Assert.Equal("Browser Test Athlete", await page.Locator("#playAthleteInput").InputValueAsync());
         Assert.True(await page.Locator("#playConfirmAthleteBtn").IsEnabledAsync());
+        await ExpectAthletePictureFallbackAsync(page, "#athleteSelectionPicture");
 
         await page.Locator("#playConfirmAthleteBtn").ClickAsync();
         await page.WaitForURLAsync("**/dashboard");
@@ -133,6 +134,7 @@ public sealed class PlayAthleteFlowBrowserTests
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#athleteDashboardTitle").InnerTextAsync());
+        await ExpectAthletePictureFallbackAsync(page, "#athleteDashboardPicture");
 
         await page.GoBackAsync();
         await page.WaitForURLAsync("**/select-athlete");
@@ -233,5 +235,22 @@ public sealed class PlayAthleteFlowBrowserTests
                 '.play-hub-panel--entering, .play-hub-panel--from'
             )
             """);
+    }
+
+    private static async Task ExpectAthletePictureFallbackAsync(IPage page, string frameSelector)
+    {
+        await page.WaitForFunctionAsync(
+            """
+            frameSelector => {
+                const image = document.querySelector(`${frameSelector} img`);
+                return image
+                    && image.complete
+                    && image.naturalWidth > 16
+                    && image.naturalHeight > 16
+                    && image.src.includes('/assets/content-images/headshot.jpg')
+                    && image.classList.contains('athlete-picture-placeholder');
+            }
+            """,
+            frameSelector);
     }
 }
