@@ -432,7 +432,7 @@ public static class SlackMessageBuilder
             : "";
         var movement = previousPlace.HasValue
             ? previousPlace.Value > place ? $"climbed from {Ordinal(previousPlace.Value)} to {Ordinal(place)}" : $"moved from {Ordinal(previousPlace.Value)} to {Ordinal(place)}"
-            : $"entered the top 10 at {Ordinal(place)}";
+            : place == 1 ? $"took {Ordinal(place)} place" : $"entered the top 10 at {Ordinal(place)}";
         var leaderboardName = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
             ? "Bortz Improvement"
             : "Pheno Improvement";

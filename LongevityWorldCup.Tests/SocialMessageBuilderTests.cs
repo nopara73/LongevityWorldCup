@@ -130,6 +130,22 @@ public sealed class SocialMessageBuilderTests
     }
 
     [Fact]
+    public void AgeImprovementTop10ChangeEventBuilders_UseFirstPlaceTakeoverCopyForNewLeader()
+    {
+        const string raw = "slug[siim_land] clock[pheno] place[1] prev[bryan_johnson] improvement[-9.15] ageReduction[-20.4]";
+        const string expectedX =
+            "Siim Land took 1st place in the Pheno Improvement leaderboard, ahead of Bryan Johnson.\n\n" +
+            "Improvement: -9.2 years from worst to latest eligible result.\n\n" +
+            "https://longevityworldcup.com/athlete/siim-land?ctx=improvement";
+        const string expectedSlack =
+            "<https://longevityworldcup.com/athlete/siim-land|Siim Land> took 1st place in Pheno Improvement, ahead of <https://longevityworldcup.com/athlete/bryan-johnson|Bryan Johnson> (-9.2 years)";
+
+        Assert.Equal(expectedX, XMessageBuilder.ForEventText(EventType.AgeImprovementTop10Change, raw, SlugToName));
+        Assert.Equal(expectedX, ThreadsMessageBuilder.ForEventText(EventType.AgeImprovementTop10Change, raw, SlugToName));
+        Assert.Equal(expectedSlack, SlackMessageBuilder.ForEventText(EventType.AgeImprovementTop10Change, raw, SlugToName));
+    }
+
+    [Fact]
     public void CustomEventBuilders_ReturnGoldenMessages()
     {
         const string raw = "Community update\n\nSiim [bold](wins), [strong](majorly). Welcome [mention](siim_land).";
