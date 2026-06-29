@@ -1,9 +1,9 @@
 ---
 name: process-athlete-applications
-description: Review and process Longevity World Cup athlete application, biological-age result upload, and profile-update emails from Gmail. Use when Codex needs to find LWC application emails, download ZIP attachments into the repo athlete folder, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft applicant replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
+description: Review and process Longevity World Cup athlete submission emails from Gmail, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, download ZIP attachments into the repo athlete folder, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
 ---
 
-# Process Athlete Applications
+# Process Athlete Submissions
 
 ## Operating Rules
 
@@ -14,7 +14,7 @@ description: Review and process Longevity World Cup athlete application, biologi
 - Never stage unrelated work. If the worktree is dirty, identify unrelated changes and leave them alone.
 - Do not add Node tooling for browser checks; this repo is a .NET solution.
 
-## Find The Application Email
+## Find The Submission Email
 
 Search Gmail flexibly. Do not depend on one exact sender or subject because applicants sometimes reply from personal accounts.
 
@@ -99,7 +99,7 @@ Bortz age requires one record with:
 
 ## Blocking Issues
 
-Mark the application blocked and prepare a draft reply when any of these are true:
+Mark the submission blocked and prepare a draft reply when any of these are true:
 
 - Required biomarker values are missing from proofs.
 - JSON values do not match visible proof values or dates.
@@ -135,7 +135,7 @@ Common `{specific issue}` examples:
 - `The proof does not show {missing biomarkers}, which are needed for the submitted {pheno age/bortz age} result.`
 - `The submitted biomarker record appears to combine values from different test dates. Each result record needs to come from one blood draw or one coherent lab report for the same test date.`
 - `The proof still shows private identifiers such as {identifier type}. Please upload a censored version.`
-- `The application still shows a payment due, and I do not see a payment confirmation yet. Please complete the payment or reply if you believe it was already paid.`
+- `The submission still shows a payment due, and I do not see a payment confirmation yet. Please complete the payment or reply if you believe it was already paid.`
 
 When accepted and the user approves finalization, send a welcome/update reply:
 
