@@ -2387,7 +2387,7 @@
                     const movement = Number.isFinite(row.previousPlace) && Number.isFinite(row.place)
                         ? Math.max(0, row.previousPlace - row.place)
                         : 0;
-                    return 8650 + relevance + topPlaceBonus(row.place, 10)*45 + movement*10 + magnitude*5;
+                    return 9500 + relevance + topPlaceBonus(row.place, 10)*60 + movement*10 + magnitude*5;
                 }
                 case EVENT_TYPE.Joined:
                     return 5000 + relevance;
