@@ -88,8 +88,39 @@ public sealed class HomepageHighlightSelectionTests
             "partials",
             "event-board-content.html"));
 
-        Assert.Contains("placeN === 1 ? `took ${placeText} place`", eventBoardHtml);
-        Assert.Contains(": `entered the top 10 at ${placeText}`", eventBoardHtml);
+        var improvementStart = eventBoardHtml.IndexOf("r.type === EVENT_TYPE.AgeImprovementTop10Change && r.primarySlug", StringComparison.Ordinal);
+        Assert.True(improvementStart >= 0, "Could not find Improvement leaderboard event rendering.");
+
+        var improvementEnd = eventBoardHtml.IndexOf("r.type === EVENT_TYPE.NewRank", improvementStart, StringComparison.Ordinal);
+        Assert.True(improvementEnd > improvementStart, "Could not find end of Improvement leaderboard event rendering.");
+
+        var improvementRendering = eventBoardHtml[improvementStart..improvementEnd];
+        Assert.Contains("placeN === 1 ? `took ${placeText} place`", improvementRendering);
+        Assert.Contains(": `entered the top 10 at ${placeText}`", improvementRendering);
+    }
+
+    [Fact]
+    public void EventBoardAthleteScrollMessages_UseInlineTextFlow()
+    {
+        var repoRoot = FindRepoRoot();
+        var eventBoardHtml = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "partials",
+            "event-board-content.html"));
+        var embedHtml = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "event-board-embed.html"));
+
+        Assert.Matches(
+            @"\.events-board\.athlete-scroll\s+td\.event-message\s+\.event-message-cell\s*\{[\s\S]*?display:block;",
+            eventBoardHtml);
+        Assert.Matches(
+            @"#events-embed-root\s+\.events-board\s+td\.event-message\s+\.event-message-cell\s*\{[\s\S]*?display:block\s+!important;",
+            embedHtml);
     }
 
     private static int ExtractHomepageImportanceBase(string eventBoardHtml, string eventTypeName)
