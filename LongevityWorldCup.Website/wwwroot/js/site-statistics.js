@@ -108,7 +108,7 @@
     };
 
     const outcomeTiles = [
-        ["Visitors", ["site_page_viewed", "onboarding_entry_viewed", "onboarding_page_viewed", "challenge_page_viewed"]],
+        ["Page views", ["site_page_viewed", "onboarding_entry_viewed", "onboarding_page_viewed", "challenge_page_viewed"]],
         ["Calculator starts", ["calculator_started"]],
         ["Calculator results", ["calculator_result_generated"]],
         ["Rank previews", ["rank_preview_rendered"]],
@@ -198,7 +198,7 @@
             const payload = await response.json();
             state.events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
             state.previousEvents = Array.isArray(payload.previousEvents) ? payload.previousEvents.map(normalizeEvent) : [];
-            setStatus(`${state.events.length} active and ${state.previousEvents.length} comparison redacted events loaded. Generated ${formatTime(payload.generatedAtUtc)}.`);
+            setStatus(`${uniqueSessions(state.events)} active sessions (${state.events.length} redacted events) and ${uniqueSessions(state.previousEvents)} comparison sessions loaded. Generated ${formatTime(payload.generatedAtUtc)}.`);
             renderAll();
         } catch (error) {
             state.events = [];
@@ -210,6 +210,7 @@
 
     function renderAll() {
         renderTabs();
+        renderDataQuality();
         renderDecisionLayer();
         renderOutcomeStrip();
         renderPrimaryPanel();
@@ -217,6 +218,47 @@
         renderDetailSections();
         renderDrilldown();
         updateUrl();
+    }
+
+    function renderDataQuality() {
+        const host = el("dataQualityStrip");
+        const active = decisionScopeEvents(state.events);
+        const previous = decisionScopeEvents(state.previousEvents);
+        const quality = dataQualityStats(active, previous);
+        const cards = [
+            {
+                label: "Sample size",
+                value: `${quality.sessions} sessions`,
+                detail: `${quality.events} redacted events`,
+                level: quality.sessions >= 10 ? "good" : quality.sessions >= 4 ? "warn" : ""
+            },
+            {
+                label: "Noisy sessions",
+                value: String(quality.noisySessions),
+                detail: `${quality.cleanSessions} clean sessions`,
+                level: quality.noisySessions ? "warn" : "good"
+            },
+            {
+                label: "Top-session share",
+                value: percentNumber(quality.topSessionShare),
+                detail: quality.topSessionEvents ? `${quality.topSessionEvents} events in one anonymous session` : "no events yet",
+                level: quality.topSessionShare >= 0.5 ? "bad" : quality.topSessionShare >= 0.25 ? "warn" : "good"
+            },
+            {
+                label: "Comparison baseline",
+                value: quality.previousSessions ? `${quality.previousSessions} sessions` : "pending",
+                detail: quality.previousSessions ? `${quality.previousEvents} previous events` : "trends should be read as sparse",
+                level: quality.previousSessions ? "good" : "warn"
+            }
+        ];
+
+        host.innerHTML = cards.map(card => `
+            <div class="quality-card ${escAttr(card.level)}">
+                <span>${esc(card.label)}</span>
+                <strong>${esc(card.value)}</strong>
+                <em>${esc(card.detail)}</em>
+            </div>
+        `).join("");
     }
 
     function renderDecisionLayer() {
@@ -246,7 +288,7 @@
                     <span class="decision-body">
                         <span class="decision-title">No high-confidence product issue detected</span>
                         <span class="decision-gridline"><strong>Flow</strong><span>${esc(decisionLensLabel())}</span></span>
-                        <span class="decision-gridline"><strong>Evidence</strong><span>${active.length} events across ${uniqueSessions(active)} sessions</span></span>
+                        <span class="decision-gridline"><strong>Evidence</strong><span>${uniqueSessions(active)} sessions across ${active.length} events</span></span>
                         <span class="decision-gridline"><strong>Hypothesis</strong><span>Current sample is too small or too healthy to prioritize a fix.</span></span>
                         <span class="decision-gridline"><strong>Action</strong><span>Inspect recent sessions or wait for more data.</span></span>
                         <span class="decision-footer"><span class="severity low">LOW</span><span>confidence low</span></span>
@@ -323,7 +365,7 @@
 
         host.innerHTML = rows.map(row => `
             <button type="button" class="trend-row ${escAttr(row.level)}" data-action="${registerDecisionAction(row.label, row.events)}">
-                <span><strong>${esc(row.label)}</strong><em>${esc(row.confidence)} confidence</em></span>
+                <span><strong>${esc(row.label)}</strong><em>${esc(row.confidence)}</em></span>
                 <span>${esc(row.current)}</span>
                 <span>${esc(row.previous)}</span>
                 <span>${esc(row.delta)}</span>
@@ -333,6 +375,7 @@
 
     function buildDecisionInsights(active, previous) {
         const insights = []
+            .concat(joinTrackSelectionInsights(active, previous))
             .concat(funnelBottleneckInsights(active, previous))
             .concat(frictionInsights(active, previous))
             .concat(continuationInsights(active, previous))
@@ -349,6 +392,41 @@
             .sort((a, b) => b.score - a.score);
     }
 
+    function joinTrackSelectionInsights(active, previous) {
+        if (state.tab === "Challenge") return [];
+        const entrySessions = sessionsForNames(active, ["onboarding_entry_viewed"]);
+        const selectedSessions = sessionsForNames(active, ["onboarding_clock_selected"]);
+        const base = entrySessions.size;
+        if (base < 3) return [];
+
+        const missing = difference(entrySessions, selectedSessions);
+        const dropRate = missing.length / base;
+        if (dropRate < 0.35 && missing.length < 3) return [];
+
+        const previousEntries = sessionsForNames(previous, ["onboarding_entry_viewed"]);
+        const previousSelected = sessionsForNames(previous, ["onboarding_clock_selected"]);
+        const previousDropRate = previousEntries.size
+            ? Math.max(0, previousEntries.size - intersectionSize(previousEntries, previousSelected)) / previousEntries.size
+            : null;
+        const support = active.filter(e =>
+            (missing.includes(e.sessionHash) && e.eventName === "onboarding_entry_viewed") ||
+            (entrySessions.has(e.sessionHash) && e.eventName === "onboarding_clock_selected"));
+        const trend = trendPhrase(dropRate, previousDropRate, true);
+
+        return [{
+            title: "Join track selection bottleneck",
+            flow: "onboarding",
+            evidence: `${missing.length} of ${base} Join sessions did not choose Pro or Amateur (${percentNumber(dropRate)})`,
+            hypothesis: "The Join page is being seen, but the next track choice may not be obvious or the traffic may be repeated refresh noise.",
+            action: "Inspect the anonymous Join sessions, then compare repeated page-view bursts against sessions that choose a track.",
+            confidence: confidenceFor(base, previousEntries.size),
+            severity: severityFor(dropRate, missing.length),
+            trend,
+            score: 72 + dropRate * 70 + missing.length * 5 + trendScore(trend),
+            events: support
+        }];
+    }
+
     function funnelBottleneckInsights(active, previous) {
         const flows = state.tab === "Challenge" ? ["challenge"] : ["pheno", "bortz", "application", "challenge"];
         const insights = [];
@@ -357,6 +435,7 @@
             for (let index = 1; index < defs.length; index++) {
                 const [eventName, label] = defs[index];
                 const [priorName, priorLabel] = defs[index - 1];
+                if ((flow === "pheno" || flow === "bortz") && eventName === "onboarding_clock_selected") continue;
                 const priorSessions = sessionsForFunnelStep(active, flow, priorName);
                 const reachedSessions = sessionsForFunnelStep(active, flow, eventName);
                 const base = priorSessions.size;
@@ -393,18 +472,23 @@
         return Array.from(grouped.entries()).map(([key, items]) => {
             const [flow, eventName, step] = key.split("|");
             const affected = uniqueSessions(items);
-            const previousCount = frictionEvents(previous).filter(e => e.flow === flow && e.eventName === eventName && (e.step || e.errorCode || "general") === step).length;
-            const trend = trendPhrase(items.length, previousCount, true);
+            const flowSessions = uniqueSessions(active.filter(e => (e.flow || "site") === flow)) || uniqueSessions(active);
+            const matchingPrevious = frictionEvents(previous).filter(e => (e.flow || "site") === flow && e.eventName === eventName && (e.step || e.errorCode || "general") === step);
+            const previousAffected = uniqueSessions(matchingPrevious);
+            const previousFlowSessions = uniqueSessions(previous.filter(e => (e.flow || "site") === flow));
+            const activeRate = affected / Math.max(1, flowSessions);
+            const previousRate = previousFlowSessions ? previousAffected / previousFlowSessions : null;
+            const trend = trendPhrase(activeRate, previousRate, true);
             return {
                 title: `${friendlyEvent(eventName)} repeats at ${step}`,
                 flow,
-                evidence: `${items.length} events across ${affected} sessions`,
+                evidence: `${affected} affected sessions (${items.length} events)`,
                 hypothesis: hypothesisFor(eventName),
                 action: actionFor(eventName),
-                confidence: confidenceFor(affected, previousCount),
-                severity: severityFor(items.length / Math.max(3, uniqueSessions(active.filter(e => e.flow === flow))), affected),
+                confidence: confidenceFor(affected, previousAffected),
+                severity: severityFor(activeRate, affected),
                 trend,
-                score: 32 + items.length * 7 + affected * 4 + flowPriority(flow) + trendScore(trend),
+                score: 32 + affected * 14 + Math.min(items.length, affected * 4) * 2 + flowPriority(flow) + trendScore(trend),
                 events: items
             };
         }).filter(item => item.events.length >= 2 || uniqueSessions(item.events) >= 2);
@@ -458,18 +542,19 @@
 
         const missingReview = active.filter(e => e.eventName === "application_review_context_missing");
         if (missingReview.length > 0) {
-            const previousCount = previous.filter(e => e.eventName === "application_review_context_missing").length;
-            const trend = trendPhrase(missingReview.length, previousCount, true);
+            const affected = uniqueSessions(missingReview);
+            const previousAffected = uniqueSessions(previous.filter(e => e.eventName === "application_review_context_missing"));
+            const trend = trendPhrase(affected, previousAffected || null, true);
             insights.push({
                 title: "Application review opens without stored context",
                 flow: "application",
-                evidence: `${missingReview.length} missing-context events`,
+                evidence: `${affected} sessions opened review without stored context (${missingReview.length} events)`,
                 hypothesis: "Review links or storage recovery may be losing the invoice/submission context.",
                 action: "Inspect review sessions and add clearer recovery for missing context.",
-                confidence: confidenceFor(uniqueSessions(missingReview), previousCount),
-                severity: severityFor(missingReview.length / Math.max(3, uniqueSessions(active)), uniqueSessions(missingReview)),
+                confidence: confidenceFor(affected, previousAffected),
+                severity: severityFor(affected / Math.max(3, uniqueSessions(active)), affected),
                 trend,
-                score: 46 + missingReview.length * 8 + trendScore(trend),
+                score: 46 + affected * 12 + Math.min(missingReview.length, affected * 4) + trendScore(trend),
                 events: missingReview
             });
         }
@@ -532,7 +617,8 @@
                 if (sessions < 2) return;
                 const rate = frictionSessionRate(events);
                 const previousMatching = previous.filter(e => picker(e) === segment);
-                const previousRate = frictionSessionRate(previousMatching);
+                const previousSessionCount = uniqueSessions(previousMatching);
+                const previousRate = previousSessionCount ? frictionSessionRate(previousMatching) : null;
                 const delta = rate - overallRate;
                 const trend = trendPhrase(rate, previousRate, true);
                 rows.push({
@@ -541,7 +627,7 @@
                     sessions,
                     frictionRate: percentNumber(rate),
                     delta: `${delta >= 0 ? "+" : ""}${percentNumber(delta)} vs avg`,
-                    confidence: confidenceFor(sessions, uniqueSessions(previousMatching)),
+                    confidence: confidenceFor(sessions, previousSessionCount),
                     level: delta >= 0.25 && sessions >= 4 ? "high" : delta >= 0.12 ? "med" : "low",
                     trend,
                     score: rate * 70 + delta * 80 + sessions * 2 + trendScore(trend),
@@ -570,15 +656,16 @@
         if (starts.size === 0 && previousStarts.size === 0) return null;
         const rate = starts.size ? intersectionSize(starts, sessionsForNames(active, finishNames)) / starts.size : 0;
         const previousRate = previousStarts.size ? intersectionSize(previousStarts, sessionsForNames(previous, finishNames)) / previousStarts.size : 0;
-        const delta = rate - previousRate;
+        const hasBaseline = previousStarts.size > 0;
+        const delta = hasBaseline ? rate - previousRate : null;
         const events = active.filter(e => startNames.includes(e.eventName) || finishNames.includes(e.eventName));
         return {
             label,
             current: `${percentNumber(rate)} (${starts.size} sessions)`,
-            previous: previousStarts.size ? percentNumber(previousRate) : "no prior",
-            delta: `${delta >= 0 ? "+" : ""}${percentNumber(delta)}`,
-            confidence: confidenceFor(starts.size, previousStarts.size),
-            level: delta <= -0.15 ? "high" : delta < -0.05 ? "med" : delta > 0.05 ? "good" : "low",
+            previous: hasBaseline ? percentNumber(previousRate) : "no baseline",
+            delta: hasBaseline ? `${delta >= 0 ? "+" : ""}${percentNumber(delta)}` : "baseline pending",
+            confidence: hasBaseline ? `${confidenceFor(starts.size, previousStarts.size)} confidence` : "baseline pending",
+            level: !hasBaseline ? "low" : delta <= -0.15 ? "high" : delta < -0.05 ? "med" : delta > 0.05 ? "good" : "low",
             events
         };
     }
@@ -587,14 +674,16 @@
         const activeRate = frictionSessionRate(active);
         const previousRate = frictionSessionRate(previous);
         if (!active.length && !previous.length) return null;
-        const delta = activeRate - previousRate;
+        const previousSessionCount = uniqueSessions(previous);
+        const hasBaseline = previousSessionCount > 0;
+        const delta = hasBaseline ? activeRate - previousRate : null;
         return {
             label,
             current: percentNumber(activeRate),
-            previous: previous.length ? percentNumber(previousRate) : "no prior",
-            delta: `${delta >= 0 ? "+" : ""}${percentNumber(delta)}`,
-            confidence: confidenceFor(uniqueSessions(active), uniqueSessions(previous)),
-            level: delta >= 0.15 ? "high" : delta > 0.05 ? "med" : delta < -0.05 ? "good" : "low",
+            previous: hasBaseline ? percentNumber(previousRate) : "no baseline",
+            delta: hasBaseline ? `${delta >= 0 ? "+" : ""}${percentNumber(delta)}` : "baseline pending",
+            confidence: hasBaseline ? `${confidenceFor(uniqueSessions(active), previousSessionCount)} confidence` : "baseline pending",
+            level: !hasBaseline ? "low" : delta >= 0.15 ? "high" : delta > 0.05 ? "med" : delta < -0.05 ? "good" : "low",
             events: frictionEvents(active)
         };
     }
@@ -649,24 +738,34 @@
         const friction = frictionEvents(events);
         host.innerHTML = "";
         outcomeTiles.forEach(([label, names]) => {
-            const value = label === "Friction"
-                ? friction.length
+            const tileEvents = label === "Friction"
+                ? friction
                 : label === "Error rate"
-                    ? percent(friction.length, events.length)
-                    : countMatching(events, names);
+                    ? friction
+                    : events.filter(e => names.includes(e.eventName));
+            const value = label === "Friction"
+                ? uniqueSessions(friction)
+                : label === "Error rate"
+                    ? percent(uniqueSessions(friction), uniqueSessions(events))
+                    : tileEvents.length;
+            const footer = label === "Friction"
+                ? `${friction.length} events`
+                : label === "Error rate"
+                    ? `${friction.length}/${events.length} events`
+                    : `${uniqueSessions(tileEvents)} sessions`;
             const tile = document.createElement("button");
             tile.type = "button";
             tile.className = `metric-tile${state.selectedLabel === label ? " active" : ""}`;
             tile.innerHTML = `
                 <span class="metric-label">${esc(label)}</span>
                 <strong class="metric-value">${esc(String(value))}</strong>
-                <span class="metric-footer"><span>${esc(uniqueSessionsFor(events, names))} sessions</span>${spark(events, names)}</span>
+                <span class="metric-footer"><span>${esc(footer)}</span>${spark(tileEvents)}</span>
             `;
             tile.addEventListener("click", () => {
                 state.selectedEventName = names.length === 1 ? names[0] : null;
                 state.selectedSession = null;
                 state.selectedLabel = label;
-                renderDrilldown(names.length ? events.filter(e => names.includes(e.eventName)) : friction);
+                renderDrilldown(label === "Error rate" || label === "Friction" ? friction : tileEvents);
             });
             host.appendChild(tile);
         });
@@ -686,7 +785,7 @@
                             ? "Public Event Funnel"
                             : "Onboarding Funnel";
         el("primaryTitle").textContent = title;
-        el("primaryMeta").textContent = `${scopedEvents().length} events`;
+        el("primaryMeta").textContent = `${uniqueSessions(scopedEvents())} sessions / ${scopedEvents().length} events`;
         renderFlowSelectors();
 
         const defs = state.tab === "Challenge"
@@ -709,9 +808,9 @@
         if (state.tab !== "Onboarding") return;
         ["pheno", "bortz", "application"].forEach(flow => {
             const events = state.events.filter(e => e.flow === flow || (flow === "application" && e.flow === "application"));
-            const started = countMatching(events, flow === "application" ? ["proof_flow_opened"] : ["calculator_started"]);
-            const completed = countMatching(events, flow === "application" ? ["application_submit_succeeded"] : ["calculator_result_generated"]);
-            const failed = frictionEvents(events).length;
+            const started = uniqueSessionsFor(events, flow === "application" ? ["proof_flow_opened"] : ["calculator_started"]);
+            const completed = uniqueSessionsFor(events, flow === "application" ? ["application_submit_succeeded"] : ["calculator_result_generated"]);
+            const failed = uniqueSessions(frictionEvents(events));
             const button = document.createElement("button");
             button.type = "button";
             button.className = `flow-card${state.selectedFlow === flow ? " active" : ""}`;
@@ -739,10 +838,10 @@
             host.innerHTML = empty("No funnel data for the active filters.");
             return;
         }
-        const first = Math.max(1, countMatching(events, [defs[0][0]]));
+        const first = Math.max(1, uniqueSessionsFor(events, [defs[0][0]]));
         let previous = first;
         defs.forEach(([name, label]) => {
-            const count = countMatching(events, [name]);
+            const count = uniqueSessionsFor(events, [name]);
             const fromPrev = percent(count, previous);
             const fromFirst = percent(count, first);
             const drop = Math.max(0, previous - count);
@@ -765,7 +864,7 @@
     function renderFriction() {
         const host = el("frictionRadar");
         const events = frictionEvents(scopedEvents());
-        el("frictionMeta").textContent = `${events.length} failures / friction`;
+        el("frictionMeta").textContent = `${uniqueSessions(events)} affected sessions / ${events.length} events`;
         if (!events.length) {
             host.innerHTML = empty("No friction events for the active filters.");
             return;
@@ -782,11 +881,11 @@
                 flow: mostCommon(items.map(i => i.flow || "site")),
                 error: mostCommon(items.map(i => i.errorCode || i.outcome || "friction"))
             };
-        }).sort((a, b) => b.count - a.count).slice(0, 12);
+        }).sort((a, b) => b.sessions - a.sessions || b.count - a.count).slice(0, 12);
 
         host.innerHTML = "";
         rows.forEach(row => {
-            const severity = row.count >= 10 ? "high" : row.count >= 3 ? "med" : "low";
+            const severity = row.sessions >= 10 ? "high" : row.sessions >= 3 ? "med" : "low";
             const node = document.createElement("button");
             node.type = "button";
             node.className = `friction-row${state.selectedEventName === row.eventName ? " active" : ""}`;
@@ -868,6 +967,8 @@
         const sessions = new Set(events.map(e => e.sessionHash)).size;
         const failures = frictionEvents(events).length;
         const median = medianDuration(events);
+        const quality = dataQualityStats(events, []);
+        const burstCount = collapseEventBursts(events).filter(group => group.count > 1).length;
         el("drilldownSummary").innerHTML = `
             <div class="summary-grid">
                 ${summaryItem("Events", events.length)}
@@ -876,6 +977,8 @@
                 ${summaryItem("Median duration", median)}
                 ${summaryItem("Top source", mostCommon(events.map(e => e.source || "direct")))}
                 ${summaryItem("Top device", mostCommon(events.map(e => e.deviceClass || "unknown")))}
+                ${summaryItem("Noisy sessions", quality.noisySessions)}
+                ${summaryItem("Burst groups", burstCount)}
             </div>
             <div class="chip-row" style="margin-top:10px">
                 ${Array.from(new Set(events.slice(0, 40).map(e => e.flow || "site"))).map(v => `<span class="chip">${esc(v)}</span>`).join("")}
@@ -885,15 +988,15 @@
 
     function renderSamples(events) {
         const host = el("eventSamples");
-        const rows = events.slice().sort((a, b) => b.time - a.time).slice(0, 50);
+        const rows = collapseEventBursts(events).sort((a, b) => b.lastTime - a.lastTime).slice(0, 50);
         if (!rows.length) {
             host.innerHTML = empty("No event samples.");
             return;
         }
-        host.innerHTML = rows.map(e => `
-            <button type="button" class="sample-row${state.selectedSession === e.sessionHash ? " active" : ""}" data-session="${escAttr(e.sessionHash)}">
-                <span class="sample-main"><strong>${esc(e.eventName)}</strong><span>${esc(e.sessionHash)}</span></span>
-                <span class="sample-meta">${esc(formatTime(e.occurredAtUtc))} / ${esc(e.flow || "site")} / ${esc(e.step || e.component || "-")} / ${esc(e.errorCode || e.outcome || "-")}</span>
+        host.innerHTML = rows.map(group => `
+            <button type="button" class="sample-row${state.selectedSession === group.sessionHash ? " active" : ""}" data-session="${escAttr(group.sessionHash)}">
+                <span class="sample-main"><strong>${esc(group.eventName)}</strong><span>${esc(group.sessionHash)}</span></span>
+                <span class="sample-meta">${esc(formatTime(group.last.occurredAtUtc))} / ${esc(group.flow || "site")} / ${esc(group.step || group.component || "-")} / ${esc(group.errorCode || group.outcome || "-")}${burstLabel(group)}</span>
             </button>
         `).join("");
         host.querySelectorAll(".sample-row").forEach(row => {
@@ -918,12 +1021,13 @@
             return;
         }
         const started = rows[0].time || 0;
+        const groups = collapseEventBursts(rows, true);
         host.innerHTML = `
             <h3 style="margin-bottom:8px">Session ${esc(sessionHash)}</h3>
-            ${rows.map(e => `
+            ${groups.map(group => `
                 <div class="timeline-row">
-                    <span class="timeline-main"><strong>${esc(offset(e.time - started))}</strong><span>${esc(e.eventName)}</span></span>
-                    <span class="timeline-meta">${esc(e.route || "-")} / ${esc(e.step || e.component || "-")} / ${esc(e.errorCode || e.outcome || "-")}${metadataChips(e.metadata)}</span>
+                    <span class="timeline-main"><strong>${esc(offset(group.firstTime - started))}</strong><span>${esc(group.eventName)}</span></span>
+                    <span class="timeline-meta">${esc(group.route || "-")} / ${esc(group.step || group.component || "-")} / ${esc(group.errorCode || group.outcome || "-")}${metadataChips(group.last.metadata)}${burstLabel(group)}</span>
                 </div>
             `).join("")}
         `;
@@ -980,6 +1084,121 @@
             /failed|failure|missing|rejected|unavailable|invalid|error|blocked/.test(e.eventName) ||
             /failed|missing|error|blocked/.test(e.outcome || "") ||
             !!e.errorCode);
+    }
+
+    function dataQualityStats(events, previous) {
+        const sessionGroups = Array.from(groupBy(events, e => e.sessionHash).values());
+        const sessionCounts = sessionGroups.map(items => items.length);
+        const topSessionEvents = sessionCounts.length ? Math.max(...sessionCounts) : 0;
+        const noisySessions = sessionGroups.filter(isNoisySession).length;
+        return {
+            events: events.length,
+            sessions: sessionGroups.length,
+            cleanSessions: Math.max(0, sessionGroups.length - noisySessions),
+            noisySessions,
+            topSessionEvents,
+            topSessionShare: events.length ? topSessionEvents / events.length : 0,
+            previousEvents: previous.length,
+            previousSessions: uniqueSessions(previous)
+        };
+    }
+
+    function isNoisySession(events) {
+        if (events.length < 20) return false;
+        const bursts = collapseEventBursts(events);
+        const largestBurst = bursts.length ? Math.max(...bursts.map(group => group.count)) : 0;
+        const pageViews = events.filter(isPageViewEvent).length;
+        return largestBurst >= 20 ||
+            (events.length >= 40 && largestBurst / events.length >= 0.6) ||
+            (pageViews >= 20 && pageViews / events.length >= 0.6);
+    }
+
+    function isPageViewEvent(event) {
+        return ["site_page_viewed", "onboarding_entry_viewed", "onboarding_page_viewed", "challenge_page_viewed"].includes(event.eventName);
+    }
+
+    function collapseEventBursts(events, sequential) {
+        const sorted = events.slice().sort((a, b) => a.time - b.time);
+        if (sequential) {
+            const groups = [];
+            sorted.forEach(event => {
+                const key = burstSignature(event);
+                const last = groups[groups.length - 1];
+                if (last && last.key === key) {
+                    addToBurst(last, event);
+                } else {
+                    groups.push(createBurst(key, event));
+                }
+            });
+            return groups;
+        }
+
+        const groups = new Map();
+        sorted.forEach(event => {
+            const key = burstSignature(event);
+            if (!groups.has(key)) groups.set(key, createBurst(key, event));
+            else addToBurst(groups.get(key), event);
+        });
+        return Array.from(groups.values());
+    }
+
+    function burstSignature(event) {
+        return [
+            event.sessionHash,
+            event.eventName,
+            event.flow || "",
+            event.route || "",
+            event.component || "",
+            event.step || "",
+            event.outcome || "",
+            event.errorCode || ""
+        ].join("|");
+    }
+
+    function createBurst(key, event) {
+        return {
+            key,
+            count: 1,
+            first: event,
+            last: event,
+            firstTime: event.time || 0,
+            lastTime: event.time || 0,
+            sessionHash: event.sessionHash,
+            eventName: event.eventName,
+            flow: event.flow,
+            route: event.route,
+            component: event.component,
+            step: event.step,
+            outcome: event.outcome,
+            errorCode: event.errorCode
+        };
+    }
+
+    function addToBurst(group, event) {
+        group.count += 1;
+        if ((event.time || 0) < group.firstTime) {
+            group.first = event;
+            group.firstTime = event.time || 0;
+        }
+        if ((event.time || 0) >= group.lastTime) {
+            group.last = event;
+            group.lastTime = event.time || 0;
+        }
+    }
+
+    function burstLabel(group) {
+        if (!group || group.count <= 1) return "";
+        const span = Math.max(0, group.lastTime - group.firstTime);
+        return ` / burst x${group.count}${span >= 60000 ? ` over ${timeSpan(span)}` : ""}`;
+    }
+
+    function timeSpan(value) {
+        const totalMinutes = Math.max(1, Math.round((Number(value) || 0) / 60000));
+        if (totalMinutes < 60) return `${totalMinutes}m`;
+        const hours = totalMinutes / 60;
+        if (hours < 24) return `${hours.toFixed(hours >= 10 ? 0 : 1)}h`;
+        const days = hours / 24;
+        return `${days.toFixed(days >= 10 ? 0 : 1)}d`;
     }
 
     function sessionsForNames(events, names) {
@@ -1143,9 +1362,9 @@
 
     function sourceQualityTable(events) {
         const rows = Array.from(groupBy(events, e => e.source || "direct").entries()).map(([source, items]) => {
-            const results = countMatching(items, ["calculator_result_generated"]);
-            const applications = countMatching(items, ["application_submit_succeeded"]);
-            const challenge = countMatching(items, ["challenge_scored_checkin_submitted"]);
+            const results = uniqueSessionsFor(items, ["calculator_result_generated"]);
+            const applications = uniqueSessionsFor(items, ["application_submit_succeeded"]);
+            const challenge = uniqueSessionsFor(items, ["challenge_scored_checkin_submitted"]);
             const quality = applications * 5 + challenge * 4 + results;
             return [source, uniqueSessions(items), results, applications, challenge, quality];
         }).sort((a, b) => b[5] - a[5]);
@@ -1198,12 +1417,26 @@
     }
 
     function normalizeEvent(event) {
+        const referrerDomain = event.referrerDomain || "";
         return Object.assign({}, event, {
             eventName: event.eventName || "",
             sessionHash: event.sessionHash || "S-UNKNOWN",
+            referrerDomain,
+            source: effectiveSource(event.source, referrerDomain),
             metadata: event.metadata || {},
             time: Date.parse(event.occurredAtUtc || "") || 0
         });
+    }
+
+    function effectiveSource(source, referrerDomain) {
+        if (isInternalReferrer(referrerDomain)) return "internal";
+        return source || "direct";
+    }
+
+    function isInternalReferrer(referrerDomain) {
+        if (!referrerDomain) return false;
+        const normalized = String(referrerDomain).toLowerCase().replace(/^www\./, "");
+        return normalized === "longevityworldcup.com";
     }
 
     function table(headers, rows) {
@@ -1295,7 +1528,7 @@
     }
 
     function flowLabel(flow) {
-        return flow === "pheno" ? "pheno age" : flow === "bortz" ? "bortz age" : flow === "challenge" ? "Challenge" : flow === "application" ? "application" : "all";
+        return flow === "pheno" ? "pheno age" : flow === "bortz" ? "bortz age" : flow === "challenge" ? "Challenge" : flow === "application" ? "application" : flow === "onboarding" ? "onboarding" : "all";
     }
 
     function setStatus(message, error) {

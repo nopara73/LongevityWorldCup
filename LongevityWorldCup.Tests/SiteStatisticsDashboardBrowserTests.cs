@@ -51,12 +51,62 @@ public sealed class SiteStatisticsDashboardBrowserTests
         var visibleText = await page.Locator("body").InnerTextAsync();
         Assert.Contains("Site Statistics", visibleText);
         Assert.Contains("Decision Brief", visibleText);
+        Assert.Contains("Noisy sessions", visibleText);
+        Assert.Contains("Page views", visibleText);
         Assert.Contains("Challenge signups", visibleText);
         Assert.Contains("Signup accepted", visibleText);
+        Assert.Contains("baseline pending", visibleText);
         Assert.Contains("S-", visibleText);
         Assert.DoesNotContain("raw-browser-session", visibleText);
         Assert.DoesNotContain("private-token", visibleText);
         Assert.DoesNotContain("athlete@example.test", visibleText);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task Dashboard_SummarizesNoisyJoinPageBurstsAsSingleTrackSelectionBottleneck()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var client = new HttpClient { BaseAddress = app.BaseAddress };
+        await SeedNoisyJoinEventsAsync(client);
+
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1440, Height = 980 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#decisionBrief").GetByText("Join track selection bottleneck").WaitForAsync();
+        await page.Locator("#eventSamples").GetByText("burst x30").WaitForAsync();
+        var investigationText = await page.Locator("#recommendedInvestigations").InnerTextAsync();
+
+        var visibleText = await page.Locator("body").InnerTextAsync();
+        Assert.Contains("Join track selection bottleneck", visibleText);
+        Assert.Contains("Noisy sessions", visibleText);
+        Assert.Contains("Page views", visibleText);
+        Assert.Contains("burst x30", visibleText);
+        Assert.Contains("baseline pending", visibleText);
+        Assert.DoesNotContain("pheno age bottleneck at Amateur selected", visibleText);
+        Assert.DoesNotContain("bortz age bottleneck at Pro selected", visibleText);
+        Assert.Contains("4 sessions", investigationText);
+        Assert.DoesNotContain("5 sessions", investigationText);
         Assert.Empty(errors);
     }
 
@@ -103,6 +153,20 @@ public sealed class SiteStatisticsDashboardBrowserTests
             {
                 ["checkInKind"] = JsonSerializer.SerializeToElement("practice")
             });
+    }
+
+    private static async Task SeedNoisyJoinEventsAsync(HttpClient client)
+    {
+        await PostEventAsync(client, "onboarding_entry_viewed", "onboarding", "selected-track-session", "/join", "join_game", "viewed");
+        await PostEventAsync(client, "onboarding_clock_selected", "pheno", "selected-track-session", "/join", "join_game", "selected");
+        await PostEventAsync(client, "onboarding_entry_viewed", "onboarding", "join-drop-1", "/join", "join_game", "viewed");
+        await PostEventAsync(client, "onboarding_entry_viewed", "onboarding", "join-drop-2", "/join", "join_game", "viewed");
+        await PostEventAsync(client, "onboarding_clock_selected", "pheno", "orphan-track-selection", "/join", "join_game", "selected");
+
+        for (var i = 0; i < 30; i++)
+        {
+            await PostEventAsync(client, "onboarding_entry_viewed", "onboarding", "noisy-refresh-session", "/join", "join_game", "viewed");
+        }
     }
 
     private static async Task PostEventAsync(

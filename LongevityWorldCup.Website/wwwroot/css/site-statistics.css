@@ -189,6 +189,54 @@ select:focus,
     color: var(--red);
 }
 
+.data-quality-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.quality-card {
+    min-height: 52px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.045);
+    padding: 8px 10px;
+    display: grid;
+    gap: 3px;
+}
+
+.quality-card.warn {
+    border-color: rgba(255, 207, 93, 0.6);
+}
+
+.quality-card.bad {
+    border-color: rgba(255, 107, 107, 0.75);
+}
+
+.quality-card.good {
+    border-color: rgba(103, 211, 147, 0.55);
+}
+
+.quality-card span {
+    color: var(--dim);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.quality-card strong {
+    font-size: 15px;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.quality-card em {
+    color: var(--muted);
+    font-size: 10px;
+    font-style: normal;
+    overflow-wrap: anywhere;
+}
+
 .decision-grid,
 .decision-support-grid {
     display: grid;
@@ -802,6 +850,27 @@ select:focus,
         font-size: 11px;
     }
 
+    .data-quality-strip {
+        gap: 6px;
+    }
+
+    .quality-card {
+        min-height: 28px;
+        padding: 4px 7px;
+        grid-template-columns: auto auto minmax(0, 1fr);
+        align-items: center;
+        gap: 6px;
+    }
+
+    .quality-card strong {
+        font-size: 11px;
+    }
+
+    .quality-card span,
+    .quality-card em {
+        font-size: 9px;
+    }
+
     .decision-grid,
     .decision-support-grid,
     .stats-main-grid,
@@ -1013,6 +1082,10 @@ select:focus,
         grid-template-columns: repeat(4, minmax(120px, 1fr));
     }
 
+    .data-quality-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .stats-main-grid,
     .detail-sections,
     .drilldown-grid,
@@ -1046,6 +1119,10 @@ select:focus,
 
     .outcome-strip {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .data-quality-strip {
+        grid-template-columns: 1fr;
     }
 
     .funnel-row {

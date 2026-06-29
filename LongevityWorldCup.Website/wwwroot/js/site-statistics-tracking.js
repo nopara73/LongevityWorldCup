@@ -72,9 +72,17 @@
         return safe(() => document.referrer ? new URL(document.referrer).hostname.toLowerCase() : "") || "";
     }
 
+    function isInternalReferrer(host) {
+        if (!host) return false;
+        const normalizedHost = String(host).toLowerCase().replace(/^www\./, "");
+        const currentHost = safe(() => window.location.hostname.toLowerCase().replace(/^www\./, "")) || "";
+        return normalizedHost === currentHost || normalizedHost === "longevityworldcup.com";
+    }
+
     function source() {
         const host = referrerDomain();
         if (!host) return "direct";
+        if (isInternalReferrer(host)) return "internal";
         if (/google|bing|duckduckgo|yahoo|brave|search/i.test(host)) return "search";
         if (/x\.com|twitter|facebook|instagram|threads|youtube|linkedin|reddit|slack/i.test(host)) return "social";
         return "referral";
