@@ -12,7 +12,7 @@ namespace LongevityWorldCup.Tests;
 public sealed class AgeImprovementTop10EventTests
 {
     [Fact]
-    public void StartupEmitsPhenoImprovementTop10ChangeWhenChangedAthleteTakesFirstPlace()
+    public void StartupEmitsPhenoImprovementTop10ChangeWhenChangedAthleteEntersAtFirstPlace()
     {
         using var fixture = StartupFixture.Create();
 
@@ -33,8 +33,8 @@ public sealed class AgeImprovementTop10EventTests
         Assert.Contains("slug[majoros_gabor]", text);
         Assert.Contains("clock[pheno]", text);
         Assert.Contains("place[1]", text);
-        Assert.Contains("prevPlace[2]", text);
         Assert.Contains("prev[nopara73]", text);
+        Assert.DoesNotContain("prevPlace[", text);
     }
 
     private sealed class StartupFixture : IDisposable
@@ -141,7 +141,7 @@ public sealed class AgeImprovementTop10EventTests
                     INSERT INTO Athletes (Key, AgeGuesses, JoinedAt, Placements, TestSig, PhenoImprovementTop10Placement)
                     VALUES
                         ('nopara73', '[]', @joinedAt, '[]', 'old-nopara73-signature', 1),
-                        ('majoros_gabor', '[]', @joinedAt, '[]', 'old-majoros-gabor-signature', 2);
+                        ('majoros_gabor', '[]', @joinedAt, '[]', 'old-majoros-gabor-signature', NULL);
                     """;
                 cmd.Parameters.AddWithValue("@joinedAt", joinedAt);
                 cmd.ExecuteNonQuery();
