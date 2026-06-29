@@ -854,7 +854,7 @@ public static class XMessageBuilder
         var placeText = CrowdOrdinal(place);
         var movement = previousPlace.HasValue
             ? previousPlace.Value > place ? $"climbed from {CrowdOrdinal(previousPlace.Value)} to {placeText}" : $"moved from {CrowdOrdinal(previousPlace.Value)} to {placeText}"
-            : $"entered the top 10 at {placeText}";
+            : place == 1 ? $"took {placeText} place" : $"entered the top 10 at {placeText}";
         var leaderboardName = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase)
             ? "Bortz Improvement"
             : "Pheno Improvement";

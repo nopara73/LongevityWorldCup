@@ -1899,7 +1899,7 @@
                     const placeText = placeN ? ordinal(placeN) : "?";
                     const movementText = previousPlaceN
                         ? (previousPlaceN > placeN ? `climbed from ${ordinal(previousPlaceN)} to ${placeText}` : `moved from ${ordinal(previousPlaceN)} to ${placeText}`)
-                        : `entered the top 10 at ${placeText}`;
+                        : (placeN === 1 ? `took ${placeText} place` : `entered the top 10 at ${placeText}`);
                     const prevHtml = r.prevSlug
                         ? renderTextWithSlugLinks(`slug[${r.prevSlug}]`, linkNames, athletesIndex, afterNameWithCurrentRankFor())
                         : "";

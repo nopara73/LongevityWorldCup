@@ -77,6 +77,21 @@ public sealed class HomepageHighlightSelectionTests
             "Improvement leaderboard placement Events should outrank plain biological-age improvement Events for homepage athlete highlights.");
     }
 
+    [Fact]
+    public void EventBoardImprovementLeaderCopy_UsesTookFirstPlaceForNewLeader()
+    {
+        var repoRoot = FindRepoRoot();
+        var eventBoardHtml = File.ReadAllText(Path.Combine(
+            repoRoot,
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "partials",
+            "event-board-content.html"));
+
+        Assert.Contains("placeN === 1 ? `took ${placeText} place`", eventBoardHtml);
+        Assert.Contains(": `entered the top 10 at ${placeText}`", eventBoardHtml);
+    }
+
     private static int ExtractHomepageImportanceBase(string eventBoardHtml, string eventTypeName)
     {
         var match = Regex.Match(
