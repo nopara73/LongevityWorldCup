@@ -1055,7 +1055,8 @@
                     return { panelName, dashboardAthlete: null };
                 }
 
-                const dashboardAthlete = athleteSelection.getCurrentAthlete() || flow.getStoredSelectedAthlete();
+                const dashboardAthlete = athleteSelection.getCurrentAthlete()
+                    || flow.getStoredSelectedAthlete();
                 if (!dashboardAthlete || !dashboardAthlete.Name) {
                     return { panelName: 'selection', dashboardAthlete: null };
                 }
