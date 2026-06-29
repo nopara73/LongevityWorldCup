@@ -17,7 +17,8 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("id=\"playAthleteInput\"", html);
         Assert.Contains("id=\"playConfirmAthleteBtn\"", html);
         Assert.Contains("function navigateToStartPanel()", html);
-        Assert.Contains("showAthleteDashboard(currentAthlete, { historyMode: 'push' });", html);
+        Assert.Contains("flow.persistSelectedAthlete(currentAthlete)", html);
+        Assert.Contains("showPlayPanel('dashboard', { historyMode: 'push' });", html);
         Assert.DoesNotContain("character-selection-main", html);
         Assert.DoesNotContain("id=\"confirmBtn\"", html);
         Assert.DoesNotContain("window.location.href = '/dashboard';", html);

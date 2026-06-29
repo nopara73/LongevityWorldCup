@@ -20,7 +20,8 @@ public sealed class CharacterCustomizationPageTests
         Assert.Contains("id=\"athleteDashboardPicture\" class=\"athlete-picture-frame\"", html);
         Assert.Contains("id=\"athleteDashboardDynamicActions\"", html);
         Assert.Contains("#athleteDashboardDynamicActions", html);
-        Assert.Contains("flow.readRequiredSelectedAthlete();", html);
+        Assert.Contains("flow.getStoredSelectedAthlete();", html);
+        Assert.DoesNotContain("flow.readRequiredSelectedAthlete();", html);
         Assert.Contains("flow.renderAthleteDashboardHeader(athlete, {", html);
         Assert.Contains("flow.renderDashboardActions(athlete, {", html);
         Assert.Contains("document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);", html);
@@ -55,7 +56,7 @@ public sealed class CharacterCustomizationPageTests
     }
 
     [Fact]
-    public async Task DashboardRoute_ChangeAthleteUsesPlayShellRouteInsteadOfHistoryFallback()
+    public async Task DashboardRoute_ChangeAthleteUsesPlayShellSelectionRoute()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -64,9 +65,9 @@ public sealed class CharacterCustomizationPageTests
 
         Assert.Contains("id=\"playDashboardBackBtn\" type=\"button\"", html);
         Assert.Contains("function navigateToSelectionPanel()", html);
-        Assert.Contains("showAthleteSelection({ historyMode: 'replace' });", html);
+        Assert.Contains("navigateToPreviousPlayPanel('selection');", html);
+        Assert.Contains("showPlayPanel(fallbackPanelName, { historyMode: 'replace' });", html);
         Assert.Contains("document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);", html);
-        Assert.DoesNotContain("window.history.back()", html);
         Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
     }
 }

@@ -190,7 +190,7 @@ public sealed class PlayAthleteFlowBrowserTests
         page.PageError += (_, error) => errors.Add(error);
 
         await page.GotoAsync("/dashboard", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForURLAsync("**/select-athlete");
+        await page.WaitForFunctionAsync("() => window.location.pathname === '/select-athlete'");
         await ExpectActivePlayPanelAsync(page, "athleteSelectionPanel");
         Assert.Equal("/select-athlete", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Athlete selection", await page.Locator("#athleteSelectionTitle").InnerTextAsync());
