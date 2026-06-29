@@ -39,6 +39,12 @@ public sealed class BioageFlowBrowserTests
                 DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
                 Biomarkers: []
             }));
+            window.sessionStorage.setItem('pendingPaymentOffer', JSON.stringify({
+                source: 'join-game',
+                offerType: 'pro',
+                currency: 'USD',
+                amountUsd: 100
+            }));
             """);
 
         var page = await context.NewPageAsync();
@@ -56,6 +62,7 @@ public sealed class BioageFlowBrowserTests
 
         Assert.Equal("/" + path.TrimStart('/'), new Uri(page.Url).PathAndQuery);
         Assert.Equal("Browser Test Athlete", await page.Locator("#mainPageTitleH2").InnerTextAsync());
+        Assert.Null(await page.EvaluateAsync<string?>("() => sessionStorage.getItem('pendingPaymentOffer')"));
         Assert.False(await page.Locator(".lwc-wizard-nav").IsVisibleAsync());
         Assert.False(await page.Locator("#lwcToStep1Btn").IsVisibleAsync());
         Assert.False(await page.Locator("#dobFieldset").IsVisibleAsync());

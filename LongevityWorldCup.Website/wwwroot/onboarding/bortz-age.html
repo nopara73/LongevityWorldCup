@@ -1394,6 +1394,10 @@
         const BORTZ_LAB_GEO_CACHE_KEY = 'bortzLabGeoEligibility';
         const REQUEST_COUNTRY_CODE = '{{REQUEST_COUNTRY_CODE}}';
 
+        if (isUpdate) {
+            clearPendingPaymentOffer();
+        }
+
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
@@ -1427,13 +1431,13 @@
             }, result);
         }
 
-        function hasUsablePendingPaymentOffer() {
+        function hasUsablePendingPaymentOffer(expectedOfferType) {
             const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
             if (!rawOffer) return false;
 
             try {
                 const parsedOffer = JSON.parse(rawOffer);
-                if (isUsablePaymentOffer(parsedOffer)) return true;
+                if (isUsablePaymentOffer(parsedOffer) && parsedOffer.offerType === expectedOfferType) return true;
             } catch (_) {
             }
 
@@ -1471,7 +1475,7 @@
 
         function storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference) {
             let serializedPaymentOffer = null;
-            if (!isUpdate && !hasUsablePendingPaymentOffer()) {
+            if (!isUpdate && !hasUsablePendingPaymentOffer('pro')) {
                 const paymentOffer = buildDirectBortzPaymentOffer();
                 try {
                     const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer
