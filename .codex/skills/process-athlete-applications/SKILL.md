@@ -14,6 +14,14 @@ description: Review and process Longevity World Cup athlete submission emails fr
 - Never stage unrelated work. If the worktree is dirty, identify unrelated changes and leave them alone.
 - Do not add Node tooling for browser checks; this repo is a .NET solution.
 
+## Default Submission Scope
+
+If the user invokes this skill or asks to process submissions without naming a specific athlete, thread, message, folder key, count, or `next` limit, process every unprocessed submission/person currently discoverable in Gmail.
+
+Work candidates one at a time. Check the processed ledger before heavy work for each candidate, skip unchanged processed threads, and continue until no unprocessed candidates remain.
+
+When the user asks for `next`, process only the next eligible candidate. When the user names a specific athlete, thread, message, or folder key, process that target even if the ledger suggests it may already be processed.
+
 ## Find The Submission Email
 
 Search Gmail flexibly. Do not depend on one exact sender, recipient, domain, or subject because applicant and athlete conversations may happen through personal email threads that do not touch `longevityworldcup@gmail.com` or any `@longevityworldcup.com` address.
@@ -25,7 +33,7 @@ Strong signals:
 - Identity anchors such as athlete name, display name, folder key, profile slug, profile URL, known personal email addresses, social handles, personal websites, invoice IDs, or submission IDs.
 - Any message where `longevityworldcup@gmail.com` or any address ending in `@longevityworldcup.com` appears in from, to, cc, bcc, reply-to, or body. Treat this as useful, not required.
 
-When multiple candidates exist, prefer the most recent unprocessed thread with a ZIP attachment or a payment-follow-up/application-audit pair. Summarize ambiguity instead of guessing silently.
+When selecting a single candidate because the user requested `next` or otherwise limited the scope, prefer the most recent unprocessed thread with a ZIP attachment or a payment-follow-up/application-audit pair. Summarize ambiguity instead of guessing silently.
 
 Extract from the thread when available:
 
@@ -55,9 +63,9 @@ When scanning candidates, compute the same thread/message identity before doing 
 
 - the candidate or related thread appears in the ledger,
 - the latest Gmail message id/date for the thread is unchanged from the ledger, and
-- the user asked for the next submission generally rather than naming this athlete, thread, message, or folder key.
+- the user asked generally for next/all submissions rather than naming this athlete, thread, message, or folder key.
 
-When skipping, report the skip reason and the ledger summary in one or two lines, then continue to the next candidate if the user asked for "next". Do not download the ZIP, run the reviewer, create drafts, or re-review proofs for unchanged skipped work.
+When skipping, report the skip reason and the ledger summary in one or two lines, then continue to the next candidate when the requested scope includes more candidates. Do not download the ZIP, run the reviewer, create drafts, or re-review proofs for unchanged skipped work.
 
 Reprocess despite a ledger hit when:
 
