@@ -10,6 +10,7 @@
     ];
     const SAVED_CHECKIN_TEXT = "Saved. You can edit this check-in today.";
     const MAX_NOTE_PHOTOS = 4;
+    const RECENT_REMARK_LIMIT = 3;
     const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const LEADERBOARD_SCORING_WINDOW_DAYS = 14;
     const COMMITMENT_PAYMENT_POLL_DELAYS_MS = [2500, 5000, 8000, 12000];
@@ -955,7 +956,7 @@
         }
         renderProfilePictureControls(participant);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
-        if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || []);
+        if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || [], undefined, recentPublicRemarks(state));
         renderNotes(state.notes || state.public.notes || [], true);
         renderParticipantTabs();
     }
@@ -1242,7 +1243,7 @@
             checkCommitmentPayment(event.currentTarget, { showWaiting: true, finalWaitingMessage: "Still waiting. This can take a minute." });
         });
         if (editableDays.length) {
-            renderCheckIns(editableDays, "lmxCommitmentCheckinList");
+            renderCheckIns(editableDays, "lmxCommitmentCheckinList", recentPublicRemarks(state));
         } else {
             const list = document.getElementById("lmxCommitmentCheckinList");
             if (list) {
@@ -1795,7 +1796,7 @@
         </div>`;
     }
 
-    function renderCheckIns(days, containerId) {
+    function renderCheckIns(days, containerId, recentRemarks) {
         const container = document.getElementById(containerId || "lmxCheckinList");
         if (!container) return;
         if (!days.length) {
@@ -1807,11 +1808,11 @@
         const activeDay = pickActiveCheckInDay(orderedDays);
         const previousForm = container.querySelector(".lmx-checkin-card");
         if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
-        container.innerHTML = checkInSwitcherHtml(orderedDays, activeDay) + checkInCardHtml(activeDay);
+        container.innerHTML = checkInSwitcherHtml(orderedDays, activeDay) + checkInCardHtml(activeDay, recentRemarks);
         container.querySelectorAll(".lmx-checkin-switcher button").forEach(button => {
             button.addEventListener("click", () => {
                 selectedCheckInDay = Number(button.dataset.day);
-                renderCheckIns(orderedDays, containerId);
+                renderCheckIns(orderedDays, containerId, recentRemarks);
             });
         });
         container.querySelectorAll(".lmx-segmented button").forEach(button => {
@@ -1871,7 +1872,7 @@
         </div>`;
     }
 
-    function checkInCardHtml(day) {
+    function checkInCardHtml(day, recentRemarks) {
         const existing = day.existing || {};
         const saved = savedDays.has(day.challengeDay);
         const practice = day.countsForScore === false;
@@ -1921,7 +1922,34 @@
                 Save
             </button>
             <div class="lmx-status${saved || day.existing ? " success" : ""}">${saved || day.existing ? SAVED_CHECKIN_TEXT : ""}</div>
+            ${recentRemarksHtml(recentRemarks)}
         </form>`;
+    }
+
+    function recentPublicRemarks(state) {
+        const notes = Array.isArray(state?.public?.notes) ? state.public.notes : [];
+        return notes
+            .filter(note => String(note?.note || "").trim())
+            .slice(0, RECENT_REMARK_LIMIT);
+    }
+
+    function recentRemarksHtml(notes) {
+        const remarks = (Array.isArray(notes) ? notes : [])
+            .filter(note => String(note?.note || "").trim())
+            .slice(0, RECENT_REMARK_LIMIT);
+        if (!remarks.length) return "";
+
+        return `<section class="lmx-recent-remarks" aria-label="Recent public remarks">
+            <strong>Recent remarks</strong>
+            ${remarks.map(note => {
+                const noteText = String(note.note || "").trim();
+                const date = note.date ? ` · ${formatShortDateLabel(note.date)}` : "";
+                return `<article class="lmx-recent-remark">
+                    <strong>${esc(note.displayName)} · Day ${esc(note.challengeDay)}${esc(date)}</strong>
+                    <p>${esc(noteText)}</p>
+                </article>`;
+            }).join("")}
+        </section>`;
     }
 
     function notePhotoHtml(image, key) {

@@ -571,6 +571,13 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("toggle(\"lmxNotesPanel\", dashboardMode && !publicContentHidden);", javascript);
         Assert.Contains("renderNotes(state.notes || [], false);", javascript);
         Assert.Contains("renderNotes(state.notes || state.public.notes || [], true);", javascript);
+        Assert.Contains("const RECENT_REMARK_LIMIT = 3;", javascript);
+        Assert.Contains("renderCheckIns(state.eligibleDays || [], undefined, recentPublicRemarks(state));", javascript);
+        Assert.Contains("renderCheckIns(editableDays, \"lmxCommitmentCheckinList\", recentPublicRemarks(state));", javascript);
+        Assert.Contains("function recentPublicRemarks(state)", javascript);
+        Assert.Contains("function recentRemarksHtml(notes)", javascript);
+        Assert.Contains("Recent remarks", javascript);
+        Assert.Contains("aria-label=\"Recent public remarks\"", javascript);
         Assert.Contains("No public notes yet.", javascript);
         Assert.Contains("No participant notes yet.", javascript);
         Assert.Contains("placeholder=\"Visible publicly\"", javascript);
@@ -584,9 +591,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("commitmentAmountUsd: parseCommitmentAmount", javascript);
         Assert.DoesNotContain("displayName: getIdentityDisplayName(\"edit\")", javascript);
         Assert.DoesNotContain("athleteLink: getIdentityAthletePayload(\"edit\")", javascript);
-        Assert.Contains("renderCheckIns(editableDays, \"lmxCommitmentCheckinList\");", javascript);
-        Assert.Contains("renderCheckIns(orderedDays, containerId);", javascript);
-        Assert.Contains("if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || []);", javascript);
+        Assert.Contains("renderCheckIns(orderedDays, containerId, recentRemarks);", javascript);
+        Assert.Contains("if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || [], undefined, recentPublicRemarks(state));", javascript);
         Assert.Contains("function renderParticipantNotice", javascript);
         Assert.Contains("setAttribute(\"aria-invalid\", \"true\")", javascript);
         Assert.Contains("Payment confirmed. You're unlocked.", javascript);
@@ -854,6 +860,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-profile-preview.placeholder img", css);
         Assert.Contains(".lmx-note-photo-grid", css);
         Assert.Contains(".lmx-note-photo img", css);
+        Assert.Contains(".lmx-recent-remarks", css);
+        Assert.Contains(".lmx-recent-remark p", css);
         Assert.Contains("object-fit: contain", css);
         Assert.Contains("white-space: pre-wrap;", css);
         Assert.Contains("lmxSlackInviteLink", javascript);
