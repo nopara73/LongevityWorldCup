@@ -98,14 +98,15 @@ For an existing athlete submission, such as a new biological-age result upload o
 
 Default: draft a verification email to the athlete and stop for human approval before committing/pushing the change.
 
-Skip the verification draft only when related email history makes it clear that the current submission came from the athlete or an already-trusted requester. The skip must cite evidence, such as:
+Related history may identify the best athlete contact address for verification, but it is not enough by itself to skip verification. Do not skip the verification draft merely because the sender, `Reply-To`, `Account email`, public profile, social handle, or prior direct correspondence matches a previously accepted athlete address.
+
+Skip the verification draft only when the current submission is already confirmed in the current/newer conversation, or when the user explicitly says to skip verification for this named submission. The skip must cite evidence, such as:
 
 - the current submission is part of an ongoing direct conversation where the athlete requested or confirmed this exact result/profile change,
-- the sender or `Account email` matches an address previously used by this athlete for accepted submissions,
-- a later message in the related history confirms the submission from the athlete or trusted requester, or
+- a later message in the related history confirms this exact current submission from the athlete or trusted requester, or
 - the user explicitly says to skip verification for this named submission.
 
-Do not treat a matching name, public social profile, or LWC audit email alone as enough to skip verification. If no reliable athlete contact address is known, mark the decision as needs human judgment and explain which possible contact addresses were found.
+If no reliable athlete contact address is known, mark the decision as needs human judgment and explain which possible contact addresses were found.
 
 Draft this verification email when required:
 
@@ -173,7 +174,8 @@ For each JSON biomarker record:
 - Match each recorded value to a visible proof value, accounting for explicit unit conversion only when the source unit is clear.
 - Confirm all values in the record are from one blood draw or one coherent lab report for the same test date. Do not accept a single JSON record assembled from different blood tests, different dates, or unrelated documents.
 - Confirm that required biomarkers for the claimed result are actually supported.
-- Check that client phone numbers, client addresses, client ID numbers, patient IDs, order IDs, accession numbers, barcodes, QR codes, and similar nonessential personal identifiers are censored. The applicant's name and test date may remain visible when needed to link the proof to the applicant.
+- Correct obvious JSON clerical mismatches locally instead of blocking. Examples: use the blood draw/collection date instead of a report/submission date when the report clearly shows both; fix a mistyped numeric value such as `ShbgNmolL` when the proof value and unit are unambiguous. Report the correction in the human approval summary.
+- Censor proof files locally instead of blocking when nonessential identifiers are visible. Redact client phone numbers, client addresses, client ID numbers, patient IDs, order IDs, accession/specimen numbers, barcodes, QR codes, and similar identifiers while preserving the applicant name, test date, and biomarker values needed for verification.
 - Confirm the proof belongs to the applicant when the document exposes a name or other safe identity signal.
 
 Pheno age requires one record with:
@@ -191,15 +193,15 @@ Bortz age requires one record with:
 Mark the submission blocked and prepare a draft reply when any of these are true:
 
 - Required biomarker values are missing from proofs.
-- JSON values do not match visible proof values or dates.
+- JSON values or dates do not match visible proof values and cannot be confidently corrected from the proof.
 - A single JSON biomarker record combines multiple tests, dates, or reports.
-- Proofs expose uncensored private identifiers beyond what is needed to verify the result.
+- Proofs expose uncensored private identifiers that cannot be safely censored locally without hiding verification evidence.
 - Payment is due and no payment confirmation/follow-up is visible in Gmail.
 - The ZIP/reviewer output modifies the wrong athlete folder or creates an unexpected folder key.
 - The applicant's identity, test date, or result ownership cannot be reasonably verified.
 - Related email history was not searched, or it contains unresolved contradictions about proof, payment, identity, or requested changes.
 - The processed ledger was not checked before ZIP download/reviewer work, unless the user explicitly requested a named submission.
-- Existing athlete result/profile-change submissions do not have either a drafted security verification email or a cited related-history reason to skip verification.
+- Existing athlete result/profile-change submissions do not have a drafted security verification email, current/newer confirmation of the exact submission, or an explicit user override.
 
 For obvious issues, draft the email directly. For uncertain medical/unit interpretation issues, explain the uncertainty in the summary and wait for the human decision.
 
@@ -226,7 +228,7 @@ Common `{specific issue}` examples:
 
 - `The proof does not show {missing biomarkers}, which are needed for the submitted {pheno age/bortz age} result.`
 - `The submitted biomarker record appears to combine values from different test dates. Each result record needs to come from one blood draw or one coherent lab report for the same test date.`
-- `The proof still shows private identifiers such as {identifier type}. Please upload a censored version.`
+- `I could not safely censor {identifier type} without hiding the proof values needed for verification. Please upload a censored version.`
 - `The submission still shows a payment due, and I do not see a payment confirmation yet. Please complete the payment or reply if you believe it was already paid.`
 
 When accepted and the user approves finalization, send a welcome/update reply:
