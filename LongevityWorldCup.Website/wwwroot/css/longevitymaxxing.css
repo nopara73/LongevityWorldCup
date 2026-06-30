@@ -2074,6 +2074,50 @@ body.lmx-quote-open {
     color: #047857;
 }
 
+.lmx-recent-remarks {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.55rem;
+    padding: 0.65rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.lmx-recent-remarks > strong {
+    color: #0f172a;
+    font-size: 0.86rem;
+}
+
+.lmx-recent-remark {
+    min-width: 0;
+    display: grid;
+    gap: 0.15rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.lmx-recent-remarks > strong + .lmx-recent-remark {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.lmx-recent-remark strong {
+    color: #0f172a;
+    font-size: 0.82rem;
+}
+
+.lmx-recent-remark p {
+    margin: 0;
+    color: #334155;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 .lmx-call-list {
     display: grid;
     gap: 0.55rem;
