@@ -1,6 +1,6 @@
 ---
 name: process-athlete-applications
-description: Review and process Longevity World Cup athlete submission emails from unread Gmail messages, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, process all unprocessed athlete submissions when invoked without a named target, understand related email history even across multiple requester addresses, download ZIP attachments through the bundled raw Gmail helper, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester or athlete security-verification replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
+description: Review and process Longevity World Cup athlete submission emails from unread Gmail messages, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, process all unprocessed athlete submissions when invoked without a named target, security-gate existing athlete updates before ZIP processing, understand related email history even across multiple requester addresses, download ZIP attachments through the bundled raw Gmail helper only when processing is allowed, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare concise requester or athlete security-verification drafts, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
 ---
 
 # Process Athlete Submissions
@@ -11,6 +11,7 @@ description: Review and process Longevity World Cup athlete submission emails fr
 - Use Gmail connector tools when available. If Gmail tools are not loaded, search for them with `tool_search` before using browser workarounds.
 - For Gmail ZIP attachments, do not use Chrome, Computer Use, the Gmail web UI, visible attachment controls, attachment URLs, or browser downloads. Use the raw Gmail attachment downloader bundled in this skill. If that path fails, diagnose or fix that path and stop with the blocker; do not invent a browser fallback.
 - When invoked without additional instructions, process all unprocessed athlete submissions by scanning unread Gmail submission candidates until none remain or human direction is required.
+- Never mark Gmail submission messages read, remove `UNREAD`, add `UNREAD`, archive, trash, or otherwise change Gmail labels/state. The user marks submission emails manually. Reading/searching messages and creating draft replies is allowed; label mutation is not.
 - Keep temporary downloads, OCR output, screenshots, notes, and the processing ledger under `.artifacts/` unless the ZIP must be placed in the athlete folder for the reviewer.
 - Never send email, commit, or push until the user explicitly approves the prepared summary and draft.
 - Never stage unrelated work. If the worktree is dirty, identify unrelated changes and leave them alone.
@@ -20,15 +21,26 @@ description: Review and process Longevity World Cup athlete submission emails fr
 
 If the user invokes this skill or asks to process submissions without naming a specific athlete, thread, message, folder key, count, or `next` limit, process every unread Gmail submission candidate that appears unprocessed.
 
-Work candidates one at a time. Check the processed ledger before heavy work for each candidate, skip unchanged processed threads only when thread/message identity proves no newer unread message exists, and continue until no unread unprocessed candidates remain.
+Before processing any candidate, complete the unread candidate sweep and group all unique candidate messages by athlete/folder key. Then work candidates one at a time. Check the processed ledger before heavy work for each candidate, skip unchanged processed threads only when thread/message identity proves no newer unread message exists, and continue until no unread unprocessed candidates remain.
 
 When the user asks for `next`, process only the next eligible candidate. When the user names a specific athlete, thread, message, or folder key, process that target even if the ledger suggests it may already be processed.
+
+For existing-athlete result submissions or profile metadata updates, perform the security-verification gate before ZIP download, reviewer runs, proof review, redaction, or local athlete-file edits. If the exact current update is not already confirmed by the athlete/trusted requester, draft the short security confirmation and stop that candidate. Continue to the next unread candidate when the requested scope includes more candidates.
 
 ## Find The Submission Email
 
 Search unread Gmail messages flexibly. Do not depend on one exact sender, recipient, domain, or subject because applicant and athlete conversations may happen through personal email threads that do not touch `longevityworldcup@gmail.com` or any `@longevityworldcup.com` address.
 
 Treat unread Gmail messages matching LWC submission signals as the only unprocessed athlete queue. When there are no unread Gmail messages matching LWC submission signals, report that there are no unprocessed athletes and do not fall back to read messages. Use read messages only as related history after an unread candidate has been found, or when the user explicitly names a specific athlete, thread, message, or folder key for reprocessing or historical inspection.
+
+Do not process the first match before finishing discovery. Run a complete unread sweep across these query families, paging through results when Gmail returns `next_page_token`, then union by message id/thread id:
+
+- `is:unread -in:spam -in:trash` with audit terms such as `[LWC26]`, `Archive folder key`, `Payment due`, and `Submitted biomarkers/results summary`
+- `is:unread -in:spam -in:trash` with update terms such as `New biological age result posted` and `Update profile request`
+- `is:unread -in:spam -in:trash filename:zip`
+- `is:unread -in:spam -in:trash` with LWC identity terms such as `longevityworldcup` and `longevityworldcup.com`
+
+Read enough metadata/body for every unique unread candidate to extract athlete name, folder key, profile URL, update type, attachment filename, message id, thread id, and timestamp. If multiple identities are present, keep all of them in the queue; do not stop after one athlete or one thread.
 
 Strong signals:
 
@@ -108,9 +120,9 @@ Carry forward facts from earlier messages: prior missing-proof requests, promise
 
 ## Existing Athlete Security Verification
 
-For an existing athlete submission, such as a new biological-age result upload or profile metadata change for an athlete folder that already exists, decide whether a security verification draft is required before finalizing.
+For an existing athlete submission, such as a new biological-age result upload or profile metadata change for an athlete folder that already exists, decide whether a security verification draft is required before doing any ZIP/file processing.
 
-Default: draft a verification email to the athlete and stop for human approval before committing/pushing the change.
+Default: draft a verification email to the athlete and stop that candidate before downloading ZIPs, running `LongevityWorldCup.ApplicationReviewer`, reviewing proofs, redacting files, editing `athlete.json`, committing, or pushing.
 
 Related history may identify the best athlete contact address for verification, but it is not enough by itself to skip verification. Do not skip the verification draft merely because the sender, `Reply-To`, `Account email`, public profile, social handle, or prior direct correspondence matches a previously accepted athlete address.
 
@@ -122,24 +134,23 @@ Skip the verification draft only when the current submission is already confirme
 
 If no reliable athlete contact address is known, mark the decision as needs human judgment and explain which possible contact addresses were found.
 
-Draft this verification email when required:
+When one athlete has multiple unread current submissions, such as a profile change followed by new results, combine them into one security draft. Use the shortest clear body and do not include proof findings, correction details, a long explanation, or a signature unless the user explicitly asks. Draft this verification email when required, adjusting only the first name and submitted item phrase:
 
 ```text
-Hi {name},
-
-I received a Longevity World Cup submission that would update your athlete profile:
-
-{short description of submitted result or profile change}
-
-For security, please reply to confirm that you submitted this and that the update should be applied.
-
-Best,
-Longevity World Cup
+Hi {firstName}, for security reasons can you confirm you've submitted {the new results/the change request/the new results and the change request}?
 ```
 
-Do not commit, push, or send an update/welcome email for an existing athlete submission while verification is pending, unless the user explicitly overrides after seeing the summary.
+Examples:
+
+- Result plus profile/update request: `Hi David, for security reasons can you confirm you've submitted the new results and the change request?`
+- Result only: `Hi David, for security reasons can you confirm you've submitted the new results?`
+- Profile/update request only: `Hi Cher, for security reasons can you confirm you've submitted the change request?`
+
+Do not download, review, redact, edit local files, commit, push, send an update/welcome email, or mutate Gmail labels for an existing athlete submission while verification is pending, unless the user explicitly overrides after seeing the summary.
 
 ## Prepare The Repo Files
+
+Do not enter this section for an existing-athlete result/profile update until the security-verification gate has been satisfied by current/newer confirmation or by explicit user override. For an unconfirmed existing-athlete update, the correct action is only to create the concise security draft and stop that candidate.
 
 Download ZIP attachments through the raw Gmail connector helper, not through Chrome, Computer Use, Gmail `read_attachment`, the Gmail web UI, or a browser-controlled attachment URL. `application/zip` returning `read_attachment_supported: false`, `unsupported_attachment_type`, or an oversized raw MIME payload in normal chat/tool output is expected; these are not reasons to use a browser.
 
@@ -230,6 +241,7 @@ Mark the submission blocked and prepare a draft reply when any of these are true
 - Related email history was not searched, or it contains unresolved contradictions about proof, payment, identity, or requested changes.
 - The processed ledger was not checked before ZIP download/reviewer work, unless the user explicitly requested a named submission.
 - Existing athlete result/profile-change submissions do not have a drafted security verification email, current/newer confirmation of the exact submission, or an explicit user override.
+- Existing athlete result/profile-change submissions were downloaded, reviewed, redacted, or applied locally before security verification was satisfied.
 
 For obvious issues, draft the email directly. For uncertain medical/unit interpretation issues, explain the uncertainty in the summary and wait for the human decision.
 
@@ -288,7 +300,7 @@ Stop after review and present a summary before any send/commit/push. Include:
 - Payment status from the audit email and any confirmation found.
 - Files changed from `git status --short`.
 - JSON highlights: name, division, flag, date of birth, biomarker record dates, pheno/bortz availability.
-- Proof checklist: for each biomarker record, list proof files reviewed, date match, value match, same-test status, censoring status, and any missing evidence.
+- Proof checklist: for each biomarker record, list proof files reviewed, date match, value match, same-test status, censoring status, and any missing evidence. For existing-athlete submissions stopped at the security gate, say proof/files were intentionally not downloaded or reviewed pending confirmation.
 - Exact next actions you will take if the user says to approve.
 
 If the athlete folder is not already open, open it in Explorer before presenting the summary:
@@ -306,5 +318,5 @@ Only after the user approves:
 3. Commit with a short message such as `Add {Name} athlete` or `Update {Name} athlete results`.
 4. Push `origin master` only when on `master` and the user approved pushing. If not on `master`, ask before switching or pushing.
 5. Send the approved Gmail reply in the original thread with the athlete link.
-6. Remove `UNREAD` from the processed submission message(s) only after the approved final action is complete, so unread Gmail continues to represent the unprocessed queue.
-7. Report the commit hash, pushed branch, profile URL, email-send status, and unread-label update status.
+6. Leave Gmail unread/read labels and other message labels unchanged; the user marks submission emails manually.
+7. Report the commit hash, pushed branch, profile URL, email-send status, and confirmation that Gmail labels were left untouched.
