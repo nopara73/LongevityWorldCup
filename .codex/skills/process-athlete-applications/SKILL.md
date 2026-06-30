@@ -1,6 +1,6 @@
 ---
 name: process-athlete-applications
-description: Review and process Longevity World Cup athlete submission emails from Gmail, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails or related personal-email conversations, understand related email history even across multiple requester addresses, download ZIP attachments into the repo athlete folder, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester or athlete security-verification replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
+description: Review and process Longevity World Cup athlete submission emails from unread Gmail messages, including full applications, biological-age result uploads, and profile-update requests. Use when Codex needs to find LWC submission emails, process all unprocessed athlete submissions when invoked without a named target, understand related email history even across multiple requester addresses, download ZIP attachments through the bundled raw Gmail helper, run LongevityWorldCup.ApplicationReviewer, inspect athlete.json and proofs, prepare draft requester or athlete security-verification replies, summarize the human approval decision, and after explicit approval commit/push accepted athlete changes and send the welcome or update email.
 ---
 
 # Process Athlete Submissions
@@ -9,6 +9,8 @@ description: Review and process Longevity World Cup athlete submission emails fr
 
 - Read `UBIQUITOUS_LANGUAGE.md` before judging applications, results, rankings, athlete onboarding, badges, Events, or competition copy.
 - Use Gmail connector tools when available. If Gmail tools are not loaded, search for them with `tool_search` before using browser workarounds.
+- For Gmail ZIP attachments, do not use Chrome, Computer Use, the Gmail web UI, visible attachment controls, attachment URLs, or browser downloads. Use the raw Gmail attachment downloader bundled in this skill. If that path fails, diagnose or fix that path and stop with the blocker; do not invent a browser fallback.
+- When invoked without additional instructions, process all unprocessed athlete submissions by scanning unread Gmail submission candidates until none remain or human direction is required.
 - Keep temporary downloads, OCR output, screenshots, notes, and the processing ledger under `.artifacts/` unless the ZIP must be placed in the athlete folder for the reviewer.
 - Never send email, commit, or push until the user explicitly approves the prepared summary and draft.
 - Never stage unrelated work. If the worktree is dirty, identify unrelated changes and leave them alone.
@@ -16,15 +18,17 @@ description: Review and process Longevity World Cup athlete submission emails fr
 
 ## Default Submission Scope
 
-If the user invokes this skill or asks to process submissions without naming a specific athlete, thread, message, folder key, count, or `next` limit, process every unprocessed submission/person currently discoverable in Gmail.
+If the user invokes this skill or asks to process submissions without naming a specific athlete, thread, message, folder key, count, or `next` limit, process every unread Gmail submission candidate that appears unprocessed.
 
-Work candidates one at a time. Check the processed ledger before heavy work for each candidate, skip unchanged processed threads, and continue until no unprocessed candidates remain.
+Work candidates one at a time. Check the processed ledger before heavy work for each candidate, skip unchanged processed threads only when thread/message identity proves no newer unread message exists, and continue until no unread unprocessed candidates remain.
 
 When the user asks for `next`, process only the next eligible candidate. When the user names a specific athlete, thread, message, or folder key, process that target even if the ledger suggests it may already be processed.
 
 ## Find The Submission Email
 
-Search Gmail flexibly. Do not depend on one exact sender, recipient, domain, or subject because applicant and athlete conversations may happen through personal email threads that do not touch `longevityworldcup@gmail.com` or any `@longevityworldcup.com` address.
+Search unread Gmail messages flexibly. Do not depend on one exact sender, recipient, domain, or subject because applicant and athlete conversations may happen through personal email threads that do not touch `longevityworldcup@gmail.com` or any `@longevityworldcup.com` address.
+
+Treat unread Gmail messages matching LWC submission signals as the only unprocessed athlete queue. When there are no unread Gmail messages matching LWC submission signals, report that there are no unprocessed athletes and do not fall back to read messages. Use read messages only as related history after an unread candidate has been found, or when the user explicitly names a specific athlete, thread, message, or folder key for reprocessing or historical inspection.
 
 Strong signals:
 
@@ -33,7 +37,7 @@ Strong signals:
 - Identity anchors such as athlete name, display name, folder key, profile slug, profile URL, known personal email addresses, social handles, personal websites, invoice IDs, or submission IDs.
 - Any message where `longevityworldcup@gmail.com` or any address ending in `@longevityworldcup.com` appears in from, to, cc, bcc, reply-to, or body. Treat this as useful, not required.
 
-When selecting a single candidate because the user requested `next` or otherwise limited the scope, prefer the most recent unprocessed thread with a ZIP attachment or a payment-follow-up/application-audit pair. Summarize ambiguity instead of guessing silently.
+When selecting a single candidate because the user requested `next` or otherwise limited the scope, prefer the most recent unread unprocessed thread with a ZIP attachment or a payment-follow-up/application-audit pair. Summarize ambiguity instead of guessing silently.
 
 Extract from the thread when available:
 
@@ -47,6 +51,8 @@ Extract from the thread when available:
 ## Skip Already Processed Threads
 
 Before downloading attachments or running the reviewer, check `.artifacts/lwc-submission-processing-ledger.jsonl`. Treat it as local private state; do not commit it.
+
+The Gmail unread state is the primary unprocessed signal. Use the ledger to avoid duplicate heavy work, but do not let an old ledger entry hide a still-unread candidate unless the unchanged thread/message identity proves it was already reviewed and the user asked for next/all submissions generally. If a candidate is unread and the ledger is missing, malformed, or ambiguous, inspect it.
 
 Each processed summary should append one JSON object with:
 
@@ -135,11 +141,25 @@ Do not commit, push, or send an update/welcome email for an existing athlete sub
 
 ## Prepare The Repo Files
 
-Download the ZIP attachment into:
+Download ZIP attachments through the raw Gmail connector helper, not through Chrome, Computer Use, Gmail `read_attachment`, the Gmail web UI, or a browser-controlled attachment URL. `application/zip` returning `read_attachment_supported: false`, `unsupported_attachment_type`, or an oversized raw MIME payload in normal chat/tool output is expected; these are not reasons to use a browser.
+
+Save full application ZIPs and result/profile ZIPs into:
 
 ```powershell
 LongevityWorldCup.Website\wwwroot\athletes\
 ```
+
+First search/read the parent Gmail message with connector tools and copy the Gmail message id plus the exact attachment filename from message metadata. Prefer `--filename` for ZIPs because Gmail attachment ids may be reissued between connector reads; use `--attachment-id` only when filenames are absent or ambiguous. Then run from the solution root:
+
+```powershell
+node .\.codex\skills\process-athlete-applications\scripts\download-gmail-attachment-raw.mjs --message-id {gmail_message_id} --filename "{attachment_filename}" --out .\LongevityWorldCup.Website\wwwroot\athletes\
+```
+
+If the helper cannot infer the current Codex thread, add `--thread-id <codex-thread-id>`. The downloader starts a temporary local `codex app-server`, calls Gmail `read_email` with `include_raw_mime=true`, writes the selected attachment bytes directly to the requested local path, and prints JSON containing `savedPath`, `filename`, `mimeType`, `size`, and `sha256`.
+
+If the helper fails, fix or diagnose the helper/app-server/Gmail connector path. If it still cannot download the ZIP, stop and report the blocker. Do not open Gmail in Chrome, do not click attachment controls, do not use browser `fetch`/XHR/downloads, and do not ask the user to manually download the ZIP unless they explicitly choose that fallback after seeing the blocker.
+
+After downloading, verify `mimeType` is `application/zip`, the size is plausible, and the saved file opens as a ZIP locally before running the reviewer.
 
 Preserve the attachment filename unless doing so would overwrite an unrelated ZIP. If a same-named ZIP or athlete folder already exists, inspect before replacing because result uploads merge into existing athlete folders.
 
@@ -286,4 +306,5 @@ Only after the user approves:
 3. Commit with a short message such as `Add {Name} athlete` or `Update {Name} athlete results`.
 4. Push `origin master` only when on `master` and the user approved pushing. If not on `master`, ask before switching or pushing.
 5. Send the approved Gmail reply in the original thread with the athlete link.
-6. Report the commit hash, pushed branch, profile URL, and email-send status.
+6. Remove `UNREAD` from the processed submission message(s) only after the approved final action is complete, so unread Gmail continues to represent the unprocessed queue.
+7. Report the commit hash, pushed branch, profile URL, email-send status, and unread-label update status.
