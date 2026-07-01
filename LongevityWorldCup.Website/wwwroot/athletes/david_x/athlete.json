@@ -9,15 +9,15 @@
   "Biomarkers": [
     {
       "Date": "2025-01-02",
-        "AlbGL": 46,
-		"CreatUmolL": 79.6,
-		"GluMmolL": 5.17,
-		"CrpMgL": 0.28,
-		"LymPc": 39,
-		"McvFL": 93,
-		"RdwPc": 13.1,
-		"AlpUL": 69,
-		"Wbc1000cellsuL": 3.1
+      "AlbGL": 46,
+      "CreatUmolL": 79.6,
+      "GluMmolL": 5.17,
+      "CrpMgL": 0.28,
+      "LymPc": 39,
+      "McvFL": 93,
+      "RdwPc": 13.1,
+      "AlpUL": 69,
+      "Wbc1000cellsuL": 3.1
     },
     {
       "Date": "2025-04-08",
@@ -54,6 +54,31 @@
       "RdwPc": 12,
       "AlpUL": 52,
       "Wbc1000cellsuL": 2.7
+    },
+    {
+      "Date": "2026-06-24",
+      "AlbGL": 47,
+      "CreatUmolL": 71.68,
+      "GluMmolL": 5.33,
+      "CrpMgL": 0.2,
+      "LymPc": 43.1,
+      "McvFL": 95.7,
+      "RdwPc": 12.3,
+      "AlpUL": 59,
+      "Wbc1000cellsuL": 2.6,
+      "NeutrophilPc": 43.5,
+      "MonocytePc": 11.8,
+      "Rbc10e12L": 4.46,
+      "MchPg": 31.6,
+      "UreaMmolL": 4.64,
+      "CystatinCMgL": 0.62,
+      "Hba1cMmolMol": 34.43,
+      "CholesterolMmolL": 3.28,
+      "ApoA1GL": 1.17,
+      "AltUL": 15,
+      "GgtUL": 10,
+      "ShbgNmolL": 46,
+      "VitaminDNmolL": 145
     }
   ],
   "Division": "Men's",
