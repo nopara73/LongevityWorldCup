@@ -2470,15 +2470,12 @@
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
-            // Collect only biomarkers the user actually touched
+            // Result submissions append a new dated record, so store the full calculated panel.
             const entry = {
                 Date: bloodDrawDate
             };
-            // only assign if the user actually touched that field:
-            if (touchedBiomarkers.has('wbc')) {
-                entry.Wbc1000cellsuL = parseFloat((parseFloat(document.getElementById('wbc').value) / parseFloat(document.getElementById('wbcUnit').value)).toFixed(2));
-            }
-            if (touchedBiomarkers.has('lymphocyte')) {
+            entry.Wbc1000cellsuL = parseFloat((parseFloat(document.getElementById('wbc').value) / parseFloat(document.getElementById('wbcUnit').value)).toFixed(2));
+            {
                 const lymphRawValue = parseFloat(document.getElementById('lymphocyte').value);
                 const lymphUnitElement = document.getElementById('lymphocyteUnit');
                 const lymphUnitText = lymphUnitElement.options[lymphUnitElement.selectedIndex].text;
@@ -2501,31 +2498,17 @@
                 
                 entry.LymPc = parseFloat(lymphValueToStore.toFixed(2));
             }
-            if (touchedBiomarkers.has('mcv')) {
-                entry.McvFL = parseFloat(document.getElementById('mcv').value);
-            }
-            if (touchedBiomarkers.has('rcdw')) {
-                entry.RdwPc = parseFloat(document.getElementById('rcdw').value);
-            }
-            if (touchedBiomarkers.has('albumin')) {
-                entry.AlbGL = parseFloat((parseFloat(document.getElementById('albumin').value)
-                    / parseFloat(document.getElementById('albuminUnit').value)).toFixed(2));
-            }
-            if (touchedBiomarkers.has('ap')) {
-                entry.AlpUL = parseFloat((parseFloat(document.getElementById('ap').value) / parseFloat(document.getElementById('apUnit').value)).toFixed(2));
-            }
-            if (touchedBiomarkers.has('creatinine')) {
-                entry.CreatUmolL = parseFloat((parseFloat(document.getElementById('creatinine').value)
-                    / parseFloat(document.getElementById('creatinineUnit').value)).toFixed(2));
-            }
-            if (touchedBiomarkers.has('glucose')) {
-                entry.GluMmolL = parseFloat((parseFloat(document.getElementById('glucose').value)
-                    / parseFloat(document.getElementById('glucoseUnit').value)).toFixed(2));
-            }
-            if (touchedBiomarkers.has('crp')) {
-                entry.CrpMgL = parseFloat(((parseFloat(document.getElementById('crp').value)
-                    / parseFloat(document.getElementById('crpUnit').value)) * 10).toFixed(2)); // Multiply by 10 because we assigned 10x multiplier for mg/L as the base unit
-            }
+            entry.McvFL = parseFloat(document.getElementById('mcv').value);
+            entry.RdwPc = parseFloat(document.getElementById('rcdw').value);
+            entry.AlbGL = parseFloat((parseFloat(document.getElementById('albumin').value)
+                / parseFloat(document.getElementById('albuminUnit').value)).toFixed(2));
+            entry.AlpUL = parseFloat((parseFloat(document.getElementById('ap').value) / parseFloat(document.getElementById('apUnit').value)).toFixed(2));
+            entry.CreatUmolL = parseFloat((parseFloat(document.getElementById('creatinine').value)
+                / parseFloat(document.getElementById('creatinineUnit').value)).toFixed(2));
+            entry.GluMmolL = parseFloat((parseFloat(document.getElementById('glucose').value)
+                / parseFloat(document.getElementById('glucoseUnit').value)).toFixed(2));
+            entry.CrpMgL = parseFloat(((parseFloat(document.getElementById('crp').value)
+                / parseFloat(document.getElementById('crpUnit').value)) * 10).toFixed(2)); // Multiply by 10 because we assigned 10x multiplier for mg/L as the base unit
 
 
             const biomarkerData = {

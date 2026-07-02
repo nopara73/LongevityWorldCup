@@ -205,6 +205,30 @@ public sealed class BioageStoredBiomarkerTests
         Assert.DoesNotContain(oldAlert, calculateBody);
     }
 
+    [Fact]
+    public void BioageResultHandoff_StoresCompleteCurrentPanelInsteadOfTouchedSubset()
+    {
+        var phenoHtml = File.ReadAllText(GetPagePath("pheno-age.html"));
+        var phenoProceedBody = GetFunctionBody(phenoHtml, "function proceedToNextPage()", "const biomarkerData = {");
+
+        Assert.Contains("Result submissions append a new dated record, so store the full calculated panel.", phenoProceedBody);
+        Assert.Contains("entry.Wbc1000cellsuL = parseFloat", phenoProceedBody);
+        Assert.Contains("entry.LymPc = parseFloat", phenoProceedBody);
+        Assert.Contains("entry.AlbGL = parseFloat", phenoProceedBody);
+        Assert.DoesNotContain("if (touchedBiomarkers.has('wbc'))", phenoProceedBody);
+        Assert.DoesNotContain("if (touchedBiomarkers.has('lymphocyte'))", phenoProceedBody);
+
+        var bortzHtml = File.ReadAllText(GetPagePath("bortz-age.html"));
+        var bortzProceedBody = GetFunctionBody(bortzHtml, "function proceedToNextPage()", "const biomarkerData = {");
+
+        Assert.Contains("Result submissions append a new dated record, so store the full calculated panel.", bortzProceedBody);
+        Assert.Contains("const store = (id, prop, fn) => { entry[prop] = fn(); };", bortzProceedBody);
+        Assert.Contains("entry.NeutrophilPc = parseFloat", bortzProceedBody);
+        Assert.Contains("entry.MonocytePc = parseFloat", bortzProceedBody);
+        Assert.DoesNotContain("if (touchedBiomarkers.has('neutrophil_percentage'))", bortzProceedBody);
+        Assert.DoesNotContain("if (touchedBiomarkers.has('monocyte_percentage'))", bortzProceedBody);
+    }
+
     [Theory]
     [InlineData("pheno-age.html", "phenoAgeForm")]
     [InlineData("bortz-age.html", "bortzAgeForm")]
