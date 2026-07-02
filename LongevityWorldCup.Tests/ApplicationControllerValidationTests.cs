@@ -306,6 +306,58 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task ResultSubmissionWithBortzDifferenceMissingBortzPanelReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Klaus Townsend",
+            ChronoPhenoDifference = "-1.23",
+            ChronoBortzDifference = "-2.34",
+            Biomarkers =
+            [
+                new BiomarkerData
+                {
+                    Date = "2026-07-01",
+                    NeutrophilPc = 49,
+                    MonocytePc = 8.7
+                }
+            ],
+            ProofPics = ["data:image/png;base64,AA=="]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Submitted bortz age results require all Bortz biomarkers.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task ResultSubmissionWithPhenoDifferenceMissingPhenoPanelReturnsBadRequestBeforeProcessing()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            ChronoPhenoDifference = "-1.23",
+            Biomarkers =
+            [
+                new BiomarkerData
+                {
+                    Date = "2026-02-02",
+                    AlbGL = 45
+                }
+            ],
+            ProofPics = ["data:image/png;base64,AA=="]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Submitted pheno age results require all pheno biomarkers.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task ResultSubmissionMissingProofReturnsBadRequestBeforeProcessing()
     {
         using var factory = new TestWebApplicationFactory();

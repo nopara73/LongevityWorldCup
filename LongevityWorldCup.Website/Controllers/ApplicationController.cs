@@ -223,6 +223,8 @@ namespace LongevityWorldCup.Website.Controllers
 
             var submittedAccountEmail = applicantData.AccountEmail?.Trim();
             string? accountEmail = NormalizeOptionalAccountEmail(submittedAccountEmail);
+            string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
+            string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
             if (!isEditSubmissionOnly && !string.IsNullOrWhiteSpace(submittedAccountEmail) && accountEmail is null)
             {
                 return BadRequest("Account email is invalid.");
@@ -319,6 +321,12 @@ namespace LongevityWorldCup.Website.Controllers
                 return BadRequest("Biomarker result value is required.");
             }
 
+            if (applicantData.Biomarkers?.Any() is true
+                && !HasCompleteSubmittedBiomarkerResults(applicantData.Biomarkers, chronoPhenoDifference, chronoBortzDifference, out var biomarkerResultError))
+            {
+                return BadRequest(biomarkerResultError);
+            }
+
             // Load SMTP configuration
             Config config;
             try
@@ -345,8 +353,6 @@ namespace LongevityWorldCup.Website.Controllers
                 string.Join(",", proofLengths),
                 profilePicLength);
 
-            string? chronoPhenoDifference = applicantData.ChronoPhenoDifference?.Trim();
-            string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
             applicantData.FreePass = NormalizeFreePassValue(applicantData.FreePass);
             applicantData.Discount = NormalizeDiscountValue(applicantData.Discount)
                 ?? NormalizeDiscountValue(applicantData.PaymentOffer?.DiscountCode);
@@ -2254,6 +2260,75 @@ namespace LongevityWorldCup.Website.Controllers
                 .Select(property => property.GetValue(biomarker))
                 .OfType<double>()
                 .Any(double.IsFinite));
+        }
+
+        private static bool HasCompleteSubmittedBiomarkerResults(
+            IEnumerable<BiomarkerData> biomarkers,
+            string? chronoPhenoDifference,
+            string? chronoBortzDifference,
+            out string errorMessage)
+        {
+            errorMessage = "";
+
+            if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
+            {
+                if (!biomarkers.All(HasCompleteBortzBiomarkers))
+                {
+                    errorMessage = "Submitted bortz age results require all Bortz biomarkers.";
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(chronoPhenoDifference)
+                && !biomarkers.All(HasCompletePhenoBiomarkers))
+            {
+                errorMessage = "Submitted pheno age results require all pheno biomarkers.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool HasCompletePhenoBiomarkers(BiomarkerData? biomarker)
+        {
+            return biomarker is not null
+                && HasFiniteValue(biomarker.AlbGL)
+                && HasFiniteValue(biomarker.CreatUmolL)
+                && HasFiniteValue(biomarker.GluMmolL)
+                && HasFiniteValue(biomarker.CrpMgL)
+                && HasFiniteValue(biomarker.Wbc1000cellsuL)
+                && HasFiniteValue(biomarker.LymPc)
+                && HasFiniteValue(biomarker.McvFL)
+                && HasFiniteValue(biomarker.RdwPc)
+                && HasFiniteValue(biomarker.AlpUL);
+        }
+
+        private static bool HasCompleteBortzBiomarkers(BiomarkerData? biomarker)
+        {
+            if (!HasCompletePhenoBiomarkers(biomarker))
+                return false;
+
+            var row = biomarker!;
+            return HasFiniteValue(row.UreaMmolL)
+                && HasFiniteValue(row.CholesterolMmolL)
+                && HasFiniteValue(row.CystatinCMgL)
+                && HasFiniteValue(row.Hba1cMmolMol)
+                && HasFiniteValue(row.GgtUL)
+                && HasFiniteValue(row.Rbc10e12L)
+                && HasFiniteValue(row.MonocytePc)
+                && HasFiniteValue(row.NeutrophilPc)
+                && HasFiniteValue(row.AltUL)
+                && HasFiniteValue(row.ShbgNmolL)
+                && HasFiniteValue(row.VitaminDNmolL)
+                && HasFiniteValue(row.MchPg)
+                && HasFiniteValue(row.ApoA1GL);
+        }
+
+        private static bool HasFiniteValue(double? value)
+        {
+            return value.HasValue && double.IsFinite(value.Value);
         }
 
         private sealed record ImageOptimizationResult(bool Success, byte[]? Bytes, string? ContentType, string? Extension, string ErrorMessage)

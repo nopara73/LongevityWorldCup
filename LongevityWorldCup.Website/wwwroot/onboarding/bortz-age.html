@@ -2985,10 +2985,10 @@
             const month = monthInput ? parseInt(monthInput) - 1 : 11; // Convert to 0-based index
             const day = dayInput ? parseInt(dayInput) : 31; // Default to last day
 
-            // Collect biomarkers the user touched (Bortz model fields). Overlapping with pheno age use same canonical units (LymPc, McvFL, RdwPc, AlbGL, CreatUmolL, GluMmolL, CrpMgL, AlpUL, Wbc1000cellsuL) so JSON/athlete data is shared.
+            // Result submissions append a new dated record, so store the full calculated panel. Overlapping with pheno age use same canonical units (LymPc, McvFL, RdwPc, AlbGL, CreatUmolL, GluMmolL, CrpMgL, AlpUL, Wbc1000cellsuL) so JSON/athlete data is shared.
             // Build entry with key order matching pheno-age: AlbGL, AlpUL, CreatUmolL, CrpMgL, Date, GluMmolL, LymPc, McvFL, RdwPc, Wbc1000cellsuL, then Bortz-only keys.
             const entry = {};
-            const store = (id, prop, fn) => { if (touchedBiomarkers.has(id)) entry[prop] = fn(); };
+            const store = (id, prop, fn) => { entry[prop] = fn(); };
             // 1. AlbGL
             store('albumin', 'AlbGL', () => parseFloat((parseFloat(document.getElementById('albumin').value) / parseFloat(document.getElementById('albuminUnit').value)).toFixed(2)));
             // 2. AlpUL
@@ -3028,7 +3028,7 @@
             // 10. Wbc1000cellsuL
             store('wbc', 'Wbc1000cellsuL', () => parseFloat((parseFloat(document.getElementById('wbc').value) / parseFloat(document.getElementById('wbcUnit').value)).toFixed(2)));
             // Bortz-only keys in UI order: Immune (Neutrophil, Monocyte, RBC, MCH), Liver (ALT, GGT), Kidney (Urea, Cystatin C), Metabolism (HbA1c, Cholesterol, ApoA1), Hormones (SHBG, Vitamin D)
-            if (touchedBiomarkers.has('neutrophil_percentage')) {
+            {
                 const raw = parseFloat(document.getElementById('neutrophil_percentage').value);
                 const unitEl = document.getElementById('neutrophil_percentageUnit');
                 const unitText = unitEl.options[unitEl.selectedIndex].text.trim();
@@ -3045,7 +3045,7 @@
                     }
                 }
             }
-            if (touchedBiomarkers.has('monocyte_percentage')) {
+            {
                 const raw = parseFloat(document.getElementById('monocyte_percentage').value);
                 const unitEl = document.getElementById('monocyte_percentageUnit');
                 const unitText = unitEl.options[unitEl.selectedIndex].text.trim();

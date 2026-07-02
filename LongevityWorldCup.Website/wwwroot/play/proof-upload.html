@@ -591,6 +591,24 @@
                     && Object.keys(entry).some(key => key !== 'Date' && hasStoredBiomarkerValue(entry[key])));
         }
 
+        const PHENO_RESULT_BIOMARKER_KEYS = ['AlbGL', 'CreatUmolL', 'GluMmolL', 'CrpMgL', 'Wbc1000cellsuL', 'LymPc', 'McvFL', 'RdwPc', 'AlpUL'];
+        const BORTZ_RESULT_BIOMARKER_KEYS = ['AlbGL', 'AlpUL', 'UreaMmolL', 'CholesterolMmolL', 'CreatUmolL', 'CystatinCMgL', 'Hba1cMmolMol', 'CrpMgL', 'GgtUL', 'Rbc10e12L', 'McvFL', 'RdwPc', 'Wbc1000cellsuL', 'MonocytePc', 'NeutrophilPc', 'LymPc', 'AltUL', 'ShbgNmolL', 'VitaminDNmolL', 'GluMmolL', 'MchPg', 'ApoA1GL'];
+
+        function hasCompleteSubmittedBiomarkerValues(biomarkerData, chronoPhenoDifference, chronoBortzDifference) {
+            const requiredKeys = chronoBortzDifference
+                ? BORTZ_RESULT_BIOMARKER_KEYS
+                : chronoPhenoDifference
+                    ? PHENO_RESULT_BIOMARKER_KEYS
+                    : null;
+
+            if (!requiredKeys) return hasStoredBiomarkerValues(biomarkerData);
+
+            return biomarkerData
+                && Array.isArray(biomarkerData.Biomarkers)
+                && biomarkerData.Biomarkers.every(entry => entry
+                    && requiredKeys.every(key => hasStoredBiomarkerValue(entry[key])));
+        }
+
         function hasStoredBiomarkerValue(value) {
             if (value === null || value === undefined) return false;
             if (typeof value === 'boolean') return false;
@@ -813,13 +831,15 @@
                     return;
                 }
 
+                const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');
+                const chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');
                 let biomarkerData = null;
                 try {
                     biomarkerData = JSON.parse(getSessionItem('biomarkerData'));
                 } catch (_) {
                     biomarkerData = null;
                 }
-                if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasStoredBiomarkerValues(biomarkerData)) {
+                if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasCompleteSubmittedBiomarkerValues(biomarkerData, chronoPhenoDifference, chronoBortzDifference)) {
                     clearStoredBiomarkerHandoff();
                     customAlert('Biomarker data is missing. Please fill out the biomarker form first.')
                         .then(() => window.location.href = '/dashboard');
@@ -834,8 +854,8 @@
                 const applicantData = {
                     name: athlete.Name,
                     accountEmail: readResultUploadContactEmail(),
-                    chronoPhenoDifference: readStoredAgeDifference('chronoPhenoDifference'),
-                    chronoBortzDifference: readStoredAgeDifference('chronoBortzDifference'),
+                    chronoPhenoDifference: chronoPhenoDifference,
+                    chronoBortzDifference: chronoBortzDifference,
                     submissionId: submissionId,
                     biomarkers: biomarkerData.Biomarkers,
                     proofPics: proofPics,
