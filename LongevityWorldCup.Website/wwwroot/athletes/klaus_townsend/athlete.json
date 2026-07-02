@@ -18,11 +18,37 @@
       "RdwPc": 11.9,
       "AlpUL": 90,
       "Wbc1000cellsuL": 5.2
+    },
+    {
+      "Date": "2026-07-01",
+      "AlbGL": 51,
+      "CreatUmolL": 80,
+      "GluMmolL": 4.9,
+      "CrpMgL": 0.1,
+      "LymPc": 36.96,
+      "McvFL": 91,
+      "RdwPc": 12.0,
+      "AlpUL": 88,
+      "Wbc1000cellsuL": 4.6,
+      "UreaMmolL": 6.1,
+      "CholesterolMmolL": 5.9,
+      "CystatinCMgL": 0.67,
+      "Hba1cMmolMol": 33,
+      "GgtUL": 25,
+      "Rbc10e12L": 5.59,
+      "NeutrophilPc": 49,
+      "MonocytePc": 8.7,
+      "AltUL": 38,
+      "ShbgNmolL": 56,
+      "VitaminDNmolL": 91,
+      "MchPg": 31,
+      "ApoA1GL": 1.49
     }
   ],
   "Division": "Open",
   "Flag": "New Zealand",
   "Why": "Getting as much quality time with my son as I can",
   "PersonalLink": "https://www.klaustownsend.com",
-  "PodcastLink": "https://youtu.be/hdgapJX4r5M"
+  "PodcastLink": "https://youtu.be/hdgapJX4r5M",
+  "DisplayName": null
 }
