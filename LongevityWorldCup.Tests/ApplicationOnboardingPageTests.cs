@@ -796,6 +796,26 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ProfilePhotoUploadButton_PromotesRequiredActionWithoutSecondaryStyling()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+        var updateStart = html.IndexOf("function updateProfileUploadButtons(nextButton, uploadProfileButton, cropAndSaveButton)", StringComparison.Ordinal);
+        var updateEnd = html.IndexOf("function addStageListenerOnce", updateStart, StringComparison.Ordinal);
+
+        Assert.True(updateStart >= 0);
+        Assert.True(updateEnd > updateStart);
+
+        var updateBody = html[updateStart..updateEnd];
+        Assert.Contains("uploadProfileButton.classList.remove('grey', 'flow-action--secondary');", updateBody);
+        Assert.Contains("uploadProfileButton.classList.add('green');", updateBody);
+        Assert.Contains("uploadProfileButton.classList.remove('green');", updateBody);
+        Assert.Contains("uploadProfileButton.classList.add('grey', 'flow-action--secondary');", updateBody);
+    }
+
+    [Fact]
     public async Task ProfilePhotoCropper_UsesCspAllowedCdn()
     {
         using var factory = new TestWebApplicationFactory();

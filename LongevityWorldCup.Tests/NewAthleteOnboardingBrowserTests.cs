@@ -153,6 +153,29 @@ public sealed class NewAthleteOnboardingBrowserTests
     }
 
     [Fact]
+    public async Task ApplicationProfileUploadButton_IsPrimaryWhenProfilePictureRequired()
+    {
+        await RunOnboardingBrowserAsync(async (page, errors) =>
+        {
+            await page.GotoAsync("/apply", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
+
+            await page.EvaluateAsync("() => { currentStage = 4; goToStage(4); }");
+
+            var uploadButton = page.Locator("#uploadButton");
+            await uploadButton.WaitForAsync();
+            await page.WaitForFunctionAsync("() => document.getElementById('uploadButton')?.classList.contains('green')");
+
+            var classes = await uploadButton.GetAttributeAsync("class");
+            Assert.Contains("green", classes);
+            Assert.DoesNotContain("grey", classes);
+            Assert.DoesNotContain("flow-action--secondary", classes);
+            Assert.False(await page.Locator("#nextButton").IsEnabledAsync());
+            Assert.Empty(errors);
+        });
+    }
+
+    [Fact]
     public async Task DirectPhenoSignup_ReplacesStaleProPaymentOffer()
     {
         var bloodDrawDate = DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd");

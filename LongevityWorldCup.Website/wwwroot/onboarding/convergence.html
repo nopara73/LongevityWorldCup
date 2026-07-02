@@ -780,12 +780,18 @@
                 uploadProfileButton.innerHTML = `<span class="flow-action__label">${label}</span><i class="fa fa-image" aria-hidden="true"></i>`;
             }
 
-            // Toggle "green" class for "Upload Profile Picture" button
+            // Toggle primary styling for the required profile picture action.
             if (nextButton && nextButton.disabled) {
-                if (uploadProfileButton) uploadProfileButton.classList.add('green');
+                if (uploadProfileButton) {
+                    uploadProfileButton.classList.remove('grey', 'flow-action--secondary');
+                    uploadProfileButton.classList.add('green');
+                }
                 if (cropAndSaveButton) cropAndSaveButton.classList.add('green');
             } else {
-                if (uploadProfileButton) uploadProfileButton.classList.remove('green');
+                if (uploadProfileButton) {
+                    uploadProfileButton.classList.remove('green');
+                    uploadProfileButton.classList.add('grey', 'flow-action--secondary');
+                }
                 if (cropAndSaveButton) cropAndSaveButton.classList.remove('green');
             }
         }
