@@ -72,6 +72,27 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task SignupNormalizesWindowsTimeZoneIdsToIana()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var now = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "india@example.com",
+            "India Iris",
+            "India Standard Time",
+            null,
+            25m), now);
+        var access = await fixture.Service.ConfirmAsync(
+            ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
+            now.AddMinutes(1));
+
+        Assert.NotEqual("India Standard Time", access.State.Participant.TimeZoneId);
+        Assert.True(TimeZoneInfo.TryConvertIanaIdToWindowsId(access.State.Participant.TimeZoneId, out var windowsId));
+        Assert.Equal("India Standard Time", windowsId);
+    }
+
+    [Fact]
     public async Task SignupStaysOpenDuringActiveChallengeWithoutBackfillingBeforeSignup()
     {
         using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-09T22:00:00Z");
