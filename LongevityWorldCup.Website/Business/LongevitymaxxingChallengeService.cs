@@ -3182,6 +3182,14 @@ public sealed class LongevitymaxxingChallengeService
         var normalized = (timeZoneId ?? "").Trim();
         if (string.IsNullOrWhiteSpace(normalized))
             throw new InvalidOperationException("Timezone is required.");
+        if (string.Equals(normalized, "UTC", StringComparison.OrdinalIgnoreCase))
+            return "UTC";
+
+        if (TimeZoneInfo.TryConvertWindowsIdToIanaId(normalized, out var ianaId) &&
+            TryFindTimeZone(ianaId, out _))
+        {
+            return ianaId;
+        }
 
         try
         {
@@ -3192,8 +3200,8 @@ public sealed class LongevitymaxxingChallengeService
         {
             if (TimeZoneInfo.TryConvertIanaIdToWindowsId(normalized, out var windowsId))
             {
-                TimeZoneInfo.FindSystemTimeZoneById(windowsId);
-                return normalized;
+                if (TryFindTimeZone(windowsId, out _))
+                    return normalized;
             }
 
             throw new InvalidOperationException("Unknown timezone.");
@@ -3206,25 +3214,38 @@ public sealed class LongevitymaxxingChallengeService
 
     private static TimeZoneInfo ResolveTimeZone(string timeZoneId)
     {
+        if (TryFindTimeZone(timeZoneId, out var timeZone))
+            return timeZone;
+        if (TimeZoneInfo.TryConvertWindowsIdToIanaId(timeZoneId, out var ianaId) &&
+            TryFindTimeZone(ianaId, out timeZone))
+        {
+            return timeZone;
+        }
+        if (TimeZoneInfo.TryConvertIanaIdToWindowsId(timeZoneId, out var windowsId) &&
+            TryFindTimeZone(windowsId, out timeZone))
+        {
+            return timeZone;
+        }
+
+        return TimeZoneInfo.Utc;
+    }
+
+    private static bool TryFindTimeZone(string timeZoneId, out TimeZoneInfo timeZone)
+    {
         try
         {
-            return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            return true;
         }
-        catch
+        catch (TimeZoneNotFoundException)
         {
-            if (TimeZoneInfo.TryConvertIanaIdToWindowsId(timeZoneId, out var windowsId))
-            {
-                try
-                {
-                    return TimeZoneInfo.FindSystemTimeZoneById(windowsId);
-                }
-                catch
-                {
-                }
-            }
-
-            return TimeZoneInfo.Utc;
         }
+        catch (InvalidTimeZoneException)
+        {
+        }
+
+        timeZone = TimeZoneInfo.Utc;
+        return false;
     }
 
     private static decimal NormalizeCommitmentAmount(decimal? amount)
