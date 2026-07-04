@@ -41,9 +41,11 @@ public sealed class SiteStatisticsDashboardBrowserTests
         await page.WaitForSelectorAsync("#decisionBrief .decision-card");
         await page.WaitForSelectorAsync("#outcomeStrip .metric-tile");
         await page.Locator("#decisionBrief").GetByText("Calculator completions are not reaching proof flow").WaitForAsync();
+        await page.GetByText("Calculator completion sources").WaitForAsync();
         await page.GetByText("Recommended Investigations").WaitForAsync();
         await page.GetByText("Segment Comparison").WaitForAsync();
         await page.GetByText("Trend Watch").WaitForAsync();
+        var onboardingDetailText = await page.Locator("#detailSections").InnerTextAsync();
         await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Challenge" }).ClickAsync();
         await page.Locator("#primaryFunnel").GetByRole(AriaRole.Button, new() { Name = "Signup accepted" }).ClickAsync();
         await page.Locator("#sessionTimeline .timeline-row").First.WaitForAsync();
@@ -55,6 +57,8 @@ public sealed class SiteStatisticsDashboardBrowserTests
         Assert.Contains("Page views", visibleText);
         Assert.Contains("Challenge signups", visibleText);
         Assert.Contains("Signup accepted", visibleText);
+        Assert.Contains("prefilled / initial", onboardingDetailText);
+        Assert.Contains("AUTO", onboardingDetailText);
         Assert.Contains("baseline pending", visibleText);
         Assert.Contains("S-", visibleText);
         Assert.DoesNotContain("raw-browser-session", visibleText);
@@ -131,7 +135,9 @@ public sealed class SiteStatisticsDashboardBrowserTests
             new Dictionary<string, JsonElement>
             {
                 ["fieldKey"] = JsonSerializer.SerializeToElement("albumin"),
-                ["requiredCompleted"] = JsonSerializer.SerializeToElement(4)
+                ["requiredCompleted"] = JsonSerializer.SerializeToElement(4),
+                ["entryMode"] = JsonSerializer.SerializeToElement("prefilled"),
+                ["completionSource"] = JsonSerializer.SerializeToElement("initial")
             });
         await PostEventAsync(client, "calculator_result_generated", "pheno", "raw-browser-session", "/pheno-age", "calculator", "succeeded",
             new Dictionary<string, JsonElement>

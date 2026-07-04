@@ -955,6 +955,7 @@
             return;
         }
         host.innerHTML = [
+            detailPanel("Calculator completion sources", calculatorCompletionSourceTable(events)),
             detailPanel("Calculator fields", fieldFrictionTable(events)),
             detailPanel("Proof upload", proofUploadTable(events)),
             detailPanel("Handoff integrity", handoffTable(events))
@@ -1408,17 +1409,199 @@
         return new Set(filtered.map(e => e.sessionHash)).size;
     }
 
+    function metadataValue(event, key) {
+        if (!event || !event.metadata || !Object.prototype.hasOwnProperty.call(event.metadata, key)) return "";
+        return String(event.metadata[key] || "");
+    }
+
+    function calculatorEntryMode(event) {
+        return metadataValue(event, "entryMode") || "standard";
+    }
+
+    function completionSource(event) {
+        return metadataValue(event, "completionSource") || "legacy";
+    }
+
+    function completionSourceLabel(source) {
+        const normalized = String(source || "legacy").toLowerCase();
+        if (normalized === "pageshow") return "page restore";
+        return normalized || "legacy";
+    }
+
+    function isAutomaticCompletion(event) {
+        const source = completionSource(event).toLowerCase();
+        return source === "initial" || source === "autofill" || source === "pageshow";
+    }
+
+    function isLateCompletion(event) {
+        const source = completionSource(event).toLowerCase();
+        return source === "submit" || source === "result";
+    }
+
+    function isManualCompletion(event) {
+        const source = completionSource(event).toLowerCase();
+        return source === "change" || source === "input";
+    }
+
+    function completionSourceClass(source) {
+        source = String(source || "legacy").toLowerCase();
+        if (source === "initial" || source === "autofill" || source === "pageshow" || source === "page restore") return "auto";
+        if (source === "submit" || source === "result") return "late";
+        if (source === "change" || source === "input") return "manual";
+        return "legacy";
+    }
+
+    function firstEntryMode(events) {
+        return events.map(calculatorEntryMode).find(mode => mode && mode !== "standard") || "standard";
+    }
+
+    function calculatorCompletionSourceTable(events) {
+        const completions = events.filter(e => e.eventName === "calculator_field_completed");
+        if (!completions.length) return empty("No calculator completion-source events yet.");
+
+        const eventsBySession = groupBy(events, e => e.sessionHash);
+        const sessions = Array.from(groupBy(completions, e => e.sessionHash).entries()).map(([sessionHash, items]) => {
+            const sessionEvents = eventsBySession.get(sessionHash) || items;
+            return {
+                entryMode: firstEntryMode(sessionEvents.concat(items)),
+                source: completionSourceLabel(mostCommon(items.map(completionSource))),
+                flow: mostCommon(sessionEvents.map(e => e.flow || "site")),
+                fields: items.length,
+                allFields: sessionEvents.some(e => e.eventName === "calculator_all_required_fields_completed"),
+                result: sessionEvents.some(e => e.eventName === "calculator_result_generated")
+            };
+        });
+
+        const rows = Array.from(groupBy(sessions, s => `${s.entryMode}|${s.source}`).entries())
+            .map(([key, items]) => {
+                const [entryMode, source] = key.split("|");
+                const fields = items.reduce((sum, item) => sum + item.fields, 0);
+                return {
+                    entryMode,
+                    source,
+                    sessions: items.length,
+                    fields,
+                    allFields: items.filter(item => item.allFields).length,
+                    results: items.filter(item => item.result).length,
+                    flow: flowLabel(mostCommon(items.map(item => item.flow)))
+                };
+            })
+            .sort((a, b) => b.results - a.results || b.sessions - a.sessions || b.fields - a.fields)
+            .slice(0, 12);
+
+        const maxFields = Math.max(1, ...rows.map(row => row.fields));
+        return `
+            <div class="source-visual-list">
+                ${completionLegend()}
+                ${rows.map(row => {
+                    const sourceClass = completionSourceClass(row.source);
+                    return `
+                        <div class="source-visual-row">
+                            <div class="source-identity">
+                                <strong>${esc(row.entryMode)} / ${esc(row.source)}</strong>
+                                <span>
+                                    <span class="source-pill entry">${esc(row.entryMode)}</span>
+                                    <span class="source-pill ${escAttr(sourceClass)}">${esc(row.source)}</span>
+                                    <span class="source-pill flow">${esc(row.flow)}</span>
+                                </span>
+                            </div>
+                            <div class="visual-meter" title="${escAttr(`${row.fields} completed required fields`)}">
+                                <span class="visual-meter-fill ${escAttr(sourceClass)}" style="width:${barWidth(row.fields, maxFields)}%"></span>
+                            </div>
+                            <div class="source-metrics">
+                                ${metricChip(row.sessions, "sessions")}
+                                ${metricChip(row.fields, "fields")}
+                                ${metricChip(row.allFields, "all")}
+                                ${metricChip(row.results, "results")}
+                            </div>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+        `;
+    }
+
     function fieldFrictionTable(events) {
         const relevant = events.filter(e => /^calculator_field_|calculator_validation_failed/.test(e.eventName));
         if (!relevant.length) return empty("No calculator field events yet.");
-        const rows = Array.from(groupBy(relevant, e => e.step || "unknown").entries()).map(([field, items]) => ({
-            field,
-            touched: countMatching(items, ["calculator_field_touched"]),
-            completed: countMatching(items, ["calculator_field_completed"]),
-            failed: countMatching(items, ["calculator_validation_failed"]),
-            topError: mostCommon(items.map(i => i.errorCode || i.outcome || "-"))
-        })).sort((a, b) => b.failed - a.failed || b.touched - a.touched).slice(0, 12);
-        return table(["Field", "Touched", "Done", "Failed", "Top error"], rows.map(r => [r.field, r.touched, r.completed, r.failed, r.topError]));
+        const rows = Array.from(groupBy(relevant, e => e.step || "unknown").entries()).map(([field, items]) => {
+            const completions = items.filter(e => e.eventName === "calculator_field_completed");
+            const auto = completions.filter(isAutomaticCompletion).length;
+            const late = completions.filter(isLateCompletion).length;
+            const manual = completions.filter(isManualCompletion).length;
+            const failed = countMatching(items, ["calculator_validation_failed"]);
+            return {
+                field,
+                touched: countMatching(items, ["calculator_field_touched"]),
+                completed: completions.length,
+                manual,
+                auto,
+                late,
+                legacy: Math.max(0, completions.length - manual - auto - late),
+                failed,
+                top: failed
+                    ? mostCommon(items.filter(i => i.eventName === "calculator_validation_failed").map(i => i.errorCode || i.outcome || "-"))
+                    : mostCommon(completions.map(e => completionSourceLabel(completionSource(e))))
+            };
+        }).sort((a, b) => b.failed - a.failed || b.late - a.late || b.auto - a.auto || b.touched - a.touched).slice(0, 12);
+        return `
+            <div class="field-visual-list">
+                ${completionLegend(true)}
+                ${rows.map(row => {
+                    const total = Math.max(1, row.manual + row.auto + row.late + row.legacy + row.failed);
+                    return `
+                        <div class="field-visual-row">
+                            <div class="field-visual-head">
+                                <strong>${esc(row.field)}</strong>
+                                <span>${esc(row.top)}</span>
+                            </div>
+                            <div class="stacked-bar" title="${escAttr(`${row.completed} completed, ${row.failed} failed`)}">
+                                ${barSegment(row.manual, total, "manual", "manual")}
+                                ${barSegment(row.auto, total, "auto", "auto")}
+                                ${barSegment(row.late, total, "late", "late")}
+                                ${barSegment(row.legacy, total, "legacy", "legacy")}
+                                ${barSegment(row.failed, total, "failed", "failed")}
+                            </div>
+                            <div class="field-metrics">
+                                ${metricChip(row.touched, "touch")}
+                                ${metricChip(row.completed, "done")}
+                                ${metricChip(row.auto, "auto")}
+                                ${metricChip(row.late, "late")}
+                                ${metricChip(row.failed, "fail")}
+                            </div>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+        `;
+    }
+
+    function completionLegend(includeFailed) {
+        const entries = [
+            ["manual", "Manual"],
+            ["auto", "Auto"],
+            ["late", "Late"],
+            ["legacy", "Legacy"]
+        ];
+        if (includeFailed) entries.push(["failed", "Failed"]);
+        return `<div class="visual-legend">${entries.map(([key, label]) => `<span><i class="${escAttr(key)}"></i>${esc(label)}</span>`).join("")}</div>`;
+    }
+
+    function metricChip(value, label) {
+        return `<span class="metric-chip"><strong>${esc(String(value))}</strong>${esc(label)}</span>`;
+    }
+
+    function barWidth(value, total) {
+        value = Number(value) || 0;
+        total = Math.max(1, Number(total) || 1);
+        if (value <= 0) return 0;
+        return Math.max(4, Math.round((value / total) * 100));
+    }
+
+    function barSegment(value, total, className, label) {
+        value = Number(value) || 0;
+        if (value <= 0) return "";
+        return `<span class="${escAttr(className)}" style="width:${barWidth(value, total)}%" title="${escAttr(`${value} ${label}`)}"></span>`;
     }
 
     function proofUploadTable(events) {

@@ -152,6 +152,25 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("listen(window, \"pageshow\"", tracker);
     }
 
+    [Fact]
+    public void SiteStatisticsDashboard_SurfacesCalculatorCompletionSources()
+    {
+        var repoRoot = FindRepoRoot();
+        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+
+        Assert.Contains("Calculator completion sources", dashboard);
+        Assert.Contains("function calculatorCompletionSourceTable(events)", dashboard);
+        Assert.Contains("function completionSourceLabel(source)", dashboard);
+        Assert.Contains("completionSource", dashboard);
+        Assert.Contains("entryMode", dashboard);
+        Assert.Contains("source-visual-list", dashboard);
+        Assert.Contains("field-visual-list", dashboard);
+        Assert.Contains("completionLegend", dashboard);
+        Assert.Contains("stacked-bar", dashboard);
+        Assert.Contains("\"Auto\"", dashboard);
+        Assert.Contains("\"Late\"", dashboard);
+    }
+
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")
     {
         var dir = Path.GetDirectoryName(sourceFilePath)!;
