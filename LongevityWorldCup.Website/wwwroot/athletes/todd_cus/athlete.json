@@ -1,0 +1,41 @@
+{
+  "Name": "Todd Cus",
+  "DisplayName": null,
+  "MediaContact": "@tcusolle",
+  "DateOfBirth": {
+    "Year": 1971,
+    "Month": 3,
+    "Day": 28
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-06-09",
+      "AlbGL": 50,
+      "CreatUmolL": 76.99,
+      "GluMmolL": 5.5,
+      "CrpMgL": 0.9,
+      "LymPc": 34.9,
+      "McvFL": 95,
+      "RdwPc": 13.1,
+      "AlpUL": 56,
+      "Wbc1000cellsuL": 3.8,
+      "NeutrophilPc": 52.1,
+      "MonocytePc": 10.9,
+      "Rbc10e12L": 4.77,
+      "MchPg": 31,
+      "UreaMmolL": 7.14,
+      "CystatinCMgL": 0.84,
+      "Hba1cMmolMol": 34.43,
+      "CholesterolMmolL": 2.25,
+      "ApoA1GL": 1.44,
+      "AltUL": 25,
+      "GgtUL": 16,
+      "ShbgNmolL": 49,
+      "VitaminDNmolL": 75
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "My grandparents died at about 45, 58, 65 and 72. I want to end up way higher than that range",
+  "PersonalLink": null
+}
