@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
@@ -60,6 +61,7 @@ public sealed class LongevitymaxxingChallengeService
     private readonly ILogger<LongevitymaxxingChallengeService> _logger;
     private readonly IAthleteSnapshotProvider? _athletes;
     private readonly IBtcpayInvoiceClient? _btcpayInvoices;
+    private readonly SiteStatisticsService? _statistics;
     private readonly ConcurrentDictionary<string, byte> _profilePictureWarmups = new(StringComparer.Ordinal);
 
     public LongevitymaxxingChallengeService(
@@ -70,7 +72,8 @@ public sealed class LongevitymaxxingChallengeService
         ILongevitymaxxingEmailSender email,
         ILogger<LongevitymaxxingChallengeService> logger,
         IAthleteSnapshotProvider? athletes = null,
-        IBtcpayInvoiceClient? btcpayInvoices = null)
+        IBtcpayInvoiceClient? btcpayInvoices = null,
+        SiteStatisticsService? statistics = null)
     {
         _db = db;
         _config = config;
@@ -80,6 +83,7 @@ public sealed class LongevitymaxxingChallengeService
         _logger = logger;
         _athletes = athletes;
         _btcpayInvoices = btcpayInvoices;
+        _statistics = statistics;
         EnsureTables();
     }
 
@@ -154,91 +158,129 @@ public sealed class LongevitymaxxingChallengeService
 
     public async Task<LongevitymaxxingSignupResult> SignupAsync(LongevitymaxxingSignupRequest request, DateTimeOffset? nowUtc = null, CancellationToken ct = default)
     {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
-
-        var email = NormalizeEmail(request.Email);
-        var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
-        var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
-        var athleteProfile = ResolveAthleteProfile(athleteSlug);
-        var displayName = ResolveSignupDisplayName(request.DisplayName, athleteSlug, athleteProfile);
-        var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
-
-        var confirmationToken = CreateToken();
-        var accessToken = CreateToken();
-        var stopToken = CreateToken();
-        var participantId = "";
-        var alreadyConfirmed = false;
-
-        _db.Run(sqlite =>
+        var startedAt = Stopwatch.GetTimestamp();
+        try
         {
-            var existing = FindParticipantByEmail(sqlite, email);
-            if (existing is null)
+            var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+            var settings = BuildSettings(now);
+
+            var email = NormalizeEmail(request.Email);
+            var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
+            var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
+            var athleteProfile = ResolveAthleteProfile(athleteSlug);
+            var displayName = ResolveSignupDisplayName(request.DisplayName, athleteSlug, athleteProfile);
+            var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
+
+            var confirmationToken = CreateToken();
+            var accessToken = CreateToken();
+            var stopToken = CreateToken();
+            var participantId = "";
+            var alreadyConfirmed = false;
+
+            _db.Run(sqlite =>
             {
-                EnsureParticipantIdentityAvailable(sqlite, displayName, athleteSlug, null);
-                participantId = Guid.NewGuid().ToString("N");
-                using var insert = sqlite.CreateCommand();
-                insert.CommandText =
-                    """
-                    INSERT INTO LongevitymaxxingParticipants
-                    (Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc)
-                    VALUES (@id, @email, @name, @tz, @athlete, @access, @confirm, @stop, @commitmentAmount, @created, @updated);
-                    """;
-                Add(insert, "@id", participantId);
-                Add(insert, "@email", email);
-                Add(insert, "@name", displayName);
-                Add(insert, "@tz", timeZoneId);
-                Add(insert, "@athlete", athleteSlug);
-                Add(insert, "@access", accessToken);
-                Add(insert, "@confirm", confirmationToken);
-                Add(insert, "@stop", stopToken);
-                Add(insert, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
-                Add(insert, "@created", now.ToString("o"));
-                Add(insert, "@updated", now.ToString("o"));
-                insert.ExecuteNonQuery();
-            }
+                var existing = FindParticipantByEmail(sqlite, email);
+                if (existing is null)
+                {
+                    EnsureParticipantIdentityAvailable(sqlite, displayName, athleteSlug, null);
+                    participantId = Guid.NewGuid().ToString("N");
+                    using var insert = sqlite.CreateCommand();
+                    insert.CommandText =
+                        """
+                        INSERT INTO LongevitymaxxingParticipants
+                        (Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken, CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc)
+                        VALUES (@id, @email, @name, @tz, @athlete, @access, @confirm, @stop, @commitmentAmount, @created, @updated);
+                        """;
+                    Add(insert, "@id", participantId);
+                    Add(insert, "@email", email);
+                    Add(insert, "@name", displayName);
+                    Add(insert, "@tz", timeZoneId);
+                    Add(insert, "@athlete", athleteSlug);
+                    Add(insert, "@access", accessToken);
+                    Add(insert, "@confirm", confirmationToken);
+                    Add(insert, "@stop", stopToken);
+                    Add(insert, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
+                    Add(insert, "@created", now.ToString("o"));
+                    Add(insert, "@updated", now.ToString("o"));
+                    insert.ExecuteNonQuery();
+                }
+                else
+                {
+                    participantId = existing.Id;
+                    alreadyConfirmed = existing.ConfirmedAtUtc is not null;
+                    confirmationToken = existing.ConfirmationToken;
+                    accessToken = existing.AccessToken;
+                    stopToken = existing.StopToken;
+                    if (HasActivePaymentObligation(sqlite, existing.Id))
+                        return;
+
+                    EnsureParticipantIdentityAvailable(sqlite, displayName, athleteSlug, existing.Id);
+                    using var update = sqlite.CreateCommand();
+                    update.CommandText =
+                        """
+                        UPDATE LongevitymaxxingParticipants
+                        SET DisplayName = @name,
+                            TimeZoneId = @tz,
+                            AthleteSlug = @athlete,
+                            CommitmentAmountUsd = @commitmentAmount,
+                            UpdatedAtUtc = @updated
+                        WHERE Id = @id;
+                        """;
+                    Add(update, "@name", displayName);
+                    Add(update, "@tz", timeZoneId);
+                    Add(update, "@athlete", athleteSlug);
+                    Add(update, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
+                    Add(update, "@updated", now.ToString("o"));
+                    Add(update, "@id", participantId);
+                    update.ExecuteNonQuery();
+                }
+            });
+
+            var url = alreadyConfirmed
+                ? BuildAccessUrl(accessToken)
+                : BuildChallengeUrl(("confirm", confirmationToken));
+
+            if (alreadyConfirmed)
+                await _email.SendAccessLinkAsync(email, displayName, url, ct).ConfigureAwait(false);
             else
-            {
-                participantId = existing.Id;
-                alreadyConfirmed = existing.ConfirmedAtUtc is not null;
-                confirmationToken = existing.ConfirmationToken;
-                accessToken = existing.AccessToken;
-                stopToken = existing.StopToken;
-                if (HasActivePaymentObligation(sqlite, existing.Id))
-                    return;
+                await _email.SendConfirmationAsync(email, displayName, url, ct).ConfigureAwait(false);
 
-                EnsureParticipantIdentityAvailable(sqlite, displayName, athleteSlug, existing.Id);
-                using var update = sqlite.CreateCommand();
-                update.CommandText =
-                    """
-                    UPDATE LongevitymaxxingParticipants
-                    SET DisplayName = @name,
-                        TimeZoneId = @tz,
-                        AthleteSlug = @athlete,
-                        CommitmentAmountUsd = @commitmentAmount,
-                        UpdatedAtUtc = @updated
-                    WHERE Id = @id;
-                    """;
-                Add(update, "@name", displayName);
-                Add(update, "@tz", timeZoneId);
-                Add(update, "@athlete", athleteSlug);
-                Add(update, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
-                Add(update, "@updated", now.ToString("o"));
-                Add(update, "@id", participantId);
-                update.ExecuteNonQuery();
-            }
-        });
+            await TrackChallengeEventAsync(
+                "challenge_signup_succeeded",
+                actorId: participantId,
+                component: "signup",
+                step: "submit",
+                outcome: "succeeded",
+                errorCode: null,
+                durationMs: ElapsedMilliseconds(startedAt),
+                metadata: new Dictionary<string, object?>
+                {
+                    ["signupState"] = alreadyConfirmed ? "existing" : "new",
+                    ["athleteLinked"] = athleteSlug is not null,
+                    ["commitmentConfigured"] = request.CommitmentAmountUsd is not null
+                },
+                ct: ct).ConfigureAwait(false);
 
-        var url = alreadyConfirmed
-            ? BuildAccessUrl(accessToken)
-            : BuildChallengeUrl(("confirm", confirmationToken));
-
-        if (alreadyConfirmed)
-            await _email.SendAccessLinkAsync(email, displayName, url, ct).ConfigureAwait(false);
-        else
-            await _email.SendConfirmationAsync(email, displayName, url, ct).ConfigureAwait(false);
-
-        return new LongevitymaxxingSignupResult("Check your email.");
+            return new LongevitymaxxingSignupResult("Check your email.");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            await TrackChallengeEventAsync(
+                "challenge_signup_failed",
+                actorId: null,
+                component: "signup",
+                step: "submit",
+                outcome: "failed",
+                errorCode: StatsErrorCode(ex),
+                durationMs: ElapsedMilliseconds(startedAt),
+                metadata: new Dictionary<string, object?>
+                {
+                    ["athleteLinked"] = !string.IsNullOrWhiteSpace(request?.AthleteLink),
+                    ["commitmentConfigured"] = request?.CommitmentAmountUsd is not null
+                },
+                ct: ct).ConfigureAwait(false);
+            throw;
+        }
     }
 
     public async Task<LongevitymaxxingAccessResult> ConfirmAsync(string confirmationToken, DateTimeOffset? nowUtc = null, CancellationToken ct = default)
@@ -435,59 +477,103 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset? nowUtc = null,
         CancellationToken ct = default)
     {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var participant = RequireParticipantByAccessToken(accessToken);
-        var obligation = GetActivePaymentObligation(participant.Id)
-            ?? throw new InvalidOperationException("No commitment payment is due.");
-        if (CanReuseCommitmentInvoice(obligation))
-            return GetParticipantState(accessToken, now);
-
-        var invoiceResult = await GetBtcpayInvoiceClient().CreateInvoiceAsync(
-            _config,
-            new BtcpayInvoiceCreateRequest(
-                obligation.AmountUsd,
-                "USD",
-                $"lmx-commitment-{obligation.Id}",
-                participant.Email,
-                participant.DisplayName,
-                new Dictionary<string, object?>
-                {
-                    ["source"] = "longevitymaxxing-commitment",
-                    ["participantId"] = participant.Id,
-                    ["triggerChallengeDay"] = obligation.TriggerChallengeDay,
-                    ["triggerScore"] = obligation.TriggerScore,
-                    ["thresholdAverage"] = FormatDecimal(obligation.ThresholdAverage)
-                }),
-            ct).ConfigureAwait(false);
-
-        if (!invoiceResult.Success || string.IsNullOrWhiteSpace(invoiceResult.InvoiceId) || string.IsNullOrWhiteSpace(invoiceResult.CheckoutLink))
-            throw new InvalidOperationException($"Could not create commitment invoice: {invoiceResult.Error ?? "unknown BTCPay error"}");
-
-        _db.Run(sqlite =>
+        var startedAt = Stopwatch.GetTimestamp();
+        ParticipantRecord? participant = null;
+        PaymentObligation? obligation = null;
+        try
         {
-            using var update = sqlite.CreateCommand();
-            update.CommandText =
-                """
-                UPDATE LongevitymaxxingPaymentObligations
-                SET InvoiceId = @invoiceId,
-                    CheckoutLink = @checkoutLink,
-                    InvoiceStatus = NULL,
-                    InvoiceAdditionalStatus = NULL,
-                    InvoiceCreatedAtUtc = @invoiceCreated,
-                    UpdatedAtUtc = @updated
-                WHERE Id = @id
-                  AND PaidAtUtc IS NULL
-                  AND ClearedAtUtc IS NULL;
-                """;
-            Add(update, "@invoiceId", invoiceResult.InvoiceId);
-            Add(update, "@checkoutLink", invoiceResult.CheckoutLink);
-            Add(update, "@invoiceCreated", now.ToString("o"));
-            Add(update, "@updated", now.ToString("o"));
-            Add(update, "@id", obligation.Id);
-            update.ExecuteNonQuery();
-        });
+            var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+            participant = RequireParticipantByAccessToken(accessToken);
+            obligation = GetActivePaymentObligation(participant.Id)
+                ?? throw new InvalidOperationException("No commitment payment is due.");
+            if (CanReuseCommitmentInvoice(obligation))
+            {
+                var state = GetParticipantState(accessToken, now);
+                await TrackChallengeEventAsync(
+                    "challenge_commitment_payment_opened",
+                    actorId: participant.Id,
+                    component: "commitment",
+                    step: "payment",
+                    outcome: "succeeded",
+                    errorCode: null,
+                    durationMs: ElapsedMilliseconds(startedAt),
+                    metadata: CommitmentStatsMetadata(obligation, ("paymentPageState", "reused")),
+                    ct: ct).ConfigureAwait(false);
+                return state;
+            }
 
-        return GetParticipantState(accessToken, now);
+            var invoiceResult = await GetBtcpayInvoiceClient().CreateInvoiceAsync(
+                _config,
+                new BtcpayInvoiceCreateRequest(
+                    obligation.AmountUsd,
+                    "USD",
+                    $"lmx-commitment-{obligation.Id}",
+                    participant.Email,
+                    participant.DisplayName,
+                    new Dictionary<string, object?>
+                    {
+                        ["source"] = "longevitymaxxing-commitment",
+                        ["participantId"] = participant.Id,
+                        ["triggerChallengeDay"] = obligation.TriggerChallengeDay,
+                        ["triggerScore"] = obligation.TriggerScore,
+                        ["thresholdAverage"] = FormatDecimal(obligation.ThresholdAverage)
+                    }),
+                ct).ConfigureAwait(false);
+
+            if (!invoiceResult.Success || string.IsNullOrWhiteSpace(invoiceResult.InvoiceId) || string.IsNullOrWhiteSpace(invoiceResult.CheckoutLink))
+                throw new InvalidOperationException($"Could not create commitment invoice: {invoiceResult.Error ?? "unknown BTCPay error"}");
+
+            _db.Run(sqlite =>
+            {
+                using var update = sqlite.CreateCommand();
+                update.CommandText =
+                    """
+                    UPDATE LongevitymaxxingPaymentObligations
+                    SET InvoiceId = @invoiceId,
+                        CheckoutLink = @checkoutLink,
+                        InvoiceStatus = NULL,
+                        InvoiceAdditionalStatus = NULL,
+                        InvoiceCreatedAtUtc = @invoiceCreated,
+                        UpdatedAtUtc = @updated
+                    WHERE Id = @id
+                      AND PaidAtUtc IS NULL
+                      AND ClearedAtUtc IS NULL;
+                    """;
+                Add(update, "@invoiceId", invoiceResult.InvoiceId);
+                Add(update, "@checkoutLink", invoiceResult.CheckoutLink);
+                Add(update, "@invoiceCreated", now.ToString("o"));
+                Add(update, "@updated", now.ToString("o"));
+                Add(update, "@id", obligation.Id);
+                update.ExecuteNonQuery();
+            });
+
+            var updatedState = GetParticipantState(accessToken, now);
+            await TrackChallengeEventAsync(
+                "challenge_commitment_payment_opened",
+                actorId: participant.Id,
+                component: "commitment",
+                step: "payment",
+                outcome: "succeeded",
+                errorCode: null,
+                durationMs: ElapsedMilliseconds(startedAt),
+                metadata: CommitmentStatsMetadata(obligation, ("paymentPageState", "created")),
+                ct: ct).ConfigureAwait(false);
+            return updatedState;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            await TrackChallengeEventAsync(
+                "challenge_commitment_payment_failed",
+                actorId: participant?.Id,
+                component: "commitment",
+                step: "payment",
+                outcome: "failed",
+                errorCode: StatsErrorCode(ex),
+                durationMs: ElapsedMilliseconds(startedAt),
+                metadata: CommitmentStatsMetadata(obligation),
+                ct: ct).ConfigureAwait(false);
+            throw;
+        }
     }
 
     public async Task<LongevitymaxxingParticipantState> RefreshCommitmentPaymentStatusAsync(
@@ -495,50 +581,132 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset? nowUtc = null,
         CancellationToken ct = default)
     {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var participant = RequireParticipantByAccessToken(accessToken);
-        var obligation = GetActivePaymentObligation(participant.Id);
-        if (obligation is null || string.IsNullOrWhiteSpace(obligation.InvoiceId))
-            return GetParticipantState(accessToken, now);
-
-        var invoice = await GetBtcpayInvoiceClient()
-            .GetInvoiceAsync(_config, obligation.InvoiceId, ct)
-            .ConfigureAwait(false);
-        if (!invoice.Success)
-            throw new InvalidOperationException($"Could not refresh commitment payment: {invoice.Error ?? "unknown BTCPay error"}");
-        var invoicePaid = IsCommitmentInvoicePaid(invoice, obligation);
-
-        _db.Run(sqlite =>
+        var startedAt = Stopwatch.GetTimestamp();
+        ParticipantRecord? participant = null;
+        PaymentObligation? obligation = null;
+        try
         {
-            using var update = sqlite.CreateCommand();
-            update.CommandText =
-                """
-                UPDATE LongevitymaxxingPaymentObligations
-                SET InvoiceStatus = @status,
-                    InvoiceAdditionalStatus = @additionalStatus,
-                    PaidAtUtc = CASE WHEN @isPaid = 1 THEN COALESCE(PaidAtUtc, @paid) ELSE PaidAtUtc END,
-                    UpdatedAtUtc = @updated
-                WHERE Id = @id;
-                """;
-            Add(update, "@status", TrimToNull(invoice.Status));
-            Add(update, "@additionalStatus", TrimToNull(invoice.AdditionalStatus));
-            Add(update, "@isPaid", invoicePaid ? 1 : 0);
-            Add(update, "@paid", now.ToString("o"));
-            Add(update, "@updated", now.ToString("o"));
-            Add(update, "@id", obligation.Id);
-            update.ExecuteNonQuery();
+            var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+            participant = RequireParticipantByAccessToken(accessToken);
+            obligation = GetActivePaymentObligation(participant.Id);
+            if (obligation is null || string.IsNullOrWhiteSpace(obligation.InvoiceId))
+            {
+                var unchangedState = GetParticipantState(accessToken, now);
+                await TrackChallengeEventAsync(
+                    "challenge_commitment_payment_status_checked",
+                    actorId: participant.Id,
+                    component: "commitment",
+                    step: "payment_status",
+                    outcome: "succeeded",
+                    errorCode: null,
+                    durationMs: ElapsedMilliseconds(startedAt),
+                    metadata: CommitmentStatsMetadata(obligation, ("paymentState", obligation is null ? "not_due" : "missing_invoice")),
+                    ct: ct).ConfigureAwait(false);
+                return unchangedState;
+            }
+
+            var invoice = await GetBtcpayInvoiceClient()
+                .GetInvoiceAsync(_config, obligation.InvoiceId, ct)
+                .ConfigureAwait(false);
+            if (!invoice.Success)
+                throw new InvalidOperationException($"Could not refresh commitment payment: {invoice.Error ?? "unknown BTCPay error"}");
+            var invoicePaid = IsCommitmentInvoicePaid(invoice, obligation);
+
+            _db.Run(sqlite =>
+            {
+                using var update = sqlite.CreateCommand();
+                update.CommandText =
+                    """
+                    UPDATE LongevitymaxxingPaymentObligations
+                    SET InvoiceStatus = @status,
+                        InvoiceAdditionalStatus = @additionalStatus,
+                        PaidAtUtc = CASE WHEN @isPaid = 1 THEN COALESCE(PaidAtUtc, @paid) ELSE PaidAtUtc END,
+                        UpdatedAtUtc = @updated
+                    WHERE Id = @id;
+                    """;
+                Add(update, "@status", TrimToNull(invoice.Status));
+                Add(update, "@additionalStatus", TrimToNull(invoice.AdditionalStatus));
+                Add(update, "@isPaid", invoicePaid ? 1 : 0);
+                Add(update, "@paid", now.ToString("o"));
+                Add(update, "@updated", now.ToString("o"));
+                Add(update, "@id", obligation.Id);
+                update.ExecuteNonQuery();
+
+                if (invoicePaid)
+                    ReactivateParticipantChallenge(sqlite, participant.Id, now);
+            });
+
+            var state = GetParticipantState(accessToken, now);
+            await TrackChallengeEventAsync(
+                "challenge_commitment_payment_status_checked",
+                actorId: participant.Id,
+                component: "commitment",
+                step: "payment_status",
+                outcome: "succeeded",
+                errorCode: null,
+                durationMs: ElapsedMilliseconds(startedAt),
+                metadata: CommitmentStatsMetadata(
+                    obligation,
+                    ("paymentState", invoicePaid ? "paid" : "open"),
+                    ("status", TrimToNull(invoice.Status) ?? "unknown"),
+                    ("additionalStatus", TrimToNull(invoice.AdditionalStatus) ?? "none")),
+                ct: ct).ConfigureAwait(false);
 
             if (invoicePaid)
-                ReactivateParticipantChallenge(sqlite, participant.Id, now);
-        });
+            {
+                await TrackChallengeEventAsync(
+                    "challenge_commitment_resolved",
+                    actorId: participant.Id,
+                    component: "commitment",
+                    step: "resolution",
+                    outcome: "succeeded",
+                    errorCode: null,
+                    durationMs: ElapsedMilliseconds(startedAt),
+                    metadata: CommitmentStatsMetadata(obligation, ("resolutionSource", "payment")),
+                    ct: ct).ConfigureAwait(false);
+            }
 
-        return GetParticipantState(accessToken, now);
+            return state;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            await TrackChallengeEventAsync(
+                "challenge_commitment_payment_status_failed",
+                actorId: participant?.Id,
+                component: "commitment",
+                step: "payment_status",
+                outcome: "failed",
+                errorCode: StatsErrorCode(ex),
+                durationMs: ElapsedMilliseconds(startedAt),
+                metadata: CommitmentStatsMetadata(obligation),
+                ct: ct).ConfigureAwait(false);
+            throw;
+        }
     }
 
     public LongevitymaxxingParticipantState SubmitCheckIn(LongevitymaxxingCheckInRequest request, DateTimeOffset? nowUtc = null)
     {
-        var checkIn = ValidateCheckIn(request, nowUtc);
-        return SaveCheckIn(checkIn, []);
+        var startedAt = Stopwatch.GetTimestamp();
+        ValidatedCheckIn? checkIn = null;
+        try
+        {
+            checkIn = ValidateCheckIn(request, nowUtc);
+            var state = SaveCheckIn(checkIn, []);
+            TrackCheckInEvent(
+                CheckInEventName(checkIn.CountsForScore, "submitted"),
+                checkIn,
+                state,
+                outcome: "succeeded",
+                errorCode: null,
+                notePhotoCount: 0,
+                durationMs: ElapsedMilliseconds(startedAt));
+            return state;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            TrackCheckInFailure(request, checkIn, ex, notePhotoCount: 0, durationMs: ElapsedMilliseconds(startedAt));
+            throw;
+        }
     }
 
     public async Task<LongevitymaxxingParticipantState> SubmitCheckInAsync(
@@ -547,22 +715,38 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset? nowUtc = null,
         CancellationToken ct = default)
     {
-        var checkIn = ValidateCheckIn(request, nowUtc);
-        var photoFiles = (notePhotos ?? [])
-            .Where(photo => photo is { Length: > 0 })
-            .ToList();
-
-        if (photoFiles.Count == 0)
-            return SaveCheckIn(checkIn, []);
-
-        var existingImages = GetCheckInImagesFor(checkIn.Participant.Id, checkIn.Request.ChallengeDay);
-        if (existingImages.Count + photoFiles.Count > MaxCheckInPhotoCount)
-            throw new InvalidOperationException($"Each check-in can have up to {MaxCheckInPhotoCount} photos.");
-
-        var nextIndex = existingImages.Count == 0 ? 1 : existingImages.Max(image => image.ImageIndex) + 1;
+        var startedAt = Stopwatch.GetTimestamp();
+        ValidatedCheckIn? checkIn = null;
+        var notePhotoCount = 0;
         var processedImages = new List<PendingCheckInImage>();
         try
         {
+            checkIn = ValidateCheckIn(request, nowUtc);
+            var photoFiles = (notePhotos ?? [])
+                .Where(photo => photo is { Length: > 0 })
+                .ToList();
+            notePhotoCount = photoFiles.Count;
+
+            if (photoFiles.Count == 0)
+            {
+                var stateWithoutPhotos = SaveCheckIn(checkIn, []);
+                await TrackCheckInEventAsync(
+                    CheckInEventName(checkIn.CountsForScore, "submitted"),
+                    checkIn,
+                    stateWithoutPhotos,
+                    outcome: "succeeded",
+                    errorCode: null,
+                    notePhotoCount: notePhotoCount,
+                    durationMs: ElapsedMilliseconds(startedAt),
+                    ct: ct).ConfigureAwait(false);
+                return stateWithoutPhotos;
+            }
+
+            var existingImages = GetCheckInImagesFor(checkIn.Participant.Id, checkIn.Request.ChallengeDay);
+            if (existingImages.Count + photoFiles.Count > MaxCheckInPhotoCount)
+                throw new InvalidOperationException($"Each check-in can have up to {MaxCheckInPhotoCount} photos.");
+
+            var nextIndex = existingImages.Count == 0 ? 1 : existingImages.Max(image => image.ImageIndex) + 1;
             foreach (var photo in photoFiles)
             {
                 processedImages.Add(await ProcessCheckInPhotoAsync(
@@ -574,12 +758,28 @@ public sealed class LongevitymaxxingChallengeService
                     ct).ConfigureAwait(false));
             }
 
-            return SaveCheckIn(checkIn, processedImages);
+            var state = SaveCheckIn(checkIn, processedImages);
+            await TrackCheckInEventAsync(
+                CheckInEventName(checkIn.CountsForScore, "submitted"),
+                checkIn,
+                state,
+                outcome: "succeeded",
+                errorCode: null,
+                notePhotoCount: notePhotoCount,
+                durationMs: ElapsedMilliseconds(startedAt),
+                ct: ct).ConfigureAwait(false);
+            return state;
         }
-        catch
+        catch (Exception ex)
         {
             foreach (var image in processedImages)
                 TryDeleteFile(image.OutputPath);
+
+            if (ex is not OperationCanceledException)
+            {
+                await TrackCheckInFailureAsync(request, checkIn, ex, notePhotoCount, ElapsedMilliseconds(startedAt), ct).ConfigureAwait(false);
+            }
+
             throw;
         }
     }
@@ -607,7 +807,7 @@ public sealed class LongevitymaxxingChallengeService
         var note = NormalizeNote(request.Note);
         var challengeDate = settings.StartDate.AddDays(request.ChallengeDay - 1);
 
-        return new ValidatedCheckIn(request, now, participant, values.Sleep, values.Exercise, values.Nutrition, values.Vices, note, challengeDate);
+        return new ValidatedCheckIn(request, now, participant, values.Sleep, values.Exercise, values.Nutrition, values.Vices, note, challengeDate, eligible.CountsForScore);
     }
 
     private LongevitymaxxingParticipantState SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages)
@@ -664,6 +864,176 @@ public sealed class LongevitymaxxingChallengeService
         ReactivateMissedDayInactiveParticipantIfCaughtUp(checkIn.Participant, checkIn.NowUtc);
         return GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc);
     }
+
+    private void TrackCheckInEvent(
+        string eventName,
+        ValidatedCheckIn checkIn,
+        LongevitymaxxingParticipantState state,
+        string outcome,
+        string? errorCode,
+        int notePhotoCount,
+        long? durationMs)
+        => TrackChallengeEvent(
+            eventName,
+            actorId: checkIn.Participant.Id,
+            component: "checkin",
+            step: "submit",
+            outcome: outcome,
+            errorCode: errorCode,
+            durationMs: durationMs,
+            metadata: CheckInStatsMetadata(checkIn.Request, checkIn, state, notePhotoCount));
+
+    private Task TrackCheckInEventAsync(
+        string eventName,
+        ValidatedCheckIn checkIn,
+        LongevitymaxxingParticipantState state,
+        string outcome,
+        string? errorCode,
+        int notePhotoCount,
+        long? durationMs,
+        CancellationToken ct)
+        => TrackChallengeEventAsync(
+            eventName,
+            actorId: checkIn.Participant.Id,
+            component: "checkin",
+            step: "submit",
+            outcome: outcome,
+            errorCode: errorCode,
+            durationMs: durationMs,
+            metadata: CheckInStatsMetadata(checkIn.Request, checkIn, state, notePhotoCount),
+            ct: ct);
+
+    private void TrackCheckInFailure(
+        LongevitymaxxingCheckInRequest? request,
+        ValidatedCheckIn? checkIn,
+        Exception ex,
+        int notePhotoCount,
+        long? durationMs)
+        => TrackChallengeEvent(
+            checkIn is null ? "challenge_checkin_failed" : CheckInEventName(checkIn.CountsForScore, "failed"),
+            actorId: checkIn?.Participant.Id,
+            component: "checkin",
+            step: "submit",
+            outcome: "failed",
+            errorCode: StatsErrorCode(ex),
+            durationMs: durationMs,
+            metadata: CheckInStatsMetadata(request, checkIn, state: null, notePhotoCount));
+
+    private Task TrackCheckInFailureAsync(
+        LongevitymaxxingCheckInRequest? request,
+        ValidatedCheckIn? checkIn,
+        Exception ex,
+        int notePhotoCount,
+        long? durationMs,
+        CancellationToken ct)
+        => TrackChallengeEventAsync(
+            checkIn is null ? "challenge_checkin_failed" : CheckInEventName(checkIn.CountsForScore, "failed"),
+            actorId: checkIn?.Participant.Id,
+            component: "checkin",
+            step: "submit",
+            outcome: "failed",
+            errorCode: StatsErrorCode(ex),
+            durationMs: durationMs,
+            metadata: CheckInStatsMetadata(request, checkIn, state: null, notePhotoCount),
+            ct: ct);
+
+    private Task TrackChallengeEventAsync(
+        string eventName,
+        string? actorId,
+        string component,
+        string step,
+        string outcome,
+        string? errorCode,
+        long? durationMs,
+        IReadOnlyDictionary<string, object?>? metadata,
+        CancellationToken ct = default)
+        => _statistics?.RecordServerEventAsync(
+            eventName,
+            actorId: actorId,
+            flow: "challenge",
+            route: "/longevitymaxxing",
+            component: component,
+            step: step,
+            outcome: outcome,
+            errorCode: errorCode,
+            durationMs: durationMs,
+            metadata: metadata,
+            ct: ct) ?? Task.CompletedTask;
+
+    private void TrackChallengeEvent(
+        string eventName,
+        string? actorId,
+        string component,
+        string step,
+        string outcome,
+        string? errorCode,
+        long? durationMs,
+        IReadOnlyDictionary<string, object?>? metadata)
+        => TrackChallengeEventAsync(
+            eventName,
+            actorId,
+            component,
+            step,
+            outcome,
+            errorCode,
+            durationMs,
+            metadata).GetAwaiter().GetResult();
+
+    private static Dictionary<string, object?> CheckInStatsMetadata(
+        LongevitymaxxingCheckInRequest? request,
+        ValidatedCheckIn? checkIn,
+        LongevitymaxxingParticipantState? state,
+        int notePhotoCount)
+    {
+        var metadata = new Dictionary<string, object?>
+        {
+            ["checkInKind"] = checkIn is null ? "unknown" : checkIn.CountsForScore ? "scored" : "practice",
+            ["notePhotoCount"] = notePhotoCount
+        };
+
+        var challengeDay = checkIn?.Request.ChallengeDay ?? request?.ChallengeDay;
+        if (challengeDay is > 0)
+            metadata["challengeDay"] = challengeDay.Value;
+
+        if (state is not null)
+            metadata["commitmentStatus"] = state.Commitment.Status;
+
+        return metadata;
+    }
+
+    private static Dictionary<string, object?> CommitmentStatsMetadata(
+        PaymentObligation? obligation,
+        params (string Key, object? Value)[] extra)
+    {
+        var metadata = new Dictionary<string, object?>();
+        if (obligation is not null)
+        {
+            metadata["triggerChallengeDay"] = obligation.TriggerChallengeDay;
+            metadata["triggerScore"] = obligation.TriggerScore;
+        }
+
+        foreach (var (key, value) in extra)
+            metadata[key] = value;
+
+        return metadata;
+    }
+
+    private static string CheckInEventName(bool countsForScore, string suffix)
+        => countsForScore
+            ? $"challenge_scored_checkin_{suffix}"
+            : $"challenge_practice_checkin_{suffix}";
+
+    private static string StatsErrorCode(Exception ex)
+        => ex switch
+        {
+            UnauthorizedAccessException => "unauthorized",
+            InvalidOperationException => "client_error",
+            ArgumentException => "client_error",
+            _ => "server_error"
+        };
+
+    private static long ElapsedMilliseconds(long startTimestamp)
+        => (long)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
 
     private async Task<PendingCheckInImage> ProcessCheckInPhotoAsync(
         ParticipantRecord participant,
@@ -1801,7 +2171,7 @@ public sealed class LongevitymaxxingChallengeService
             {
                 var triggerScore = GetScoredPoints(settings, checkIn.Participant, saved, byDay);
                 if (!IsBelowCommitmentPledgeFloor(settings, checkIn.Participant, byDay, saved, activeObligation.ThresholdAverage))
-                    ClearPaymentObligation(activeObligation.Id, checkIn.NowUtc);
+                    ClearPaymentObligation(activeObligation, checkIn.Participant.Id, checkIn.NowUtc, resolutionSource: "checkin_edit");
                 else
                     UpdatePaymentObligationTriggerScore(activeObligation.Id, triggerScore, checkIn.NowUtc);
             }
@@ -1954,7 +2324,7 @@ public sealed class LongevitymaxxingChallengeService
         });
     }
 
-    private void ClearPaymentObligation(string obligationId, DateTimeOffset now)
+    private void ClearPaymentObligation(PaymentObligation obligation, string participantId, DateTimeOffset now, string resolutionSource)
     {
         _db.Run(sqlite =>
         {
@@ -1969,9 +2339,19 @@ public sealed class LongevitymaxxingChallengeService
                 """;
             Add(update, "@cleared", now.ToString("o"));
             Add(update, "@updated", now.ToString("o"));
-            Add(update, "@id", obligationId);
+            Add(update, "@id", obligation.Id);
             update.ExecuteNonQuery();
         });
+
+        TrackChallengeEvent(
+            "challenge_commitment_resolved",
+            actorId: participantId,
+            component: "commitment",
+            step: "resolution",
+            outcome: "succeeded",
+            errorCode: null,
+            durationMs: null,
+            metadata: CommitmentStatsMetadata(obligation, ("resolutionSource", resolutionSource)));
     }
 
     private PaymentObligation? GetActivePaymentObligation(string participantId)
@@ -3757,7 +4137,8 @@ public sealed class LongevitymaxxingChallengeService
         int Nutrition,
         int Vices,
         string? Note,
-        DateOnly ChallengeDate);
+        DateOnly ChallengeDate,
+        bool CountsForScore);
 
     private sealed record PendingCheckInImage(
         int ImageIndex,

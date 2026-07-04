@@ -408,6 +408,39 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task ResultSubmissionProofValidationRecordsServerStatistics()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var statistics = factory.Services.GetRequiredService<SiteStatisticsService>();
+        var controller = CreateController(factory, statistics);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }],
+            ProofPics = Enumerable.Repeat("data:image/png;base64,AA==", 31).ToList()
+        }, CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+
+        var dashboard = await statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery
+        {
+            Range = "30d",
+            Flow = "application",
+            Limit = 20
+        });
+
+        var submitFailure = Assert.Single(dashboard.Events, ev => ev.EventName == "application_submit_failed");
+        Assert.Equal("failed", submitFailure.Outcome);
+        Assert.Equal("too_many_proofs", submitFailure.ErrorCode);
+
+        var proofFailure = Assert.Single(dashboard.Events, ev => ev.EventName == "proof_processing_failed");
+        Assert.Equal("failed", proofFailure.Outcome);
+        Assert.Equal("too_many_proofs", proofFailure.ErrorCode);
+        Assert.Equal("31", proofFailure.Metadata["proofCount"]);
+    }
+
+    [Fact]
     public async Task ResultSubmissionMissingBiomarkersReturnsBadRequestBeforeProcessing()
     {
         using var factory = new TestWebApplicationFactory();
@@ -811,7 +844,7 @@ public sealed class ApplicationControllerValidationTests
         Assert.Contains("archivedSubmissionPath = await PersistApplicationSubmissionArchiveAsync(zipPath, folderKey, submissionId, ct);", emailBody);
         Assert.Contains("Application submission email failed after archive was saved.", emailBody);
         Assert.Contains("Application submission email failed and archive could not be saved.", emailBody);
-        Assert.Contains("return StatusCode(500, \"Internal server error: application could not be saved.\");", emailBody);
+        Assert.Contains("return await StatusCodeWithStatsAsync(500, \"application_archive_failed\", \"Internal server error: application could not be saved.\").ConfigureAwait(false);", emailBody);
         Assert.Contains("return Ok(new", freeSubmissionBody);
         Assert.Contains("paymentRequired = false", freeSubmissionBody);
         Assert.Contains("AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}", freeSubmissionBody);
@@ -918,17 +951,22 @@ public sealed class ApplicationControllerValidationTests
         throw new FileNotFoundException("ApplicationController.cs was not found.");
     }
 
-    private static ApplicationController CreateController(TestWebApplicationFactory factory)
+    private static ApplicationController CreateController(TestWebApplicationFactory factory, SiteStatisticsService? statistics = null)
     {
         return new ApplicationController(
             factory.Services.GetRequiredService<IWebHostEnvironment>(),
-            NullLogger<HomeController>.Instance)
+            NullLogger<HomeController>.Instance,
+            statistics: statistics)
         {
             ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext
                 {
-                    RequestServices = factory.Services
+                    RequestServices = factory.Services,
+                    Request =
+                    {
+                        Path = "/api/application/application"
+                    }
                 }
             }
         };
