@@ -13,7 +13,9 @@ namespace LongevityWorldCup.Website.Business;
 
 public sealed class SiteStatisticsService : IHostedService
 {
+    private const string StatsSessionHeaderName = "X-LWC-Stats-Session";
     private const int MaxEventNameLength = 96;
+    private const int MaxSessionIdLength = 256;
     private const int MaxTextLength = 160;
     private const int MaxCampaignTextLength = 96;
     private const int MaxMetadataJsonLength = 4096;
@@ -124,12 +126,14 @@ public sealed class SiteStatisticsService : IHostedService
         string? outcome = null,
         string? errorCode = null,
         long? durationMs = null,
+        string? sessionId = null,
         IReadOnlyDictionary<string, object?>? metadata = null,
         CancellationToken ct = default)
     {
         var request = new SiteStatisticsEventRequest
         {
             EventName = eventName,
+            SessionId = RequestStatsSessionId(context) ?? SafeSessionId(sessionId),
             Flow = flow,
             Route = route,
             Component = component,
@@ -323,7 +327,8 @@ public sealed class SiteStatisticsService : IHostedService
 
         var referrerDomain = SafeDomain(request.ReferrerDomain) ?? SafeDomain(context?.Request.Headers.Referer.FirstOrDefault());
         var source = NormalizeSource(request.Source, referrerDomain);
-        var sessionHash = BuildHash("S", request.SessionId ?? ClientIdentifier.From(context ?? new DefaultHttpContext()));
+        var sessionIdentifier = SafeSessionId(request.SessionId) ?? ClientIdentifier.From(context ?? new DefaultHttpContext());
+        var sessionHash = BuildHash("S", sessionIdentifier);
         var firstTouch = BuildFirstTouch(request, rawRoute, route, referrerDomain, source);
 
         return new QueuedSiteStatisticEvent(
@@ -907,6 +912,12 @@ public sealed class SiteStatisticsService : IHostedService
         var token = SafeToken(value, maxLength);
         return LooksSensitiveValue(token) ? null : token;
     }
+
+    private static string? RequestStatsSessionId(HttpContext? context)
+        => SafeSessionId(context?.Request.Headers[StatsSessionHeaderName].FirstOrDefault());
+
+    private static string? SafeSessionId(string? value)
+        => SafeToken(value, MaxSessionIdLength);
 
     private static string? SafeCampaignValue(string? value)
     {

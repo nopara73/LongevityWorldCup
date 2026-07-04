@@ -314,6 +314,79 @@ public sealed class SiteStatisticsServiceTests
         Assert.Empty(searchOnly.Events);
     }
 
+    [Fact]
+    public async Task RecordServerEventAsync_UsesStatsSessionHeaderToMatchClientSession()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var context = new DefaultHttpContext();
+        context.Request.Headers["X-LWC-Stats-Session"] = "browser-session";
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "challenge_page_viewed",
+            SessionId = "browser-session",
+            Flow = "challenge",
+            Route = "/longevitymaxxing",
+            Component = "challenge",
+            Outcome = "viewed"
+        }, new DefaultHttpContext());
+
+        await service.RecordServerEventAsync(
+            "challenge_signup_succeeded",
+            context,
+            actorId: "participant-1",
+            flow: "challenge",
+            route: "/longevitymaxxing",
+            component: "signup",
+            step: "submit",
+            outcome: "succeeded",
+            sessionId: "challenge:participant-1");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Flow = "challenge" });
+
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.Single(dashboard.Events.Select(ev => ev.SessionHash).Distinct());
+    }
+
+    [Fact]
+    public async Task RecordServerEventAsync_UsesExplicitSessionIdWithoutHttpContext()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.RecordServerEventAsync(
+            "challenge_signup_succeeded",
+            actorId: "participant-1",
+            flow: "challenge",
+            route: "/longevitymaxxing",
+            component: "signup",
+            step: "submit",
+            outcome: "succeeded",
+            sessionId: "challenge:participant-1");
+        await service.RecordServerEventAsync(
+            "challenge_signup_succeeded",
+            actorId: "participant-2",
+            flow: "challenge",
+            route: "/longevitymaxxing",
+            component: "signup",
+            step: "submit",
+            outcome: "succeeded",
+            sessionId: "challenge:participant-2");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Flow = "challenge" });
+
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.Equal(2, dashboard.Events.Select(ev => ev.SessionHash).Distinct().Count());
+        Assert.Equal(2, dashboard.Events.Select(ev => ev.ActorHash).Distinct().Count());
+    }
+
     [Theory]
     [InlineData(
         "/pheno-age?Year=1980&Month=5&Day=20&Date=2026-06-01&AlbGL=44&CreatUmolL=80&GluMmolL=5.2",

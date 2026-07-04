@@ -4,6 +4,7 @@
     const endpoint = "/api/site-statistics/event";
     const sessionKey = "lwcSiteStatsSessionId";
     const firstTouchKey = "lwcSiteStatsFirstTouch";
+    const sessionHeader = "X-LWC-Stats-Session";
     const originalFetch = window.fetch ? window.fetch.bind(window) : null;
     const pageStartedAt = now();
     const sentOnce = new Set();
@@ -176,6 +177,26 @@
         if (sentOnce.has(key)) return;
         sentOnce.add(key);
         track(eventName, options);
+    }
+
+    function isSameOriginFetch(input) {
+        const raw = safe(() => input && input.url ? input.url : input) || "";
+        const parsed = safe(() => new URL(String(raw), window.location.href));
+        return !!parsed && parsed.origin === window.location.origin && parsed.pathname.indexOf("/api/") === 0;
+    }
+
+    function withStatsSessionHeader(args) {
+        if (!args || !args.length || typeof Headers === "undefined" || !isSameOriginFetch(args[0])) return args;
+        const init = args[1] ? Object.assign({}, args[1]) : {};
+        const headers = new Headers(init.headers || (typeof Request !== "undefined" && args[0] instanceof Request ? args[0].headers : undefined));
+        if (!headers.has(sessionHeader)) headers.set(sessionHeader, getSessionId());
+        init.headers = headers;
+
+        if (typeof Request !== "undefined" && args[0] instanceof Request) {
+            return [new Request(args[0], init)];
+        }
+
+        return [args[0], init];
     }
 
     function fieldKey(el) {
@@ -786,7 +807,7 @@
         if (!originalFetch) return;
 
         window.fetch = function () {
-            const args = arguments;
+            const args = withStatsSessionHeader(arguments);
             const url = safe(() => String(args[0] && args[0].url || args[0] || "")) || "";
             const started = now();
             const observed = safe(() => classifyFetch(url));
@@ -851,8 +872,8 @@
             return {
                 component: "application",
                 step: "submit",
-                successEvent: response => response.ok ? "application_submit_succeeded" : "application_submit_failed",
-                failureEvent: "application_submit_failed"
+                successEvent: response => response.ok ? null : "api_request_failed",
+                failureEvent: "api_request_failed"
             };
         }
         if (url.includes("/api/application/payment-status")) {
@@ -875,8 +896,8 @@
             return {
                 component: "signup",
                 step: "submit",
-                successEvent: response => response.ok ? "challenge_signup_succeeded" : "challenge_signup_failed",
-                failureEvent: "challenge_signup_failed"
+                successEvent: response => response.ok ? null : "api_request_failed",
+                failureEvent: "api_request_failed"
             };
         }
         if (url.includes("/api/longevitymaxxing/participant")) {
@@ -890,18 +911,16 @@
         if (url.includes("/api/longevitymaxxing/check-in")) {
             return {
                 component: "checkin",
-                step: "save",
-                successEvent: response => response.ok
-                    ? (lastCheckInKind === "practice" ? "challenge_practice_checkin_submitted" : "challenge_scored_checkin_submitted")
-                    : (lastCheckInKind === "practice" ? "challenge_practice_checkin_failed" : "challenge_scored_checkin_failed"),
-                failureEvent: lastCheckInKind === "practice" ? "challenge_practice_checkin_failed" : "challenge_scored_checkin_failed"
+                step: "submit",
+                successEvent: response => response.ok ? null : "api_request_failed",
+                failureEvent: "api_request_failed"
             };
         }
         if (url.includes("/api/longevitymaxxing/commitment-payment/status")) {
             return {
                 component: "commitment",
                 step: "status",
-                successEvent: response => response.ok ? "challenge_commitment_payment_status_checked" : "api_request_failed",
+                successEvent: response => response.ok ? null : "api_request_failed",
                 failureEvent: "api_request_failed"
             };
         }
@@ -909,7 +928,7 @@
             return {
                 component: "commitment",
                 step: "payment",
-                successEvent: () => "challenge_commitment_payment_opened",
+                successEvent: response => response.ok ? null : "api_request_failed",
                 failureEvent: "api_request_failed"
             };
         }

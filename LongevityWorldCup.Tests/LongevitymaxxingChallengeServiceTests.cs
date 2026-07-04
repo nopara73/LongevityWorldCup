@@ -167,6 +167,40 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task ServerStatisticsUseParticipantSessionFallbackWithoutHttpContext()
+    {
+        using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-09T22:00:00Z");
+        var signupAt = DateTimeOffset.Parse("2026-06-08T08:00:00Z");
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "one@example.test",
+            "One Participant",
+            "UTC",
+            null,
+            25m), signupAt);
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "two@example.test",
+            "Two Participant",
+            "UTC",
+            null,
+            25m), signupAt.AddMinutes(1));
+
+        var dashboard = await fixture.Statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery
+        {
+            Range = "30d",
+            Flow = "challenge",
+            Limit = 100
+        });
+        var signups = dashboard.Events
+            .Where(ev => ev.EventName == "challenge_signup_succeeded")
+            .ToList();
+
+        Assert.Equal(2, signups.Count);
+        Assert.Equal(2, signups.Select(ev => ev.SessionHash).Distinct().Count());
+        Assert.Equal(2, signups.Select(ev => ev.ActorHash).Distinct().Count());
+    }
+
+    [Fact]
     public async Task SignupStaysOpenDuringActiveChallengeWithoutBackfillingBeforeSignup()
     {
         using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-09T22:00:00Z");

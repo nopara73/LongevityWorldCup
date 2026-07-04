@@ -156,7 +156,11 @@ public sealed class LongevitymaxxingChallengeService
             .ToList();
     }
 
-    public async Task<LongevitymaxxingSignupResult> SignupAsync(LongevitymaxxingSignupRequest request, DateTimeOffset? nowUtc = null, CancellationToken ct = default)
+    public async Task<LongevitymaxxingSignupResult> SignupAsync(
+        LongevitymaxxingSignupRequest request,
+        DateTimeOffset? nowUtc = null,
+        HttpContext? context = null,
+        CancellationToken ct = default)
     {
         var startedAt = Stopwatch.GetTimestamp();
         try
@@ -259,6 +263,7 @@ public sealed class LongevitymaxxingChallengeService
                     ["athleteLinked"] = athleteSlug is not null,
                     ["commitmentConfigured"] = request.CommitmentAmountUsd is not null
                 },
+                context: context,
                 ct: ct).ConfigureAwait(false);
 
             return new LongevitymaxxingSignupResult("Check your email.");
@@ -278,6 +283,7 @@ public sealed class LongevitymaxxingChallengeService
                     ["athleteLinked"] = !string.IsNullOrWhiteSpace(request?.AthleteLink),
                     ["commitmentConfigured"] = request?.CommitmentAmountUsd is not null
                 },
+                context: context,
                 ct: ct).ConfigureAwait(false);
             throw;
         }
@@ -475,6 +481,7 @@ public sealed class LongevitymaxxingChallengeService
     public async Task<LongevitymaxxingParticipantState> CreateCommitmentPaymentInvoiceAsync(
         string accessToken,
         DateTimeOffset? nowUtc = null,
+        HttpContext? context = null,
         CancellationToken ct = default)
     {
         var startedAt = Stopwatch.GetTimestamp();
@@ -498,6 +505,7 @@ public sealed class LongevitymaxxingChallengeService
                     errorCode: null,
                     durationMs: ElapsedMilliseconds(startedAt),
                     metadata: CommitmentStatsMetadata(obligation, ("paymentPageState", "reused")),
+                    context: context,
                     ct: ct).ConfigureAwait(false);
                 return state;
             }
@@ -557,6 +565,7 @@ public sealed class LongevitymaxxingChallengeService
                 errorCode: null,
                 durationMs: ElapsedMilliseconds(startedAt),
                 metadata: CommitmentStatsMetadata(obligation, ("paymentPageState", "created")),
+                context: context,
                 ct: ct).ConfigureAwait(false);
             return updatedState;
         }
@@ -571,6 +580,7 @@ public sealed class LongevitymaxxingChallengeService
                 errorCode: StatsErrorCode(ex),
                 durationMs: ElapsedMilliseconds(startedAt),
                 metadata: CommitmentStatsMetadata(obligation),
+                context: context,
                 ct: ct).ConfigureAwait(false);
             throw;
         }
@@ -579,6 +589,7 @@ public sealed class LongevitymaxxingChallengeService
     public async Task<LongevitymaxxingParticipantState> RefreshCommitmentPaymentStatusAsync(
         string accessToken,
         DateTimeOffset? nowUtc = null,
+        HttpContext? context = null,
         CancellationToken ct = default)
     {
         var startedAt = Stopwatch.GetTimestamp();
@@ -601,6 +612,7 @@ public sealed class LongevitymaxxingChallengeService
                     errorCode: null,
                     durationMs: ElapsedMilliseconds(startedAt),
                     metadata: CommitmentStatsMetadata(obligation, ("paymentState", obligation is null ? "not_due" : "missing_invoice")),
+                    context: context,
                     ct: ct).ConfigureAwait(false);
                 return unchangedState;
             }
@@ -650,6 +662,7 @@ public sealed class LongevitymaxxingChallengeService
                     ("paymentState", invoicePaid ? "paid" : "open"),
                     ("status", TrimToNull(invoice.Status) ?? "unknown"),
                     ("additionalStatus", TrimToNull(invoice.AdditionalStatus) ?? "none")),
+                context: context,
                 ct: ct).ConfigureAwait(false);
 
             if (invoicePaid)
@@ -663,6 +676,7 @@ public sealed class LongevitymaxxingChallengeService
                     errorCode: null,
                     durationMs: ElapsedMilliseconds(startedAt),
                     metadata: CommitmentStatsMetadata(obligation, ("resolutionSource", "payment")),
+                    context: context,
                     ct: ct).ConfigureAwait(false);
             }
 
@@ -679,12 +693,16 @@ public sealed class LongevitymaxxingChallengeService
                 errorCode: StatsErrorCode(ex),
                 durationMs: ElapsedMilliseconds(startedAt),
                 metadata: CommitmentStatsMetadata(obligation),
+                context: context,
                 ct: ct).ConfigureAwait(false);
             throw;
         }
     }
 
-    public LongevitymaxxingParticipantState SubmitCheckIn(LongevitymaxxingCheckInRequest request, DateTimeOffset? nowUtc = null)
+    public LongevitymaxxingParticipantState SubmitCheckIn(
+        LongevitymaxxingCheckInRequest request,
+        DateTimeOffset? nowUtc = null,
+        HttpContext? context = null)
     {
         var startedAt = Stopwatch.GetTimestamp();
         ValidatedCheckIn? checkIn = null;
@@ -699,12 +717,13 @@ public sealed class LongevitymaxxingChallengeService
                 outcome: "succeeded",
                 errorCode: null,
                 notePhotoCount: 0,
-                durationMs: ElapsedMilliseconds(startedAt));
+                durationMs: ElapsedMilliseconds(startedAt),
+                context: context);
             return state;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            TrackCheckInFailure(request, checkIn, ex, notePhotoCount: 0, durationMs: ElapsedMilliseconds(startedAt));
+            TrackCheckInFailure(request, checkIn, ex, notePhotoCount: 0, durationMs: ElapsedMilliseconds(startedAt), context: context);
             throw;
         }
     }
@@ -713,6 +732,7 @@ public sealed class LongevitymaxxingChallengeService
         LongevitymaxxingCheckInRequest request,
         IReadOnlyList<IFormFile>? notePhotos,
         DateTimeOffset? nowUtc = null,
+        HttpContext? context = null,
         CancellationToken ct = default)
     {
         var startedAt = Stopwatch.GetTimestamp();
@@ -738,6 +758,7 @@ public sealed class LongevitymaxxingChallengeService
                     errorCode: null,
                     notePhotoCount: notePhotoCount,
                     durationMs: ElapsedMilliseconds(startedAt),
+                    context: context,
                     ct: ct).ConfigureAwait(false);
                 return stateWithoutPhotos;
             }
@@ -767,6 +788,7 @@ public sealed class LongevitymaxxingChallengeService
                 errorCode: null,
                 notePhotoCount: notePhotoCount,
                 durationMs: ElapsedMilliseconds(startedAt),
+                context: context,
                 ct: ct).ConfigureAwait(false);
             return state;
         }
@@ -777,7 +799,7 @@ public sealed class LongevitymaxxingChallengeService
 
             if (ex is not OperationCanceledException)
             {
-                await TrackCheckInFailureAsync(request, checkIn, ex, notePhotoCount, ElapsedMilliseconds(startedAt), ct).ConfigureAwait(false);
+                await TrackCheckInFailureAsync(request, checkIn, ex, notePhotoCount, ElapsedMilliseconds(startedAt), context, ct).ConfigureAwait(false);
             }
 
             throw;
@@ -872,7 +894,8 @@ public sealed class LongevitymaxxingChallengeService
         string outcome,
         string? errorCode,
         int notePhotoCount,
-        long? durationMs)
+        long? durationMs,
+        HttpContext? context = null)
         => TrackChallengeEvent(
             eventName,
             actorId: checkIn.Participant.Id,
@@ -881,7 +904,8 @@ public sealed class LongevitymaxxingChallengeService
             outcome: outcome,
             errorCode: errorCode,
             durationMs: durationMs,
-            metadata: CheckInStatsMetadata(checkIn.Request, checkIn, state, notePhotoCount));
+            metadata: CheckInStatsMetadata(checkIn.Request, checkIn, state, notePhotoCount),
+            context: context);
 
     private Task TrackCheckInEventAsync(
         string eventName,
@@ -891,6 +915,7 @@ public sealed class LongevitymaxxingChallengeService
         string? errorCode,
         int notePhotoCount,
         long? durationMs,
+        HttpContext? context,
         CancellationToken ct)
         => TrackChallengeEventAsync(
             eventName,
@@ -901,6 +926,7 @@ public sealed class LongevitymaxxingChallengeService
             errorCode: errorCode,
             durationMs: durationMs,
             metadata: CheckInStatsMetadata(checkIn.Request, checkIn, state, notePhotoCount),
+            context: context,
             ct: ct);
 
     private void TrackCheckInFailure(
@@ -908,7 +934,8 @@ public sealed class LongevitymaxxingChallengeService
         ValidatedCheckIn? checkIn,
         Exception ex,
         int notePhotoCount,
-        long? durationMs)
+        long? durationMs,
+        HttpContext? context = null)
         => TrackChallengeEvent(
             checkIn is null ? "challenge_checkin_failed" : CheckInEventName(checkIn.CountsForScore, "failed"),
             actorId: checkIn?.Participant.Id,
@@ -917,7 +944,8 @@ public sealed class LongevitymaxxingChallengeService
             outcome: "failed",
             errorCode: StatsErrorCode(ex),
             durationMs: durationMs,
-            metadata: CheckInStatsMetadata(request, checkIn, state: null, notePhotoCount));
+            metadata: CheckInStatsMetadata(request, checkIn, state: null, notePhotoCount),
+            context: context);
 
     private Task TrackCheckInFailureAsync(
         LongevitymaxxingCheckInRequest? request,
@@ -925,6 +953,7 @@ public sealed class LongevitymaxxingChallengeService
         Exception ex,
         int notePhotoCount,
         long? durationMs,
+        HttpContext? context,
         CancellationToken ct)
         => TrackChallengeEventAsync(
             checkIn is null ? "challenge_checkin_failed" : CheckInEventName(checkIn.CountsForScore, "failed"),
@@ -935,6 +964,7 @@ public sealed class LongevitymaxxingChallengeService
             errorCode: StatsErrorCode(ex),
             durationMs: durationMs,
             metadata: CheckInStatsMetadata(request, checkIn, state: null, notePhotoCount),
+            context: context,
             ct: ct);
 
     private Task TrackChallengeEventAsync(
@@ -946,9 +976,11 @@ public sealed class LongevitymaxxingChallengeService
         string? errorCode,
         long? durationMs,
         IReadOnlyDictionary<string, object?>? metadata,
+        HttpContext? context = null,
         CancellationToken ct = default)
         => _statistics?.RecordServerEventAsync(
             eventName,
+            context,
             actorId: actorId,
             flow: "challenge",
             route: "/longevitymaxxing",
@@ -957,6 +989,7 @@ public sealed class LongevitymaxxingChallengeService
             outcome: outcome,
             errorCode: errorCode,
             durationMs: durationMs,
+            sessionId: ChallengeStatsSessionId(actorId),
             metadata: metadata,
             ct: ct) ?? Task.CompletedTask;
 
@@ -968,7 +1001,8 @@ public sealed class LongevitymaxxingChallengeService
         string outcome,
         string? errorCode,
         long? durationMs,
-        IReadOnlyDictionary<string, object?>? metadata)
+        IReadOnlyDictionary<string, object?>? metadata,
+        HttpContext? context = null)
         => TrackChallengeEventAsync(
             eventName,
             actorId,
@@ -977,7 +1011,11 @@ public sealed class LongevitymaxxingChallengeService
             outcome,
             errorCode,
             durationMs,
-            metadata).GetAwaiter().GetResult();
+            metadata,
+            context).GetAwaiter().GetResult();
+
+    private static string? ChallengeStatsSessionId(string? actorId)
+        => string.IsNullOrWhiteSpace(actorId) ? null : $"challenge:{actorId}";
 
     private static Dictionary<string, object?> CheckInStatsMetadata(
         LongevitymaxxingCheckInRequest? request,
