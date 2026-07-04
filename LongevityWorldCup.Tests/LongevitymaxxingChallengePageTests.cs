@@ -345,6 +345,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("updateCheckInQuoteDialogRank(quote, computeQuoteAthleteBestRank(athlete), token);", javascript);
         Assert.Contains("dialog.dataset.quoteToken !== token", javascript);
         Assert.Contains("function computeQuoteAthleteBestRank", javascript);
+        Assert.Contains("id=\"lmxQuoteDialogPortrait\"", javascript);
+        Assert.Contains("function renderCheckInQuotePortraitHtml", javascript);
+        Assert.Contains("ProfilePicLeaderboardThumb || a.ProfilePicThumb || a.ProfilePic", javascript);
         Assert.Contains("leagueType: \"pheno-improvement\"", javascript);
         Assert.Contains("leagueType: \"bortz-improvement\"", javascript);
         Assert.Contains("CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT", javascript);
@@ -360,7 +363,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("body.lmx-quote-open", css);
         Assert.Contains(".lmx-quote-dialog", css);
         Assert.Contains(".lmx-quote-dialog-card", css);
-        Assert.Contains("max-height: min(88vh, 38rem);", css);
+        Assert.Contains("max-height: min(88vh, 34rem);", css);
+        Assert.Contains(".lmx-quote-portrait-shell", css);
+        Assert.Contains(".lmx-quote-portrait", css);
         Assert.Contains(".lmx-quote-source", css);
         Assert.Contains(".lmx-quote-podcast-link", css);
     }

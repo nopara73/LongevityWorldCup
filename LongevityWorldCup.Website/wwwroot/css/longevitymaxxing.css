@@ -1822,15 +1822,12 @@ body.lmx-quote-open {
     --lmx-quote-accent-soft: rgba(20, 184, 166, 0.10);
     position: relative;
     z-index: 1;
-    width: min(100%, 35rem);
-    max-height: min(88vh, 38rem);
+    width: min(100%, 43rem);
+    max-height: min(88vh, 34rem);
     overflow: auto;
-    display: grid;
     border: 1px solid rgba(148, 163, 184, 0.28);
     border-radius: 8px;
-    background:
-        linear-gradient(180deg, var(--lmx-quote-accent) 0 0.28rem, transparent 0.28rem),
-        #ffffff;
+    background: #ffffff;
     box-shadow:
         0 22px 58px rgba(15, 23, 42, 0.30),
         0 1px 0 rgba(255, 255, 255, 0.70) inset;
@@ -1868,26 +1865,69 @@ body.lmx-quote-open {
 
 .lmx-quote-dialog-body {
     display: grid;
-    grid-template-columns: 2.6rem minmax(0, 1fr);
-    gap: 0.85rem;
-    padding: 1.15rem 1.15rem 1rem;
+    grid-template-columns: minmax(15rem, 0.82fr) minmax(0, 1fr);
+    min-height: 23rem;
 }
 
-.lmx-quote-dialog-symbol {
-    width: 2.6rem;
-    height: 2.6rem;
+.lmx-quote-portrait-shell {
+    min-width: 0;
+    display: block;
+    background: #0f172a;
+    border-right: 0;
+}
+
+.lmx-quote-portrait {
+    position: relative;
+    min-width: 0;
+    height: 100%;
+    min-height: 23rem;
+    overflow: hidden;
+    border-radius: 0;
+    background: #e2e8f0;
+}
+
+.lmx-quote-portrait::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0) 48%, rgba(15, 23, 42, 0.24) 100%),
+        linear-gradient(90deg, rgba(15, 23, 42, 0) 72%, rgba(15, 23, 42, 0.12) 100%);
+    pointer-events: none;
+}
+
+.lmx-quote-portrait img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.lmx-quote-portrait.placeholder img {
+    object-position: center 42%;
+    filter: saturate(0.78);
+}
+
+.lmx-quote-portrait-badge {
+    position: absolute;
+    left: 1rem;
+    bottom: 1rem;
+    z-index: 1;
+    width: 2.8rem;
+    height: 2.8rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    align-self: start;
-    border: 1px solid rgba(148, 163, 184, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.78);
     border-radius: 8px;
-    background: var(--lmx-quote-accent-soft);
-    color: var(--lmx-quote-accent-deep);
+    background: var(--lmx-quote-accent);
+    color: #ffffff;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.24);
 }
 
-.lmx-quote-dialog-symbol i {
-    font-size: 1.05rem;
+.lmx-quote-portrait-badge i {
+    font-size: 1rem;
 }
 
 .lmx-quote-dialog-main {
@@ -1895,37 +1935,49 @@ body.lmx-quote-open {
     z-index: 0;
     min-width: 0;
     display: grid;
-    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "quote"
+        "source"
+        "action";
+    align-content: center;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1.45rem 1.5rem;
 }
 
 .lmx-quote-dialog blockquote {
+    grid-area: quote;
     position: relative;
     margin: 0;
+    padding-left: 0.95rem;
+    border-left: 0.28rem solid var(--lmx-quote-accent);
     color: #0f172a;
-    font-size: 1.12rem;
+    font-size: 1.22rem;
     font-weight: 850;
     line-height: 1.42;
     overflow-wrap: anywhere;
 }
 
 .lmx-quote-dialog blockquote::before {
-    content: "\"";
+    content: "";
     position: absolute;
-    top: -0.9rem;
-    left: -0.1rem;
+    top: -0.45rem;
+    left: 0.3rem;
     z-index: -1;
-    color: var(--lmx-quote-accent-soft);
-    font-size: 4.1rem;
-    font-weight: 900;
-    line-height: 1;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 999px;
+    background: var(--lmx-quote-accent-soft);
 }
 
 .lmx-quote-source {
+    grid-area: source;
     min-width: 0;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.45rem 0.55rem;
     color: #475569;
     font-size: 0.82rem;
     font-weight: 800;
@@ -1936,7 +1988,7 @@ body.lmx-quote-open {
 .lmx-quote-rank,
 .lmx-quote-podcast-link {
     max-width: 100%;
-    min-height: 0;
+    min-height: 2rem;
     display: inline-flex;
     align-items: center;
     gap: 0.38rem;
@@ -1949,6 +2001,9 @@ body.lmx-quote-open {
 }
 
 .lmx-quote-athlete a {
+    min-height: 2rem;
+    display: inline-flex;
+    align-items: center;
     color: var(--lmx-quote-accent-deep);
     font-weight: 900;
 }
@@ -1964,6 +2019,10 @@ body.lmx-quote-open {
 }
 
 .lmx-quote-rank {
+    padding: 0 0.55rem;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    border-radius: 999px;
+    background: #ffffff;
     color: #64748b;
     font-size: 0.78rem;
     line-height: 1.3;
@@ -1971,18 +2030,17 @@ body.lmx-quote-open {
 
 .lmx-quote-rank::before {
     content: "";
-    width: 0.28rem;
-    height: 0.28rem;
+    width: 0.36rem;
+    height: 0.36rem;
     flex: 0 0 auto;
     border-radius: 999px;
-    background: #cbd5e1;
+    background: var(--lmx-quote-accent);
 }
 
 .lmx-quote-podcast-link {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.35rem;
+    height: 2.35rem;
     justify-content: center;
-    justify-self: end;
     border: 1px solid rgba(15, 23, 42, 0.12);
     border-radius: 999px;
     background: #0f172a;
@@ -2009,19 +2067,25 @@ body.lmx-quote-open {
 }
 
 .lmx-quote-dialog-actions {
+    grid-area: action;
     display: flex;
     justify-content: flex-end;
-    padding: 0.7rem 1rem 0.95rem;
-    border-top: 1px solid rgba(15, 23, 42, 0.08);
-    background: #f8fafc;
+    margin-top: 0.1rem;
+    padding: 0;
+    border-top: 0;
+    background: transparent;
 }
 
 .lmx-quote-dialog-card .lmx-button {
     justify-self: end;
     min-width: 4.8rem;
     min-height: 2.55rem;
-    background: #0f766e;
-    box-shadow: 0 5px 14px rgba(15, 118, 110, 0.20);
+    background: var(--lmx-quote-accent-deep);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+}
+
+.lmx-quote-dialog-card .lmx-button:hover:not(:disabled) {
+    background: var(--lmx-quote-accent);
 }
 
 @media (max-width: 560px) {
@@ -2029,33 +2093,48 @@ body.lmx-quote-open {
         padding: 0.75rem;
     }
 
-    .lmx-quote-dialog-body {
-        grid-template-columns: 2.45rem minmax(0, 1fr);
-        gap: 0.7rem;
-        padding: 1rem 0.9rem 0.85rem;
+    .lmx-quote-dialog-card {
+        max-height: min(90vh, 38rem);
     }
 
-    .lmx-quote-dialog-symbol {
-        width: 2.45rem;
-        height: 2.45rem;
+    .lmx-quote-dialog-body {
+        grid-template-columns: 1fr;
+        min-height: 0;
+    }
+
+    .lmx-quote-portrait-shell {
+        padding: 0;
+        border-right: 0;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        background: #0f172a;
+    }
+
+    .lmx-quote-portrait {
+        height: auto;
+        min-height: 0;
+        aspect-ratio: 16 / 10;
     }
 
     .lmx-quote-dialog blockquote {
-        font-size: 1rem;
+        font-size: 1.04rem;
     }
 
     .lmx-quote-source {
-        grid-template-columns: auto minmax(0, 1fr) 2.35rem;
         font-size: 0.78rem;
     }
 
-    .lmx-quote-podcast-link {
-        width: 2.35rem;
-        height: 2.35rem;
+    .lmx-quote-dialog-main {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+        padding: 1rem 0.9rem 0.9rem;
     }
 
     .lmx-quote-dialog-actions {
-        padding: 0.65rem 0.8rem 0.8rem;
+        justify-content: stretch;
+    }
+
+    .lmx-quote-dialog-card .lmx-button {
+        width: 100%;
     }
 }
 
