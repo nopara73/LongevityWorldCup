@@ -20,6 +20,7 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("Segment Comparison", html);
         Assert.Contains("Trend Watch", html);
         Assert.Contains("dataQualityStrip", html);
+        Assert.Contains("<option value=\"email\">Email</option>", html);
         Assert.Contains("<option value=\"internal\">Internal</option>", html);
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_CSS}}", html);
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_JS}}", html);
@@ -45,6 +46,23 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_TRACKING_JS}}", html);
     }
 
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/leaderboard")]
+    [InlineData("/events")]
+    [InlineData("/athlete/michael-lustgarten")]
+    [InlineData("/league/pheno")]
+    public async Task PublicDashboardEventPages_UseVersionedStatisticsTracker(string path)
+    {
+        await using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains("/js/site-statistics-tracking.js?v=", html);
+        Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_TRACKING_JS}}", html);
+    }
+
     [Fact]
     public void SiteStatisticsTracker_SupportsCurrentJoinMenuControls()
     {
@@ -59,7 +77,98 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("joinGoProButton", tracker);
         Assert.Contains(".play-join-biomarkers details", tracker);
         Assert.Contains(".play-join-card--pro", tracker);
+        Assert.Contains("function setupSpaRouteTracking()", tracker);
+        Assert.Contains("trackJoinPanelViewForCurrentRoute", tracker);
+        Assert.Contains("window.history[method] = function ()", tracker);
+        Assert.Contains("function isEmailReferrer(host)", tracker);
+        const string emailSourceLine = "if (isEmailReferrer(host)) return \"email\";";
+        const string searchSourceLine = "if (/google|bing|duckduckgo|yahoo|brave|search/i.test(host)) return \"search\";";
+        Assert.Contains(emailSourceLine, tracker);
+        Assert.Contains(searchSourceLine, tracker);
+        Assert.True(tracker.IndexOf(emailSourceLine, StringComparison.Ordinal) < tracker.IndexOf(searchSourceLine, StringComparison.Ordinal));
         Assert.Contains("return \"internal\";", tracker);
+    }
+
+    [Fact]
+    public void SiteStatisticsTracker_EmitsDashboardDefinedPublicAndChallengeEvents()
+    {
+        var repoRoot = FindRepoRoot();
+        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
+        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+        var rankPreview = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "bioage-rank-preview.js"));
+        var proofHelpers = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "proof-helpers.js"));
+
+        var expectedDashboardEvents = new[]
+        {
+            "rank_preview_requested",
+            "proof_file_rejected",
+            "challenge_athlete_search_result_selected",
+            "challenge_commitment_block_seen",
+            "homepage_highlight_viewed",
+            "homepage_highlight_clicked",
+            "event_viewed",
+            "event_link_clicked",
+            "athlete_profile_viewed",
+            "league_viewed"
+        };
+
+        foreach (var eventName in expectedDashboardEvents)
+        {
+            Assert.Contains(eventName, dashboard);
+        }
+
+        Assert.Contains("challenge_athlete_search_result_selected", tracker);
+        Assert.Contains("challenge_commitment_block_seen", tracker);
+        Assert.Contains("homepage_highlight_viewed", tracker);
+        Assert.Contains("homepage_highlight_clicked", tracker);
+        Assert.Contains("event_viewed", tracker);
+        Assert.Contains("event_link_clicked", tracker);
+        Assert.Contains("athlete_profile_viewed", tracker);
+        Assert.Contains("league_viewed", tracker);
+        Assert.Contains("rank_preview_requested", rankPreview);
+        Assert.Contains("rank_preview_failed", rankPreview);
+        Assert.Contains("proof_file_rejected", proofHelpers);
+        Assert.Contains("#lmxSignupAthlete-autocomplete-list .lmx-athlete-option", tracker);
+        Assert.Contains("lmxCommitmentPanel", tracker);
+        Assert.Contains("setupPublicContentTracking", tracker);
+        Assert.Contains("trackPublicPageViews", tracker);
+    }
+
+    [Fact]
+    public void SiteStatisticsTracker_RecordsPrefilledCalculatorProgress()
+    {
+        var repoRoot = FindRepoRoot();
+        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
+
+        Assert.Contains("function fieldHasRequiredValue(el)", tracker);
+        Assert.Contains("function recordFieldCompletion(el, source)", tracker);
+        Assert.Contains("function scanRequiredFields(source)", tracker);
+        Assert.Contains("scanRequiredFields(\"initial\")", tracker);
+        Assert.Contains("scanRequiredFields(\"autofill\")", tracker);
+        Assert.Contains("scanRequiredFields(\"submit\")", tracker);
+        Assert.Contains("scanRequiredFields(\"result\")", tracker);
+        Assert.Contains("completionSource", tracker);
+        Assert.Contains("listen(form, \"input\"", tracker);
+        Assert.Contains("listen(window, \"pageshow\"", tracker);
+    }
+
+    [Fact]
+    public void SiteStatisticsDashboard_SurfacesCalculatorCompletionSources()
+    {
+        var repoRoot = FindRepoRoot();
+        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+
+        Assert.Contains("Calculator completion sources", dashboard);
+        Assert.Contains("function calculatorCompletionSourceTable(events)", dashboard);
+        Assert.Contains("function completionSourceLabel(source)", dashboard);
+        Assert.Contains("completionSource", dashboard);
+        Assert.Contains("entryMode", dashboard);
+        Assert.Contains("source-visual-list", dashboard);
+        Assert.Contains("field-visual-list", dashboard);
+        Assert.Contains("completionLegend", dashboard);
+        Assert.Contains("stacked-bar", dashboard);
+        Assert.Contains("\"Auto\"", dashboard);
+        Assert.Contains("\"Late\"", dashboard);
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

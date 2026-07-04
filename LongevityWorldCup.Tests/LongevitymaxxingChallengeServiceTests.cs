@@ -93,6 +93,114 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task ServerStatisticsCaptureSignupAndCheckInOutcomes()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var signupAt = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "stats@example.com",
+            "Stats Sam",
+            "UTC",
+            null,
+            25m), signupAt);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "bad-email",
+            "Bad Email",
+            "UTC",
+            null,
+            25m), signupAt));
+
+        var access = await fixture.Service.ConfirmAsync(
+            ReadQueryToken(fixture.Email.Confirmations.Single().Url, "confirm"),
+            signupAt.AddMinutes(1));
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access.AccessToken,
+            1,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
+
+        fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access.AccessToken,
+            2,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-10T08:00:00Z"));
+
+        Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(new LongevitymaxxingCheckInRequest(
+            access.AccessToken,
+            99,
+            2,
+            2,
+            2,
+            2,
+            null), DateTimeOffset.Parse("2026-06-10T08:00:00Z")));
+
+        var dashboard = await fixture.Statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery
+        {
+            Range = "30d",
+            Flow = "challenge",
+            Limit = 100
+        });
+        var eventNames = dashboard.Events.Select(ev => ev.EventName).ToList();
+
+        Assert.Contains("challenge_signup_succeeded", eventNames);
+        Assert.Contains("challenge_signup_failed", eventNames);
+        Assert.Contains("challenge_practice_checkin_submitted", eventNames);
+        Assert.Contains("challenge_scored_checkin_submitted", eventNames);
+        Assert.Contains("challenge_checkin_failed", eventNames);
+
+        var practice = Assert.Single(dashboard.Events, ev => ev.EventName == "challenge_practice_checkin_submitted");
+        Assert.Equal("practice", practice.Metadata["checkInKind"]);
+        Assert.Equal("1", practice.Metadata["challengeDay"]);
+
+        var scored = Assert.Single(dashboard.Events, ev => ev.EventName == "challenge_scored_checkin_submitted");
+        Assert.Equal("scored", scored.Metadata["checkInKind"]);
+        Assert.Equal("2", scored.Metadata["challengeDay"]);
+    }
+
+    [Fact]
+    public async Task ServerStatisticsUseParticipantSessionFallbackWithoutHttpContext()
+    {
+        using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-09T22:00:00Z");
+        var signupAt = DateTimeOffset.Parse("2026-06-08T08:00:00Z");
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "one@example.test",
+            "One Participant",
+            "UTC",
+            null,
+            25m), signupAt);
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "two@example.test",
+            "Two Participant",
+            "UTC",
+            null,
+            25m), signupAt.AddMinutes(1));
+
+        var dashboard = await fixture.Statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery
+        {
+            Range = "30d",
+            Flow = "challenge",
+            Limit = 100
+        });
+        var signups = dashboard.Events
+            .Where(ev => ev.EventName == "challenge_signup_succeeded")
+            .ToList();
+
+        Assert.Equal(2, signups.Count);
+        Assert.Equal(2, signups.Select(ev => ev.SessionHash).Distinct().Count());
+        Assert.Equal(2, signups.Select(ev => ev.ActorHash).Distinct().Count());
+    }
+
+    [Fact]
     public async Task SignupStaysOpenDuringActiveChallengeWithoutBackfillingBeforeSignup()
     {
         using var fixture = TestChallengeFixture.Create(signupClosesAtUtc: "2026-06-09T22:00:00Z");
@@ -1892,6 +2000,50 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task ServerStatisticsCaptureCommitmentPaymentAndResolutionOutcomes()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await CreateCommitmentDueParticipantAsync(fixture, "stats-pay@example.com", "Stats Pay");
+
+        await fixture.Service.CreateCommitmentPaymentInvoiceAsync(access, DateTimeOffset.Parse("2026-06-13T09:01:00Z"));
+        fixture.Btcpay.LookupResults["lmx-invoice-1"] = new BtcpayInvoiceLookupResult(
+            true,
+            true,
+            "Settled",
+            null,
+            "25",
+            "USD",
+            "25",
+            25m,
+            25m,
+            "https://btcpay.example.test/i/lmx-invoice-1",
+            null,
+            null,
+            null,
+            null);
+
+        await fixture.Service.RefreshCommitmentPaymentStatusAsync(access, DateTimeOffset.Parse("2026-06-13T09:02:00Z"));
+
+        var dashboard = await fixture.Statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery
+        {
+            Range = "30d",
+            Flow = "challenge",
+            Limit = 100
+        });
+        var eventNames = dashboard.Events.Select(ev => ev.EventName).ToList();
+
+        Assert.Contains("challenge_commitment_payment_opened", eventNames);
+        Assert.Contains("challenge_commitment_payment_status_checked", eventNames);
+        Assert.Contains("challenge_commitment_resolved", eventNames);
+
+        var resolved = Assert.Single(dashboard.Events, ev => ev.EventName == "challenge_commitment_resolved");
+        Assert.Equal("payment", resolved.Metadata["resolutionSource"]);
+        Assert.Equal("5", resolved.Metadata["triggerChallengeDay"]);
+        Assert.False(resolved.Metadata.ContainsKey("amountUsd"));
+        Assert.False(resolved.Metadata.ContainsKey("owedAmountUsd"));
+    }
+
+    [Fact]
     public async Task CommitmentPaymentRequiresFullInvoiceAmountBeforeClearingBlock()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -2242,6 +2394,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             FakeBtcpayInvoiceClient btcpay,
             Config config,
             FakeEnvironment environment,
+            SiteStatisticsService statistics,
             LongevitymaxxingChallengeService service)
         {
             ContentRoot = root;
@@ -2252,6 +2405,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             Btcpay = btcpay;
             Config = config;
             Environment = environment;
+            Statistics = statistics;
             Service = service;
         }
 
@@ -2263,6 +2417,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         public FakeBtcpayInvoiceClient Btcpay { get; }
         public Config Config { get; }
         public FakeEnvironment Environment { get; }
+        public SiteStatisticsService Statistics { get; }
         public LongevitymaxxingChallengeService Service { get; }
 
         public static TestChallengeFixture Create(
@@ -2281,6 +2436,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             var athletes = new FakeAthleteSnapshotProvider();
             var btcpay = new FakeBtcpayInvoiceClient();
             var env = new FakeEnvironment(root);
+            var statistics = new SiteStatisticsService(db, NullLogger<SiteStatisticsService>.Instance);
             var config = new Config
             {
                 EmailFrom = "hi@example.test",
@@ -2310,8 +2466,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 email,
                 NullLogger<LongevitymaxxingChallengeService>.Instance,
                 athletes,
-                btcpay);
-            return new TestChallengeFixture(root, db, email, http, athletes, btcpay, config, env, service);
+                btcpay,
+                statistics);
+            return new TestChallengeFixture(root, db, email, http, athletes, btcpay, config, env, statistics, service);
         }
 
         public void AddAthleteTieBreak(string slug, int? currentPlacement, int birthYear, int birthMonth, int birthDay)

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using MimeKit;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
+using System.Diagnostics;
 using System.Globalization;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Headers;
@@ -23,12 +24,14 @@ namespace LongevityWorldCup.Website.Controllers
         IWebHostEnvironment environment,
         ILogger<HomeController> logger,
         DiscountSignupReportService? discountSignupReports = null,
-        IBtcpayInvoiceClient? btcpayInvoices = null) : ControllerBase
+        IBtcpayInvoiceClient? btcpayInvoices = null,
+        SiteStatisticsService? statistics = null) : ControllerBase
     {
         private readonly IWebHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
         private readonly ILogger<HomeController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly DiscountSignupReportService? _discountSignupReports = discountSignupReports;
         private readonly IBtcpayInvoiceClient? _btcpayInvoices = btcpayInvoices;
+        private readonly SiteStatisticsService? _statistics = statistics;
         private static readonly SemaphoreSlim PaidInvoiceNotificationFileLock = new(1, 1);
 
         private static readonly JsonSerializerOptions CachedJsonSerializerOptions = new()
@@ -172,19 +175,60 @@ namespace LongevityWorldCup.Website.Controllers
         [HttpPost("application")]
         public async Task<IActionResult> Application([FromBody] ApplicantData applicantData, CancellationToken ct)
         {
+            var startedAt = Stopwatch.GetTimestamp();
+            var submissionKind = "unknown";
+            bool? paymentRequiredForStats = null;
+
+            Task TrackSubmitFailedAsync(string errorCode)
+                => TrackApplicationSubmitEventAsync(
+                    outcome: "failed",
+                    submissionKind: submissionKind,
+                    paymentRequired: paymentRequiredForStats,
+                    errorCode: errorCode,
+                    durationMs: ElapsedMilliseconds(startedAt),
+                    metadata: null,
+                    ct: ct);
+
+            async Task<IActionResult> BadRequestWithStatsAsync(string errorCode, string message)
+            {
+                await TrackSubmitFailedAsync(errorCode).ConfigureAwait(false);
+                return BadRequest(message);
+            }
+
+            async Task<IActionResult> StatusCodeWithStatsAsync(int statusCode, string errorCode, string message)
+            {
+                await TrackSubmitFailedAsync(errorCode).ConfigureAwait(false);
+                return StatusCode(statusCode, message);
+            }
+
+            async Task<IActionResult> ProofBadRequestWithStatsAsync(string errorCode, string message, int? proofIndex = null)
+            {
+                await TrackApplicationProofEventAsync(
+                    outcome: "failed",
+                    submissionKind: submissionKind,
+                    proofCount: applicantData?.ProofPics?.Count ?? 0,
+                    errorCode: errorCode,
+                    proofIndex: proofIndex,
+                    durationMs: ElapsedMilliseconds(startedAt),
+                    ct: ct).ConfigureAwait(false);
+                await TrackSubmitFailedAsync(errorCode).ConfigureAwait(false);
+                return BadRequest(message);
+            }
+
             if (!ModelState.IsValid)
             {
+                await TrackSubmitFailedAsync("model_validation_failed").ConfigureAwait(false);
                 return ValidationProblem(ModelState);
             }
 
             if (applicantData == null)
             {
-                return BadRequest("Applicant data is null.");
+                return await BadRequestWithStatsAsync("missing_applicant_data", "Applicant data is null.").ConfigureAwait(false);
             }
 
             if (string.IsNullOrWhiteSpace(applicantData.Name))
             {
-                return BadRequest("Applicant name is required.");
+                return await BadRequestWithStatsAsync("missing_name", "Applicant name is required.").ConfigureAwait(false);
             }
 
             applicantData.ProofPics = applicantData.ProofPics?
@@ -193,7 +237,7 @@ namespace LongevityWorldCup.Website.Controllers
 
             if (applicantData.ProofPics?.Count > MaxProofImages)
             {
-                return BadRequest($"You can upload a maximum of {MaxProofImages} proof images.");
+                return await ProofBadRequestWithStatsAsync("too_many_proofs", $"You can upload a maximum of {MaxProofImages} proof images.").ConfigureAwait(false);
             }
 
             var hasSubmittedBiomarkers = applicantData.Biomarkers?.Any() is true;
@@ -220,6 +264,7 @@ namespace LongevityWorldCup.Website.Controllers
                 && applicantData.Biomarkers is null
                 && applicantData.ProofPics is null
                 && applicantData.DateOfBirth is null;
+            submissionKind = GetSubmissionKind(isResultSubmissionOnly, isEditSubmissionOnly);
 
             var submittedAccountEmail = applicantData.AccountEmail?.Trim();
             string? accountEmail = NormalizeOptionalAccountEmail(submittedAccountEmail);
@@ -227,19 +272,19 @@ namespace LongevityWorldCup.Website.Controllers
             string? chronoBortzDifference = applicantData.ChronoBortzDifference?.Trim();
             if (!isEditSubmissionOnly && !string.IsNullOrWhiteSpace(submittedAccountEmail) && accountEmail is null)
             {
-                return BadRequest("Account email is invalid.");
+                return await BadRequestWithStatsAsync("invalid_account_email", "Account email is invalid.").ConfigureAwait(false);
             }
 
             if (!isResultSubmissionOnly && hasOnlyResultSubmissionProfileFields && (hasSubmittedBiomarkers || hasSubmittedProofs))
             {
                 if (!hasSubmittedBiomarkers)
                 {
-                    return BadRequest("Biomarker data is required.");
+                    return await BadRequestWithStatsAsync("missing_biomarkers", "Biomarker data is required.").ConfigureAwait(false);
                 }
 
                 if (!hasSubmittedProofs)
                 {
-                    return BadRequest("Proof attachment is required.");
+                    return await ProofBadRequestWithStatsAsync("missing_proof", "Proof attachment is required.").ConfigureAwait(false);
                 }
             }
 
@@ -247,84 +292,84 @@ namespace LongevityWorldCup.Website.Controllers
             {
                 if (string.IsNullOrWhiteSpace(accountEmail))
                 {
-                    return BadRequest("Account email is required.");
+                    return await BadRequestWithStatsAsync("missing_account_email", "Account email is required.").ConfigureAwait(false);
                 }
 
                 if (applicantData.DateOfBirth is null)
                 {
-                    return BadRequest("Date of birth is required.");
+                    return await BadRequestWithStatsAsync("missing_date_of_birth", "Date of birth is required.").ConfigureAwait(false);
                 }
 
                 if (!IsValidDateOfBirth(applicantData.DateOfBirth))
                 {
                     if (IsFutureDateOfBirth(applicantData.DateOfBirth))
                     {
-                        return BadRequest("Date of birth cannot be in the future.");
+                        return await BadRequestWithStatsAsync("future_date_of_birth", "Date of birth cannot be in the future.").ConfigureAwait(false);
                     }
 
-                    return BadRequest("Date of birth is invalid.");
+                    return await BadRequestWithStatsAsync("invalid_date_of_birth", "Date of birth is invalid.").ConfigureAwait(false);
                 }
 
                 if (!hasSubmittedBiomarkers)
                 {
-                    return BadRequest("Biomarker data is required.");
+                    return await BadRequestWithStatsAsync("missing_biomarkers", "Biomarker data is required.").ConfigureAwait(false);
                 }
 
                 if (!hasSubmittedProofs)
                 {
-                    return BadRequest("Proof attachment is required.");
+                    return await ProofBadRequestWithStatsAsync("missing_proof", "Proof attachment is required.").ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(applicantData.ProfilePic))
                 {
-                    return BadRequest("Profile picture is required.");
+                    return await BadRequestWithStatsAsync("missing_profile_picture", "Profile picture is required.").ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(applicantData.Division))
                 {
-                    return BadRequest("Division is required.");
+                    return await BadRequestWithStatsAsync("missing_division", "Division is required.").ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(applicantData.Flag))
                 {
-                    return BadRequest("Flag is required.");
+                    return await BadRequestWithStatsAsync("missing_flag", "Flag is required.").ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(applicantData.Why))
                 {
-                    return BadRequest("Why is required.");
+                    return await BadRequestWithStatsAsync("missing_why", "Why is required.").ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(applicantData.MediaContact))
                 {
-                    return BadRequest("Media contact is required.");
+                    return await BadRequestWithStatsAsync("missing_media_contact", "Media contact is required.").ConfigureAwait(false);
                 }
             }
 
             if (applicantData.Biomarkers?.Any() is true && !HasRequiredBiomarkerDates(applicantData.Biomarkers))
             {
-                return BadRequest("Biomarker date is required.");
+                return await BadRequestWithStatsAsync("missing_biomarker_date", "Biomarker date is required.").ConfigureAwait(false);
             }
 
             if (applicantData.Biomarkers?.Any() is true && !HasValidBiomarkerDates(applicantData.Biomarkers))
             {
                 if (HasFutureBiomarkerDates(applicantData.Biomarkers))
                 {
-                    return BadRequest("Biomarker date cannot be in the future.");
+                    return await BadRequestWithStatsAsync("future_biomarker_date", "Biomarker date cannot be in the future.").ConfigureAwait(false);
                 }
 
-                return BadRequest("Biomarker date is invalid.");
+                return await BadRequestWithStatsAsync("invalid_biomarker_date", "Biomarker date is invalid.").ConfigureAwait(false);
             }
 
             if (applicantData.Biomarkers?.Any() is true && !HasRequiredBiomarkerValues(applicantData.Biomarkers))
             {
-                return BadRequest("Biomarker result value is required.");
+                return await BadRequestWithStatsAsync("missing_biomarker_value", "Biomarker result value is required.").ConfigureAwait(false);
             }
 
             if (applicantData.Biomarkers?.Any() is true
                 && !HasCompleteSubmittedBiomarkerResults(applicantData.Biomarkers, chronoPhenoDifference, chronoBortzDifference, out var biomarkerResultError))
             {
-                return BadRequest(biomarkerResultError);
+                return await BadRequestWithStatsAsync("incomplete_biomarker_results", biomarkerResultError).ConfigureAwait(false);
             }
 
             // Load SMTP configuration
@@ -336,12 +381,11 @@ namespace LongevityWorldCup.Website.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Application submission failed before processing because configuration could not be loaded.");
-                return StatusCode(500, $"Failed to load configuration: {ex.Message}");
+                return await StatusCodeWithStatsAsync(500, "config_load_failed", $"Failed to load configuration: {ex.Message}").ConfigureAwait(false);
             }
 
             var submissionId = NormalizeSubmissionId(applicantData.SubmissionId);
             applicantData.SubmissionId = submissionId;
-            var submissionKind = GetSubmissionKind(isResultSubmissionOnly, isEditSubmissionOnly);
             var proofLengths = GetDataUrlLengths(applicantData.ProofPics);
             var profilePicLength = GetDataUrlLength(applicantData.ProfilePic);
 
@@ -441,7 +485,7 @@ namespace LongevityWorldCup.Website.Controllers
                     submissionId,
                     submissionKind,
                     profilePicLength);
-                return BadRequest("The profile image could not be read. Please upload a smaller image and try again.");
+                return await BadRequestWithStatsAsync("invalid_profile_image", "The profile image could not be read. Please upload a smaller image and try again.").ConfigureAwait(false);
             }
 
             if (hasSubmittedProfileImage)
@@ -453,12 +497,12 @@ namespace LongevityWorldCup.Website.Controllers
                         "Application submission rejected because profile image could not be parsed. SubmissionId={SubmissionId} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
                         submissionId,
                         profilePicLength);
-                    return BadRequest("The profile image could not be read. Please upload a smaller image and try again.");
+                    return await BadRequestWithStatsAsync("profile_image_parse_failed", "The profile image could not be read. Please upload a smaller image and try again.").ConfigureAwait(false);
                 }
 
                 var profileImage = OptimizeProfileImage(parsedProfile, submissionId);
                 if (!profileImage.Success)
-                    return BadRequest(profileImage.ErrorMessage);
+                    return await BadRequestWithStatsAsync("profile_image_processing_failed", profileImage.ErrorMessage ?? "The profile image could not be processed.").ConfigureAwait(false);
 
                 await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, $"{folderKey}.{profileImage.Extension}"), profileImage.Bytes!, ct);
             }
@@ -477,12 +521,12 @@ namespace LongevityWorldCup.Website.Controllers
                             submissionId,
                             idx,
                             b64?.Length ?? 0);
-                        return BadRequest($"Proof image {idx} could not be read. Please upload a smaller image or PDF page and try again.");
+                        return await ProofBadRequestWithStatsAsync("proof_parse_failed", $"Proof image {idx} could not be read. Please upload a smaller image or PDF page and try again.", idx).ConfigureAwait(false);
                     }
 
                     var proofImage = OptimizeProofImage(parsedProof, submissionId, idx);
                     if (!proofImage.Success)
-                        return BadRequest(proofImage.ErrorMessage);
+                        return await ProofBadRequestWithStatsAsync("proof_processing_failed", proofImage.ErrorMessage ?? "Proof image could not be processed.", idx).ConfigureAwait(false);
 
                     if (proofImage.Bytes != null)
                     {
@@ -491,6 +535,15 @@ namespace LongevityWorldCup.Website.Controllers
                         idx++;
                     }
                 }
+
+                await TrackApplicationProofEventAsync(
+                    outcome: "succeeded",
+                    submissionKind: submissionKind,
+                    proofCount: applicantData.ProofPics.Count,
+                    errorCode: null,
+                    proofIndex: null,
+                    durationMs: ElapsedMilliseconds(startedAt),
+                    ct: ct).ConfigureAwait(false);
             }
 
             // 2) Zip the folder
@@ -577,6 +630,7 @@ namespace LongevityWorldCup.Website.Controllers
 
             var requestedAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
             var paymentRequired = requestedAmountUsd > 0m;
+            paymentRequiredForStats = paymentRequired;
             string? archivedSubmissionPath = null;
             var auditEmailDelivered = false;
 
@@ -600,7 +654,7 @@ namespace LongevityWorldCup.Website.Controllers
                         "Application submission email failed and archive could not be saved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind}",
                         submissionId,
                         submissionKind);
-                    return StatusCode(500, "Internal server error: application could not be saved.");
+                    return await StatusCodeWithStatsAsync(500, "application_archive_failed", "Internal server error: application could not be saved.").ConfigureAwait(false);
                 }
 
                 _logger.LogError(
@@ -652,6 +706,20 @@ namespace LongevityWorldCup.Website.Controllers
                         auditEmailDelivered,
                         archivedSubmissionPath);
 
+                    await TrackApplicationSubmitEventAsync(
+                        outcome: "succeeded",
+                        submissionKind: submissionKind,
+                        paymentRequired: false,
+                        errorCode: null,
+                        durationMs: ElapsedMilliseconds(startedAt),
+                        metadata: new Dictionary<string, object?>
+                        {
+                            ["proofCount"] = applicantData.ProofPics?.Count ?? 0,
+                            ["auditEmailDelivered"] = auditEmailDelivered,
+                            ["archivedFallback"] = archivedSubmissionPath is not null
+                        },
+                        ct: ct).ConfigureAwait(false);
+
                     return Ok(new
                     {
                         success = true,
@@ -702,6 +770,30 @@ namespace LongevityWorldCup.Website.Controllers
                         paymentUnavailable: true,
                         ct: ct);
 
+                    await TrackApplicationPaymentEventAsync(
+                        eventName: "payment_unavailable",
+                        outcome: "failed",
+                        submissionKind: submissionKind,
+                        paymentRequired: true,
+                        errorCode: "invoice_create_failed",
+                        durationMs: ElapsedMilliseconds(startedAt),
+                        ct: ct).ConfigureAwait(false);
+
+                    await TrackApplicationSubmitEventAsync(
+                        outcome: "succeeded",
+                        submissionKind: submissionKind,
+                        paymentRequired: true,
+                        errorCode: null,
+                        durationMs: ElapsedMilliseconds(startedAt),
+                        metadata: new Dictionary<string, object?>
+                        {
+                            ["proofCount"] = applicantData.ProofPics?.Count ?? 0,
+                            ["auditEmailDelivered"] = auditEmailDelivered,
+                            ["archivedFallback"] = archivedSubmissionPath is not null,
+                            ["paymentState"] = "unavailable"
+                        },
+                        ct: ct).ConfigureAwait(false);
+
                     return Ok(new
                     {
                         success = true,
@@ -744,6 +836,30 @@ namespace LongevityWorldCup.Website.Controllers
                     auditEmailDelivered,
                     archivedSubmissionPath);
 
+                await TrackApplicationPaymentEventAsync(
+                    eventName: "checkout_redirect_started",
+                    outcome: "succeeded",
+                    submissionKind: submissionKind,
+                    paymentRequired: true,
+                    errorCode: null,
+                    durationMs: ElapsedMilliseconds(startedAt),
+                    ct: ct).ConfigureAwait(false);
+
+                await TrackApplicationSubmitEventAsync(
+                    outcome: "succeeded",
+                    submissionKind: submissionKind,
+                    paymentRequired: true,
+                    errorCode: null,
+                    durationMs: ElapsedMilliseconds(startedAt),
+                    metadata: new Dictionary<string, object?>
+                    {
+                        ["proofCount"] = applicantData.ProofPics?.Count ?? 0,
+                        ["auditEmailDelivered"] = auditEmailDelivered,
+                        ["archivedFallback"] = archivedSubmissionPath is not null,
+                        ["paymentState"] = "checkout_created"
+                    },
+                    ct: ct).ConfigureAwait(false);
+
                 return Ok(new
                 {
                     success = true,
@@ -763,9 +879,134 @@ namespace LongevityWorldCup.Website.Controllers
                     string.Join(",", proofLengths),
                     profilePicLength,
                     zipSizeBytes);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return await StatusCodeWithStatsAsync(500, "application_processing_failed", $"Internal server error: {ex.Message}").ConfigureAwait(false);
             }
         }
+
+        private Task TrackApplicationSubmitEventAsync(
+            string outcome,
+            string submissionKind,
+            bool? paymentRequired,
+            string? errorCode,
+            long? durationMs,
+            IReadOnlyDictionary<string, object?>? metadata,
+            CancellationToken ct)
+        {
+            var eventMetadata = BuildApplicationStatsMetadata(submissionKind, paymentRequired, metadata);
+            return TrackApplicationEventAsync(
+                "application_submit_" + outcome,
+                component: "application",
+                step: "submit",
+                outcome: outcome,
+                errorCode: errorCode,
+                durationMs: durationMs,
+                metadata: eventMetadata,
+                ct: ct);
+        }
+
+        private Task TrackApplicationProofEventAsync(
+            string outcome,
+            string submissionKind,
+            int proofCount,
+            string? errorCode,
+            int? proofIndex,
+            long? durationMs,
+            CancellationToken ct)
+        {
+            var metadata = BuildApplicationStatsMetadata(
+                submissionKind,
+                paymentRequired: null,
+                new Dictionary<string, object?>
+                {
+                    ["proofCount"] = proofCount,
+                    ["proofIndex"] = proofIndex
+                });
+
+            return TrackApplicationEventAsync(
+                "proof_processing_" + outcome,
+                component: "proof",
+                step: "process",
+                outcome: outcome,
+                errorCode: errorCode,
+                durationMs: durationMs,
+                metadata: metadata,
+                ct: ct);
+        }
+
+        private Task TrackApplicationPaymentEventAsync(
+            string eventName,
+            string outcome,
+            string submissionKind,
+            bool paymentRequired,
+            string? errorCode,
+            long? durationMs,
+            CancellationToken ct)
+        {
+            var metadata = BuildApplicationStatsMetadata(
+                submissionKind,
+                paymentRequired,
+                new Dictionary<string, object?>
+                {
+                    ["paymentProvider"] = "btcpay"
+                });
+
+            return TrackApplicationEventAsync(
+                eventName,
+                component: "payment",
+                step: "checkout",
+                outcome: outcome,
+                errorCode: errorCode,
+                durationMs: durationMs,
+                metadata: metadata,
+                ct: ct);
+        }
+
+        private Task TrackApplicationEventAsync(
+            string eventName,
+            string component,
+            string step,
+            string outcome,
+            string? errorCode,
+            long? durationMs,
+            IReadOnlyDictionary<string, object?>? metadata,
+            CancellationToken ct)
+            => _statistics?.RecordServerEventAsync(
+                eventName,
+                HttpContext,
+                flow: "application",
+                route: Request?.Path.Value,
+                component: component,
+                step: step,
+                outcome: outcome,
+                errorCode: errorCode,
+                durationMs: durationMs,
+                metadata: metadata,
+                ct: ct) ?? Task.CompletedTask;
+
+        private static Dictionary<string, object?> BuildApplicationStatsMetadata(
+            string submissionKind,
+            bool? paymentRequired,
+            IReadOnlyDictionary<string, object?>? extra)
+        {
+            var metadata = new Dictionary<string, object?>
+            {
+                ["submissionKind"] = string.IsNullOrWhiteSpace(submissionKind) ? "unknown" : submissionKind
+            };
+
+            if (paymentRequired.HasValue)
+                metadata["paymentRequired"] = paymentRequired.Value;
+
+            if (extra is not null)
+            {
+                foreach (var (key, value) in extra)
+                    metadata[key] = value;
+            }
+
+            return metadata;
+        }
+
+        private static long ElapsedMilliseconds(long startTimestamp)
+            => (long)Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
 
         private static async Task<string> PersistApplicationSubmissionArchiveAsync(
             string zipPath,

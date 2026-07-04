@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Text.Json;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -35,8 +36,21 @@ public sealed class PlayAthleteFlowBrowserTests
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
         Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
 
+        var joinStatsRequestTask = page.WaitForRequestAsync(request =>
+            request.Url.Contains("/api/site-statistics/event", StringComparison.OrdinalIgnoreCase) &&
+            (request.PostData ?? string.Empty).Contains("\"eventName\":\"onboarding_entry_viewed\"", StringComparison.Ordinal));
         await page.Locator("#newGameBtn").ClickAsync();
         await page.WaitForURLAsync("**/join");
+        var joinStatsRequest = await joinStatsRequestTask;
+        using (var statsPayload = JsonDocument.Parse(joinStatsRequest.PostData ?? "{}"))
+        {
+            var root = statsPayload.RootElement;
+            Assert.Equal("onboarding_entry_viewed", root.GetProperty("eventName").GetString());
+            Assert.Equal("onboarding", root.GetProperty("flow").GetString());
+            Assert.Equal("/join", root.GetProperty("route").GetString());
+            Assert.Equal("join_game", root.GetProperty("component").GetString());
+            Assert.Equal("viewed", root.GetProperty("outcome").GetString());
+        }
         await ExpectActivePlayPanelAsync(page, "joinTrackPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/join", new Uri(page.Url).AbsolutePath);

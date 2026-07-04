@@ -7,7 +7,9 @@
         flow: "all",
         selectedFlow: "pheno",
         events: [],
+        defaultEvents: [],
         previousEvents: [],
+        previousDefaultEvents: [],
         decisionActions: [],
         selectedEventName: null,
         selectedSession: null,
@@ -198,11 +200,15 @@
             const payload = await response.json();
             state.events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
             state.previousEvents = Array.isArray(payload.previousEvents) ? payload.previousEvents.map(normalizeEvent) : [];
-            setStatus(`${uniqueSessions(state.events)} active sessions (${state.events.length} redacted events) and ${uniqueSessions(state.previousEvents)} comparison sessions loaded. Generated ${formatTime(payload.generatedAtUtc)}.`);
+            state.defaultEvents = collapseRepeatedPageViewBursts(state.events);
+            state.previousDefaultEvents = collapseRepeatedPageViewBursts(state.previousEvents);
+            setStatus(`${uniqueSessions(state.defaultEvents)} active sessions (${state.defaultEvents.length} default events from ${state.events.length} raw redacted events) and ${uniqueSessions(state.previousDefaultEvents)} comparison sessions loaded. Generated ${formatTime(payload.generatedAtUtc)}.`);
             renderAll();
         } catch (error) {
             state.events = [];
+            state.defaultEvents = [];
             state.previousEvents = [];
+            state.previousDefaultEvents = [];
             setStatus(`Dashboard data could not be loaded: ${error.message || "unknown error"}.`, true);
             renderAll();
         }
@@ -222,14 +228,16 @@
 
     function renderDataQuality() {
         const host = el("dataQualityStrip");
-        const active = decisionScopeEvents(state.events);
-        const previous = decisionScopeEvents(state.previousEvents);
-        const quality = dataQualityStats(active, previous);
+        const active = decisionScopeEvents(defaultEvents());
+        const previous = decisionScopeEvents(defaultPreviousEvents());
+        const rawActive = decisionScopeEvents(state.events);
+        const rawPrevious = decisionScopeEvents(state.previousEvents);
+        const quality = dataQualityStats(rawActive, rawPrevious);
         const cards = [
             {
                 label: "Sample size",
                 value: `${quality.sessions} sessions`,
-                detail: `${quality.events} redacted events`,
+                detail: `${active.length} default events from ${quality.events} raw`,
                 level: quality.sessions >= 10 ? "good" : quality.sessions >= 4 ? "warn" : ""
             },
             {
@@ -246,9 +254,9 @@
             },
             {
                 label: "Comparison baseline",
-                value: quality.previousSessions ? `${quality.previousSessions} sessions` : "pending",
-                detail: quality.previousSessions ? `${quality.previousEvents} previous events` : "trends should be read as sparse",
-                level: quality.previousSessions ? "good" : "warn"
+                value: uniqueSessions(previous) ? `${uniqueSessions(previous)} sessions` : "pending",
+                detail: uniqueSessions(previous) ? `${previous.length} default events from ${quality.previousEvents} raw` : "trends should be read as sparse",
+                level: uniqueSessions(previous) ? "good" : "warn"
             }
         ];
 
@@ -263,8 +271,8 @@
 
     function renderDecisionLayer() {
         state.decisionActions = [];
-        const active = decisionScopeEvents(state.events);
-        const previous = decisionScopeEvents(state.previousEvents);
+        const active = decisionScopeEvents(defaultEvents());
+        const previous = decisionScopeEvents(defaultPreviousEvents());
         const insights = buildDecisionInsights(active, previous).slice(0, 7);
         renderDecisionBrief(insights, active, previous);
         renderRecommendedInvestigations(insights, active);
@@ -604,7 +612,7 @@
         const previousSessions = new Set(previous.map(e => e.sessionHash));
         const dimensions = [
             ["device", e => e.deviceClass || "unknown"],
-            ["source", e => e.source || "direct"],
+            ["source", acquisitionSource],
             ["flow", e => flowLabel(e.flow || "site")],
             ["session", e => previousSessions.has(e.sessionHash) ? "returning" : "new"]
         ];
@@ -708,7 +716,7 @@
         state.selectedEventName = null;
         state.selectedSession = null;
         state.selectedLabel = label || "Decision evidence";
-        renderDrilldown(events && events.length ? events : decisionScopeEvents(state.events));
+        renderDrilldown(events && events.length ? events : decisionScopeEvents(defaultEvents()));
         el("drilldownTitle").scrollIntoView({ block: "nearest" });
     }
 
@@ -807,7 +815,7 @@
         host.innerHTML = "";
         if (state.tab !== "Onboarding") return;
         ["pheno", "bortz", "application"].forEach(flow => {
-            const events = state.events.filter(e => e.flow === flow || (flow === "application" && e.flow === "application"));
+            const events = defaultEvents().filter(e => e.flow === flow || (flow === "application" && e.flow === "application"));
             const started = uniqueSessionsFor(events, flow === "application" ? ["proof_flow_opened"] : ["calculator_started"]);
             const completed = uniqueSessionsFor(events, flow === "application" ? ["application_submit_succeeded"] : ["calculator_result_generated"]);
             const failed = uniqueSessions(frictionEvents(events));
@@ -915,9 +923,10 @@
         }
         if (state.tab === "Traffic") {
             host.innerHTML = [
-                detailPanel("Source quality", sourceQualityTable(events)),
+                detailPanel("Acquisition quality", sourceQualityTable(events)),
+                detailPanel("Campaigns", campaignTable(events)),
                 detailPanel("Device split", splitTable(events, e => e.deviceClass || "unknown")),
-                detailPanel("Referrers", splitTable(events, e => e.referrerDomain || e.source || "direct"))
+                detailPanel("First referrers", splitTable(events, e => e.firstReferrerDomain || e.referrerDomain || acquisitionSource(e)))
             ].join("");
             return;
         }
@@ -946,6 +955,7 @@
             return;
         }
         host.innerHTML = [
+            detailPanel("Calculator completion sources", calculatorCompletionSourceTable(events)),
             detailPanel("Calculator fields", fieldFrictionTable(events)),
             detailPanel("Proof upload", proofUploadTable(events)),
             detailPanel("Handoff integrity", handoffTable(events))
@@ -975,7 +985,7 @@
                 ${summaryItem("Sessions", sessions)}
                 ${summaryItem("Friction", failures)}
                 ${summaryItem("Median duration", median)}
-                ${summaryItem("Top source", mostCommon(events.map(e => e.source || "direct")))}
+                ${summaryItem("Top source", mostCommon(events.map(acquisitionSource)))}
                 ${summaryItem("Top device", mostCommon(events.map(e => e.deviceClass || "unknown")))}
                 ${summaryItem("Noisy sessions", quality.noisySessions)}
                 ${summaryItem("Burst groups", burstCount)}
@@ -1040,6 +1050,14 @@
         return scopeEventsFor(events, state.tab, state.selectedFlow);
     }
 
+    function defaultEvents() {
+        return state.defaultEvents;
+    }
+
+    function defaultPreviousEvents() {
+        return state.previousDefaultEvents;
+    }
+
     function scopeEventsFor(events, tab, selectedFlow) {
         events = events.slice();
         if (tab === "Onboarding") {
@@ -1058,11 +1076,22 @@
     }
 
     function scopedEvents() {
+        return scopeEventsFor(defaultEvents(), state.tab, state.selectedFlow);
+    }
+
+    function rawScopedEvents() {
         return scopeEventsFor(state.events, state.tab, state.selectedFlow);
     }
 
     function selectedEvents() {
         let events = scopedEvents();
+        if (state.selectedEventName) events = events.filter(e => e.eventName === state.selectedEventName);
+        if (state.selectedSession) events = events.filter(e => e.sessionHash === state.selectedSession);
+        return events;
+    }
+
+    function selectedRawEvents() {
+        let events = rawScopedEvents();
         if (state.selectedEventName) events = events.filter(e => e.eventName === state.selectedEventName);
         if (state.selectedSession) events = events.filter(e => e.sessionHash === state.selectedSession);
         return events;
@@ -1117,6 +1146,58 @@
         return ["site_page_viewed", "onboarding_entry_viewed", "onboarding_page_viewed", "challenge_page_viewed"].includes(event.eventName);
     }
 
+    function collapseRepeatedPageViewBursts(events) {
+        const collapsed = [];
+        const pageViewsByRoute = new Map();
+        events.slice().sort((a, b) => a.time - b.time).forEach(event => {
+            if (!isPageViewEvent(event)) {
+                collapsed.push(event);
+                return;
+            }
+
+            const key = [event.sessionHash, event.route || ""].join("|");
+            const existing = pageViewsByRoute.get(key);
+            if (!existing) {
+                const copy = Object.assign({}, event, {
+                    collapsedCount: 1,
+                    collapsedFirstTime: event.time || 0,
+                    collapsedLastTime: event.time || 0,
+                    collapsedPageViewPriority: pageViewPriority(event)
+                });
+                pageViewsByRoute.set(key, copy);
+                collapsed.push(copy);
+                return;
+            }
+
+            existing.collapsedCount += 1;
+            if (pageViewPriority(event) > existing.collapsedPageViewPriority) {
+                existing.eventName = event.eventName;
+                existing.flow = event.flow;
+                existing.component = event.component;
+                existing.step = event.step;
+                existing.outcome = event.outcome;
+                existing.errorCode = event.errorCode;
+                existing.collapsedPageViewPriority = pageViewPriority(event);
+            }
+            if ((event.time || 0) >= existing.collapsedLastTime) {
+                existing.collapsedLastTime = event.time || 0;
+                existing.time = event.time;
+                existing.occurredAtUtc = event.occurredAtUtc;
+                existing.durationMs = event.durationMs;
+            }
+        });
+
+        return collapsed.sort((a, b) => b.time - a.time);
+    }
+
+    function pageViewPriority(event) {
+        if (event.eventName === "challenge_page_viewed") return 4;
+        if (event.eventName === "onboarding_entry_viewed") return 3;
+        if (event.eventName === "onboarding_page_viewed") return 3;
+        if (event.eventName === "site_page_viewed") return 1;
+        return 0;
+    }
+
     function collapseEventBursts(events, sequential) {
         const sorted = events.slice().sort((a, b) => a.time - b.time);
         if (sequential) {
@@ -1156,13 +1237,14 @@
     }
 
     function createBurst(key, event) {
+        const count = event.collapsedCount || 1;
         return {
             key,
-            count: 1,
+            count,
             first: event,
             last: event,
-            firstTime: event.time || 0,
-            lastTime: event.time || 0,
+            firstTime: event.collapsedFirstTime || event.time || 0,
+            lastTime: event.collapsedLastTime || event.time || 0,
             sessionHash: event.sessionHash,
             eventName: event.eventName,
             flow: event.flow,
@@ -1175,14 +1257,17 @@
     }
 
     function addToBurst(group, event) {
-        group.count += 1;
-        if ((event.time || 0) < group.firstTime) {
+        const count = event.collapsedCount || 1;
+        const firstTime = event.collapsedFirstTime || event.time || 0;
+        const lastTime = event.collapsedLastTime || event.time || 0;
+        group.count += count;
+        if (firstTime < group.firstTime) {
             group.first = event;
-            group.firstTime = event.time || 0;
+            group.firstTime = firstTime;
         }
-        if ((event.time || 0) >= group.lastTime) {
+        if (lastTime >= group.lastTime) {
             group.last = event;
-            group.lastTime = event.time || 0;
+            group.lastTime = lastTime;
         }
     }
 
@@ -1324,17 +1409,199 @@
         return new Set(filtered.map(e => e.sessionHash)).size;
     }
 
+    function metadataValue(event, key) {
+        if (!event || !event.metadata || !Object.prototype.hasOwnProperty.call(event.metadata, key)) return "";
+        return String(event.metadata[key] || "");
+    }
+
+    function calculatorEntryMode(event) {
+        return metadataValue(event, "entryMode") || "standard";
+    }
+
+    function completionSource(event) {
+        return metadataValue(event, "completionSource") || "legacy";
+    }
+
+    function completionSourceLabel(source) {
+        const normalized = String(source || "legacy").toLowerCase();
+        if (normalized === "pageshow") return "page restore";
+        return normalized || "legacy";
+    }
+
+    function isAutomaticCompletion(event) {
+        const source = completionSource(event).toLowerCase();
+        return source === "initial" || source === "autofill" || source === "pageshow";
+    }
+
+    function isLateCompletion(event) {
+        const source = completionSource(event).toLowerCase();
+        return source === "submit" || source === "result";
+    }
+
+    function isManualCompletion(event) {
+        const source = completionSource(event).toLowerCase();
+        return source === "change" || source === "input";
+    }
+
+    function completionSourceClass(source) {
+        source = String(source || "legacy").toLowerCase();
+        if (source === "initial" || source === "autofill" || source === "pageshow" || source === "page restore") return "auto";
+        if (source === "submit" || source === "result") return "late";
+        if (source === "change" || source === "input") return "manual";
+        return "legacy";
+    }
+
+    function firstEntryMode(events) {
+        return events.map(calculatorEntryMode).find(mode => mode && mode !== "standard") || "standard";
+    }
+
+    function calculatorCompletionSourceTable(events) {
+        const completions = events.filter(e => e.eventName === "calculator_field_completed");
+        if (!completions.length) return empty("No calculator completion-source events yet.");
+
+        const eventsBySession = groupBy(events, e => e.sessionHash);
+        const sessions = Array.from(groupBy(completions, e => e.sessionHash).entries()).map(([sessionHash, items]) => {
+            const sessionEvents = eventsBySession.get(sessionHash) || items;
+            return {
+                entryMode: firstEntryMode(sessionEvents.concat(items)),
+                source: completionSourceLabel(mostCommon(items.map(completionSource))),
+                flow: mostCommon(sessionEvents.map(e => e.flow || "site")),
+                fields: items.length,
+                allFields: sessionEvents.some(e => e.eventName === "calculator_all_required_fields_completed"),
+                result: sessionEvents.some(e => e.eventName === "calculator_result_generated")
+            };
+        });
+
+        const rows = Array.from(groupBy(sessions, s => `${s.entryMode}|${s.source}`).entries())
+            .map(([key, items]) => {
+                const [entryMode, source] = key.split("|");
+                const fields = items.reduce((sum, item) => sum + item.fields, 0);
+                return {
+                    entryMode,
+                    source,
+                    sessions: items.length,
+                    fields,
+                    allFields: items.filter(item => item.allFields).length,
+                    results: items.filter(item => item.result).length,
+                    flow: flowLabel(mostCommon(items.map(item => item.flow)))
+                };
+            })
+            .sort((a, b) => b.results - a.results || b.sessions - a.sessions || b.fields - a.fields)
+            .slice(0, 12);
+
+        const maxFields = Math.max(1, ...rows.map(row => row.fields));
+        return `
+            <div class="source-visual-list">
+                ${completionLegend()}
+                ${rows.map(row => {
+                    const sourceClass = completionSourceClass(row.source);
+                    return `
+                        <div class="source-visual-row">
+                            <div class="source-identity">
+                                <strong>${esc(row.entryMode)} / ${esc(row.source)}</strong>
+                                <span>
+                                    <span class="source-pill entry">${esc(row.entryMode)}</span>
+                                    <span class="source-pill ${escAttr(sourceClass)}">${esc(row.source)}</span>
+                                    <span class="source-pill flow">${esc(row.flow)}</span>
+                                </span>
+                            </div>
+                            <div class="visual-meter" title="${escAttr(`${row.fields} completed required fields`)}">
+                                <span class="visual-meter-fill ${escAttr(sourceClass)}" style="width:${barWidth(row.fields, maxFields)}%"></span>
+                            </div>
+                            <div class="source-metrics">
+                                ${metricChip(row.sessions, "sessions")}
+                                ${metricChip(row.fields, "fields")}
+                                ${metricChip(row.allFields, "all")}
+                                ${metricChip(row.results, "results")}
+                            </div>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+        `;
+    }
+
     function fieldFrictionTable(events) {
         const relevant = events.filter(e => /^calculator_field_|calculator_validation_failed/.test(e.eventName));
         if (!relevant.length) return empty("No calculator field events yet.");
-        const rows = Array.from(groupBy(relevant, e => e.step || "unknown").entries()).map(([field, items]) => ({
-            field,
-            touched: countMatching(items, ["calculator_field_touched"]),
-            completed: countMatching(items, ["calculator_field_completed"]),
-            failed: countMatching(items, ["calculator_validation_failed"]),
-            topError: mostCommon(items.map(i => i.errorCode || i.outcome || "-"))
-        })).sort((a, b) => b.failed - a.failed || b.touched - a.touched).slice(0, 12);
-        return table(["Field", "Touched", "Done", "Failed", "Top error"], rows.map(r => [r.field, r.touched, r.completed, r.failed, r.topError]));
+        const rows = Array.from(groupBy(relevant, e => e.step || "unknown").entries()).map(([field, items]) => {
+            const completions = items.filter(e => e.eventName === "calculator_field_completed");
+            const auto = completions.filter(isAutomaticCompletion).length;
+            const late = completions.filter(isLateCompletion).length;
+            const manual = completions.filter(isManualCompletion).length;
+            const failed = countMatching(items, ["calculator_validation_failed"]);
+            return {
+                field,
+                touched: countMatching(items, ["calculator_field_touched"]),
+                completed: completions.length,
+                manual,
+                auto,
+                late,
+                legacy: Math.max(0, completions.length - manual - auto - late),
+                failed,
+                top: failed
+                    ? mostCommon(items.filter(i => i.eventName === "calculator_validation_failed").map(i => i.errorCode || i.outcome || "-"))
+                    : mostCommon(completions.map(e => completionSourceLabel(completionSource(e))))
+            };
+        }).sort((a, b) => b.failed - a.failed || b.late - a.late || b.auto - a.auto || b.touched - a.touched).slice(0, 12);
+        return `
+            <div class="field-visual-list">
+                ${completionLegend(true)}
+                ${rows.map(row => {
+                    const total = Math.max(1, row.manual + row.auto + row.late + row.legacy + row.failed);
+                    return `
+                        <div class="field-visual-row">
+                            <div class="field-visual-head">
+                                <strong>${esc(row.field)}</strong>
+                                <span>${esc(row.top)}</span>
+                            </div>
+                            <div class="stacked-bar" title="${escAttr(`${row.completed} completed, ${row.failed} failed`)}">
+                                ${barSegment(row.manual, total, "manual", "manual")}
+                                ${barSegment(row.auto, total, "auto", "auto")}
+                                ${barSegment(row.late, total, "late", "late")}
+                                ${barSegment(row.legacy, total, "legacy", "legacy")}
+                                ${barSegment(row.failed, total, "failed", "failed")}
+                            </div>
+                            <div class="field-metrics">
+                                ${metricChip(row.touched, "touch")}
+                                ${metricChip(row.completed, "done")}
+                                ${metricChip(row.auto, "auto")}
+                                ${metricChip(row.late, "late")}
+                                ${metricChip(row.failed, "fail")}
+                            </div>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+        `;
+    }
+
+    function completionLegend(includeFailed) {
+        const entries = [
+            ["manual", "Manual"],
+            ["auto", "Auto"],
+            ["late", "Late"],
+            ["legacy", "Legacy"]
+        ];
+        if (includeFailed) entries.push(["failed", "Failed"]);
+        return `<div class="visual-legend">${entries.map(([key, label]) => `<span><i class="${escAttr(key)}"></i>${esc(label)}</span>`).join("")}</div>`;
+    }
+
+    function metricChip(value, label) {
+        return `<span class="metric-chip"><strong>${esc(String(value))}</strong>${esc(label)}</span>`;
+    }
+
+    function barWidth(value, total) {
+        value = Number(value) || 0;
+        total = Math.max(1, Number(total) || 1);
+        if (value <= 0) return 0;
+        return Math.max(4, Math.round((value / total) * 100));
+    }
+
+    function barSegment(value, total, className, label) {
+        value = Number(value) || 0;
+        if (value <= 0) return "";
+        return `<span class="${escAttr(className)}" style="width:${barWidth(value, total)}%" title="${escAttr(`${value} ${label}`)}"></span>`;
     }
 
     function proofUploadTable(events) {
@@ -1361,7 +1628,7 @@
     }
 
     function sourceQualityTable(events) {
-        const rows = Array.from(groupBy(events, e => e.source || "direct").entries()).map(([source, items]) => {
+        const rows = Array.from(groupBy(events, acquisitionSource).entries()).map(([source, items]) => {
             const results = uniqueSessionsFor(items, ["calculator_result_generated"]);
             const applications = uniqueSessionsFor(items, ["application_submit_succeeded"]);
             const challenge = uniqueSessionsFor(items, ["challenge_scored_checkin_submitted"]);
@@ -1369,6 +1636,21 @@
             return [source, uniqueSessions(items), results, applications, challenge, quality];
         }).sort((a, b) => b[5] - a[5]);
         return table(["Source", "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
+    }
+
+    function campaignTable(events) {
+        const rows = Array.from(groupBy(events, campaignLabel).entries())
+            .filter(([campaign]) => campaign !== "none")
+            .map(([campaign, items]) => [
+                campaign,
+                uniqueSessions(items),
+                mostCommon(items.map(acquisitionSource)),
+                uniqueSessionsFor(items, ["calculator_result_generated"]),
+                uniqueSessionsFor(items, ["application_submit_succeeded", "challenge_signup_succeeded"])
+            ])
+            .sort((a, b) => b[1] - a[1] || b[4] - a[4])
+            .slice(0, 12);
+        return rows.length ? table(["Campaign", "Sessions", "Top source", "Results", "Conversions"], rows) : empty("No campaign-tagged sessions yet.");
     }
 
     function slowStepTable(events) {
@@ -1391,7 +1673,7 @@
     function groupedTable(events, names) {
         const rows = names.map(name => {
             const items = events.filter(e => e.eventName === name);
-            return [name, items.length, new Set(items.map(i => i.sessionHash)).size, mostCommon(items.map(i => i.source || "direct"))];
+            return [name, items.length, new Set(items.map(i => i.sessionHash)).size, mostCommon(items.map(acquisitionSource))];
         }).filter(r => r[1] > 0);
         return rows.length ? table(["Event", "Events", "Sessions", "Top source"], rows) : empty("No matching events yet.");
     }
@@ -1423,6 +1705,15 @@
             sessionHash: event.sessionHash || "S-UNKNOWN",
             referrerDomain,
             source: effectiveSource(event.source, referrerDomain),
+            landingRoute: event.landingRoute || "",
+            firstReferrerDomain: event.firstReferrerDomain || "",
+            firstSource: effectiveSource(event.firstSource || event.source, event.firstReferrerDomain || referrerDomain),
+            firstCampaign: event.firstCampaign || "",
+            firstUtmSource: event.firstUtmSource || "",
+            firstUtmMedium: event.firstUtmMedium || "",
+            firstUtmCampaign: event.firstUtmCampaign || "",
+            firstUtmTerm: event.firstUtmTerm || "",
+            firstUtmContent: event.firstUtmContent || "",
             metadata: event.metadata || {},
             time: Date.parse(event.occurredAtUtc || "") || 0
         });
@@ -1431,6 +1722,17 @@
     function effectiveSource(source, referrerDomain) {
         if (isInternalReferrer(referrerDomain)) return "internal";
         return source || "direct";
+    }
+
+    function acquisitionSource(event) {
+        return event.firstSource || event.source || "direct";
+    }
+
+    function campaignLabel(event) {
+        return event.firstCampaign
+            || event.firstUtmCampaign
+            || event.firstUtmSource
+            || "none";
     }
 
     function isInternalReferrer(referrerDomain) {
@@ -1538,8 +1840,8 @@
     }
 
     function exportCsv() {
-        const events = selectedEvents();
-        const headers = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source"];
+        const events = selectedRawEvents();
+        const headers = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source", "landingRoute", "firstReferrerDomain", "firstSource", "firstCampaign", "firstUtmSource", "firstUtmMedium", "firstUtmCampaign", "firstUtmTerm", "firstUtmContent"];
         const lines = [headers.join(",")].concat(events.map(e => headers.map(h => csv(e[h])).join(",")));
         const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
