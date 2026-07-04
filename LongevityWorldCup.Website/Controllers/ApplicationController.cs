@@ -86,7 +86,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         private const int MaxBase64Length = 10 * 1024 * 1024; // 10 MB
-        private const int MaxProofImages = 30;
+        private const int MaxProofImages = 35;
         private const int ProfileImageMaxDimension = 2048;
         private const int ProofImageMaxDimension = 2560;
         private const int ExistingWebpProfilePassthroughBytes = 4 * 1024 * 1024;
