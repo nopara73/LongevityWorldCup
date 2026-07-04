@@ -168,6 +168,7 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.GetByRole(AriaRole.Button, new() { Name = "Edit profile" }).ClickAsync();
         await page.WaitForURLAsync("**/edit-profile");
         Assert.Equal("/edit-profile", new Uri(page.Url).AbsolutePath);
+        await page.WaitForFunctionAsync("() => document.querySelector('#character-title')?.textContent?.trim() === 'Browser Test Athlete'");
         Assert.Equal("Browser Test Athlete", await page.Locator("#character-title").InnerTextAsync());
         await page.WaitForFunctionAsync("() => document.querySelector('#divisionDisplaySelect')?.value === 'Open'");
         Assert.Equal("Open", await page.Locator("#divisionDisplaySelect").InputValueAsync());

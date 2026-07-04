@@ -239,6 +239,120 @@ public sealed class SiteStatisticsServiceTests
     }
 
     [Fact]
+    public async Task Dashboard_AllowsExplicitFirstTouchToCorrectServerFallback()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var serverContext = new DefaultHttpContext();
+        serverContext.Request.Headers["X-LWC-Stats-Session"] = "race-session";
+        serverContext.Request.Headers.Referer = "https://www.longevityworldcup.com/join";
+        serverContext.Request.Path = "/api/application/application";
+
+        await service.RecordServerEventAsync(
+            "application_submit_accepted",
+            serverContext,
+            flow: "application",
+            route: "/api/application/application",
+            component: "application",
+            outcome: "accepted");
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "site_page_viewed",
+            SessionId = "race-session",
+            Flow = "onboarding",
+            Route = "/join?utm_source=google&utm_medium=cpc&utm_campaign=summer2026&campaign=summer-launch",
+            ReferrerDomain = "www.google.com",
+            Source = "search",
+            LandingRoute = "/join?utm_source=google&utm_medium=cpc&utm_campaign=summer2026&campaign=summer-launch",
+            FirstReferrerDomain = "www.google.com",
+            FirstSource = "search",
+            FirstCampaign = "summer-launch",
+            FirstUtmSource = "google",
+            FirstUtmMedium = "cpc",
+            FirstUtmCampaign = "summer2026"
+        }, new DefaultHttpContext());
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d" });
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.All(dashboard.Events, ev =>
+        {
+            Assert.Equal("search", ev.FirstSource);
+            Assert.Equal("www.google.com", ev.FirstReferrerDomain);
+            Assert.Equal("google", ev.FirstUtmSource);
+            Assert.Equal("cpc", ev.FirstUtmMedium);
+            Assert.Equal("summer2026", ev.FirstUtmCampaign);
+            Assert.Equal("summer-launch", ev.FirstCampaign);
+            Assert.Equal("/join?utm_source=redacted&utm_medium=redacted&utm_campaign=redacted&campaign=redacted", ev.LandingRoute);
+        });
+
+        var serverEvent = Assert.Single(dashboard.Events, ev => ev.EventName == "application_submit_accepted");
+        Assert.Equal("internal", serverEvent.Source);
+        Assert.Equal("search", serverEvent.FirstSource);
+
+        var searchOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "search" });
+        Assert.Equal(2, searchOnly.Events.Count);
+
+        var internalOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "internal" });
+        Assert.Empty(internalOnly.Events);
+    }
+
+    [Fact]
+    public async Task Dashboard_AllowsExplicitDirectFirstTouchToClearServerReferrerFallback()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var serverContext = new DefaultHttpContext();
+        serverContext.Request.Headers["X-LWC-Stats-Session"] = "direct-race-session";
+        serverContext.Request.Headers.Referer = "https://www.longevityworldcup.com/join";
+        serverContext.Request.Path = "/api/application/application";
+
+        await service.RecordServerEventAsync(
+            "application_submit_accepted",
+            serverContext,
+            flow: "application",
+            route: "/api/application/application",
+            component: "application",
+            outcome: "accepted");
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "site_page_viewed",
+            SessionId = "direct-race-session",
+            Flow = "onboarding",
+            Route = "/join",
+            Source = "direct",
+            LandingRoute = "/join",
+            FirstSource = "direct"
+        }, new DefaultHttpContext());
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d" });
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.All(dashboard.Events, ev =>
+        {
+            Assert.Equal("direct", ev.FirstSource);
+            Assert.Null(ev.FirstReferrerDomain);
+            Assert.Equal("/join", ev.LandingRoute);
+        });
+
+        var serverEvent = Assert.Single(dashboard.Events, ev => ev.EventName == "application_submit_accepted");
+        Assert.Equal("internal", serverEvent.Source);
+        Assert.Equal("direct", serverEvent.FirstSource);
+
+        var directOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "direct" });
+        Assert.Equal(2, directOnly.Events.Count);
+
+        var internalOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "internal" });
+        Assert.Empty(internalOnly.Events);
+    }
+
+    [Fact]
     public async Task Dashboard_ClassifiesCampaignTaggedDirectLandingAsCampaign()
     {
         var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
