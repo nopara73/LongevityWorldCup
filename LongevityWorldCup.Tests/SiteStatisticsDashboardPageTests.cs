@@ -134,6 +134,24 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("trackPublicPageViews", tracker);
     }
 
+    [Fact]
+    public void SiteStatisticsTracker_RecordsPrefilledCalculatorProgress()
+    {
+        var repoRoot = FindRepoRoot();
+        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
+
+        Assert.Contains("function fieldHasRequiredValue(el)", tracker);
+        Assert.Contains("function recordFieldCompletion(el, source)", tracker);
+        Assert.Contains("function scanRequiredFields(source)", tracker);
+        Assert.Contains("scanRequiredFields(\"initial\")", tracker);
+        Assert.Contains("scanRequiredFields(\"autofill\")", tracker);
+        Assert.Contains("scanRequiredFields(\"submit\")", tracker);
+        Assert.Contains("scanRequiredFields(\"result\")", tracker);
+        Assert.Contains("completionSource", tracker);
+        Assert.Contains("listen(form, \"input\"", tracker);
+        Assert.Contains("listen(window, \"pageshow\"", tracker);
+    }
+
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")
     {
         var dir = Path.GetDirectoryName(sourceFilePath)!;

@@ -425,7 +425,66 @@
         const form = document.getElementById("phenoAgeForm") || document.getElementById("bortzAgeForm");
         if (!form) return;
 
+        const required = Array.from(form.querySelectorAll("input[required], select[required], textarea[required]"));
+
+        function fieldHasRequiredValue(el) {
+            if (!el) return false;
+            if (el.type === "checkbox" || el.type === "radio") return !!el.checked;
+            return String(el.value || "").trim().length > 0;
+        }
+
+        function requiredProgressThreshold() {
+            const pct = required.length ? Math.floor((completedFields.size / required.length) * 100) : 0;
+            return pct >= 100 ? 100 : pct >= 75 ? 75 : pct >= 50 ? 50 : pct >= 25 ? 25 : 0;
+        }
+
+        function recordRequiredProgress(source) {
+            const threshold = requiredProgressThreshold();
+            if (threshold <= lastRequiredProgress) return;
+
+            lastRequiredProgress = threshold;
+            track("calculator_required_progress_changed", {
+                component: "calculator",
+                step: "required_fields",
+                outcome: "progress",
+                metadata: {
+                    progressBucket: String(threshold),
+                    completionSource: source
+                }
+            });
+            if (threshold === 100) {
+                track("calculator_all_required_fields_completed", {
+                    component: "calculator",
+                    outcome: "completed",
+                    metadata: { completionSource: source }
+                });
+            }
+        }
+
+        function recordFieldCompletion(el, source) {
+            const key = safeFieldKey(el);
+            if (!fieldHasRequiredValue(el) || completedFields.has(key)) return false;
+
+            completedFields.add(key);
+            track("calculator_field_completed", {
+                component: "calculator",
+                step: key,
+                outcome: "completed",
+                metadata: { completionSource: source }
+            });
+            return true;
+        }
+
+        function scanRequiredFields(source) {
+            let changed = false;
+            required.forEach(el => {
+                if (recordFieldCompletion(el, source)) changed = true;
+            });
+            if (changed || completedFields.size > 0) recordRequiredProgress(source);
+        }
+
         listen(form, "submit", () => {
+            scanRequiredFields("submit");
             track("calculator_started", { component: "calculator", outcome: "submitted" });
         }, true);
 
@@ -438,7 +497,13 @@
             });
         }, true);
 
-        const required = Array.from(form.querySelectorAll("input[required], select[required], textarea[required]"));
+        listen(form, "input", event => {
+            if (event && required.includes(event.target)) {
+                recordFieldCompletion(event.target, "input");
+                recordRequiredProgress("input");
+            }
+        }, true);
+
         required.forEach(el => {
             listen(el, "focus", () => {
                 const key = safeFieldKey(el);
@@ -448,27 +513,16 @@
             }, { passive: true });
 
             listen(el, "change", () => {
-                const key = safeFieldKey(el);
-                if (el.value && !completedFields.has(key)) {
-                    completedFields.add(key);
-                    track("calculator_field_completed", { component: "calculator", step: key, outcome: "completed" });
-                }
-                const pct = required.length ? Math.floor((completedFields.size / required.length) * 100) : 0;
-                const threshold = pct >= 100 ? 100 : pct >= 75 ? 75 : pct >= 50 ? 50 : pct >= 25 ? 25 : 0;
-                if (threshold > lastRequiredProgress) {
-                    lastRequiredProgress = threshold;
-                    track("calculator_required_progress_changed", {
-                        component: "calculator",
-                        step: "required_fields",
-                        outcome: "progress",
-                        metadata: { progressBucket: String(threshold) }
-                    });
-                    if (threshold === 100) {
-                        track("calculator_all_required_fields_completed", { component: "calculator", outcome: "completed" });
-                    }
-                }
+                recordFieldCompletion(el, "change");
+                recordRequiredProgress("change");
             }, { passive: true });
         });
+
+        scanRequiredFields("initial");
+        [250, 1000, 2500].forEach(delay => {
+            setTimeout(() => safe(() => scanRequiredFields("autofill")), delay);
+        });
+        listen(window, "pageshow", () => scanRequiredFields("pageshow"));
 
         const result = document.getElementById("phenoAgeResult") || document.getElementById("bortzAgeResult");
         const rank = document.getElementById("phenoAgeRankPreview") || document.getElementById("bortzAgeRankPreview");
@@ -487,6 +541,7 @@
             const observer = new MutationObserver(() => {
                 safe(() => {
                     if (!result.classList.contains("show")) return;
+                    scanRequiredFields("result");
                     const yearsText = document.getElementById("yearsText");
                     trackOnce(`result-${flowFromPath()}`, "calculator_result_generated", {
                         component: "calculator",
