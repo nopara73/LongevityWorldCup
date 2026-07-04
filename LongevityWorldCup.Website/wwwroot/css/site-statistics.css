@@ -642,7 +642,7 @@ select:focus,
 
 .detail-sections {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 14px;
 }
 
@@ -652,6 +652,167 @@ select:focus,
     background: rgba(17, 22, 29, 0.9);
     padding: 13px;
     min-width: 0;
+}
+
+.source-visual-list,
+.field-visual-list {
+    display: grid;
+    gap: 8px;
+}
+
+.visual-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    align-items: center;
+    color: var(--dim);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.visual-legend span {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.visual-legend i {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--dim);
+}
+
+.visual-legend i.manual,
+.stacked-bar .manual,
+.visual-meter-fill.manual,
+.source-pill.manual {
+    background: var(--cyan);
+}
+
+.visual-legend i.auto,
+.stacked-bar .auto,
+.visual-meter-fill.auto,
+.source-pill.auto {
+    background: var(--green);
+}
+
+.visual-legend i.late,
+.stacked-bar .late,
+.visual-meter-fill.late,
+.source-pill.late {
+    background: var(--amber);
+}
+
+.visual-legend i.legacy,
+.stacked-bar .legacy,
+.visual-meter-fill.legacy,
+.source-pill.legacy {
+    background: var(--blue);
+}
+
+.visual-legend i.failed,
+.stacked-bar .failed,
+.source-pill.failed {
+    background: var(--red);
+}
+
+.source-visual-row,
+.field-visual-row {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.035);
+    padding: 8px;
+    display: grid;
+    gap: 8px;
+}
+
+.source-visual-row {
+    grid-template-columns: minmax(100px, 0.95fr) minmax(72px, 0.75fr) minmax(96px, 0.9fr);
+    align-items: center;
+}
+
+.source-identity,
+.field-visual-head {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.source-identity strong,
+.field-visual-head strong {
+    font-size: 12px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.source-identity > span,
+.source-metrics,
+.field-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+    min-width: 0;
+}
+
+.source-pill,
+.metric-chip {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    min-height: 22px;
+    padding: 3px 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #080a0e;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.source-pill.entry,
+.source-pill.flow,
+.metric-chip {
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.metric-chip strong {
+    color: var(--text);
+}
+
+.visual-meter,
+.stacked-bar {
+    min-width: 0;
+    height: 12px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.visual-meter-fill,
+.stacked-bar span {
+    display: block;
+    flex: 0 1 auto;
+    height: 100%;
+    min-width: 2px;
+}
+
+.stacked-bar {
+    display: flex;
+}
+
+.field-visual-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.field-visual-head span {
+    color: var(--dim);
+    font-size: 10px;
 }
 
 .compact-table {
@@ -1075,6 +1236,29 @@ select:focus,
         min-height: 64px;
         padding: 8px;
     }
+
+    .source-visual-list,
+    .field-visual-list {
+        gap: 6px;
+    }
+
+    .source-visual-row,
+    .field-visual-row {
+        gap: 6px;
+        padding: 7px;
+    }
+
+    .source-pill,
+    .metric-chip {
+        min-height: 19px;
+        padding: 2px 6px;
+        font-size: 9px;
+    }
+
+    .visual-meter,
+    .stacked-bar {
+        height: 10px;
+    }
 }
 
 @media (max-width: 1180px) {
@@ -1139,7 +1323,14 @@ select:focus,
     .decision-card,
     .decision-gridline,
     .segment-row,
-    .trend-row {
+    .trend-row,
+    .source-visual-row,
+    .field-visual-head {
         grid-template-columns: 1fr;
+    }
+
+    .source-metrics,
+    .field-metrics {
+        justify-content: flex-start;
     }
 }

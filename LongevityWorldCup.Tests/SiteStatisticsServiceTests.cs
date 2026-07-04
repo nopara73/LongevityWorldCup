@@ -181,6 +181,298 @@ public sealed class SiteStatisticsServiceTests
         Assert.Empty(referralOnly.Events);
     }
 
+    [Fact]
+    public async Task Dashboard_UsesSessionFirstTouchForAcquisitionSource()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var context = new DefaultHttpContext();
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "onboarding_entry_viewed",
+            SessionId = "acquisition-session",
+            Flow = "onboarding",
+            Route = "/join?utm_source=google&utm_medium=cpc&utm_campaign=summer2026&campaign=summer-launch&token=private-token",
+            ReferrerDomain = "www.google.com",
+            Source = "search"
+        }, context);
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "calculator_started",
+            SessionId = "acquisition-session",
+            Flow = "pheno",
+            Route = "/pheno-age",
+            ReferrerDomain = "longevityworldcup.com",
+            Source = "internal"
+        }, context);
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d" });
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.All(dashboard.Events, ev =>
+        {
+            Assert.Equal("search", ev.FirstSource);
+            Assert.Equal("www.google.com", ev.FirstReferrerDomain);
+            Assert.Equal("google", ev.FirstUtmSource);
+            Assert.Equal("cpc", ev.FirstUtmMedium);
+            Assert.Equal("summer2026", ev.FirstUtmCampaign);
+            Assert.Equal("summer-launch", ev.FirstCampaign);
+            Assert.Equal("/join?utm_source=redacted&utm_medium=redacted&utm_campaign=redacted&campaign=redacted", ev.LandingRoute);
+        });
+
+        var internalEvent = Assert.Single(dashboard.Events, ev => ev.EventName == "calculator_started");
+        Assert.Equal("internal", internalEvent.Source);
+        Assert.Equal("search", internalEvent.FirstSource);
+
+        var searchOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "search" });
+        Assert.Equal(2, searchOnly.Events.Count);
+
+        var internalOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "internal" });
+        Assert.Empty(internalOnly.Events);
+
+        var json = JsonSerializer.Serialize(dashboard);
+        Assert.DoesNotContain("private-token", json);
+    }
+
+    [Fact]
+    public async Task Dashboard_ClassifiesCampaignTaggedDirectLandingAsCampaign()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var context = new DefaultHttpContext();
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "onboarding_entry_viewed",
+            SessionId = "campaign-direct-session",
+            Flow = "onboarding",
+            Route = "/join?utm_source=newsletter&utm_medium=email&utm_campaign=challenge_launch"
+        }, context);
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d" });
+        var ev = Assert.Single(dashboard.Events);
+
+        Assert.Equal("campaign", ev.FirstSource);
+        Assert.Equal("newsletter", ev.FirstUtmSource);
+        Assert.Equal("email", ev.FirstUtmMedium);
+        Assert.Equal("challenge_launch", ev.FirstUtmCampaign);
+        Assert.Equal("challenge_launch", ev.FirstCampaign);
+
+        var campaignOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "campaign" });
+        Assert.Single(campaignOnly.Events);
+    }
+
+    [Fact]
+    public async Task Dashboard_ClassifiesGmailAppReferrerAsEmail()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        InsertDashboardEvent(
+            database,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            "S-GMAIL-LEGACY",
+            "site_page_viewed",
+            "site",
+            source: "search",
+            referrerDomain: "com.google.android.gm");
+
+        var context = new DefaultHttpContext();
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "onboarding_entry_viewed",
+            SessionId = "gmail-app-session",
+            Flow = "onboarding",
+            Route = "/join",
+            Source = "search",
+            ReferrerDomain = "com.google.android.gm"
+        }, context);
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.All(dashboard.Events, ev => Assert.Equal("email", ev.Source));
+        var recordedEvent = Assert.Single(dashboard.Events, ev => ev.EventName == "onboarding_entry_viewed");
+        Assert.Equal("email", recordedEvent.FirstSource);
+        Assert.Equal("com.google.android.gm", recordedEvent.FirstReferrerDomain);
+
+        var emailOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Source = "email" });
+        Assert.Equal(2, emailOnly.Events.Count);
+
+        var searchOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Source = "search" });
+        Assert.Empty(searchOnly.Events);
+    }
+
+    [Fact]
+    public async Task RecordServerEventAsync_UsesStatsSessionHeaderToMatchClientSession()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var context = new DefaultHttpContext();
+        context.Request.Headers["X-LWC-Stats-Session"] = "browser-session";
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "challenge_page_viewed",
+            SessionId = "browser-session",
+            Flow = "challenge",
+            Route = "/longevitymaxxing",
+            Component = "challenge",
+            Outcome = "viewed"
+        }, new DefaultHttpContext());
+
+        await service.RecordServerEventAsync(
+            "challenge_signup_succeeded",
+            context,
+            actorId: "participant-1",
+            flow: "challenge",
+            route: "/longevitymaxxing",
+            component: "signup",
+            step: "submit",
+            outcome: "succeeded",
+            sessionId: "challenge:participant-1");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Flow = "challenge" });
+
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.Single(dashboard.Events.Select(ev => ev.SessionHash).Distinct());
+    }
+
+    [Fact]
+    public async Task RecordServerEventAsync_UsesExplicitSessionIdWithoutHttpContext()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.RecordServerEventAsync(
+            "challenge_signup_succeeded",
+            actorId: "participant-1",
+            flow: "challenge",
+            route: "/longevitymaxxing",
+            component: "signup",
+            step: "submit",
+            outcome: "succeeded",
+            sessionId: "challenge:participant-1");
+        await service.RecordServerEventAsync(
+            "challenge_signup_succeeded",
+            actorId: "participant-2",
+            flow: "challenge",
+            route: "/longevitymaxxing",
+            component: "signup",
+            step: "submit",
+            outcome: "succeeded",
+            sessionId: "challenge:participant-2");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Flow = "challenge" });
+
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.Equal(2, dashboard.Events.Select(ev => ev.SessionHash).Distinct().Count());
+        Assert.Equal(2, dashboard.Events.Select(ev => ev.ActorHash).Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData(
+        "/pheno-age?Year=1980&Month=5&Day=20&Date=2026-06-01&AlbGL=44&CreatUmolL=80&GluMmolL=5.2",
+        "/pheno-age",
+        "prefilled")]
+    [InlineData(
+        "/pheno-age?update=1&Year=1980&Month=5&Day=20&AlbGL=44",
+        "/pheno-age",
+        "update")]
+    [InlineData(
+        "/bortz-age?discount=MIGHTYKLAUS&Year=1980&Wbc1000cellsuL=6.5",
+        "/bortz-age",
+        "discount")]
+    [InlineData(
+        "/bortz-age?fake=1&Year=1980&Wbc1000cellsuL=6.5",
+        "/bortz-age",
+        "fake")]
+    [InlineData(
+        "/onboarding/pheno-age.html?freepass=perfect&Year=1980&AlbGL=44",
+        "/pheno-age",
+        "discount")]
+    public async Task Dashboard_CanonicalizesBioageCalculatorRoutesAndStoresEntryMode(
+        string route,
+        string expectedRoute,
+        string expectedEntryMode)
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var context = new DefaultHttpContext();
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "calculator_started",
+            SessionId = Guid.NewGuid().ToString("N"),
+            Flow = expectedRoute.Contains("bortz", StringComparison.OrdinalIgnoreCase) ? "bortz" : "pheno",
+            Route = route,
+            Component = "calculator"
+        }, context);
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d" });
+        var ev = Assert.Single(dashboard.Events);
+        var json = JsonSerializer.Serialize(dashboard);
+
+        Assert.Equal(expectedRoute, ev.Route);
+        Assert.Equal(expectedRoute, ev.LandingRoute);
+        Assert.Equal(expectedEntryMode, ev.Metadata["entryMode"]);
+        Assert.DoesNotContain("Year=redacted", json);
+        Assert.DoesNotContain("AlbGL=redacted", json);
+        Assert.DoesNotContain("Wbc1000cellsuL=redacted", json);
+        Assert.DoesNotContain("MIGHTYKLAUS", json);
+        Assert.DoesNotContain("perfect", json);
+        Assert.DoesNotContain("1980", json);
+    }
+
+    [Fact]
+    public async Task Dashboard_CanonicalizesLegacyRedactedBioageRoutesOnRead()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        InsertDashboardEvent(
+            database,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            "S-LEGACY-BIOAGE",
+            "calculator_started",
+            "pheno",
+            route: "/pheno-age?update=redacted&Year=redacted&Month=redacted&Day=redacted&AlbGL=redacted&CreatUmolL=redacted");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        var ev = Assert.Single(dashboard.Events);
+        var json = JsonSerializer.Serialize(dashboard);
+
+        Assert.Equal("/pheno-age", ev.Route);
+        Assert.Equal("update", ev.Metadata["entryMode"]);
+        Assert.DoesNotContain("update=redacted", json);
+        Assert.DoesNotContain("Year=redacted", json);
+        Assert.DoesNotContain("AlbGL=redacted", json);
+    }
+
     private static void InsertDashboardEvent(
         DatabaseManager database,
         DateTimeOffset occurredAtUtc,
@@ -188,7 +480,8 @@ public sealed class SiteStatisticsServiceTests
         string eventName,
         string flow,
         string source = "direct",
-        string? referrerDomain = null)
+        string? referrerDomain = null,
+        string route = "/pheno-age")
     {
         database.Run(sqlite =>
         {
@@ -207,7 +500,7 @@ public sealed class SiteStatisticsServiceTests
             cmd.Parameters.AddWithValue("@session", sessionHash);
             cmd.Parameters.AddWithValue("@eventName", eventName);
             cmd.Parameters.AddWithValue("@flow", flow);
-            cmd.Parameters.AddWithValue("@route", "/pheno-age");
+            cmd.Parameters.AddWithValue("@route", route);
             cmd.Parameters.AddWithValue("@component", "calculator");
             cmd.Parameters.AddWithValue("@step", "glucose");
             cmd.Parameters.AddWithValue("@outcome", "failed");

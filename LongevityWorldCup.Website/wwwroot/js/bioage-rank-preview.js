@@ -334,6 +334,16 @@
             '<div class="bioage-rank-neighbors">' + buildNearbyRows(rows, youIndex, clock) + '</div>';
     }
 
+    function trackRankPreview(eventName, clock, outcome) {
+        if (!window.LwcSiteStats || typeof window.LwcSiteStats.track !== 'function') return;
+        window.LwcSiteStats.track(eventName, {
+            component: 'rank_preview',
+            step: 'field_rank',
+            outcome: outcome,
+            metadata: { clock: clock }
+        });
+    }
+
     function render(targetId, options) {
         var target = document.getElementById(targetId);
         if (!target || !options) return Promise.resolve();
@@ -349,6 +359,7 @@
 
         target.hidden = false;
         target.innerHTML = '<div class="bioage-rank-loading">Calculating rank...</div>';
+        trackRankPreview('rank_preview_requested', clock, 'requested');
 
         return getSharedAthletes()
             .then(function (athletes) {
@@ -382,6 +393,7 @@
 
                 target.hidden = true;
                 target.innerHTML = '';
+                trackRankPreview('rank_preview_failed', clock, 'failed');
             });
     }
 

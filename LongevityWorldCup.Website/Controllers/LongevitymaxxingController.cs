@@ -22,7 +22,7 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     {
         try
         {
-            var result = await _challenge.SignupAsync(request, ct: ct).ConfigureAwait(false);
+            var result = await _challenge.SignupAsync(request, context: HttpContext, ct: ct).ConfigureAwait(false);
             return Ok(result);
         }
         catch (Exception ex) when (IsClientError(ex))
@@ -115,7 +115,7 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     {
         try
         {
-            return Ok(await _challenge.CreateCommitmentPaymentInvoiceAsync(request.AccessToken, ct: ct).ConfigureAwait(false));
+            return Ok(await _challenge.CreateCommitmentPaymentInvoiceAsync(request.AccessToken, context: HttpContext, ct: ct).ConfigureAwait(false));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -134,7 +134,7 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     {
         try
         {
-            return Ok(await _challenge.RefreshCommitmentPaymentStatusAsync(request.AccessToken, ct: ct).ConfigureAwait(false));
+            return Ok(await _challenge.RefreshCommitmentPaymentStatusAsync(request.AccessToken, context: HttpContext, ct: ct).ConfigureAwait(false));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -152,7 +152,7 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
     {
         try
         {
-            return Ok(_challenge.SubmitCheckIn(request));
+            return Ok(_challenge.SubmitCheckIn(request, context: HttpContext));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -182,7 +182,7 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
                 request.Nutrition,
                 request.Vices,
                 request.Note);
-            return Ok(await _challenge.SubmitCheckInAsync(checkIn, notePhotos, ct: ct).ConfigureAwait(false));
+            return Ok(await _challenge.SubmitCheckInAsync(checkIn, notePhotos, context: HttpContext, ct: ct).ConfigureAwait(false));
         }
         catch (UnauthorizedAccessException ex)
         {

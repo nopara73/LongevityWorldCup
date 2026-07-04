@@ -146,6 +146,24 @@ function isSupportedProofFile(file) {
         || extension === 'heif';
 }
 
+function trackProofFileRejected(errorCode, files) {
+    const stats = window.LwcSiteStats;
+    if (!stats || typeof stats.track !== 'function') return;
+
+    const rejectedFiles = Array.from(files || []);
+    const first = rejectedFiles[0] || null;
+    stats.track('proof_file_rejected', {
+        component: 'proof_upload',
+        outcome: 'rejected',
+        errorCode: errorCode || 'client_rejected',
+        metadata: {
+            fileCountBucket: typeof stats.countBucket === 'function' ? stats.countBucket(rejectedFiles.length) : String(rejectedFiles.length),
+            fileTypeBucket: typeof stats.fileTypeBucket === 'function' ? stats.fileTypeBucket(first) : 'unknown',
+            fileSizeBucket: typeof stats.fileSizeBucket === 'function' ? stats.fileSizeBucket(first) : 'unknown'
+        }
+    });
+}
+
 window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicInput, proofImageContainer, proofPics, biomarkerChecklistContainer, biomarkers, options) {
     nextButton.disabled = true;
     const cameraButton = options && options.cameraButton;
@@ -211,6 +229,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
         const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));
         if (supportedFiles.length === 0) {
             if (input) input.value = "";
+            trackProofFileRejected('unsupported_file_type', unsupportedFiles);
             customAlert('Proof files must be images or PDFs.')
                 .then(() => focusProofRetryButton(retryButton));
             return;
@@ -243,6 +262,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
             };
 
             let failedFiles = 0;
+            const failedFileSamples = [];
             let hitImageLimit = false;
             // process one by one to preserve order
             for (const file of supportedFiles) {
@@ -294,9 +314,11 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                         nextButton.disabled = true;
                     } else {
                         failedFiles++;
+                        failedFileSamples.push(file);
                     }
                 } catch (_) {
                     failedFiles++;
+                    failedFileSamples.push(file);
                     if (proofPics.length > proofCountBeforeFile) {
                         updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
                         checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
@@ -305,10 +327,12 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 }
             }
             if (unsupportedFiles.length > 0) {
+                trackProofFileRejected('unsupported_file_type', unsupportedFiles);
                 customAlert('Some proof files were skipped because proof files must be images or PDFs.')
                     .then(() => focusProofRetryButton(retryButton));
             }
             if (failedFiles > 0) {
+                trackProofFileRejected('client_processing_failed', failedFileSamples);
                 customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')
                     .then(() => focusProofRetryButton(retryButton));
             }
@@ -317,6 +341,7 @@ window.setupProofUploadHTML = function (nextButton, uploadProofButton, proofPicI
                 showProofUploadNotice('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');
             }
         } catch (error) {
+            trackProofFileRejected('proof_upload_failed', selectedFiles);
             customAlert('Proof upload failed. Please try again with an image or PDF file.')
                 .then(() => focusProofRetryButton(retryButton));
         } finally {

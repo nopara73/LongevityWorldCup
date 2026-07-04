@@ -284,6 +284,11 @@ namespace LongevityWorldCup.Website.Middleware
                 sb.AppendLine("<script src=\"https://cdn.jsdelivr.net/npm/validator@13.9.0/validator.min.js\" crossorigin=\"anonymous\" defer></script>");
             }
 
+            if (config.IncludeSiteStatisticsTracking)
+            {
+                sb.AppendLine($"<script src=\"{_assetVersionProvider.AppendVersion("/js/site-statistics-tracking.js")}\" defer></script>");
+            }
+
             foreach (var path in config.BlockingScriptPaths ?? Array.Empty<string>())
             {
                 sb.AppendLine($"<script src=\"{_assetVersionProvider.AppendVersion(path)}\"></script>");
@@ -327,7 +332,8 @@ $@"<script type=""module"">
                         "/js/bortz-age.js",
                         "/js/badges.js",
                         "/js/age-visualization.js"
-                    ]);
+                    ],
+                    IncludeSiteStatisticsTracking: true);
             }
 
             return path.ToLowerInvariant() switch
@@ -343,7 +349,8 @@ $@"<script type=""module"">
                         "/js/bortz-age.js",
                         "/js/badges.js",
                         "/js/age-visualization.js"
-                    ]),
+                    ],
+                    IncludeSiteStatisticsTracking: true),
                 "/leaderboard/leaderboard.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
@@ -355,7 +362,8 @@ $@"<script type=""module"">
                         "/js/bortz-age.js",
                         "/js/badges.js",
                         "/js/age-visualization.js"
-                    ]),
+                    ],
+                    IncludeSiteStatisticsTracking: true),
                 "/event-board/event-board.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
@@ -364,7 +372,8 @@ $@"<script type=""module"">
                         "/js/flags.js",
                         "/js/leagueIcons.js",
                         "/js/badges.js"
-                    ]),
+                    ],
+                    IncludeSiteStatisticsTracking: true),
                 "/event-board-embed.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
@@ -1345,7 +1354,8 @@ $@"<script type=""module"">
         private sealed record HeadAssetConfig(
             bool IncludeValidator,
             IReadOnlyList<string> ModulePaths,
-            IReadOnlyList<string>? BlockingScriptPaths = null)
+            IReadOnlyList<string>? BlockingScriptPaths = null,
+            bool IncludeSiteStatisticsTracking = false)
         {
             public static readonly HeadAssetConfig Empty = new(false, Array.Empty<string>());
         }
