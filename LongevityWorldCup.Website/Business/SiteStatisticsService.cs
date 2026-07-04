@@ -205,20 +205,34 @@ public sealed class SiteStatisticsService : IHostedService
               AND (@device = '' OR e.DeviceClass = @device)
               AND (@source = '' OR (
                     CASE
-                        WHEN lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
-                        WHEN lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) = 'com.google.android.gm'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE 'mail.%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%.mail.%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%gmail%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%outlook%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%hotmail%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%protonmail%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%proton.me%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%fastmail%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%icloud%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%mail.yahoo%'
-                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
-                        ELSE coalesce(s.FirstSource, e.Source, 'direct')
+                        WHEN lower(coalesce(s.FirstReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
+                        WHEN lower(coalesce(s.FirstReferrerDomain, '')) = 'com.google.android.gm'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE 'mail.%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%.mail.%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%gmail%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%outlook%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%hotmail%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%protonmail%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%proton.me%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%fastmail%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%icloud%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%mail.yahoo%'
+                          OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
+                        WHEN s.FirstSource IS NOT NULL THEN s.FirstSource
+                        WHEN lower(coalesce(e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
+                        WHEN lower(coalesce(e.ReferrerDomain, '')) = 'com.google.android.gm'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE 'mail.%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%.mail.%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%gmail%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%outlook%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%hotmail%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%protonmail%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%proton.me%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%fastmail%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%icloud%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%mail.yahoo%'
+                          OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
+                        ELSE coalesce(e.Source, 'direct')
                     END
                   ) = @source)
             ORDER BY e.OccurredAtUtc DESC
@@ -330,6 +344,7 @@ public sealed class SiteStatisticsService : IHostedService
         var sessionIdentifier = SafeSessionId(request.SessionId) ?? ClientIdentifier.From(context ?? new DefaultHttpContext());
         var sessionHash = BuildHash("S", sessionIdentifier);
         var firstTouch = BuildFirstTouch(request, rawRoute, route, referrerDomain, source);
+        var hasExplicitFirstTouch = HasExplicitFirstTouch(request);
 
         return new QueuedSiteStatisticEvent(
             Id: Guid.NewGuid().ToString("N"),
@@ -357,6 +372,7 @@ public sealed class SiteStatisticsService : IHostedService
             FirstUtmCampaign: firstTouch.FirstUtmCampaign,
             FirstUtmTerm: firstTouch.FirstUtmTerm,
             FirstUtmContent: firstTouch.FirstUtmContent,
+            HasExplicitFirstTouch: hasExplicitFirstTouch,
             MetadataJson: metadataJson);
     }
 
@@ -439,39 +455,56 @@ public sealed class SiteStatisticsService : IHostedService
                         ELSE SiteStatisticSessions.FirstSeenAtUtc
                     END,
                     LandingRoute = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.LandingRoute IS NULL THEN COALESCE(excluded.LandingRoute, SiteStatisticSessions.LandingRoute)
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
+                          OR SiteStatisticSessions.LandingRoute IS NULL
+                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.LandingRoute, SiteStatisticSessions.LandingRoute)
                         ELSE SiteStatisticSessions.LandingRoute
                     END,
                     FirstReferrerDomain = CASE
+                        WHEN @hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal') THEN excluded.FirstReferrerDomain
                         WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstReferrerDomain IS NULL THEN COALESCE(excluded.FirstReferrerDomain, SiteStatisticSessions.FirstReferrerDomain)
                         ELSE SiteStatisticSessions.FirstReferrerDomain
                     END,
                     FirstSource = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstSource IS NULL THEN COALESCE(excluded.FirstSource, SiteStatisticSessions.FirstSource)
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
+                          OR SiteStatisticSessions.FirstSource IS NULL
+                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstSource, SiteStatisticSessions.FirstSource)
                         ELSE SiteStatisticSessions.FirstSource
                     END,
                     FirstCampaign = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstCampaign IS NULL THEN COALESCE(excluded.FirstCampaign, SiteStatisticSessions.FirstCampaign)
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
+                          OR SiteStatisticSessions.FirstCampaign IS NULL
+                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstCampaign, SiteStatisticSessions.FirstCampaign)
                         ELSE SiteStatisticSessions.FirstCampaign
                     END,
                     FirstUtmSource = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmSource IS NULL THEN COALESCE(excluded.FirstUtmSource, SiteStatisticSessions.FirstUtmSource)
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
+                          OR SiteStatisticSessions.FirstUtmSource IS NULL
+                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmSource, SiteStatisticSessions.FirstUtmSource)
                         ELSE SiteStatisticSessions.FirstUtmSource
                     END,
                     FirstUtmMedium = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmMedium IS NULL THEN COALESCE(excluded.FirstUtmMedium, SiteStatisticSessions.FirstUtmMedium)
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
+                          OR SiteStatisticSessions.FirstUtmMedium IS NULL
+                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmMedium, SiteStatisticSessions.FirstUtmMedium)
                         ELSE SiteStatisticSessions.FirstUtmMedium
                     END,
                     FirstUtmCampaign = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmCampaign IS NULL THEN COALESCE(excluded.FirstUtmCampaign, SiteStatisticSessions.FirstUtmCampaign)
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
+                          OR SiteStatisticSessions.FirstUtmCampaign IS NULL
+                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmCampaign, SiteStatisticSessions.FirstUtmCampaign)
                         ELSE SiteStatisticSessions.FirstUtmCampaign
                     END,
                     FirstUtmTerm = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmTerm IS NULL THEN COALESCE(excluded.FirstUtmTerm, SiteStatisticSessions.FirstUtmTerm)
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
+                          OR SiteStatisticSessions.FirstUtmTerm IS NULL
+                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmTerm, SiteStatisticSessions.FirstUtmTerm)
                         ELSE SiteStatisticSessions.FirstUtmTerm
                     END,
                     FirstUtmContent = CASE
-                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmContent IS NULL THEN COALESCE(excluded.FirstUtmContent, SiteStatisticSessions.FirstUtmContent)
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc
+                          OR SiteStatisticSessions.FirstUtmContent IS NULL
+                          OR (@hasExplicitFirstTouch = 1 AND lower(coalesce(SiteStatisticSessions.FirstSource, 'direct')) IN ('direct', 'internal')) THEN COALESCE(excluded.FirstUtmContent, SiteStatisticSessions.FirstUtmContent)
                         ELSE SiteStatisticSessions.FirstUtmContent
                     END;
                 """;
@@ -486,6 +519,7 @@ public sealed class SiteStatisticsService : IHostedService
             var firstUtmCampaignParam = sessionCmd.Parameters.Add("@firstUtmCampaign", SqliteType.Text);
             var firstUtmTermParam = sessionCmd.Parameters.Add("@firstUtmTerm", SqliteType.Text);
             var firstUtmContentParam = sessionCmd.Parameters.Add("@firstUtmContent", SqliteType.Text);
+            var hasExplicitFirstTouchParam = sessionCmd.Parameters.Add("@hasExplicitFirstTouch", SqliteType.Integer);
 
             using var cmd = sqlite.CreateCommand();
             cmd.Transaction = tx;
@@ -530,6 +564,7 @@ public sealed class SiteStatisticsService : IHostedService
                 firstUtmCampaignParam.Value = item.FirstUtmCampaign ?? (object)DBNull.Value;
                 firstUtmTermParam.Value = item.FirstUtmTerm ?? (object)DBNull.Value;
                 firstUtmContentParam.Value = item.FirstUtmContent ?? (object)DBNull.Value;
+                hasExplicitFirstTouchParam.Value = item.HasExplicitFirstTouch ? 1 : 0;
                 sessionCmd.ExecuteNonQuery();
 
                 id.Value = item.Id;
@@ -693,6 +728,17 @@ public sealed class SiteStatisticsService : IHostedService
             firstUtmTerm,
             firstUtmContent);
     }
+
+    private static bool HasExplicitFirstTouch(SiteStatisticsEventRequest request)
+        => !string.IsNullOrWhiteSpace(request.LandingRoute) ||
+           !string.IsNullOrWhiteSpace(request.FirstReferrerDomain) ||
+           !string.IsNullOrWhiteSpace(request.FirstSource) ||
+           !string.IsNullOrWhiteSpace(request.FirstCampaign) ||
+           !string.IsNullOrWhiteSpace(request.FirstUtmSource) ||
+           !string.IsNullOrWhiteSpace(request.FirstUtmMedium) ||
+           !string.IsNullOrWhiteSpace(request.FirstUtmCampaign) ||
+           !string.IsNullOrWhiteSpace(request.FirstUtmTerm) ||
+           !string.IsNullOrWhiteSpace(request.FirstUtmContent);
 
     private static string? ContextRoute(HttpContext? context)
     {
@@ -1167,6 +1213,7 @@ internal sealed record QueuedSiteStatisticEvent(
     string? FirstUtmCampaign,
     string? FirstUtmTerm,
     string? FirstUtmContent,
+    bool HasExplicitFirstTouch,
     string? MetadataJson);
 
 public sealed class SiteStatisticsEventRequest
