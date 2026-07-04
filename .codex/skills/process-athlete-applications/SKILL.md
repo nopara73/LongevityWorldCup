@@ -202,6 +202,7 @@ Required checks:
 
 - Name, display name, division, flag, personal link, media contact, and "Why" text are plausible and not obviously malformed.
 - `DateOfBirth` is present for full applications and produces a plausible chronological age for the test dates.
+- Treat `DateOfBirth` month/day `12/31` as an allowed privacy placeholder when the year is plausible. Do not "correct" a submitted December 31 DOB to an exact DOB visible on proof documents. The onboarding flow explicitly allows leaving the birthday at December 31 as a privacy precaution, at a slight competitive disadvantage.
 - `Biomarkers` records have ISO-like dates and numeric values in the repository's expected units.
 - New result submissions append new biomarker records rather than replacing unrelated existing history.
 - Profile image filename matches the athlete folder key with an allowed image extension.
@@ -225,6 +226,7 @@ For each JSON biomarker record:
 - Confirm that required biomarkers for the claimed result are actually supported.
 - Correct obvious JSON clerical mismatches locally instead of blocking. Examples: use the blood draw/collection date instead of a report/submission date when the report clearly shows both; fix a mistyped numeric value such as `ShbgNmolL` when the proof value and unit are unambiguous. Report the correction in the human approval summary.
 - Censor proof files locally instead of blocking when nonessential identifiers are visible. Redact client phone numbers, client addresses, client ID numbers, patient IDs, order IDs, accession/specimen numbers, barcodes, QR codes, and similar identifiers while preserving the applicant name, test date, and biomarker values needed for verification.
+- When `athlete.json` uses a `12/31` DOB privacy placeholder and a proof exposes the exact DOB, censor the exact DOB on the proof. Preserve only the applicant name, test date, and required biomarker values; do not use the proof DOB to overwrite the JSON placeholder.
 - Confirm the proof belongs to the applicant when the document exposes a name or other safe identity signal.
 
 Pheno age requires one record with:
