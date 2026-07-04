@@ -59,6 +59,9 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("joinGoProButton", tracker);
         Assert.Contains(".play-join-biomarkers details", tracker);
         Assert.Contains(".play-join-card--pro", tracker);
+        Assert.Contains("function setupSpaRouteTracking()", tracker);
+        Assert.Contains("trackJoinPanelViewForCurrentRoute", tracker);
+        Assert.Contains("window.history[method] = function ()", tracker);
         Assert.Contains("return \"internal\";", tracker);
     }
 

@@ -6,6 +6,7 @@
     const originalFetch = window.fetch ? window.fetch.bind(window) : null;
     const pageStartedAt = now();
     const sentOnce = new Set();
+    const trackedPageViews = new Set();
     const completedFields = new Set();
     const touchedFields = new Set();
     let lastRequiredProgress = -1;
@@ -186,6 +187,10 @@
     }
 
     function setupPageViews() {
+        const pageViewKey = `${window.location.pathname.toLowerCase()}${window.location.search || ""}`;
+        if (trackedPageViews.has(pageViewKey)) return;
+        trackedPageViews.add(pageViewKey);
+
         const path = window.location.pathname.toLowerCase();
         if (flowFromPath() === "challenge") {
             track("challenge_page_viewed", { component: "challenge", outcome: "viewed" });
@@ -228,6 +233,36 @@
         }
 
         track("site_page_viewed", { component: "site", outcome: "viewed" });
+    }
+
+    function scheduleJoinPanelViewForCurrentRoute() {
+        const enqueue = typeof queueMicrotask === "function"
+            ? queueMicrotask
+            : callback => setTimeout(callback, 0);
+
+        enqueue(() => safe(trackJoinPanelViewForCurrentRoute));
+    }
+
+    function trackJoinPanelViewForCurrentRoute() {
+        if (window.location.pathname.toLowerCase() === "/join") {
+            setupPageViews();
+        }
+    }
+
+    function setupSpaRouteTracking() {
+        if (!window.history) return;
+
+        ["pushState", "replaceState"].forEach(method => {
+            const original = window.history[method];
+            if (typeof original !== "function") return;
+            window.history[method] = function () {
+                const result = original.apply(this, arguments);
+                scheduleJoinPanelViewForCurrentRoute();
+                return result;
+            };
+        });
+
+        listen(window, "popstate", scheduleJoinPanelViewForCurrentRoute);
     }
 
     function setupCalculatorTracking() {
@@ -617,6 +652,7 @@
     };
 
     setupFetchTracking();
+    setupSpaRouteTracking();
     listen(document, "DOMContentLoaded", () => {
         safe(setupPageViews);
         safe(setupJoinGameTracking);
