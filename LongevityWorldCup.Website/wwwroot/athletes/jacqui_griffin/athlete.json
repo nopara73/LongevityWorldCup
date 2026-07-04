@@ -1,0 +1,28 @@
+{
+  "Name": "Jacqui Griffin",
+  "DisplayName": null,
+  "MediaContact": "aussiejag2010@gmail.com",
+  "DateOfBirth": {
+    "Year": 1962,
+    "Month": 1,
+    "Day": 10
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-30",
+      "AlbGL": 47,
+      "CreatUmolL": 75,
+      "GluMmolL": 5.2,
+      "CrpMgL": 0.4,
+      "LymPc": 39.3,
+      "McvFL": 92,
+      "RdwPc": 13,
+      "AlpUL": 112,
+      "Wbc1000cellsuL": 5.5
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Australia",
+  "Why": "Improved vitality and health",
+  "PersonalLink": null
+}
