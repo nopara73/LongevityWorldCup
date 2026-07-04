@@ -46,6 +46,23 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_TRACKING_JS}}", html);
     }
 
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/leaderboard")]
+    [InlineData("/events")]
+    [InlineData("/athlete/michael-lustgarten")]
+    [InlineData("/league/pheno")]
+    public async Task PublicDashboardEventPages_UseVersionedStatisticsTracker(string path)
+    {
+        await using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains("/js/site-statistics-tracking.js?v=", html);
+        Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_TRACKING_JS}}", html);
+    }
+
     [Fact]
     public void SiteStatisticsTracker_SupportsCurrentJoinMenuControls()
     {
@@ -70,6 +87,51 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains(searchSourceLine, tracker);
         Assert.True(tracker.IndexOf(emailSourceLine, StringComparison.Ordinal) < tracker.IndexOf(searchSourceLine, StringComparison.Ordinal));
         Assert.Contains("return \"internal\";", tracker);
+    }
+
+    [Fact]
+    public void SiteStatisticsTracker_EmitsDashboardDefinedPublicAndChallengeEvents()
+    {
+        var repoRoot = FindRepoRoot();
+        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
+        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+        var rankPreview = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "bioage-rank-preview.js"));
+        var proofHelpers = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "proof-helpers.js"));
+
+        var expectedDashboardEvents = new[]
+        {
+            "rank_preview_requested",
+            "proof_file_rejected",
+            "challenge_athlete_search_result_selected",
+            "challenge_commitment_block_seen",
+            "homepage_highlight_viewed",
+            "homepage_highlight_clicked",
+            "event_viewed",
+            "event_link_clicked",
+            "athlete_profile_viewed",
+            "league_viewed"
+        };
+
+        foreach (var eventName in expectedDashboardEvents)
+        {
+            Assert.Contains(eventName, dashboard);
+        }
+
+        Assert.Contains("challenge_athlete_search_result_selected", tracker);
+        Assert.Contains("challenge_commitment_block_seen", tracker);
+        Assert.Contains("homepage_highlight_viewed", tracker);
+        Assert.Contains("homepage_highlight_clicked", tracker);
+        Assert.Contains("event_viewed", tracker);
+        Assert.Contains("event_link_clicked", tracker);
+        Assert.Contains("athlete_profile_viewed", tracker);
+        Assert.Contains("league_viewed", tracker);
+        Assert.Contains("rank_preview_requested", rankPreview);
+        Assert.Contains("rank_preview_failed", rankPreview);
+        Assert.Contains("proof_file_rejected", proofHelpers);
+        Assert.Contains("#lmxSignupAthlete-autocomplete-list .lmx-athlete-option", tracker);
+        Assert.Contains("lmxCommitmentPanel", tracker);
+        Assert.Contains("setupPublicContentTracking", tracker);
+        Assert.Contains("trackPublicPageViews", tracker);
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

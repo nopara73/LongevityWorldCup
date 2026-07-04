@@ -248,6 +248,99 @@
         return "20_plus";
     }
 
+    function pathLower() {
+        return String(window.location.pathname || "/").toLowerCase();
+    }
+
+    function queryValue(name) {
+        return safe(() => new URLSearchParams(window.location.search || "").get(name)) || "";
+    }
+
+    function pathSegmentAfter(prefix) {
+        const path = pathLower();
+        if (!path.startsWith(prefix)) return "";
+        return safeToken(decodeURIComponent(path.slice(prefix.length).split("/")[0] || ""), 64);
+    }
+
+    function currentAthleteSlug() {
+        return pathSegmentAfter("/athlete/") || safeToken(queryValue("athlete"), 64);
+    }
+
+    function currentLeagueSlug() {
+        const routeSlug = pathSegmentAfter("/league/");
+        if (routeSlug) return routeSlug;
+        const view = safeToken(queryValue("view"), 64);
+        if (view) return view;
+        const filters = safeToken(queryValue("filters"), 128);
+        if (filters) return safeToken(filters.split(",")[0], 64);
+        return pathLower() === "/leaderboard" ? "ultimate" : "";
+    }
+
+    function isHomepagePath() {
+        const path = pathLower();
+        return path === "/" || path === "/index.html";
+    }
+
+    function isEventBoardPath() {
+        const path = pathLower();
+        return path === "/events" || path.includes("/event-board/");
+    }
+
+    function eventBoardClickMetadata(target) {
+        const link = target && target.closest ? target.closest("a[href]") : null;
+        const row = target && target.closest ? target.closest("tr.main-row") : null;
+        const href = link ? String(link.getAttribute("href") || "") : "";
+        let targetKind = "event";
+        if (link && link.classList.contains("view-all")) targetKind = "view_all";
+        else if (link && (link.classList.contains("event-athlete-link") || href.startsWith("/athlete/"))) targetKind = "athlete";
+        else if (href.startsWith("/league/") || href.includes("view=") || href.includes("filters=")) targetKind = "league";
+        else if (link) targetKind = "link";
+
+        const metadata = { targetKind };
+        if (row && row.dataset.eventTypeName) metadata.eventType = safeToken(row.dataset.eventTypeName, 64);
+        if (row && row.dataset.highlightSelection) metadata.highlightSelection = safeToken(row.dataset.highlightSelection, 64);
+        if (row && row.dataset.primarySlug) metadata.primarySlug = safeToken(row.dataset.primarySlug, 64);
+        return metadata;
+    }
+
+    function trackPublicPageViews() {
+        if (isHomepagePath() && !currentAthleteSlug()) {
+            const highlightsRoot = document.getElementById("events-root-index");
+            if (highlightsRoot) {
+                track("homepage_highlight_viewed", {
+                    component: "homepage",
+                    step: "highlights",
+                    outcome: "viewed"
+                });
+            }
+        }
+
+        if (isEventBoardPath()) {
+            track("event_viewed", {
+                component: "event_board",
+                outcome: "viewed"
+            });
+        }
+
+        const athleteSlug = currentAthleteSlug();
+        if (athleteSlug) {
+            track("athlete_profile_viewed", {
+                component: "athlete_profile",
+                outcome: "viewed",
+                metadata: { athleteSlug }
+            });
+        }
+
+        const leagueSlug = currentLeagueSlug();
+        if (leagueSlug) {
+            track("league_viewed", {
+                component: "leaderboard",
+                outcome: "viewed",
+                metadata: { league: leagueSlug }
+            });
+        }
+    }
+
     function setupPageViews() {
         const pageViewKey = `${window.location.pathname.toLowerCase()}${window.location.search || ""}`;
         if (trackedPageViews.has(pageViewKey)) return;
@@ -294,6 +387,7 @@
             return;
         }
 
+        trackPublicPageViews();
         track("site_page_viewed", { component: "site", outcome: "viewed" });
     }
 
@@ -546,6 +640,15 @@
         listen(document.getElementById("lmxSignupAthlete"), "input", () => {
             trackOnce("challenge-athlete-search-started", "challenge_athlete_search_started", { component: "signup", step: "athlete_search", outcome: "started" });
         }, { passive: true });
+        listen(document, "mousedown", event => {
+            const option = event.target && event.target.closest ? event.target.closest("#lmxSignupAthlete-autocomplete-list .lmx-athlete-option") : null;
+            if (!option) return;
+            track("challenge_athlete_search_result_selected", {
+                component: "signup",
+                step: "athlete_search",
+                outcome: "selected"
+            });
+        }, true);
         listen(document.getElementById("lmxSignupTimeZoneButton"), "click", () => {
             track("challenge_timezone_picker_opened", { component: "signup", step: "timezone", outcome: "opened" });
         }, { passive: true });
@@ -568,6 +671,59 @@
                 outcome: "started",
                 metadata: { checkinKind: practice ? "practice" : "scored" }
             });
+        }, true);
+
+        const commitmentPanel = document.getElementById("lmxCommitmentPanel");
+        if (commitmentPanel && typeof MutationObserver === "function") {
+            const trackCommitmentBlock = () => {
+                if (commitmentPanel.classList.contains("lmx-hidden")) return;
+                const card = commitmentPanel.querySelector(".lmx-commitment-card");
+                if (!card) return;
+                trackOnce("challenge-commitment-block-seen", "challenge_commitment_block_seen", {
+                    component: "commitment",
+                    step: "block",
+                    outcome: "viewed",
+                    metadata: { commitmentState: card.classList.contains("setup") ? "needs_amount" : "due" }
+                });
+            };
+            const observer = new MutationObserver(trackCommitmentBlock);
+            observer.observe(commitmentPanel, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+            trackCommitmentBlock();
+        }
+    }
+
+    function setupPublicContentTracking() {
+        listen(document, "click", event => {
+            if (event.defaultPrevented) return;
+            if (event.button !== undefined && event.button !== 0) return;
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+            const target = event.target;
+            if (!target || !target.closest) return;
+
+            const homepageRoot = target.closest("#events-root-index");
+            if (homepageRoot) {
+                const rowOrLink = target.closest("tr.main-row, a[href], button");
+                if (!rowOrLink) return;
+                track("homepage_highlight_clicked", {
+                    component: "homepage",
+                    step: "highlights",
+                    outcome: "clicked",
+                    metadata: eventBoardClickMetadata(target)
+                });
+                return;
+            }
+
+            const eventRoot = target.closest("#events-root, .event-board-page .events-board");
+            if (eventRoot) {
+                const link = target.closest("a[href]");
+                if (!link) return;
+                track("event_link_clicked", {
+                    component: "event_board",
+                    outcome: "clicked",
+                    metadata: eventBoardClickMetadata(target)
+                });
+            }
         }, true);
     }
 
@@ -721,6 +877,7 @@
         safe(setupCalculatorTracking);
         safe(setupProofTracking);
         safe(setupChallengeTracking);
+        safe(setupPublicContentTracking);
     });
     listen(window, "error", event => {
         track("client_error_observed", {
