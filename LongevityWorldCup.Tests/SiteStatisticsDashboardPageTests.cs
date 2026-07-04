@@ -20,6 +20,7 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("Segment Comparison", html);
         Assert.Contains("Trend Watch", html);
         Assert.Contains("dataQualityStrip", html);
+        Assert.Contains("<option value=\"email\">Email</option>", html);
         Assert.Contains("<option value=\"internal\">Internal</option>", html);
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_CSS}}", html);
         Assert.DoesNotContain("{{ASSET_SITE_STATISTICS_JS}}", html);
@@ -62,6 +63,12 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("function setupSpaRouteTracking()", tracker);
         Assert.Contains("trackJoinPanelViewForCurrentRoute", tracker);
         Assert.Contains("window.history[method] = function ()", tracker);
+        Assert.Contains("function isEmailReferrer(host)", tracker);
+        const string emailSourceLine = "if (isEmailReferrer(host)) return \"email\";";
+        const string searchSourceLine = "if (/google|bing|duckduckgo|yahoo|brave|search/i.test(host)) return \"search\";";
+        Assert.Contains(emailSourceLine, tracker);
+        Assert.Contains(searchSourceLine, tracker);
+        Assert.True(tracker.IndexOf(emailSourceLine, StringComparison.Ordinal) < tracker.IndexOf(searchSourceLine, StringComparison.Ordinal));
         Assert.Contains("return \"internal\";", tracker);
     }
 

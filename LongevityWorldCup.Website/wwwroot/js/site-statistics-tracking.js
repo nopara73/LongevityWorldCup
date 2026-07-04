@@ -90,10 +90,20 @@
         return normalizedHost === currentHost || normalizedHost === "longevityworldcup.com";
     }
 
+    function isEmailReferrer(host) {
+        if (!host) return false;
+        const normalizedHost = String(host).toLowerCase();
+        return normalizedHost === "com.google.android.gm"
+            || /^mail\./i.test(normalizedHost)
+            || /\.mail\./i.test(normalizedHost)
+            || /gmail|outlook|hotmail|protonmail|proton\.me|fastmail|icloud|mail\.yahoo|yahoomail/i.test(normalizedHost);
+    }
+
     function source() {
         const host = referrerDomain();
         if (!host) return hasCampaignParams() ? "campaign" : "direct";
         if (isInternalReferrer(host)) return "internal";
+        if (isEmailReferrer(host)) return "email";
         if (/google|bing|duckduckgo|yahoo|brave|search/i.test(host)) return "search";
         if (/x\.com|twitter|facebook|instagram|threads|youtube|linkedin|reddit|slack/i.test(host)) return "social";
         return "referral";

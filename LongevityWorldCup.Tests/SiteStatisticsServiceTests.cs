@@ -269,6 +269,51 @@ public sealed class SiteStatisticsServiceTests
         Assert.Single(campaignOnly.Events);
     }
 
+    [Fact]
+    public async Task Dashboard_ClassifiesGmailAppReferrerAsEmail()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        InsertDashboardEvent(
+            database,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            "S-GMAIL-LEGACY",
+            "site_page_viewed",
+            "site",
+            source: "search",
+            referrerDomain: "com.google.android.gm");
+
+        var context = new DefaultHttpContext();
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "onboarding_entry_viewed",
+            SessionId = "gmail-app-session",
+            Flow = "onboarding",
+            Route = "/join",
+            Source = "search",
+            ReferrerDomain = "com.google.android.gm"
+        }, context);
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.All(dashboard.Events, ev => Assert.Equal("email", ev.Source));
+        var recordedEvent = Assert.Single(dashboard.Events, ev => ev.EventName == "onboarding_entry_viewed");
+        Assert.Equal("email", recordedEvent.FirstSource);
+        Assert.Equal("com.google.android.gm", recordedEvent.FirstReferrerDomain);
+
+        var emailOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Source = "email" });
+        Assert.Equal(2, emailOnly.Events.Count);
+
+        var searchOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Source = "search" });
+        Assert.Empty(searchOnly.Events);
+    }
+
     private static void InsertDashboardEvent(
         DatabaseManager database,
         DateTimeOffset occurredAtUtc,

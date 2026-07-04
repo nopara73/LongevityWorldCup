@@ -187,6 +187,18 @@ public sealed class SiteStatisticsService : IHostedService
               AND (@source = '' OR (
                     CASE
                         WHEN lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
+                        WHEN lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) = 'com.google.android.gm'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE 'mail.%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%.mail.%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%gmail%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%outlook%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%hotmail%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%protonmail%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%proton.me%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%fastmail%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%icloud%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%mail.yahoo%'
+                          OR lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
                         ELSE coalesce(s.FirstSource, e.Source, 'direct')
                     END
                   ) = @source)
@@ -571,6 +583,18 @@ public sealed class SiteStatisticsService : IHostedService
                            e.ReferrerDomain,
                            CASE
                                WHEN lower(coalesce(e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
+                               WHEN lower(coalesce(e.ReferrerDomain, '')) = 'com.google.android.gm'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE 'mail.%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%.mail.%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%gmail%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%outlook%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%hotmail%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%protonmail%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%proton.me%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%fastmail%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%icloud%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%mail.yahoo%'
+                                 OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
                                ELSE coalesce(e.Source, 'direct')
                            END
                     FROM SiteStatisticEvents e
@@ -878,6 +902,9 @@ public sealed class SiteStatisticsService : IHostedService
         if (IsInternalReferrerDomain(referrerDomain))
             return "internal";
 
+        if (IsEmailReferrerDomain(referrerDomain))
+            return "email";
+
         return SafeDisplayToken(source, MaxTextLength)
             ?? ClassifyExternalReferrer(referrerDomain)
             ?? "direct";
@@ -889,6 +916,9 @@ public sealed class SiteStatisticsService : IHostedService
             return null;
 
         var normalized = referrerDomain.Trim().ToLowerInvariant();
+        if (IsEmailReferrerDomain(normalized))
+            return "email";
+
         if (normalized.Contains("google", StringComparison.Ordinal) ||
             normalized.Contains("bing", StringComparison.Ordinal) ||
             normalized.Contains("duckduckgo", StringComparison.Ordinal) ||
@@ -913,6 +943,26 @@ public sealed class SiteStatisticsService : IHostedService
         }
 
         return "referral";
+    }
+
+    private static bool IsEmailReferrerDomain(string? referrerDomain)
+    {
+        if (string.IsNullOrWhiteSpace(referrerDomain))
+            return false;
+
+        var normalized = referrerDomain.Trim().ToLowerInvariant();
+        return string.Equals(normalized, "com.google.android.gm", StringComparison.Ordinal) ||
+               normalized.StartsWith("mail.", StringComparison.Ordinal) ||
+               normalized.Contains(".mail.", StringComparison.Ordinal) ||
+               normalized.Contains("gmail", StringComparison.Ordinal) ||
+               normalized.Contains("outlook", StringComparison.Ordinal) ||
+               normalized.Contains("hotmail", StringComparison.Ordinal) ||
+               normalized.Contains("protonmail", StringComparison.Ordinal) ||
+               normalized.Contains("proton.me", StringComparison.Ordinal) ||
+               normalized.Contains("fastmail", StringComparison.Ordinal) ||
+               normalized.Contains("icloud", StringComparison.Ordinal) ||
+               normalized.Contains("mail.yahoo", StringComparison.Ordinal) ||
+               normalized.Contains("yahoomail", StringComparison.Ordinal);
     }
 
     private static bool IsInternalReferrerDomain(string? referrerDomain)
