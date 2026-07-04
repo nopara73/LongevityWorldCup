@@ -612,7 +612,7 @@
         const previousSessions = new Set(previous.map(e => e.sessionHash));
         const dimensions = [
             ["device", e => e.deviceClass || "unknown"],
-            ["source", e => e.source || "direct"],
+            ["source", acquisitionSource],
             ["flow", e => flowLabel(e.flow || "site")],
             ["session", e => previousSessions.has(e.sessionHash) ? "returning" : "new"]
         ];
@@ -923,9 +923,10 @@
         }
         if (state.tab === "Traffic") {
             host.innerHTML = [
-                detailPanel("Source quality", sourceQualityTable(events)),
+                detailPanel("Acquisition quality", sourceQualityTable(events)),
+                detailPanel("Campaigns", campaignTable(events)),
                 detailPanel("Device split", splitTable(events, e => e.deviceClass || "unknown")),
-                detailPanel("Referrers", splitTable(events, e => e.referrerDomain || e.source || "direct"))
+                detailPanel("First referrers", splitTable(events, e => e.firstReferrerDomain || e.referrerDomain || acquisitionSource(e)))
             ].join("");
             return;
         }
@@ -983,7 +984,7 @@
                 ${summaryItem("Sessions", sessions)}
                 ${summaryItem("Friction", failures)}
                 ${summaryItem("Median duration", median)}
-                ${summaryItem("Top source", mostCommon(events.map(e => e.source || "direct")))}
+                ${summaryItem("Top source", mostCommon(events.map(acquisitionSource)))}
                 ${summaryItem("Top device", mostCommon(events.map(e => e.deviceClass || "unknown")))}
                 ${summaryItem("Noisy sessions", quality.noisySessions)}
                 ${summaryItem("Burst groups", burstCount)}
@@ -1444,7 +1445,7 @@
     }
 
     function sourceQualityTable(events) {
-        const rows = Array.from(groupBy(events, e => e.source || "direct").entries()).map(([source, items]) => {
+        const rows = Array.from(groupBy(events, acquisitionSource).entries()).map(([source, items]) => {
             const results = uniqueSessionsFor(items, ["calculator_result_generated"]);
             const applications = uniqueSessionsFor(items, ["application_submit_succeeded"]);
             const challenge = uniqueSessionsFor(items, ["challenge_scored_checkin_submitted"]);
@@ -1452,6 +1453,21 @@
             return [source, uniqueSessions(items), results, applications, challenge, quality];
         }).sort((a, b) => b[5] - a[5]);
         return table(["Source", "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
+    }
+
+    function campaignTable(events) {
+        const rows = Array.from(groupBy(events, campaignLabel).entries())
+            .filter(([campaign]) => campaign !== "none")
+            .map(([campaign, items]) => [
+                campaign,
+                uniqueSessions(items),
+                mostCommon(items.map(acquisitionSource)),
+                uniqueSessionsFor(items, ["calculator_result_generated"]),
+                uniqueSessionsFor(items, ["application_submit_succeeded", "challenge_signup_succeeded"])
+            ])
+            .sort((a, b) => b[1] - a[1] || b[4] - a[4])
+            .slice(0, 12);
+        return rows.length ? table(["Campaign", "Sessions", "Top source", "Results", "Conversions"], rows) : empty("No campaign-tagged sessions yet.");
     }
 
     function slowStepTable(events) {
@@ -1474,7 +1490,7 @@
     function groupedTable(events, names) {
         const rows = names.map(name => {
             const items = events.filter(e => e.eventName === name);
-            return [name, items.length, new Set(items.map(i => i.sessionHash)).size, mostCommon(items.map(i => i.source || "direct"))];
+            return [name, items.length, new Set(items.map(i => i.sessionHash)).size, mostCommon(items.map(acquisitionSource))];
         }).filter(r => r[1] > 0);
         return rows.length ? table(["Event", "Events", "Sessions", "Top source"], rows) : empty("No matching events yet.");
     }
@@ -1506,6 +1522,15 @@
             sessionHash: event.sessionHash || "S-UNKNOWN",
             referrerDomain,
             source: effectiveSource(event.source, referrerDomain),
+            landingRoute: event.landingRoute || "",
+            firstReferrerDomain: event.firstReferrerDomain || "",
+            firstSource: effectiveSource(event.firstSource || event.source, event.firstReferrerDomain || referrerDomain),
+            firstCampaign: event.firstCampaign || "",
+            firstUtmSource: event.firstUtmSource || "",
+            firstUtmMedium: event.firstUtmMedium || "",
+            firstUtmCampaign: event.firstUtmCampaign || "",
+            firstUtmTerm: event.firstUtmTerm || "",
+            firstUtmContent: event.firstUtmContent || "",
             metadata: event.metadata || {},
             time: Date.parse(event.occurredAtUtc || "") || 0
         });
@@ -1514,6 +1539,17 @@
     function effectiveSource(source, referrerDomain) {
         if (isInternalReferrer(referrerDomain)) return "internal";
         return source || "direct";
+    }
+
+    function acquisitionSource(event) {
+        return event.firstSource || event.source || "direct";
+    }
+
+    function campaignLabel(event) {
+        return event.firstCampaign
+            || event.firstUtmCampaign
+            || event.firstUtmSource
+            || "none";
     }
 
     function isInternalReferrer(referrerDomain) {
@@ -1622,7 +1658,7 @@
 
     function exportCsv() {
         const events = selectedRawEvents();
-        const headers = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source"];
+        const headers = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source", "landingRoute", "firstReferrerDomain", "firstSource", "firstCampaign", "firstUtmSource", "firstUtmMedium", "firstUtmCampaign", "firstUtmTerm", "firstUtmContent"];
         const lines = [headers.join(",")].concat(events.map(e => headers.map(h => csv(e[h])).join(",")));
         const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);

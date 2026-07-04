@@ -3,6 +3,7 @@
 
     const endpoint = "/api/site-statistics/event";
     const sessionKey = "lwcSiteStatsSessionId";
+    const firstTouchKey = "lwcSiteStatsFirstTouch";
     const originalFetch = window.fetch ? window.fetch.bind(window) : null;
     const pageStartedAt = now();
     const sentOnce = new Set();
@@ -39,6 +40,15 @@
 
     function route() {
         return `${window.location.pathname}${window.location.search || ""}`;
+    }
+
+    function campaignValue(name) {
+        const value = safe(() => new URLSearchParams(window.location.search).get(name)) || "";
+        return safeToken(value, 96);
+    }
+
+    function hasCampaignParams() {
+        return !!(campaignValue("campaign") || campaignValue("utm_source") || campaignValue("utm_medium") || campaignValue("utm_campaign"));
     }
 
     function flowFromPath() {
@@ -82,16 +92,39 @@
 
     function source() {
         const host = referrerDomain();
-        if (!host) return "direct";
+        if (!host) return hasCampaignParams() ? "campaign" : "direct";
         if (isInternalReferrer(host)) return "internal";
         if (/google|bing|duckduckgo|yahoo|brave|search/i.test(host)) return "search";
         if (/x\.com|twitter|facebook|instagram|threads|youtube|linkedin|reddit|slack/i.test(host)) return "social";
         return "referral";
     }
 
+    function getFirstTouch() {
+        const existing = safe(() => sessionStorage.getItem(firstTouchKey));
+        if (existing) {
+            const parsed = safe(() => JSON.parse(existing));
+            if (parsed && typeof parsed === "object") return parsed;
+        }
+
+        const touch = {
+            landingRoute: route(),
+            firstReferrerDomain: referrerDomain(),
+            firstSource: source(),
+            firstCampaign: campaignValue("campaign") || campaignValue("utm_campaign"),
+            firstUtmSource: campaignValue("utm_source"),
+            firstUtmMedium: campaignValue("utm_medium"),
+            firstUtmCampaign: campaignValue("utm_campaign"),
+            firstUtmTerm: campaignValue("utm_term"),
+            firstUtmContent: campaignValue("utm_content")
+        };
+        safe(() => sessionStorage.setItem(firstTouchKey, JSON.stringify(touch)));
+        return touch;
+    }
+
     function track(eventName, options) {
         safe(() => {
             if (!eventName || !originalFetch) return;
+            const firstTouch = getFirstTouch();
             const payload = Object.assign({
                 eventName,
                 sessionId: getSessionId(),
@@ -101,7 +134,16 @@
                 deviceClass: deviceClass(),
                 browserFamily: browserFamily(),
                 referrerDomain: referrerDomain(),
-                source: source()
+                source: source(),
+                landingRoute: firstTouch.landingRoute,
+                firstReferrerDomain: firstTouch.firstReferrerDomain,
+                firstSource: firstTouch.firstSource,
+                firstCampaign: firstTouch.firstCampaign,
+                firstUtmSource: firstTouch.firstUtmSource,
+                firstUtmMedium: firstTouch.firstUtmMedium,
+                firstUtmCampaign: firstTouch.firstUtmCampaign,
+                firstUtmTerm: firstTouch.firstUtmTerm,
+                firstUtmContent: firstTouch.firstUtmContent
             }, options || {});
 
             const body = JSON.stringify(payload);
@@ -134,6 +176,16 @@
         const key = fieldKey(el);
         if (/email|name|token|note|why|media|link/i.test(key)) return "private_field";
         return key;
+    }
+
+    function safeToken(value, maxLength) {
+        value = String(value || "").trim();
+        if (!value) return "";
+        if (/@|https?:\/\/|data:|secret|bearer|password|token/i.test(value)) return "";
+        return value
+            .slice(0, maxLength || 96)
+            .replace(/[^\w./:$ -]/g, "")
+            .trim();
     }
 
     function fileTypeBucket(file) {

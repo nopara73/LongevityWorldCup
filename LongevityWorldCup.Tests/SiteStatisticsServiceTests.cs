@@ -181,6 +181,94 @@ public sealed class SiteStatisticsServiceTests
         Assert.Empty(referralOnly.Events);
     }
 
+    [Fact]
+    public async Task Dashboard_UsesSessionFirstTouchForAcquisitionSource()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var context = new DefaultHttpContext();
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "onboarding_entry_viewed",
+            SessionId = "acquisition-session",
+            Flow = "onboarding",
+            Route = "/join?utm_source=google&utm_medium=cpc&utm_campaign=summer2026&campaign=summer-launch&token=private-token",
+            ReferrerDomain = "www.google.com",
+            Source = "search"
+        }, context);
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "calculator_started",
+            SessionId = "acquisition-session",
+            Flow = "pheno",
+            Route = "/pheno-age",
+            ReferrerDomain = "longevityworldcup.com",
+            Source = "internal"
+        }, context);
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d" });
+        Assert.Equal(2, dashboard.Events.Count);
+        Assert.All(dashboard.Events, ev =>
+        {
+            Assert.Equal("search", ev.FirstSource);
+            Assert.Equal("www.google.com", ev.FirstReferrerDomain);
+            Assert.Equal("google", ev.FirstUtmSource);
+            Assert.Equal("cpc", ev.FirstUtmMedium);
+            Assert.Equal("summer2026", ev.FirstUtmCampaign);
+            Assert.Equal("summer-launch", ev.FirstCampaign);
+            Assert.Equal("/join?utm_source=redacted&utm_medium=redacted&utm_campaign=redacted&campaign=redacted", ev.LandingRoute);
+        });
+
+        var internalEvent = Assert.Single(dashboard.Events, ev => ev.EventName == "calculator_started");
+        Assert.Equal("internal", internalEvent.Source);
+        Assert.Equal("search", internalEvent.FirstSource);
+
+        var searchOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "search" });
+        Assert.Equal(2, searchOnly.Events.Count);
+
+        var internalOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "internal" });
+        Assert.Empty(internalOnly.Events);
+
+        var json = JsonSerializer.Serialize(dashboard);
+        Assert.DoesNotContain("private-token", json);
+    }
+
+    [Fact]
+    public async Task Dashboard_ClassifiesCampaignTaggedDirectLandingAsCampaign()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var context = new DefaultHttpContext();
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "onboarding_entry_viewed",
+            SessionId = "campaign-direct-session",
+            Flow = "onboarding",
+            Route = "/join?utm_source=newsletter&utm_medium=email&utm_campaign=challenge_launch"
+        }, context);
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d" });
+        var ev = Assert.Single(dashboard.Events);
+
+        Assert.Equal("campaign", ev.FirstSource);
+        Assert.Equal("newsletter", ev.FirstUtmSource);
+        Assert.Equal("email", ev.FirstUtmMedium);
+        Assert.Equal("challenge_launch", ev.FirstUtmCampaign);
+        Assert.Equal("challenge_launch", ev.FirstCampaign);
+
+        var campaignOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Source = "campaign" });
+        Assert.Single(campaignOnly.Events);
+    }
+
     private static void InsertDashboardEvent(
         DatabaseManager database,
         DateTimeOffset occurredAtUtc,

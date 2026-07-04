@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Hosting;
 using LongevityWorldCup.Website.Tools;
@@ -14,6 +15,7 @@ public sealed class SiteStatisticsService : IHostedService
 {
     private const int MaxEventNameLength = 96;
     private const int MaxTextLength = 160;
+    private const int MaxCampaignTextLength = 96;
     private const int MaxMetadataJsonLength = 4096;
     private const int DefaultDashboardLimit = 2500;
     private const int MaxDashboardLimit = 5000;
@@ -172,20 +174,23 @@ public sealed class SiteStatisticsService : IHostedService
         using var cmd = sqlite.CreateCommand();
         cmd.CommandText =
             """
-            SELECT OccurredAtUtc, SessionHash, ActorHash, EventName, Flow, Route, Component, Step, Outcome,
-                   ErrorCode, DurationMs, DeviceClass, BrowserFamily, ReferrerDomain, Source, MetadataJson
-            FROM SiteStatisticEvents
-            WHERE OccurredAtUtc >= @from
-              AND OccurredAtUtc < @to
-              AND (@flow = '' OR Flow = @flow)
-              AND (@device = '' OR DeviceClass = @device)
-              AND (
-                    @source = ''
-                    OR (@source = 'internal' AND lower(coalesce(ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com'))
-                    OR (@source = 'referral' AND Source = 'referral' AND lower(coalesce(ReferrerDomain, '')) NOT IN ('longevityworldcup.com', 'www.longevityworldcup.com'))
-                    OR (@source NOT IN ('internal', 'referral') AND Source = @source AND lower(coalesce(ReferrerDomain, '')) NOT IN ('longevityworldcup.com', 'www.longevityworldcup.com'))
-                  )
-            ORDER BY OccurredAtUtc DESC
+            SELECT e.OccurredAtUtc, e.SessionHash, e.ActorHash, e.EventName, e.Flow, e.Route, e.Component, e.Step, e.Outcome,
+                   e.ErrorCode, e.DurationMs, e.DeviceClass, e.BrowserFamily, e.ReferrerDomain, e.Source, e.MetadataJson,
+                   s.LandingRoute, s.FirstReferrerDomain, s.FirstSource, s.FirstCampaign, s.FirstUtmSource,
+                   s.FirstUtmMedium, s.FirstUtmCampaign, s.FirstUtmTerm, s.FirstUtmContent
+            FROM SiteStatisticEvents e
+            LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
+            WHERE e.OccurredAtUtc >= @from
+              AND e.OccurredAtUtc < @to
+              AND (@flow = '' OR e.Flow = @flow)
+              AND (@device = '' OR e.DeviceClass = @device)
+              AND (@source = '' OR (
+                    CASE
+                        WHEN lower(coalesce(s.FirstReferrerDomain, e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
+                        ELSE coalesce(s.FirstSource, e.Source, 'direct')
+                    END
+                  ) = @source)
+            ORDER BY e.OccurredAtUtc DESC
             LIMIT @limit;
             """;
         Add(cmd, "@from", from.ToString("O", CultureInfo.InvariantCulture));
@@ -200,6 +205,7 @@ public sealed class SiteStatisticsService : IHostedService
         while (reader.Read())
         {
             var referrerDomain = ReadNullableString(reader, 13);
+            var firstReferrerDomain = ReadNullableString(reader, 17);
             events.Add(new SiteStatisticsDashboardEvent(
                 OccurredAtUtc: RoundToMinute(ReadString(reader, 0)),
                 SessionHash: ReadString(reader, 1),
@@ -216,6 +222,15 @@ public sealed class SiteStatisticsService : IHostedService
                 BrowserFamily: ReadNullableString(reader, 12),
                 ReferrerDomain: referrerDomain,
                 Source: NormalizeSource(ReadNullableString(reader, 14), referrerDomain),
+                LandingRoute: ReadNullableString(reader, 16),
+                FirstReferrerDomain: firstReferrerDomain,
+                FirstSource: NormalizeSource(ReadNullableString(reader, 18), firstReferrerDomain),
+                FirstCampaign: ReadNullableString(reader, 19),
+                FirstUtmSource: ReadNullableString(reader, 20),
+                FirstUtmMedium: ReadNullableString(reader, 21),
+                FirstUtmCampaign: ReadNullableString(reader, 22),
+                FirstUtmTerm: ReadNullableString(reader, 23),
+                FirstUtmContent: ReadNullableString(reader, 24),
                 Metadata: ReadMetadata(ReadNullableString(reader, 15))));
         }
 
@@ -253,7 +268,8 @@ public sealed class SiteStatisticsService : IHostedService
         if (string.IsNullOrWhiteSpace(eventName) || LooksSensitiveValue(eventName))
             return null;
 
-        var route = SanitizeRoute(request.Route ?? context?.Request.Path.Value ?? string.Empty);
+        var rawRoute = request.Route ?? ContextRoute(context) ?? string.Empty;
+        var route = SanitizeRoute(rawRoute);
         var metadata = SanitizeMetadata(request.Metadata);
         var metadataJson = metadata.Count == 0 ? null : JsonSerializer.Serialize(metadata, JsonOptions);
         if (metadataJson is { Length: > MaxMetadataJsonLength })
@@ -262,11 +278,14 @@ public sealed class SiteStatisticsService : IHostedService
         }
 
         var referrerDomain = SafeDomain(request.ReferrerDomain) ?? SafeDomain(context?.Request.Headers.Referer.FirstOrDefault());
+        var source = NormalizeSource(request.Source, referrerDomain);
+        var sessionHash = BuildHash("S", request.SessionId ?? ClientIdentifier.From(context ?? new DefaultHttpContext()));
+        var firstTouch = BuildFirstTouch(request, rawRoute, route, referrerDomain, source);
 
         return new QueuedSiteStatisticEvent(
             Id: Guid.NewGuid().ToString("N"),
             OccurredAtUtc: occurredAt.ToString("O", CultureInfo.InvariantCulture),
-            SessionHash: BuildHash("S", request.SessionId ?? ClientIdentifier.From(context ?? new DefaultHttpContext())),
+            SessionHash: sessionHash,
             ActorHash: string.IsNullOrWhiteSpace(actorId) ? null : BuildHash("A", actorId),
             EventName: eventName,
             Flow: SafeDisplayToken(request.Flow, MaxTextLength),
@@ -279,7 +298,16 @@ public sealed class SiteStatisticsService : IHostedService
             DeviceClass: SafeDisplayToken(request.DeviceClass, MaxTextLength) ?? DetectDeviceClass(context),
             BrowserFamily: SafeDisplayToken(request.BrowserFamily, MaxTextLength) ?? DetectBrowserFamily(context),
             ReferrerDomain: referrerDomain,
-            Source: NormalizeSource(request.Source, referrerDomain),
+            Source: source,
+            LandingRoute: firstTouch.LandingRoute,
+            FirstReferrerDomain: firstTouch.FirstReferrerDomain,
+            FirstSource: firstTouch.FirstSource,
+            FirstCampaign: firstTouch.FirstCampaign,
+            FirstUtmSource: firstTouch.FirstUtmSource,
+            FirstUtmMedium: firstTouch.FirstUtmMedium,
+            FirstUtmCampaign: firstTouch.FirstUtmCampaign,
+            FirstUtmTerm: firstTouch.FirstUtmTerm,
+            FirstUtmContent: firstTouch.FirstUtmContent,
             MetadataJson: metadataJson);
     }
 
@@ -346,6 +374,70 @@ public sealed class SiteStatisticsService : IHostedService
         return _database.RunAsync(sqlite =>
         {
             using var tx = sqlite.BeginTransaction();
+            using var sessionCmd = sqlite.CreateCommand();
+            sessionCmd.Transaction = tx;
+            sessionCmd.CommandText =
+                """
+                INSERT INTO SiteStatisticSessions
+                (SessionHash, FirstSeenAtUtc, LandingRoute, FirstReferrerDomain, FirstSource, FirstCampaign,
+                 FirstUtmSource, FirstUtmMedium, FirstUtmCampaign, FirstUtmTerm, FirstUtmContent)
+                VALUES
+                (@sessionHash, @firstSeen, @landingRoute, @firstReferrer, @firstSource, @firstCampaign,
+                 @firstUtmSource, @firstUtmMedium, @firstUtmCampaign, @firstUtmTerm, @firstUtmContent)
+                ON CONFLICT(SessionHash) DO UPDATE SET
+                    FirstSeenAtUtc = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc THEN excluded.FirstSeenAtUtc
+                        ELSE SiteStatisticSessions.FirstSeenAtUtc
+                    END,
+                    LandingRoute = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.LandingRoute IS NULL THEN COALESCE(excluded.LandingRoute, SiteStatisticSessions.LandingRoute)
+                        ELSE SiteStatisticSessions.LandingRoute
+                    END,
+                    FirstReferrerDomain = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstReferrerDomain IS NULL THEN COALESCE(excluded.FirstReferrerDomain, SiteStatisticSessions.FirstReferrerDomain)
+                        ELSE SiteStatisticSessions.FirstReferrerDomain
+                    END,
+                    FirstSource = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstSource IS NULL THEN COALESCE(excluded.FirstSource, SiteStatisticSessions.FirstSource)
+                        ELSE SiteStatisticSessions.FirstSource
+                    END,
+                    FirstCampaign = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstCampaign IS NULL THEN COALESCE(excluded.FirstCampaign, SiteStatisticSessions.FirstCampaign)
+                        ELSE SiteStatisticSessions.FirstCampaign
+                    END,
+                    FirstUtmSource = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmSource IS NULL THEN COALESCE(excluded.FirstUtmSource, SiteStatisticSessions.FirstUtmSource)
+                        ELSE SiteStatisticSessions.FirstUtmSource
+                    END,
+                    FirstUtmMedium = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmMedium IS NULL THEN COALESCE(excluded.FirstUtmMedium, SiteStatisticSessions.FirstUtmMedium)
+                        ELSE SiteStatisticSessions.FirstUtmMedium
+                    END,
+                    FirstUtmCampaign = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmCampaign IS NULL THEN COALESCE(excluded.FirstUtmCampaign, SiteStatisticSessions.FirstUtmCampaign)
+                        ELSE SiteStatisticSessions.FirstUtmCampaign
+                    END,
+                    FirstUtmTerm = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmTerm IS NULL THEN COALESCE(excluded.FirstUtmTerm, SiteStatisticSessions.FirstUtmTerm)
+                        ELSE SiteStatisticSessions.FirstUtmTerm
+                    END,
+                    FirstUtmContent = CASE
+                        WHEN excluded.FirstSeenAtUtc < SiteStatisticSessions.FirstSeenAtUtc OR SiteStatisticSessions.FirstUtmContent IS NULL THEN COALESCE(excluded.FirstUtmContent, SiteStatisticSessions.FirstUtmContent)
+                        ELSE SiteStatisticSessions.FirstUtmContent
+                    END;
+                """;
+            var sessionHashParam = sessionCmd.Parameters.Add("@sessionHash", SqliteType.Text);
+            var firstSeenParam = sessionCmd.Parameters.Add("@firstSeen", SqliteType.Text);
+            var landingRouteParam = sessionCmd.Parameters.Add("@landingRoute", SqliteType.Text);
+            var firstReferrerParam = sessionCmd.Parameters.Add("@firstReferrer", SqliteType.Text);
+            var firstSourceParam = sessionCmd.Parameters.Add("@firstSource", SqliteType.Text);
+            var firstCampaignParam = sessionCmd.Parameters.Add("@firstCampaign", SqliteType.Text);
+            var firstUtmSourceParam = sessionCmd.Parameters.Add("@firstUtmSource", SqliteType.Text);
+            var firstUtmMediumParam = sessionCmd.Parameters.Add("@firstUtmMedium", SqliteType.Text);
+            var firstUtmCampaignParam = sessionCmd.Parameters.Add("@firstUtmCampaign", SqliteType.Text);
+            var firstUtmTermParam = sessionCmd.Parameters.Add("@firstUtmTerm", SqliteType.Text);
+            var firstUtmContentParam = sessionCmd.Parameters.Add("@firstUtmContent", SqliteType.Text);
+
             using var cmd = sqlite.CreateCommand();
             cmd.Transaction = tx;
             cmd.CommandText =
@@ -378,6 +470,19 @@ public sealed class SiteStatisticsService : IHostedService
 
             foreach (var item in events)
             {
+                sessionHashParam.Value = item.SessionHash;
+                firstSeenParam.Value = item.OccurredAtUtc;
+                landingRouteParam.Value = item.LandingRoute ?? (object)DBNull.Value;
+                firstReferrerParam.Value = item.FirstReferrerDomain ?? (object)DBNull.Value;
+                firstSourceParam.Value = item.FirstSource ?? (object)DBNull.Value;
+                firstCampaignParam.Value = item.FirstCampaign ?? (object)DBNull.Value;
+                firstUtmSourceParam.Value = item.FirstUtmSource ?? (object)DBNull.Value;
+                firstUtmMediumParam.Value = item.FirstUtmMedium ?? (object)DBNull.Value;
+                firstUtmCampaignParam.Value = item.FirstUtmCampaign ?? (object)DBNull.Value;
+                firstUtmTermParam.Value = item.FirstUtmTerm ?? (object)DBNull.Value;
+                firstUtmContentParam.Value = item.FirstUtmContent ?? (object)DBNull.Value;
+                sessionCmd.ExecuteNonQuery();
+
                 id.Value = item.Id;
                 occurred.Value = item.OccurredAtUtc;
                 session.Value = item.SessionHash;
@@ -441,11 +546,121 @@ public sealed class SiteStatisticsService : IHostedService
                     CREATE INDEX IF NOT EXISTS IX_SiteStatisticEvents_Flow ON SiteStatisticEvents(Flow);
                     CREATE INDEX IF NOT EXISTS IX_SiteStatisticEvents_EventName ON SiteStatisticEvents(EventName);
                     CREATE INDEX IF NOT EXISTS IX_SiteStatisticEvents_SessionHash ON SiteStatisticEvents(SessionHash);
+
+                    CREATE TABLE IF NOT EXISTS SiteStatisticSessions (
+                        SessionHash TEXT PRIMARY KEY,
+                        FirstSeenAtUtc TEXT NOT NULL,
+                        LandingRoute TEXT NULL,
+                        FirstReferrerDomain TEXT NULL,
+                        FirstSource TEXT NULL,
+                        FirstCampaign TEXT NULL,
+                        FirstUtmSource TEXT NULL,
+                        FirstUtmMedium TEXT NULL,
+                        FirstUtmCampaign TEXT NULL,
+                        FirstUtmTerm TEXT NULL,
+                        FirstUtmContent TEXT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS IX_SiteStatisticSessions_FirstSeenAtUtc ON SiteStatisticSessions(FirstSeenAtUtc);
+                    CREATE INDEX IF NOT EXISTS IX_SiteStatisticSessions_FirstSource ON SiteStatisticSessions(FirstSource);
+
+                    INSERT OR IGNORE INTO SiteStatisticSessions
+                    (SessionHash, FirstSeenAtUtc, LandingRoute, FirstReferrerDomain, FirstSource)
+                    SELECT e.SessionHash,
+                           e.OccurredAtUtc,
+                           e.Route,
+                           e.ReferrerDomain,
+                           CASE
+                               WHEN lower(coalesce(e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
+                               ELSE coalesce(e.Source, 'direct')
+                           END
+                    FROM SiteStatisticEvents e
+                    INNER JOIN (
+                        SELECT SessionHash, MIN(OccurredAtUtc) AS FirstSeenAtUtc
+                        FROM SiteStatisticEvents
+                        GROUP BY SessionHash
+                    ) first_events
+                      ON first_events.SessionHash = e.SessionHash
+                     AND first_events.FirstSeenAtUtc = e.OccurredAtUtc;
                     """;
                 cmd.ExecuteNonQuery();
             });
 
             _initialized = true;
+        }
+    }
+
+    private static SessionFirstTouch BuildFirstTouch(
+        SiteStatisticsEventRequest request,
+        string rawRoute,
+        string? sanitizedRoute,
+        string? referrerDomain,
+        string source)
+    {
+        var landingRouteRaw = string.IsNullOrWhiteSpace(request.LandingRoute)
+            ? rawRoute
+            : request.LandingRoute!;
+        var landingRoute = SanitizeRoute(landingRouteRaw) ?? sanitizedRoute;
+        var firstReferrerDomain = SafeDomain(request.FirstReferrerDomain) ?? referrerDomain;
+        var firstUtmSource = SafeCampaignValue(request.FirstUtmSource) ?? QueryValue(landingRouteRaw, "utm_source");
+        var firstUtmMedium = SafeCampaignValue(request.FirstUtmMedium) ?? QueryValue(landingRouteRaw, "utm_medium");
+        var firstUtmCampaign = SafeCampaignValue(request.FirstUtmCampaign) ?? QueryValue(landingRouteRaw, "utm_campaign");
+        var firstUtmTerm = SafeCampaignValue(request.FirstUtmTerm) ?? QueryValue(landingRouteRaw, "utm_term");
+        var firstUtmContent = SafeCampaignValue(request.FirstUtmContent) ?? QueryValue(landingRouteRaw, "utm_content");
+        var firstCampaign = SafeCampaignValue(request.FirstCampaign)
+            ?? QueryValue(landingRouteRaw, "campaign")
+            ?? firstUtmCampaign;
+        var hasCampaign = !string.IsNullOrWhiteSpace(firstCampaign)
+            || !string.IsNullOrWhiteSpace(firstUtmSource)
+            || !string.IsNullOrWhiteSpace(firstUtmMedium)
+            || !string.IsNullOrWhiteSpace(firstUtmCampaign)
+            || !string.IsNullOrWhiteSpace(firstUtmTerm)
+            || !string.IsNullOrWhiteSpace(firstUtmContent);
+        var firstSource = NormalizeSource(
+            string.IsNullOrWhiteSpace(request.FirstSource) && hasCampaign && string.IsNullOrWhiteSpace(firstReferrerDomain)
+                ? "campaign"
+                : request.FirstSource ?? source,
+            firstReferrerDomain);
+
+        return new SessionFirstTouch(
+            landingRoute,
+            firstReferrerDomain,
+            firstSource,
+            firstCampaign,
+            firstUtmSource,
+            firstUtmMedium,
+            firstUtmCampaign,
+            firstUtmTerm,
+            firstUtmContent);
+    }
+
+    private static string? ContextRoute(HttpContext? context)
+    {
+        if (context is null)
+            return null;
+
+        return $"{context.Request.Path.Value}{context.Request.QueryString.Value}";
+    }
+
+    private static string? QueryValue(string? route, string key)
+    {
+        if (string.IsNullOrWhiteSpace(route))
+            return null;
+
+        var queryStart = route.IndexOf('?', StringComparison.Ordinal);
+        if (queryStart < 0 || queryStart == route.Length - 1)
+            return null;
+
+        var query = route[(queryStart + 1)..];
+        try
+        {
+            var parsed = QueryHelpers.ParseQuery(query);
+            return parsed.TryGetValue(key, out var values)
+                ? SafeCampaignValue(values.FirstOrDefault())
+                : null;
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -542,6 +757,12 @@ public sealed class SiteStatisticsService : IHostedService
     private static string? SafeDisplayToken(string? value, int maxLength)
     {
         var token = SafeToken(value, maxLength);
+        return LooksSensitiveValue(token) ? null : token;
+    }
+
+    private static string? SafeCampaignValue(string? value)
+    {
+        var token = SafeToken(value, MaxCampaignTextLength);
         return LooksSensitiveValue(token) ? null : token;
     }
 
@@ -657,7 +878,41 @@ public sealed class SiteStatisticsService : IHostedService
         if (IsInternalReferrerDomain(referrerDomain))
             return "internal";
 
-        return SafeDisplayToken(source, MaxTextLength) ?? "direct";
+        return SafeDisplayToken(source, MaxTextLength)
+            ?? ClassifyExternalReferrer(referrerDomain)
+            ?? "direct";
+    }
+
+    private static string? ClassifyExternalReferrer(string? referrerDomain)
+    {
+        if (string.IsNullOrWhiteSpace(referrerDomain))
+            return null;
+
+        var normalized = referrerDomain.Trim().ToLowerInvariant();
+        if (normalized.Contains("google", StringComparison.Ordinal) ||
+            normalized.Contains("bing", StringComparison.Ordinal) ||
+            normalized.Contains("duckduckgo", StringComparison.Ordinal) ||
+            normalized.Contains("yahoo", StringComparison.Ordinal) ||
+            normalized.Contains("brave", StringComparison.Ordinal) ||
+            normalized.Contains("search", StringComparison.Ordinal))
+        {
+            return "search";
+        }
+
+        if (normalized.Contains("x.com", StringComparison.Ordinal) ||
+            normalized.Contains("twitter", StringComparison.Ordinal) ||
+            normalized.Contains("facebook", StringComparison.Ordinal) ||
+            normalized.Contains("instagram", StringComparison.Ordinal) ||
+            normalized.Contains("threads", StringComparison.Ordinal) ||
+            normalized.Contains("youtube", StringComparison.Ordinal) ||
+            normalized.Contains("linkedin", StringComparison.Ordinal) ||
+            normalized.Contains("reddit", StringComparison.Ordinal) ||
+            normalized.Contains("slack", StringComparison.Ordinal))
+        {
+            return "social";
+        }
+
+        return "referral";
     }
 
     private static bool IsInternalReferrerDomain(string? referrerDomain)
@@ -719,6 +974,17 @@ public sealed class SiteStatisticsService : IHostedService
         => cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
 }
 
+internal sealed record SessionFirstTouch(
+    string? LandingRoute,
+    string? FirstReferrerDomain,
+    string FirstSource,
+    string? FirstCampaign,
+    string? FirstUtmSource,
+    string? FirstUtmMedium,
+    string? FirstUtmCampaign,
+    string? FirstUtmTerm,
+    string? FirstUtmContent);
+
 internal sealed record QueuedSiteStatisticEvent(
     string Id,
     string OccurredAtUtc,
@@ -736,6 +1002,15 @@ internal sealed record QueuedSiteStatisticEvent(
     string? BrowserFamily,
     string? ReferrerDomain,
     string? Source,
+    string? LandingRoute,
+    string? FirstReferrerDomain,
+    string? FirstSource,
+    string? FirstCampaign,
+    string? FirstUtmSource,
+    string? FirstUtmMedium,
+    string? FirstUtmCampaign,
+    string? FirstUtmTerm,
+    string? FirstUtmContent,
     string? MetadataJson);
 
 public sealed class SiteStatisticsEventRequest
@@ -753,6 +1028,15 @@ public sealed class SiteStatisticsEventRequest
     public string? BrowserFamily { get; set; }
     public string? ReferrerDomain { get; set; }
     public string? Source { get; set; }
+    public string? LandingRoute { get; set; }
+    public string? FirstReferrerDomain { get; set; }
+    public string? FirstSource { get; set; }
+    public string? FirstCampaign { get; set; }
+    public string? FirstUtmSource { get; set; }
+    public string? FirstUtmMedium { get; set; }
+    public string? FirstUtmCampaign { get; set; }
+    public string? FirstUtmTerm { get; set; }
+    public string? FirstUtmContent { get; set; }
     public Dictionary<string, JsonElement>? Metadata { get; set; }
 }
 
@@ -798,4 +1082,13 @@ public sealed record SiteStatisticsDashboardEvent(
     string? BrowserFamily,
     string? ReferrerDomain,
     string? Source,
+    string? LandingRoute,
+    string? FirstReferrerDomain,
+    string? FirstSource,
+    string? FirstCampaign,
+    string? FirstUtmSource,
+    string? FirstUtmMedium,
+    string? FirstUtmCampaign,
+    string? FirstUtmTerm,
+    string? FirstUtmContent,
     IReadOnlyDictionary<string, string> Metadata);
