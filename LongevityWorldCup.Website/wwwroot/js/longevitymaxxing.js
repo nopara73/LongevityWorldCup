@@ -2100,24 +2100,26 @@
 
     function findQuoteAthlete(quote) {
         const slug = normalizeAthleteSlug(quote?.athleteSlug);
-        if (!slug || !quoteAthleteResults.length) return null;
-        return quoteAthleteResults.find(athlete => normalizeAthleteSlug(athlete.slug) === slug) || null;
+        if (!slug) return null;
+        return quoteAthleteResults.find(athlete => normalizeAthleteSlug(athlete.slug) === slug)
+            || athleteDirectory.find(athlete => normalizeAthleteSlug(athlete.slug) === slug)
+            || null;
     }
 
     function showCheckInQuoteDialog(quote, bestRank, token) {
         const dialog = ensureCheckInQuoteDialog();
         const text = dialog.querySelector("#lmxQuoteDialogText");
         const source = dialog.querySelector("#lmxQuoteDialogSource");
+        const portrait = dialog.querySelector("#lmxQuoteDialogPortrait");
         const ok = dialog.querySelector("#lmxQuoteDialogOk");
-        if (!text || !source || !ok) return;
+        if (!text || !source || !portrait || !ok) return;
 
         quoteDialogLastFocus = document.activeElement;
         dialog.dataset.quoteToken = token || "";
         dialog.dataset.quoteBucket = quote.bucket || "";
         text.textContent = quote.text || "";
         source.innerHTML = renderCheckInQuoteSourceHtml(quote, bestRank);
-        const icon = dialog.querySelector("#lmxQuoteDialogIcon");
-        if (icon) icon.className = `fas ${getQuoteDialogIconClass(quote.bucket)}`;
+        portrait.innerHTML = renderCheckInQuotePortraitHtml(quote, findQuoteAthlete(quote));
         dialog.hidden = false;
         document.body.classList.add("lmx-quote-open");
         requestAnimationFrame(() => ok.focus({ preventScroll: true }));
@@ -2132,19 +2134,17 @@
                 <div class="lmx-quote-dialog-backdrop" aria-hidden="true"></div>
                 <div class="lmx-quote-dialog-card">
                     <div class="lmx-quote-dialog-body">
-                        <div class="lmx-quote-dialog-symbol" aria-hidden="true">
-                            <i id="lmxQuoteDialogIcon" class="fas fa-quote-left"></i>
-                        </div>
+                        <div id="lmxQuoteDialogPortrait" class="lmx-quote-portrait-shell"></div>
                         <div class="lmx-quote-dialog-main">
                             <blockquote id="lmxQuoteDialogText"></blockquote>
                             <div id="lmxQuoteDialogSource" class="lmx-quote-source"></div>
+                            <div class="lmx-quote-dialog-actions">
+                                <button id="lmxQuoteDialogOk" class="lmx-button" type="button">
+                                    <i class="fas fa-check" aria-hidden="true"></i>
+                                    <span>OK</span>
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="lmx-quote-dialog-actions">
-                        <button id="lmxQuoteDialogOk" class="lmx-button" type="button">
-                            <i class="fas fa-check" aria-hidden="true"></i>
-                            <span>OK</span>
-                        </button>
                     </div>
                 </div>
             </div>`);
@@ -2152,9 +2152,28 @@
         const ok = dialog.querySelector("#lmxQuoteDialogOk");
         ok.addEventListener("click", closeCheckInQuoteDialog);
         dialog.addEventListener("keydown", event => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeCheckInQuoteDialog();
+                return;
+            }
             if (event.key !== "Tab") return;
-            event.preventDefault();
-            ok.focus({ preventScroll: true });
+
+            const focusable = getDialogFocusableElements(dialog);
+            if (!focusable.length) {
+                event.preventDefault();
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus({ preventScroll: true });
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus({ preventScroll: true });
+            }
         });
         return dialog;
     }
@@ -2165,6 +2184,8 @@
 
         const source = dialog.querySelector("#lmxQuoteDialogSource");
         if (source) source.innerHTML = renderCheckInQuoteSourceHtml(quote, bestRank);
+        const portrait = dialog.querySelector("#lmxQuoteDialogPortrait");
+        if (portrait) portrait.innerHTML = renderCheckInQuotePortraitHtml(quote, findQuoteAthlete(quote));
     }
 
     function closeCheckInQuoteDialog() {
@@ -2197,6 +2218,31 @@
             rank ? `<span class="lmx-quote-rank">${esc(rank)}</span>` : "",
             podcast
         ].filter(Boolean).join("");
+    }
+
+    function renderCheckInQuotePortraitHtml(quote, athlete) {
+        const athleteName = quote.athleteName || athlete?.name || "Longevity athlete";
+        const image = getQuoteAthleteProfileImage(athlete);
+        const hasProfileImage = !!image;
+        const imageUrl = image || ATHLETE_PLACEHOLDER_IMAGE;
+        const placeholderClass = hasProfileImage ? "" : " placeholder";
+        const alt = hasProfileImage ? `${athleteName} profile picture` : "";
+        return `<div class="lmx-quote-portrait${placeholderClass}">
+            <img src="${escAttr(imageUrl)}" alt="${escAttr(alt)}" loading="lazy" decoding="async">
+            <span class="lmx-quote-portrait-badge" aria-hidden="true">
+                <i class="fas ${getQuoteDialogIconClass(quote.bucket)}"></i>
+            </span>
+        </div>`;
+    }
+
+    function getQuoteAthleteProfileImage(athlete) {
+        const image = String(athlete?.profilePic || "").trim();
+        return isPlaceholderProfileImage(image) ? "" : image;
+    }
+
+    function getDialogFocusableElements(dialog) {
+        return Array.from(dialog.querySelectorAll("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"))
+            .filter(element => element.offsetParent !== null);
     }
 
     function getQuoteDialogIconClass(bucket) {
@@ -2635,6 +2681,7 @@
             name,
             legalName,
             slug,
+            profilePic: String(athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic || "").trim(),
             dateOfBirth: dob,
             chronologicalAge,
             crowdAge,
