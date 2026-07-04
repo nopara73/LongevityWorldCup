@@ -314,6 +314,92 @@ public sealed class SiteStatisticsServiceTests
         Assert.Empty(searchOnly.Events);
     }
 
+    [Theory]
+    [InlineData(
+        "/pheno-age?Year=1980&Month=5&Day=20&Date=2026-06-01&AlbGL=44&CreatUmolL=80&GluMmolL=5.2",
+        "/pheno-age",
+        "prefilled")]
+    [InlineData(
+        "/pheno-age?update=1&Year=1980&Month=5&Day=20&AlbGL=44",
+        "/pheno-age",
+        "update")]
+    [InlineData(
+        "/bortz-age?discount=MIGHTYKLAUS&Year=1980&Wbc1000cellsuL=6.5",
+        "/bortz-age",
+        "discount")]
+    [InlineData(
+        "/bortz-age?fake=1&Year=1980&Wbc1000cellsuL=6.5",
+        "/bortz-age",
+        "fake")]
+    [InlineData(
+        "/onboarding/pheno-age.html?freepass=perfect&Year=1980&AlbGL=44",
+        "/pheno-age",
+        "discount")]
+    public async Task Dashboard_CanonicalizesBioageCalculatorRoutesAndStoresEntryMode(
+        string route,
+        string expectedRoute,
+        string expectedEntryMode)
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+        var context = new DefaultHttpContext();
+
+        await service.RecordClientEventAsync(new SiteStatisticsEventRequest
+        {
+            EventName = "calculator_started",
+            SessionId = Guid.NewGuid().ToString("N"),
+            Flow = expectedRoute.Contains("bortz", StringComparison.OrdinalIgnoreCase) ? "bortz" : "pheno",
+            Route = route,
+            Component = "calculator"
+        }, context);
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d" });
+        var ev = Assert.Single(dashboard.Events);
+        var json = JsonSerializer.Serialize(dashboard);
+
+        Assert.Equal(expectedRoute, ev.Route);
+        Assert.Equal(expectedRoute, ev.LandingRoute);
+        Assert.Equal(expectedEntryMode, ev.Metadata["entryMode"]);
+        Assert.DoesNotContain("Year=redacted", json);
+        Assert.DoesNotContain("AlbGL=redacted", json);
+        Assert.DoesNotContain("Wbc1000cellsuL=redacted", json);
+        Assert.DoesNotContain("MIGHTYKLAUS", json);
+        Assert.DoesNotContain("perfect", json);
+        Assert.DoesNotContain("1980", json);
+    }
+
+    [Fact]
+    public async Task Dashboard_CanonicalizesLegacyRedactedBioageRoutesOnRead()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        InsertDashboardEvent(
+            database,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            "S-LEGACY-BIOAGE",
+            "calculator_started",
+            "pheno",
+            route: "/pheno-age?update=redacted&Year=redacted&Month=redacted&Day=redacted&AlbGL=redacted&CreatUmolL=redacted");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        var ev = Assert.Single(dashboard.Events);
+        var json = JsonSerializer.Serialize(dashboard);
+
+        Assert.Equal("/pheno-age", ev.Route);
+        Assert.Equal("update", ev.Metadata["entryMode"]);
+        Assert.DoesNotContain("update=redacted", json);
+        Assert.DoesNotContain("Year=redacted", json);
+        Assert.DoesNotContain("AlbGL=redacted", json);
+    }
+
     private static void InsertDashboardEvent(
         DatabaseManager database,
         DateTimeOffset occurredAtUtc,
@@ -321,7 +407,8 @@ public sealed class SiteStatisticsServiceTests
         string eventName,
         string flow,
         string source = "direct",
-        string? referrerDomain = null)
+        string? referrerDomain = null,
+        string route = "/pheno-age")
     {
         database.Run(sqlite =>
         {
@@ -340,7 +427,7 @@ public sealed class SiteStatisticsServiceTests
             cmd.Parameters.AddWithValue("@session", sessionHash);
             cmd.Parameters.AddWithValue("@eventName", eventName);
             cmd.Parameters.AddWithValue("@flow", flow);
-            cmd.Parameters.AddWithValue("@route", "/pheno-age");
+            cmd.Parameters.AddWithValue("@route", route);
             cmd.Parameters.AddWithValue("@component", "calculator");
             cmd.Parameters.AddWithValue("@step", "glucose");
             cmd.Parameters.AddWithValue("@outcome", "failed");

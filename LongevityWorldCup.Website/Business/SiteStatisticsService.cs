@@ -34,6 +34,21 @@ public sealed class SiteStatisticsService : IHostedService
         "token", "confirm", "stop", "accessToken", "stopToken", "invoiceId", "checkoutLink",
         "email", "accountEmail", "name", "displayName"
     ];
+    private static readonly HashSet<string> BioageCalculatorPaths = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "/pheno-age",
+        "/bortz-age",
+        "/onboarding/pheno-age.html",
+        "/onboarding/bortz-age.html"
+    };
+    private static readonly HashSet<string> BioagePrefillQueryKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Year", "Month", "Day", "Date",
+        "AlbGL", "AlpUL", "CreatUmolL", "CrpMgL", "GluMmolL", "LymPc", "McvFL", "RdwPc",
+        "Wbc1000cellsuL", "NeutrophilPc", "MonocytePc", "Rbc10e12L", "MchPg", "AltUL", "GgtUL",
+        "UreaMmolL", "CystatinCMgL", "Hba1cMmolMol", "CholesterolMmolL", "ApoA1GL", "ShbgNmolL",
+        "VitaminDNmolL"
+    };
     private static readonly HashSet<string> SensitiveMetadataKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         "email", "accountEmail", "name", "displayName", "accessToken", "stopToken", "token",
@@ -218,13 +233,24 @@ public sealed class SiteStatisticsService : IHostedService
         {
             var referrerDomain = ReadNullableString(reader, 13);
             var firstReferrerDomain = ReadNullableString(reader, 17);
+            var routeProjection = BuildRouteProjection(ReadNullableString(reader, 5));
+            var landingRouteProjection = BuildRouteProjection(ReadNullableString(reader, 16));
+            var metadata = ReadMetadata(ReadNullableString(reader, 15));
+            if (!string.IsNullOrWhiteSpace(routeProjection.EntryMode) && !metadata.ContainsKey("entryMode"))
+            {
+                metadata = new Dictionary<string, string>(metadata, StringComparer.OrdinalIgnoreCase)
+                {
+                    ["entryMode"] = routeProjection.EntryMode
+                };
+            }
+
             events.Add(new SiteStatisticsDashboardEvent(
                 OccurredAtUtc: RoundToMinute(ReadString(reader, 0)),
                 SessionHash: ReadString(reader, 1),
                 ActorHash: ReadNullableString(reader, 2),
                 EventName: ReadString(reader, 3),
                 Flow: ReadNullableString(reader, 4),
-                Route: ReadNullableString(reader, 5),
+                Route: routeProjection.Route,
                 Component: ReadNullableString(reader, 6),
                 Step: ReadNullableString(reader, 7),
                 Outcome: ReadNullableString(reader, 8),
@@ -234,7 +260,7 @@ public sealed class SiteStatisticsService : IHostedService
                 BrowserFamily: ReadNullableString(reader, 12),
                 ReferrerDomain: referrerDomain,
                 Source: NormalizeSource(ReadNullableString(reader, 14), referrerDomain),
-                LandingRoute: ReadNullableString(reader, 16),
+                LandingRoute: landingRouteProjection.Route,
                 FirstReferrerDomain: firstReferrerDomain,
                 FirstSource: NormalizeSource(ReadNullableString(reader, 18), firstReferrerDomain),
                 FirstCampaign: ReadNullableString(reader, 19),
@@ -243,7 +269,7 @@ public sealed class SiteStatisticsService : IHostedService
                 FirstUtmCampaign: ReadNullableString(reader, 22),
                 FirstUtmTerm: ReadNullableString(reader, 23),
                 FirstUtmContent: ReadNullableString(reader, 24),
-                Metadata: ReadMetadata(ReadNullableString(reader, 15))));
+                Metadata: metadata));
         }
 
         return events;
@@ -281,8 +307,14 @@ public sealed class SiteStatisticsService : IHostedService
             return null;
 
         var rawRoute = request.Route ?? ContextRoute(context) ?? string.Empty;
-        var route = SanitizeRoute(rawRoute);
+        var routeProjection = BuildRouteProjection(rawRoute);
+        var route = routeProjection.Route;
         var metadata = SanitizeMetadata(request.Metadata);
+        if (!string.IsNullOrWhiteSpace(routeProjection.EntryMode))
+        {
+            metadata["entryMode"] = routeProjection.EntryMode;
+        }
+
         var metadataJson = metadata.Count == 0 ? null : JsonSerializer.Serialize(metadata, JsonOptions);
         if (metadataJson is { Length: > MaxMetadataJsonLength })
         {
@@ -623,7 +655,7 @@ public sealed class SiteStatisticsService : IHostedService
         var landingRouteRaw = string.IsNullOrWhiteSpace(request.LandingRoute)
             ? rawRoute
             : request.LandingRoute!;
-        var landingRoute = SanitizeRoute(landingRouteRaw) ?? sanitizedRoute;
+        var landingRoute = BuildRouteProjection(landingRouteRaw).Route ?? sanitizedRoute;
         var firstReferrerDomain = SafeDomain(request.FirstReferrerDomain) ?? referrerDomain;
         var firstUtmSource = SafeCampaignValue(request.FirstUtmSource) ?? QueryValue(landingRouteRaw, "utm_source");
         var firstUtmMedium = SafeCampaignValue(request.FirstUtmMedium) ?? QueryValue(landingRouteRaw, "utm_medium");
@@ -687,6 +719,98 @@ public sealed class SiteStatisticsService : IHostedService
             return null;
         }
     }
+
+    private static RouteProjection BuildRouteProjection(string? route)
+    {
+        if (string.IsNullOrWhiteSpace(route))
+            return new RouteProjection(null, null);
+
+        if (!Uri.TryCreate(route, UriKind.RelativeOrAbsolute, out var uri))
+            return new RouteProjection(SafeToken(route.Split('?')[0], MaxTextLength), null);
+
+        var rawPath = uri.IsAbsoluteUri ? uri.AbsolutePath : route.Split('?')[0];
+        var path = SafeToken(CanonicalizeBioagePath(rawPath), MaxTextLength);
+        if (string.IsNullOrWhiteSpace(path))
+            return new RouteProjection(null, null);
+
+        if (!route.Contains('?'))
+            return new RouteProjection(path, null);
+
+        var query = route[(route.IndexOf('?') + 1)..];
+        if (IsBioageCalculatorPath(path))
+            return new RouteProjection(path, ResolveBioageEntryMode(query));
+
+        var pairs = new List<string>();
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var key = part.Split('=')[0];
+            if (SensitiveQueryKeys.Any(s => string.Equals(s, key, StringComparison.OrdinalIgnoreCase)))
+                continue;
+            var safeKey = SafeToken(key, 32);
+            if (!string.IsNullOrWhiteSpace(safeKey))
+                pairs.Add($"{safeKey}=redacted");
+        }
+
+        return new RouteProjection(pairs.Count == 0 ? path : $"{path}?{string.Join("&", pairs)}", null);
+    }
+
+    private static string CanonicalizeBioagePath(string path)
+    {
+        var normalized = path.TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(normalized))
+            return "/";
+
+        return normalized.ToLowerInvariant() switch
+        {
+            "/pheno-age" => "/pheno-age",
+            "/bortz-age" => "/bortz-age",
+            "/onboarding/pheno-age.html" => "/pheno-age",
+            "/onboarding/bortz-age.html" => "/bortz-age",
+            _ => path
+        };
+    }
+
+    private static bool IsBioageCalculatorPath(string? path)
+        => !string.IsNullOrWhiteSpace(path) && BioageCalculatorPaths.Contains(path);
+
+    private static string? ResolveBioageEntryMode(string query)
+    {
+        try
+        {
+            var parsed = QueryHelpers.ParseQuery(query);
+            if (IsQueryFlagSet(parsed, "fake"))
+                return "fake";
+
+            if (IsQueryFlagSet(parsed, "update"))
+                return "update";
+
+            if (HasQueryKey(parsed, "discount") || HasQueryKey(parsed, "freepass"))
+                return "discount";
+
+            return parsed.Keys.Any(key => BioagePrefillQueryKeys.Contains(key)) ? "prefilled" : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static bool IsQueryFlagSet(IReadOnlyDictionary<string, Microsoft.Extensions.Primitives.StringValues> parsed, string key)
+    {
+        if (!parsed.TryGetValue(key, out var values))
+            return false;
+
+        if (values.Count == 0)
+            return true;
+
+        return values.Any(value =>
+            string.IsNullOrWhiteSpace(value) ||
+            (!string.Equals(value, "0", StringComparison.OrdinalIgnoreCase) &&
+             !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static bool HasQueryKey(IReadOnlyDictionary<string, Microsoft.Extensions.Primitives.StringValues> parsed, string key)
+        => parsed.TryGetValue(key, out var values) && values.Any(value => !string.IsNullOrWhiteSpace(value));
 
     private static Dictionary<string, string> SanitizeMetadata(IReadOnlyDictionary<string, JsonElement>? metadata)
     {
@@ -843,37 +967,6 @@ public sealed class SiteStatisticsService : IHostedService
         }
 
         return sb.ToString().Trim();
-    }
-
-    private static string? SanitizeRoute(string? route)
-    {
-        if (string.IsNullOrWhiteSpace(route))
-            return null;
-
-        if (!Uri.TryCreate(route, UriKind.RelativeOrAbsolute, out var uri))
-            return SafeToken(route.Split('?')[0], MaxTextLength);
-
-        var path = uri.IsAbsoluteUri ? uri.AbsolutePath : route.Split('?')[0];
-        path = SafeToken(path, MaxTextLength);
-        if (string.IsNullOrWhiteSpace(path))
-            return null;
-
-        if (!route.Contains('?'))
-            return path;
-
-        var query = route[(route.IndexOf('?') + 1)..];
-        var pairs = new List<string>();
-        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var key = part.Split('=')[0];
-            if (SensitiveQueryKeys.Any(s => string.Equals(s, key, StringComparison.OrdinalIgnoreCase)))
-                continue;
-            var safeKey = SafeToken(key, 32);
-            if (!string.IsNullOrWhiteSpace(safeKey))
-                pairs.Add($"{safeKey}=redacted");
-        }
-
-        return pairs.Count == 0 ? path : $"{path}?{string.Join("&", pairs)}";
     }
 
     private static string BuildHash(string prefix, string value)
@@ -1034,6 +1127,8 @@ internal sealed record SessionFirstTouch(
     string? FirstUtmCampaign,
     string? FirstUtmTerm,
     string? FirstUtmContent);
+
+internal sealed record RouteProjection(string? Route, string? EntryMode);
 
 internal sealed record QueuedSiteStatisticEvent(
     string Id,
