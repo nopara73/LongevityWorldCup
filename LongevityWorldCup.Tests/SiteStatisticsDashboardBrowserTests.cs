@@ -95,6 +95,12 @@ public sealed class SiteStatisticsDashboardBrowserTests
         await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator("#decisionBrief").GetByText("Join track selection bottleneck").WaitForAsync();
         await page.Locator("#eventSamples").GetByText("burst x30").WaitForAsync();
+        var pageViewsValue = await page.Locator("#outcomeStrip").EvaluateAsync<string>(
+            """
+            host => Array.from(host.querySelectorAll('.metric-tile'))
+                .find(tile => tile.querySelector('.metric-label')?.textContent?.trim() === 'Page views')
+                ?.querySelector('.metric-value')?.textContent?.trim() || ''
+            """);
         var investigationText = await page.Locator("#recommendedInvestigations").InnerTextAsync();
 
         var visibleText = await page.Locator("body").InnerTextAsync();
@@ -102,6 +108,7 @@ public sealed class SiteStatisticsDashboardBrowserTests
         Assert.Contains("Noisy sessions", visibleText);
         Assert.Contains("Page views", visibleText);
         Assert.Contains("burst x30", visibleText);
+        Assert.Equal("4", pageViewsValue);
         Assert.Contains("baseline pending", visibleText);
         Assert.DoesNotContain("pheno age bottleneck at Amateur selected", visibleText);
         Assert.DoesNotContain("bortz age bottleneck at Pro selected", visibleText);

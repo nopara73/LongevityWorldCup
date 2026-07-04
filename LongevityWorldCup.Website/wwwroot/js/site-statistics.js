@@ -7,7 +7,9 @@
         flow: "all",
         selectedFlow: "pheno",
         events: [],
+        defaultEvents: [],
         previousEvents: [],
+        previousDefaultEvents: [],
         decisionActions: [],
         selectedEventName: null,
         selectedSession: null,
@@ -198,11 +200,15 @@
             const payload = await response.json();
             state.events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
             state.previousEvents = Array.isArray(payload.previousEvents) ? payload.previousEvents.map(normalizeEvent) : [];
-            setStatus(`${uniqueSessions(state.events)} active sessions (${state.events.length} redacted events) and ${uniqueSessions(state.previousEvents)} comparison sessions loaded. Generated ${formatTime(payload.generatedAtUtc)}.`);
+            state.defaultEvents = collapseRepeatedPageViewBursts(state.events);
+            state.previousDefaultEvents = collapseRepeatedPageViewBursts(state.previousEvents);
+            setStatus(`${uniqueSessions(state.defaultEvents)} active sessions (${state.defaultEvents.length} default events from ${state.events.length} raw redacted events) and ${uniqueSessions(state.previousDefaultEvents)} comparison sessions loaded. Generated ${formatTime(payload.generatedAtUtc)}.`);
             renderAll();
         } catch (error) {
             state.events = [];
+            state.defaultEvents = [];
             state.previousEvents = [];
+            state.previousDefaultEvents = [];
             setStatus(`Dashboard data could not be loaded: ${error.message || "unknown error"}.`, true);
             renderAll();
         }
@@ -222,14 +228,16 @@
 
     function renderDataQuality() {
         const host = el("dataQualityStrip");
-        const active = decisionScopeEvents(state.events);
-        const previous = decisionScopeEvents(state.previousEvents);
-        const quality = dataQualityStats(active, previous);
+        const active = decisionScopeEvents(defaultEvents());
+        const previous = decisionScopeEvents(defaultPreviousEvents());
+        const rawActive = decisionScopeEvents(state.events);
+        const rawPrevious = decisionScopeEvents(state.previousEvents);
+        const quality = dataQualityStats(rawActive, rawPrevious);
         const cards = [
             {
                 label: "Sample size",
                 value: `${quality.sessions} sessions`,
-                detail: `${quality.events} redacted events`,
+                detail: `${active.length} default events from ${quality.events} raw`,
                 level: quality.sessions >= 10 ? "good" : quality.sessions >= 4 ? "warn" : ""
             },
             {
@@ -246,9 +254,9 @@
             },
             {
                 label: "Comparison baseline",
-                value: quality.previousSessions ? `${quality.previousSessions} sessions` : "pending",
-                detail: quality.previousSessions ? `${quality.previousEvents} previous events` : "trends should be read as sparse",
-                level: quality.previousSessions ? "good" : "warn"
+                value: uniqueSessions(previous) ? `${uniqueSessions(previous)} sessions` : "pending",
+                detail: uniqueSessions(previous) ? `${previous.length} default events from ${quality.previousEvents} raw` : "trends should be read as sparse",
+                level: uniqueSessions(previous) ? "good" : "warn"
             }
         ];
 
@@ -263,8 +271,8 @@
 
     function renderDecisionLayer() {
         state.decisionActions = [];
-        const active = decisionScopeEvents(state.events);
-        const previous = decisionScopeEvents(state.previousEvents);
+        const active = decisionScopeEvents(defaultEvents());
+        const previous = decisionScopeEvents(defaultPreviousEvents());
         const insights = buildDecisionInsights(active, previous).slice(0, 7);
         renderDecisionBrief(insights, active, previous);
         renderRecommendedInvestigations(insights, active);
@@ -708,7 +716,7 @@
         state.selectedEventName = null;
         state.selectedSession = null;
         state.selectedLabel = label || "Decision evidence";
-        renderDrilldown(events && events.length ? events : decisionScopeEvents(state.events));
+        renderDrilldown(events && events.length ? events : decisionScopeEvents(defaultEvents()));
         el("drilldownTitle").scrollIntoView({ block: "nearest" });
     }
 
@@ -807,7 +815,7 @@
         host.innerHTML = "";
         if (state.tab !== "Onboarding") return;
         ["pheno", "bortz", "application"].forEach(flow => {
-            const events = state.events.filter(e => e.flow === flow || (flow === "application" && e.flow === "application"));
+            const events = defaultEvents().filter(e => e.flow === flow || (flow === "application" && e.flow === "application"));
             const started = uniqueSessionsFor(events, flow === "application" ? ["proof_flow_opened"] : ["calculator_started"]);
             const completed = uniqueSessionsFor(events, flow === "application" ? ["application_submit_succeeded"] : ["calculator_result_generated"]);
             const failed = uniqueSessions(frictionEvents(events));
@@ -1040,6 +1048,14 @@
         return scopeEventsFor(events, state.tab, state.selectedFlow);
     }
 
+    function defaultEvents() {
+        return state.defaultEvents;
+    }
+
+    function defaultPreviousEvents() {
+        return state.previousDefaultEvents;
+    }
+
     function scopeEventsFor(events, tab, selectedFlow) {
         events = events.slice();
         if (tab === "Onboarding") {
@@ -1058,11 +1074,22 @@
     }
 
     function scopedEvents() {
+        return scopeEventsFor(defaultEvents(), state.tab, state.selectedFlow);
+    }
+
+    function rawScopedEvents() {
         return scopeEventsFor(state.events, state.tab, state.selectedFlow);
     }
 
     function selectedEvents() {
         let events = scopedEvents();
+        if (state.selectedEventName) events = events.filter(e => e.eventName === state.selectedEventName);
+        if (state.selectedSession) events = events.filter(e => e.sessionHash === state.selectedSession);
+        return events;
+    }
+
+    function selectedRawEvents() {
+        let events = rawScopedEvents();
         if (state.selectedEventName) events = events.filter(e => e.eventName === state.selectedEventName);
         if (state.selectedSession) events = events.filter(e => e.sessionHash === state.selectedSession);
         return events;
@@ -1117,6 +1144,58 @@
         return ["site_page_viewed", "onboarding_entry_viewed", "onboarding_page_viewed", "challenge_page_viewed"].includes(event.eventName);
     }
 
+    function collapseRepeatedPageViewBursts(events) {
+        const collapsed = [];
+        const pageViewsByRoute = new Map();
+        events.slice().sort((a, b) => a.time - b.time).forEach(event => {
+            if (!isPageViewEvent(event)) {
+                collapsed.push(event);
+                return;
+            }
+
+            const key = [event.sessionHash, event.route || ""].join("|");
+            const existing = pageViewsByRoute.get(key);
+            if (!existing) {
+                const copy = Object.assign({}, event, {
+                    collapsedCount: 1,
+                    collapsedFirstTime: event.time || 0,
+                    collapsedLastTime: event.time || 0,
+                    collapsedPageViewPriority: pageViewPriority(event)
+                });
+                pageViewsByRoute.set(key, copy);
+                collapsed.push(copy);
+                return;
+            }
+
+            existing.collapsedCount += 1;
+            if (pageViewPriority(event) > existing.collapsedPageViewPriority) {
+                existing.eventName = event.eventName;
+                existing.flow = event.flow;
+                existing.component = event.component;
+                existing.step = event.step;
+                existing.outcome = event.outcome;
+                existing.errorCode = event.errorCode;
+                existing.collapsedPageViewPriority = pageViewPriority(event);
+            }
+            if ((event.time || 0) >= existing.collapsedLastTime) {
+                existing.collapsedLastTime = event.time || 0;
+                existing.time = event.time;
+                existing.occurredAtUtc = event.occurredAtUtc;
+                existing.durationMs = event.durationMs;
+            }
+        });
+
+        return collapsed.sort((a, b) => b.time - a.time);
+    }
+
+    function pageViewPriority(event) {
+        if (event.eventName === "challenge_page_viewed") return 4;
+        if (event.eventName === "onboarding_entry_viewed") return 3;
+        if (event.eventName === "onboarding_page_viewed") return 3;
+        if (event.eventName === "site_page_viewed") return 1;
+        return 0;
+    }
+
     function collapseEventBursts(events, sequential) {
         const sorted = events.slice().sort((a, b) => a.time - b.time);
         if (sequential) {
@@ -1156,13 +1235,14 @@
     }
 
     function createBurst(key, event) {
+        const count = event.collapsedCount || 1;
         return {
             key,
-            count: 1,
+            count,
             first: event,
             last: event,
-            firstTime: event.time || 0,
-            lastTime: event.time || 0,
+            firstTime: event.collapsedFirstTime || event.time || 0,
+            lastTime: event.collapsedLastTime || event.time || 0,
             sessionHash: event.sessionHash,
             eventName: event.eventName,
             flow: event.flow,
@@ -1175,14 +1255,17 @@
     }
 
     function addToBurst(group, event) {
-        group.count += 1;
-        if ((event.time || 0) < group.firstTime) {
+        const count = event.collapsedCount || 1;
+        const firstTime = event.collapsedFirstTime || event.time || 0;
+        const lastTime = event.collapsedLastTime || event.time || 0;
+        group.count += count;
+        if (firstTime < group.firstTime) {
             group.first = event;
-            group.firstTime = event.time || 0;
+            group.firstTime = firstTime;
         }
-        if ((event.time || 0) >= group.lastTime) {
+        if (lastTime >= group.lastTime) {
             group.last = event;
-            group.lastTime = event.time || 0;
+            group.lastTime = lastTime;
         }
     }
 
@@ -1538,7 +1621,7 @@
     }
 
     function exportCsv() {
-        const events = selectedEvents();
+        const events = selectedRawEvents();
         const headers = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source"];
         const lines = [headers.join(",")].concat(events.map(e => headers.map(h => csv(e[h])).join(",")));
         const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
