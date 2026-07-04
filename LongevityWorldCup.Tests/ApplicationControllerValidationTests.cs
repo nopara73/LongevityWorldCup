@@ -418,7 +418,7 @@ public sealed class ApplicationControllerValidationTests
         {
             Name = "Applicant Ada",
             Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }],
-            ProofPics = Enumerable.Repeat("data:image/png;base64,AA==", 31).ToList()
+            ProofPics = ["data:image/png;base64,not-base64"]
         }, CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result);
@@ -432,12 +432,13 @@ public sealed class ApplicationControllerValidationTests
 
         var submitFailure = Assert.Single(dashboard.Events, ev => ev.EventName == "application_submit_failed");
         Assert.Equal("failed", submitFailure.Outcome);
-        Assert.Equal("too_many_proofs", submitFailure.ErrorCode);
+        Assert.Equal("proof_parse_failed", submitFailure.ErrorCode);
 
         var proofFailure = Assert.Single(dashboard.Events, ev => ev.EventName == "proof_processing_failed");
         Assert.Equal("failed", proofFailure.Outcome);
-        Assert.Equal("too_many_proofs", proofFailure.ErrorCode);
-        Assert.Equal("31", proofFailure.Metadata["proofCount"]);
+        Assert.Equal("proof_parse_failed", proofFailure.ErrorCode);
+        Assert.Equal("1", proofFailure.Metadata["proofCount"]);
+        Assert.Equal("1", proofFailure.Metadata["proofIndex"]);
     }
 
     [Fact]
