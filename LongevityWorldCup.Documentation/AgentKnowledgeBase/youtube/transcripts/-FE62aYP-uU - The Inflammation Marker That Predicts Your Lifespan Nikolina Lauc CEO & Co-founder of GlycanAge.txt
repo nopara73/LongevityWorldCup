@@ -1,0 +1,1470 @@
+# The Inflammation Marker That Predicts Your Lifespan | Nikolina Lauc: CEO & Co-founder of GlycanAge
+
+Video: https://www.youtube.com/watch?v=-FE62aYP-uU
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 612/817 units; 9713/12184 words.
+Matched topics: GlycanAge, Longevity World Cup, aging, aging clock, biological age, biomarkers, epigenetics, exercise, hallmarks of aging, healthspan, inflammation, lifespan, longevity, medicine, mortality, nutrition, sleep, supplements
+
+## Focused Transcript
+
+Using glycans as a proxy for systemic inflammation and then also risk of future chronic disease and
+future mortality, it's a very good marker.
+
+And if your goal of a biological age is to reduce all-cause mortality and to reduce disease, then
+this is the best performing indication of age to do so.
+
+When we compare with other mortality predictors, we are much better without even modeling for
+mortality.
+
+especially on the level of individual because you need this reliable data where if you measure the
+same person the same day, week, months, you're getting the same result or reliable result that will
+move with biology not with measurement error.
+
+the biggest extender of our longevity, healthspan and lifespan.
+
+is not going to be a pill, it's not going to be a drug in the short term, it's not going to be any
+intervention, it's going to be Another day, another biological aging clock.
+
+With me today, the co-founder and CEO of GlycanAge, Nikolina Lauc Welcome to the show.
+
+Thank you, it's pleasure to be here.
+
+So, Nikolina first things first.
+
+What's your story?
+
+Well, Well, I think everything goes back to where I come from, my parents and how I got here, so we
+can start there.
+
+Some Croatian uh by origin.
+
+And I'm a daughter of two scientists.
+
+My mother's a neuroscientist.
+
+And my father is a biologist specialized in glycobology, which is this science of sugars around your
+proteins or lipids, but mainly focused on proteins and how they regulate the function of your
+protein.
+
+And he was obsessed by it from when I was born, actually.
+
+So my parents met in a lab.
+
+where the lead scientist there was looking at, well, they had kind of the first tools to look at
+glycans, and they were actually looking at aging in the brain.
+
+So glycans and aging in the brain.
+
+And then glycans and...
+
+glycans.
+
+No, mean glycans.
+
+So if you go all the way back to what glycans are, the first discovery that they're important for a
+biological role was blood groups.
+
+So glycans in your blood cells define, give you a certain blood group.
+
+And this was a discovery 150 years ago.
+
+But then maybe 30 years ago, 40 years ago, we started having a bit more the tools to look at them in
+the lab.
+
+the pursuit of high-fructose glycomics, so looking at the human glycomic scale as a part, same as we
+had the human genome effort, there was an effort to look at the first 1,000 glycans in the world,
+and that was 2006, and that was between my father's lab and another
+
+lab in Dublin.
+
+They were the first in the world to look at the first 1,000 human glycans then.
+
+And then they stumbled onto, or when they started these large population studies, because nobody
+looked at more than 10 glycans.
+
+You would look at one glycum.
+
+uh Then they um started to see trends related to aging.
+
+Or they would start to study disease, but then aging would have a stronger effect than the disease.
+
+So you can have a young person with a disease that looks like a healthy old person.
+
+So there's a healthy old person who has a profile of a young person with disease.
+
+So basically, there was something driving.
+
+disease and aging and there was a story to tell about it by licking a glycan.
+
+So that goes back to the last 20, 30 years.
+
+Now I didn't follow my parents' I actually went the complete opposite.
+
+I didn't want their careers because I was born in 1991, so that was the start of the Yugoslavian...
+
+Getting your degree.
+
+I was doing engineering and design or teaching myself how to code and then there's a start of a
+full-blown growing company, so My path is that of an entrepreneur and I spent 10 years in tech as a
+focus and did really well With of course lots of painful lessons when
+
+you you're an immigrant in your country You're doing something a little bit crazy or you're very
+young but bold and ambitious and persistent, so you do well, but you learn a lot of, there's a lot
+of hard lessons along the way.
+
+And then, so my father told me he found a way to measure aging on a systemic molecular level 15
+years ago, so I was 19 years old.
+
+And I didn't see the point of it, I think because you're young, you don't care about aging.
+
+But also was telling everybody I'm 25 or I was hiding my age.
+
+I wanted to think that I was, you looked much younger and I still look a little bit younger.
+
+So it was always a little bit confusing.
+
+You see the other thing that you just said that your most recent pursuit is more about meaning than
+about like a good business, which are not exclusionary.
+
+In fact, a good business okay.
+
+You talked a lot about, you know, entrepreneurship and...
+
+In fact, my previous guest, John Sabes Sabes, he was one of the guys who was trying to bring
+biological aging clocks to some legacy industry of insurance.
+
+He did not succeed, but he was an entrepreneur throughout his entire life, and he's 60 right now,
+something like that.
+
+anyhow, he talked about the, a book from, from the Square co-founder, you know, Square and Jack
+Dorsey created the company.
+
+The short answer is that an entrepreneur solves a new problem, but the longer one is more
+interesting.
+
+It's it's like imagine a town, a city in the middle ages.
+
+you know, there are streets in the city where very narrow and on the bottom it's like a...
+
+shit sewers are going on the bottom and the people are walking there because there is nowhere else
+to walk so if you fall then you have problem but the thing is that people even though they were
+literally walking in shit it was still better for people to live in
+
+the city than to live outside the city because outside the walls It's cold, right?
+
+It's like you might be starving.
+
+might be a predators are coming after you and stuff like that.
+
+So what's the difference between an entrepreneur and a businessman?
+
+A businessman is the one that's running the city.
+
+Entrepreneur, the one who's living outside the city, right?
+
+Who's willing to take the risk, the leap of fate and try something new.
+
+I think that's what you're doing with Glycan-H as well.
+
+I won't ask you about Glycan, it's just a company, but first, I just want to understand what is a
+Glycan?
+
+Yeah, that's the ultimate challenge to simplify this in a way that can translate.
+
+So they're complex sugars, but they're complex sugars not in a sense of how we think of sugars
+today, because you often think about the simple carbs, the sugars in your diet, or maybe even the
+sugars from your diet that damage your proteins.
+
+which then leads to diabetes.
+
+is called glycation.
+
+uh Glycans or glycosylation, the process we look at, is partially encoded in your genes, is
+influenced by your epigenetics, meaning it takes all these epigenetic changes that happen from when
+you were in your mother's womb to today, happens post-translation, so
+
+once a protein is made, because all proteins are encoded in their DNA, which doesn't change.
+
+And then these glycans or these complex sugars, which are added on top of your proteins, add
+function to this protein beyond the genetic epigenetic background and taking in feedback from the
+environment.
+
+So they're the final fine tuning we have in biology to enable multicellular life.
+
+So if we look at every process in biology, since we were a single cell and we became multicell, all
+of it is mediated by glycans.
+
+So I can give you a few examples.
+
+One is the blood groups, so the finding.
+
+And that was the first discovery we had for personalized medicine.
+
+You have to do the right blood transfusion, otherwise the patient might even die.
+
+then they play a key role in every process from conception to all-immune communication to cancer
+biology.
+
+All cells are coated in glycans, majority of proteins are actually glycoproteins, they don't
+function without the glycan part, and majority of lipids are actually glycolipids and we know
+nothing about glycolipids, we know very little about the space.
+
+So they're a key part of our biology, that's a carb.
+
+but it enabled our biology to communicate on a multi-cell uh level.
+
+uh there is a paper my father published over 10 years ago now that says that glycans are the third
+revolution in evolution.
+
+Or they're the step that we needed to become.
+
+Because if we just look at genetics, there's not much difference between a human and a fly.
+
+So 22 pieces of DNA in a human.
+
+uh 20 or 25 up to, actually we haven't defined it, or 20 in a fly.
+
+So human fly, pretty much the same thing if we look at the amount of DNA.
+
+But on a glyco level, it greatly increases the complexity of our biology.
+
+So that's the kind of final complexity on this.
+
+omic level, genomic, proteomic, uh glycoproteomic, and then other spaces as well.
+
+relatively simple way to explain it, but then let's go a little bit more simple because we focus on
+a certain part of glycans and that's mainly in terms of immune communication.
+
+So you can also call them uh immunoglycans or immunocarbs where their main job is regulating
+systemic inflammation.
+
+So that's actually how we study glycans and You can see them in many areas, but they regulate how
+your immune system functions and how it communicates with the rest of the body.
+
+And on antibodies, they would make your antibodies more pro-inflammatory or anti-inflammatory, and
+in this way, regulate inflammation on a systemic level.
+
+And that's where we see changes with aging.
+
+It's actually a particular process or immune aging called inflammation, where the...
+
+background level or our ability to control inflammation deteriorates with time and we create this
+background systemic inflammation which then leads to a whole host of different diseases or majority
+of chronic diseases.
+
+So far what we know about 60 % of chronic disease goes back to chronic inflammation or this kind of
+one systemic level of aging and decline.
+
+How complicated was that?
+
+uh I have to find a different angle on it because okay, okay.
+
+So glycans are like sugars, but not exactly.
+
+They live inside complex sugars.
+
+They live inside your body.
+
+And around your DNA, where are they?
+
+They're around your proteins.
+
+They're also around your cells.
+
+They're also around your lipids or your fat.
+
+So they're basically everywhere in biology.
+
+But they're like a language which enables biology to communicate.
+
+So let's think of them as a language.
+
+But they're a sugar language.
+
+So internal sugar language in our biology, that's encoded in our DNA, partially.
+
+So it's not fully, so they're complex traits.
+
+So your proteins are fully encoded in DNA.
+
+And the glycans are inherited as a complex trait.
+
+So they take in the genetic background, epigenetics, which is how your DNA has changed through time.
+
+So turning on and off certain SNPs, and then incorporating environmental feedback as well.
+
+there, let's say that there's something that helps us understand how our biology or how we
+communicate with our environment.
+
+connecting our genetic predispositions or backgrounds.
+
+We wait for a.
+
+endpoint or you have a certain disease and then we try to, you know, we try to balance it with
+different medication but we never bring you back to because it's most of the time already too late.
+
+So me ask an even possibly even harder question than that because we're going to talk about this.
+
+ah I want to talk about the inflammation part.
+
+But firstly, um give me an intuition about inflammation.
+
+Like, sure, I feel hot.
+
+But what's inflammation?
+
+Because it's It's a topic that...
+
+don't know, oversimplified, but extremely complex somehow.
+
+It's like you want lower inflammation, but when you're working out, your inflammation is high and
+now that's good.
+
+So inflammation, what do you know about inflammation?
+
+So you're completely right.
+
+It's a very complex topic that we simplify a lot.
+
+And then we lose a lot of meaning by simplifying because there is many different types of
+inflammation.
+
+And even on the chronic or acute level, again, there's many different types.
+
+And the immune system is so complex.
+
+We're nowhere near to fully understanding our immune system.
+
+So if you talk about sports, you want sports with, you want acute inflammation after you've been at
+the gym, because that will trigger uh the building of new muscle.
+
+Or you want inflammation if you have a bacterial or viral infection and you need to respond to it,
+or even if you need to kill cancer.
+
+So it has, it can be extremely valuable both in acute, meaning over a few hours, days, minutes, or
+in chronic sense.
+
+But let's simplify this a bit more.
+
+Let's say that acute inflammation is good because it's something that will keep us alive in the
+short term.
+
+So it's designed to optimize our survival in the short term.
+
+Chronic inflammation becomes bad because it goes beyond the short-term survival and it compromises a
+number of different systems to kind of improve short-term survival for the expense of the long-term
+survival.
+
+And then again, we can think of it, probably know what homeostasis is, this is kind of like perfect
+balance of an organism.
+
+And for that, you know, we kind of have an optimized uh immune function.
+
+And then loss of homeostasis would be chronic inflammation.
+
+But if something is a...
+
+acute stressor like hermesis, so you exercise, you fast for a day, or you even have some extreme
+stressor for a few hours, whatever it is, bungee jumping, jumping out of the plane.
+
+These are not bad things because they're acute.
+
+They're going to maybe even strengthen your system and prepare it for the next acute event.
+
+But if they linger for too long, they turn into a problem.
+
+I think the way we're starting, because we did a lot of stress research, or my parents did 30 years
+ago when the Yugoslavian board stress was a PTSD, stress was a big thing.
+
+And then they stopped for a period, and now we're doing again a lot of stress research.
+
+If we think of what causes our system to decline long term or biology, it's potentially our stress
+response.
+
+And here we're very different to other mammals, where usually after a certain stressor, they
+completely relax and go back to baseline.
+
+While humans can be under chronic stress because they hate their job or because there's an imaginary
+threat in their head.
+
+There's no actual running from a lion.
+
+It's all kind of how we respond to something.
+
+is more important than what it actually is because very rarely is our life actually threatened.
+
+So if we're under acute stress, we don't need to use our immune system.
+
+So we don't need to fight bacterias, bacteria, viruses, or even cancer because for these two
+minutes, we're designed to run from the line.
+
+So we don't need to fight any of these things in these two minutes because we're supposed to go to
+baseline afterwards.
+
+then we're also not, we don't need to reproduce in this period, so our reproductive system gets
+suppressed, our immune system gets suppressed, our reproductive system gets suppressed, and we don't
+need to digest food in this period, because again, you're running
+
+from a line, put all of your resources into immediate survival.
+
+If you do this chronically, you're chronically suppressing your immune system, your reproductive
+system, your digestive system.
+
+And that's where most of us break nowadays.
+
+It's really the kind of compromise or this pressure on these systems with long-term stress and
+leading to chronic disease, chronic inflammation and shortening our health span.
+
+Because if lifespan...
+
+The maximum lifespan, we don't know how far it goes, but a theory it's 120, 122, that's the oldest
+record.
+
+Do you believe that?
+
+I mean, do believe that there is a limit there?
+
+In a theoretical sense, And it could be 150, but very few people get there.
+
+Because the life expectancy is 74 or 80.
+
+So this gap between 74 or 80 to 122 is huge.
+
+So if there is a limit, again, the problem is that very few of us are getting there.
+
+Way less than 1 % of people get to this.
+
+limit, you know, one person, a couple hundred, maybe now there's thousands to a hundred, 110, so
+forth.
+
+Why is that?
+
+But like, you have so many different ageing theories and nobody's proven any of them yet because
+there's still such a complex system.
+
+It's going to take us a long time to prove these theories.
+
+But the two leading theories is that ageing is a program.
+
+Hence, we should do reprogramming therapy and maybe potentially this can even extend their maximum
+life span on the doublet or that aging is damage.
+
+It's continuous damage, an accumulation of this damage for time that leads the loss of function and
+disease and mortality.
+
+And potentially both of these are true because one, I quite like Steve Horvath who was the epigen
+mathematician who went into epigenetics and did many different clocks in this space.
+
+But there was a talk he did about a year or even more now when he was, he has many different clocks,
+clocks to predict maximum lifespan, to predict when you're going to get disease, to predict
+mortality.
+
+And this maximum lifespan clock, he replicated in hundreds of mammalian species.
+
+So there was uh something governing maximum lifespan from mice to whales to humans and so forth.
+
+And then he was correlating these clocks.
+
+So he was correlating the maximum lifespan with the clock that predicts disease or that predicts
+death, and they didn't correlate.
+
+So what was, they did not correlate.
+
+So what was, driving the mortality or disease is different to what's governed in this maximum
+lifespan.
+
+So I think both the program theory and the damage theory are correct.
+
+It's just a complex system that has many different things going on at same time.
+
+And if you want to, if we're going to get to some crazy life expectancy, we're going to have to work
+on many different.
+
+areas to figure that Well, that's what we are doing right now.
+
+Thanks for these explanations.
+
+This will be necessary for where we are going now because now we are moving on to glycan age as an
+idea, as a company, and as a biological aging clock.
+
+were you there from the beginning or is this your father started to work on GlycanAge and then you
+joined in and started the company?
+
+It's my father's life work, so he was working on this.
+
+We were working on glycans for as long as I had been alive.
+
+And then I joined into this pursuit when it started to reach people, or when we brought it to a
+stage that can be applied to some.
+
+So, I mean, not only just glycans, glycan age specifically.
+
+Oh, it's a clock.
+
+So the first time he published a clock was 10 to December 2013.
+
+There was the Hanun clock, which is over there, I don't know.
+
+Was there anything else?
+
+There must have been some, but...
+
+theory of aging was telomeres.
+
+um So measuring telomeres.
+
+then, of course, these were ideas on how we can understand measure aging.
+
+And with telomeres, became clear is that they're more relevant to single-cell aging.
+
+And we have trillions of cells.
+
+And if we look at more systemic-level aging, it will be something else.
+
+So this is why I'm...
+
+The other clocks came along later on.
+
+think definitely more attention was on epigenetics for a long time because they're pretty close to
+our genetics.
+
+So understanding from genetics to epigenetics much easier, simpler to translate even from tools in
+the lab to just general describing what it is.
+
+then like comics have always been a neglected space because there wasn't as much of a, you know, we
+had the moonshot.
+
+of sequencing the human genome project, which kind of took over all scientific focus because it
+became like going to the moon.
+
+Let's sequence the human genome, which meant that we ignored all the other uh parts of biology.
+
+especially when you're pursuing something nobody else does, there's a lot of skepticism.
+
+It's a really tough space to be.
+
+He did a huge amount for the space of glycophology.
+
+His institute looked at more human glycans than the rest of world combined.
+
+And he started the human glycom project.
+
+And it's very hard.
+
+And then eventually I decided I want to do something that's really, really hard.
+
+What we did do, we added different indications.
+
+to predict heart attack and stroke by looking at certain glycosylation patterns, or to predict
+diabetes 10 years ahead of time, to detect menopause in the early stages.
+
+now we're also working on, so similar to Steve's grim age, we developed a very good mortality
+predictor, but what we're doing is we're flipping it on resilience.
+
+So not to tell you what is your risk of mortality and disease, but to tell you what is your
+resilience towards mortality and disease.
+
+So it's a positive flip.
+
+ah So wait.
+
+uh OK, that's interesting because the evolution of biological aging clocks were first, let's just
+correlate it with biological age, right?
+
+And then we change to, well, let's colorate it with orcos mortality.
+
+And now you are trying to.
+
+correlated to Oaku's resilience.
+
+That makes no sense.
+
+So, Don't help me yet.
+
+I'm trying to make sense for it by myself and then you can tell me where I'm wrong.
+
+I wanted to build a exercise problem.
+
+program, a longevity specific training.
+
+And then I was looking at, okay, so what should be my goals here and where do you start?
+
+Well, of course you start with the current scientific paradigm, the hallmarks of aging paper, right?
+
+And I was looking into the hallmarks of aging paper and I realized that, ah you see, this is a very
+narrow way of looking at aging because it's like, people are gonna fall, right?
+
+A lot of people are dying because they fell.
+
+Of course, they get frail and everything, but ultimately they fell and died because of that.
+
+But the Hallmarks of Aging keeps that completely out of its context.
+
+So if I want to introduce some kind of how to fall properly training, then I cannot use the
+framework of Hallmarks of Aging.
+
+In fact, it's much worse because...
+
+I don't remember the details, but the hallmarks of aging not only focuses on internal aging factors,
+but it even constrains itself to more things.
+
+So anyway, um I'm thinking about resilience in a similar way that now you're not.
+
+You're not uh aiming for all cause mortality, you might actually find a better aim to correlate it
+with.
+
+Does that make sense?
+
+I still don't understand what resilience, what do you mean by that though?
+
+So I think when we talk of these markers in the endpoint, so I think the distinction is, or the
+refocus of resilience, and this is, keep in mind this is a very new concept that's kind of just
+coming out now, most of the biomarkers we look for are disease oriented.
+
+or okay, you can say even organ-oriented, but let's just say disease-oriented.
+
+So when we study biology, we're trying to study disease, but we're not studying what keeps us
+healthy and what prevents this disease from happening.
+
+So that's the idea of resilience markers.
+
+Can we find the markers that actually help us us resilient to disease and mortality?
+
+And of course, they're going to correlate with mortality and morbidity, prediction of disease,
+prediction of mortality.
+
+But they're going to be so early where you are predicting.
+
+this risk 20, 30 years ahead of anybody having a problem and you're just measuring your resilience
+for life and then optimizing for that as in a place where your biology is still fully healthy but
+your resilience might be going up and down depending on how you live,
+
+where you live, what's happening, your stress response um and then that gives us continuous feedback
+which is separate to disease so there's no bad connotation of, I'm going to develop cancer, whatever
+it is.
+
+Or maybe there's not even a connotation of the particular predisposition.
+
+It's just kind of like, where is your resilience to a bunch of disease and mortality?
+
+And how do you the needle on that for life before it becomes?
+
+Is this your concept or?
+
+So I like to think about this impact on people or this translation to people or...
+
+even psychology is a key thing I like to explore.
+
+For him, it's sometimes pure biology or biological concepts.
+
+there was a review in Nature Medicine by the editor of Nature Medicine that was calling for
+scientists to start looking as resilient markers instead of disease markers.
+
+So that was uh quite recently, a few months ago.
+
+And then from the mortality studies, we're publishing three mortality studies now.
+
+predict all-cause mortality on the level of an individual.
+
+And actually, every extra year of like an age is a 10 % increased risk of all-cause mortality in
+men.
+
+And women, it's a different story, but let's leave that complexity for later.
+
+And then he realized this is the wrong way to look at it.
+
+And we should look at this decreasing the susceptibility to mortality and disease as the main.
+
+pursuit or endpoint versus the actual prediction mortality.
+
+Because it's always negative.
+
+It might be something that's happening in the future, but you're always looking at something that's
+inherently negative.
+
+yeah, that's a, but it's a new thing that we're, yeah.
+
+Look, enough teasing.
+
+Would you mind continuing your story from the time?
+
+Yeah, let's say the founding story, the origin story of the company, Glycan Age.
+
+Well, then let's start with when I started using the tests, which was 10 years ago.
+
+So when I was 24, I did my first biological age, like an age.
+
+And this was way before we started the commercial.
+
+The commercial company started in 2020.
+
+So this is five years ago now.
+
+ah And then very happy to send you one so you can try it as well.
+
+uh I have like freaking five biological aging clock stuff.
+
+I'm always waiting for, I always want to test when I'm the head.
+
+You know what?
+
+It just never happens.
+
+Thank you for the.
+
+and we actually were running a study on entrepreneurs and we're comparing investors as a control
+where we're tracking entrepreneurs for 10 years to measure the impact of stress or we're calling the
+biological cost of entrepreneurship.
+
+um So I can send you details on the study.
+
+uh I would love to not just read it, but also I can tell you about this.
+
+That's on my, yeah, I want to hear about that.
+
+Now I'll send you the details for it.
+
+So going back to kind of origins of glycan age and then how it goes into my story.
+
+So I did my first one 10 years ago and it was a good review.
+
+It was in my twenties and I was 24.
+
+So was 21 or something like that biologically.
+
+do you track it?
+
+every two to three months.
+
+m it's like every third day or something.
+
+No, because it's glycans and antibodies.
+
+So glycans control the half-life of the antibody, which is around 21 days.
+
+So you're not going to see anything.
+
+In very rare cases, so this is not eating, fasting for three to five days, um severe COVID, so
+severe acute disease, you would see it accelerate.
+
+So then they'll accelerate the half-life.
+
+But these are very few.
+
+um reasons why you would see an earlier change.
+
+Usually it does not change for weeks and months and even years when you're tracking it, it can be
+quite stable.
+
+uh And then there is a difference between men and women's immune system.
+
+Think of it as immune aging and a lot of it is influenced by hormones and women seem to have less
+inflammation compared to men prior to menopause and when they lose their ovaries or their ovaries
+lose function, they rapidly age.
+
+So there's this also interesting kind of hormonal differences connected to the immune system.
+
+And we can tell the gender of the immune system 100 % by looking at the glycans, but of course you
+can also manipulate your gender with hormonal interventions.
+
+Okay, so going back, so I was very skeptic that was testing it on myself.
+
+And then testing it to number of close friends to see what it is.
+
+What does it tell you?
+
+I had a gazillion questions for my dad and every now and then I'll call with another question and
+And of course, there's a lot of science So we have a research institute with 60 scientists and we
+publish 30 to 40 papers per year in many different areas From glycans
+
+in the brain to cardiometabolic disease to know, different aging model.
+
+It's very vast of the areas we look at.
+
+But then around 2019, 2020, it was the right time for me to leave what I was doing then and to go
+into this full on.
+
+And I did the classical thing in the Japan Earth as I had some savings from the previous ventures
+and.
+
+Instead of buying myself a big house in London, I put everything in the business and didn't take a
+salary for years and took a lot of my previous team on the more software tech side and combined that
+with my father's scientific team and we created, uh I don't
+
+want to say just commercial pursuit, but the pursuit to bring glycans to people and to healthcare.
+
+Starting with measuring AJ.
+
+And I think even until maybe a couple of years ago, measuring myself, I got to the point that I
+called my dad and I said, this really works.
+
+For my biology, for, and what's interesting, because scientifically we looked at more than 300,000
+human blood.
+
+population studies, clinical trials.
+
+There's so much you miss when you do science, because you don't meet the inhuman.
+
+And you have no idea who this random, anonymized, you have some data, but you have actually no idea
+about the person you're studying on the other side.
+
+And when you meet this person in real life, you find a lot of interesting things.
+
+And we can talk about some of those.
+
+So one of the early things that we realized has a huge impact on your glycan aging, that was maybe
+2022, and then we published some more papers, 2023, we even submitted a patent to detect these early
+changes in perimenopause, as women are.
+
+So we had a lot of clients who were around 45 to 50, who would start off with a good immune age.
+
+They'll look great.
+
+They'll be really happy.
+
+They're like, wow, I love your test.
+
+It's telling me in 10 years, 20 years, my immune system functions much younger than it's supposed
+to.
+
+And then we measure them a few years later, a year later, and all of a sudden, things start to go
+up.
+
+And then the data we had before is that we see inflammation go up around.
+
+We just called it menopause because we had numbers, dots, between a certain age.
+
+It was like, OK, this gender difference we see must be related to menopause.
+
+um And then our consulting team started to ask questions of, so we see that your age is going up.
+
+uh Are you cycling?
+
+regularly, are you in menopause?
+
+And they'll say no, I have a perfectly regular But there might be some other symptoms going on, or
+sometimes even pre-symptoms, we can see the chronic inflammation is going on.
+
+And that happens sometimes 10 years before you lose your final cycle, and menopause is a diagnosis
+when you lose your final cycle.
+
+uh And I won't bore you too much, because I think you have a lot of mail.
+
+listeners, so I'm going to try and balance it out to talk about male hormones as well.
+
+But that was interesting that our assumptions, the assumptions we had in science were actually quite
+different when we met the inhuman being.
+
+And we had some discoveries.
+
+So hormones became a thing we started to study.
+
+And now if you talk about longevity drugs, what do we actually have that we know?
+
+that reduces all-cause mortality that's used in practice today.
+
+I you're going to find a lot of hype about new drugs, like the weight loss drugs, like Metformin,
+Metformin is a new drug, but you're going to find a lot hype about a lot of drugs that don't have a
+lot of evidence yet, or they're in animal models, and there's no
+
+long-term data on people.
+
+On estrogen in women, we have long-term data, where we track women for long enough to know exactly
+how much the drug reduces their all-cause mortality.
+
+And if they start to drug early around menopause, it's a 40 % reduction of all-cause mortality.
+
+So if you're thinking about the most potent longevity drugs we have today, estrogen is right at the
+top of that list, where the evidence is.
+
+But there is, know, that's a space, you know, there is a lot of political and some bad signs that
+give a bad rep to hormones overall, and the long-term data is just kind of recently coming up.
+
+so we can start to look at it differently and make different claims.
+
+For men, it also looks like it's estrogen.
+
+But estrogen that you get, but let me finish it and then you can ask the question.
+
+The estrogen you get from testosterone because testosterone converts to estrogen.
+
+And men have to have a healthy level of estrogen.
+
+It's not just a woman's hormone, it's a man's hormone.
+
+Just at a different level, the proportions of them are different.
+
+And actually post menopause women have less estrogen compared to men because their ovaries have lost
+function and they're not...
+
+What we saw in placebo control trials is if you block testosterone in a man and then you give them
+back testosterone but you don't allow it to convert to estrogen in a healthy level, so you block
+something called aromatase, which is what bodybuilders do because they
+
+want to over bulk.
+
+on tea and then they actually do harm and we would see this as pro-inflammatory, the immune system
+is purely pro-inflammatory from this intervention or this change.
+
+Well, if you give them back testosterone and you allow it to convert to estrogen in a healthy level,
+then your immune system becomes very anti-inflammatory.
+
+And some of the most proven interventions for a glycan age is hormone replacement, both in men and
+women, but it...
+
+should be replacing what you've lost.
+
+So when you are young, you have certain levels.
+
+And then as this starts to decline with age, that's when you're putting this back in so that your
+biology and immune function is one key thing that changes functions as if you're younger age.
+
+And for women, we know it reduces all-cause mortality.
+
+For men, we don't have the data.
+
+But the data that's being collected so far is that potentially testosterone is also really
+important.
+
+having a similar mortality effect in men.
+
+And actually, a very small proportion of the world is using these drugs.
+
+So globally, 5 % of women are on estrogen hormone replacement.
+
+And for men, it's less than 1 to 2%.
+
+And of course, it shouldn't be abused.
+
+So there's ways to abuse the drug, which we know, which is from the doping industry, which you would
+measure as negative, but there's also ways to use it as a longevity drug that could have a very good
+long-term impact.
+
+So that was one early feedback from practice, but I let you ask the question because I keep talking
+and then, other things improve your glycan age?
+
+Supplements.
+
+uh Let's start with supplements.
+
+Maybe we can go on to interventions later on.
+
+Now, supplements, there are some things that work, but we won't make a claim on any supplement until
+we have really good placebo control trials.
+
+And for that, again, these trials are very small, so we would need to repeat them.
+
+But there was a trial with...
+
+can just whisper them to me.
+
+No, so one, we did one study with cardiovascular patients with omega-3-fortified X, which had a
+positive impact on your glycans, not huge, like a very small amount.
+
+And then we had one very nicely designed placebo control, double crossover, so same as you would
+develop a drug, a trial with 25 or 30 people with NAD boosters, a company called Nechido.
+
+And there we saw people.
+
+or they're human trials, yeah.
+
+No, this had a range, I think, from 20s to, so it had a, probably would have worked even better if
+it was older people, because there's more loss of NAD with time.
+
+But this was a broad range and the effect was small but significant, 1.26 years within one month of
+intervention.
+
+decent Yeah, now if you compare it to testosterone and estrogen, the loss of both accelerates your
+aging by 10 years, and the reintroduction or rebalancing of hormones reduces your glycan age by 10
+years.
+
+So 1.26 compared to 10 years.
+
+uh Hormones are a very impactful intervention.
+
+I am not a huge...
+
+believer in out supplementing longevity.
+
+think there's a lot of hype on a lot of supplements and supplements can also work as drugs, they can
+be as powerful.
+
+uh But I think when it comes to, well, we're measuring this background inflammation, actually the
+stress response and the mind is gonna...
+
+give us the most of, and we can go just purely to positive stressors like fasting.
+
+We did lots of studies with caloric restriction, which reduce your glycogenes significantly even
+after two years of caloric restriction.
+
+There was a really nice study that was published in Nature with our group and then another group.
+
+And we did caloric restriction in three, four different studies with twins, with people.
+
+preparing for certain diets, so we know calorie restriction predictably works in majority of humans.
+
+uh If you put them on particular diets, then you have some people respond to certain diet, other
+people respond to a different diet, and we haven't yet found the perfect protocol for personalized
+science.
+
+Then going on to stressors, acute stressors.
+
+The best data we have now is on fasting.
+
+So three to five day water fast, no food.
+
+We did one smaller cohort.
+
+We did another one now and we're collecting a big cohort, uh a couple hundred people.
+
+This isn't overweight people or like normal body weight people.
+
+It works as well.
+
+Because you can imagine with like, let's say me, if I go on four days fast, then I'm going to lose a
+lot of fat and that will not do as much inflammation as it did, right?
+
+uh I'm not sure about like normal people, if they, like they don't have a lot of inflammation to
+begin with, at least not because of the fat.
+
+uh so I think this is a place to explore.
+
+the first study, the majority of the participants actually were within normal BMI range.
+
+But normal BMI doesn't necessarily mean normal.
+
+There could be, for different people, BMI is not just the perfect measure.
+
+And there could be a lot of visceral fat, although you don't see it.
+
+And also there could be a lot of what you call healthy fat.
+
+kind of the, which is not necessarily so bad, especially in some people.
+
+Some people can be very healthy and be pretty high on BMI and it doesn't, it's not a health hazard.
+
+So it's a very, it's very individual thing as well.
+
+But uh they're not just high BMI and it does seem to be something that goes, what we think it will
+go to is these acute stressors.
+
+Now, see the change happens right, so the glycan change happens much quicker than we see in other
+interventions, meaning within a week, but it also does go back to baseline after a period time.
+
+um And what we want to study is if you have these stressors multiple times, can you maintain the
+positive change for longer?
+
+And I think that's the biggest...
+
+The we have there is to understand that all these, going from stem cells to whatever acute
+interventions, if they're going to make a difference in the long run.
+
+Because we did the plasma exchange studies and we did see some changes after, positive changes
+maintained after six months as well.
+
+I believe I heard your father saying glycan age, that we should interpret it as the age of the
+glycans instead of a biological age.
+
+Does this make sense?
+
+Am I even quoting it properly?
+
+So glycogen age is an ultimate simplification of your glycol.
+
+So the age is a simplification of your glycol.
+
+And then what it means, it's a proxy for future risks, mortality, morbidity.
+
+And that's where we build the evidence, not just on.
+
+in large studies, but also on the level of individual.
+
+So it's a type of biological age, but we haven't yet reached consensus on what is a biological age,
+or what is the optimal way to measure it, or if there's a number of different biological ages.
+
+So biological age is a concept in a way to simplify our biology's decline with a simple number or a
+simple number we can change but the ultimate meaning of it is your glycan age.
+
+So it's you plotted on this data set of 300,000 human glycombs and us telling you how old your
+glycombs are compared to how old they should be and it's a representation of this systemic
+inflammation or this inflammation that's accumulating for time.
+
+So it's a type of biological age or that's a simplification but reaching consensus on what
+biological age is, is going to be very long uh pursuit.
+
+Well, yeah, as we talked about it.
+
+the concept of biological age from a purely conceptual, scientific or philosophical point of view
+has failed.
+
+because, okay, it didn't fail, but the biological age would be the correlation with chronological
+age, right?
+
+And it failed in...
+
+The point of view that that is not a very useful metric.
+
+We much rather want to have something like correlation with all-cause mortality or correlation with
+peak performance, correlation with most healthiest person ever.
+
+That's what we want to correlate with instead of just the average 18-year-old, because we can be in
+a much better shape or position.
+
+than an average 18 year old is.
+
+let's, we talked about this a bit and you brought up the resilience uh factor, but what I said
+before, and Now I'm starting to think I'm hallucinating here, but I believe that once I was
+listening to your father on a podcast and he was saying that we should interpret the glycan age, not
+
+really as an age of a person, as a biological age of a person, but rather as a biological age of the
+glycom.
+
+Does that make sense?
+
+Yes, so I think here definitions like final definitions are going to take time, but So how do we so
+going back to because you said biological age has failed as a concept and I think we're yeah I think
+that's Because we haven't been we've been over emphasizing
+
+on the wrong markers and this, know, obviously coming from, it's very biased.
+
+So maybe I'll go back and just talk about the...
+
+So I think this thinking of biological age as predicting chronological age hasn't been very useful.
+
+So this was the original Horvath clock.
+
+And it's very good at predicting chronological age of a person, but not necessarily meaningful for
+predicting mortality, morbidity, and other more health outcomes.
+
+Let's call them health outcomes.
+
+So that's why Steve also went on to create a number of different clocks.
+
+And you can create a gazillion epigenetic clocks.
+
+And then we can debate on which clock is the right thing.
+
+If you're talking about prediction of future health risk, and so is a risk, it doesn't mean it's not
+100 % that will happen, but it's a significant risk to carry.
+
+Using glycans as a proxy for systemic inflammation and then also risk of future chronic disease and
+future mortality, it's a very good marker.
+
+And if your goal of a biological age is to reduce all-cause mortality and to reduce disease, then
+this is the best performing indication of age to do so.
+
+When we compare with other mortality predictors, we are much better without even modeling for
+mortality.
+
+especially on the level of individual because you need this reliable data where if you measure the
+same person the same day, week, months, you're getting the same result or reliable result that will
+move with biology not with measurement error.
+
+And the challenge we had with the epigenetic clocks, I think this is a technical challenge, some
+biology challenge, but technical mainly now in the use case we have is the measurement error.
+
+the clocks are using the Illumina array, which was designed for research and there's a 10 %
+measurement error built in.
+
+And then if you do cohort analysis, it's great to do research, but when you bring it to a level of a
+single uh patient or client, it can be up and down 10 years, which is within
+
+the error, but you lose meaning because you don't know, are you good, bad, what's driving it?
+
+If you do something, it doesn't give you the correct feedback.
+
+So I think that's where the age has failed.
+
+Predicting chronological age has no meaning.
+
+And if you can't give a reliable measurement, it has no meaning because you can't act on it.
+
+And then the other confusion is that it's one number.
+
+We can measure biological age, and there's 12 whole marks of aging.
+
+And of course, they're going to correlate, and different systems will uh have different weighting.
+
+But there's probably never going to be one measure of age, because we are going to decline in
+different ways.
+
+For me, maybe immune aging is something that's better at keeping me alive, while something else is
+more of a risk marker.
+
+But the actual value in it is not the prediction of the age, it's the difference from your
+chronological age.
+
+So where are you compared to where you should be?
+
+So now we know that every extra year of glycogen age is almost a 10 % increase in all-cause
+mortality.
+
+So lots of the clocks before, especially telomere companies, they're limiting the range the age can
+go, saying it can go beyond tender.
+
+But we decided not to do it.
+
+We were like, we're just going to translate biology as it is.
+
+Are you not factoring in age into the equation?
+
+That's really interesting.
+
+I've been working on the FinoAge algorithm and then I'm like, why is age in there?
+
+What the heck is this doing here?
+
+Yeah, so we don't need to know the age to give you a glycan age.
+
+For the report and some of the indexes, which are connected to certain indications, there we
+reference that to age, but not the glycan age itself.
+
+That's something we call an index or a composite of the glycans we would see mostly change with age
+and then exactly how your glycans look.
+
+you can have an 18-year-old who has the glycans of a 70-year-old because of chronic inflammation
+that's driven by autoimmunity or something else happening in the background.
+
+And where we see the most prediction of mortality is between age 45 and 65.
+
+So usually lots of chronic inflammation in young people doesn't mean it's going to be fatal.
+
+It could be autoimmune disease, it could be other disease, but the cardiometabolic or cardiovascular
+disease mainly, and then cancer as well is the fatal one that then...
+
+starts to become more important in other age groups.
+
+And actually, after 65, we don't perform as well as mortality.
+
+So maybe frailty and other things become more important as you reach a certain age bracket.
+
+everything, when we narrow down the complexity, we lose a lot of the meaning.
+
+And that's when you give the number.
+
+But when we explore this complexity, we start to kind of understand.
+
+And that's the challenge of how do we simplify, give you the simplest thing, which is the number,
+which is a proxy, and then also the complexity behind to decode, know, whereas an actual report so
+we can actually go into those details.
+
+uh But what it means, if your reference is to all-cause mortality, if you are 20 years above your
+age, that's a...
+
+almost 200 % increase in all-cause mortality.
+
+If you are 20 years below, it's a 200 % decrease in all-cause mortality.
+
+That's what your glycogen age means today.
+
+And then as you go further details of it, there's more complexity, but that's a simplification.
+
+So many people on the podcast, when we talk about biological aging clocks and it comes to glycan
+age, they're going to say that it is a great marker for inflammation, but ultimately not as good for
+biological age.
+
+What do you say to that?
+
+Is it inflammation marker or you would say it's more like a biological age marker than just a CRP
+or?
+
+It's immune aging or inflammation.
+
+That's our mechanism.
+
+uh And I think the debate on biological age, what's the best markers for it is still out in the
+open.
+
+I don't think anybody's reached consensus here, and I think it's going to take us some time to.
+
+But we think it's probably one of the best candidates we have for biological age, especially due to
+the measurement and the prediction of future outcomes.
+
+So, okay, then why shouldn't I use CRP instead of glycanate?
+
+Because inflammation is so complex that with some of the markers we use in clinic now, we're not
+seeing the full picture in terms of chronic inflammation or general immune health, or you can even
+call it.
+
+Glycoms do a lot more.
+
+is immensely complex and we are nowhere near decoding the full immune system, but it gives us quite
+a comprehensive picture of many things, not everything, but many things that can go wrong.
+
+And usually it's a lot, so now we have a lot of also real people stories where over a decade, five
+years, we preempted some serious health problems before anything else.
+
+was able to.
+
+So I think there's a lot of value in it.
+
+No matter what result you have, there's valuable information to gain.
+
+And I forgot your question because my mind slipped off.
+
+So CRP is a very acute marker of inflammation.
+
+So you would, for example, see CRPs spike up within acute infection, even with exercise.
+
+And with glycans, you wouldn't see acute inflammation.
+
+So your glycogen age won't change because you have a mild infection or because you just did an
+intense workout.
+
+It will only change when something is chronic.
+
+So it's a way for us to differentiate acute and chronic, and it's more linked to aging.
+
+marker that is, I can't remember the name, but there is another inflammation blood marker that is
+starting to become more used that is, they are saying the exact same thing, but you are saying that,
+oh, we should use this instead of CRP because this is showing chronic
+
+inflammation instead of acute, like CRPs going up and down.
+
+Do you know what I'm talking about?
+
+And again, they're very different to what we measure and some of the language might be similar.
+
+We don't know how they correlate because they're completely new.
+
+We do know how they correlate with interleukins, CRP, because we have those studies on glycans and
+CRP interleukins.
+
+uh Mm-hmm.
+
+just regarding your business, what's the business model here?
+
+ah Of course, selling the glycan age kits, but you're saying that you're doing a bunch of research
+and stuff like that.
+
+So how's that work for a business?
+
+What's the business model?
+
+Well, our main mission is to bring glycans to people and that's uh ideally within a healthcare
+setting.
+
+So we are, we work with healthcare, predominantly private healthcare, and now slowly getting into
+public healthcare as well to start with research, but then early integration in hospitals.
+
+We're in two hospitals at the moment and we...
+
+oh do everything from the machines to the chemicals to the software to the interpretation, clinical
+training on how to incorporate glycomics in their setting.
+
+And the product's very different from the wellness application, which is aging, which is very broad
+and not disease specific.
+
+In hospitals, we're predominantly looking at prediction of heart attack and stroke.
+
+And that's where we again have 10, 15 years research using glycon markers to, and these are risk
+factors which are independent to CRP, BMI, all of the lipid panels that are used for cardiovascular
+disease at the moment.
+
+So our mission is simple to bring glycomics to as much of the mainstream as possible.
+
+And then another pursuit, which is more, curiosity driven is to actually understand what drives
+glycon aging in individuals and to catch this as early as possible and find interventions that move
+the needle.
+
+So there uh we do a lot of different intervention studies and we spoke about some of them but
+there's been 30-40 different interventions that we studied so far with glycon clocks that move the
+needle in some way.
+
+And there's some which we want to study because we think they have a huge impact, but we're yet to
+do the trials to oh measure it.
+
+Well, perhaps we'll see like an age on the longevity world cup in the future.
+
+one thing that you strongly believe to be the case, but very few people agree with you on?
+
+I mean, I do think some people agree with this and it's a concept that's been like an interesting
+psychological pursuit and that is that the biggest extender of our longevity, healthspan and
+lifespan.
+
+is not going to be a pill, it's not going to be a drug in the short term, it's not going to be any
+intervention, it's going to be purely psychological.
+
+ah And it goes back to the stress response, but the stress response is predominantly governed by how
+we think.
+
+ah And that's the part that we are exploring more, but basically that your biggest longevity
+intervention is your mind.
+
+And that's something you can't buy.
+
+um Or develop a drug for at the moment.
+
+So I think that's the...
+
+And I think actually there, the things that drive that in a good or bad direction are relationships.
+
+we haven't explored enough to go into that topic.
+
+But if you think of the...
+
+longest running studies.
+
+There is very few and the one that Harvard Business School was running was to study happiness, but
+it was running for 70 years and they thought that the biggest predictor of both quality of life and
+uh health and longevity was the quality of your relationships.
+
+So I think that's the thing that will...
+
+also be relevant to your glycans, but maybe it's a topic for another day.
+
+The first muscle to train is your mind.
+
+But there is an evolutionary reason as well because our mind, our brain has evolved in a...
+
+Because for a very, very large reason is that we've been in, have to keep track of other people and
+communicate with them.
+
+You know, I want to ask you this because I've been thinking about this.
+
+So for the longevity World Cup athletes, the people who are winning these, patterns are pretty
+clear.
+
+You have to sleep well, eat healthy, exercise and control your vices, right?
+
+Drugs and marijuana and alcohol.
+
+and whatnot, you have to control that.
+
+So this is clear that these things there are.
+
+there is also another thing that's so hard to put down, which is the relationships, right?
+
+What are your relations to other people?
+
+But if I ask you...
+
+Did you sleep well yesterday?
+
+You're going to be able to answer.
+
+Or did you exercise or rest well yesterday?
+
+Or did you eat well?
+
+Like, you're going to be able to answer to these questions, but what do you even ask about
+relationships?
+
+It's such a complex, different topic than eating well and not smoking and whatnot that I just...
+
+I'm not quite sure how do I quantify that?
+
+All right, I'm doing well on the relationship side.
+
+Like, how do you do that?
+
+I mean, there's many psychological questionnaires and these have been used in that study as well and
+they're constantly being refined and I think on the biological level, we still need to find those
+markers or we might have them and maybe some are hidden in glycans.
+
+We have some assumptions.
+
+But I don't think we have a definitive answer.
+
+And I think that's a place we don't focus on enough to have the definitive answers either.

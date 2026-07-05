@@ -1,0 +1,171 @@
+# Longevity Specific Training (LST): Biomedical Approach
+
+Video: https://www.youtube.com/watch?v=HOb1nrQri94
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 47/47 units; 1570/1570 words.
+Matched topics: exercise, lifespan, longevity, longevity athlete, medicine, mortality, nutrition
+
+## Focused Transcript
+
+What I'm going to tell you is wrong and what I want you to tell me is where I am wrong. We are going
+to build a training system together. Longevity specific training LST.
+
+It's a biomedical approach to exercising that targets what reduces mortality health outcomes and
+functional decline.
+
+Here is what's going to happen. I'm going to write one section of this training system. You are
+going to tell me in the comments what I'm wrong about.
+
+Then I either rewrite the section or move on to the following section. Every section contains one
+important design decision. Who's this for? If your primary purpose with exercising is to maximize
+your health and longevity, then this is for you. The
+
+naming choice of longevity specific training is a tribute to Brian Hik's hypertrophy specific
+training from the year 2000s. Back in the day, the popular belief was, let's call it, bro science.
+
+Arnold Schwarzenegger and his friends have figured out how to grow your muscles, of course, with
+resistance training. But science was starting to catch up. People like Brian or L.
+
+Macdonald were going against the popular belief by trying to apply principles science have just
+figured out. So such system was HST hypertrophy specific training. With longevity specific training
+I'm trying to do the same thing. I'm trying to apply scientific
+
+principles to the practical realities of a new breed of sportsmen which are longevity athletes.
+There is a difference between HST and LST. Of course HST is for hypertrophy. LST is for longevity.
+But the problem is that
+
+HST already had a good idea that how you're going to grow muscle is by doing resistance training and
+it started for from there. Now LST has to take a step back and in fact will end where we
+
+figure out what exactly do we have to do for longevity. Unlike HST which went into the minute
+details of how many reps and sets and what weights you should use, LST is not going to do that. LST
+is
+
+the goal of LST is to figure out what combinations of exercises are optimal for the goal of
+longevity. The very first design decision that we have to make is that what approach are we going to
+take to reach the goal of longevity
+
+with exercise and my proposal here is to take the biomedical approach. This is what this video is
+about. I'm going to go through all the alternative approaches that we could take and argue for the
+biomedical approach. You might
+
+tell me if I missed an approach or if I'm wrong about something and maybe we should take the
+spiritual roots here.
+
+The first approach is the anecdotal approach. Now, as alluded, this is one of the least reliable way
+to get us to the truth. It must be noted that it matters whose experience we're talking about
+because if you're talking about
+
+your experiencing something that is different from what a scientific study says then your experience
+might enjoy priority over the scientific study for yourself. The next is the intuitive approach.
+Just wing it, man. Different people have conflicting different
+
+intuitions. This is a common occurrence.
+
+Therefore, we cannot build a reliable system based on intuitions. The next one is the quantified
+self approach. Now, this is really interesting because quantifying a bunch of things about yourself
+and then making decisions on what interventions you're going to do is
+
+something that is clearly going to play a big part in our future as we become more able to measure
+more things and more conveniently. What's the thing here? Why aren't we choosing this one?
+
+Well, it fails in its scope. So the scope of quantified self approach notice it works really well if
+you have um an exercise program right and then you you do your your little measurement of your heart
+rate and based on that you are
+
+always adjusting let's say your your treadmills how fast your treadmill is going. Now this is great
+but notice the scope is real small. So we we kind of need something to or arbitrate between
+exercises that is looking at population
+
+level averages and that is biio medicine. Now that's not to say we are not going to use the
+quantified self approach at all. We are going to have things like some conditioners. Let's say if
+you have high blood pressure then we
+
+are going to recommend you isometric exercises because those are the best way to reduce your your
+blood pressure. So we are going to have these conditionals but we are not going to go full
+quantified self naturalistic
+
+evolutionary and ancestral approaches.
+
+Now look, if you're not going to eat processed foods, then your diet is going to be better than if
+you would have.
+
+Well, except if you take whey protein because that's a ultrarocessed food yet possibly the
+healthiest food in existence. But the naturalistic worldview cannot go there. Why? Because it paints
+with broad strokes. But we need to be more precise than let's say
+
+an evolutionary theory would be. So that's why we go with biio medicine instead. Psychological
+gamified and competitive approaches. Now the thing about games and competitions or even psychology
+is that they need goals and they are great at getting you
+
+achieve those goals. Psychology, game design and competitions are a fuel, a motivation what pushes
+you towards those goals. Now what we are trying to do here is to figure out what the goals are in
+the first place. What exercise
+
+sets are we supposed to do for our longevity?
+
+Functionalist and skill centric approaches.
+
+Look at what what people are having difficulty to do and practice those things. This is an
+interesting idea but ultimately is incomplete. It doesn't factor in your blood pressure, right?
+
+But biio medicine does. Now, it doesn't mean we throw this out completely. It just means we are
+going to examine the functionalist and skill centric approaches later on as training systems and not
+competing approaches.
+
+Pain avoidant approaches. Exercise so you don't feel pain. This suffers from the exact same problem
+that the functional approaches did. It's incomplete. We should examine specific rehabilitation and
+pain avoidant exercise systems in our exercise and training systems and not as a competing
+
+overarching approach. Hormatic and antifragile approaches. You stress a system and the system is
+going to adapt to that stress. This is too wide for us.
+
+What's stress exactly? And what does adaptation even mean? Now that is a matter for biio medicine.
+The minimalistic approach. This isn't really a competition here. I just wanted to put this in
+because there is something important that we should consider which
+
+is that idea that for longevity it's okay to be average in all metrics but that's not the case
+because then you lose your buffer. So you don't want okay grip strength because by the time your
+grip strength start to go down it's
+
+going to be much sooner than if you would have excellent grip strength instead random approaches
+they are just a joke aesthetic approaches what looks better works better. It is true but only if all
+other things are equal. Now what biio
+
+medicine does and uh it should consider or our biomedical approach should consider the aesthetics as
+well but also all other things those are have to be equal for that holistic approach we have a
+definitional problem here because
+
+holistic tends to stand for I haven't defined my goals it could also stand for that you treat your
+body as a holistic system. If it stands for that, then LSD is already holistic but with numbers.
+
+But if it just means vibes, then it's not for us. Ecological and environmentalist approaches. Let's
+define the scope here. This project shall not escalate to the environmental and ecological impact of
+this training system. I don't know how it would, but
+
+you're the internet. You always find a way. Spiritual, ritualistic, and religious approaches. Now,
+it is known that they are great for your meaning.
+
+But are they good for your mortality curves? Not so much. Even if you believe that the yogis have
+achieved hundreds of years of lifespan, you can still not reliably reproduce that. And until we find
+a reliable way to reproduce that
+
+lifespan with some kind of religious practice, we should stick with other approaches. Posthuman
+preparation approach. It's possible that something is going to happen in the future, right?
+
+That changes everything. Uh but we don't know what and when. If something happens, then we might
+rewrite this entire documentation to include extreme cold training because the world is freezing
+over something like that. A very similar argument can be made to
+
+military and tactical fitness approach.
+
+So of course we could exercise for bad times but again we have to narrow the scope here. We assume
+that we are going to live in a civilized world while we are doing this this exercise and
+
+hopefully never have to protect ourselves from a knife attacker. Well that was it guys. I hope we
+succeeded to agree on the biomedical approach and we can move on to the next session with the
+fleshing out what the goals of this
+
+system should exactly be. But please, please, please contribute with your comments and let's build a
+glorious system together.

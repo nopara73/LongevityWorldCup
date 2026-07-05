@@ -1,0 +1,1302 @@
+# Can We Actually Solve Aging? A Radical Reality Check | Kris Borer & Adam Gries
+
+Video: https://www.youtube.com/watch?v=Rd5bLR02f74
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 514/988 units; 9479/17095 words.
+Matched topics: Bryan Johnson, GlycanAge, Longevity World Cup, age reversal, aging, aging clock, biological age, biomarkers, exercise, healthspan, inflammation, lifespan, longevity, longevity sport, medicine, mortality, nutrition, rejuvenation, senescence, sleep, supplements
+
+## Focused Transcript
+
+there are a plethora of strategies for defeating aging.
+
+Most of them are bad.
+
+you want more than five or 10 years, you want to live to 160, like Adam likes to say, we need to
+make some big bets and make some big changes in our technological strategy.
+
+if you look at the current variation of humanity and you say, well, I want to solve aging, but
+retain everything that's true about humanity right now, your path is more biased towards
+bioengineering, damage repair.
+
+different particular types of replacement or cell therapies.
+
+Whereas if you say, I just want to maintain some sort of continuity and that's my solution to aging,
+the continuity of some sort of self, then you would be open to a wider variety of interventions.
+
+cryonics company or a chemical fixation company can come in and perfuse your body with protective
+chemicals and then put you in some sort of stasis, like a storage, until future medical care can
+bring you back and fix whatever is wrong with you,
+
+It feels to me that if somebody believed that, it would really be severely unethical for them not to
+speak out.
+
+the brain is going to be the limiting factor.
+
+If you replace all your heart, your internal organs, your arms and legs, your brain will still age
+at some rate and eventually you'll die because of that.
+
+on the balance, we are far enough from technological inflection that the primary concern needs to be
+accelerating progress.
+
+I'm super excited for this episode.
+
+Like seriously, like this is the podcast that I was waiting to make for the longest time because I
+think I have with two people with me here, Kris and Adam, who are the most realistic thinkers in the
+entire longevity phase, but they're not the people who are like,
+
+all the time pooping on everything else and never saying anything positive, not positive in a uh
+psychological sense, but positive in a creation sense that, hey, if we explore this path, then they
+can work.
+
+So skeptical people with positive statements, if that makes any sense.
+
+Let me just demonstrate, or let me let you demonstrate what I mean by characterizing you like this
+by letting you answer to the first question which is How can we solve aging?
+
+I'll take a crack at it.
+
+So the only way to do it is by developing new technology.
+
+And the real question is, what are the technologies that are going to get us there most quickly?
+
+And many people have different ideas about ways to make progress and help people live a little
+longer.
+
+But I'll just end by saying we need radical new technology to make the life-extending difference
+that is implied with you know, true longevity.
+
+you want more than five or 10 years, you want to live to 160, like Adam likes to say, we need to
+make some big bets and make some big changes in our technological strategy.
+
+I would second that.
+
+I don't really have much to add.
+
+um The question then boils down to how do you accelerate the development of new science and
+technology at a maximum rate.
+
+But I would add one small thing, which is that...
+
+There are easier paths and harder paths.
+
+And when we say, solved aging, uh predicate question is for whom?
+
+And that has two options.
+
+One option is humans as they are today within some natural scope of evolutionary variation.
+
+And then the other part is something else, which is an evolution of that into some other thing which
+may preserve continuity and where aging is quote unquote solved, but then we're not quote unquote
+human in the same way.
+
+This is very important distinction because if you look at the current variation of humanity and you
+say, well, I want to solve aging, but retain everything that's true about humanity right now, your
+path is more um biased towards bioengineering, damage repair.
+
+different particular types of replacement or cell therapies.
+
+Whereas if you say, I just want to maintain some sort of continuity and that's my solution to aging,
+the continuity of some sort of self, then you would be open to a wider variety of interventions.
+
+And it seems to me that we're currently on path number two as a species.
+
+um and it's important to distinguish them because the objective will define the means.
+
+So we are starting from first principles, pretty good.
+
+Okay, I listened to a talk to you in Prospero, Kris, and in that you were saying something very
+similar that we have these kind of ways to salvaging.
+
+One is stasis, like cryopreservation, the other is.
+
+would be replacements of body parts and the third is let's call it bioengineering.
+
+I would suggest to let's go from the more, as Adam referred to them, the wider variety of
+interventions and then zoom into bioengineering, which is the most, I guess, mainstream approach
+here.
+
+All right, so what...
+
+kind of wider variety of interventions are we talking about here?
+
+I mean, there are a plethora of strategies for defeating aging.
+
+Most of them are bad.
+
+uh Supplements are bad, not gonna work.
+
+Kind of traditional drug development's not gonna work.
+
+So the three work streams that you mentioned, biostasis, replacement, and bioengineering are the
+ones that we currently think are most plausible to actually make a difference.
+
+And by make a difference, I mean help people achieve.
+
+radically longer lives, 150, 200 years, something like that at a minimum.
+
+you said the weird, bioengineering is kind of more mainstream.
+
+Everyone would love a gene therapy that keeps you young and healthy.
+
+Biostasis and replacement are kind of the weird ones.
+
+Biostasis is just a way of delaying aging.
+
+So either using cold temperatures or chemical fixation to put your biology on pause.
+
+It's technically called metabolic arrest and that just prevents you from breaking down further.
+
+So when current medical care gives up and says like, we can't help this patient anymore, cryonics
+company or a chemical fixation company can come in and perfuse your body with protective chemicals
+and then put you in some sort of stasis, like a storage, until future
+
+medical care can bring you back and fix whatever is wrong with you, whether it's a bad heart or
+cancer or something like that.
+
+So it's not something that solves aging, but it puts you in a position to get to a future where
+aging is solved.
+
+I just want to potentially controversial perspective because delaying assumes that there's something
+that will come in the future that will then So if you look back and you just say, if we completely
+preserved somebody in a static
+
+metabolic state from 50 years ago, would they have benefited?
+
+That's a reasonable argument.
+
+we have other ways to prolong people's lives today.
+
+We have GLP-1s if you are morbidly obese, now you'll have an easier path to get out of these things.
+
+However, when you think about the longer term and of course the exponential development trajectory
+we seem to be on in some dimensions of humanity, it's harder to predict if this will even be
+relevant in 50 or 100 years, especially if a lot of what's going to happen is
+
+this merger with technology such that it will really be a co-evolution going forward of humans with
+technology rather than just random mutations and biological evolution as it's been so far.
+
+And that's what makes it a little bit, I would say, questionable as something to bucket in the aging
+category strictly, even when you label it as delay.
+
+Right, yeah, it's a reasonable concern.
+
+uh Technology will continue to progress up, but perhaps people caring about people in stasis might
+continue to go down over time as humanity evolves into whatever.
+
+And hopefully for the people in biostasis now and people who go into biostasis later, the technology
+gets to a point where it can revive them before the caring gets to a point where people don't want
+to anymore.
+
+but when I met by crazy stuff, I mean, there is, I've heard crazy stories about that kind of thing
+because the, um, the cultural aspect of it, the Adam mentioned is highly applicable to biostasis.
+
+People are not used to this kind of idea.
+
+It's weird and strange.
+
+And if you're a standby team of medical professionals who want to take someone who's, know, who just
+died and preserve them the best way possible, sometimes you're up against a lot of, uh, cultural
+resistance.
+
+The hospital staff think it's weird.
+
+Police think it's weird.
+
+You're taking a body and putting it in the back of an ambulance and driving to some parking lot in
+the middle of nowhere and then doing an operation on somebody.
+
+And if they change shape at different rates, they might press on each other and crack and shatter
+into pieces.
+
+So a lot of things can go wrong if you don't do the cryopreservation correctly.
+
+So cry of preservation.
+
+other interesting, um wider variety of interventions do we have that we should talk about regarding
+solving aging for whom?
+
+I would say the next one is replacement.
+
+It's still a little strange to people, but it can actually be a solution.
+
+And it kind of happens today already.
+
+People get replacement organs when they're sick and doctors don't have a way to treat kidney disease
+or liver disease.
+
+But you could imagine that if you had an old kidney that was not diseased and you put in a young
+one, that would have a big benefit to you from a longevity perspective.
+
+And we can't do that now because there's a limit to the supply of organs, and they need to go to
+people who are sick and dying rather than to people who are just kind of aging normally.
+
+But you can imagine in the future where we have unlimited organs or like a large supply of tissues,
+people could get preventative replacements.
+
+Yeah, yeah, yeah.
+
+You could say, my organs are getting a little old.
+
+Why don't I get some young ones?
+
+And then that could actually have a huge impact on your expected lifespan, not just, you know, We
+don't have anything today that can be that good diet and exercise, but a fresh set of internal
+organs or new arms and legs could really move the needle decades.
+
+dig in on that little bit.
+
+Decades in what?
+
+So could you articulate what you're imagining here as a scenario?
+
+Because there's been some evidence that when you put in a youthful organ, that organ ages at a
+considerable faster rate than otherwise in the youthful body and thereby...
+
+you know, reduces the positive impact.
+
+And so I wonder when you say decades, do you mean in terms of mean life expectancy or do you mean
+maximum lifespan and what kind of organ replacement are you imagining in that scenario?
+
+It's a great point.
+
+Yeah, if you just replace a little bit of tissue, em the rest of the system will kind of overwhelm
+the benefit.
+
+The older organs will sort of bring down the good one.
+
+So you have to think about what's the therapeutic dose of replacement that you would need?
+
+How many organs would you need to replace?
+
+How much of your muscle mass would you need to replace with young tissue to get kind of a systemic
+benefit where the young tissue actually takes over and makes the older organs perform better?
+
+I don't know the answer to that.
+
+em There are several labs that want to do those experiments and are kind of you know, prepping to do
+that work, but we don't know.
+
+If I had to guess, I would say probably you need at least a quarter to half of your organs and
+tissues to get like a big boost.
+
+But say you were able to replace all of your internal organs and your limbs.
+
+Now that's quite a bit of mass.
+
+um And I would expect both average and maximum lifespan to go up at that point.
+
+um If you have young tissue, you're much less likely to get cancer and cardiovascular disease.
+
+um But also those young organs and tissues will help support the rest of your body that's not young.
+
+So you can imagine you're still be at risk for cardiovascular, sorry, neurodegenerative disease, but
+you'll be much less risk if you have young kidneys and young liver and young immune system
+supporting that brain.
+
+So how much evidence do we have about the recovery capacity from that level of surgery if any?
+
+a lot of the signaling happens through the blood.
+
+So if you're talking about a muscle, part of your musculature in the arm, that really doesn't have
+any direct relationship with the spleen.
+
+Totally different part of the body and the way they communicate is probably through the bloodstream
+and maybe the nervous system to some degree.
+
+So my question there is, is there something that would need to be done to, and how much do we
+understand about the impact?
+
+So for example you could assert well even if all your musculature and some of the non-vital still
+aged but they're releasing this toxic soup into the bloodstream and a toxic set of messages into the
+nervous system then the benefit of the new organs will be substantially
+
+degraded and so it may be that we actually need a blood filtering system or some other mechanism to
+make sure the blood also doesn't convey those uh messages or maybe the nervous system which uh And
+then finally, when we talk about maximum lifespan extension, of course we have the
+
+problem of the brain, which is, if not replaceable, um not clearly going to benefit from these
+additional organs.
+
+So to summarize, trauma, the communication channels, blood and neural, and maybe others, if you have
+others.
+
+how does that kind of boil down to decades in any plausible scenario?
+
+research on this stuff so if you have some timeline that would be useful to know like if you think
+there's going to be some curve of improvement in the reduction of trauma from surgery but assuming
+we we don't have that as things are right now what is your um what is
+
+an example you could give because like look um somebody has cancer sure you're going to take out
+their liver it's a severe liver cancer it's a severe surgery but you do it anyway somebody else's
+liver than with a cancer.
+
+But we're not talking about extending that kind of person's lifespan by multiple decades in terms of
+mean life expectancy or maximum life expectancy.
+
+We're talking about just keeping this person alive because they're in life.
+
+very severe condition and uh likely going to die in the next, let's say, maximum five years.
+
+So, you know, just going back to this point about extending by decades, what is any scenario that
+you can imagine today with a level of surgery or the perspective level of surgery that you can see
+in the next five years or 10 years?
+
+Are there any examples of that?
+
+I don't think so.
+
+um We know surgeons who do limb transplants.
+
+We know surgeons who do internal organ transplants, but I don't think any of them have publicly
+commented on what they expect the increase in lifespan to be from doing all those together or any of
+them individually.
+
+mean, I would say life expectancy, just because like, I'll give you an example, a very concrete
+example that I think would maybe be useful.
+
+So let's imagine you have somebody who is 70 and know, actuarially they're expected to live with a
+very high probability to let's say 87.
+
+Now they're doing okay, they don't have severe chronic diseases, but they are on the decline.
+
+with aging on many various, many dimensions.
+
+So you can check it functionally, you can check it histologically, you can see that they're
+declining.
+
+So you're making the assertion that some surgeon out there would, regardless, let's say they don't
+wanna go on the record.
+
+Let's just imagine that for a second, because it would sound too weird or something just is not
+appealing about that.
+
+But you're saying that in their heart of hearts, they would believe that for that 70 year old, if
+they only had the organs, they could keep them alive instead of to 87, to 97 or even to 107.
+
+It feels to me that if somebody believed that, it would really be severely unethical for them not to
+speak out.
+
+Because like, what, what, what.
+
+at least they should be substantially encouraging Oregon production and, you know, screaming it from
+the rooftops that, we could give people, well, but they're not talking about it as a prophylactic
+measure or an enhancement measure.
+
+They only talk about it in the context of disease.
+
+They don't think about this sort of stuff the way we do.
+
+I don't know about that.
+
+you're treating geriatric patients, you generally as a surgeon would think about their expected
+remaining lifespan as a key consideration, right?
+
+Because you're operating on somebody's 75, you know they're not going to live enough.
+
+I think as a clinical, someone who works in the clinic, you think about your statistics.
+
+How many of my patients survive and what are their outcomes like?
+
+And you think after the age of 70, I'm not going to operate on someone because they're going to die
+or they're going to have a certain percentage of them are going to die and it's going to make me
+look bad.
+
+Or it's just not a good risk reward for the patient.
+
+If you're a little bit younger, maybe the surgery is tolerable.
+
+And maybe if you're in your sixties, the surgeon might say, well, actually you could recover from
+this and gain a lot.
+
+Or maybe if you're a lot older and you're absolutely going to die, then it makes sense again.
+
+You you have to really think about the trade-offs between the surgical risk and benefit versus the
+risk of just aging to death.
+
+Well, I mean, I quickly looked up the numbers here and it seems like there were, let's see, 108,000
+organs transplanted worldwide in 2022.
+
+So even if you assume that the average doctor only transplants, I don't know, let's say 30 a year,
+which seems low to me.
+
+That implies that there are only 3,000 surgeons who are doing these transplants at all.
+
+I'm actually taking the devil's advocate position here to say that it's plausible that out of 3,000
+people, nobody is speaking up because, you know, they have other things on their mind, it seems
+implausible, for whatever reason they haven't thought about it.
+
+ah focused on you know their day-to-day kidney transplants and that's hard enough etc.
+
+I mean, what do you say to that?
+
+m she or whoever wants the surgery, right?
+
+Like there is always surgical risk and a mortality rate associated with any surgery.
+
+And if you're doing a novel surgery, it's even higher.
+
+So they might not, you know, find it advisable to do that even if someone's interested, but who
+knows?
+
+Who knows what people are discussing behind closed doors.
+
+I mean that just sounds...
+
+a little hard to believe, you know what I mean?
+
+Well, you're saying that there's a psychological resistance to proposing it because in that game
+mechanic, you might be at risk of harm as the surgeon or the doctor proposing this idea.
+
+And I mean, yes, maybe it's plausible in some scenarios, but you know, she isn't the only she, like
+there are...
+
+There are other leaders, there are other billionaires in places that don't care about human rights,
+know, thousands of billionaires probably in China, or like multi-hundred millionaires who could
+absolutely afford like doing all sorts of things that would be
+
+considered unethical elsewhere in the world, and yet we've heard of nobody trying to do this.
+
+It just like raises a red flag for me.
+
+Like why is this, if this is so promising, if this is so plausible, why are we not seeing anything?
+
+Well, it doesn't work yet.
+
+We don't currently have any longevity interventions that work.
+
+It's just, what do we think is going to work?
+
+And but I mean like...
+
+you know, for somebody who's ill, that's a, look, let me put it this way to you.
+
+uh That is right.
+
+You'd much rather have someone else's liver than your own cancerous liver.
+
+But if you have a healthy old liver, you might not go for somebody else's young liver.
+
+Or it might not make sense for a doctor to recommend that.
+
+Also, we don't have doctors who specialize in multilisceral organ transplantation.
+
+We've got kidney transplant doctors and liver transplant doctors.
+
+So I don't think many people are going to jump, make that mental leap, like you said.
+
+And I guess that's my other question for you, maybe before going into these other two points, ah the
+blood and nervous system relay concern and the brain.
+
+So what about other animals, right?
+
+Animals you can clone, you have an unlimited supply of autologous organs.
+
+Why can't we do this in some smaller animal and demonstrate maximum lifespan extension?
+
+Yeah, first let me say on scaling, it's not just a requirement to generate surgical robotic systems
+for quality of surgery, but also to treat all the people who would theoretically need these
+treatments.
+
+We just won't be able to have enough human doctors to do it.
+
+uh On the animal studies, you're definitely right.
+
+Maybe some people have argued that dogs would be a better candidate animal.
+
+um But I guess there, I'm also then surprised and I would question.
+
+If it's plausible that even with today's surgical techniques, this could substantially extend
+lifespan.
+
+So you said one to two decades.
+
+I guess for a dog, ah that would mean...
+
+If a maximum lifespan for a dog is, let's say 15 years or 14 years for a medium sized dog, that that
+dog would live 16 years um or something like that.
+
+I mean, certainly if they didn't make it to the current maximum, that would be suggested that this
+approach doesn't work.
+
+I guess what I'm wondering is how is this not funded as an obvious study to do ASAP?
+
+And what would it take?
+
+Anyone should be able to go and sell some blood.
+
+think that would probably alleviate a lot of the strain on the organ split and the organ shortage.
+
+If people could sell a spare kidney, you you want to put your kids through school, you don't have a
+lot of money, you can sell a kidney and then, you know, good for you, good for somebody who gets the
+kidney.
+
+But I don't think it's, I don't think pulling from existing human populations is going to be the
+ideal solution from a longevity perspective.
+
+I think we really want to develop new technologies that can not just get kidneys, but hearts, like
+people can't sell their heart when they're young without dying.
+
+So, yeah, more comprehensive technological solutions.
+
+It also doesn't sound like...
+
+these non-genetically identical organs would really help from a longevity perspective.
+
+So, you know, it's just not clear that that would benefit people who are not diseased.
+
+I mean, the evidence that I'm aware of for transplants is that when you have immunosuppression, you
+still have micro inflammation that's ongoing.
+
+and lot of the drugs ah end up substantially raising your risk of cancer and other very negative
+outcomes.
+
+So this is not like a full free lunch when you get like that new kidney and it's not autologous.
+
+You have to immunosuppress, you're causing harm.
+
+unless the bone marrow co-transplantation makes immunosuppression unnecessary.
+
+So there may be future technologies that make it worthwhile, but I think we'd all prefer to have
+genetically matched organs prepared for us.
+
+I mean, is that by the way, to what degree is that established and to what degree is that effective?
+
+In other words, having ah organs that have no immunosuppression requirement but also don't create
+low-grade inflammation because you may have no need for immunosuppressive drugs that have all these
+substantial side effects but you're still causing low-grade inflammation which is going to
+
+be ongoing and it may be too early to know what the implications of that are medium or long term.
+
+I don't know the answer to that, but it'd be an interesting question.
+
+Kris in the context of replacement.
+
+uh Refresh from memory for exactly what you want to get taken to.
+
+was in the context of these three wrinkles around replacement, right?
+
+So one is the trauma of the surgery and that led us down the path of investigating what kind of
+surgery could be done, what evidence we have in different dimensions.
+
+The other was that a lot of the signaling in the body happens through the blood and nervous system.
+
+Otherwise, the different parts of the body don't know about each other really.
+
+And there was a concern that it could be that there's a certain level of signaling where if it's
+still delivered would dramatically accelerate aging phenotype everywhere, regardless of how much
+tissue you replaced.
+
+And this also of course has to do with the brain, which some people believe is a primary locus
+driving aging whereby, okay, if the nervous system is saying, hey, you're aged, you're aged, ah even
+the new organs will start misbehaving.
+
+So to what degree do you know or have thought about that?
+
+What are you aware of in terms of the evidence and what corrective measures are you um excited about
+or think are reasonable?
+
+Yeah, well, I think the science has not settled on what factors different cells and tissues are
+excreting and what's floating around in the blood.
+
+Like it just hasn't been characterized yet.
+
+I also don't know which tissues and organs and glands would be most impactful for creating a
+holistic environment in the blood.
+
+I think we do know though that the more tissue you replace, the better the blood seems to look.
+
+So if you were to just replace a kidney, that might have some improvement.
+
+but you'd get a much bigger improvement if you were to replace both kidneys, your liver, and some
+muscles.
+
+But I don't think it's been settled at what level of replacement you actually get a flip from kind
+of a pro-aging inflammatory environment to one that's more youthful, or if it's just a continuing
+problem.
+
+Okay, and are you aware of any um interesting efforts to cleanse the blood of the aging signaling?
+
+I know there are some things that have been suspected culprits in aging signaling.
+
+um Certainly different types of inflammatory markers that are more prevalent in senescent, you know,
+or secreted by senescent cells and so forth.
+
+And also, um also if you could speak to the neurological aspect if you have perspective on that.
+
+Yeah, so senoletics definitely seem to help if you kill off a bunch of senescent cells that have
+accumulated.
+
+uh Inflammatory signaling seems to go down.
+
+Cell therapies seem to help with inflammation, um even just taking the uh factors that stem cells
+excrete and putting them into the bloodstream seems to depress inflammation also.
+
+So you can sort of ah bring down this inflammation systemically by injecting youthful factors from
+cells.
+
+And that seems to persist for quite a while.
+
+So it's not just while they're in there, but you get sort of a persistent effect over the course of
+weeks or months from those kinds of therapies.
+
+But better still to actually replace the tissues that are in your body so they can do that
+continuously, right?
+
+And continuously excrete factors that are beneficial and reduce inflammation.
+
+Now, in terms of the brain, I don't know if there is a particular part of the brain that is going to
+have an outsized effect.
+
+If there is, we might want to think about replacing that if possible.
+
+Or having some sort of, I don't know, maybe new organ that can act like a super dialysis machine or
+something and take out uh the factors that are provoking inflammation.
+
+But I'm not really aware uh or familiar with that area.
+
+Yeah, by the nerve and other parts of the nervous system that are counterparts in the signaling
+soup.
+
+But I want to mention regarding inflammation that not sure that we have the tools to measure it
+sufficiently.
+
+mean how much is inflammation important for aging and what kind of inflammation and where in the
+body we're talking about inflammation, you know how low-quality it is.
+
+If you take a blood test and you measure your HS CRP and it's undetectable, do you have zero
+inflammation in your body?
+
+No, you have some inflammation probably in some places and you have all sorts of, let's say
+deleterious signaling happening.
+
+that we have to even understand the scope of the information problem.
+
+So not an area I'm an expert in, but I think it's pretty obvious when you look at the blood results
+from someone who's 80 versus 20, the level of inflammatory factors.
+
+I don't think we need like new sophisticated tests to be able to tell if we've rejuvenated
+somebody's bloodstream from, you know, from whatever the aging phenotype is.
+
+So if you have inflammation and you take some therapy from a secretome company that's like
+collecting the excrete, what a is being excreted from stem cells and you inject into somebody.
+
+The charts that I've seen are pretty obvious.
+
+Like you get massive reductions in inflammatory factors.
+
+It's not something that we need new tests for.
+
+For what it's worth, I just quickly took a look at the longevity World Cups, silent generation, two
+participants and their CRPs are, so they are 80 and 81 years old and their CRPs are 0.55 and 0.26.
+
+So at least with them, yeah, it's not happening.
+
+We believe in CRP.
+
+Yeah, which would suggest, you know, it's just like this bigger concern around the scope of
+understanding and measurement.
+
+And in that, maybe I would echo what Kris said that there are things, maybe CRP is not the right
+thing, but.
+
+There are measures that would definitely tell us if somebody were rejuvenated.
+
+One of my favorites is maximum heart rate.
+
+I mean, I would challenge you to show me an 80 year old with a maximum heart rate of 200.
+
+I don't believe that exists.
+
+And so a lot of this kind of fetishization of measurement is just...
+
+a detour from the fact we just don't have therapies that work.
+
+now of course you could say, you want to know if something works even a little bit to start going
+down that path.
+
+And that could be argued about, but we definitely don't have anything that would work.
+
+And it's not a problem that we wouldn't be able to tell if it worked in case it worked well.
+
+Kris, what do you think about the...
+
+issue of the brain because just going back to this notion of, what you made this argument one or two
+decades of maximum lifespan extension or even life expectancy extension, you know, when the modal
+age of death is 87 in many countries, we're talking about like
+
+getting somebody to like 100 or 107 sounds like a really big deal to me.
+
+Even if it's not even if we didn't take the maximum lifespan extension, which just seems you would
+also stand behind.
+
+think the brain is the exact reason why you're not getting, I'm not saying 200 years or 300 years
+with replacement.
+
+It's because we don't have a good strategy around replacing the brain.
+
+Because if you did, the brain is going to be the limiting factor.
+
+If you replace all your heart, your internal organs, your arms and legs, your brain will still age
+at some rate and eventually you'll die because of that.
+
+But if we could replace the brain and essentially everything then becomes replaceable and you can
+theoretically Just keep replacing things and staying young that way.
+
+Unfortunately, you can't just pull your brain out and put a new one, right?
+
+That will kill you.
+
+So how do you actually do replacement of the brain?
+
+There are kind of two strategies right now.
+
+One is cellular replacement, where you get young cells and you inject them into the body so they can
+go to the brain and take over the work of the existing cells.
+
+That is not foolproof because You still have to deal with the aging ECM in the brain, the
+extracellular matrix.
+
+If the ECM is old, it will make young cells behave old.
+
+So even if you inject a lot of young cells into the brain, they'll misbehave if they're on old ECM.
+
+Maybe you can get young cells to replace the ECM.
+
+I'm not sure I want to live in a battle angel, lead up world where All that's left is, you know, the
+brain of some type.
+
+And of course I would just say like, look, ultimately, if the brain degrades, let's just imagine you
+had an artificial replacement for the entire body, your entire organ system, et cetera, or let's,
+you know, some people will call that a brain in a vat, right?
+
+Some sort of RoboCop scenario.
+
+The brain will continue aging.
+
+And so ultimately you still need to deal with the biological reality.
+
+of the brain and you would either solve that with bioengineering or you would say well Now the, need
+to, you're already interfacing the brain in some extremely deep way with the rest of this new body
+that you have.
+
+So you ostensibly understand something about neurological signaling and communication in ways that
+are more sophisticated than today, quite considerably.
+
+I guess my point is that, you know, it may be a Luddite perspective if you label it negatively, but
+a lot of people, if you propose to them that that is their future in 50 or 60 years, or that is
+their children's future, would be quite appalled.
+
+Yeah, I mean, we just want to give people options.
+
+We don't want to force people to do anything they don't want to do.
+
+I do think eventually there will be bioengineering only solutions to aging, but they're kind of
+farther out.
+
+probably today we've got replacement options for hips and lenses in your eyes and things.
+
+And there'll probably be a lot more replacement stuff available before there's an injection that
+just keeps you biologically then forever.
+
+hopefully we can get that.
+
+I often ask myself about ideas instead of chat GPT because I know we are on the same wavelength,
+that's right.
+
+But look, don't...
+
+It doesn't feel to me that it's like...
+
+I uploaded my mind, therefore I have any, I did anything for my longevity here.
+
+Perhaps my kids can talk to me or, or, or many generations down the line, right?
+
+They can talk to me, which is nice.
+
+Perhaps it could, eventually I could make it an autonomous agent on the internet.
+
+And that's really like a mind upload.
+
+That's kind of like a mind upload.
+
+I would still prefer it to be my slave though, but still this is just not satisfying enough when it
+comes to longevity.
+
+which I think a lot of people are assuming to be the base case right now in the trajectory.
+
+uh They often are supposing that your sense of self extends to the new substrate.
+
+So we're not talking about uh cloning or a duplication, but rather an extension of your sense of
+self.
+
+We knew we just needed organs and it was going to work and everyone was going to live to 200.
+
+Then maybe you could have some dictator say, we're just going to dump.
+
+10 % of the GDP into this organ generation stuff and get it done as quickly as possible.
+
+we really don't have a view into what's going to work to solve aging.
+
+And we need people to try lots of different things.
+
+And no dictator is going to be able to tell you what to try.
+
+It's almost as if, if I would paraphrase what you said, it's that on the balance, we are far enough
+from technological inflection that the primary concern needs to be accelerating progress.
+
+there are different perspectives on this.
+
+The, the, their strong strong libertarian perspectives that would argue that but they're also I
+would I forget what it's called you know, minimal.
+
+to protect certain things that, you know, the commons don't seem to be able to provide.
+
+Yeah, happy to have the minarchism versus anarchism debate at some point, but it's a little
+tangential to longevity, I think.
+
+We're just so far from it that it's not going to influence how quickly we solve aging at this point.
+
+I have my own views on this, it's important to note that Kris actually wrote a book on this.
+
+So you might want to put some more words in this topic, I think.
+
+So I guess my question to you, Kris, then given this kind of analysis of where things are.
+
+Out of my world, my viewpoint is pretty limited.
+
+um I do angel investing to try to help young companies get off the ground so they can develop
+therapies and hopefully get them into the hands of patients.
+
+I try to help with technological development or the promotion of longevity related ideas.
+
+I'm not really an expert in government and trying to get non-dilutive funding for projects or get
+research labs the funding they need to do the experiments like we talked about earlier where you see
+how many organs you need to replace
+
+to actually make a difference.
+
+uh But I think like you said, like you've said in the past, getting people together to focus on the
+goal and push in whatever areas they have expertise in or influence in is really the only way to
+make rapid progress.
+
+What do you think Adam?
+
+The way I look at our current state is that...
+
+Until AI came on the scene, there was no hope of a Deus ex machina that would accelerate things
+agnostically outside of deliberate pressure for innovation and our ability And so my mental model
+was, and to some degree still is, that all of the efforts combined
+
+substantially below what would be adequate to make any progress towards the scope.
+
+So what I mean, and this is a unpopular position in the longevity space.
+
+It's an unpopular position period.
+
+I commented in this vein when I wrote recently that Calico just, you know, had this, I don't know if
+it was a wind down, not undesirable outcome after billions of dollars, a collaboration with ABV and
+something like 13 or more
+
+Like if you look at, for example, American dynamism, it's not one thing, it's an ideology.
+
+Who supports that ideology?
+
+Well, Enduro builds weapons and Palantir builds surveillance uh systems and other companies build
+energy and there are people in government.
+
+support you know American dynamism for their own reasons you know what I mean like and without
+supporting that just saying ideologies typically do need ecosystems to thrive and to accelerate and
+right now there's very little of that happening in the longevity space
+
+still even though vitalism is moving in that direction but as a foundation is trying to push as hard
+as possible But it's natural that this hasn't existed until recently because nascent ecosystems just
+don't have enough people or resources to even think about something in a larger scope than
+
+just struggling to get that extra million bucks.
+
+Like Kris was saying, some of these studies that are very promising can't even get like a few
+hundred thousand dollars.
+
+That's unfortunately where we are.
+
+Yeah, totally agree that getting more people paying attention and more mind share could be a huge
+accelerant.
+
+This is not really my area, so I'm curious.
+
+We talked a little bit about technological barriers and milestones, but on the social side, where do
+you see us at in terms of that attention and getting what would it look like or what would it take
+to get to the 10x or 100x attention from the general population
+
+and people who have resources to deploy?
+
+I generally don't think that attention from the general population is a necessity, but it's also an
+accelerant, and it is desirable if you can get it.
+
+The way I look at our current state is that there are secular trends that are pushing a
+confrontation with this problem, regardless of the longevity ecosystem.
+
+Those trends have to do with insolvent economies.
+
+They have to do with aging populations who are suddenly converging on hey, we all wanna feel and
+look younger and a larger part of the control of society, people call it derogatorily a
+gerontocracy, is now riddled with these concerns, but those
+
+are also the people who have power, right?
+
+It's not like the American Revolution, who were the people in power?
+
+People in their 30s and 40s.
+
+So very different situation.
+
+And so more people are confronting this, people entering middle age who have...
+
+time and so there's this kind of source of gravity.
+
+pushing society to also address it.
+
+And there is some scientific progress that indicates that bioengineering or uh innovative
+interventions are possible and plausible, both because we know that, for example, there are
+longevity genes.
+
+And now we know that we can do gene therapy.
+
+So you take those two together and you say, OK, so you don't need to be Einstein to say, hey, maybe
+we can give these genes to some random person.
+
+They will live long.
+
+centenarian and will escape these diseases and other things which are universally known as bad.
+
+These people are emerging because there's kind of this latent demand which is pulling them out from
+the sidelines, out of the woodwork.
+
+And so um you could argue that society as a whole is creating these influence loci and then...
+
+the demand spills over into commercial needs.
+
+So it's expressed in Blueprint, but it's also expressed in companies like Function Health or
+PageLessRx or Matthew Walker's companies that have to do with sleep optimization or wearables or you
+name it.
+
+So in other words, what you'll see is there's kind of this agnostic secular process and over five,
+10, 15, 20 years, there will be more investment in prevention, addressing aging, confronting aging,
+cetera.
+
+Fundamentally, there are two deficits to this pathway because you could try to be more deliberate.
+
+You could join Brian Johnson, try to grow his effort.
+
+could, you know, try to become an influencer yourself or start a company that would be selling some
+prevention or something in this vein.
+
+The two deficits are number one, it's very unpredictable.
+
+So you're essentially saying, hey, I'm going to cast my, you know, bread on the water and hope that
+this is going to be fine.
+
+And these things will kind of emerge.
+
+And number two, the type of strategies that emerge from this kind of grassroots influence or more of
+the public caring about this over time uh pathway are not necessarily efficient in terms of solving
+aging.
+
+So what they may produce are things that are, you know, somewhat preventative of certain age-related
+diseases.
+
+Maybe they produce some strategies that do have a midterm, medium-term effect on lifespan extension
+or massive lifespan extension.
+
+It's just very unpredictable because it's not deliberate and there isn't a systematic ideology
+behind it.
+
+mean, even though, of course, Brian Johnson has his ideology, but he's one player and there are
+multiple players in this game.
+
+So when somebody says, hey, uh join my blood testing service and it will make your biological age as
+low as possible or lower than all these other garbage blood testing services.
+
+But all of the services are saying the same thing about everybody else, right?
+
+And so it ends up being this kind of red ocean and that creates a lot of difficulty.
+
+The strategy that Vitalism Foundation is pursuing, which seems to be a lot more plausible, is what
+we call an influence network or a strategic network.
+
+because it's harder to predict.
+
+Whereas with a more deliberate strategy, you could say, well, okay, right now, just last week, there
+was the Maha Summit and Jim O'Neill, who's deputy secretary of health and human services, which is a
+department that oversees trillions of dollars, was hosting a
+
+panel under the banner, like a literal big banner.
+
+that said reversing aging and brain machine interfaces.
+
+Accelerating, uh reversing aging and brain machine interfaces or something like that.
+
+This is uh probably the first time in history that so senior a member of any government, let alone
+the most powerful probably government in the world um was hosting anything under that banner.
+
+I mean, even the words reversing aging.
+
+If you think about the entire longevity of Typically it goes from slow, stop, reverse in levels of
+like, conservatism, right?
+
+And most people are like in the slow category.
+
+Most companies in the longevity ecosystem, actually they're in the slow category.
+
+They say, we're working on slowing aging and if we manage to just reduce the slow by a little bit,
+that would be a huge win.
+
+And I'm talking about, by the way, about people who are vitalists, like they want to live as long as
+possible, they want to live in great health, they're not like some sort of light, they're still
+aiming for slow.
+
+So for the word reverse to appear, And that kind of scenario is really meaningful because it
+projects downward everywhere, right?
+
+Because like you could think about it, let's say very um mechanistically and say, well, ah how much
+money is gonna exactly go to what exact project?
+
+And that is a perfectly legitimate way to think about it.
+
+And we can talk about that in a second, but it also does matter.
+
+When you know that your boss and your boss's boss and your boss's boss's boss's boss cares about
+reversing aging, that's going to impact how you think about your projects, right?
+
+Because you know that that's the guidance from the leadership of your organization.
+
+So one thing is getting, helping people who are in positions of influence like that and getting more
+people in positions of influence like that who are ideologically aligned.
+
+And when you look at the position, It's again probably something like 200 to a thousand positions in
+the world.
+
+And so when you ask, okay, how can we accelerate?
+
+I would just boil it down to leverage.
+
+And if you can just coordinate people, identify them, create some levers like that, and then get the
+influence to compound, it's probably the cheapest way that you can make progress.
+
+Do think that's more getting people aligned and running in the same direction or getting people
+excited?
+
+it's definitely getting them aligned and running in the same direction.
+
+But I wouldn't say exactly aligned.
+
+It's more running in the same direction.
+
+And what I mean by that is, so there are a lot of people out there who care about this stuff.
+
+Some people have, you know, variations of how they care about it.
+
+ah But when I say running in the same direction, what I mean is not that they are running in
+opposite directions.
+
+is that they're not running.
+
+If you're sitting and you're at your lab and you have a budget of $5 million a year or $15 million a
+year, and I come to you and I say, hey, ABC, they're recruiting a new head of
+
+the NIH, a $60 billion a year organization.
+
+And you tell me, well, Yeah, okay, well, I'm sorry, you're not running, you are walking or crawling.
+
+And if I can't get somebody to agree to take some of these roles, I mean, obviously, I'm not like,
+I'm not their boss, I can only talk to people and see if they may be a fit and
+
+encourage them and I'm not, I'm not the the decider anyway of who's going to be in what role.
+
+But if somebody is asking me for a recommendation and I want to recommend somebody, then I need to
+have somebody who wants to run, who wants to participate and lead and accelerate things.
+
+And we don't even have that.
+
+I mean, we have very little of it.
+
+We have scientists who don't want to run things.
+
+uh things, mean, there are also people who don't want to start companies, even though a company
+structure would be the best mechanism to accelerate or to get capital.
+
+You know, this problem exists on all dimensions, but I think it's possible to unlock a lot just by
+connecting people, coordinating, creating venues where they have the right incentives, and that does
+take some money.
+
+Like we can't do this on zero, but we could probably make a lot of progress with millions of dollars
+a year, not with billions.
+
+So I just want to say that I am on a mission to sort of aging myself.
+
+So it would not be a good idea to, to not actually present my plan here to you guys, because you
+mentioned that you mentioned breeding faster horses and that's pretty much what my approach is here.
+
+So here is my plan of how I'm.
+
+planning to solve aging.
+
+And I hope it's plausible.
+
+You guys tell me if it's plausible to you.
+
+Okay, I'm starting with the longevity competition, single biological aging clock.
+
+People are competing with each other on getting their biological aging clock down.
+
+so how do we get to solving aging from here?
+
+Well, we add another biological aging clock.
+
+Well, it turns out all the biological aging clocks come with a bunch other markers.
+
+So if you buy a true diagnostic test or glycan age test or anything, you get a host of other data
+and the users are uploading all the data.
+
+And eventually we end up with a website where people are competing with each other on a bunch of
+different various biomarkers, data points, ah whatever, but there is the the vertical of aging, the
+competition of aging.
+
+Now we we we starting to have something, but still, how do we how do we actually solve aging here?
+
+OK, individuals can try to do this and that.
+
+But let's say what do we have in in in the Formula One race is that there are these constructors
+league, right?
+
+What happens there is that big companies come and run a couple of pilots ah and they make those
+people or in the longevity World Cup sense.
+
+Now the big pharma companies are coming in and the athletes are getting to, they are trying to make
+the athletes as good for the competition as possible.
+
+with a race where big money is bringing in, is trying stuff out with their own athletes on a bunch
+of different relevant metrics.
+
+And you see, now we have an actual race of trying to make certain people's life faster, longer or
+healthier.
+
+You know, the older you are, the more chances you have in the race.
+
+So the older person you rejuvenate, the better you get over time.
+
+okay, so we have to succeed with at least a couple of these sports people, right?
+
+Like we are going to come up with something that in...
+
+We are controlling these people's lives, right?
+
+Are you going to try and leverage that to develop new technology or inspire people to do research?
+
+I'm not doing that.
+
+They are doing that.
+
+The athletes who are doing well and the companies who are sponsoring the athletes who are running
+the lives of the athletes.
+
+emergent discoveries because of the competition.
+
+there are two questions, if you don't mind, just to bring up in this.
+
+plausible is it that technological innovation will happen as a result of these incentives?
+
+And given the kind of resources that may be available, whether it's the participants or the people
+supporting them or the companies that they're involved in and so forth.
+
+And you could say, well, uh I think the conservative scientific view that many in the longevity
+community may have is that the likelihood of major scientific discoveries or breakthroughs is very
+low in this strategy.
+
+but there might be minor discoveries that are useful and maybe the likelihood of those is actually
+pretty high.
+
+So just to give an example on that, you know, you have these viruses like F-Zone bar virus, which
+now we know causes, you know, multiple or really radically increases the chance of getting multiple
+sclerosis or other things that where we just don't know enough about
+
+And there might be some discoveries that really do augment and enhance and improve health and maybe
+even mean lifespan or maximum lifespan.
+
+I wouldn't reject that out of hand.
+
+It's just like people didn't believe the bacterial hypothesis about the cause of ulcers until the
+guy like literally caused an ulcer by having to drink it and then curing himself, right?
+
+Like, so I think there could be different lobing fruits that are discovered in this manner.
+
+However, it will likely not unlock a step function change of the type that we were discussing
+previously.
+
+This is at least my guess when you look at this kind of thing.
+
+And that's why I would just say as the qualifier for this to be uh compelling is it must become very
+popular.
+
+It must become very big.
+
+And so very big, you can put a number on that, half a million, million people or whatever number,
+probably some very large number like that, maybe a lot larger.
+
+And then the question is, because it has an impact on the general public, not just on innovation,
+because it's a public thing, then the kind of onus that I would put on it is to also convey a
+positive ideology.
+
+So, Brian Johnson is conveying a positive ideology.
+
+He's saying, don't die.
+
+take care of yourself, you know, be well.
+
+Whereas some people say it's not the lifespan, it's the health span.
+
+Lifespan doesn't matter.
+
+And I would say that's very uh problematic because if that's your perspective in a position of some
+sort of leadership, that has a lot of ramification about where the money might go.
+
+If it's not about the lifespan, it's about the health span, maybe what we should do is just give
+everybody free yoga classes or free equinox passes.
+
+You know what saying?
+
+I don't mean that facetiously.
+
+Those interventions would probably create a lot of value for a lot of people.
+
+And we need to choose, is that where we want to put our money or do we want to put our money in
+fundamental science?
+
+They'll be like, I've got X gene therapy and X supplements and X whatever exercise routine.
+
+And that'll lead to some benefit in my biological clock.
+
+And then if people can see what people are using, like if it's kind of an open stack, then people
+can adopt different strategies and see how it impacts them.
+
+And that could generate a lot of interest in using therapies that are not approved yet.
+
+So we get early data on how they work and also give a boost to companies who are trying to bring
+early access to therapies.
+
+So right now you have to go to Mexico or Honduras to get certain gene therapies.
+
+But if that could become more mainstream and know, right to try estates in the US or other
+localities that have more money and people, you you could have a big impact that way through this,
+this mechanism of being, bringing
+
+broader appeal and broader experimentation.
+
+So I definitely could see a benefit from that, but like Adam, I agree for true step function changes
+in lifespan, we need more radical technological innovation.
+
+So firstly, the only concern I have here is the popularity stuff.
+
+how can you make it so popular that big money ah is flowing through it like, let's say like
+basketball, right?

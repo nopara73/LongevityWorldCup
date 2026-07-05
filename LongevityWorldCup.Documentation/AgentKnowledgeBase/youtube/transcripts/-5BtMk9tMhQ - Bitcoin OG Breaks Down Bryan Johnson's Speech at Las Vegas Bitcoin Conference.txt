@@ -1,0 +1,228 @@
+# Bitcoin OG Breaks Down Bryan Johnson's Speech at Las Vegas Bitcoin Conference
+
+Video: https://www.youtube.com/watch?v=-5BtMk9tMhQ
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 96/200 units; 1370/2334 words.
+Matched topics: Bryan Johnson, HRV, Longevity World Cup, Rejuvenation Olympics, aging, aging clock, biological age, biomarkers, exercise, longevity, longevity sport, medicine, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+Many of you have sent me this video.
+
+Bryan Johnson talking in Bitcoin Magazine's conference.
+
+Bryan Johnson American millionaire.
+
+I think he made like half a billion dollar and...
+
+created a company and then sold out and went 100 % into longevity and doing all kinds of experiments
+on himself.
+
+And right now I am working on longevity.
+
+in fact, even in longevity, I am working on things.
+
+Those are pretty close to the Johnson's line of work as well.
+
+So guess you're interested in what I have to say about this video.
+
+you know, I am very interested in about it because I haven't seen it and I have been declining
+Bitcoin conference speaker invitations because I want to talk about longevity and I don't think I
+can provide any value for people on Bitcoin conferences.
+
+So I'm just...
+
+Really interested in what Bryan has to say about Bitcoin and probably longevity.
+
+it was an important conference.
+
+So I had to make sure that I'm sleeping properly.
+
+and I had speaker slots there and I had to make sure that I'm everything very well, very fresh with
+peak IQ and even then it was really hard to sleep properly, right?
+
+So it's just the event just makes you...
+
+there is always something to do.
+
+Even if you're trying to sleep best that you can, you're probably not going to.
+
+Hopefully they are not doing that anymore.
+
+Okay, we may be the first generation who don't die.
+
+I heard him saying this so many times, but I never seen a coherent argument from him to be made why
+that is the case.
+
+ah That's fine.
+
+But he's talking about the sport of longevity, which is pretty cool because I am organizing a of
+longevity sport competition, which is called the Longevity World Cup.
+
+And Bryan has He's also, he's going to explain it, but he's also organizing.
+
+uh He's popularizing, he's more of a marketing person rather than the organizer.
+
+He's organizing the Rejuvenation Olympics.
+
+So the Rejuvenation Olympics was created by Bryan's previous chief scientist, Oliver Zollman, at
+least the idea.
+
+And then they teamed up with True Diagnostic and Bryan Zollman and True Diagnostic as a company
+created the Rejuvenation Olympics.
+
+That's just not true.
+
+I'm not sure I want to go into this, but I should be listening to him more.
+
+But you know, he's been cherry picking his biomarkers.
+
+go to the doctor and take a blood test 10 times a year.
+
+if you choose the best biomarkers of each blood test and only publish those now, then you are Bryan
+Johnson because that's what he was doing.
+
+He only published the best results of every single blood test result of the past two years.
+
+And even that didn't like, wasn't that impressive or at least Some people said they were not
+compared to mine.
+
+And I don't know why, Bryan doesn't...
+
+speaking of biomarkers, I think I know why he don't want compete in my longevity world cup.
+
+The biomarkers that he published, he would be somewhere in the mid ranges in the longevity world
+with those biomarkers and of course there is no bragging rights coming with that.
+
+So anyway, he's doing well on the rejuvenation line picks.
+
+On the other hand, he will probably tell you that in a moment.
+
+I think that's a very important point.
+
+A unit of measurement is really important in longevity.
+
+In fact, that might be the bottleneck in longevity research.
+
+So the main problem that we are contending with here is that, all right, so how do you know that
+your intervention actually made someone's life longer.
+
+It's not like we have a hundred years to make different experiments on how long people live.
+
+So what we can do is we have a biological aging clock instead measuring the actual age and as ever
+improving, biological aging clocks are coming.
+
+the longevity research bottleneck is hopefully going to disappear with that.
+
+Oh, and I just want to note that if you are interested in, on the screen there is Keith Blondin.
+
+So that's very debatable if it really means that.
+
+So for one, Bryan is probably doing dozens and dozens of speed of aging tests.
+
+Even if the metaphor of speed of aging works, and let's assume it does.
+
+Bryan doing dozens and dozens of speed of aging tests and takes the three best that he succeeded to
+do in the past two years and averages that out.
+
+That's when you get that.
+
+So it doesn't really mean that he's aging so slow.
+
+just means that at the best times of his two...
+
+past two years he was aging that slow, That's interesting.
+
+Of course I heard this before, but I haven't heard this to be chief marker of everything.
+
+I wonder why it's not HRV as well.
+
+But I like that he's talking about resting heart rate because I have a pretty bad ass resting heart
+rate and pretty bad HRV genetically actually.
+
+Anyway, so what does he have here?
+
+Late-day caffeine definitely messes it up.
+
+Intense evening exercise.
+
+oh Probably, I'm not trying that, but probably that messes it up.
+
+Maybe I'm not sure about that.
+
+Dehydration, well, nicotine actually, if you put a nicotine patch on yourself and sleep with that,
+then you are going to have some real crazy nightmares.
+
+And eventually those nightmares you can take control of and they won't be like proper nightmares,
+just lucid, very eventful dreams.
+
+So, I mean, that's an interesting idea because sleep is something that you do a lot.
+
+Like, you probably don't do anything else as much as how much you're sleeping.
+
+building your life around sleep, And now he's going to talk about Bitcoin.
+
+so people know what to do.
+
+And one of the three principles that I set up was sleep properly.
+
+It's tempting to just stay up all night and try to fix the server, but usually wind down, go to
+sleep and try the thing again tomorrow morning because had enough experience with it to find that
+sleeplessness doesn't...
+
+Sleepless work and coding and debugging on a system that's down the best thing to do.
+
+Yeah, probably that's true, but also he's using some kind of slow Viagra stuff, so should be
+mentioned here as well.
+
+It's actually when I looked into it, not complete bullshit, but He's using as a longevity supplement
+some kind of slow Viagra that makes his nighttime erections long.
+
+that's something you should know.
+
+So I have no idea if this is true and I won't take Bryan's word on it, but you know this is kind of
+a plausible theory, right?
+
+Because on the one hand this is a taboo topic, so it's unlikely to get popularized as some biomarker
+because people don't like to talk about this.
+
+But it's an important biomarker...
+
+So there is a plausibility that, oh, well, it was all under our nose.
+
+What the fuck?
+
+ah Could I just go to Bitcoin conferences and talk about longevity?
+
+If any Bitcoin conference organizer are listening to this and want to invite me to talk about
+longevity, then I'm up for it.
+
+That's an interesting question.
+
+So that's what don't die is about, which is his cult or religion.
+
+I'm using his words.
+
+He's don't die is a religion and his competitor is Jesus.
+
+So I'm quoting him right Okay, so that's why it's a very deep religion because...
+
+don't die is contending of how we are protecting ourselves from the machines.
+
+uh I mean, okay, maybe, I don't know.
+
+And if you really take...
+
+don't die to an extreme and I did hear Bryan take it to an extreme as specifying everything as
+offering you a chocolate as a microaggression then the natural consequence is that you should get a
+punishment for that.
+
+If I would be offering you a cigarette then what kind of punishment should I get if I can't even
+offer you a chocolate, right?
+
+YOLO LOL Don't die not laughing because that's a good man uh laughing because it's so bad.
+
+well, I hope you Bitcoiners and longevity people enjoyed that.
+
+No per result, don't die.

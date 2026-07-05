@@ -1,0 +1,575 @@
+# Rand Hindi, 42nd Place, Rejuvenation Olympics
+
+Video: https://www.youtube.com/watch?v=hSaHTciD6ow
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 253/342 units; 3373/4003 words.
+Matched topics: Bryan Johnson, GlycanAge, Rejuvenation Olympics, aging, aging clock, biohacking, biological age, biomarkers, epigenetics, exercise, glucose, inflammation, longevity, longevity athlete, medicine, mortality, nutrition, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+Back in 2010, I did an experiment where I gained 35 kilos, 70 pounds on purpose, basically to show
+that if you could somehow personalize your nutrition, your lifestyle, you could easily lose it back
+without too much effort, and I did.
+
+You see, this is where personalization comes in.
+
+You need to find the right balance to find what's the perfect optimum for you.
+
+There is a subspace, a growing space, which I noticed, which is longevity as a sport.
+
+People started competing with each other on these ever improving biological aging clocks.
+
+And you're doing pretty well.
+
+You are 14th.
+
+I actually didn't check today, but anyway, with the 0.68 of the Nidam pace.
+
+Why, what are you doing here in longevity?
+
+So I did a PhD in 2007, a long time ago.
+
+My PhD was actually something called bioinformatics.
+
+So applying AI machine learning to biology, to do things like analyze your genome, predict the
+likelihood of diseases.
+
+So if you look at biological clocks, they're actually simple machine learning models that take a
+whole bunch of data and try to predict your biological age or mortality likelihood.
+
+very similar space to what I was working on at the time of my PhD.
+
+So I've always had a very strong interest in bio, not just in cryptography, computer science, AI.
+
+After I decided to work on my AI company, at some point I was thinking, okay, what if we try to
+rethink a little bit of how we do health?
+
+So back in 2010, I did an experiment where I gained 35 kilos, 70 pounds on purpose, basically to
+show that if you could somehow personalize your nutrition, your lifestyle, you could easily lose it
+back without too much effort.
+
+And I did.
+
+So I went from 70 to 105 and back down to 70 something.
+
+And all I did was find what worked for me specifically.
+
+So that was, if you want like the first time that I really started to get into I wouldn't say
+biohacking, you know, quantified self and sort of, know, self improvement, like personalized type of
+medicine.
+
+I looked at it, was like, my God, why do people think that everything applies to everyone?
+
+Like we have to go much deeper.
+
+We have to start doing self experimentation.
+
+We have to gather as much data as possible.
+
+So for years, for about a decades, I started tracking every single thing I could.
+
+Everything, Sleep.
+
+food, supplements, sex, everything I could was in this massive database, 200 data points per day.
+
+I would do like blood tests all the time.
+
+Like, so I look at Brian Johnson and I'm laughing because I'm like, I did that, you know, just minus
+the extreme therapies he's trying, but at least on the quantifying self, I've got this data.
+
+And one thing I noticed is that simple things are incredibly powerful.
+
+And if you don't do those simple things, No matter how advanced the therapy is, it's not going to
+bring you much benefit.
+
+So what are the simple things?
+
+Eat well, sleep well, exercise, don't drink, don't smoke.
+
+And have friends.
+
+There's a sixth one, right?
+
+These six things alone, you need to get those six things fixed.
+
+And then you can start going into supplements, biotech, hyperbaric oxygen therapies, all of those
+kinds of things.
+
+But there is no point doing that until you fix those initial things.
+
+So my protocol...
+
+It's very simple.
+
+My protocol is, you know, five, six days a week of like super on point sleep, food lifestyle, right?
+
+And then on weekends, I'll eat healthy because I don't like junk food anyway, but I'm not going to
+think about it.
+
+If I want to go out with my friends and have a glass of wine, I'll have a glass of wine.
+
+If I want to go and have a pizza, I'll have a pizza, but I'll do that infrequently.
+
+And then I do a bunch of supplements, of course, as well.
+
+So I'm not really doing anything that's like crazy, right?
+
+I'm probably doing like 20 % of what Brian is doing, but those 20 % is enough to be like in the top
+1 % of best longevity performers.
+
+You know, I interviewed any, any N who's the second after Brian Jones.
+
+I'm not sure I want to go into this, but arguably she should be the first because Brian is doing 21
+tests a year and you know, that gives him quite an advantage.
+
+So actually interviewed many, longevity athletes, perhaps over 30 at this point.
+
+And, uh, and that's, that's exactly what you just said.
+
+Sleep, exercise, eat well.
+
+These, these basics, like there is really nothing else common.
+
+There are even people who are not taking supplements.
+
+So there are very.
+
+It's not genetics because I was wondering about that.
+
+So I tested my parents and my parents don't have as good a score as I have.
+
+So genetics is not the cause, right?
+
+It's a hundred percent interventions and lifestyle behind it.
+
+Yeah, yeah, yeah.
+
+So on the longevity word cup, we use phenol age for this year.
+
+We change every year, but for this year phenol age and for phenol age, I had to like, when go really
+deep into the code, right?
+
+How this really works.
+
+And, and it became clear to me that obviously you can improve your glucose.
+
+Obviously you can improve your creatinine and stuff like that.
+
+Like that those things are not genetically affected.
+
+Perhaps they are affected, but...
+
+Actually creatinine is, I discovered that my dad and myself, we have a fairly high creatinine level
+because we have a kidney that's smaller than the other.
+
+That is born that way.
+
+So for us to reduce our creatinine, we have to dramatically reduce our protein intake.
+
+But if you reduce your protein intake too much, you lose muscle.
+
+You see, this is where personalization comes in.
+
+Like you need to find the right balance to find what's the perfect optimum for you.
+
+So for me, for example, I tried doing like 250 grams of protein a day.
+
+It would just destroy me because my kidneys couldn't deal with it.
+
+So I went down to like a hundred grams a day, which any kind of, you know, athlete would tell you is
+way too little for someone of my size.
+
+But it's the optimal for me.
+
+It's the optimal in terms of muscle mass versus kidney effort on metabolizing that.
+
+You see, there was something that you just said a while ago, which was about your experiment of
+gaining a lot of weight.
+
+And, you know, I talked about you before in this show and I didn't connect the dots that it's you,
+but you actually did something like called an anti blueprint experiment.
+
+So tell me about that.
+
+Yeah, so my goal at the time is I wanted to basically start a company doing a personalized nutrition
+and personalized medicine.
+
+It was back in 2010.
+
+The problem is I was fit.
+
+And so people looked at me, they're like, dude, you're fit.
+
+You what are you talking about?
+
+You don't understand what it means to be overweight.
+
+You know what?
+
+I'll get fat.
+
+Then I'll lose it again.
+
+And I'll prove my point.
+
+You know, sample of n equal one and I was motivated.
+
+So obviously this doesn't mean, you know, anything scientifically, but it did work.
+
+my anti-protocol, that was tough, man.
+
+It was really tough putting that much weight in a year.
+
+It's like, I put it in a year, right?
+
+It took me a year to gain 70 pounds after if I've kilos.
+
+Eating junk food all the time, mixing carbs and fats all the time.
+
+This is really important by the way.
+
+Usually the buddy doesn't like to have two sources of energy, either pick carbs or pick fats, but
+having both is not a good idea.
+
+I would eat just before going to bed.
+
+I would get tired and just before going to bed, I would eat like a burger, right?
+
+Because then my body would literally do, it would burn zero calorie.
+
+So it would go straight into being fat.
+
+I was doing that and at some point, my mom came to me and she's like, I'm begging you, stop.
+
+Like stop, like you're proving your point.
+
+that's bad for your health and it was getting really bad for my health.
+
+And so I went the other way around and basically did a fairly basic protocol at the time.
+
+But it was such a contrast to what I had been doing for a year that my body just like reversed it
+super, super fast.
+
+And then a few years later, I did the opposite.
+
+I was like, you know, it was normal.
+
+And I was like, you know what?
+
+I want to get ridiculously fit.
+
+So like I spent three months doing extreme protocols like eating like to the calorie and macro
+exactly all the time, 24-7, seven days a week, hitting the gym 12 hours a week, like super hardcore.
+
+I was like ripped and extremely fit, but not sustainable if you want to have a life.
+
+But I've tried both.
+
+So I've tried, you know, the anti-blueprint and then I've tried the extreme transformation into a
+six pack shredded athlete.
+
+So what would you say to someone hearing about this, that you were doing this intentionally for one
+year and they would call it.
+
+Don't do it.
+
+You don't want to go there.
+
+We just talked so much about the basics, but you see right now, right now we have the biological
+aging clocks.
+
+are these biological aging clocks are like the bottleneck of longevity because we can't measure how
+long people are going to live, right?
+
+We have to measure something else.
+
+and the biological aging clocks are the imperfect attempt to measure those things.
+
+Okay, and then people start to compete on these things, and then we can see what kind of people are
+doing really well in these biological aging clocks.
+
+And you just said, well, it's basically the people who do all the basics right.
+
+Not just, just.
+
+think the basics get you a big part of it, but you do need to, you also need to fine tune some extra
+protocols on top if you want to really start to break through.
+
+think breaking under like 0.8 requires more than just lifestyle.
+
+Okay, okay, I wonder...
+
+I can tell you what I tried.
+
+I mean, I tried so many things.
+
+for supplements, for example, so I do a lot of research.
+
+know, I love my favorite pastime is reading medical papers and basically looking at pathways,
+molecular pathways in the body and trying to figure out that's an interesting target to try and
+modify.
+
+So like I'll hang out on some weird subreddits where people are trying all kinds of really crazy
+shit, man.
+
+And I look at how people talk about it and be like, interesting.
+
+That could be an interesting off label.
+
+uh so my stack I'm trying right now, uh, I think no matter what you do, past 35, 40, you need some
+kind of NAD booster.
+
+I think that's a prerequisite in many supplement stacks.
+
+I've tried in a man I've tried in our trailer thing, the one that I found to be the best and the
+most, uh, the highest impact is a calcium alpha ketoglutarate, uh, AKG.
+
+Yeah, I mean, they're all parcel like a Krebs cycle basically.
+
+So I tried a bunch of different things.
+
+The one I'm trying right now is an extract of like citrus peel, extremely high flavonoid content and
+very good for blood flow.
+
+So I found that anything that helps basically regulate blood flow and helps with vascularization.
+
+has a very high impact on longevity.
+
+And it kind of makes sense, right?
+
+Because your blood is what carries nutrients to your cells.
+
+So, you if you don't get your blood to work well, you're not getting the supplements and the
+nutrients to where they should be.
+
+I've also discovered something incredible.
+
+I'm surprised people don't talk about that more.
+
+It's called DAO, diamine oxidase.
+
+You have to look at different brands.
+
+The one I use is called Nature Dough on Amazon.
+
+You can buy it and I get like 1 million units.
+
+That's like there are doughs in it, which is roughly a hundred times more than other DAO
+supplements.
+
+So Paloenergia is gone.
+
+I tried it on my brother.
+
+My brother his whole entire life, he's been taking antihistamines because of that.
+
+Started taking that, hasn't touched antihistamine since.
+
+Gut issues, if you have any kind of leaky gut, gut inflammation, histamine intolerance, gone.
+
+Like I think this is one of the most under talked about supplements and it fixes so many things, so
+many things.
+
+Your body just like, ah, it chills a bit more, you know?
+
+It chills a bit more.
+
+So you see, I'm trying to find very highly.
+
+targeted supplements for problems that I identified I had.
+
+not just doing like a bulldozer, take everything, see what happens.
+
+I'm doing like very, it's like precision supplementation for a given thing that I'm trying to go
+through right now.
+
+And it might change in six months, it might change in a year.
+
+This is what I'm doing now.
+
+Okay, okay, so DEO.
+
+How that came about?
+
+Well, I mean, I'm super interested in network States.
+
+As you can see, I've invested in quite a few of them.
+
+And, you know, mean, the Italian Finita is obviously a network States slash pop-up city for
+longevity.
+
+So I just thought, I want to be part of it.
+
+think like there is, I think network States are the future countries, right?
+
+But instead of being physically in one place, they're kind of decentralized distributed online.
+
+And I want to be part of those emerging States, cultures.
+
+as much as I can.
+
+So if it's longevity related, even better man.
+
+By the time people are listening to this episode, think perhaps the previous one or the one before
+is going to be with Niklas, who is the main person behind Infinita.
+
+So they will be familiar with this conversation.
+
+And the other one that I was interested in, in fact, I'm very interested in it right now because I
+have to choose a new biological aging clock for the next season, which is You might even guess it,
+glycan age.
+
+Tell me about that.
+
+Yeah, great company, great company.
+
+So if you look at biological aging, there are many, many, different ways and things that you can
+measure.
+
+So Junit in Pace, what Brian uses for his leaderboard, right?
+
+I like it because it's a way to measure your likelihood of dying and from that you can estimate your
+pace of aging.
+
+It doesn't take into account your actual age as a parameter, which by the way is the problem with
+phenol age.
+
+I think phenoid age is a good clock, but your age is a parameter.
+
+So even though your biology hasn't changed since you're 20, you're just going to have a higher score
+just because of the age component in it.
+
+Horvat, same problem.
+
+Horvat was trained with age as a target, not with mortality rate as a target.
+
+So I think in general, you want to use a clock which doesn't use age as a target or as a parameter
+in the true diagnostics, so know, genetic pace, so all that second and third generation clocks
+
+are like that now.
+
+Glycan age is interesting because it's very different.
+
+It doesn't calculate based on epigenetics, which is what most people do.
+
+They look at something called glycans.
+
+Glycans is, think of it as kind of a hairy furry, you know, balls that are on your cells.
+
+And the way that those things are populating your cells is strongly correlated with all kinds of
+different diseases.
+
+So for example, if you take something like uh prostate cancer, if you do the PSA blood tests, the
+PSA blood test has an accuracy of roughly 60%.
+
+If you take the PSA with the glycans on it and you measure that, It goes to over 90 % accuracy.
+
+So it's interesting because it's it's like, you know, it's the same as DNA epigenetics.
+
+You people initially thought everything is DNA, then they realized that epigenetics was important.
+
+So how much your DNA is expressed, not just what genes you have.
+
+Glycans is that for the rest of your body, right?
+
+It's this additional kind of component that's gives you another clue of how to interpret your
+biology.
+
+So they use that for a biological age, which is mostly measuring inflammation age, so inflammaging.
+
+But from that, they also can derive all bunch of different things.
+
+know, what is your likelihood of developing XYZ disease?
+
+How susceptible are you to lupus, to autoimmune diseases?
+
+So they're now starting to get into more advanced medical outcomes.
+
+Great company, product is great.
+
+One of the best user experience for actually doing the tests.
+
+which is awesome.
+
+And Nina, the founder is awesome.
+
+Her dad is actually the one who pretty much invented and discovered glycans.
+
+Super, super OG famous researcher in the space.
+
+So like, it's like, you know, family, it's like a whole family thing to work in that industry.
+
+She'd be someone great to talk to as well.
+
+Yeah, I actually, I wanted to ask you to contact me with a vote for just generally in the show and
+perhaps that could be the next year's longevity third cup, a biological aging cup.
+
+What I also have, you know, I might be misremembering, perhaps I had a guest in this show who said
+that guy can age can be easily moved by doing something.
+
+Is that so?
+
+Yeah, so that's another point, right?
+
+So different clocks have different sensitivity to protocols.
+
+So for example, phenol age is very easy to modulate, right?
+
+You can change phenol age in two weeks, one week even of protocols because it measures a kind of
+rapidly changing biomarkers, what's in your blood.
+
+Glycane age takes a little bit longer.
+
+I think glycane age is a good way to measure, I'd say like a few weeks of protocols because
+inflammation can modulate pretty quickly.
+
+So I think you can influence glycan age pretty quickly and know whether what you're doing now is
+good.
+
+Junidine pace is much harder to move.
+
+What I found is that it takes six to eight weeks of protocol to make Junidine pace move.
+
+So if you do something for a week or two, it's not going to have much of an impact on your Junidine
+pace.
+
+You're going to have to sustain it for six to eight weeks.
+
+So it depends on what you're trying to optimize.
+
+Glycan age is good because you can try more things during the year.
+
+because you have a faster feedback loop.
+
+Do not did pace is good, but the feedback loop is so long that you can only really try two or three
+protocols per year to see how it impacts your biological age there.
+
+There's like a very long lag between you doing it and seeing the results.
+
+Yeah, alright, alrighty.
+
+I guess one bonus question here.
+
+I like to talk about things I really want to talk about, put on less of a show.
+
+I don't really care that much anymore about prizes.
+
+What I care about is interesting people building cool stuff and trying to be...
+
+You know, as impactful as I can in my area of business and longevity, I'm passionate about it for
+myself because I just love living, man.
+
+That's it, period.
+
+And I want that to last as long as I can.
+
+And so that's why I'm doing it.
+
+That's why I invest in longevity.
+
+So anyone building a cool longevity company, get in touch.
+
+Like I'd love to be your first check in that.
+
+Anything related to it, I'd love to support.

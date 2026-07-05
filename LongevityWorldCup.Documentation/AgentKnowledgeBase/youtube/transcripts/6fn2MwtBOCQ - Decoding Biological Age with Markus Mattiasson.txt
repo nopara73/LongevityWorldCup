@@ -1,0 +1,20 @@
+# Decoding Biological Age with Markus Mattiasson
+
+Video: https://www.youtube.com/watch?v=6fn2MwtBOCQ
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 4/5 units; 78/79 words.
+Matched topics: biological age, epigenetics
+
+## Focused Transcript
+
+of this package. It also outputs uh biological age, right?
+
+>> Do you know where does that come from?
+
+>> Yeah. So that is also an aggregate marker that is based upon that takes the telmir length into
+account, DNA stability into account, age related methylation into account and the entirety of the
+report basically. So that is like it takes all of the results
+
+into account and gives you basically a biological age estimation or deviation from chronological
+age.

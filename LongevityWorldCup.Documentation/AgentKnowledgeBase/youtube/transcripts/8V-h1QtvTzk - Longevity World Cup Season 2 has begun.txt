@@ -1,0 +1,70 @@
+# Longevity World Cup Season 2 has begun
+
+Video: https://www.youtube.com/watch?v=8V-h1QtvTzk
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 19/21 units; 608/652 words.
+Matched topics: Longevity World Cup, PhenoAge, aging, aging clock, biological age, biomarkers, longevity, mortality
+
+## Focused Transcript
+
+Season two of the longevity workup has started. I want to walk you through on what happened and what
+changes were made. So this was 2025 the longevity world cup very first season. We used pheno age
+which is a
+
+well validated biological aging clock based on your blood test. However, for 2026, we switched just
+just to to understand boards is very similar to pheno age. The difference is that you need a lot
+more biomarkers for for the boards boards
+
+aging cloak to calculate it from. There is a controversy about the B sag and crook because on the
+one hand correlates five or 10% better to cause mortality than pheno age does but on the other hand
+it has a couple of biomarkers.
+
+Those boards rewards in the wrong direction. For now you can see that there are only five athletes
+on the boards leaderboard. It's actually called the pro leader board.
+
+Tiat is is leading it uh with a whopping - 19.7 years which which is pretty good.
+
+I added these the web of hair. Let's call it that. It's just based on how much specific biomarkers
+are contributing to your board scores. Our highlights are getting better and better, right? You can
+track changes over time. We have an amter and the pro
+
+league. So the pro is board stage, right? The amter is pheno age. That's not not all the difference
+that that happened here. Let me show you. Let's let's play the game. You can only go on an athlete
+dashboard if you're already
+
+an athlete and you can go pro. Going pro means you're submitting boards results.
+
+So how do you join the competition you have to get a blood test for the pro you you go to both a
+testing window is important here for pheno age. Now you can submit blood blood results from any
+
+time in the past, right? It's always your best blood result counts. Okay. So for the professional
+one, you can only submit blood results for 2026.
+
+It's a seasonal one. The fees are the entry fees for the amateur is $10. For the professional, there
+is a $100 fee.
+
+you need another level of dedication if you want to play on the professional level and I want to
+show you the new things. So as you can see now we calculate boards age reduction and feno age as
+well. So now I'm getting
+
+joining the Tumble Bit Slack channel because I'm trying to develop this entire thing together with
+the community. So, just just make developer decisions on that on that Slack channel.
+
+So if you want to contribute then you're very welcome there. In the pheno age algorithm last year we
+noticed that your obamine going up and up and up and it's better and better and better even though
+
+with a very high obine level physiologically you would be dead in pheno age it would reward that
+number.
+
+That's a problem for us. Uh especially in a competition where extremes dominate, right? For boards,
+we did the exact same research. I asked Mike last carton to to do the research and check where can
+we put the sailings or the
+
+limit. We put some limits there to keep the keep the competition reasonable.
+
+Right. All right. We have the professional and the motor tracks. You need to go to the extra mile
+for the professional to get all the blood test.
+
+Finally, if you want to have me on your podcast, then please just drop your email here and I'm going
+to reach out to you. Thanks very much for listening.

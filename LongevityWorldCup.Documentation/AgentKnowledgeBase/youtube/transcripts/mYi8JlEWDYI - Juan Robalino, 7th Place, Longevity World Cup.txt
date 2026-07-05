@@ -1,0 +1,1119 @@
+# Juan Robalino, 7th Place, Longevity World Cup
+
+Video: https://www.youtube.com/watch?v=mYi8JlEWDYI
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 508/1378 units; 6166/14771 words.
+Matched topics: Bryan Johnson, HRV, Longevity World Cup, VO2 max, aging, biohacking, biological age, biomarkers, exercise, glucose, inflammation, lifespan, longevity, longevity athlete, longevity sport, medicine, mortality, nutrition, sleep, supplements
+
+## Focused Transcript
+
+Juan Robalino seven on the longevity world cup.
+
+this guy is interesting.
+
+The only longevity athlete that would ever show up to an interview at 2 a.m.
+
+in the morning.
+
+So, right, tell me about your sleep.
+
+Let's start there.
+
+We may sleep.
+
+you know, I have, ah well, oh I always have like a strange relationship with my sleep.
+
+Let's talk about the last 10 years eh or the last five years.
+
+So in the last five years, my sleep schedule has been very irregular.
+
+Some days, like backwards, I will be awake at night and sleep most of the day.
+
+And here in Ecuador, we're on the equator.
+
+So throughout all the year, we have the same schedule, 6.30 is already getting dark, 7 is completely
+dark, 6 is starting to get some kind of coming very consistent in my mess of my schedule.
+
+I tried to fix it and I was successful to fix it somehow in the past year.
+
+I can now if I am learning to sing opera singing.
+
+my wife is, well, let's not talk about my wife.
+
+I don't know.
+
+wife is in a very good position in the Longevity World Cup as well, isn't she?
+
+No, no, no, money.
+
+You have to pay for the concert.
+
+No, it's a joke.
+
+so if, if, if you become like a really good longevity athletes, then people can hire you to sing
+yeah, you're, doing like that, like in professional settings and stuff like that.
+
+I tell you, my wife, she's a professional singer.
+
+mean, she sings in operas, in concerts.
+
+She has sang with all the orchestras in this country.
+
+She's from Latvia, so she obviously sang where she comes from and in the United States too.
+
+She lives with me in Ecuador.
+
+Yeah, I mean, no problem.
+
+uh here is an idea.
+
+Why don't you guys create some music for the Longevity World Cup We don't have any yet.
+
+One thing is being a performer, right?
+
+There's so many things I'm still trying to figure you out here.
+
+Let's try going into your routines.
+
+So you talked about your sleep.
+
+It's clear that you're not paying that much attention to it uh as other athletes.
+
+I do pay attention to it.
+
+It's just that you called me in very confused times.
+
+I mean in confused times, you know.
+
+confused times with the things that I know and understand.
+
+And this relates to longevity, okay.
+
+00:05:58,548 --> 00:05:57,268 yeah, so I'm a bit more relaxed at the moment.
+
+mean, it's good to experiment.
+
+Then ah in this case, I mean, there are many ways how you can track what's going on with your body,
+Blood work is one.
+
+Then there are other things you can do, So let's see where it goes.
+
+I mean, this is very recent.
+
+There is this weird paper, which I mean, I haven't read it in detail, okay?
+
+But it's just the gist, right?
+
+And it's confusing me.
+
+It's like, I mean, I need to dedicate time to it.
+
+And it's about circadian rhythm.
+
+uh They made an experiment uh in Drosophila, this insect, whatever.
+
+because my mind is a bit cloudy at the moment.
+
+I cannot, I don't want to say stupid shit.
+
+That's such a pity.
+
+I don't know if they did a knockout or whatever, but they kind of screw with specific genes that are
+related to the saccharin control of the thing.
+
+will say, my God, this will be bad.
+
+Everybody, not everybody, but I think it's common knowledge that circadian rhythm is an important
+aspect for longevity, right?
+
+That you have to, you know, wake up at the same time, you have to eat at the same time, and then you
+have to shit at the same time, you know, it's everything.
+
+Everything is controlled by the circadian rhythm, like many things.
+
+The bacteria in your stupid body and in your gut has their own clocks.
+
+You know, there are many different clocks everywhere and orchestra, And then the result was the
+opposite.
+
+They found that when they disrupt this nonsense, they actually extend the life of these things.
+
+uh that I had in my mind before, So, you know, and also, for example, uh for Fano-H, for example,
+especially for the score that I used to apply was when I was not doing my best.
+
+I mean, what the hell, you know?
+
+then I did, I did a more strike.
+
+strict diet and a strict schedule and everything more organized and then my venous age was worse,
+right?
+
+So, I have a guess.
+
+00:09:37,249 --> 00:09:35,732 understand.
+
+You know, I use this stupid word.
+
+I mean, I have issues with it because it's kind of like, uh it's not really open source and it's
+very closed.
+
+It's closed source, obviously.
+
+So, my issue is that, for example, the HRV calculations that you use is at specific times.
+
+It's the way they want, you know, and...
+
+What if you want to do something else?
+
+Or for example, calculate the HLV throughout the day, or having a moving average, or make a time
+series, or calculate other things.
+
+Let's see what happens.
+
+Let's see how all these numbers that I track, how they improve, if they get worse, whatever, right?
+
+We'll see, we'll see.
+
+really don't understand aging to the teeth and everything.
+
+don't have a clear picture, right?
+
+That's why we still keep dying, right?
+
+I really know what's the answer.
+
+You see, there was also an issue with the phenol age calculation itself because so I had to hack it
+around.
+
+The problem was is that, you know, you have some biomarkers like red cell distribution width and the
+lower your red cell RDV is the better it is in the phenol age.
+
+The lower you go, the better it is.
+
+You reach zero, you get like infinitely minus phenol age, right?
+
+But maybe that's it, maybe that's it.
+
+I will check it out.
+
+Circadian rhythm.
+
+I think, uh I mean, it's good to experiment, In the end, there's a lot of variation among
+individuals, right?
+
+I mean, if you're going to test something, there are many ways you can do it.
+
+You can test both extremes.
+
+You can be in the middle, whatever.
+
+Obviously, you need to be structured how you do this and have a starting point, like a baseline.
+
+You can track many things.
+
+I track many things.
+
+I track uh everyday blood pressure.
+
+uh with a speedometer, the non-function, I track obviously heart rate, the, did I say HRV too?
+
+I measure brain waves.
+
+Yeah, because I mean, nobody talks about the stupid brain, right?
+
+And yeah, I mean, it's ridiculous.
+
+Well, why nobody's talking over the stupid brain?
+
+You don't want to be your head brain.
+
+I mean, as you get older, you can become more stupid, right?
+
+I mean, it's the truth.
+
+You know, I met a scientist in Prospera who said that, you know, all this biohacking nonsense
+doesn't matter until we figure out how to fix the brain, because that is the bottleneck.
+
+in the end, you start losing white matter and then you start becoming...
+
+It's not the same, okay?
+
+So I decided to give it a try, right?
+
+yeah, so now my point of view has changed a little bit, but still, at the moment, well, I don't have
+the answer, so.
+
+But you have to experiment and see what happens.
+
+So anyway, I think there are some interesting things you can do with brainwaves that can give you,
+perhaps, about uh a state of inflammation in the brain, perhaps.
+
+So there are certain states that uh can be characterized with brainwaves.
+
+And uh it perhaps may give you some information about brain inflammation.
+
+for example, which is what I'm interested in.
+
+In my opinion, the main issue, a big deal, let's not say the main issue, let's say a big deal, is
+the issue of inflammation.
+
+To fight inflammation and the roots of inflammation, which in this case, I am a theme mitochondria.
+
+For me, those are the main things really.
+
+I mean, in your brain, if the mitochondria die, then you're still losing white matter, right?
+
+And this stuff here, most of it cannot really regenerate.
+
+eh have now a bit of a conflict in terms of, like, for example, you know, I have tried to work on
+the brain for many years, like, and I develop weird abilities, right, which are completely useless,
+okay?
+
+But uh I just, like what?
+
+For example, let's go in parts.
+
+First, I started running backwards, okay?
+
+Okay, no big deal.
+
+Then I started running with my left hand.
+
+And then what I started doing was running with both hands at the same time.
+
+And then, which is the most difficult one, and I stopped.
+
+I'll tell you why I stopped.
+
+I mean, I probably could continue, but it just was making me nervous.
+
+mean, it hasn't helped me at all in other things.
+
+And I did this many years ago.
+
+And I was thinking maybe you can do brain training, right?
+
+To train the brain, whatever.
+
+was going to help the brain, whatever that was.
+
+Also, making big multiplication numbers mentally.
+
+Obviously, if you don't practice it, you become bad at it.
+
+You you start, you know, like everything.
+
+You said to lose it.
+
+It is what it is, So this has nothing to do with the inflammation part.
+
+If your brain is still inflamed, you're still going to lose your brain and then you're going to
+become stupid in the end, right?
+
+So I started losing kind of interest in brain training for the simple fact that you're really not
+addressing the issue.
+
+You're not stopping aging by doing these things.
+
+In the end, you are degrading yourself.
+
+And then this is what I want.
+
+and it's kind of tragic that, you know, you do all these things and then it doesn't matter.
+
+So the goal is to stop it, you know, to try to become like a bigger muscles or whatever.
+
+You're going to lose it.
+
+I'm not trying to say that it's not good to do exercise and of course it is, I make a distinction
+between being healthy and trying to defeat aging, right?
+
+For me, they are not together, okay?
+
+You can be healthy, but you're aging.
+
+Maybe you're aging a little bit slower, but you're aging, right?
+
+I mean, so the goal is to actually stop aging and exactly figure it out.
+
+how to stop it, you know?
+
+I mean, I'm a bit desperate about it, okay?
+
+So, and it bothers me because most, I mean, I think most of it.
+
+What you find in media when they talk about longevity, they're not talking about longevity.
+
+What are they talking about?
+
+That's not longevity.
+
+I have the term wrong in my head.
+
+Okay, maybe that could be it because when I hear longevity what I understand is living in 500,000
+years forever.
+
+For me that's longevity.
+
+it seems that what they mean with longevity It's just to the, if we talk about people, an aggregate
+of people, they mean about that they live a little bit longer than the average life span, right?
+
+And that's longevity.
+
+I that's not longevity, come on.
+
+In my mind, right?
+
+And I don't think anybody who is participating in these things, I don't think they're interested in
+living five years more than the average or 10 years more, right?
+
+I mean, I don't know.
+
+Not at your best shape, think physiologically.
+
+let me go back to what I was telling you before, okay?
+
+were telling me about this exercise about where you try to intonate and it will raise the ball and
+you know.
+
+So when you study music, when you start studying music, there's a subject called, I don't know how
+you say it English, it's called solfeggio, I think it is?
+
+Have you heard of that?
+
+It's not what it's supposed to.
+
+You are supposed to train these things if you become a musician, okay?
+
+And especially if you want to become a singer, obviously, because you need to be in pitch.
+
+singing, opera singing specifically, is a really good exercise for the head.
+
+Not because you train your ears to sing in pitch.
+
+Also, there's a lot of...
+
+in contrast to other instruments, like for example the piano or the guitar, you are producing the
+sound, like from your body.
+
+Uh, yeah, but not like, like you.
+
+So I was able to do some Hungarian folk, whatever in a piano and in a flute, but that was pretty
+much it.
+
+Uh, but, but, but, but, but look, I wasn't actually, I was just, uh, trying to say, say the, kinds
+of games.
+
+But what, what I was trying to tell you is that, Hey, we did biofeedback training.
+
+We could do the same kind of games, couldn't we?
+
+Like, if we would try to hit those brainwaves intentionally, how cool would that be?
+
+Maybe very useful.
+
+That's the point of neurofeedback.
+
+And that's where my issue starts.
+
+I'm not using it to train the brainwaves.
+
+I'm using it because I want to be able to find a proxy of brain inflammation.
+
+So that then I can see what exactly so what is my baseline and what of the stuff that I am doing or
+want to do or whatever has an effect on it, right?
+
+And see if through the time I'm getting worse or not, That's what I'm interested in.
+
+so the traditional inflammation markers don't correlate with brain inflammation.
+
+Of course they do, but I want something more direct, you know, because this is very systemic, right?
+
+And um yeah, I want something very direct.
+
+Okay, Yes, have you heard of this?
+
+It's terrible, imagine, you start losing, yeah, in the middle of your eyesight, you start losing it,
+right?
+
+So it's terrible.
+
+So this is like a, you can track the macular pigment and see how good you are, and if you are low,
+well then it means that you need to supplement uh with lutein and seaxanthin.
+
+You can buy the pills and then track to time, you can check your pigment and see if it is improving.
+
+It's a device.
+
+Maybe the other one is still there.
+
+It's an eBay.
+
+So if you want it, you can look it up.
+
+So wait, then what you can do with it is that you measure that macular pigment and based on that you
+can set your lutein and xelzantein supplements.
+
+No, look, this is the supplement part.
+
+This is another topic of conversation, talk about the compound itself, okay, lutein and serosanthin.
+
+With this, it's a proxy of how much of it you have.
+
+You it goes mainly to your eyes to protect the macula, but it also goes to your brain, okay?
+
+So has many odd functions in the brain.
+
+I don't care about improving cognition and all this nonsense.
+
+I really don't care about that.
+
+I only care about that is helping the mitochondria in my brain, the membranes of the mitochondria,
+and the plasma, you know, all that kind of things.
+
+Because as soon as the inner membranes and the membranes and the, you know, the...
+
+the membrane potential goes whack and you make the contra go whack, it's over.
+
+I pay attention to lutein and say something, lutein specifically more, and to the onigus for that
+specific function, among other things.
+
+So, yeah, to my mind I say, okay, so how good am with these stupid molecules?
+
+So, yeah, so I figure out about this device.
+
+and I judge that maybe I want to buy one and keep track of it, Yeah, so why were we talking about
+this?
+
+oh Well, I don't know, but tell me about your supplements since we are going into that.
+
+What's your supplement routine?
+
+Look, I like...
+
+you know, of all the people that you find on the internet.
+
+Okay, look, at the moment I'm not taking supplements at all.
+
+I just get...
+
+The only supplement I take is vitamin D, and it's because I don't go out.
+
+And as you can see, right now I'm awake when there's no sun.
+
+And I'm sleeping when the sun is out.
+
+So I don't go out and the sun...
+
+Look, I'm in the equator.
+
+Here it's normal to have a UV index of 10, you know?
+
+So that's extremely high.
+
+you know, so I just don't walk.
+
+So I take vitamin And funnily enough, when I took the test that I submitted for this competition, I
+was vitamin D deficient, actually.
+
+yeah, yeah, funny, Yeah, I'm telling you, I this is not my best actually and if you ask me I don't
+think it's that great but anyway if I know it you give me a good number, right?
+
+Yeah, but okay, so, but you just said you're taking uh fish oils and lutein, or is that from diet?
+
+Of course, from that.
+
+Yeah, of course.
+
+So for looting you need, lutein, you can get it from kale.
+
+The molecules that you can get from food, I rather get them from food, you know?
+
+Because in many cases, like for example, lycopene.
+
+It's not the same when you get it isolated and when you get it with the fiber matrix and whatever
+the fruit contains, right?
+
+And I think with lycopene specifically, there's even, I don't remember now, but I think there's
+specific studies that actually, you know, they tried to see if they find the benefits from lycopene
+by using just a supplement and they don't get the expected results
+
+But in any case, so from the molecules that you can get from foods, I just get it from food, like,
+uh, spermidine.
+
+Lycopene, lutein, xanthine, etc., etc., etc., sulfoforane.
+
+what it means it's garden of lust Anyway, so Yeah, anyway, I mean he's a cool guy think ah he's the
+most transparent of Everybody he's very transparent.
+
+He's a very cool very practical.
+
+But anyway, but going back to the conversation.
+
+I remember he's saying about why he doesn't take supplements And I think he said that is because uh
+as he gets older, what happens if food is not good enough?
+
+And then he needs to start using supplements, to have an effect or whatever.
+
+I don't know.
+
+I don't remember.
+
+Something like that.
+
+And there you go, you don't have to eat fish anymore.
+
+Well, the question is, mean, supplements are expensive, are not as expensive as the macular pigment
+monitoring with MPS2.
+
+I I got a huge, I So.
+
+about the loose garden approach, about this.
+
+mean, are expensive, okay?
+
+Many foods, I didn't try them until in my middle 20s, really.
+
+Like, uh I don't know, salad, lettuce, tomatoes, even fruits.
+
+And many of them pretty late, which honestly, if you ask me, I mean, it's crazy, you know, that I
+was not feeling very well at all, because I mean, if you don't eat.
+
+OK, you can come up with the fasting and the calorie restriction things argument, but, know, that's
+a different that's again like that's a different.
+
+for fat people.
+
+That's an intervention, the calorie restriction, the only one that extends maximum lifespan and
+whatever in animal models.
+
+Yeah, Again, as I mentioned you from the beginning, I'm in a confused state.
+
+Before I used to align through that thought, but right now I'm not that sure, actually.
+
+There's a trade off in all these things.
+
+Yeah, yeah, mean, then I...
+
+oh in nutrition?
+
+What do you pay attention to?
+
+So right now I'm focusing on just getting rid of inflammation, trying to send inflammation to zero,
+on your main, what's the main thing one can do?
+
+I cannot answer you this because I think it's very personal.
+
+I don't think there's such thing like something fits there are some general guidelines that you can
+follow, but I think it's important if you obviously keep track of things.
+
+It's not that you just think something unexpected is gonna work.
+
+And Yeah, I mean, there's some basic things, obviously.
+
+I mean, curcumin, turmeric, It's great.
+
+Blueberries, polyphenols, antioxidants.
+
+I think it matters a lot, the timings.
+
+you have a strategy how you consume them, depending on what you do, the times.
+
+Like a basic example, if you do exercise, you're not going to overdose with vitamin C, for example.
+
+You may blunt the adaptations of exercise, for example.
+
+eh Or, I don't know.
+
+There are so many combinations you can try, honestly.
+
+uh One, for example, let's say you want to support autophagy.
+
+let's say, before sleep, eat experiment, for example.
+
+And then after you go to sleep, and then you wake up and see.
+
+So I don't know.
+
+It might be stupid, whatever.
+
+But in the end, try to have some logic how you apply things.
+
+So stuff like that.
+
+you know, be aware of these things.
+
+But again, I mean, all of this in the end.
+
+This is, uh will this defeat aging?
+
+Is the big question.
+
+Okay, you're gonna be more healthy and whatnot, but the question remains.
+
+So I don't know.
+
+Yeah, that's when I get my, I get uh the conflict stuff.
+
+last thing that you don't believe will defeat aging how are you with exercise you exercising my God,
+this is a...
+
+You know, with exercise, then again, there's so many details, right?
+
+For example, people talk about VO2 max, for example.
+
+em Yeah, great, right?
+
+if you are not trained and you try to figure out what's your VO2Max.
+
+I mean, that's not really your VO2Max.
+
+That's what they call view to peak, I think.
+
+Which is what you can achieve with your lame state, right?
+
+But that doesn't mean that that's your actual VO2Max okay?
+
+And also, um because it all depends how developed you are, not just uh in different aspects.
+
+When you train, for example, for endurance, you develop certain types of muscle fibers.
+
+And also capillaries develop more around them, so the more blood can go and take out metabolites or
+whatever out of it.
+
+your plasma volume change in your body, which also affects your But then, it's very specific to the
+activity you're doing.
+
+Like for example, if your VO2 max, let's say, running is one number, it's for running.
+
+But then if you do the VO2 max test in a different...
+
+Exercise like bicycle is a different one.
+
+I'm probably lower if you've been trained, right?
+
+So uh yeah in training Because I'm a I like mitochondria, right?
+
+So with exercise you can use you know, a mitochondria by Genesis and this right and so Look in these
+things I wish I was more knowledgeable.
+
+I mean, I need more time.
+
+I mean, this is a journey, Time passes and you keep learning and changing things and evolving,
+right?
+
+So at the current moment, what I'm looking forward is to try to do different kinds of endurance
+training, not just restricted to one exercise.
+
+Like for example, if I do bike, I will also do another.
+
+exercises like rowing for example, so that when I'm training it involves different categories of
+muscles.
+
+Like bike is more like down, right?
+
+But if you do rowing it's more like upper body core and also legs, right?
+
+But you work your core the other group of muscles.
+
+And so if you get those endurance induced adaptations in those parts, ideally you know the training
+is more It's not so it's not too isolated, right?
+
+So with respect to cardio as they in general they say I would try to you know do this like To have a
+more complete uh training not just to isolate it and of course then resistant training Having not
+doing much resistant training, but it's not because I don't think it's
+
+useful on the contrary is because I'm an idiot.
+
+I have been procrastinating and I think it's a big mistake and I should be doing it actually.
+
+I think resistance training is very important, especially because of the bones.
+
+Not only the bones, but also the bones.
+
+And not just because as you get older the bones go away, right?
+
+The same as with muscle, And try to minimize risk of osteoporosis and all this nonsense.
+
+is because in the bones, have the, you know, in your legs, you have the bone marrow, right?
+
+And the bone marrow is super important.
+
+That's where your immune cells come, right?
+
+So you need to have, uh I think the bone marrow is like, you know, it's super important.
+
+Your immune age as you get old, it becomes stupid.
+
+It becomes weak.
+
+And then it doesn't work and then you die.
+
+I pay a lot of attention to keep bone marrow health well for that uh to keep a healthy
+microenvironment, know, the bone is important, okay?
+
+is very important and the muscle as In fact, mean, it makes sense, right?
+
+I think you start building, for muscles, I think you pick at 50s, I think, for men, think, 40s, 50s,
+I don't remember.
+
+And then it starts going whack, right?
+
+For bones, I think it's up to 30, but I don't remember.
+
+But anyway, so basically if you don't focus on your bones in your young years, then from there it
+goes south.
+
+So it suggests that if you don't take care of that part of your body at that time, then it's kind of
+like in the same way people argue about sarcopenia, that you have to build more muscle until this
+time because then you start losing muscle every year and whatnot,
+
+it suggests that you better start working that part at an early age if you want to live longer.
+
+And keep keeping good health in the bones.
+
+you can indirectly.
+
+This is indirect.
+
+It's not like it's a proxy.
+
+A proxy marker.
+
+and from the clinical biomarkers from the lab.
+
+Unfortunately, here in ECHO we don't have, we are very limited of what you can track.
+
+But in specialized you can track, well, here they give you osteocalcin, it's an hormone that comes
+from the bones.
+
+But here we are not allowed to track fractions of it, which is what...
+
+Ideally, you would want to do.
+
+maybe you don't need to do that.
+
+You can track also, they don't have it here.
+
+There's the alkaline There's specific versions for the bones, but they don't offer here.
+
+They offer the standard one.
+
+But you can track that.
+
+Ideally, you want to keep that at the low.
+
+yeah, so resistance training is very important.
+
+It's very important for this and other reasons, obviously.
+
+It's very important.
+
+I'm an impractical person, okay?
+
+It's completely irrational, but this is me.
+
+I I make no sense in many cases.
+
+It's very stupid.
+
+what can give you a full, like a bodybuilding workout with all the basic exercises?
+
+There are these dumbbells, those you can set the weight.
+
+So you don't have to like move the weight around, but you can just set them.
+
+Yeah, yeah, yeah.
+
+I like the separate dumbbells.
+
+Yeah, so I just plan to get the cage and the barbell.
+
+the plates 01:06:14,668 --> 01:06:11,194 let's.
+
+that you can do like explosive, not explosive training.
+
+I don't know how you pronounce these things, like when you do jumping and all these kinds of things.
+
+And then there are the categories of exercises, which are important for other things, because
+there's another thing in agent that happens that, you you start losing the, denervation of the
+whatever.
+
+um So basically you have these modern neurons that connect to the fibers.
+
+a lot about this.
+
+Yeah, but the correct term, not the correct term, but I think they call it the nervation, I don't
+know.
+
+So this is something to do with how your...
+
+The very first thing that you're losing while you're aging is that your explosive muscle power,
+right?
+
+Like how fast you're moving your body.
+
+That's what you're losing.
+
+That's why football players start to become too old by 30 years old to play understanding of his...
+
+theory is that if you can prevent this loss of explosive muscle power, that might have downstream
+implications to...
+
+You see here, he has a big claim here to all the other biomarkers of aging.
+
+So he believes that aging comes from this, because this happens at first.
+
+don't think so.
+
+I actually don't know much about what he says, Okay.
+
+Yeah, no idea.
+
+You know what I mean?
+
+see what you mean.
+
+Okay, and there are many examples.
+
+You can see many people talking about longevity and in most cases, they look like shit.
+
+I play this game all the time with my wife.
+
+tell her, hey, I don't tell her who he is or she, whatever.
+
+just ask, how old you think he is?
+
+Or whatever, we play the game.
+
+And usually, they're way older than their actual age.
+
+And these people are telling you what to do.
+
+It's just inconsistent.
+
+It's like you have an obese guy telling you how to lose weight.
+
+But okay, maybe I'm a bit too rough, too strict, because obviously you have an old life of abuse and
+then all of a sudden you decide to change.
+
+Obviously you won't see many changes, but again, this is a bit of a bit of a tool.
+
+You know what I'm going to do with the longevity of the Cup in the coming days?
+
+I'm going to implement a little feature that I don't show any athlete, any of the ages of the
+athletes, but people will have to guess before they see their age, right?
+
+And then what we're going to have is like an estimation of a crowd.
+
+Many, it's not they just want to be healthy.
+
+They actually want to look young and good.
+
+how you look is what qualifies you, but your biomarkers actually count.
+
+That would be what I would say.
+
+We had the exact same dilemma and trap that we went into when, in this bodybuilding era, right?
+
+And then I got into mining, you know.
+
+I You know, the longevity sport community, longevity as a sport for me, you know, it's very small
+right now.
+
+It's a couple of people, right?
+
+Michael Asghar and Kate Blondin, Dave Pasco, Julie Gibson Clark, and you, right?
+
+It's very small people, but you know, it's growing.
+
+It's getting bigger and bigger.
+
+And I kind of have the feeling like...
+
+I think it's a good thing to be in.
+
+Now, unfortunately, you cannot buy the longevity sport coin, but...
+
+But you know, this might be something to pay attention to and contribute to because this could get
+big, you know.
+
+You remind me of something.
+
+It's about the way it's being scored in this leaderboard, That is basically from all tests,
+grabbing...
+
+But if I check in all my hands of each game and I select the best.
+
+card of whatever of each hand such that I make the perfect hand and then I compete with the perfect
+with this fiction right let's say a Roy of Loss and they say okay because I have this through all
+these games the card so that I'm able to construct the Roy of Loss
+
+then that means I won the games of course not man I mean no Let me tell you another more, more, an
+analogy that's more closer to home, which is Bryan Johnson.
+
+I don't know if you follow the drama about Bryan Johnson that, okay, you know, he's always saying, I
+have the best biomarkers in the entire world.
+
+But Bryan is actually not publishing these biomarkers.
+
+So how are these?
+
+Okay, so people called him out, that, Bryan, like, what the fuck man, you're not publishing the
+biomarkers.
+
+Okay, so he published the biomarkers, but what he did is that he took the past two years of all his
+tests and he took the best result from each and every test of the past two years, right?
+
+That's stupid, you know?
+
+I'm not interested in stupid shit.
+
+know, I mean, mean, in my, in my mind, what's more important?
+
+The important is to be able to stop aging, right?
+
+That's what, that's what matters, not to whatever.
+
+I mean, do you think of Bryan Johnson Do you like him?
+
+ah I like his vision.
+
+Let's leave it with that.
+
+Let's get back to the longevity world cup.
+
+Yeah, in addition to that it's a fictional idea, it's almost like an yes, idealized of oneself, you
+know what I eh You can cheat.
+
+You actually can cheat.
+
+You can't, it's against the rules.
+
+And I agree this should not be the rules.
+
+This is not how it should work.
+
+What it should matter is that at a specific time, what phenol age you succeeded to create in 2025,
+right?
+
+We are talking about 2025 every year, different biological age calculation is going to be used, but
+we are talking about 2025, it's phenol age.
+
+So, so let me give you a historical perspective on this issue.
+
+Now, I was in Prospera and people were coming to me that, you see, I just did this blood test, but I
+already have this but this blood test doesn't have C-reactive protein, but I already have this
+C-reactive
+
+protein from January.
+
+Can I apply with that?
+
+And I'm like, of course, like you have all the numbers you need.
+
+no, it doesn't work.
+
+Let's leave it with that.
+
+The thing is people were sending in partial results, right?
+
+They were doing new tests.
+
+In the new test, uh the laboratory was erroring out on one of the biomarkers, but they still want to
+submit the rest of the biomarkers and stuff like that.
+
+So there were these kinds of situations.
+
+And then I started noticing people where they were doing proper tests.
+
+But sending only in the biomarkers, those are better.
+
+So they started selectively sending in the biomarkers.
+
+And I'm like, OK, this is not going to end up well.
+
+So I had to level the playing field.
+
+Now, the best biomarkers count, and people cannot selectively If they try to not send in biomarkers,
+it doesn't matter anymore because everyone's best biomarkers count.
+
+And I know it is, I'm in a corner here, but I'm going to suffer with this till the end of 2025 until
+we change.
+
+you can make, uh for example, eh a kind of like a category.
+
+You can take medication.
+
+You can drug yourself.
+
+Because it doesn't matter.
+
+You just care about modifying one biomarker.
+
+So it doesn't matter what happens to the other ones, right?
+
+Because you're just getting an aggregate from one.
+
+you can get a continuous glucose monitor, right, and get the best result.
+
+So, but look, uh for this year, this is part of the game, and I'm not happy about that, right?
+
+You're not the first one who noticed this and complained.
+
+I actually remember what I wanted to go back before.
+
+Remember there was something I wanted to go back before?
+
+We were talking about Luzgarten approach, eh not talking supplements or yes or no, whatever.
+
+And then I'm actually kind of changing my mind at the moment about being more open to supplements
+actually, specific ones.
+
+And specific ones, right?
+
+for specific molecules, okay?
+
+I'm still looking into it, bear with me.
+
+So for example, I was thinking, okay, there two things.
+
+One, it's more or less like, I wonder, should I start exercise when I have circupeenine?
+
+You know, why would you do that, right?
+
+You know, it's like, why would you take supplements when the problem is there?
+
+Ah, I see, I see.
+
+Or, so, you know, that made me think about the argument that Luz Carden gives, right?
+
+So yeah, right now I'm at that point.
+
+the creatine.
+
+But yeah, but again, I'm a bit, I like to understand what I'm doing.
+
+So it takes me plenty of time to figure things out, like a lot of time.
+
+And so for example, in the case of supplements, to know what to, you know, what to apply and what
+are the doses, the timings.
+
+But right now I'm at that point, right, to figure exactly what I'm going to do.
+
+You see, it's lots of conflicts.
+
+Yeah, okay, that's Peter.
+
+You see, I really don't know.
+
+You know, and this is another thing.
+
+You have to be social.
+
+It's good for the brain and longevity, whatever, right?
+
+And I agree, right?
+
+Well, I don't know.

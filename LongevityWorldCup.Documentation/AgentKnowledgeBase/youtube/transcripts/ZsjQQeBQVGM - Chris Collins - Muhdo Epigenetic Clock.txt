@@ -1,0 +1,1256 @@
+# Chris Collins - Muhdo Epigenetic Clock
+
+Video: https://www.youtube.com/watch?v=ZsjQQeBQVGM
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 524/667 units; 8347/10069 words.
+Matched topics: Bryan Johnson, PhenoAge, age reversal, aging, aging clock, biological age, biomarkers, epigenetics, exercise, glucose, inflammation, lifespan, longevity, medicine, mortality, nutrition, sleep, supplements
+
+## Focused Transcript
+
+you could look at it as a death clock as well in reverse, because if you start at like 0.1
+methylation, you end at 0.56, 0.57, that's kind of like the death point.
+
+with that, because they all hypermethylate with age, unlike time, you may be able to slow it down.
+
+You might be able to change it with lifestyle interventions or drugs or supplements.
+
+So you may be able to reduce or slow down that aging process.
+
+But at the same time, you could also maybe accelerate that aging process, depending on how your
+environment is affecting.
+
+in that aspect.
+
+What is a biological aging clock?
+
+Okay, so a biological aging clock, and there's many different facets to that because some people
+would say, you know, the machines you can get in gym, they sometimes say they do biological aging by
+looking at like electrical impedance, body fat, you type in a few
+
+questions like, do I smoke, do you do drugs, do you exercise, etc.
+
+And m there's the other biological Asian clocks, is like one of the things that we do.
+
+And one of the things that I've made using like DNA methylation, for example, you could have
+telomere testing and there are other types of epigenetics you could also use for biological aging.
+
+Now the key with DNA methylation clocks, like the one that I've made with the University of Essex is
+that it m correlates directly with age.
+
+So the clock that I designed was looked at 850,000 CPG sites.
+
+These are like sites across your genome and they methylate or lose methylation as time goes on.
+
+And we found 10 sites that basically hypermethylate.
+
+So they gain methylation with age and they correlate with time.
+
+And this was from saliva.
+
+In the paper, we looked at about 3000 people and now we've probably tested it on about 10,000
+people.
+
+And all these 10 sites, they hypermethylate with age.
+
+So when you're born, you will have a set methylation point.
+
+And then as you get to like 80, 90, if you reach that, you will also get to a set methylation point.
+
+So you could look at it as a death clock as well in reverse, because if you start at like 0.1
+methylation, you end at 0.56, 0.57, that's kind of like the death point.
+
+And with that, because they all hypermethylate with age, unlike time, you may be able to slow it
+down.
+
+You might be able to change it with lifestyle interventions or drugs or supplements.
+
+So you may be able to reduce or slow down that aging process.
+
+But at the same time, you could also maybe accelerate that aging process, depending on how your
+environment is affecting.
+
+in that aspect.
+
+So the cool thing about biological clocks is that you can't do anything with time.
+
+Time just always moves forward at a steady rate, but you can do something about the biological
+clock.
+
+And now there are couple of biological clocks out there.
+
+There are some that use linear regression.
+
+That means that the sites are all weighted the same and they basically all go in one direction.
+
+And so like ours is hypermethylation, they go in one direction.
+
+Now you can use that model and then you can apply something called elastic net regression.
+
+And that basically looks at the sites that correlate the most with aging and you weight them higher
+than the other sites.
+
+By doing that, you get a correlation closer to time but by also doing that you negatively affect the
+impact of those smaller sites which may have some interplay with things like immunity and disease so
+if you want to keep that
+
+biological aspect in so for example if someone has a high risk of certain disease if you want to
+keep that in it would increase the variability of the clock but it's more usable from a biological
+standpoint but
+
+If you use elastic net, it would be more usable from a forensic standpoint.
+
+So say for example, the police wanted to use something to predict somebody's age because they had
+some sample at the crime scene and they had no idea who the suspect might be.
+
+They could use that to then predict the suspect's probably age between 55 and 60.
+
+So, you know, that's quite a powerful tool in forensics.
+
+So yeah, there's two types of biological clocks.
+
+So I didn't fully get it, but if I understand you're trying to point out that from a health and
+wellness point of view, correlation with biological age does not really matter because it's not like
+the average 18 years old person has the best capacities of,
+
+of a humanly possible, And the other one is the...
+
+is the ACM that all cause mortality cloaks.
+
+You see, I want to understand this.
+
+So you said, you said that is linear regression and elastic net regression, right?
+
+And, uh, but what does this have to do with the previous Lee?
+
+What I just said, you see what I mean?
+
+You can weight certain CPG sites differently depending on what you want to achieve.
+
+So for example, if you wanted to achieve a tighter clock to time, so if you wanted it to basically
+correlate to chronological aging better, you could use elastic net because you could weight those
+sites which are really, really correlated with time.
+
+So they always hypermethylate or they always hypermethylate with time.
+
+You could weight those higher in the algorithm and then you could weight the other ones which have
+more variables.
+
+lower in the algorithm.
+
+But those smaller ones, they do correlate with time but there might be a reason why they're more
+variable.
+
+They might be more variable because they alter with disease patterns such as dementia or cancer
+risk.
+
+So you may want to keep those The same as the other ones if you wanted a more variable biological
+clock which associated more with disease and pathology.
+
+But if you just wanted it to have a high correlation to chronological age, you may want to minimise
+those factors.
+
+So the linear regression model, let's say in fino-edge, looks like this.
+
+You have a biomarker and you have a multiplier and then a big sum of biomarker multipliers, right?
+
+So how would the elastic net regression look?
+
+Yeah, so say for example, you had 10 CPG sites.
+
+Now in linear regression, all those 10 CPG sites could be mean.
+
+You'd get an average methylation level and an average methylation level would increase with time,
+hypermethylate with time.
+
+That accounts for every single of those 10 CPG sites being equal in the algorithm.
+
+If, for example, two of those sites correlated with chronological age better than the other eight, I
+could weight those higher in the algorithm, give them more purpose in the algorithm to get the
+correlation better, by minimizing the power of the other eight.
+
+and Muhdo is which type.
+
+So Muhdo does both.
+
+can do, it predicts aid from a linear regression clock, the one that I've published.
+
+And so that's pure methylation across the sites and they're all weighted equally.
+
+And we also apply an elastic net as well if you wanted to correlate to.
+
+age better, but also we also have certain clocks like memory age, hearing age and eye age which use
+sites which correlate with certain conditions.
+
+So for example, our memory age correlates with dementia, but also with people who subjectively say
+they have memory loss.
+
+And then we apply an age multiplier to that.
+
+So it uses both.
+
+can weight CPG sites depending on how they correlate to certain things more in an algorithm to give
+it more power for that.
+
+so since we are getting deep into the algorithm, let me ask a question.
+
+um So I coded phenyl age, right?
+
+And I noticed that there are biomarkers.
+
+Those are, let's say, albumin that if you put 9999, right, and you're going to get a really, really
+good results, ah even though in reality are dead at that point.
+
+So my understanding is this is because of the size of the UK biobank that they trained it on and
+they couldn't find some, they couldn't somehow figure out where should be some of those biomarkers
+upper limits or lower limits.
+
+and how the curves should be.
+
+But then again, that's how the linear regression works in mathematics.
+
+So my question is, how's Muhdo doing it?
+
+So Muhdo started quite a long time ago now, about nine years, and we started doing commercial
+epigenetic analysis the EPIC array, which looks at about 850,000 CPG sites.
+
+That's now become 950,000 with the new model.
+
+By collecting data from people, we not only collected the sample, but we also collected genotyping
+data.
+
+So we used a GSA, modified GSA array with more health genotypes on.
+
+And we also collected questionnaire data.
+
+We collected tracking data.
+
+And we collected health data, any medical records, for example, family history.
+
+And we also now have like a face scanner thing.
+
+So it can correlate to that if we wanted to.
+
+And we have like a cognitive game on the app.
+
+So people have been playing that as well.
+
+start whereas most companies started with blood and then had to have their blood clock transferred
+to saliva.
+
+Now saliva is really interesting because unlike blood it has multiple cell types So you really need
+to have a good database to actually make a clock out of it.
+
+The reason being is that if you have a certain mix of different cells in your saliva that could
+actually impact the methylation status.
+
+So the way we do it is that when we hit a certain number of subjects, We basically cause statistical
+oblivion, if you like.
+
+You know, it was averaged out to such an extent that on average, these sites are meaningful.
+
+It doesn't really matter across the board, you know, there's so many samples there.
+
+So the p-values of the CPG sites that we use are ridiculously tiny.
+
+The significance is really high.
+
+And that's how we basically build a clock.
+
+So to obviously build an ageing clock, it was quite simple, each of the demographics of people from
+the youngest, I think was 11 years old, and to the oldest, which I think was around 94 years old.
+
+And we just did the statistical analysis across all those CPG sites to see which ones correlated the
+highest to ageing.
+
+m And then to build the other clocks, we then added in like, okay, we now know which sites are
+correlating with age.
+
+How about sites that correlated between people with no diagnosis of pathology versus those with
+diagnosed heart disease, for example.
+
+And what's really cool about that is that we can take an age group so we can use a cohort of 50 to
+55 year olds of heart disease, 50 to 55 year olds without heart disease.
+
+So it actually stood out for that reason.
+
+People talked about Muhdo as a test rather than a genetic company.
+
+There is a, there is this, it's a big dilemma for anyone who's running a company or creating a
+company that should they name after that what they are doing exactly, or should they come up with
+something unique, something generic that eventually they can put all
+
+kinds of different products and services on their that name, right?
+
+Anyhow, What's the question?
+
+Muhdo's overview is that we were one of the first companies to offer epigenetics commercially.
+
+And we're one of the only companies, still one of the only companies, to offer it combined with
+genotyping, which I think is really key because the genotyping is that foundation level that you
+really need to know about, And then the epigenetics builds upon it.
+
+One of the big companies out there, actually a lot of big companies, they harp on about things like
+MTHFR, for example, and they talk about this as a methylation test.
+
+know, I'll do your methylate.
+
+Well, it's not a methylation test.
+
+It doesn't test DNA methylation.
+
+It's a test of a genotype or gene, this case MTHFR, which controls the methylation cycle.
+
+The same with BHMT, for example.
+
+There are multiple genes in that cycle, but everyone became fixated with MTHFR.
+
+It's an important gene for sure.
+
+And a lot of people do have variants which are important for them to know.
+
+But it's not a methylation test.
+
+So when people sell methylation tests and they say, well, we look at MTHFR, they're not testing
+methylation.
+
+We test methylation.
+
+We test DNA methylation.
+
+We test the methyltransferase connections across those sites that we look at.
+
+So that is true DNA methylation.
+
+Now we know that MCHSR is important and all the genotyping stuff is important because it builds upon
+that foundation.
+
+Now if a gene isn't working from inheritance, mutated from inheritance, it doesn't matter about the
+methylation so much.
+
+But if it is working, like most people's are, you don't have to care about the methylation.
+
+Is it hypomethylated?
+
+Is it working not enough?
+
+Or is it working too much?
+
+And so actually it's really important to have those two layers.
+
+And we always thought that hence why every single person who does a test will always have genotyping
+test done as well as the epigenetic test done and obviously from that point they only have an
+epigenetic analysis after that point because the genotyping is fixed.
+
+So I think that made a real, that was a big difference for us and then we also wanted to focus on
+science and research so we have got a few projects going at the moment.
+
+So we work on a EU project called Predictum, which is to do with Alzheimer's and prediction of
+Alzheimer's.
+
+And we're doing the DNA methylation analysis for that.
+
+And we've obviously published the first clock, the 10 CPG clock with the University of Essex.
+
+And we're also working on some other projects with them.
+
+We do have multiple preprints in different sporting attributes as well.
+
+So we look at like injury risk factors and epigenesis risk, injury risk factor for genomes.
+
+genotyping and we've also done some studies with how resistance training and endurance training
+alter the epigenome and how the methylation changes across the board between two types of exercise.
+
+So we do have quite a few university partners, College London, University of Essex, etc.
+
+We also did an interventional study with a polyphenol supplement to see if that could alter DNA
+methylation to see if it would reduce biological aging.
+
+we have got a lot of stuff coming up in the future as well that I can't talk about right But yeah,
+mean, as an overview, we try and focus on getting new stuff out there in the
+
+commercial world rather than just sticking to academic, but we try and cross that border, you know,
+right in the middle of both.
+
+So how many versions do Muhdo clock Muhdo clock has right now?
+
+So at the moment, if you want biological aging, get, if you don't give us any information, so say
+you don't give us a date of birth or anything, you will get a predicted age, which is that pure
+biological aging that we spoke about, the 10 CPG one.
+
+Then you'll get a memory score, a hearing score, and an eye score.
+
+So that's basically those independent sites looking at your risk factors for those three areas.
+
+You get a new test that we created called EpiVitality.
+
+And EpiVitality basically looks at...
+
+m your wellness, your robustness, your immune strength, inflammation power, all that kind of stuff.
+
+It's actually a really, really tight clock.
+
+There's some papers that are out there at the moment on it.
+
+It correlates with fibromyalgia.
+
+So people with fibromyalgia get worse scores.
+
+It correlates with fatigue.
+
+People who are highly fatigued have worse scores.
+
+And actually people who are highly stressed over a long period of time, they also cause that score
+to lower.
+
+It's a hypomethylation clock.
+
+score I should say.
+
+And then we have a couple of other ones which are bit older now.
+
+So we have inflammation, we have immunoscore and we have muscle degeneration.
+
+Immunoscore and muscle degeneration are going through a resam to a new version soon.
+
+But basically they, again, looking at our database, we can see where people are more likely to get
+injured, for example, muscle degeneration, like overtraining.
+
+And our immunoscore is obviously to look at the immune system.
+
+How many times are people getting ill throughout the year and stuff?
+
+You know, how many colds and flus are they getting?
+
+Is it correlating to any methylation change?
+
+Inflammation is inflammation.
+
+We look at inflammation levels to genes associated with inflammation, but also people who suffer
+from inflammatory-type conditions like rheumatoid arthritis.
+
+Alright, so let me ask the question in another way.
+
+Let me bring you something.
+
+So I was asking about versions, right?
+
+Then my question is, what am I holding here?
+
+Do you recognize it?
+
+Yep, so that's a genotyping and DNA methylation test.
+
+So when you spit in the tube, you would have one tube in there.
+
+What happens is that it goes to a lab.
+
+That lab's Eurofins, which you may have heard of.
+
+Eurofins are one the biggest lab providers in the world.
+
+And then the saliva in that tube will be split into two lots.
+
+One lot of saliva, that's it.
+
+One lot of saliva will go for genotyping and the other lot of saliva will go for DNA methylation.
+
+And this is an older version, I believe, because I brought it from...
+
+the box is an older one, but the test is the same.
+
+I think DoNotAge might be a reseller now with that kit that you have you could probably use the code
+on it and sign up to the most Modern app which is called Muhdo hub So if you go onto the Google Play
+Store or iOS Store, you'll be able to go onto a Muhdo
+
+Hub and you can download that app.
+
+You can scan that coding and you can send it off and you'll get the results on that.
+
+Now, what's the unique selling point of the Muhdo Biological Aging Clock?
+
+So it's unique for a few reasons.
+
+One of the unique aspects is that it was built on a database which is non-accessible by public
+access, unlike the UK Biobank, for example.
+
+it's from your application, right?
+
+on our application.
+
+So we've got a lot of data and actually more data per individual that some others do.
+
+So we know when people take certain supplements or do certain things that actually produce this
+biological age because we can track them because some people have done multiple DNA methylation
+tests with us by now.
+
+So even though the overall amount of like tests that we've done, like DNA methylation tests that
+we've done might be smaller, then like a big public database, the quality of each individual data
+set is probably a lot
+
+higher because the amount of data on each person is a lot more in depth.
+
+know, very big questionnaires, know, face scanning, GPS tracking, all that kind of stuff is a lot
+higher.
+
+So we can get more in depth about it.
+
+They have lots of fighters, MMA, you know, all that kind of stuff going on.
+
+It's really cool.
+
+And we're trying to now tailor certain epigenetic algorithms to that modality, so like combat
+athletes, example, athletes in general.
+
+And by doing that, we're trying to get the turnaround time of the epigenetic analysis down to about
+a week.
+
+Because if we can do that, we know that there are certain markers that change quite acutely when
+people go into overtraining and they become at risk of injury.
+
+So if we can test people, athletes especially, more often and get that result in quicker, we might
+be able to say weeks before they become injured, you need to slow down or you might need to change
+your nutritional habits or diet or
+
+change the way you're training because in the next four or five weeks your risk of injury is going
+to be skyrocketing.
+
+Now you probably know yourself and I know myself, injuries, whilst you might feel a twinge here and
+there when you're training, injuries come out the blue.
+
+All of a sudden I'm training and then bang my knee's in agony and then that's six weeks off, right?
+
+with this new epigenetic analysis that we aim to do with Muhdo Fight Hub is actually have a test
+that we can test more often and tell you, look, your risk of injury is starting to really go up
+because these genes are changing now.
+
+And try and bring that back.
+
+And I think injury is one of the biggest bottlenecks to athletic performance.
+
+And I really want to try and remove that.
+
+One of my first ever studies in 2018, 2017, was actually looking at the genotypes associated with
+injury and you can look that up in m a journal called sports and after that I did another study
+looking at DNA methylation and injury as well on soccer players and again
+
+that's where this information comes from but because we can't get the turnaround time at the moment
+down to a week it's too late by the time you get your results you're probably already injured so if
+we can get that turnaround time down we're going to have a really
+
+nice product for the combat athletes but in all athletes.
+
+So we can really start tailoring our type of testing to these different areas.
+
+So we've removed the noise making us less, oh less markers, but they're all important.
+
+from saliva alone.
+
+So one of the main things is that the other clocks come from blood and they're transferred onto
+saliva, whereas our clock was built on saliva alone.
+
+Because we have less sites, we're actually with Illumina, and we're partnering them up to create a
+new array where you can do an epigenetic test for really cheap, right?
+
+And that's the key here.
+
+I want a biological age test that I can track.
+
+I don't want to be spending $400 every time I do a test, right?
+
+I want a nice...
+
+A test that's accurate, published, peer-reviewed, validated, works well and is cost-effective.
+
+And that's the key, right?
+
+Sure, if you have all the money in the world, you could do lots of cool tests, muscle biopsies, why
+not?
+
+You could find out about your muscle.
+
+That's great, right?
+
+But most people can't do that.
+
+And on a commercial level, it makes sense to create something small and effective that people can
+then use all the time.
+
+I would rather have a biological age test that someone's done seven times in a year, rather than
+have someone who's done a biological age test at the beginning of the year, and at the end of the
+year, because I can get all those markers, I can see a lot more data
+
+that than I can from the other two and that's the same cost you know so that's that's one of the
+factors time is faster than other clocks We're trying to get that down.
+
+So if you get that turnaround time down as well to a week, you're laughing.
+
+You've got a cost effective clock, fast turnaround time.
+
+You can really measure different interventions better, right?
+
+If you're doing an interventional study where you're taking a drug, for example, or you're using a
+supplement or changing a lifestyle, you want to know that it's working.
+
+You don't want to have to wait six weeks to know it's working or make it cost a fortune to do so.
+
+Uh-huh, uh-huh.
+
+Okay, so regarding the interventions, there is this, what would you say, a logical way of
+questioning the validity of, do an intervention, my biological age gets better.
+
+Because could it be just...
+
+just kind of analogous to cleaning up a crime scene, right?
+
+Something bad already happened and the intervention only cleans up the crime scene, you know, so it
+makes the biological aging clock look better, but the underlying biology does not change or not to
+that extent.
+
+I've been thinking about this and I don't know the answer.
+
+I'm wondering if you've been thinking about this or do you even understand what I'm saying?
+
+understand the point and one of the key factors with the 10 CPG site clock is that hypermethylate of
+time.
+
+All 10 sites hypermethylate of time and we all start at a certain level of methylation.
+
+So our 11 year old participant, for example, had a certain level of methylation, which was far lower
+than our oldest.
+
+And we've also had people die in, you who've been tested, right?
+
+We've had people who've had cancer, people who've had other diseases and their high, their
+methylation markers went up.
+
+So they actually started to go up faster, accelerated, right?
+
+What I, you're right, something bad could have happened and that is true.
+
+So you could be making up for a bad intervention, but...
+
+You did the test and it came out bad.
+
+And then within a few weeks, all those things disappeared and you felt great.
+
+And then did another test, it'll probably come back better because one of the sites that we look at
+is associated with more acute change, Immune related change.
+
+It would come back better, but it would never be, it probably wouldn't be below your actual
+biological age at that point.
+
+You would have to have a bit more time, not your chronological age.
+
+You would have to spend a bit more time to try and reduce that age back down, if that makes sense.
+
+Because it's very hard, it's very hard to bring the trend down on the clock if you're already at
+your chronological age, because it hypermethylates the time.
+
+two questions in theory with some, I don't know, like epigenetic CRISPR.
+
+Can't I like precision uh methylate or the opposite of that, these specific CPG sites and let's
+assume I can like program it properly, then would those changes Like I make myself on an epigenetic
+level look like 18 years old, right?
+
+Would that actually, like how much would that actually matter for me, you know?
+
+that's really interesting because that way you're talking about correlation and causation.
+
+But are you saying are the sites correlating with time or are they causing aging?
+
+But now we know that some of the sites are what are called passengers of time.
+
+So they are just purely markers.
+
+The genes that they sit on and the genes that they affect, don't really, well, what we can find out
+so far, their impact on health itself and wellness and wellbeing is actually quite low.
+
+But they're just passengers of time.
+
+They either hypomethylate or hypomethylate with time.
+
+And those sites are normally in elastic net regression weighted higher because they correlate better
+with aging.
+
+So if you want a clock that correlates with aging, happy days, I'll weight those higher.
+
+Now some sites, they do change with time, but they change acutely with other issues.
+
+So they change with disease patterns, they change with even from a genotyping level.
+
+So there's a study, a preprint on SSRN that we did and we looked at cognitive genotyping as well.
+
+looked at people with the APOE4 variances against people who weren't carriers of APOE4.
+
+And there was distinct epigenetic patterns.
+
+these people didn't have dementia, I think some did, and some had subjective memory loss, but
+weren't diagnosed yet, but they had distinct epigenetic patterns already.
+
+Now we can't do anything about the APOE4, but what if we could do something about the epigenetic
+pattern of people with that?
+
+Then you think, is it because these genes are methylated differently that the risk of something like
+dementia is high?
+
+because they haven't got dementia yet.
+
+But the pattern is different.
+
+mean, no APOE4 is related to Alzheimer's.
+
+And that's a really powerful thought.
+
+And obviously there's no study yet which has done what you've, you know.
+
+said and changed them and seeing if it's changed the outcome.
+
+But on a study like that you could say that changing the methylation signature might reduce the risk
+of the condition because it might be the epigenetic signature that's leading to the condition.
+
+We can't do anything about the APOE4 itself.
+
+m em And it's the same with aging.
+
+A lot of the aging sites are passengers of age, but some of the sites are also related to age in
+some way, like some disease pattern.
+
+It could be dementia, could be cancer.
+
+So it's neither, it's not a binary answer.
+
+It like there are, there are sites, those are like passengers and there are, those are like actually
+causes.
+
+you mentioned that you actually have some, some supplements.
+
+Those are like, according to your data set reversing these epigenetic patterns, uh which are these?
+
+Tell us the secret.
+
+Okay, so mean, there's staple supplements that most people should probably think about taking.
+
+Vitamin D3 is a big one.
+
+Everyone knows about it now, but people should have been taking it for a long time, especially if
+you live in countries which you don't get a lot of sunlight.
+
+And a lot of us don't get much sunlight now anyway because we're always indoors on our computers, et
+cetera.
+
+So vitamin D3, would say, is universally recommended, I think, and it probably should be.
+
+And we have seen people with low vitamin D levels also have accelerated aging.
+
+So that's a big one.
+
+m Other supplements that we've seen positive correlations with is something called lycopene.
+
+Now lycopene is found in tomatoes, it's like the red pigment I think in tomatoes, and we've seen
+that people with high tomato-based diets also do have over a long period of time have a reduced
+biological age.
+
+So that could be something people should consider.
+
+It may be lycopene.
+
+Now you do have other staples like omega-3, magnesium and zinc.
+
+These are all powerful supplements, especially people with poor diets.
+
+Then you want to look at those genotyping results.
+
+If you have got the MTHFR variant, maybe methylfolate is beneficial.
+
+Actually, if you were going to buy B vitamin in general, you should just get a one which has all the
+bioactive versions of those B vitamins.
+
+And that's something that people don't think about when they buy a B complex.
+
+They just buy the ones which is cheaper, but they actually have synthetic versions or poor
+bioavailable versions and some people can't use those.
+
+So if you don't want to do a test at all, forget doing a DNA test or forget doing an epi genetic
+test just by a B supplement which has the bioavailable forms in.
+
+That makes sense because if you have got it you will absorb it, if you haven't got it you'll still
+absorb it.
+
+So happy days.
+
+More experimental type supplements like alpha GPC for example have been showing benefits to our
+memory age over a long period of time.
+
+It's a good source of choline but choline itself isn't going to work.
+
+Creatine monohydrate.
+
+and has shown great benefits as well.
+
+We've actually got a study on creating monohydrate and then you know doses as well.
+
+Yeah, so there are different doses of different people with what want to do different things.
+
+And that's something that we're actually going to look at for Muhdo Fight Hub is that we're to look
+at different dose ranges and an algorithm for those athletes so they get into correct amount.
+
+Now, creatinine monohydrate is really great for multiple things.
+
+And, but one of those is obviously, you know, the muscle ability of creating monohydrate, know,
+increasing energy, doing more reps, et cetera, et cetera.
+
+But long-term creating monohydrate usage is linked to epigenetic change.
+
+There's an epigenetic signature in athletes who take creating monohydrate.
+
+Now, most athletes taking that three grams a day or more, five grams a day seems to be a kind of uh
+average sweet spot.
+
+Some athletes are doing 10 grams a day and some are actually going much higher to around 15 to 20
+grams a day.
+
+We think and probably the truth is that body weight will play a big impact on the dosage that you
+have.
+
+So if you are 100 kilos, you might be looking at around the 10 grams a day mark, will probably be
+better for you.
+
+Now up to 20 grams a day, there was some diminishing returns at that point.
+
+So, if you don't want to spend all the money on creatine, at around 20 grams, there was some
+diminishing returns.
+
+The epigenetic patterns didn't change that much.
+
+And I don't think performance alters that much at that point.
+
+So 10 to 15 grams might be the upper limit, but it could be a case for pulsing creatine as well.
+
+not just taking it every single day, there could be a case of pulsing it, not only for financial
+benefits, but also for uh health benefits and also for athletic benefits.
+
+Bro science was right.
+
+uh Yeah, mean, bro sciences can be right though.
+
+So I actually worked for the NHS in England as well.
+
+So I did two jobs.
+
+And this was more like a hobby for me about 10, 12 years ago.
+
+My first degree that I did was in sports therapy.
+
+So I've always been into athletic enhancement, I've always been into injury and support.
+
+And there was a company at the time called MyInigo.
+
+I don't know if they're still going, but were based out in Estonia and they wanted to do DNA
+analysis on athletes basically like a fitness based panel.
+
+So I got involved in that from the injury side a little bit and from the performance, sports
+performance side of it and I looked at the genotypes that are associated with sporting prowess and
+with injury risk.
+
+So you know, have your popular ones like ACTN3, have MSTN, you have ACE, you know, these genes are,
+you know, they're everywhere now.
+
+And I basically helped write the algorithms for that.
+
+And I helped write the kind of recommendations that you might want to, you know, come from like
+training programs and rehab care, et cetera.
+
+After I did that for a bit, Muhdo started up a couple of years after.
+
+There was a bunch of guys who weren't in the field of genetics per se, but there was a couple of
+genetics guys, there was a lady in epigenetics at the time, and they all got together and wanted to
+form this company.
+
+And obviously, because I was already doing it, they kind of got me from there.
+
+And I started doing the data analysis of that kind of stuff.
+
+So as the days came in, I started to look at it and then create algorithms from that.
+
+I've done other degrees since then, et cetera.
+
+And obviously I've published papers with different universities since then, but that's basically how
+it started for me.
+
+basically do all the data analysis.
+
+I help create the algorithms and you know, I'm interested.
+
+Obviously my main interest has always been in the athletic fields and know, sporting fields, but
+then that carry over into health and wellness is also really key for me.
+
+They're hand in hand in a way.
+
+And they're hand in hand, but they're also counterintuitive which sounds weird professional sport
+and peak performance doesn't correlate well to a good biological age and actually the opposite When
+we look at the Muhdo Fight Hub guys, right?
+
+They are at their peak, their peak performance levels, but their biological ages are rubbish.
+
+They all have accelerated ages.
+
+And, you know, it's mainly because of the stresses that are being put on their body.
+
+They're training to that really high level.
+
+And that's why it's good to try and make these unique algorithms which suit their needs.
+
+You know, can we...
+
+predict when they might get injured, can we help them get to peak performance when they need to for
+a fight?
+
+And then that can be carried over into other sports as well, like at the Olympics, athletes in
+soccer, rugby, et cetera.
+
+So I'm really keen on tailoring these algorithms to meet the needs of a certain group.
+
+And with Muhdo itself, it's obviously that longevity model, that health and wellness model, keeping
+people alive, but also keeping people well.
+
+That's very interesting what you just said because so I'm personally interested in longevity as a
+sport, which is starting to emerge right now.
+
+And let's say you want to be healthy, then you go play football once a week, right?
+
+But then you want to be a football player.
+
+You want to be David Beckham.
+
+Now you are not playing football once a week, you are playing football every day all the hours, even
+when you're sleeping, you're dreaming about football, right?
+
+Like that's how much you're specializing on it.
+
+So that is obviously not healthy, there is no such a problem with longevity.
+
+People who are aiming for longevity and competing against each other on these biological aging
+clocks, assuming the biological aging clocks are Accurate.
+
+accurate, yes, but also there is this thing, phenomena that I just said about PhenoAge right?
+
+That uh the lower glucose you go, the better you get, even though there is like uh a point where the
+lower you go, you shouldn't.
+
+So anyway, it can hijack your motivational system, assuming the, yeah, accurate, that's right.
+
+It took time for me.
+
+well, don't we have a sport where we don't have these perverse incentives?
+
+How wonderful is that?
+
+Yeah, I mean, the issue with longevity is, so I like to look at our life as a candle, okay?
+
+So everyone's lifespan is a candle and the flame represents like a vitality.
+
+Now you can make that.
+
+You can have super strength in the gym.
+
+You could be a professional athlete.
+
+You could look amazing, feel amazing, basically making the vitality on the candle, the flame really
+bright.
+
+But by doing so, you might be the candle out faster.
+
+Now for some people that might be worth it.
+
+But for some people doing that, let's take a good example of someone like a professional
+bodybuilder, know, Mr.
+
+These guys are burning that candle with a flame thrower.
+
+Not only are they training ridiculously hard, but they're taking drugs which are putting their
+health at risk.
+
+But by putting their health at their muscles are all bulging out, they look amazing, they're body
+fat, they have that aesthetic, they have that look, right?
+
+With a lot of young guys these days following that, they want to be like that.
+
+So a lot of young guys now, they say that when they're in the gym, and I'm happy to take drugs at
+the age of 16, 18, because they want that look.
+
+And they don't care that it might take 10 years off their life.
+
+You're not living.
+
+You're just staying alive at that point, you know?
+
+So there has to be a line between the two.
+
+So you could take longevity as a sport to its extreme and it's still negative.
+
+Anything to the extreme is negative.
+
+Don't think that it's great, you want people to eat healthy, work with exercise, and want people to
+take the supplements that they need.
+
+But don't take longevity to the point where you've just spent the last 110 years of your life trying
+to live to 110.
+
+I see, I see.
+
+Yeah, so if you take something like Dunedin face, then the extreme is that you cryo preserve
+yourself, right?
+
+So you're not aging, your face of aging is zero, right?
+
+What's the point?
+
+In hope that one day people are going to be able to unfreeze you and then you'll be, you know, happy
+days alive again.
+
+You know, you have to live.
+
+You have to live.
+
+What more practical example would be that I think there is this this trend that I want want to slow
+down my metabolism as much as I can.
+
+uh You know what I'm talking about?
+
+So this seems to me a very similar longevity objective that makes the candle not burn.
+
+another thing that I see is people won't go to events.
+
+So they won't go to an event because of people who could be ill.
+
+But again, there was no point of all of it.
+
+You still can't win, if that makes sense.
+
+You're not going to win in this sport.
+
+If I look at our methylation clocks, they still hypermethylate.
+
+You might be able to make it go slower.
+
+You might be able to stop it for a little bit, but it will hypermethylate eventually.
+
+Every single person who was older in our cohort had a higher methylation than those that were
+younger, all of them.
+
+It's 100 % accurate in that regard.
+
+You will not stop it.
+
+You will not slow it down so long enough that you will just live forever.
+
+It always goes up just like time.
+
+So people need to think about what they want to do with longevity.
+
+You want to be healthy and live well.
+
+You want to enjoy your life and live as long as you can enjoying your life.
+
+And that's the key to longevity in my opinion.
+
+You see, is this, well, I just came up with the longevity paradox, which is the notion that while
+you're young, you perceive time to go much slower, right?
+
+And as you get old, it just flies by and you're already in the 80s but why is that?
+
+And one of the leading philosophical theory behind it is the the experiences that you're
+experiencing much less ah as you're young, you're like everything is new, novelty here and there
+everywhere.
+
+When you're old, is not, novelty is not even a thing anymore because you're just familiar with
+everything.
+
+You've seen everything.
+
+ah Or you can think about people who go into coma and they wake up, they perceive it like almost
+like instantaneous, like, I just...
+
+got into coma yesterday, you know, even though it was one year ago and I woke up.
+
+The point is that the current zeitgeist of longevity is very strong on habits and routines, right?
+
+And what habits and routines do is that it takes...
+
+Fakes are experience.
+
+We are not experiencing things that much anymore because we just go into a robot mode and just do
+whatever we do every day over and over again.
+
+And what happens is that you get into, well, it's actually something Bryan Johnson said, right?
+
+You know, one of the most famous people who try to live longer is that every day I want to live till
+the next day to eventually you don't die.
+
+That's what he basically said in the Netflix documentary.
+
+I quite like the guy.
+
+I think he does some cool things, all the experiments and whatnot.
+
+It's quite cool.
+
+As a case study, it's pretty cool.
+
+And so yeah, I quite like that.
+
+But If every day all I'm doing is trying not to die, I'm really bored.
+
+You know, I'm so boring that eventually I'm going to die.
+
+Everyone knows that.
+
+all I said, and all I have in my gravestone is that every day he didn't want to die, but today he
+did.
+
+You know, that's basically the entire lifespan of someone who thinks that way.
+
+You know, now not everyone's going to have the money to be able to do all the cool experiments and
+stuff that he does.
+
+So if people in, in, know, who want to follow that kind of routine, they get stuck, like you say,
+doing the same old habits.
+
+They wake up at the same time.
+
+They might do a few stretches, a bit of yoga.
+
+They'll drink some horrific shake then they'll have a set meal for breakfast probably a set meal for
+lunch a set meal for dinner maybe six meals who knows they might be doing intermittent fasting on
+that day
+
+I don't know but that's it everything's set out nicely there's no spontaneity there's no socializing
+because they don't want to get ill there's they lose out on a lot you're losing out on a hell of a
+lot to try and stop something that no one's ever stopped
+
+That's right, that's right.
+
+Well, we can, we don't have to argue that the opposite direction is problematic as well, Maybe even
+more problematic.
+
+They all have their own place and they're all good and they could all be used.
+
+You have the Muhdo clock.
+
+And we're actually releasing a new clock with a company called Umu, which is Arabic, Arabic, sorry,
+for mother.
+
+And so the Umu biological age clock was actually trained on females only.
+
+So we used a female only cohort to make the clock.
+
+And the correlation with aging was higher in females than it was in males.
+
+When you apply it to males, it correlated well with males.
+
+I think it was an R2 of about 0.77.
+
+And in females it was an R2 of about 0.89, so really high, from saliva.
+
+And this was a 41 CPG clock.
+
+And what's really cool about it is that some of the genes that were actually pulled in from the
+female-only cohort analysis were associated with things like fertility.
+
+They were associated with hormones.
+
+So it could be a really good way for females to better understand their actual biological clock when
+it comes to having children, because that's something that females always talk about.
+
+know, my biological clock is moving forward when they talk about having kids.
+
+So this is a really scientific way to analyze that.
+
+So we were hoping to launch that with that company called Umu, which will be focused on, you know,
+the motherhood and pregnancy and the child as well, really helping people get through those stages
+and obviously looking at things like MTHFR rather have folic acid,
+
+have methylfolate, et cetera.
+
+That's the base genotyping stuff, but that epigenetic stuff, which is really unique, that's where we
+aim to go with my aim as I've mentioned is that the biological clocks which are out there, they're
+all good really and the Muhdo clock's good because we
+
+mentioned it's going to be cost effective and in the future it's going to have a really quick
+turnaround and it's trained on saliva which is nice so you you're getting the best for that when
+you're doing a saliva test and you could do multiple with the same money
+
+would cost one of the other clocks.
+
+But my aim is actually to have epigenetic tests or DNA methylation tests, which are more associated
+with a disease or pathology or associated with traits or associated with like the injury risk
+factors, the overtraining.
+
+Because I think that's actually what people really...
+
+want to know about.
+
+When people talk about aging, they are worried about aging, but they're always worried more about
+something associated with aging.
+
+They're worried about things like wrinkles or osteoarthritis, losing their eyesight, losing their
+hearing, getting dementia, getting cancer.
+
+um They're worried about something that associates with aging, not so much aging itself.
+
+I'm not too concerned about tomorrow.
+
+I'm not concerned about tomorrow at the time.
+
+I've lost the day.
+
+So I think when it comes to the clocks, we start to move away from just correlating with age.
+
+We start to move more into traits, diseases and with more functional testing I suppose.
+
+Yeah, yeah, definitely.
+
+You see, I started interviewing people who are doing some work on biological aging clocks, and these
+are the best, most fascinating interviews I'm having.
+
+And you didn't disappoint here either.
+
+What's one thing you strongly believe to be the case, but very few people agree with you on?
+
+That's a difficult one.
+
+It responds to, when you train, when you lift weights, for example, our bodies respond to that.
+
+What I believe though is that, you need to push it, you need to go to failure a lot of the time when
+you train because that's what gives you the most potential for growth and gains but it also
+increases your
+
+risk of injury.
+
+So when it comes to training, I'm more of the mindset of failure training, you know, really pushing
+it and that might be the case that you have a partner and they're helping you do four threats, you
+might be doing some negatives, drop sets for example.
+
+I believe in that method of training is best method of training to hit your highest potential at the
+risk of injury.
+
+And that's, that's why I think some people would disagree with it because they were more likely to
+say, well, a programmed approach would be superior.
+
+I I see.
+
+You see, just hired a personal trainer for the first time in my life and he's not doing the
+programmed approach.
+
+He's doing one hour of death.
+
+Like I'm dying for one hour and, but it's, it's not like what I was doing by myself, you know, like,
+okay, let's put more weight and then do the weights.
+
+no nothing like that it's death for one hour failure failure from the first I guess if you don't
+die, then you'd be better off for it.
+
+Well, Chris, that was wonderful.
+
+Thank you very much for coming.

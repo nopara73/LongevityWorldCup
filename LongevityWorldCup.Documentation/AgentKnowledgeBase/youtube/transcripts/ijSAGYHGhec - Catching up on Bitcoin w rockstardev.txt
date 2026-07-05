@@ -1,0 +1,334 @@
+# Catching up on Bitcoin w/ rockstardev
+
+Video: https://www.youtube.com/watch?v=ijSAGYHGhec
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 104/265 units; 3111/7600 words.
+Matched topics: Longevity World Cup, age reversal, aging, aging clock, biological age, biomarkers, cholesterol, exercise, health game, inflammation, lifespan, longevity, longevity sport, mortality, nutrition, sleep, supplements
+
+## Focused Transcript
+
+So it's a meme really >> right you know I was running a company and managing a lot of developers and
+there was a huge difference right even juniors who've been there for like one and a half year and
+stuff like that they
+
+still didn't come anywhere close to the productivity of the the most productive developers right so
+that's that's what you would call a rockstar dev and I was one Nicholas was one right but I think
+something is changing like
+
+thing is at the end of the day you still need to be able to read code on some level or if you find
+that whole thing boring then you need to find who is the person that is going to pen test,
+
+security test, audit your code and your um solution. And maybe it can be once a month thing because
+of course severity of vibe coding something that handles money versus something that is is a game of
+longevity.
+
+Security profiles are different. But I would argue that people that are even doing longevity game
+are not thrilled about the prospect of all their data being taken. So there is that and this is
+again why we will come back that
+
+everyone will have online internet avatar.
+
+last week when I implemented payments for the longevity world cup then I have found that situation
+where is like receiving payments online is pretty difficult and and and if you want to do something
+like Bitcoin and normal fiat cheat coins
+
+then then it's just going to be ugly. But somehow I ended up somehow my very first thought was to
+use BTC pay server and in that very moment just a day ago before I started the implementation into
+bit BTC pay server
+
+now become plug-in okay I want to pull on something else because ultimately I came back trying to
+use Bitcoin I don't know one year later right two years later after I went to longevity and I see
+the exact same [ __ ]
+
+All right. Well, let's talk about creatine, shall we?
+
+>> Let's go. What you're doing with longevity, it's actually really attractive to me.
+
+>> Right. You see, well, people have been trying to live forever since forever.
+
+Since they succeeded to conceptualize the concept of death, I've been working on this competition,
+trying to create a entirely new sport out of nothing and created a competition called the longevity
+world cup. And there people competing with each other on biological
+
+aging cloaks. Right? So the idea is that if we find a metric the the abstract problem of people call
+it death or immortality or aging. But if we really want to zoom into like what this problem really
+is, then it is about
+
+we have to somehow become younger. And the scientists those are actually trying to measure the not
+really your age but the health of your body. If you want to be specific, it's how likely it is that
+you are going
+
+to die in one year or how likely it is that you are going to die in 10 years.
+
+Uh 10 year or mortality is the most prevalent metric what we are trying to optimize for. And these
+biological aging clocks are validated research that is trying to correlate with 10 year o mortality
+and some other things because of course
+
+this can't be be a simple topic like bitcoin right like it goes deep but what's the point the point
+is that now if we are measuring each other on these biological aging clocks Then we can see
+
+who among us are the most successful in actually reducing their biological age or reducing their all
+cause mortality.
+
+And those people who are actually successful of doing that, those are the people we should really
+learn from, right? because you can look at all kinds of biomarkers, but ultimately the hardest
+outcome there is is that how likely it is that you're
+
+going to die. So of all the health health metrics like how fat you are, how much V2 max you have,
+all the health metrics ultimately the likelihood of you dying is the hardest hardest metric. So now
+the question is what biomarkers are
+
+correlating with that? And you see like it is important for scientists because scientists are trying
+to develop trying to test in controlled controlled environments what what interventions reduce your
+biological aging clocks. So developing these biological aging clocks
+
+are the most important things that we can do. But on the other hand, what happens in in the
+laboratories, how does it come out of the laboratory into practice on actual humans?
+
+>> Yes. Yeah. Well, this is how first we have to identify those people who are good at these things,
+who are good at reducing their biological age and then we can we can learn from that. This is
+
+why I'm here at this interview. Um you know to see okay how did you do this? No para it seems in the
+last year you have reduced your biological age by what is this like 8 years more than eight years
+
+so and then in last few months it went up a little bit so you were partying but how how did you do
+this? Yeah, I went to actually the last month I went to live in a network school in Forest City,
+
+Malaysia, Balaji stuff and then I went to India to uh >> testing stuff. So whatever I wasn't taking
+my 100 supplements a day.
+
+>> Okay, that's it. Don't go to Bologage Network school. Your chronological age will increase.
+
+Well, actually, it's a very healthy environment.
+
+>> My CRP inflammation [ __ ] up everything.
+
+I don't know. But for some reason when I was testing, I was very inflamed.
+
+>> But there you can see. Yeah. You see 339 and in the beginning is 13.
+
+>> Okay. So, so this is how you reduced your >> chronological age. You have some chronic
+inflammation.
+
+>> Oh, I do. I do. I do have.
+
+>> That's the For those listening, they started saying and don't know what CRP is, like anything
+over two is you're inflamed and you need to find the source of inflammation in your body. It can be.
+
+>> You know what's funny?
+
+>> I just stopped smoking in between.
+
+Like I was smoking. I stopped smoking a lot of times but never for like four or five months. And
+despite me stopping smoking, my inflammation went up. How crazy that is.
+
+>> Oh, you mean here from >> Yeah. Yeah. Yeah. I just stopped there like a couple of days before
+that, I think. Or maybe a month before that. I don't know. Something like that.
+
+>> Yeah. But let me see. CRP.
+
+Well, sure. But 1.6 is normal. It seems like something else is a source of your inflammation if you
+were in India.
+
+>> Well, 1.6 is actually not very good.
+
+>> Anything over anything under two is normal and that >> well do you want to go under one >> they
+really like almost everyone is under one. Yeah.
+
+>> I really wish they killed it from their body somehow.
+
+See, I didn't know it was that because you can work out, lift weights, and your inflammation marker
+will go up, especially if you're lifting heavy.
+
+>> Does the CRP uh >> Yeah, it does. From what I >> we can >> I mean, I know that normal information
+goes up, but I'm not sure the CRP also >> probably. Let's ask AI if you wanted to be a orbiter. It
+says yes. Transiently
+
+that game and then you need to lose ideally as quickly as possible because if you win you will take
+away from someone else. You lose, you get back to nonzero sum games and then you play those games.
+And health is one of those
+
+games. Everyone should be playing game of health.
+
+Not in a way where let me go and kill everyone else that's participating so I'm the winner. No,
+let's play it in a way where if I win, I am I can provide others with information of what I have
+
+done and then they learn longer and that's where my interest came from and I slowly I went to this
+summit held summit that Pstra society organized to citizenship mcclos one of my best hires at
+strike. Let me highlight his ex
+
+profile with the caveat of you may not want to follow him because he has absolute bangers but no
+polus society they organized the health summit and then Dr. Jack Cruz was there as well.
+
+And after this summit, I slowly started researching health. And there are some things that you can
+do that are extremely easy and you can extend your expected lifespan by tremendous amount. So in
+your case what we brought up chronic inflammation how
+
+many people like if you don't listen to anything from this interview just listen to this sentence is
+like go and measure your chronic inflammation levels and you know you get your uh CRP boom you get a
+number that you can now
+
+focus on improving. In my case after cholesterol summit it was magnesium.
+
+I've learned that what what are the numbers? No partics like more than 50% of population is
+chronically deficient in magnesium but they can't measure it because the magnesium in blood is just
+1% of the magnesium in your whole body.
+
+So what's happening for a lot of people?
+
+Yes, they're aging, but their body is actually pulling magnesium out of their bones and tissues, and
+all they need to do for the rest of their life is just take 400 milligrams of magnesium, and they'll
+have
+
+significantly better life. So, they need to start playing game of health rather than playing game of
+I'm on LinkedIn and I'm posting every day right now. As they start doing that, they will slowly
+discover that yeah, if you take
+
+magnesium, it may have what is the form of magnesium and how does it impact your thinking because
+for some people magnesium will lower their blood pressure, change the way of thinking. So they need
+to pay attention to that
+
+especially they take magnesium glycinate or but the thing is they start playing that game and it
+improves their life and this is where my motivation came from and why I joined this interview as
+well.
+
+So once you get financial freedom and then probably you want to get a family because otherwise
+you're going to spend so much time on trying to like going on dates and stuff like that.
+
+Uh it's it's a very time efficient thing to have. Also, you want to have your plan B, which is if
+you really cannot extend your lifespan, then you have to go onto the the the old school
+
+longevity strategy, which is having children. Right now, after you got finance and family done, then
+then what game really are you to play?
+
+There aren't really many meaningful games to play. Like you can you can try to be I don't know like
+famous or something like that well known elevate your status >> or you can you can focus on your
+health. So your
+
+by getting that lump sum of money that you can then leverage to not be forced to work for the rest
+of your life. Okay, you won that game. What are the other games that you you should play? And you
+
+brought up game of health, game of family. Although I must tell you on family the way you presented
+it, you are such a curious mind man. Your family is watching this they're like I'm no Paris plan B.
+Oh how exciting. Now he doesn't
+
+mean that he just the way you express yourself is is quite unique. But some other games you should
+play games that um intellectually stimulate you. So this podcast that you're doing, I see it as a
+game. We could have had and we had you
+
+ensure is that information we feed AI with is good optimistic positive information because so many
+people are generating content and information that's focused on their fame or destroying certain
+group of people or their enemies. Man, let's
+
+get more content where we are feeding AI with optimism, with ideas to navigate towards good games,
+game of health, game of family, game of collaboration, intellectual stimulation.
+
+So, I can expand if if you're interested in more games.
+
+And suddenly you will find yourself on defensive where where like what's the point? I want to ask
+you one one more thing.
+
+Might not be the best closing thing to ask, but you know, you just mentioned that you realize that
+you're probably magnesium deficient.
+
+Uh therefore, you started taking magnesium and there are a shitload of similar things.
+
+So, >> yep, >> you can make arguments for a lot of supplements like this. And my current philosophy,
+in fact, it's so permanent pre prevalent for me that I actually made my nutrition dependent on my
+supplementation.
+
+I call it supplement first nutrition.
+
+So the idea is that I can take any supplement that's safe and probably does something good, right?
+
+And turns out there are a lot of supplements that's safe and probably does something good. So now I
+have I'm taking supplements six times a day. No, five times a day plus my god plus some other ways
+not only peels but five times
+
+a day peels, right? Because in the morning before you sleep and with three meals and in fact the
+supplement timing actually is the one from where the number of meals you are eating and the timing
+of your meals are
+
+derived. Right? So supplement first and then your meals. And also I started to incorporate meals
+like like um let's say chia seeds which which are like you know this is this is a real meal but I'm
+
+deriving it from my supplement stock because it has something that my supplement stock doesn't. So
+chia or oats some some real actually a lot of real meas like supplements I mean I'm eating them like
+real meals but in my mind I
+
+consider them in the same category as supplements. Okay. So, what I wonder is for for a normie like
+you, you know that there are probably a bunch of supplements that could help you, but it's really
+hard to tell which supplements are those
+
+and which are that doesn't make you worse, right? Because I got vitamin B6 overdose. Like, you don't
+want to get that. And normies like you are very afraid of getting that. I did it for science man.
+
+>> Yeah. But but imagine normies who don't don't take care of their sleep, don't exercise regularly,
+don't eat healthy.
+
+They they could even benefit much more from supplementation than those people who do those all those
+things. Right? So I wonder then the bottleneck bottleneck kind of becomes that how many sp pe pill
+peels are you willing to swallow and
+
+that's pretty much my question here.
+
+What they need to do is they need to capitulate on say three of the zero sum games they're playing
+and then we all should look up to Tat Lim. This is where I would encourage you our next conversation
+you and me get him
+
+as well because I want to ask him how the hell is his inflammation marker 030.
+
+This is ridiculous man. What? What is he doing? So, >> I can tell you. I spent my New Year's with
+him.
+
+>> What is he doing?
+
+>> He lives in a [ __ ] gym. His bedroom opens to a gym.
+
+>> Okay. So, so it's uh it's a gym. It's where Okay. I now want to know what is his workout regimen.
+And this is where we can pull in normies because no one started with uh what you're taking pills
+
+five times a day like 100 pills man no one starts with that people do start with this is where uncle
+rockstar can give a guidance you start with magnesium you start well and then as you're taking
+
+magnesium you will learn about zinc that you should take that as Well, and once you start taking
+zinc, you will very quickly learn that it can cause copper deficiency. So, you need to start taking
+copper. And then it's it's a rabbit
+
+hole. But for a start, I would really recommend it. You actually don't start from magnesium because
+it's not easy to measure but you start from um vitamin D and you start from omega-3 because omega-3
+is something that's very
+
+important for brain and you need to get your omega3 above 8%.
+
+See if it impacts your thinking. If it's making you depressed, then you need to take algaebased
+omega-3. You need to try different approaches and suddenly you'll be supplementing yourself with
+tons of omega-3 and you may even be uh uh below
+
+8.0. So maybe you need to fix your digestion. But I would say holy trinity would be omega-3, vitamin
+D and then magnesium. So start with that and if if you start from that and you you you will
+
+see immense improvement you'll be top 20% >> and okay okay okay we can't go without creatine yeah
+start taking 20 grams of creatine every day maybe that's even better yeah because it's super cheap
+but you can't you can measure creatine
+
+levels how do you measure that >> I don't know like put something in your muscles, you don't measure
+it with blood test.
+
+>> Well, is the whole your thinking will be different if you do 20 grams of creatine per day because
+most people do that loading phase of 10 and then you do five, but that's more for working out.
+
+>> This is again why >> to 10 gram though.
+
+>> There you go. I'm still doing 20 because I lift heavy three times a week. But um yeah, for most
+people I would even say man omega3 and vitamin D because you can so easily measure them and it's a
+little
+
+game you can play every six months. If you're looking to really invest yourself in health game,
+there is function health in US where you pay $365 a year and you have twice a year test of around
+160 metabolic markers. But beyond
+
+that, listen to no par's interviews because next one we are getting um Tia Lim with us and man I'm I
+want to see this guy's what like 54 and he reduced his age by 20 years man I I want to hear okay
+what workouts

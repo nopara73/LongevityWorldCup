@@ -1,0 +1,24 @@
+# Revolutionizing Health Tracking: Analyzing Your Own Data in Minutes
+
+Video: https://www.youtube.com/watch?v=rsHOr1SABZQ
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 4/5 units; 165/166 words.
+Matched topics: biomarkers, exercise, nutrition, sleep
+
+## Focused Transcript
+
+that market has exploded over the past 10 or so years right you've got people tracking sleep some
+companies uh Fitness you know the you know you'll have blood testing companies that are link with
+the fitness tracking stuff but um you know
+
+and then even the recom recommendations that they make aren't generally very good so I'm actually in
+development uh uh with an app right now to um basically bring my simple correlations based approach
+to the masses so anybody that's
+
+tracking diet and has a few blood tests they can start to look at their own correlations um which
+saves an an immense amount of time it's like seven to 10 hours of work every time I get a blood test
+so we'll
+
+be able to get that data within you know minutes so I'm working on building towards those tools
+where people can do it much faster um and analyze their own data or come to me if they want some

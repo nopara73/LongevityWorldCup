@@ -1,0 +1,888 @@
+# The Mysterious Bronze Medalist of Longevity World Cup S1
+
+Video: https://www.youtube.com/watch?v=Bf6c7JE5xX4
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 302/361 units; 7810/8741 words.
+Matched topics: HRV, Longevity World Cup, PhenoAge, aging, aging clock, biological age, biomarkers, cholesterol, exercise, glucose, healthspan, inflammation, lifespan, longevity, longevity athlete, medicine, mortality, nutrition, sleep, supplements
+
+## Focused Transcript
+
+When Z, the big surprise of the first season of the longevity World Cup, I didn't think anyone's
+going to take the third place. Philip was holding that place for like half a year. It seemed like no
+one's going to come along and
+
+take it, but but it did happen and it was you.
+
+And it broke a lot of people's minds.
+
+>> [laughter] [music] >> Welcome to the show. It's nice to finally have you in one-on-one.
+
+Uh thanks for having me. You already know that I'm one and I'm obviously very passionate about
+longevity, health, and uh performance. I try to do all the right things.
+
+All all the pillars of health and longevity.
+
+Um I'm also an aspiring scientist myself, so I'm interested in the mechanisms behind all of this.
+I'm pretty experimental guy, so I also like to test all the the different interventions on myself.
+
+That's me and I try to stay uh disciplined with all with all the uh basics. According to your
+profile in the longevity World Cup, you're from Rapa Nui.
+
+Easter Island. That's just because uh that's where rapamycin is discovered, but uh no, I I was um
+born in China and currently I'm going to university in Canada.
+
+Are you into rapamycin in some extent? Are you even taking it? Or Not yet. Not yet, but uh I'm
+looking into it. I I don't think um I I don't know if it's the best choice to do that at the moment
+to chronically
+
+suppress uh mTOR at the age of 20. But I'm looking into it. Perhaps in the future. Yeah, I I have
+been looking into uh some of the more like prescription-based uh interventions to health recently.
+But rapamycin isn't uh one of
+
+the first things that I would try. Which ones?
+
+Uh I've been thinking about um the SGLT2 inhibitors, so empagliflozin and the other ones, perhaps.
+
+What are those >> things? So, they block the transporter in the uh tubules in the in the collecting
+duct in your kidney. They block the transporter that reuptakes glucose back into your blood after
+they've been filtered by your kidney.
+
+So, if you take those drugs and you block that transporter, you essentially pee out glucose.
+
+Um and it's relatively benign. I think in some mouse models like they have shown to have uh mild um
+lifespan extension benefits, but uh I'm considering it because there's very little downside unless
+you're not very hygienic with
+
+your body and you might get some urinary tract infections, but other than that, it seems like a uh
+relatively benign boost to your uh metabolic health. So, >> Even if you use Even if >> Even if
+you're non-diabetic.
+
+You get the most benefit obviously if you have blood glucose control issues, but even if you are non
+but diabetic um you know, with me my hemoglobin A1c is 4.9, but you can still see benefits.
+
+You're going to excrete proportionally less glucose because there's a lower concentration of glucose
+in the blood and in the filtered urine that is to be reabsorbed.
+
+But you are going to see some benefits just chronically, you know, reduced glucose. Um your liver's
+going to compensate by increased um glucose output. But that'll essentially create anywhere from a
+150 to 350 kilocalories of caloric deficit just out
+
+of nowhere from your blood glucose, which is seems like a pretty uh good deal. Good deal to me,
+yeah.
+
+>> Is it injection?
+
+Uh no, it's actually just a uh oral tablet. Oh, okay. Okay, interesting.
+
+>> That's one of the I think that's what I'm going to start with.
+
+>> And after that, you know, I've been looking at some of the uh GLP-1 agonists, maybe some um
+selective beta-blockers to modulate autonomic tone, things like that, but those are those are on the
+radar.
+
+>> Ephedrine is a beta-blocker, right?
+
+Do I remember correctly?
+
+>> kind of opposite. So, a beta-blocker should reduce your um cardiac output and your your
+sympathetic tone, so it should calm you down. So, if ephedrine Okay. Firstly, why do you know about
+these things?
+
+Well, you know, as a longevity nerd, obviously I read about all this stuff.
+
+I took a lot of pharmacology courses in in the first couple years of my undergrad.
+
+So, it's obviously an area of interest for me. What's your major?
+
+Currently, it's neuroscience and nutritional science.
+
+But I took a lot of pharmacology courses. I I don't know. I'm a I'm a science guy. I read all this
+stuff, you know, obviously also off of a lot of reputable people in this field. They
+
+talk about it, you know. Um let's talk about GLP-1 because I gave my own shot to that problem and I
+was doing liraglutide.
+
+Right? Liraglutide is the is less effective than the later ones like semaglutide, retatrutide, uh
+tirzepatide, these things.
+
+It's still very effective. The difference is you have to take these or shoot yourself every day,
+right?
+
+Okay, so that also gave me an opportunity to experiment with it because if I don't do it in a weekly
+basis, but on a daily basis, then I can I can play with what time of the day am I doing it, perhaps
+
+with another other schedule, like maybe not every day, maybe every second day, or maybe every every
+when my HRV or resting heart rate is happy, stuff like that. So, the problem was for me is that it
+
+completely wrecked my sleep. I woke up at the middle of the night and this was on the normal doses.
+I woke up on the middle of the night and I just couldn't get back to sleep. And even when I
+
+stopped taking it, I did not recover my HRV and resting heart rate only after like half a year.
+
+I don't know if if this has anything to do with the drug itself, but this time I really started to
+like like look into you know, I very rarely go and read the studies, right? But this was one of
+
+those those times.
+
+Yeah, so the the GLP-1 agonists you mentioned you took uh liraglutide, which I think is actually one
+of the more uh mild sympathetic activators, but uh all almost all of the GLP-1 agonist drugs
+upregulate your your sympathetic
+
+nervous system and they withdraw your your vagal tone, which is your parasympathetic nervous system
+to some extent, which will increase your heart rate and decrease your HRV. And this is actually even
+more pronounced in the newer generation better more effective
+
+GLP-1 agonist, especially retatrutide.
+
+>> a moment. Wait, wait. I thought it's the opposite.
+
+So, correct me, but I was speculating that because they are doing So, in the newer generation ones,
+they actually lower the doses of whatever semaglutide and liraglutide equals to and add other kinds
+of synergistic what not to them.
+
+So, my speculation was that they might actually not increase the your sympathetic nervous system.
+
+No, cuz you know how like the newest one is retatrutide? And you know, it's a triple agonist, right?
+We have the GLP, glucagon glucagon-like peptide, GIP, uh gastric inhibitory peptide, or now it's
+called like uh
+
+I think like glucose-insulinotropic peptide or something like that. I don't remember. The third one
+is the glucagon receptor, so the the the two other receptors both when they get activated, they
+actually both increase your sympathetic
+
+output, especially the glucagon receptor in retatrutide.
+
+So, that actually increases resting heart rate the most. So, it is the most effective because it
+hits all three of those receptors, but it actually also increases your sympathetic tone the most and
+withdraws your parasympathetic vagal tone the most
+
+that worsens your uh our HR and HRV the most. And that's actually part of why it works so well
+because activation of the glucagon receptor it's a you know, it's a state of sympathetic activation,
+starvation, and
+
+fasting. So, that'll increase your hepatic glucose output, which will instead of only reducing your
+caloric intake by suppressing appetite and reducing gastric motility that glucagon receptor
+activation can straight up just directly increase your resting glucose output. So, that'll
+
+very very mildly increase your blood glucose, but what is, you know, the most detrimental
+potentially to longevity is that huge HRV decrease and RHR increase.
+
+So, for a lot of us like longevity enthusiasts, we are we are already very we're already very um
+vagal dominant. You know, we're already very parasympathetic. We have our HRVs in like the 70s and
+150s RHRs in the in the 30s or in the 40s.
+
+Um in actually in these people um anecdotally at least we see like the largest jumps in RHR and HRV,
+which is very unfortunate. Like um many people on like I say 2 mg per week of retatrutide,
+
+which is way way way less than the maximum clinical dose used in the trials, which I think the
+highest dose they used was 12 mg.
+
+So, using just 2 mg in in some of these um people that are longevity focused with high vagal tone
+directly like you'll see like a 10 20 RHR increase in like like a 80 to 100 HRV drop. So,
+
+um that it's very real. So, it may not be like that may be one of the biggest concerns to to GLP-1
+agonists in people who already have a relatively low body fat. Like, you know, that the benefits of
+the increased
+
+insulin sensitivity um the decreased body weight body fat the improved metabolic health in the long-
+term caloric restriction it may not outweigh the that the increased RHR and decreased HRV and that
+big withdrawal of a parasympathetic tone and
+
+maybe long-term that leads to, you know, a worsening in the in the flexibility of your autonomic
+nervous system. It may not may it may not be worth it. But, yeah, that's the worst in retatrutide
+actually. Um I think
+
+it's a little bit better in tirzepatide and the other GLP-1 agonists I think are similar to
+tirzepatide, but to my knowledge I think tirzepatide has the most weight loss to least RHR increase
+in the clinical data. They don't
+
+directly measure HRV, but, you know, from all our anecdotal experiences we all know that um these
+GLP-1 receptor agonist drugs they all decrease your HRV concurrently with the RHR increase. And
+you're still considering it for yourself.
+
+Yes, because trialing them does not mean I'll stay on them forever, because this is a pretty
+flexible axis of signaling. You're you're not you won't get like any meaningful uh large long-term
+suppression of your receptors.
+
+So, it doesn't hurt to trial them for a while. You said that your HRV remains suppressed for a
+couple months. That does happen, but it does I don't know if I suffered from that.
+
+Okay, yeah, but I know for other people it's like that as well. But, yeah, like it depends on the
+specific one you use.
+
+It depends on how autonomically flexible you are at baseline. It depends on your baseline RHR your
+HRV. If I were to try one, probably start with tirzepatide because of the least RHR increase. But,
+then that's why
+
+I've also been thinking about the beta blockers, because they can actually decrease your sympathetic
+tone.
+
+So, you can take them in the PM to directly decrease your RHR.
+
+So, in general, you know, it's it's not a good idea to do a ton of polypharmacy, but that is
+something I've been looking into. Maybe a GLP-1 agonist and combined with something like uh
+propranolol or nebivolol or atenolol in
+
+the PM, which will decrease your sympathetic tone and decrease that RHR. It won't fully mitigate the
+HRV decrease, because although it decreases your sympathetic tone, it doesn't it doesn't help your
+vagal your parasympathetic withdrawal as much.
+
+So, you know, there is still going to be a loss in your loop recovery metrics on GLP-1s, but uh
+yeah, um we'll have to see, you know, how we balance that trade-off. But, there's also actually in
+terms of weight
+
+loss medicine there's actually this other class of drugs called amylin receptor agonists. There's
+one that's uh I think already pretty deep in the trials called cagrilintide, which um suppresses the
+appetite through a different mechanism through the amylin receptor, but it
+
+tends to actually decrease the your RHR by anywhere from two to four beats per minute. So, that's
+another one I've been looking into. But, it doesn't seem to have the same metabolic benefits in
+terms of insulin sensitivity as the
+
+GLP-1 agonist, but it also works by decreasing your appetite and slowing gastric motility.
+
+That's another one I'm looking And improving your food metrics, which is ultimately what matters,
+right?
+
+Exactly. That's that's the ultimate goal for all of us.
+
+Well, it's interesting this uh bodybuilding thinking to chase the side effects of the drug you're
+taking with another drug. But, anyhow, I'm not a fan of all the other PED abusing. But, that's why
+I'm not on all of them yet.
+
+This is, you know, I'm trying to approach it systematically and I'm just thinking about that. But,
+that's obviously not, you know, the basis of my approach to longevity. This is just what I've been
+uh you know, looking into recently.
+
+The Arnold of longevity. So, let's let's let's talk about the controversy here a little bit. When
+you first registered to the longevity World Cup, I saw that your biological age according to
+PhenoAge was 0.4 years old.
+
+This really gave me a pause.
+
+I was considering if anyone would ever achieve a negative biological age, because you were really
+close to that, right?
+
+>> [laughter] >> Perhaps I should disable that. And I don't know what decisions I made. But, uh
+we'll see when when someone gets there.
+
+But, anyhow, so this almost break my brain, but definitely broke a lot of people's brain, because
+they believe they think biological age very differently like how we scientists think about
+biological age, right?
+
+They think about biological age as a as a concept. So, if you are 20 years younger, your your
+biological age is 20 years younger, then they expect you a 20 years old to look like a baby.
+
+Yet, that is not the case.
+
+So, I mean, we talked a little bit about this on the panel of the top three finishers. So, you know,
+obviously PhenoAge it's uh it doesn't mean that I'm literally 4 months old.
+
+It means that, you know, the data is trained on I think at the younger end like Mike talked about
+the other day 20 year olds. So, it's supposed to be able to estimate your uh risk of all-cause
+mortality from your
+
+biomarkers and then match that retrospectively back to a biological age. So, people of that age
+usually have that chance of dying. So, since my biomarkers show they're, you know, PhenoAge and all
+their uh calculations show that I have
+
+a much much much much much better or much lower chance of dying than the you know, the the best
+individuals in their data set, which are the 20 year olds.
+
+Um and if you just extrapolate with their formula, I'm supposed to have the all-cause mortality of a
+4 month old.
+
+But, obviously, you know, it doesn't work that way, because 4 month old toddlers die a lot.
+
+And, you know, it's just not supposed to go down that far. But, I think what it does tell me is that
+I'm in a pretty good spot at the moment. So, you know, and Or or the opposite.
+
+Perhaps you are in a pretty bad spot.
+
+Or may maybe maybe I I'll really, you know, have a high cause a high um chance of death like the
+infants. But, yeah, I think, you know, even even if the measurement isn't supposed to go down that
+far and extrapolations don't
+
+really work that way. I think, you know, it's at least good to know that I have a a much better
+biomarker profile than the best that the PhenoAge and hence data set is trained on. That's why
+
+it looks so weird, because it's so much better than the best that it's uh the the PhenoAge has been
+trained on that it went extrapolated all the way down to 4 months.
+
+How old are you?
+
+I am 20 at the moment.
+
+Uh going to be 21 soon. So, Let's try to figure out if you are in a good spot or a bad spot.
+
+So, you're 20, you're in university.
+
+Are you doing what other university students usually do? Go out, drink, party, smoke every night,
+taking drugs. Is that your life? Living on what instant noodles?
+
+You know, I I think the answer is uh pretty obviously no. When my friends are smoking weed, I'm you
+know, doing a different type of drug.
+
+Swallowing the uh diabetes medicine.
+
+And when they're out at a buffet or having some instant noodles, I'm like, you know, eating my
+boiled broccoli or something. But yeah, no, not not really.
+
+Actually, you know, I went through a couple health crises and it actually helped steer me onto this
+like path of health optimization and performance.
+
+>> I had pretty bad irritable bowel disease that basically I think it was close to It was basically
+like very mild ulcerative colitis. There was a period of time where I was getting my immune system
+was really really horrible. I was getting
+
+infections left and right.
+
+Um skin infections, uh I also tore my ACL and uh my meniscus got removed. So, I was I literally
+could not move for like 2 years. So, 2 years no exercise, you know, no sleep, junk diet.
+
+I actually got a bit overweight as well.
+
+So, yeah, high school, you know, that that wasn't great. But now, you know, that obviously pretty
+locked in. And I think yeah, that's helped uh steer me onto this I see path of longevity and health.
+
+>> So, at that time, the peer pressure must be really really strong.
+
+Like uh let's put put you next to Mike last carton or Now, Dave Pascoe who is living alone and he's
+living his best life and no one's like trying to trying to get him to smoke some weed or
+
+cigarette or eat some cookies, right?
+
+Then he can he can live live that life. But how how do you do you handle you must have all kinds of
+temptations every single day, don't you?
+
+No, not so much. I don't think so. Like, you know, all my uh closest friends, they they all know how
+I am, you know, the way my diet works, the way my lifestyle works, you know. They don't
+
+really try to peer pressure me.
+
+Nor do I really get peer pressured. I don't know. Like the wrong lifestyle decisions I've made in
+high school were not really out of peer pressure either. They're, you know, my decisions.
+
+Unfortunately, wrong ones, obviously, but No, yeah, I don't know. I don't have I don't feel a ton of
+peer pressure. And you know, not nothing like temptations are temptations, but you know, nothing
+feels better than feeling healthy, you know, nothing feels
+
+better than waking up and not feeling groggy, waking up and not, you know, having your
+neurotransmitters so messed up that you want to doom scroll in in your bed for like 2 hours. Nothing
+feels better than
+
+having no fatigue during the day, feeling healthy, no illness. So, You see, that that makes so much
+sense, but still like people People as they get older, they they get more and more conscientious.
+
+They get more and more organized. And it's like it's so rare to see someone in in your age to have
+have their routines locked in.
+
+Okay, what are your routines?
+
+Tell me how how a day in your life looks like.
+
+Off the top of my head, I don't know if I'll be able to include everything, but you know, I think
+your day obviously starts with uh what goes on the night before, right?
+
+You can talk about, you know, night before.
+
+Obviously, you know, we all know in the longevity space to have your last meal at least 4 to 5 hours
+before your bedtime. So, have that time to eat. And then, you know, what you know, have have like
+your
+
+wind-down time, 1 or 2 hours. Be bored, do nothing.
+
+No screens, no no bright lights, all of that. Wind down properly.
+
+Okay, what's what's that? Because Yeah, what what are you doing if no screens?
+
+What do you mean no nothing? Sitting in a chair? Just like boring life admin, you know, like
+laundry, stuff like uh showering, maybe maybe sauna, but don't do that too close to bed.
+
+Or, you know, an audiobook or like a a paperback book, you know, without a screen, maybe a candle,
+but a proper wind-down routine, 1 or 2 hours before bed, you know, maybe some It depends on your
+situation, but maybe
+
+like a low-dose melatonin and magnesium 38 bisglycinate, stuff like that. Go to bed at the same time
+every single day. I think Ryan Johnson said that.
+
+You know, people always say, "Oh, you know, I have stuff to do. You know, I have to do this or that,
+so I can't go to bed on time at the same time every day." But I think he said to treat it as
+
+your single most important meeting of the day, which I think is a good way to think about it. Cuz um
+getting good sleep and enough sleep will literally make you way more efficient the next day and
+every other day after that. So, What
+
+what does that mean? What do you mean by same >> What do you mean by same time?
+
+Um I try to be in bed by 10:00 p.m.
+
+Like to the to the clock?
+
+Plus or minus 15 to 30 minutes. Okay.
+
+Sleep is probably the weakest part of my approach. So, I know that's the case for Mike as well, but
+I try to be very consistent with it. Things obviously like temperature control, right? You want to
+fall asleep with a lower ambient
+
+temperature, absolutely no lights around. If you need maybe some earplugs. You want to make sure you
+don't have sleep apnea. You could And um I don't have an alarm. I just try to wake up when I when I
+feel
+
+fully refreshed and when I don't want to sleep anymore. So, that can be anywhere from 5 to 8:00 a.m.
+And after that, we all know morning sunlight, maybe some caffeine.
+
+And you know, morning workouts.
+
+Um I am actually a track and field competitive track and field athlete as well. So, 3 days out of
+the week, it's uh time for a sprint training, short sprints. I'm a athlete in the 60, 100,
+
+and 200 meters. So, that's that. And then the rest, I have one lower body explosive power day. So,
+things like Olympic lifts, two to three days of upper body strength compound work. I don't do
+explicit like
+
+steady-state aerobic training, but um just plenty of like intermittent intermittent interval work in
+in sprint training, even for the short sprints.
+
+And you know, I try to only commute by cycling or walking if the weather doesn't allow me to cycle.
+
+So, that's where I get the uh cardiovascular health part done.
+
+After that morning workout, you know, obviously being a student, it's either, you know, class time
+or or time at the lab to do research.
+
+Um and then it's lunch. Um and uh that's usually prepared beforehand, meals I make myself.
+
+Some more classes, maybe, or some more, you know, work for research or or other work that I have.
+
+And come back, you know, dinner.
+
+Life admin, do what I want to do, read about what I want to read, learn about what I want to learn,
+you know, try to have some social connection as well. That's that's a part that many of us like
+really, you
+
+know, on edge, type A like longevity tryhards, that's one of the things that maybe we don't do so
+well, social connection. I think that's something Matt Kaeberlein really emphasizes in his pillars
+of longevity.
+
+That's also another weak spot in my approach, I'd say. Especially since you mentioned, you know, how
+my peers, most of them are probably busy smoking weed um or I don't know, partying, whatever
+whatever they do.
+
+Um so, yeah.
+
+Connect, dinner, obviously homemade as well.
+
+Early connect and uh life admin, try to, you know, get all the um sympathetically activated work and
+studying I have to do early in the day done.
+
+After that, reading, learning, fun.
+
+I say having fun, but a lot of my having fun is reading and learning about all these, you know,
+these health and performance-based uh things, you know.
+
+A lot of podcasts and a lot of paper reading. But yeah, and after that, you know, we go back to the
+wind-downs and you're getting ready for the next day.
+
+Let's talk about having fun.
+
+That's interesting what you said there because yesterday, I had a bad day.
+
+And my blood results arrived.
+
+You know, for the past 2 years, I've been doing blood work pretty often. So, I probably done like
+six or seven blood works in the past 2 years.
+
+And yesterday, my blood work results arrived. And I'm like, I'm getting goosebumps, right? I'm like,
+okay, I have so many things to do, but [ __ ] this is the thing that's giving me the dopamine, you
+know?
+
+>> The monkey pushing the lever or the the mice pushing the lever, right? And I'm like, okay, now
+I'm going to analyze my blood results and like, that Now, that's what I'm considering fun.
+
+Having my blood results arrive and and and and looking at it and analyzing it and slowly putting it
+into my the Google Sheets document, right? Comparing the previous results, so holy [ __ ] I never
+thought something like that even be considered fun.
+
+Are you this kind of obsessed as well?
+
+You talk about being excited the day it arrives, I'm probably thinking about that before bed like
+for I don't know, a week straight before it arrives, so yeah.
+
+And also just like you know, not just excited about the practical stuff, but also like all even
+mechanisms and the theoretical stuff.
+
+This is just I don't know, it's also like a hobby to me. I'm just intrinsically interested in this
+stuff.
+
+You know, being like a like a researcher in this field is just stuff that like the science just
+interests me anyways. And on top of how like I implemented this in my own life and how, you know I'm
+like one of these
+
+uh longevity athletes.
+
+So, it's like double the excitement for me.
+
+I like the mechanism behind it. I like how I can apply it to my own life.
+
+I guess this is what helps me stay on top of all this.
+
+I've experienced all the kinds of movements, let's say a powerlifter would, but then when you have
+like all the all the weights in the world and all you do is just to pick it up from the ground
+
+is like it activates your body in a way that you didn't know it existed before, even if you have a
+experience with so many different movements.
+
+So, that That's That's interesting.
+
+And I'm I'm pretty sure I'm going to stop in a year or so because well, I'm longevity boxing and I
+don't know, my knees are going to or something's going to break. I can feel it. I can feel it.
+
+Injury risk is high for the more power you go and the more like, you know, the higher the
+acceleration is, the higher the injury risk.
+
+A lot of people actually don't know that muscle mass Yeah, we all talk about, you know avoiding
+sarcopenia with aging, right? You want muscle as you age. But muscle mass decreases the slowest.
+
+Strength decreases the second slowest.
+
+And what decreases the fastest with aging is actually power.
+
+You know Okay, so But the injury risk is definitely >> Define strength and power.
+
+Like from a physics perspective?
+
+No, no, no, from the perspective that you just mentioned, like uh if you want You can do it from the
+physics perspective as well.
+
+I I think it helps understand like, you know, strength training is the maximum amount weight you can
+do. It doesn't matter how quick you do it, so it doesn't matter how quickly that force is generated,
+how quickly that
+
+force is absorbed for, you know, power movements like Olympic lifts because, you know, in order to
+get under the bar or to catch in a certain weight the bar needs to move at a certain speed. So, for
+for example, for power
+
+cleans, it's usually like 2 to 2.1 m per second for the bar.
+
+So, if you want to go heavier you can't just go heavier and go slower because if you want to
+complete the movement, you need to do it above 2 m per second for the bar. So, you can't just, you
+know,
+
+progressive overload by by doing more weight, but increasing you know, the the time like decreasing
+your acceleration for the Olympic lifts.
+
+You're going to have to uh match a certain velocity while increasing the weight that you're doing,
+so that's the difference between power and absolute strength in the weight room.
+
+And with hypertrophy, that's a different story. Hypertrophy is built from like pure mechanical
+tension, so you can actually just do like very light weight and do a lot of reps.
+
+Let's talk a bit about nutrition as well. How do you approach nutrition?
+
+Now it's difficult to talk about nutrition because nutrition is If we're being honest with the data,
+it's one of the least impactful aspects when it comes to affecting your health span and your
+lifespan compared to >> Second and guest in a row claiming the
+
+exact same thing.
+
+Really? Who was the other one?
+
+It's It's true. It's like, you know, according to the data, it is less of a factor than sleep and
+exercise. Like exercise outweighs nutrition by so much.
+
+But like anecdotally, I think we all know how much eating clean helps us, right? Like we cannot feel
+it. So, like it's also unfortunate how like nutrition is the field where like people always feel the
+strongest about.
+
+It's like you versus me, us versus them.
+
+It's either this diet or that diet. But yeah, I try to take evidence-based and balanced approach to
+nutrition. So, uh lots of greens, a variety of greens, lots of cruciferous vegetables, you know, cuz
+they tend to be more dense in
+
+nutrients and you also get the added bonuses of sulforaphane.
+
+A ton of like vegetables and greens.
+
+Like I'm talking you know, half a kilo to a kilo of greens per day.
+
+Lots of protein as well.
+
+So, protein and longevity, it's not you know, the more protein you have, the better it is for
+longevity. But I personally reach for a higher protein intake.
+
+So, it is around 30% of my daily calories from protein. So, for me, that's um Well, it depends on
+how much calories I'm eating, but depending on, you know, whether I'm trying to maintain, gain, or
+lose
+
+weight, uh around 30% of my calories from protein, typically from plant protein. So, I have a lot of
+like legumes, beans, soy, like tofu.
+
+I'm obviously Asian, so I don't have to like try to eat more tofu. Like I know I know for a lot of
+like um like uh people who other cultures they don't traditionally eat a lot of plant
+
+protein, like it's this thing they have to like romanticize and like like make these like butter
+bean skillets in order to like force plant protein down their throats. But like to me it was pretty
+easy um to eat a lot of plant protein because
+
+I guess I just like tofu.
+
+Um so, yeah, a lot of plant protein from legumes, beans, lentils.
+
+Uh Yeah, I chew tofu, man.
+
+Yeah, yeah, yeah. You speak Mandarin? It which you would have someone Buddha.
+
+Okay, okay, okay.
+
+Yeah. But that's usually fried, which is unfortunate. Sometimes it's Yeah.
+
+I Sometimes it's like boiled, though. Is that the problem, girl?
+
+Fried. Okay, fried in deep fried, right? Yeah, with Oh, yeah.
+
+Oh, yeah. When the night markets are using the oil a billion times.
+
+Trans Don't know what type of oil they're using. It might be super oxidized. You know, the
+generation of AGEs. So, yeah. For protein, I try to go with lots of plant protein. I have a lot of
+fish as well. But on top of, you
+
+know, obviously a supplemental omega-3 intake, DHA and EPA. But I have a lot of uh fish.
+
+Not just salmon. I know everyone just has salmon, but it really doesn't I don't know. It gets
+boring, right?
+
+It it I It's also sustainable. For me, I just have different types of seafood all over. Different
+types of fish, mollusks, different types of seafood, high in choline, also high in the B vitamins,
+low in low in fat, low in saturated fat.
+
+But saturated fat you know, obviously is not the demon as well. You know, for my fat, I I try to get
+it mostly from foods.
+
+I want to talk about saturated fat a little bit because I went to town with it actually.
+
+I actually created a a custom GPT that like tells me if this food is healthy or not.
+
+And I only wanted to include criterias that's like 100% scientifically sure that if this is true,
+then this is this is not healthy, right? And from the saturated fat topic, I I stayed away for quite
+a long time to
+
+not include it to my GPT because, you know, there is like a big debate, saturated fat good, bad,
+cholesterol good, bad, blah blah blah blah. But at one point I did go into the weeds of it and I'm
+
+wondering if you think my conclusions were correct or not. I decided to not actually actually look
+at saturated fat in itself, but what I'm looking at is two types of saturated fat. One is myristic
+acid 14, and the other is
+
+palmitic acid C16.
+
+So, the problem with this is that these actually occur naturally in small small amounts in a lot of
+foods, right? So, you can't say that you should never take in any myristic or palmitic acid into
+your system.
+
+So, you have to minimize it. But what's the point here? The point here is that based on my research,
+my conclusion was that other types of saturated fat are either good for you or at the very least
+
+controversial if it's any bad for you.
+
+But these two things you can safely demonize to a degree because you still have to eat some. What
+what what what do you think about saturated fats?
+
+Oh, man. The saturated fat topic is complicated. Like you said, you know, it's so controversial.
+Like there's certain ones that we know are directly, you know, metabolically non-essential and
+harmful, right? But it's it's a very nuanced topic. So,
+
+obviously we know that saturated fat when it you know, it is substituted by polyunsaturated fat and
+monounsaturated fat, saturated fat increases your LDL and your apo apolipoprotein B.
+
+We know that for a fact. It doesn't increase your apoB and LDL and the other atherogenic particles
+as much as >> Only palmitic and myristic acid. We only know that for a fact for these two. I But
+they are the most abundant
+
+>> are controversial. Yeah.
+
+Yeah, but but they are the most abundant in saturated fats. Like yeah, they are generally most
+abundant in most of the saturated fat sources. That we know for a fact.
+
+It's not as bad as trans fat, but you know, the thing with that is we also like Okay, we can talk a
+little bit about the cholesterol. We know that cholesterol, LDL particles, lipoprotein B,
+apolipoprotein little a. We know that
+
+they are directly causative in atherosclerosis, but it is not the single risk factor.
+
+And it you know, it's the boogeyman in in modern um cardiovascular disease medicine because of how
+profitable statins are.
+
+You know, you It's nice, you know, for us to put put like anti-saturated fat everything in the
+guidelines, but like the magnitude of effect of saturated fat intake alone, holding all other things
+equal, you know, accounting for healthy user
+
+bias, it's not that big because there's so many other things that play into it.
+
+You know, there's things like blood pressure, your metabolic health, um your like blood glucose,
+your diabetes, your activity level. Like those things proportionally, you know, can play a much much
+much larger role in your risk of
+
+uh ASCVD than cholesterol.
+
+And we know that cholesterol, it's it's not just saturated fat. Like there's so many different
+nuanced metabolic states that can influence your cholesterol.
+
+Like if you are lean, lean and low-carb on a a relatively high-fat diet, even if it's basically no
+saturated fat, because of the way energy trafficking works in your body, your cholesterol will just
+be like 500 g 500
+
+ng/dL, you know, which it's like it's very nuanced. It's not just as simple as limiting saturated
+fat because cholesterol metabolism is so nuanced. There are so many other potentially way larger
+Well, actually not potentially, definitely way larger risk factors
+
+towards ASCVD. Like like your, you know, waist to hip ratio, your visceral fat, your overall
+inflammation, your metabolic health. So, there are reasons to limit saturated fat, right? Because it
+just increases the atherogenicity of the lipoproteins in your blood.
+
+But I think like for the average unhealthy population, yes, like stop stop having so much butter.
+You know, may maybe watch out for like the super super fatty steak.
+
+It's probably a good idea on population advice. But you know, for us, where we are more aware of all
+these independent variables that contribute to our ASCVD risk, I think you know, it's better to
+treat it on a
+
+case-by-case basis. And we know that cholesterol is not for longevity and all-cause mortality, it's
+not the lower the better. Like you know, if you're on the Patreon of Mike Lustgarten, you will know
+that like these lipoproteins,
+
+it's not you don't want to push them to zero, contrary to what a lot of um cardio cardiologists will
+have you to believe because they have roles independent in brain health, independent of like
+trafficking cholesterol and fat. So,
+
+really it I think in terms of the longevity people, we have to treat it on a case-by-case basis. You
+have to look at all your other metabolic markers, your your inflammation, and all that.
+
+And also, like we know that for For right? For high-fat dairy, even if high-fat dairy is so high in
+saturated fat, high-fat dairy is consistently associated through all the confounders with better
+cardiovascular health and all cause
+
+mortality outcomes. So, it's a complicated story. On a population level, I would say limited, you
+know, like probably just follow the guidelines, but you know, with with us, you know, we have to
+treat it on a case-by-case basis. It's
+
+probably not a good idea to like have your diet to be like full of red meat because fatty red meat
+has other issues, right? Because Yeah, but like saturated fat, I think it's definitely not the
+bogeyman. Like it may be may make sense
+
+to limit it.
+
+It also, like you said, it depends on what kind of saturated fat it is, right?
+
+Is it, you know, medium-chain triglycerides?
+
+Is it coming from is it palmitic acid, you know, is it other types of saturated fat? So, it really
+all needs to be treated on a case-by-case basis, but in general, unless your saturated fat is from
+like
+
+genuinely unprocessed whole foods, like relatively lean meats, fish, like cocoa butter, you know,
+like the little bit of saturated fat in in like plant fat sources, generally, if it's not from
+there, if we think about saturated fat, if it's not
+
+from like high-quality dairy, if it's not from the it's probably from like more processed food. So,
+it might be a good idea to reduce it, but it's a complicated story at the end of the day,
+
+you know, you really need to treat it on a case-by-case basis. Any thoughts on C15?
+
+I think the evidence is weak for it.
+
+But, uh you know, I wouldn't say it's a whole lot of nothing. But, for fat other than that, you
+know, I said for protein, I have a lot of fish, so obviously that covers my DHA and EPA. Nuts and
+seeds as
+
+well as part of a a varied and high volume plant approach to my diet, so that will cover the ALA
+part of it. Not that Not that there's really any strong evidence that you need omega-3 ALA when your
+your DHA and EPA
+
+is sufficient. Like they don't really have any roles that are in like independently require ALA in
+situations where DHA and EPA are abundant. But, you know, nuts have like a super strong association
+with, you know, reduced I
+
+have plenty of nuts for fat.
+
+I'm not like Mike where I have like zero oil and all fat is from food. I have, you know, olive oil.
+
+And, uh sometimes, yeah, avocado oil if I'm like doing like a fast or something, I might introduce a
+little bit of MCT oil. Oh, also, like it's not just your food source. I think a lot of people
+
+miss out on this. Like your cooking method matters a lot.
+
+Like AGEs are are you pretty big. You don't want to like people need to stop associating tasty food
+with crispy stuff. Like it doesn't have to be brown.
+
+Like try steaming something. You know, I think that's a big part of like my approach. Like it's not
+just the food sources. I think, you know, for us like longevity people, we all have a good idea of
+what healthy diet a
+
+healthy diet looks like, you know, apart from like some of the crazy like carnivores or sugar diet
+people. But, those may have like long-term I mean, sorry, short-term acute benefits in your
+reversing certain issues with metabolic health, but you
+
+know, I think most of us we have like a good intuition about what healthy food sources are like, but
+I think also like methods of cooking more water-based, less like AGE formation, less heat.
+
+I don't know why, but this was a real hard pill to swallow for me that this AGE and PHE, right?
+
+Um What What would you say? All right, you make a a good steak on the grill and you burn it a little
+bit, right? It's a little >> It is good. It's a little little black on on the outside,
+
+Like I'm like, no [ __ ] way, it has the protein, it has the protein. You It can't be bad for you.
+Yeah, yeah.
+
+That's so difficult for a lot of people to accept. I think that's that's one of the things with
+these like animal-based people. Like I know carnivore has its it's very strong in the short term for
+
+like nice it's potential therapeutic benefits for like epilepsy, for acutely reversing insulin
+resistance, but I think a lot of these people, they just like don't accept the fact that like like
+nice-tasting meat, even if it's like
+
+free of like the BS, if you make it into a steak, like there are still parts of it that can be
+uniquely harmful to your health.
+
+I think they just don't want to accept that, unfortunately. Tell me a bit more about your work. I
+know you're a student.
+
+And perhaps you don't even have dreams yet. You have no idea where you're going to end up in life.
+
+Perhaps you're going to you're going to work with me on the longevity work up developing the new
+biological aging clock or something.
+
+I can tell you I hate coding. I hate coding. My research involves a lot of coding and I hate it.
+
+Yeah, don't worry, coding doesn't exist anymore. It's Yeah, that's true. It's all about vibes.
+
+And a little bit of weed, maybe. While you have the AI to write your code.
+
+Yeah, you don't hate it anymore. So, okay, do you have any plans for the future like that or you're
+just trying to survive med school?
+
+You know, at the moment, I'm not I'm not in med school yet, by the way. I'm still an undergrad, so.
+
+Okay, I don't even know what that means.
+
+Yeah, it depends on the country, but in North America, the med school is a doctorate degree.
+
+So, it's not your bachelor's. Uh-huh.
+
+Uh-huh. Okay, I I see. I see. All right.
+
+Right now, you know, I'm still in undergrad for nutritional sciences and neuroscience.
+
+You want to ask about the the professional stuff. Um I uh I do research in uh microbiome,
+bioinformatics, and uh cancer, and uh you know, how nutrition affects that, particularly. I've been
+working on a project related to how flaxseed lignans
+
+modulate uh microbiome functions that uh are produce certain metabolites that travel to the mammary
+gland to uh influence microRNAs in the host that affect breast cancer. I know that's a whole lot,
+but that's uh That's what I'm doing at the moment in
+
+terms of like my you know, professional scientific uh focus. But, other than that, like uh I also uh
+after graduation, I don't know yet, you know, like I don't know if I'm going to do straight
+academia.

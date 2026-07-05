@@ -1,0 +1,16 @@
+# HRV Specific Training
+
+Video: https://www.youtube.com/watch?v=Hf7FsSrKbi0
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 2/2 units; 78/78 words.
+Matched topics: HRV, exercise
+
+## Focused Transcript
+
+I do like to listen to my body and compare that also with the data that I've gathered particularly
+overnight but but the HRV numbers the resting heart rate overnight can be a great indication as to
+how well my body is
+
+recovered and um I will look to that to say okay what is my workout today how hard am I going what
+recovery do I need is today a rest day um those sorts of things

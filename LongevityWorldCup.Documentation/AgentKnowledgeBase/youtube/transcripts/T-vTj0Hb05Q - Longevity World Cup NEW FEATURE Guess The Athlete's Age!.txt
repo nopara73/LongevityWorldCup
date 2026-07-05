@@ -1,0 +1,18 @@
+# Longevity World Cup NEW FEATURE: Guess The Athlete's Age!
+
+Video: https://www.youtube.com/watch?v=T-vTj0Hb05Q
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 4/5 units; 70/81 words.
+Matched topics: Longevity World Cup, longevity
+
+## Focused Transcript
+
+You know what I'm going to do with the longevity world cup in the coming days?
+
+I'm going to implement a little feature that I don't show any athlete any of the ages of the
+athletes, but people will have to guess before they see their their age, right?
+
+>> Yeah, that's a good game.
+
+>> Yeah. And and then what we're going to have is like an estimation of a crowd.

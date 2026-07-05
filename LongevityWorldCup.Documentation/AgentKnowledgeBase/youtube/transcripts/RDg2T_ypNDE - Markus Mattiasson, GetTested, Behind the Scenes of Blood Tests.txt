@@ -1,0 +1,1286 @@
+# Markus Mattiasson, GetTested, Behind the Scenes of Blood Tests
+
+Video: https://www.youtube.com/watch?v=RDg2T_ypNDE
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 515/709 units; 9298/11587 words.
+Matched topics: Bryan Johnson, Longevity World Cup, PhenoAge, Rejuvenation Olympics, VO2 max, aging, aging clock, biological age, biomarkers, cholesterol, epigenetics, exercise, hallmarks of aging, inflammation, lifespan, longevity, longevity athlete, longevity sport, medicine, mortality, nutrition, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+Though my formal education is in biomedical science, where I hold a master's degree.
+
+But most of what we're going to talk about today, or my interest in health and longevity space, is
+largely based on my own personal interests.
+
+Partly it depends on how the blood was stored or how long the time was between sampling and analysis
+for like venous blood sampling.
+
+Venous blood samples are typically analyzed within like hours in most cases.
+
+So that that's where like temperature and the the state of the blood can come into play.
+
+Chronic caloric restriction is not applicable to humans in a longevity setting, because that will
+lead to frailty over time.
+
+Marcus Mattiasson from gettested.io.
+
+You've reached out to me because you were excited about the Longevity World Cup.
+
+I want to talk about longevity as a sport with you, but I also want to talk about gettested.io
+because to my knowledge, this is the most comprehensive home test kit company in the entire
+internet.
+
+That's something that we must talk about.
+
+But before anything, can you tell a bit about yourself and your expertise?
+
+So my formal education is in biomedical science, where I hold a master's But most of what we're
+going to talk about today or my interest in the health and longevity space is largely based on my
+own personal interest.
+
+So that's where I'm coming from.
+
+your work is my own personal interest.
+
+Tell me about gettested.io a little bit, introduce us to the company.
+
+So Get Tested is, like you mentioned, home, primarily a home testing company where we offer a range
+of different lab tests and also rapid tests as of the last few years or so.
+
+We've been in business for coming up on five years at this point in January of next year and
+basically have grown organically since day one with no external funding whatsoever.
+
+So when I joined the company, was basically only three of us.
+
+Now we're probably closer to like 50 people in total across spread across the world.
+
+that's probably our biggest challenge and something, but still something we're really looking into
+making.
+
+And that's also where part of my interests, I mean, obviously I have a personal interest in health
+and longevity, but I also have a keen interest in reliable lab testing and have quite a bit of
+insight into the difficulties of lab testing,
+
+standardization, accuracy, stuff like that.
+
+It's always tricky when you collect data and samples from different labs and then compare them,
+which is why ideally you would use one and the same lab.
+
+Obviously, it's hard to do because there's also other points of error that can occur.
+
+But yeah, so that's probably the intersection between like our company and my personal interest in
+the longevity world cup, because yeah, obviously I want the competition to be as fair as possible
+while at the same time being accessible to the most people as
+
+Because when it comes to health and longevity, we're probably just scratch the surface in terms of,
+mean, it's a very niche field.
+
+Very few people actually have access to like blood testing or testing whatsoever.
+
+And I guess it's a privilege to actually be able to play around with stuff like this because a lot
+of people don't even have food on their table.
+
+You said that you have quite a lot of insights on how problems might occur in a laboratory during
+testing.
+
+So let me tell you a story and I'm wondering if you have any tips or ideas how this nightmare has
+occurred to me personally.
+
+In the beginning of the year, I traveled to Prospera.
+
+Prospera in Honduras.
+
+It is a free economic zone, but there was a new clinic opening right in the place where I was
+living.
+
+the person who was running the clinic left and the clinic...
+
+there was a power vacuum there.
+
+There was a problem because I needed blood tests for the longevity World Cup.
+
+the doctors there, of course, are not going to open like a call-and-lea link where people can book
+appointments and stuff.
+
+was a clinic that was just, know, people were just getting it set up.
+
+So I kind of feel in that power vacuum.
+
+I took the entire clinic and started to do the blood tests.
+
+So they were doing the blood tests, but we had to take it to other places, of course, because we
+didn't have the equipment to analyze them.
+
+And the hospital in Roatan, the island is called Roatan, the hospital was doing the blood tests.
+
+and around 10 people one day and I noticed or we noticed that half of the longevity world cup
+biomarkers were way off like what it was almost like everyone was iron deficient and stuff like that
+and you wouldn't notice, you know.
+
+when you only do it for yourself, but when you do it for ten people and every single person has very
+high alkaline phosphatase or other kinds of problems, then you're noticing that the entire batch of
+things are wrong.
+
+And then we went to the hospital, we were talking to them and they fixed stuff But then they ruined
+other stuff like they mixed up units of albumin.
+
+So anyway, there was a lot of back and forth and every now and then there were things after we
+finally fixed everything, there were still things they were wrong.
+
+So some people we had to took their blood four times.
+
+You know, so anyhow This I notice that even the traditional hair care system with the gold standards
+of blood tests are very unreliable so How could how could such such things even happen, you know,
+that's my question
+
+Well, I mean, obviously it partly depends on how the blood was stored or how long the time was
+between sampling and analysis.
+
+for like venous blood sampling, venous blood samples are typically analyzed within like hours in
+most cases.
+
+So that's where like temperature and the state of the blood can come into play.
+
+Also, I mean, kind of sounds like an issue with calibration when it comes to the analytical devices
+or methods used.
+
+when the thing is, when you're opening up a new clinic or a lab, you basically have to calibrate the
+equipment properly and you need someone who actually knows what they're doing, which I mean, if you
+have like 10 lab technicians, they similar to other jobs.
+
+they will be better or worse at their job.
+
+And if they're, I mean, they wouldn't be completely new to things if they're setting up a new clinic
+or lab, but that's the first thing that comes to mind.
+
+But there can also be other unknown errors.
+
+But if it's like a trend or a pattern, then there's definitely either something wrong with the
+sampling or the storage of the samples between sampling and analysis and or something wrong with the
+analysis itself where the calibration was off, or they even used the wrong method to
+
+analyze the samples, for example, for a clinic that I was working with previously, they switched
+from one lab to another.
+
+And all of a sudden, all of their sync values were off the charts.
+
+So they noticed this and then eventually contacted the new lab to ask them about it.
+
+And it turns out that they used the wrong analysis.
+
+But it's hard to say.
+
+Sometimes you don't really know.
+
+But these things happen, which is also why it's important to...
+
+Well, for one, I think for the Longevity World Cup, have a standardized methods as possible, but
+also following the trend.
+
+have blood work at least quarterly and have been doing so for the last 10 to 15 years or so.
+
+And that's largely because I want to follow the trend over time.
+
+I'm not necessarily interested in like a one-off test result.
+
+I'm more so interested in how my blood work changes over time and to what degree different things
+that I do in my daily life or my daily habits affect my personal blood work, for example, or other
+types of test results.
+
+So, why did you get interested in the longevity World Cup?
+
+I mean, I have a keen interest in health and longevity.
+
+think it's kind of like play.
+
+I have a background in different types of sports and athletics and stuff like that.
+
+And basically have to do something of a competitive nature compared to what I did previously.
+
+And I think it's a fun thing.
+
+I mean, obviously like data.
+
+love I like tracking results.
+
+like following trends.
+
+So I like following, for example, no matter the type of, I mean, I think it's interesting to just
+look at your blood work, my blood work compared to someone else and see how the data differs between
+different individuals, tracking trends, seeing how different things
+
+affect different individuals, because that's also something that you learn when working with clients
+or patients that people respond very differently to different types of insults or stimuli.
+
+And that's also something I think it's very important and also very interesting to actually learn
+and see.
+
+I guess you get, I think you become very humble when you see how different we all are.
+
+So if you were to follow someone on each extreme of the spectrum, some things might apply to you
+while others might not.
+
+And then you might end up somewhere in between.
+
+So I think it's That's what I mean with it's it's meaning that I mean everyone lives their own
+truth, right?
+
+So someone is following a carnivore diet and saying that's the best thing you could do for your
+health.
+
+Whereas another one is a raw vegan.
+
+Now, none of those types of diets are probably applicable to the broader population, but there are
+probably bits and pieces you can pick and choose here and there.
+
+What's your truth?
+
+I mean, I've done every type of diet under the sun over the last 20 to 25 years or so, and I
+probably ended up somewhere in between.
+
+I think we're all on the spectrum from anywhere between like 95 % animal-based to 95 % plant-based,
+but most people probably end up somewhere in between, which is why like a Mediterranean diet is
+probably, I mean, it's kind of like the middle way, right?
+
+It's also the most well-studied diet, and that's where a lot of people end up because it's...
+
+quite balanced, maybe boring, but quite balanced and quite applicable to most people.
+
+Yeah, You know, here it's pretty difficult to eat the Mediterranean diet because it's a landlocked
+country, so things are expensive and unavailable.
+
+Yeah, yeah, and that's also something you obviously need to take into account.
+
+mean, your In what country you're living in?
+
+So for example here in, yeah, you're living in Hungary, I live in Scandinavia or in Sweden.
+
+So look, you said the longevity workup is fun and it might provide some motivation.
+
+Why wouldn't other sports provide the same motivation and the same fun for you?
+
+Well, they do, but it's also kind of like, I mean, lot of sports are, if you're looking at it from a
+performance perspective, you basically peak in your twenties, maybe early thirties, depending on the
+case.
+
+Now, obviously talking about longevity, you might say that, well, you should never peak because you
+should always grow younger.
+
+But at the same time, it's something you can be doing for, I mean, The goal is to do it for the rest
+of your life, however long you will live.
+
+So that's, I mean, it's just a logical thing to focus on, like the actual longevity of things rather
+than a particular sport, for example.
+
+There was someone, I can't recall who, but someone's motivation to join the longevity World Cup was,
+it seems this is the logica thing to do.
+
+Yeah, that sums it up.
+
+Okay, and do you have a vision for the future longevity as a sport?
+
+What can we achieve with this thing?
+
+I mean, it's not like MMA or it's not really that action packed.
+
+So I don't know how to actually monetize it from a viewing perspective or let's say you're a fan of
+longevity sports, for example.
+
+I guess it depends on what type of person you are.
+
+I I just enjoy looking at the data.
+
+It probably depends on the person, but I think it's interesting from the point of view where we push
+the boundaries of human health and longevity and also integrate it more so into like society.
+
+And over time, think that health will be much more valued as an asset because I think that maybe
+over time, Money will become more more obsolete.
+
+think more and more people will have a better quality of life just based upon human progress.
+
+Hopefully, at least when we start working towards a common goal.
+
+Obviously, status will always be a major role just based upon our human nature.
+
+But other than that, definitely think health will be one of our most valued assets because if you
+don't have your health, then you don't really have anything.
+
+Yeah, that's right.
+
+That's pretty much why I started to get involved in the longevity in the first place because, you
+know, it's nice to...
+
+And it's nice to be on the...
+
+in the middle of the flow of money, but you're just...
+
+your health is going to suffer if you're focusing on other things than health, So yeah, it's a good
+place to position yourself in the middle of the flow of health, I guess.
+
+Perhaps you become healthier as well.
+
+And what do you think about the Rejuvenation Olympics?
+
+I think obviously it's the biggest, I guess you could say competitor to the Longevity World Cup.
+
+think basing it on a single aggregate marker like the DuneRudin pace is flawed.
+
+I think we don't really know what...
+
+I think DNA methylation and markers like the DuneRudin pace are similar.
+
+biological age estimates or aging estimates are good to some degree, but I don't think they tell the
+entire story or paint the entire picture.
+
+So I think it's better to be more inclusive and include more.
+
+I mean, obviously you could say that it's like an aggregate marker based upon thousands of
+epigenetic biomarker proxies or EBPs, but I don't know.
+
+mean, I put more emphasis on like basic blood work markers.
+
+Still, I still like to see, still personally would like to see like a Duneidin pace on top of
+everything else, because I think they can, ideally they should correlate with each other.
+
+But I don't think we fully understand what the Duneidin pace actually says.
+
+And I also think it's based upon somewhat of a narrow a subset of the population and it doesn't take
+into account the range of different ethnicities.
+
+So for example, it will tell you what has changed over the last two to three months or so.
+
+But I don't think that actually holds up when you look at it.
+
+I think it can change quite drastically from one day to another, which is why I would rather.
+
+look at like basic blood work, because that's what I'm comfortable with interpreting.
+
+And that's what most things are rooted in.
+
+I think it's a complimentary marker, but I would rather follow basic blood work.
+
+And that's where most of my emphasis is on, which is also why I am more in favor of the Longevity
+World Cup rather than the Rejuvenation Olympics, because I really think you can game.
+
+Well, you can game anything.
+
+I mean, you can game blood work.
+
+For example, if you were to pick and choose like a single result rather than a full panel, if you
+know what I mean, you can game your creatinine or you can game this or that if you
+
+want to have lower or higher for whatever reason, which is why you would rather use like a set of
+results, not just pick and choose single ones if you know what I mean.
+
+This reminded me of Siim Land just created a video.
+
+so Bryan Johnson tweeted his biomarkers and said that, show me a person who has better biomarkers in
+the entire world than I have.
+
+And Siim Land created a video comparing his biomarkers with Bryan Johnson's biomarkers and one of
+the very few biomarkers were Bryan's biomarkers were better.
+
+Almost all of them was in favor of Siim Land's, but one of the very few was the Needon pace.
+
+And Sim mentioned that Bryan is testing 20 something times a year.
+
+Sim has tested it around three times in his entire life, right?
+
+So yeah, that's one way of gaming it.
+
+Testing like every week for a year, you'll probably have some better or worse numbers and you can
+choose the better ones.
+
+But that's also why I think blood.
+
+So if you look at Bryan's blood work, I mean, it's nothing out of the ordinary, to be honest.
+
+I mean, it's nothing I haven't seen in seven to eight out of some of my healthiest clients, to be
+honest.
+
+And Siim Land's blood work is way better than Bryan's and Siim Land's blood work is, mean, it's
+great, but it's still nothing that if you really focus on your health, wouldn't be able to achieve.
+
+So I think it's meaningless having these discussions, having the best blood work in the world is
+kind of like, I think you need more than just blood work.
+
+That is why, that's where For example, if you were to have a competition like you mentioned in the
+past, you have like leaderboard and the top 10 will go to a remote island and do all sorts of
+advanced
+
+health testing and scans and stuff like that.
+
+That's where you can really figure out who's the quote unquote healthiest person in the world.
+
+Yeah, that would be really real fun, right?
+
+actually in contact with the documentary maker.
+
+He's pretty famous, but it's just too early for this, but he likes the idea.
+
+how would that look like?
+
+Of course I have my own imagination, but I would like you to run your imagination.
+
+How would you imagine that?
+
+Well, I guess it would involve an advanced and comprehensive set of blood work to begin with under
+standardized conditions.
+
+So basically you run everyone into like a three to five day set plan and that can be based upon to
+some degree their own individual preferences because for example, if you collect 10 different
+people, they will have, I mean, you can't really standardize the diet.
+
+to be the same for each and every one because there might be dietary differences.
+
+But to some degree, at least, standardize the diet for each individual with some overlap, perhaps,
+depending on the case.
+
+And then you would run.
+
+that part of the game here?
+
+What do you mean?
+
+Well, if I choose to not eat meat, then that's my strategy for this game, right?
+
+I mean, you wouldn't put everyone on, that would be a personal preference.
+
+So you wouldn't put everyone on a vegan diet or everyone on a certain type of diet.
+
+So the dietary preference would be standardized, still standardized to the individual, so to speak.
+
+And then the living conditions and everything would be standardized.
+
+And then you would have them do basically different types of health tests.
+
+So that could be like a VO2 max test.
+
+That could be different types of strength tests.
+
+And then it could be advanced scans of different kinds to full body MRI stuff like that.
+
+they can be, I yeah, all of these types of tests and methods, they have their upsides and downsides,
+but that's where you would take everything into account.
+
+let's say you have hundreds of thousands of different data points, then you would aggregate them all
+into like this health score.
+
+And then the health score would be like, determining factor.
+
+So one might have better strength, one might have better cardiovascular fitness, one might have
+better metabolic markers or whatever it might be.
+
+There will be similarities because if you're in great cardiovascular condition, your metabolic
+health should follow, but your strength might not to the same degree, whereas one might be stronger,
+but in worse cardiometabolic shape, for example.
+
+That's where an aggregate would come into play and actually determine the health score.
+
+that's where I mean, in the end, it will be a sport for the privileged to a large degree.
+
+So in some sense, the sport of the times always, and now the e-sports, always reflect the cool new
+technology, know?
+
+The thing that people wanna get good at, like being with computer, then I wanna get good at playing
+games, I don't know.
+
+The point here is that longevity as a sport might have...
+
+show a similar trajectory there that when people starting to not realize when, yes, realize, but we
+have to demonstrate it first that longevity escape velocity can be reached, When we start to
+demonstrate people, let's say, look at Dave Pasco, right?
+
+He's 63 years old.
+
+He looks, I don't know, 40 years old or something, but he doesn't look 18 years old, he doesn't look
+21.
+
+He is the best example of someone who looks much younger to his age, but still you can see that he
+lived through some shit, you know?
+
+Yeah, as soon as we can demonstrate something...
+
+like age reversal, perhaps we double the mouse's lifespan, I don't know.
+
+As soon as we get there, then longevity gonna be more popular and perhaps the sport of longevity is
+going to drive that popularity, right?
+
+Like, I don't care about cars, but when I was young, I started caring about Formula One racing and
+then started caring about cars as extension, you know?
+
+the Greeks, the Olympia, right?
+
+At first, the people, the rich people went to play the games of the gods, at first, it was the rich
+people.
+
+think Demi Moore looks very young still.
+
+There are also a few others that look very young.
+
+But we're far away from age reversal.
+
+with our current means, diet and lifestyle still accounts for like 90 to 95%.
+
+there are really no therapies that provide any degree of reliable age reversal.
+
+There are therapies that do provide an increased degree of resilience as we age.
+
+but there's really no therapies that provide any reliable age reversal.
+
+there will be, it will require biomedical, progress in biomedical science to actually get somewhere
+where we can reliably reverse someone's age.
+
+And how do we demonstrate that we reversed a person's age?
+
+Yeah, I get, think we would probably need to, I mean, obviously, appearance is one thing.
+
+I mean, if you, I mean, so for example, with Bryan Johnson, obviously he looks, I mean, I don't know
+if he actually looks younger.
+
+I guess that's, it looks different.
+
+But I don't know if he actually looks younger, but obviously what he has achieved in, I don't know,
+maybe five to seven years going from like a depressed.
+
+slightly overweight entrepreneur to where he's at right now.
+
+mean, he's obviously still, I mean, he might not have the best biomarkers in the world, but he's
+still in top 1 % of health, just objectively speaking.
+
+And this has been achieved in like five to seven years time.
+
+Sure, you can say he spent millions on his health, but it's still something that is achievable for a
+lot of people with far less means.
+
+So a lot can be achieved with relatively simple means through just diet and lifestyle.
+
+But if we really want to push beyond our current trajectory, let's say 120 years, we really need
+some kind of medical intervention.
+
+What that is, I mean, it's hard to say how we measure it.
+
+It will probably be a number of things.
+
+I mean, do like DNA methylation, other types of biomarkers.
+
+mean, the real future is probably in multiomics.
+
+So where we look at everything from like lipidomics, metabolomics, proteomics, epigenetics,
+different types of omics.
+
+Can we go into that one?
+
+Because a lot of time has been talked about, but can you explain the differences between the
+differences?
+
+what are these omics?
+
+What kind of animals are they?
+
+And what are the differences?
+
+Well, omics is basically just a fancy scientific term, I guess you could say.
+
+I mean, you always have genetics.
+
+So that's hardwired into our DNA.
+
+And then we have epigenetics which is basically everything on top of our DNA.
+
+So that is influenced by like diet, lifestyle, other types of.
+
+Okay, so we have genetics which is hardwired into the DNA.
+
+Fine, and on top of epigenetics, on top of it is epigenetics.
+
+how do I imagine epigenetics?
+
+So DNA methylation is one type of epigenetic feature where the DNA is either active or inactive due
+to the DNA methylation patterns in the actual genome.
+
+So for example, genes can be turned on or off through epigenetic modifications such as methylation.
+
+So methylation.
+
+in its simplest term is basically just the addition or subtraction of a methyl group.
+
+So that's one carbon with three hydrogens, which is just added on or off, which can make DNA more
+accessible or not.
+
+So that's one type of epigenetic feature.
+
+And then there's obviously very many different layers on top of that.
+
+So let's say the gene is still there, but I can kind of like or...
+
+So it's bound up and you can't access it.
+
+So it can't be transcribed into RNA and then into protein, which in turn, so basically if you have
+an oncogene, which can affect cancerous processes, if that's turned off, then that will lessen the
+likelihood of you developing cancer over time, for example.
+
+so can I do it right now on myself?
+
+It's probably happening in every millisecond of every day, but it's probably, I mean, it has been
+shown that we can change the DNA methylation patterns.
+
+So for example, Kara Fitzgerald, which is a functional medicine doctor, I think she did a study.
+
+I think it's, well, she has like a younger you program or something like that.
+
+think it's called, and it's based on the study that she did and that they did.
+
+where they basically proved at least to the degree to which we can prove things through science,
+that the DNA methylation patterns changed in the individuals in the study, which was over like, I
+don't know, a couple of months time.
+
+And that was primarily just through diet and lifestyle.
+
+So you can definitely change things over it's things that happen around the clock Let me keep asking
+stupid questions here.
+
+So I go get a full genome sequencing.
+
+And then I'm like, hey, I don't like that gene and that gene and that gene.
+
+To my knowledge, there are gene editing...
+
+tools available in certain circumstances, but it's not globally available.
+
+But over time, it will probably be more and more so available for less problematic genes, but still
+genes that do have problems.
+
+So for example, now or in the near future, it's limited to like genes related to like muscle
+dystrophy or types of conditions, so rare genetic conditions which account for maybe 0.5 % or less
+than 0.5 % of diseases.
+
+But over time, you will probably be able to edit more or less whatever you want, would say.
+
+But there are still risks involved.
+
+So for example, I know there's folistatin gene therapy, for example, but I don't In that case, you
+don't knock out the gene entirely.
+
+You modify it epigenetically, at least to my understanding, for maybe, let's say, two years' time.
+
+So you limit the expression or increase the expression of certain genes for a limited period of
+time.
+
+But you will be able to, in a lab, it's relevant, and this is done every day in science where you...
+
+You breed knockout mice and then you test your hypothesis whether this or that gene does this or
+that or if that confers some type of health benefit, for example.
+
+But it's quite complex and it's not something that is readily available to humans, at least not at
+this point in time.
+
+But over time, these methods would definitely be refined and more readily available.
+
+But they still definitely involve some risk, at least at this point in time.
+
+fine, we get genetics and epigenetics.
+
+Well, so epigenetics can be a whole host of things, but if we're talking from a metabolomic point of
+view, there was obviously different types of metabolites.
+
+So for example, in functional medicine, can use, they're still relatively simple tests from a
+broader metabolomic point of view, because metabolomics, mean, if you run a metabolomic analysis,
+there will be so much noise.
+
+There will be thousands of markers and we don't know what half of them actually do.
+
+I get a single word that you uttered there.
+
+Bring it down to my level.
+
+For example, you can in diabetes, for example, you can see a different, a certain type of metabolic
+pattern compared to a healthy individual.
+
+what research obviously wants to do is to figure out, okay, so how can we intervene in this
+metabolic pattern to...
+
+improve the disease state.
+
+But in other cases, so for example, in diabetes, from ecologically, you would want to do something
+to be able to pattern the medication and make money, but you can obviously do a whole lot of things
+just on your own through diet and lifestyle to improve the metabolic
+
+state of a deceased individual with diabetes, for example.
+
+But metabolomics is really It's a really tricky field of research.
+
+There's so much noise and we really don't know.
+
+with AI machine learning, we can probably get better at figuring out what all of the different
+metabolites or markers actually do, but it's a very noisy field of research.
+
+And then there's other fields of research where it's probably more clear what things do and it's
+easier to figure out what is, what things, how to change the pattern, for example.
+
+So there are different types of companies nowadays that offer metabolomic testing or proteomic
+testing.
+
+for example, Vero Sciences is coming up with a proteomics test, which will be interesting.
+
+But it's still kind of a lot of these companies do it's like kind of like citizen science where
+they, astrology wait no astronomy Yeah, they offer a test.
+
+then based on the data from their customers, they will be able to develop the test and improve it
+over time.
+
+But multiomics is definitely the direction we're moving in when it comes to the field of health and
+longevity.
+
+But there's way too much noise to actually figure out or get something meaningful.
+
+out of it, it still boils down to relatively simple diet and lifestyle practices in the end.
+
+So why is it interesting or revolutionary?
+
+Do you even do that?
+
+you get tested, do you do proteomics, epigenetics and Do you do these or you're only doing more
+traditional blood tests?
+
+we mostly offer, well, we do offer different, a whole range of different types of tests.
+
+We're not that much.
+
+But I think it's always interesting to layer things on top of each other.
+
+So for example, layer blood, saliva, stool, urine, different results on top of each other to get a
+better understanding of the organism as a whole.
+
+But these tests will, I think it's far away until they're clinically validated.
+
+It's more so like a fun thing to try and add on top of the other things that I mean, I still think
+basic blood work is like number one.
+
+So if one were to do like one thing, it would be to at least get annual blood work.
+
+And then you can layer things on top of that, depending on your budget and what you're interested
+in.
+
+So I think there are some simple things you can do on top of that, for example, make sure that your
+omega-3 index is optimized, which is relatively simple and affordable.
+
+And then the list goes on depending on your budget and what you're actually looking into.
+
+And what did we get?
+
+That's right, that's right.
+
+Okay, so let's talk about gettested.io Specifically, let's talk about its biological age and
+longevity test.
+
+euro what does it measure So it measures DNA methylation similar to other tests of the kind.
+
+ah of it?
+
+So what do I get?
+
+DNA methylation, other people, other tests, for example, the output Dunedin PACE, right?
+
+What do you output?
+
+Do you know?
+
+Yeah, so the output you get is line one, DNA stability, and then different types of age-related
+methylation patterns which are related to basically the global methylation pattern.
+
+What you typically look at is methylation patterns in white blood cells.
+
+You can look at it in different ways.
+
+So for example, a lot of companies similar to ours.
+
+mean, criticism that companies get, which I understand is that it's often not open source because
+it's basically proprietary.
+
+And that is same for the test that we use through our lab.
+
+I would like to make it open source because then it's more, mean, this is what you get.
+
+And this is actually.
+
+what it tells you, and then you can compare it to different tests.
+
+But we try to make it as simple as possible where you look at specific sequence or a standardized
+sequence of DNA and then you get an actual number of the reference based on a reference value of the
+number of base pairs.
+
+and then looking at the report you have like a scale of the different markers that we're looking at
+so we're looking at telomere length which is kind of like well they're It's a popular thing to look
+at, but I don't put too much emphasis on that, at least not
+
+on its own.
+
+And then we have the NA stability, which also related to DNA methylation.
+
+Age-related methylation patterns, which is what most people are looking at, or most testing
+companies are looking at when it comes to these types of things.
+
+We also look at specific inflammatory methylation patterns, which are related to...
+
+different DNA methylation patterns in white blood cells, where some methylation patterns are related
+to more of a pro-inflammatory profile, for example, whereas other methylation patterns are related
+to less of an inflammatory profile or more of a regulatory profile,
+
+or guess, quote unquote, anti-inflammatory methylation profile or pattern.
+
+And then we also have an estimated allostatic load.
+
+So the estimated allostatic load is basically an aggregate of different microRNAs.
+
+So microRNAs are certain types of epigenetic factors rather, that have different types of roles in
+the body.
+
+this is Similar to many tests of these kinds, a lot of these things are somewhat experimental, where
+you know that a certain type of microRNA, for example, is related to this or that condition.
+
+So some microRNAs, whether being high or low, can be related to an increased risk of cardiovascular
+disease or cancer or metabolic conditions or what have you, where we've been debating whether to
+actually declare each and all of the different microRNAs.
+
+But I don't know, that can be somewhat confusing to the customer because, yeah, if you were to look
+each and every one up, at least at this point in time, I think it would cause more confusion and
+it's better to provide like an aggregate marker for estimated
+
+But I don't know, I mean, we're open to suggestion and if customers would rather want us to provide
+like an entire register of the microRNAs that we're actually looking at, I'm all for it.
+
+of this package it also outputs a biological age right um do you know where does that come from
+Yeah, so that is similar to, that is also an aggregate marker that is based upon, that takes the
+telomere length into account, DNA stability into account, age-related
+
+methylation into account, and the entirety of the report basically.
+
+So that is like an...
+
+it takes all of the results into account and gives you basically a biological age estimation or
+deviation from chronological age.
+
+So that can be anywhere between.
+
+minus will basically, however much, I mean, it can't be minus 100 % because then you wouldn't be
+alive, but that will give you like a percentage point.
+
+So it would kind of like be similar to dunedin pace, but it's more so, it's not so much the pace of
+aging.
+
+It's more so like a, estimate of your actual biological age.
+
+And I don't know the exact formula, how it's calculated, it's basically an algorithm.
+
+But if anyone is interested, I can obviously look it up.
+
+I guess what I'm most interested in regarding a formula here is that what basis did you say that
+it's 30 years old instead of 49 which is let's say the chronological age.
+
+you look at other people and they tend to have similar biomarkers at 30 years old or...
+
+So when looking at telomere length, example, albeit telomere length not being the best marker for
+biological age, there still are estimates, for example, if you have 10k base pair or 7k base pair.
+
+we also know that there are relatively reliable degradation patterns of telomeres, for example.
+
+So that's based on...
+
+Helemer equation of the estimation.
+
+And then there are similar to like the DunedinPACE DNA methylation patterns taking into account
+where you, for example, can see that a 40-year-old has this type of DNA methylation pattern or a
+50-year-old or a 60-year-old or 70-year-old.
+
+But I mean, this is based on the European population.
+
+So like a central European population.
+
+That's also something, so for example, the Dunedin pace is also based on somewhat of a limited
+population, which is why I think it's, if you want to track or follow, I think it's best to always
+track and follow different results over time.
+
+And then take all of them into account and see how they change rather than blindly follow one single
+marker, for example.
+
+So ideally, depending on one's finances or one's budget, I would track basic blood work.
+
+And then I would layer things on top of that, such as some kind of biological age tests, whether
+it's a Dunedin pace test or others, or ideally several ones to compare them to each other, because
+there will be markers that are off or that might not be very reliable.
+
+And I would never really put too much emphasis on like, if one, so for example, most of the
+biological age tests or estimates that I have done typically say that my biological age is anywhere
+between like
+
+22 to 24 or so.
+
+And I've done different types of, so I've done this, tests, I've done other types of tests,
+obviously just PhenoAge or the boar's blood age that we've discussed.
+
+And they typically give similar estimates.
+
+And if they give similar estimates, While I don't really put too much emphasis on being this or that
+number of years old from biological perspective, they still say something about your whole body
+health, I guess you
+
+Do you know how many tests did you sold from these biological aging clocks?
+
+Well, it's not our biggest seller, but we sell probably in the hundreds or so, I would say, but it's
+relatively new.
+
+I think we launched it maybe in Q2 of this year.
+
+So it's been a few months so far, but it's, I mean, in terms of sales, I would still say that the
+more affordable test sell more and more costly test anywhere between the three to 500 euro range.
+
+I mean, the volumes on those are definitely lower and it's kind of a niche type of test.
+
+So it's not really, I mean, it's not a best seller.
+
+And that's true for this field in general.
+
+I mean, it's relatively niche.
+
+niche field still.
+
+mean, there's a lot of buzz about longevity online and in, especially if you're in this circle or
+field, but in the broader scheme of things, it's very niche and still something that most people are
+probably not very much involved in yet, at least.
+
+in this longevity athlete circle, there is always a suggestion that you do your blood test and then
+you take your supplements, right?
+
+According to how your blood test is behaving.
+
+Okay, but we never really get to concretes here to specifics and I'd you to go to the specifics now.
+
+So what kind of tests should I get from Okay, I'm a longevity athlete, let's say.
+
+I wanna be the best longevity athlete in the I'm not doing traditional blood tests because doctors
+are very far from wherever I live, It's a hypothetical scenario.
+
+Therefore, my only option is to order from you what kind of tests should I order and based on its
+results what supplements should I take or consider taking.
+
+So we have, I mean, nowadays you can do quite a lot from home.
+
+So we have like a health test basic, is basically like a similar to like a basic blood work through
+venous testing, which tests for common vitamins and minerals.
+
+So vitamin B12 folate, vitamin D.
+
+liver kidney markers, other types of metabolic markers, lipids, stuff like that.
+
+It probably has like, I don't know exactly, but 30 different markers or so.
+
+And we also have other nutritional tests, such as our body panel 30, which measures different types
+of amino acids, also some vitamins and minerals and hormones.
+
+also have a new test that is more niche, I guess you could say, with 75 different biomarkers, which
+also tests for quite niche markers such as spermidine and spermine and stuff like might be
+interesting to some people in this space.
+
+what I would, I mean, would get like a still something similar to basic blood work, like a health
+test basic or something similar.
+
+And then I would layer nutritional additional nutritional testing on top of that, which would
+include things like vitamin B12, folate, other types of vitamins, vitamin D obviously, which is
+simple to optimize if you know your numbers, and especially if you track your results over time.
+
+I would have a fatty acids test done to optimize your omega-3 index, which is also relatively
+simple, especially if you track results over time.
+
+So basically something similar to basic blood work, albeit from home, and then nutritional testing
+on top of that.
+
+If one wants to test their NAD levels, you can also do that.
+
+We have an NAD test that have the, where we test for NAD, different types of NAD related
+metabolites, niacin, nicotinamide, types of vitamin B3, and also the ratio between them.
+
+But that's more of a like a niche type of test.
+
+think it's, if you, let's say you take NMN or NR, let's say.
+
+I think it's reasonable to measure your actual levels because they might be off the charts.
+
+Now, whether it's good or bad for them to be off the charts, not entirely understood.
+
+But I think if taking vitamin D, you should definitely know your numbers because you might need to
+take more, you might need to take less.
+
+And the same is true for omega-3s, especially if you're taking like algae-based omega-3s.
+
+They often don't contain...
+
+that much DHA and EPA, you probably need more than that.
+
+mean, a typical capsule of algae-based omega-3s probably contain maybe 60 to 80 milligrams of EPA
+and maybe two to 250 milligrams of DHA, which is, I mean, if we're talking about therapeutic levels
+or doses of EPA, you would need anywhere between eight to 1200
+
+milligrams or more, which would mean that you would need to take like 10 to 12 capsules of algae-
+based omega-3s.
+
+you're taking things that can actually be measured, I think it's reasonable to measure them.
+
+And the same is true for like vitamin B12 and folate and also homocysteine.
+
+If you don't know your methylation status, you don't necessarily need to do like a DNA test.
+
+It's better to have your vitamin B12, folate and homocysteine levels measured and then supplement
+accordingly and follow your results over time.
+
+Because it's highly...
+
+It can vary from person to person how much you need.
+
+So for example, I might need 50 micrograms of vitamin B12 to optimize my vitamin B12 levels where
+someone else might need 500 or a thousand, let's say.
+
+And if you don't test, don't really know what you're, I mean, most people probably are probably
+taking a whole host of supplements.
+
+I I take a lot of supplements because it's kind of like a fun thing to do.
+
+And it's basically my own N equals one.
+
+And I know that it won't yield me more than maybe 5 to 10%.
+
+But it's still something that I have the budget for and I'm willing to do.
+
+But most basic supplements is definitely something you should measure and see what your actual
+numbers are, because it's relatively simple to do nowadays.
+
+And it's quite accessible and affordable even with home testing.
+
+You don't necessarily need to have your blood drawn.
+
+you can pick your finger at home and have your blood tested and see where you're at.
+
+If you would want to, would you be able to put together a finger prick blood test package for every
+PhenoAge markers or is there a PhenoAge marker that you can't do?
+
+I think it's hard to do some.
+
+mean, we're still not there yet where everything can be reliably tested from home, unfortunately.
+
+I think within the next one to three years, maybe upwards of three to five years, we will be able to
+replace venous blood sampling almost entirely through new advancements in micro sampling.
+
+That's something you need to have venous blood drawn to do.
+
+You can have your hemoglobin tested for with like a device from home.
+
+You might even be able to test certain types of other blood markers related to a CDC or FVC through
+like a device from home.
+
+But are still advancements that need to be made with home testing and micro sampling to be able to
+have everything measured from home.
+
+But that's obviously the goal.
+
+I over time, I think with the new panel with 75 biomarkers, require maybe, somewhere between 100 to
+150 microliters of blood, whereas a regular blood tube is like five milliliters, which is, several
+times more blood than in
+
+So we can still test for quite a lot from home, but there are some markers that are tricky.
+
+So for example, folate has like an error rate of let's say 30%.
+
+Do you mean like folate has an error rate like that in traditional blood tests?
+
+No, with home sampling, With home sampling.
+
+LetsGetChecked and other companies in the US every well, for example, offer home testing.
+
+But I don't think anyone has the...
+
+range of tests that we do.
+
+I think we have somewhere in the number of 150 different tests in total, including both lab tests
+and rapid tests.
+
+I don't think anyone else has the same range of tests that we do.
+
+And we're always looking to expand upon our current portfolio and looking into getting into new
+markets over time with the goal of global coverage within the next, don't know, it's hard to say.
+
+Some markets are trickier than others, but the goal is definitely to cover all continents within the
+next few years.
+
+So are you in a different category from let's say through diagnostic?
+
+Are they some different kind of testing company?
+
+They use similar methods that we use in the sense that they use either microtainer tubes, so like
+small test tubes with like 500 microliters volume, or dried blood spot samples.
+
+think, they mostly use dried blood spot samples to my understanding.
+
+they, they, I mean, they have like, two different tests, so they have the true age test and then
+they have the TruHealth tests.
+
+And those are bigger tests.
+
+So the TruHealth test, for example, would maybe be similar to the body panel 75 test with 75
+biomarkers that we will launch.
+
+they're, TruHealth test rather would be the closest thing.
+
+to like a venous blood test, but they don't use traditional biomarkers.
+
+They use so-called epigenetic biomarker proxies or EBPs, which are similar to, or they're basically
+an aggregate of the traditional biomarkers.
+
+And they're relatively similar.
+
+in the body panel you will We use the actual traditional biomarkers.
+
+I mean, I think EBPs are interesting, but I'm still, and I think they can be complimentary to
+traditional biomarkers.
+
+But from a clinical perspective, I'm more comfortable interpreting traditional blood work still,
+because you, let's say I know someone has an APOB of below 50, for example, or 60 or 70 or whatever,
+then I know what that actually means from a clinical perspective,
+
+whereas if someone is in the lower 5 to 10 percent percentile of an APOB on like an estimated EBP or
+looking at EBPs, I don't really know what that means.
+
+And I'm not there yet where I can comfortably say that that's better than having an APB of below 50,
+let's say.
+
+Yeah, I'm a TruHealth subscriber, but are very serious growing pains in a sense that my evil plan
+was to do all my supplements based on these TruHealth results and it's not working that way.
+
+Yeah, I don't know.
+
+So for example, if you come to me with a vitamin D level of let's say 50 nanomoles per liter, I know
+I can reliably dose you to get you above 100 in eight to 12 weeks, say.
+
+Whereas if you were to come to me with a vitamin D level a range based on a TruHealth report, I
+wouldn't...
+
+really be able to reliably dose you based on those results.
+
+And that's where I would need to have a better understanding of how to apply the actual results in a
+clinical setting.
+
+So what do I actually need in terms of numbers to improve these results when it comes to vitamin D
+or omega-3 or what have you.
+
+Even vitamin D blood tests, for me, they are kind of going all over the place.
+
+Once I was deficient, once I was too much...
+
+Well, anyhow, I have a final question to you and I ask this question from everyone.
+
+What's one thing that you very strongly believe to be the case but very few people agree with you
+on?
+
+So I've thought about this since I've obviously watched some of your interviews in the past.
+
+I don't know.
+
+if Others don't believe this to be the case, but from an aging perspective, definitely think
+resilience is the most important thing and avoiding frailty is what we want to.
+
+And I think that a lot of the aging research needs to be looking at how we can improve resilience
+because a loss of resilience is probably the biggest factor to aging, at least the way I understand
+it.
+
+Uh-huh, uh-huh.
+
+Yeah, you see, I started to build this training system called longevity specific training and I'm
+trying to be very careful about my assumptions and the way that I'm proceeding with it.
+
+And right now I'm trying to figure out the goals of it.
+
+And I'm having problems with it because, because If you look at the current scientific paradigm of
+longevity science or geroscience, it is the hallmarks of aging, right?
+
+But if you read the papers, then you're going to find that the way that they are narrowing down what
+are these hallmarks, they have criteria really fundamental things.
+
+Those are happening in your body.
+
+if I would use that in the longevity specific training, then I wouldn't be able to, let's say,
+prescribe something like, well, look, you're probably going to fall and...
+
+end up in a pretty bad situation in your life because you fall.
+
+So you might want to practice fall training, right?
+
+Yeah, so everything that comes from the outside is outside of the scope of longevity science.
+
+That's what I'm trying to say.
+
+And what you're trying to say here is the anti-fragility aspect is pretty related to this because...
+
+Yeah, in the laboratory we have to keep the parameters.
+
+We like when everything else is constant, right?
+
+When all else is equal and then we can do our calculations.
+
+But on the other hand, in reality, all else is not equal and context is very relevant to your
+mortality and longevity.
+
+Yeah, and I think that's where things like chronic caloric restriction is not applicable to humans
+in a longevity setting because that will lead to frailty over time.
+
+I think that cyclical dieting or yes, that's definitely the case.
+
+mean, I think that might be something that I believe or strongly held opinion that others might not.
+
+agree with, but I definitely think that chronic caloric restriction is not applicable to humans over
+time.
+
+the intuition, but why do you think that I don't see the reasons?
+
+Well, I do think that cyclical dieting, intermittent fasting or time-restricted eating is a good
+approach.
+
+But I would rather have periods of fasting and feasting or approaching it from cyclical dieting
+approach of maybe having low, medium and high days where low days are maybe 20 % deficit, medium
+days are around maintenance and high days are maybe...
+
+10 to 20 surplus where you would have periods of increased autophagy and I guess clean up.
+
+And then you would have periods of maintenance and periods of growth because over time aging
+inevitably lead to frailty.
+
+And if we add chronic calorie restriction on top of that, well sure.
+
+You can extend the lifespan of mice in a laboratory setting under very strict conditions, but life,
+don't think human living, that's not really applicable to human living.
+
+And I definitely think that being chronically caloric restricted over time will lead to increased
+frailty, which is the opposite of what we want to.
+
+promote, especially when it comes to healthy aging.
+
+And I also think it's very tricky to, I definitely think that balancing anabolism and catabolism is
+important, because it's basically like a seesaw and both processes serve their function.
+
+But over time, aging is inevitably catabolic.
+
+And over time, you actually need to promote anabolism more so than catabolism because catabolism,
+will swing in the favor of catabolism as we age.
+
+And that's where things like growth promoters used correctly, and that can be everything from like
+diet, lifestyle, resistance training comes into play.
+
+All right, that's the bodybuilding mindset.
+
+Better wake up five times during sleep to eat something because otherwise your muscles gonna leave
+you.
+
+I definitely think it's good to have at least a 12 to 14 hour overnight fast or even an extended
+overnight fast, but I don't think you should be chronically, calorically restricted on top of that,
+at least not every day.
+
+it was a pleasure.

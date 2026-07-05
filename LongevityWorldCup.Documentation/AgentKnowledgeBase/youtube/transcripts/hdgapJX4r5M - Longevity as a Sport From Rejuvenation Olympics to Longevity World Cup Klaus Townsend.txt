@@ -1,0 +1,1046 @@
+# Longevity as a Sport: From Rejuvenation Olympics to Longevity World Cup | Klaus Townsend
+
+Video: https://www.youtube.com/watch?v=hdgapJX4r5M
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 340/383 units; 9947/10764 words.
+Matched topics: Longevity World Cup, Peter Diamandis, PhenoAge, Rejuvenation Olympics, aging, aging clock, biohacking, biological age, biomarkers, epigenetics, exercise, glucose, healthspan, lifespan, longevity, longevity sport, medicine, mortality, nutrition, pace of aging, rejuvenation
+
+## Focused Transcript
+
+Phenino age is probably the most widely used respected biological age cloak. But you know fo age is
+so old already. Why is it the most respected?
+
+>> The quality of the work was just so good. You've got 15 authors from all around the world.
+
+>> Will anyone end my class garden or Brian Johnson's reign in 2026?
+
+You know, I shouldn't even tell you this, but uh some people already sent me some boards boards
+numbers, and there was I I think he might end up starting at the top.
+
+[music] Yo, what's up party people? I just have the most exciting guest in the house, Claus Town. I
+am really excited about this because we're going to talk about longevity as a sport and how it's
+it's
+
+it's coming up from literally nothing, right?
+
+Th this is at one point this is going to be the next big thing. But Klaus is one of the few people
+who are creating the what would you say in in certain game gaming circus there are a thing called
+
+meta. you know the things those happen outside of the game and you are one of the people or perhaps
+one yeah one of the most enthusiastic that was creating this meta mythology of longevity as a as
+
+a sport welcome to the show thanks man that's really generous of you to say uh I'm mostly writing on
+your on your code tales you're the one that's that's pushing it forward and I'm trying to help you
+out. So yeah, that's really
+
+>> The article that you wrote, the longevity world cup versus the rejuvenation Olympics. Can you
+just tell me about yourself and make sure to include where are you standing in these competitions?
+
+>> Yeah. Uh I'm I'm a software developer.
+
+Um, it's my main profession, entrepreneur and I guess health enthusiast. Um, I've been kind of,
+yeah, I wouldn't have called it biohacking for a long time, but I guess now I'm biohacking as well.
+
+I'm I think around I don't know 70th on the longevity world cup last I checked.
+
+It it keeps falling because people keep entering ahead of me. But yeah, when I when I started, I I
+think you sent me an email because I was the hundth person and you congratulated me me for being
+
+the hundth person who entered. So I was really happy about that and that was the first time you and
+I had talked and that kind of yeah started me thinking about oh how you know I noticed that it was
+
+open source and how can I contribute to this and I love contributing to open source projects and
+yeah it it caught my imagination. Um the you know the rejuvenation Olympics was the first thing I
+heard about a long time ago
+
+because because of all the famous people that are in it and basically I I think people became famous
+from that right because then they could claim in interviews hey I'm the slowest aer or whatever
+Brian Johnson and Seamland and
+
+uh all those guys at Dave Pasco you know they it certainly bolstered their credibility I guess and
+what they say about about health and longevity uh to be able to say, "Well, here's the proof.
+
+I'm on this leaderboard."
+
+Yeah. So, so I'm just just part of that and clawing my way towards the top as as you are. I can see
+you you're making some good progress. Yeah. You know, Dave Busco was completely unknown before
+
+that. He wasn't a >> he didn't have a outside public facing personality on the internet.
+
+Also Julie Gibson Clark, right? There were a couple other people like Geneval and Amy Hardison and
+some people who who've been there from the beginning, but they didn't really started this publicity
+train, you know.
+
+So, well, good for them private people.
+
+some new people like Annie Ann any Ann any Annie no right >> uh people really like her she's number
+two after Brian Johnson >> yeah I follow her >> well okay let me ask a question before because I've
+been this is my dilemma as
+
+well you said you wouldn't have really called yourself a biohacker right and and I kind of
+understand where you're coming from because I have a a bad taste in my mouth when I would classify
+myself as a biohacker even though I'm not quite
+
+where hackers saw Oule thing and no fan it's not a bad thing right it's not a black hacking it's
+it's white attacking but >> okay so hacking some stuff and hacking your biology is certainly a
+concept I
+
+can get behind >> but on the other hand something is not right with that term biohackers what's your
+take I can't really figure it out for myself.
+
+>> I think I used to have an image of it, you know, before I knew anything about it. Futuristic, far
+out there, steampunk kind of ideas and that's not what it is at all, but that was what I had in my
+head.
+
+Watching videos of people like Aubry Deg Gray, you know, David Sinclair, the people who have
+popularized kind of biohacking have made it seem a lot more reasonable. the people who follow the
+science and uh they take risk. You know,
+
+some take a lot more risk than others.
+
+Uh but there are a lot of people out there who are biohacking and are doing it, you know, relatively
+safely, I would think. I mean, the main the the best ways to biohack are exercise and diet,
+
+right? And we all do that.
+
+>> Well, you know, you're hacking. That term is inherently implies that there is a risk in it, isn't
+it? Well, you know, actually I came up with my own word. I'm still I'm still trying to decide if
+this
+
+is a good word or not. But you know, something about gerographers, right? It's from geriatrics and
+graphers like cryptographers.
+
+That might imply something like, yeah, you're you're doing this aging thing, but you're actually
+following following data and not not not doing like I don't know yogurty traits and try to live
+forever like that, right? Well, okay,
+
+let's let's talk about you context of your of your article.
+
+What's that? Why did you even write that? Yeah, I thought it'd be really interesting for people to
+see. Um, uh, you know, a lot of there there are a lot of companies offering um, biological age
+testing. Half the time or most of the
+
+time you don't know what they're doing behind the scenes to give you this magic number um or to give
+you the the recommendations that they give. Um, I've, you know, used certain companies who will make
+one claim one day and then
+
+make a different claim another day. They changed their algorithm. Who knows, you know, was it more
+accurate in the past or was it more or is it more accurate now? So, I think it's worth demystifying,
+keeping this grounded in
+
+science, keeping it grounded in peer review, which is the great thing, you know, about the longevity
+world cup, I think, uh, and about the Rejuvenation Olympics. if if what they say is true, it it is a
+peer-reviewed it's based on
+
+peer-reviewed research uh research from New Zealand and uh but it's you know it's there's still an
+element of it where it's a closed a closed loop system. It's not a it's not open source.
+
+We can't really verify what's happening unless we kind of contact the athletes and get their blood
+tests and then get them duplicated in an independent lab that can be verified. You know, that's a
+that's a lot of heavy lifting that no
+
+one's doing. So yeah, I think I think that's a huge strength for the longevity world cup and and the
+more we can use those open systems like Feno Age or BS or these, you know, these open source
+
+papers, the more legitimacy it's going to have instead of just, you know, you can't install an app
+on your phone these days without it telling you your biological age, right? I've got, you know, my
+scales tell me, my ring tells me, my um
+
+my watch tells me, and they all tell me different numbers, and they're all they're all wrong.
+They're all they're all just making it up based on some really sparse data. So, yeah, we have to
+keep it grounded and that's what I'm
+
+attempting to do in the article.
+
+>> Okay. Okay. I see. I see. There are many things I want to talk about there but maybe let's follow
+the structure of your article >> and let me let me read something from from you. This this might be
+the cracks
+
+of the whole biological aging clock issue that what should really be the concept of a biological
+aging clock, right? Because what's the problem? Horvat in 2013 or 2018 2013 um figured that there
+can be correlations with chronological age
+
+and then the Horvat one clock is born and then you know how your epigenetics is correlating to your
+chronological age that's that's that's how you get your biological age. Okay. So, what's the problem
+with death?
+
+>> Yeah, there's no problem with that. You know, I think it's an awesome concept and and I'm well
+behind it. There are these two, well, there are three so-called generations of biological clocks,
+right? So, the first biological
+
+clocks, the generation one, they estimated your biological age based on your blood and it was just a
+blind estimate. So, it was, hey, your creatinine is at this level. That's what we see most often in
+25 year olds. Your other blood markers
+
+are are there as well. So you're biologically 25. That was like gen one.
+
+And you could still call it the most.
+
+>> So they estimate they estimate your chronological age, right? That's what they are trying to do.
+
+>> Yeah. But pheno age and BS and all these other ones are generation two where they differ is that
+they are based on mortality risk. And then the generation three which you know might be a misnomer
+because generation 3 didn't end up
+
+outperforming generation 2. So that's the denim pace. The epigenetics is also based on mortality
+risk but it's based on the methylation of your of your DNA.
+
+It's just a different way. I would call generation two and three the same thing.
+
+different ways to get there. But >> so so what's the third generation about?
+
+Is it just the pace of aging spin on it that how fast you're supposed to be aging? Is that >> Yeah,
+I think I think one aspect of it as well is that it's based on longitudinal studies. So you know
+these
+
+are the Denedan study is famous for for a few things. It's a it's this amazing study. It's just done
+in one city in New Zealand in in the South Island Deneden and they they have about a thousand
+
+almost a thousand people and they've been studying you know different generations of these people
+for over 50 years now and uh they bring them in at certain times in their life. So I think it's like
+Dened and Pac is based on four
+
+snapshots in in in their lives. There's like age 26, 32, 38, 40, 40ome. Um, you know, it's something
+like that. Um, and so you can clocks like Feno Age are based on single snapshots.
+
+You just get a lot more people. You know, you get 10,000 people instead of a thousand people.
+They're representative across the US. And then you you can basically assume that because you've got
+so many people, it's similar to
+
+longitudinal, but it's not the same as really getting those same markers from the exact same person
+and seeing what happens to those over time.
+
+>> So that's part of generation three as well. So okay so the difference is that pheno age would be
+like I'm taking the 60 years olds now the 50 years olds now and the 20 year olds now who are living
+
+today or maybe in the past lived and was at that year but for Donita and Pace they actually measured
+things on the same people at different ages so yeah that's that's interesting Yeah.
+
+Yeah. It's really cool. Um, yeah. So, you you're not comparing a 30-year-old to a different 40-year-
+old. You're comparing 30-year-old version of Adam with the 40-year-old version of Adam with the
+50-year-old version. And it's
+
+still going. So, you know, in another 10 years, we'll have more data from the Denedan study that we
+can plug in and see and and validate Denedan pace or you know, they released different clocks as
+well. So the first there was Denedan
+
+poem which stands for like Deneden pace of aging from methylation or something and that was based on
+three snapshots from the longitudinal data and then that was in 2020 and then I think in 2022 Dened
+and Pace came out based on the
+
+fourth uh the fourth set when they were 46 years old or something like that.
+
+>> That explains lots of my confusion actually.
+
+Okay. So again concept we are trying to conceptualize biological age here here. So the need pace is
+not even trying to do that right it's calculating pace of aging. So we had correlation with
+chronological age first generation second generation was
+
+trying something else. I think it's, you know, I want to say correlations with all caused mortality,
+but all caused mortality, but that that doesn't make perfect sense.
+
+However, in in your article, you you point out a paper from John Gruber, author of biological age
+clocks like Lina H2 or Dolly Clock as well as over 800 publications on PubMed.
+
+Okay. advocates for reframing biological ages risk equivalent age in an article published in in
+nature aging. Did you read this article actually? I just checked that obstruct there.
+
+>> Uh yeah, I haven't I'm I'm not actually I'm not sure how much there is to read.
+
+Uh when you when you click on it, it just says it's a comment given in nature. More of an idea, I
+guess. And it makes sense to me. it's less fun, but at the same time, you know, there's a lot of
+criticism
+
+thrown out there. And I think the main criticism is that it's not really measuring your biological
+age. And, you know, I agree with that as well. We're claiming, we're not claiming, but because it
+shouldn't.
+
+>> We're pretending it does when it doesn't.
+
+What we are interested in ultimately is some kind of health some kind of ultimate health metric
+which is maybe how often people drop dead right like or cause mortality.
+
+>> But okay wait because I understand it to a degree. So he's he's advocating for reframing
+biological age as a risk equivalent age. Okay. risk equivalent age from 120 years old the risk is
+going down right up until I think 12 years old
+
+or 10 years old when when the mortality risk is the lowest and then starts to go up a little bit
+right okay so no one's going to be less than 10 years old in this metric in this conceptual metric
+
+right but okay there might be a lot of 10 years swords and it cannot really go lower in the in the
+in the longevity world cup, right? I mean, even now we almost had someone with a negative pheno age.
+
+>> I don't know if I added it to the core, but I seriously considered I don't want to break people's
+brain and I seriously consider just if you would go to negative, I just going to put it zero,
+
+>> Yeah. Third place.
+
+>> Yeah. So what do we do with the 10 year olds in this model? Did you think about that?
+
+>> Yeah, it's really interesting and I I think you know one of your interviews with the founder of
+Longevity Tools, you guys touched on that as well where uh the the limit the reason that you get
+those kind of silly numbers is because
+
+there's no U-shaped curves. you're just, you know, the the outcome of pheno age and the calculation
+that you do is just this linear calculation. So if you're really outlier, you know, if you're like
+when the third place guy in longevity world
+
+cup at the moment, I think, and you know, you're already really young chronologically and then you
+also have amazing biomarkers. Uh the the linear equation doesn't really know what to do with that.
+It's it doesn't see you as it
+
+doesn't differentiate between that kind of 10-year-old limit, which is silly.
+
+Like, it's silly to say that someone is a 10-year-old when they're they're an adult. They've been
+through puberty.
+
+There's no you can't compare those two people. Let alone saying that they're 2 months old or or
+whatever he is. But the the algorithm is just too basic for that. All it does is just takes this
+
+average, this linear average, and kind of corrects it with chronological age.
+
+Yeah. So that's why that happens. So I think, you know, in the future it would be great and it
+wouldn't be a simple calculation anymore. It would just have to be a complex like a table, a matrix
+
+where you can actually make these correlations more precise.
+
+with U shapes or whatever shapes any shape but we would have huge data sets for that. So, so there
+is a difference between current pheno age here because a current issue is the U- shape luck of
+
+U-shaped curves and we know that if you're over this okay very few people are going to be like this
+but in the last slope of the curve you are worse off Now in this risk equivalent
+
+mood what I'm trying to say here is that at 10 years under 10 years old 10 if someone reaches the
+risk equivalency of a 10year-old they can actually have less risk than a average 10 year old and
+that might be
+
+the solution isn't it like it's like once you reach 10 year old in in this biological aging
+algorithm, then you start to 10 year old plus the percentage of the least risky 10 year olds. Right?
+You see
+
+where I'm going with this?
+
+>> Yeah. I think I I don't know if it's my limitations. I find it hard to conceptualize prior to
+puberty, you know? I I mean I think I think when you're 18 or when you're 15, you already have such
+a low
+
+risk of mortality. I I don't think that there's a an amazing difference between those.
+
+There was something that even I got surprised by and and this shows what the what's the significance
+of this discussion of this biological aging cooks because it's like I'm I'm not even sure I believe
+what you wrote here
+
+but I will read it. So increasing phenotypic age by only one year right the phenotypic age is the
+biological age of the competition >> uh is associated with the following 9% increase in ok's
+mortality. Okay let's just stop with here there there are a
+
+few more but let's just stop here and let me tell you about a 9% because it's it's compounding
+right? It's like an end and compounding numbers can get really really big. Okay. 10% increase in
+risk of
+
+CVD mortality cardiovascular disease mortality. Yeah.
+
+Okay. Around another 9 10% aging related disease mortality 7% in risk of cancer. 20% in diabetes.
+Okay, that that makes perfect sense because how would you have good glucose numbers if yeah 9%
+increase in the risk of chronic
+
+lower respiratory disease mortality.
+
+Okay. So, so these numbers seem really weak to me. Where did you get them?
+
+>> Yeah, so these are from the pheno pheno age uh paper.
+
+itself. So the paper is called an epigenetic biomarker of aging for lifespan and health span you
+know written by Morgan Lavine Steve Hvath Luigi Furucci all these all these famous names. So the
+thing to remember about these numbers is that these are
+
+relative increases. So, uh, you know, it's not it's not saying that if your number goes up, you have
+and you're you had a 4% chance of all cause mortality at your previous number. That doesn't mean
+that you add 9% to that. You you're
+
+not suddenly going from, you know, 4 to 13, but you're adding 9% onto the four.
+
+So, you know what's 9% of four? You add that. So, you're not going up. you're not even going up from
+four to five.
+
+That's why those can be quite quite large numbers and they are significant numbers, but it's not the
+your 20% diabetes type 2 risk going up by 20% is only 20% of your of the previous year's risk. Does
+that clarify? Does that make
+
+it seem less crazy?
+
+>> It's a bit more intuitive. Yeah, I would say. Okay. Well, all right. You also said that pheno age
+is probably the most widely used and respect respected biological age clock and the benchmark that
+newer croakkes test themsel themselves
+
+against. But you know, Fino is so old already.
+
+Why why is it the why is it the most expected? Yeah, the quality the quality of the papers, you
+know, you've you've got what 15 15 authors from all around the world. I'm look just looking at the
+
+list now. You know, you've got a a lot of it is in the USA. You've also got Italy, Stanford working
+with National Institute of Aging, Department of Human Genetics. you know these are really these are
+really
+
+respected institutions and respected people at those institutions and it's they also checked their
+own data in a lot of different ways you know if you look at the paper they look at other studies
+they look at they checked it
+
+against studies on much older people they checked it they checked I enhance three against inhand 4
+so they even you looked at a similar data set but with different people and saw how that correlated.
+
+They looked at the epigenome. They looked at a lot of different markers before they condensed it
+down to the 10 or the 9 plus one. They they had I can't remember 28 or something like that markers.
+So yeah, they were just very
+
+kind of stands out as one of the best at least from a conceptual point of view of biological age.
+What do you think about having chronological ages as input into the biological age algorithm?
+
+>> Yeah. Yeah. I know that's a that's a really big important topic and and and you and I have talked
+about it at other times as well. I think ideally you don't need it, right?
+
+>> Cheating is the need.
+
+>> Yeah. Yeah. It's cheating. And it's because and I think it ties in with what we were saying
+before about the U-shape.
+
+You need it to correct for that U-shape because you don't have you've got this linear algorithm. It
+needs to ground itself in chronological age. Uh and and that's why you that's why you do that.
+
+And it keeps itself, you know, within about 20 minus or 20 plus years of your chronological age.
+
+Without that, it doesn't seem to be trained. It doesn't seem to have the ability to really ground
+itself like the generation one clocks did. Um I just I would imagine that future future clocks would
+be more like
+
+programs. And I've thought about writing this as well of you know conceptualized writing like a
+instead of just having an equation because you can't really do it with an without an equation unless
+you're going to have a massive one.
+
+It would be cool to have a little program, a server where you can put your inputs in and it
+validates against these matrices for that that have the real data basically or representations of
+the real data.
+
+>> Okay, that's huh. Okay, so how would you imagine that? Let's say there is this longevity birth
+cup. We are starting to add every year more and more data, right? And in that way if you start you
+
+you can write a so am I going in the right direction here? Is this what you're talking about?
+
+>> I mean are you talking about using the data from the longevity world cup?
+
+>> Yeah. just puts a software on top of it that would you would put some biomarkers of yours and it
+it would keep telling you what would it tell you chronologically [laughter] chronological ages of
+people who are
+
+very similar to you you know >> yeah I think yeah I think the longevity world cup data that we're
+going to get is it will be amazing it won't be be the same thing. It won't be enough. You need
+people to die. The
+
+hard truth about the this research or the data that the clocks are built on is that they only work
+if a lot of the people in the data set die cuz that's how you know >> how far away all cause
+mortality is. We
+
+obviously don't want our athletes to die and they won't.
+
+Can you do something with let's say the top 100 people of the longevity world cup? Let's say there
+are like tens of thousands of athletes already and some compare people to the top 100. Who who who
+are you most most similar to?
+
+>> Yeah, >> that wouldn't be a biological aging algorithm, but a cool feature, right?
+
+>> Oh, yeah. And I would love yeah I would love to see us do that those kinds of things and when
+we've got the numbers to do it and you know and we can take more inputs. We've talked about
+measuring
+
+I mean it's not as important as some people claim because phenage already correlates with functional
+performance with functional metrics does it it does quite a good job of that you know. So, I've seen
+critics of biological age clocks saying, "Well, you
+
+could have a really great biological age, but you can't get off the couch."
+
+That doesn't seem to be be the case. It seems that the inability to get up off the couch or to care
+for yourself would show up in a biological age clock. Um, that's because that's correlated with
+mortality and
+
+that's what the clocks are trained on.
+
+But I think it would be really cool to, you know, have more exciting fun things in the longevity
+world cup. And maybe that could be some, you know, V2 max tests, some some body weight strength
+tests could be kind of exciting and more
+
+>> Yeah. Yeah. I agree. I agree.
+
+Visa fat is so hot right now.
+
+You know why visceral fat is interesting is because your visceral fat is the younger you are the
+less viscera fat you have. So for a one-year-old they have basically no visit at all, right? But V2
+
+max is not not like that, right? It's like your V2 max is is going up up up and then the curve.
+
+So but Verafet is exactly like how how old are you?
+
+That's that's all we we have to know.
+
+That's that's where I want to go as well. I don't know how it would fit into the hole, but we'll see
+we'll see it much better after the new aging clock is finally added to the website.
+
+>> Right. Which is going to be What is it going to be?
+
+>> I thought you were going to tell me.
+
+I I I contacted the authors, had a few rounds of back and forth, but they never replied to my last
+email.
+
+But then again, why would it be so good?
+
+It would be so good because first of all, it has very few biomarkers.
+
+Seven, seven, eight, seven biomarkers.
+
+And those are those are very normal ones, right? like like the most basic clinical biomarkers every
+love is is taking. On the other hand, Bors has like I don't know 13. You know how how much work for
+me to actually check people's
+
+you know documents.
+
+It's a lot of work especially when they are sending it in in Chinese or Ukrainian or Russian or
+something something like that. Now that's that's extra difficulty. So pheno age is going to be like
+twice as as bad.
+
+Perhaps taking an entry fees is going to make it more you know if you have to pay for something then
+you perhaps pay more attention when you write in your numbers and you're not making mistakes and
+
+perhaps it's going to be fine.
+
+>> Anyway, >> and you know, I I'm always critical about the effect that money can have on science,
+but I'm not anti-money. I'm not anti-profit.
+
+I think, like you said, it can make you take it more seriously. Uh it can it can have a lot of good
+effects. I mean, we're trying to give people a prize at the end, right? So, you're trying to win
+
+money. Uh there has to be some kind of input for money. we can't just keep propping it up forever.
+
+So, I think, you know, entry fees, you know, are can be a really good thing and ways thinking of
+ways to monetize it. Um, and that's one thing that is really good about the rejuvenation Olympics,
+right? They've got money baked
+
+into it. You're they've got a provider.
+
+The provider will, you know, take a cut.
+
+It's it's all baked into the the uh true diagnostic business model of having this leaderboard at the
+end of it. So yeah, I think they've done a good job there.
+
+>> Yeah. So you see in in the rejuvenation Olympics, the economics is a bit different because the
+rejuvenation Olympics, the competition itself is the one that says the biological aging clock,
+right?
+
+For us it's very different because here the competition is the entire product.
+
+It's not a supplementary material to the biological aging clock that we are selling. It's the
+competition itself. So every money that comes in is actually would be going into the competition and
+not let's say creating a new
+
+biological aging cloak and supply chain and whatnot. Right? So the main business is different where
+we cannot really talk about business just yet but hopefully.
+
+Okay. So you also said this this might be the best best time to to bring up probably one of my
+largest pet peeve your article. You probably know what I'm talking about. So biological aging crooks
+are not all created equal. In
+
+fact, I consider most of them untrustworthy usually because they offer they are offered by companies
+who develop them as products to make money from and that usually prevents them from being vetted by
+scientific by the scientific
+
+community. profit prevents companies from being vetted by the scientific community. Would you stand
+for that still?
+
+>> Well, we've just been talking about it, right? I think um I think when you're So, there are ways
+to make profit for sure on open things and we're trying to do that and I've done that with with
+
+to be literally someone's going to come and put a gun to your head if you really like push it to the
+end of me not paying the money. Right? So, what I'm doing by trademarking my content is that I am
+
+threatening you with violence, violence of the government. Right? Okay. So that's the beta stand
+that I'm taking here on open sourcing and letting other people to to use my content in any way,
+shape or form if they want to put a
+
+penis in my mouth. I wouldn't like that.
+
+But it's your choice and I'm not going to sue you for that. Right? And and when we move into the
+medical health care system, right? the current traditional headcare system MVC everything is
+trademark marked everything is
+
+copyrighted you can't do any [ __ ] thing there right so we have a problem with that or I do I don't
+know do you yeah I have a huge problem yeah I'm I'm all about open source you know
+
+I don't privatize anything that I do really And that's something that I like about the longevity
+community in general. I I feel like we're all pretty open. We all, you know, we like contributing to
+the common good. We're not just trying to at
+
+least most of us. Uh we're not just trying to privately squirrel away. And you know, I think the
+open- source philosophy really protects us in in a lot of ways because uh it makes it makes our code
+a lot
+
+better. When you've got, let's just take the Rejuvenation Olympics because that's the only other
+example. I'm not picking on them, but when you've got a closed source system where you're not
+sharing your code, you could have a huge bug in
+
+your program, you could have a bug that's making all of your results inaccurate.
+
+And that happens. It happens all the time. It happens with the longevity world cup. and we fix them
+and we tell people about them, you know, like the like recently we, you know, tweaked it so that the
+blood test results are
+
+measured against your the age at the time of the blood test result instead of your current age.
+That's that's just part of programming. That's part of development.
+
+Happens all over the world in every program. But when it's open sourced, people can come along and
+and find those bugs and fix them. When it's closed source, you could go years. You could go your
+entire the entire lifespan of the
+
+product. That bug exists. It's never found. Well, at least that's the romantic fish for it. Yeah.
+But [snorts] everyone makes their own decisions.
+
+>> Yeah. All right.
+
+>> It also, sorry, one more thing. It also stops us from or at least it makes it harder for us to
+game the system for ourselves, right? So, you know, I'm someone who works on the Longevity World
+
+Cup, but I'm also an athlete. So, I have like a conflict of interest, it could be said, where, you
+know, I could submit some code that preferentially ranks me higher because, you know, I could I
+could I don't I don't know. I could I
+
+could come up with some reason that we should take.
+
+>> My AI assistant wouldn't let you do that. [laughter] >> Yeah. Don't even don't even get me
+started on AI. Um, but you know what I mean. When your when your code is closed source, you can do
+whatever you want
+
+with it. If you're the founder of a company and you're so you have you already have control of your
+code. You already you're already the boss and you're competing on your on your leaderboard, you can
+get people to
+
+change the code and there's no overview.
+
+Um if I wanna but if I wanted to change the code to make myself win then the AI would catch me. It
+wouldn't but you would catch me. Uh you know someone would catch me. It would be in the
+
+history. Even if no one caught me it would be caught later on. Um, you know, there are people who
+are able to look through the code and go, "Oh, hey, okay.
+
+I can see that a year and a half ago, Klouse submitted this code that makes that that changes the
+pheno age algorithm to make himself win. So, it would eventually hopefully come out and that just
+can't happen with closed door
+
+source." So, there are all these things that it prevents it prevents us from cheating in a lot of
+different ways.
+
+One thing I want to bring up in defense of the rejuvenation Olympics and and not just in defense of
+the rejuvenation Olympics but also for us to consider the practical problems with bloodbased blood
+based biological aging clocks. So
+
+about cheating, it's you can't cheat.
+
+You're not allowed to. But if someone would send me uh if someone would send me a report that looks
+very legit and then they would hop on with me on a on a 10-minut call, I started to make this
+
+10-minute calls for people who are really ranking high because I cannot let them, you know, just
+just uh play me that easily. So then you you hope on a 10-minut call I'm going to have some
+interesting questions to you
+
+like show me your ID on the car or send me that that paper that's missing. you know, I always try to
+have something, but you know, ultimately it should be possible to cheat this way, right?
+
+And then if you think about the rejuvenation Olympics or any other epigenetic home test kits, then
+the only way that you cheat is that you do something with your blood like you take your 10 year old
+kids blood, right?
+
+Would be quite a story, you know.
+
+or or I don't know you put your blood in fridge or there must be something that tricks or maybe not
+doesn't matter.
+
+What's the point? The point is that it's much harder than to actually fake some documents.
+
+And that's not all. Another important thing with the home test kits is that they all go into the
+same company and they are testing hopefully the same way with these tests that we are having is
+there could be a lot of laboratory
+
+I think the laboratories are really inconsistent not only within themselves but inter laboratory
+like I went to Prospera and I kind of took over a clinic and I get a lot of people's blood test and
+sent it to a
+
+laboratory. Everyone's blood test came back with super high ALP, super high RDV, everyone ve
+everyone was vegan and iron deficient. Yeah. You see there there were these patterns that I wouldn't
+spot only if only if sent like 10 20 30 people's blood test,
+
+right? So I spotted it, but I'm not spotting it when other people are sending me like Chinese blood
+tests, right? So there could be a lot of laboratory artifacts with with this kind of blood. So, so I
+I think that's that's
+
+an important point in not only in favor of the rejuvenation Olympics, but also that could guide us
+in 2027 seasons, right? Yeah. Yeah. I think you're right. It's kind of good and bad, right? So for
+this for the same
+
+you can argue that there's a parallel with is it better in a scientific study to have a low number
+of people but really high quality data or is it better to have you know like an enhance
+
+data set where you're taking samples from all across the US from many different labs. That's where
+it all that's where that data comes from. It's like a representative study and a representative data
+set, sorry. And you
+
+kind of trust when you've got enough people that the artifacts will iron themselves out. You you if
+you look at any individual, you don't you don't know are they from a good lab or a bad lab,
+
+>> We'll see in the future. For now, we're just going to keep it simple and and use boards probably.
+
+>> Yeah. We've decided it's a long time ago, but I'm really hoping something better comes along. But
+if if you have a paper in your mind, you're listening to this and you think there's a a better
+biological aging clock to use, then send
+
+it to me. Another interesting thing that you did in an article is comparing where would people rank,
+where would Brian Johnson, where would Simland rank in the longevity world cup and where would where
+does my garden rank in the
+
+rejuvenation Olympics? Do do you remember where does Mike rank? It's something like 100 was it?
+
+>> Yeah. Uh it was like 159 I think. And the reason for Mike's low ranking at the moment because he
+used to be in something like seventh place. It's in it's in the article. Uh no sorry he was
+
+in ninth place. He fell to 159th because the rejuvenation Olympics does different things with
+numbers based on whether you're an active participant. So basically the leaderboard is ordered where
+the people who have even if you have a way worse score, even if you have
+
+the worst score on the entire leaderboard, as long as you got three tests in the last two years,
+you're going to be near the top, sorry, in the in the top group of people. And then if you if you
+
+haven't been testing lately, but you used to test in the past more than 2 years ago, like I think
+Mike is one of them, you're going to be ranked below all of those competitors. So there's different
+groups. Um so there's and
+
+again there's good things and bad things about that. They're just trying to keep it current. they're
+trying to um maybe the maybe they they think they're improving their algorithms so so older results
+are less relevant. I don't know
+
+exactly what the reasoning is. They're not as far as I know they're not telling us but yeah that's
+how it is. So if you you can manually order it. I think Brian Johnson is in like seventh place if
+you
+
+only include if you include all of the results >> if you go with best face.
+
+>> Yeah. But he's the best based on his best three results from the last two years.
+
+>> Uhhuh. Uhhuh. Okay. One thing is clear though, so Michael Garten, just to make sure everyone is
+in in the picture, is that he's he won the longevity world cup last year 10 2025. He he has the best
+
+pheno age that we've ever find in the entire world. Right. Okay. So that's my class carton. But on
+the rejuvenation Olympics, he is his best pace is 0.8 and the people's best pace Kelly Cory is
+
+So So that that's the difference.
+
+That's the difference.
+
+And and well, it's almost double. Okay.
+
+So what else do we know? If you take someone like Simland whose best pace is 0.62, right? Brian 04,
+uh, Seam 06, Micah 08, and me somewhere around 09 and 1.1. On the other hand, Brian would be 102 on
+
+the longevity world cup out of 150 people, right? which is like pheno age is kind of like my pheno
+age. Okay. So, so then we have a a very interesting discrepancy that hey the researchers are
+claiming that Oku's
+
+mortality correlated very well with pheno age and the need but then we have the two winners of the
+two competition who are Mike is doing okay in the rejuvenation Olympics but Brian is doing bad in
+the longevity
+
+world cup, right? So, so we we kind of problem with with with biological aging clocks or consistency
+here.
+
+Yeah. Yeah, we do. And uh Mike actually did an interesting video where he broke down um you know
+Brian Johnson's biomarkers and compared them with him and and another guy uh Chrisman.
+
+That was a good video and it was interesting to see that one of the weaknesses in Brian's markers
+are kidney markers uh which of course phenage takes >> creatinine.
+
+>> Yeah. Yeah. It was it was creatinine and I can't remember exactly but yeah it looked like >> yeah
+it looked like the kidneys were keeping up with the rest of it and and that might be why it might
+not be
+
+reflected in his epiggenome but it might be more reflected in his blood markers.
+
+So that could be a cause of the discrepancy. Whereas someone like Seam or Dave or or Mike, these
+guys have good good blood as well as good epigenomes.
+
+>> Brian's whole thing is that he tries a lot of things, right? He he calls himself a guinea pig. He
+he tries new therapies. He tries to be the canary in the gold mine. So it's not surprising
+
+that he sees big fluctuations and that sometimes he tries things that are harmful, right?
+
+>> And Simland would be number seven. So he would do very well on both competitions.
+
+You also put some drama drama in that that part, didn't you?
+
+>> Yeah. You you might mean the um the Oliver Omen quote that that didn't make it into the final.
+
+>> Oh, yes. Of of course. Of course. All right. So, I want to come clean on that.
+
+>> You're the drama queen cuz you you put that in into your documents.
+
+>> I'm the drama queen. I I'm Okay. So, yeah. Right. Like I'm writing this very serious document
+about the history of longevity as a as a sport. And I've been writing it for years, right? And I'm
+documenting what's
+
+happened. And it all started with Oliver Zulman coming up with with the leaderboards of I think it
+was dogs or mouse leaderboard. I don't know some animal leaderboards. And then then Oliver is the or
+was at the time the scientist boss of
+
+Brian Jones on the person who orchestrated Brian Jones's transformation. Right. So, so the entire
+idea of longevity competitions was Oliver Oliver's and that's how it the document started and that's
+why I started corresponding with Oliver himself
+
+and then he had a falling out with Brian Johnson and their team and then he sent me a message to if
+I could add to the document that Oliver Zulman has decided to step back from the rejuvenation
+Olympics
+
+because he believes Brian Johnson and and through diagnostic made it unscientific >> and I'm like
+okay I really don't want to create drama here but I should also respect his request Right.
+
+>> So, so I guess I decided to create the drama and odd this line there. And I'm the drama queen.
+Totally. I'm the drama queen.
+
+>> You posted the quote, but we need more details now. We need to know how it's unscientific. I have
+so many questions.
+
+>> Yeah, like that's the thing. I didn't want to to push it because I'm a podcaster. Maybe I should
+have. Right. I want to finish with some questions for you. Do you know any other longevity
+competitions?
+
+Okay. So, I do know other longevity competitions. They are not as not like the longevity world cup
+or the rejuvenation Olympics, but they kind of existed. So there was a V2 max leader board from from
+a company that was
+
+co-founded by two people who are both called Max. So Max and Max, right?
+
+>> And and they were doing that. There was a lot of athletes. I tried to reach out some athletes
+didn't didn't succeed.
+
+But that leaderboard is defunct now. And I don't know what happened to the to the company there.
+There was also one other attempt from a from a guy who's working in a super secret government job
+and
+
+he's he's been doing not not a competition but kind of creating these very successfully aging
+people. So that's what he started and I'm not sure what's going on there. He he said he rebranded it
+but ultimately the website
+
+is not online so it's doesn't exist. Now there are two other attempts and I'm going from least
+significant to more significant there. One is the the enhanced games which is not longevity
+competition but this kind of similarly crazy concept
+
+which is hey let's do Olympics but with much less rules than the Olympics. So people can actually
+use some some drugs that cannot be used in the Olympics.
+
+Right. And then let's see how fast people can run like that. What else? Oh, in Prospera they created
+some kind of infinit infinite games which they are measuring biological aging clocks uh kind of like
+a local thing. Another
+
+local thing in China there is like a longevity Olympics in China. Some Russian people toured me
+about it and couldn't find any anything about it. But but there was a website or a landing page or
+something like that. Okay, there
+
+is the longevity world cup and the rejuvenation Olympics. But by far the most most success
+successful like economically heavy longevity competition is the X price, right? It's I don't
+remember how much money, but you get a lot of money if you
+
+succeed to to get some what people's age age backwards something like that. So it's it's it's it
+it's a billionaire.
+
+It's it's well known, right? X-prise is a well-known scientific prize kind of stuff and and and then
+then they started ahead component to it and a lot of money went went into that. You know, I'm a bit
+
+bittersweet on that because they created for the top 50 document for the top 50 who get into the top
+50 of XP prize and there was email to every single team Xprise team that was competing and
+
+I actually sent out 50 freaking emails and I didn't get a single response and I have no idea Why?
+Because it's like whenever I sending out like even just a fraction of this much emails, like some
+
+people at least respond. But here is like I think I got got on a on a block list on a blacklist of
+[snorts] of of X-P fries or something like that because there is just no way that no one
+
+responded. Not a single person, you know. Uh, okay.
+
+>> So, what's the X-P prize one? Is that is it about reversing?
+
+If someone can reverse their age, then they get the prize or is it is it a ranking?
+
+>> Is 100 million. That's a lot of money.
+
+1001 100 million dollar global competition incentivizing teams to to develop therapies that
+measurably extend healthy human lifespan.
+
+So I have a I have or two friends actually from Russia and they are doing some gene therapies in
+Prospera a cocktail of gene therapies and they got into the the top 50 of X prize. So there
+
+were two ways to get into the top 50.
+
+One is in the norma round like you get into the top 50 as as you clear every round or you can they
+they somehow get into after they fall out of the first round, right? So they got into another route.
+So but but
+
+if if you if you think about it they are bringing a fistatin gene therapy a cltho gene therapy and
+some something else that I always forget but three or four gene therapies and they didn't get in uh
+then how how
+
+interesting the other competitors might be right if for gene therapy is not cutting it. Yeah. Or
+barely cutting it.
+
+They they got in >> or it says how bad those gene therapies are. I don't know.
+
+>> So I think they are good. I might be biased.
+
+I was there. I was because they living in prospera right in regulatory arbitrage. Clinic looked
+clean. You know the clinic does other kinds of gene therapies. I've seen people come to the clinic,
+get the gene therapy,
+
+not dying, not hurting anything, you know. So, it looked at least safe, maybe not good, but safe.
+
+>> That's a good baseline.
+
+>> Yeah. And most importantly, will anyone end my class or Brian Johnson's reign in 2026?
+
+So, what do you think?
+
+I have a few people in mind what might happen, but do you have some predictions?
+
+>> Yeah, I think it's really hard. Um, you know, I think Mike is amazing and he he does the most
+probably of anyone to track his markers. The reality though is he doesn't have the best pace of
+aging.
+
+His I think his pace of aging in the longevity world cup is, you know, 25th place or something. Um,
+I can't remember exactly, but it's, you know, it's not top 10.
+
+So, I think he's on top right now partly because he's amazing and because he's doing everything
+right.
+
+>> Who has the best pace of aging in the longevity world cup?
+
+>> Yeah. When has the best pace because he's >> his silly his silly score where he's a toddler has
+ruined that for everybody.
+
+He'll he forever have the best pace of aging. Who who has the second?
+
+>> Oh, okay. So, Ziden doesn't have a great pace either. He's 22nd.
+
+Yeah. So, Philip >> Schming has number eight pace rank. So, that's pretty good. 0.43 years per year.
+
+>> Oh, perhaps it must be someone from Gen Z.
+
+>> Kathleen number three. Kathleen Merchant is number three in piece of aging, right?
+
+Because the younger you are, the better piece of aging you get.
+
+>> Yeah. So, both of the measures aren't perfect, right? We we should come up with some kind of a
+combined measure that that makes it fair because when you're really old and you're healthy, then you
+can potentially win on the
+
+absolute loss. Especially if we start using a clock that doesn't have that isn't corrected for
+chronological age like pheno age is um then we might see some really crazy you know if you're if
+you're 90 years old and you're a fairly
+
+healthy person then maybe you would get a minus 30 but your pace of aging might be quite different.
+
+So kind of on on one side of it, we've got it's good to be old in terms of being on the leaderboard
+and on the other side of it, it's good to be young for your pace of aging. So yeah, maybe
+
+we can correct for that somehow in the future.
+
+>> Well, you see, pace always implies a time frame and here on the longevity world cup, it's a fun
+calculation. The time frame is your entire lifespan.
+
+Oh yeah. what what can change you know I shouldn't even tell you this but some people already sent
+me some boards boards numbers and there was TA Tat Lim from Singapore I I think he might end up
+starting at
+
+the top maybe even winning it I'm not sure >> Mike is I think Mike told me a couple of times or told
+or perhaps I was watching his videos. I don't know his boards is not that good. It's going to be
+
+interesting to see where he's going to land on boards. And you know there is any n she she's number
+two in the rejuvenation Olympics after Brian and she just she just said in an interview that her
+next
+
+focus is going to be the longevity world cup which is which is awesome. I I heard that. That's
+something to >> to look at. Yeah.
+
+>> Oh, yeah. Dave Fusco can >> can always do some surprises.
+
+>> I think, you know, sports is exciting for me from a physical, you know, as someone who tries to
+be athletic and and fit and strong.
+
+I feel like Feno Age holds people like me back because it penalizes creatinine and uh you know so
+it's it's cool for me. Yeah, I can't actually do BS as far as I or right now as far as I know
+
+because the lab in my city doesn't have they don't do cisad and see I emailed them about it and they
+said they're looking at it but they don't do it. So I don't know man. Yeah, >> we're we're lagging.
+
+>> Even the Singaporean people had to go to Johor Baru, Malaysia because in Singapore they couldn't
+get cystin.
+
+>> Yeah, >> that's that's another thing that that I don't like board because so I and I think it's
+not just cystins. There is a there is a a lipid marker I believe. I think that might that might
+
+be problematic to get for me. At least I am sure that the previous laboratory is not doing that
+where I've been I've been doing it so far. So like [ __ ] Okay.
+
+Well, anyway, like that just makes the competition more serious, right? like if the Singaporean team
+crossed borders to do the boards to to get into the longevity world cup, right? Like that's the kind
+of athletes I I want to see on
+
+the top of the leaderboards, right? Who are serious about it. Yeah.
+
+>> Yeah. Same here. And you know, one of the I I love Feno Age and I I love that paper and they did
+a great job and there's always pros and cons for everything. And one of the cons of pheno
+
+age is you know there are there are entire systems that it doesn't look at right and you know it
+doesn't it doesn't consider lipids it doesn't consider thyroid markers hormones you know all of
+these things that we are seeing in other
+
+clocks now where they're looking at more systems in the body. Yeah. So I think feno age is still is
+still amazing and a lot and I should say a lot of those things were considered as inputs and
+
+they were discarded because they didn't they didn't make that cut in the final set of markers. So
+they purposely left those out in some cases. In other cases they just didn't have that data. I think
+they did the enhance data set doesn't
+
+include cadetency or it does but it's in a special data set and they have problems with it. they had
+to discard 10% of their results. It's a it's like a drama went on behind the scenes, so you
+
+don't really want to touch it. It will be cool seeing how this evolves over time. And I'm looking
+forward to more open markers. I hope that the new markers aren't just all going to be patented and
+siloed. I hope we can see
+
+more actual open ones coming out, >> right? And you know afterwards I think from 2027 we should
+really drop the the biological aging clocks that has age as an input.
+
+Even if the biological aging clock which we choose is going to be worse than boards. I think it's a
+conceptual flaw to have age as an input. So yeah, let's I would personally aim towards that.
+
+Thank you very much for coming. Where can people find you? Is there anything else you want people to
+take away from this?
+
+>> Yeah, thanks. It's been really great. Uh people can find me. Uh I've got a website
+klausanzian.com that links to all the social things. I try to um I I publish articles. I call them
+deep dives and I also publish
+
+research roundups uh where I summarize the roughly the last month or the last two months of of
+journal research. Uh that that's probably about it. I I did take some notes about uh kind of
+rejuvenation Olympics versus longevity
+
+world cup and I want to say even though I'm really pro the longevity world cup I think we can learn
+from re rejuvenation Olympics to improve but yeah maybe there's a way to have it both ways and
+
+to get a more true result.
+
+>> Well Krauss it was a pleasure. Thank you very much for coming.
+
+>> Thank you. Thanks for having me.

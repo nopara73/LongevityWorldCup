@@ -1,0 +1,873 @@
+# Hannah Went, Organizer, Rejuvenation Olympics
+
+Video: https://www.youtube.com/watch?v=XCT1WCYZOpM
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 369/473 units; 5434/6347 words.
+Matched topics: PhenoAge, Rejuvenation Olympics, VO2 max, aging, aging clock, biological age, biomarkers, epigenetics, exercise, inflammation, lifespan, longevity, longevity athlete, medicine, mortality, nutrition, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+True Diagnostic promises revolutionary technology that would drastically change the blood testing.
+
+True Diagnostic's technology could quickly conduct comprehensive tests using just a few drops of
+blood from a finger prick at a fraction of the current cost of the traditional lab tests.
+
+So, Hannah Wendt, co -founder of True Diagnostic, I would like you to reflect on these statements.
+
+I think it is 99 .99 % true, right?
+
+I leave, I say 99 .9%.
+
+You never know what's gonna happen throughout life, right?
+
+Life is very unexpected and gives you curve balls.
+
+We can't predict the future.
+
+So I'll leave out that 0 .01%.
+
+But we're absolutely seeing it.
+
+So I know you've spoken with my co -founder, Ryan Smith, previously as well.
+
+But right now, We're actually able to predict about 4 ,000 additional biomarkers, including clinical
+lab values, proteomic markers, metabolomic markers, just with a couple drops of blood.
+
+And I shouldn't say couple, maybe I should say 10 to 15.
+
+It's a small blood spot card.
+
+It's about the size of a quarter, but it really is causing a paradigm shift in medicine.
+
+I would go as far to say medicine and not even traditional laboratory testing, which is a 200,
+market.
+
+So we're sitting at a very interesting, exciting intersection of health and wellness through this
+novel biomarker of epigenetics.
+
+So let me give a little bit of context of that quote.
+
+I asked Chedgy P .T.
+
+what did Elizabeth Holmes and Terranos promised to their customers?
+
+We haven't taken any outside investments.
+
+So it's very, very different when comparing to Theranos.
+
+We're not giving you a device in the office to run these samples instantaneously.
+
+I do also receive that question a lot if we will have a device where people can put it in their
+homes or their healthcare provider offices and get that information back.
+
+And maybe in the future, I don't think that's in the near future, but it is definitely a
+possibility.
+
+How many tests have you sold so far?
+
+Yeah, we've sold around 75 ,000 tests so far.
+
+I'm from Ohio, just a couple hours north of Lexington, Kentucky.
+
+And I came down to Kentucky in 2015 for school, graduated in 2019 from UK.
+
+I've always really been interested in science, you know, how the world works, how the body works and
+took an interesting position right outside of school at a compounding pharmacy.
+
+It was the fourth fastest growing healthcare company in the nation in 2019.
+
+It specialized in unique peptide products and pharmaceuticals that were pretty cutting edge.
+
+And we focused on serving healthcare providers who were all cash pay, right?
+
+Treating healthy patients and not necessarily following the traditional sick care model.
+
+So it was very exciting.
+
+A lot of research and development going behind the actual products.
+
+behind the scenes we were saying, well, how do we measure that?
+
+What's the number one kind of factor to rule them all?
+
+And of course we came across aging, right?
+
+Being the number one risk factor for all cause mortality and morbidity.
+
+And after that it's how do you measure aging, right?
+
+Do you measure it through grip strength, VO2 max, telomere lengths?
+
+And then we came across the epigenetic DNA methylation that we now know today as the best marker of
+biological aging.
+
+So sold the pharmacy.
+
+created true diagnostic really full force and in about 2020 ran the first sample then in July of
+2020 and, you know, have been going through a lot of other different revenue streams ever since we
+do a lot of third party processing.
+
+We have our own third party logistics lab, but we do a lot of R and D and kind of creating our own
+DNA methylation analysis suite software to read and interpret large epigenetic data sets as well.
+
+So it was Ryan and you.
+
+I can give you more information about the backstory too, if you're super interested.
+
+I know that was more high level.
+
+Yeah, you know, right when we wanted to start the company as well, we flew out to UCLA.
+
+We met with Dr.
+
+Steve Horvath right away in 2019.
+
+We met with several companies who are also doing biological age testing in this space because we
+didn't want to create our own company, right?
+
+That's hard work.
+
+So we wanted to partner with someone and just bring our audience that integrative.
+
+functional cash pay medicine audience to them because we knew it was a need and in the field, people
+wanted to measure this risk factor aging again.
+
+And they did not have the same outlook on the field as we did.
+
+We saw this as an opportunity for growth, something where we could create again, new and novel
+biomarkers, but they were using some older versions of those biological age clocks or what we know
+today as the first generation clock.
+
+So we said, screw it.
+
+go back to Lexington, bought a multimillion dollar, 20 ,000 square foot building and it was an old
+insurance building.
+
+Tore the insides out, created the lab and yeah, I've been running ever since.
+
+And where the overtime you encountered an opportunity to do a longevity leaderboard, which is called
+Rejuvenation Olympics.
+
+I would like to ask you about that.
+
+How do you as a company feel about?
+
+the Rejuvenation Olympics.
+
+You said it's not your main priority, but you're making it one.
+
+Yeah, I think as a company, we're super excited about it, right?
+
+We have a really great relationship with Brian Johnson, a great relationship with his team, and a
+lot of the longevity enthusiasts who are involved in it, like Michael Leskart and Ben Greenfield,
+David Pascoe.
+
+There's a couple of other big name, Steve Aoki, who's on the board as well on the Redrubnation
+Olympics board or was at one point.
+
+So we love it.
+
+It brings in conversations like this, right?
+
+It brings in a really large community and not necessarily a super edgy or competitive community.
+
+The goal of the community is to not die and to extend lifespan and have more time together.
+
+So it acts as a way to push humanity and the limits and really be the best version of yourself.
+
+So it's a really fun competition.
+
+I mentioned that it hasn't been our biggest priority in the past just because of all of our other
+research and development going on and making more and better predictors.
+
+So we just came out with our omic -mage in October, which was our main focus for our first three and
+a half years of running the business.
+
+And now that we have that, it's the best biological age clock that's ever been created to date
+because it's the most predictable cause mortality morbidity when you compare it against any others.
+
+They're different biomarkers.
+
+So we'll have to compare them head to head again.
+
+make image is so new still.
+
+but in terms of mortality, more morbidity, I would say, or I'll go just death in general.
+
+The omic image is the best at that.
+
+The pace of aging is going to be more of an instantaneous rate of aging that's better at capturing
+change and quick change as to someone's age introductory over time.
+
+And then the symphony age is really good at individual disease outcomes.
+
+So it's best at predicting onset of specific disease based on the individual system or score that
+you're looking at.
+
+What will it result to?
+
+Many different leaderboards.
+
+Are they still going to be one that rules them all?
+
+Yeah, I'm happy to even send in and share mockups of actually what the website will look like.
+
+But essentially, it's going to still be the same thing that you're seeing with the Dunedin pace
+right now.
+
+So it's going to be the average rate of the three Dunedin paces across the six month mark.
+
+Remember to be on there.
+
+You need to take that.
+
+test at least three times with the first and third being at least six months apart.
+
+So you're going to get that average kind of pace.
+
+You're going to get the percentage improved from baseline as well.
+
+So that'll be standard with the Dedeanian pace.
+
+That's what's live at the moment.
+
+Now the symphony age leaderboard is going to be showing you the biological age of 11 distinct organ
+systems.
+
+And you can switch between system.
+
+You can search for your name to see where you rank.
+
+And this is going to be one's a little bit harder because it's so it goes up to not only the top 20,
+but you can search for your name.
+
+Very during exactly that's that's the goal once we get all the data in.
+
+So, yeah, one of the hard parts about Rejuvenation Olympics, which I think you're aware about, is
+consent.
+
+We're not posting anything without anyone's consent.
+
+And it's really crucial that we have that.
+
+So if we have the consent, we'll hopefully be able to put everyone on there and then they can
+actually search through everyone who has consented and see where they rank amongst them.
+
+If they fit the qualifying criteria.
+
+So from a software design point of view, what would be the problem?
+
+Whoever is registering their Dunedin pace into the website, into the Regimenation Olympics website,
+then that's an automatic concept of being there.
+
+So we have this done.
+
+We have something else.
+
+done from a software standpoint.
+
+So when you purchase a true diagnostic kit, if you have one, you know you have to register the kit
+on the true diagnostic website, right?
+
+And previously they were hosted on different domains.
+
+So this is what made the cross -checking a very manual process in terms of consent.
+
+What we did though is now added Rejuvenation Olympics consent on the true diagnostic registration.
+
+That's actually live.
+
+So when you're registering your true diagnostic kit, you don't also have to go to rejuvenation
+Olympics and say, Hey, I want to be a part of this.
+
+So for every single kit you register, you can choose by kit if you want that one to be included or
+not.
+
+So let's zoom out a little bit and think about longevity as a sport.
+
+What's your big vision?
+
+What sure, from a component point of view, you can say that, if the rejuvenation Olympics is
+successful, then we are going to sell more tests, but Do you have another kind of vision here for
+the games?
+
+In terms of the Rejuvenation Olympics games, is that what you're referring to?
+
+I think it all comes down to, you know, again, more of a better world, not to sound super cliche,
+right?
+
+But these leader boards were created initially as a way to hold people accountable.
+
+for how they're aging.
+
+You see a lot of construed information on social media of people saying, I reduced my biological age
+by 10 or 20 years, or I'm actually 50 years old chronologically, but my biological age says I'm 20.
+
+That's just not true.
+
+It's not how these biological age predictors work.
+
+So the Rejuvenation Olympics was really a way initially to hold people accountable, to put everyone
+in a way that they can be compared to another.
+
+And I think the more we started to iron that out, we were realizing, hey, we're actually creating
+again, a really nice community.
+
+When people ask the same question that you're asking, what's the future hold for longevity, the
+leaderboards, the entire vision?
+
+We just want to encourage people to be better and to perform more of these N of one precision based
+studies on themselves.
+
+I get the question all the time, it's probably the number one most asked question, hey, how do I
+reverse my biological age?
+
+And my answer is the same every single time.
+
+I don't know, you're going to have to try what works for you because you can look at these general
+population studies and you can get some ideas or hints as to what may work, right?
+
+But you don't know that it's going to work on an individual level.
+
+And that's very, very important.
+
+I know what works for me.
+
+And I can go through some of the things that I do on a daily basis to hopefully extend my longevity
+or make me feel better and look better quantitatively according to our testing.
+
+But it comes down to what works for you.
+
+And that's why the Rejuvenation Olympics is so important because you can start to share and talk
+about those different strategies and may want to try something that someone else is trying, whether
+it be at different dosing or the same frequency
+
+We'll hopefully be able to list people by user profiles and create a forum in the future.
+
+So I know Michael Lescartin pretty well.
+
+He has actually been on my Everything Epigenetics podcast before.
+
+He has a great channel, a great YouTube channel too.
+
+I think that the company name is Conquer Aging or Die Trying.
+
+He was actually an English major undergrad and went back to school for his PhD in, I believe some,
+some area of exercise science.
+
+So he has a really great way of communicating research with people and what he's doing.
+
+He does a great job at also testing himself and only changing or trying to change one variable or
+factor.
+
+So he really understands how his metrics are moving according to that one variable or factor that
+he's changed.
+
+So Michael Laskart is an awesome example of someone who I would say is a rejuvenation Olympic
+athlete and appeared on the leaderboard.
+
+Another one as well is going to be Jen Bell.
+
+So she is, I think she became a rejuvenation Olympic athlete.
+
+in the last round of updates, but she has a really great website.
+
+The last time I checked, I haven't looked at it in quite a while, but that is really great because
+she's going to have some information that's more women -focused.
+
+I think we need both men and women on the board as a way to add value.
+
+Some of our healthcare providers are on there too.
+
+Diane Gingsburg who runs a clinic, I believe in Texas.
+
+She does some therapeutic plasma exchange.
+
+Yeah, she's in Texas.
+
+So she's someone we work with pretty closely and is a user of the kits, you know, in the clinic and
+for the research and personally too.
+
+Yeah, just a quick shout out to Jan -Velda.
+
+She's running an ageless society named Telegram.
+
+groups of groups, you know, that's, that's a very active and more interesting things are happening
+there for sure.
+
+Michael Lustgarten is someone I did not succeed to reach out.
+
+He, I can see he's, he's one of my favorite because he, he kind of embodies a certain kind of
+archetype of, of the longevity athlete who is like trying to optimize one variable at a time with.
+
+blood tests and all kinds of stuff to get the best that he can face.
+
+He's someone I like to listen to.
+
+Yeah, he's really great.
+
+Him and I have actually known each other, I don't know, for like three or maybe four years now since
+True Diagnostics inception.
+
+And he's definitely a colleague, a friend, and we have regular conversations over email and he's
+very intelligent.
+
+And I think, yeah, what what he can communicate to people and his YouTube videos and how he creates
+them is very impressive.
+
+So there is something that I've seen you tweet about and that's about C15.
+
+During my interviews I noticed and my research on the athletes I noticed many of them actually
+taking C15.
+
+There is a hype about it, right?
+
+Can you tell us what's going on?
+
+So C15 is being brought into the longevity light.
+
+There's a lot of hype about it, as you mentioned, because of a company called Fatty 15.
+
+They're a really cool, sexy company.
+
+They have, you know, nice, nice branding, great, amazing founders and a really cool story behind it
+as well.
+
+C15 in the context of supplements is a type of fatty acid and it's a saturated fatty acid.
+
+with some potential health benefits, maybe even some anti -aging, depending on how you wanna define
+anti -aging benefits there too.
+
+But from a nutritional standpoint, it can have benefits that include anti -inflammatory properties,
+support for metabolic health, possibly improving heart health as well.
+
+It's usually sourced in whole fat dairy products, fish, specific plant oils.
+
+It's also available obviously in the supplement form.
+
+and why it's been very popularized now because of again, Fatty 15 and that company.
+
+It can be really good, I think, for maintaining health or even a alternative to taking your omega
+-3, omega -6 fatty acids.
+
+I think there needs to be more studies to understand really how we can benefit from it and how it
+can be used effectively.
+
+But I still think nonetheless, it's pretty exciting from a biological aging standpoint.
+
+there is a study that I spoke about where there is a correlation and they used several second
+generation clocks in this study, DNA methylation, VinoAge, DNA methylation, GrimmAge, looking at
+about 4 ,100 individuals, average age of 55 years
+
+And they discovered that higher levels of the C15, this fatty acid, were associated with slower
+biological aging.
+
+So participants who had increased levels of this particular lipid, displayed younger biological
+aging compared to their biological age.
+
+So it's solely a correlation though, right?
+
+Which is how most of these studies are going to be presented at this time.
+
+You've done this test on other things as well.
+
+And if you did then what did you find the most correlative with biological aging clock, right,
+Danita and Pace?
+
+Yeah, by far caloric restriction, 100%.
+
+And that is really going to even be evident through the calorie randomized control trial, the 10 %
+overall caloric restriction and keyword healthy, non -obese adults over a two year period.
+
+And the Dunedin pace was really the only clock that significantly decreased over time through
+consistent caloric restriction.
+
+And that came out a couple of years ago, published in Nature in February.
+
+And it just looked at first generation Horvath and Hannam clocks, second generation Grimm age and
+pheno age.
+
+Grimm age looked okay, but it wasn't statistically significant.
+
+And the pace of aging was really the only one that could capture it, the Danene didn't pace.
+
+So I think we have to have a consistent caloric restriction.
+
+I didn't look at time restricted feeding or intermittent fasting, right?
+
+Just overall eating less.
+
+So I noticed that Dr.
+
+background podcasters like to talk a lot about, okay, sleep well, exercise and eat well, right?
+
+And yes, those are the most impactful figured out so far other than some steroids.
+
+So that's okay, but there is a cost benefit analysis and they only looking at the benefit and never
+really the cost of it.
+
+So what are the costs of calorie restriction?
+
+The cost is that you are constantly thinking about it.
+
+You have to prepare your food or plan and that's a lot of time compared to just a...
+
+You know, like the cost of doing the second thing is much smaller than the cost of calorie
+restriction, right?
+
+So do we have something, some low -hanging fruits here?
+
+I would argue the opposite.
+
+I think it's much easier to restrict your calories.
+
+So first and foremost, supplements are going to cost you money right out of your pocket and you're
+not Sure, if you're deficient in those vitamins, if you're not doing proper testing, you're guessing
+on what's going to work.
+
+You're probably taking, you know, five to 20 pills a day or more, depending on your specific
+regimen.
+
+So I think there's a much, much higher actual cost coming out of your pockets when it comes to
+supplements.
+
+And a lot of those, I would say most of them, probably all of them don't have randomized controlled
+clinical trials on them as it relates to biological aging.
+
+Now when it comes to caloric restriction though, some tips and tricks in my words of wisdom here is
+just change the quality of your food or what you're eating.
+
+It doesn't necessarily, caloric restriction sounds super scary.
+
+People think, I got to skip a meal or I just got to eat less.
+
+And that is one way to achieve it.
+
+Mentally, that's probably going to be a lot harder.
+
+on you, like you mentioned, and may drive you to actually do the opposite and overeat, which we
+don't want.
+
+But I'm, you know, I'm a carnivore, omnivore, I eat anything and everything.
+
+I don't have a specific, you know, true diet that I follow.
+
+But one change that I've been making that I think is really simple and will resonate with listeners
+is I love breakfast.
+
+I eat a very high protein breakfast.
+
+I love sausage, bacon, traditional breakfast meats.
+
+But if you switch traditional sausage or traditional bacon to turkey bacon or turkey sausage, you're
+already dropping 200 to 400 calories in that one meal.
+
+And if you're eating a 2000 caloric based diet and you eat in that same fashion throughout the rest
+of the day, you're already at your 10 % overall caloric restriction, right?
+
+So the cost there is when you're at the grocery store and you're already shopping for your food,
+instead of grabbing traditional bacon, you're just grabbing turkey bacon.
+
+It may cost you, you know, a dollar more or so, and it may even be less.
+
+I actually don't know the comparison.
+
+We need more funding.
+
+There are some really great resources and videos, especially if you go through Dr.
+
+Matt Caperline's YouTube channel, his podcast with OptiSpan.
+
+He gives some really daunting numbers, I would say, as it relates to how much funding goes into the
+National Institute for Aging.
+
+People, researchers in particular, laugh and call it the National Institute for Alzheimer's because
+I think about somewhere between 80 and 90 percent of the entire budget for the NIA goes directly
+toward Alzheimer's.
+
+And we know there's many age -related diseases, right, many randomized controlled trials that we can
+actually be looking at.
+
+And one really good example of this is the TAME trial.
+
+So this is a medication, it's not a supplement, but this was the trial for metformin to look at how
+metformin affects aging.
+
+So it's the, I think TAME stands for yeah, targeting aging with metformin.
+
+And this study, I think initially was supposed to be underway like 10 years ago, and they still
+haven't done it because they don't have funding.
+
+And what they're doing is they're trying to raise a ton of money though for those large trials,
+right?
+
+They need a ton of money for that.
+
+What we do though is at True Diagnostic, we work with private companies.
+
+So supplement companies or, I mean, they can be public.
+
+We would even hook them up with a healthcare provider if they need a study location.
+
+We can help with patient recruitment or involvement.
+
+And then they can even be like a patient pay trial too.
+
+So at your diagnostic, we can do them a lot cheaper.
+
+I don't know that most people know we have those resources and those capabilities, but you'll see
+these larger trials really never be pushed through to completion because of the very large amount of
+money they need to run these more kind of
+
+publicly funded trials.
+
+Yeah, it's very expensive to run these publicly funded trials.
+
+I wonder if there are a certain group of people who are actually supposed to experiment on
+themselves, right?
+
+And try out all these things, even if there are no randomized control trials for them.
+
+Like is there a kind that's kind of...
+
+I mean, you could like, you could take our entire healthcare provider network, right?
+
+So we have a total list of around a hundred thousand of these healthcare providers in the integrated
+functional medicine space who are pioneers in aging medicine.
+
+They're really on the frontier.
+
+They're trying all these cutting edge medications.
+
+They have been for years, rapid myosin, metformin, supplements like A -carbose, other medications
+like...
+
+Who are they?
+
+They are mainly our main audience, right?
+
+Healthcare providers who are treating aging as a disease, their anti -aging clinics, the cash pay
+medicine clinics who don't take insurance.
+
+So those are the providers.
+
+That's our target ideal customer profile.
+
+They've been doing these medications, these supplements, these new cutting edge and anti -aging
+therapies on their patients for decades, right?
+
+They have that data.
+
+They have their blood -based values, they have their hormone levels, and there are companies,
+there's one in particular, where they're trying to target those healthcare providers and get the
+healthcare providers to just create a clinical study or institutional review
+
+board within their clinic so they can extract that patient data and use it to prove that those
+medications they've already been prescribing for years are improving health outcomes.
+
+So that's one pretty simple way you can get around it.
+
+No one has done it yet though.
+
+And there is another one.
+
+There is a group of people that we as on a societal level, not only tolerate, but encourage them to
+go to the extreme, to try out a bunch of extreme things on themselves.
+
+And that group of people, It's called athletes.
+
+So this is really interesting in all kinds of sports, the rules of the sports are transcending the
+rules of the actual laws and ethics because now it's okay to fight each other.
+
+Now it's okay to lie to the other person because that's the sport.
+
+We are calling it bluffing in this context, you know, and that's where the longevity Olympics comes
+in.
+
+If we really want to see some innovation, best way to go about it is to fuck around and we find out.
+
+That's a great platform at the longevity Olympics for that.
+
+I like that.
+
+Now about the pace of aging, pace of aging over lifetime.
+
+How in average, how does it look like?
+
+So how does the Dunedin pace look like when you're young, you're aging fast or aging slow and as
+you're getting older like What does it look like?
+
+Yeah, I can send you the Dunedin Pace paper as well.
+
+Obviously, they're using a very unique cohort, right?
+
+About 17 Dunedin New Zealanders.
+
+And what they notice in that population level graph is for whatever reason, your pace of aging is
+going to increase as you become older chronologically as well.
+
+So I think that's what you're asking, right?
+
+We see a very linear association as you become older chronologically.
+
+Your pace of aging is going to go up.
+
+What's what I think is really cool is we see that same trend in our true diagnostic cohort.
+
+The Dunedin cohort is very interesting because they are going to be air quotes healthier than a
+traditional American cohort.
+
+And then true diagnostic, we're testing very, very healthy people as well.
+
+So when you lie the graphs on top of each other, they're almost Perfect.
+
+They're almost completely aligned with one another, but they do follow that same trend.
+
+Yeah, for the Rejuvenation Olympics, like if you're applying what I just said to that, right, people
+who are older, it's going to be harder for them to keep the pace of aging lower.
+
+So it's more impressive when people who are chronologically much older have a lower pace of aging.
+
+And the curve here is like this.
+
+It's not like this.
+
+There is never a dip in the Dunedin pace.
+
+It's always just going up.
+
+For the data that they have on it, at this time.
+
+It's a great question.
+
+There's definitely many things out there.
+
+I'm just trying to think of the one which is like the most.
+
+People probably tend to argue, or I would imagine them arguing with the fact that biological age
+testing is not.
+
+the number one test that they can test on themselves, friends, family members, their patients in the
+case of a healthcare provider.
+
+Because when you think about it, if you're healthy, it may make a little bit more sense to take this
+test if you're wanting to optimize your own health.
+
+But even if you're sick, if you have cancer, if you have heart disease, if you have COVID, if you
+have long haulers COVID, this is still your number one risk factor.
+
+We get all of these other diseases because we're aging.
+
+Now, if you have cancer, heart disease, COVID, long haulers, COVID, aging is not going to be your
+primary concern.
+
+So it makes sense as to why you're not going to take the test.
+
+But if you are aging faster at any point in your life, you are definitively at an increased risk of
+all cause, mortality and morbidity.
+
+I don't think people argue on that part.
+
+I think they argue the value of actually knowing the outcome and being able to effectively change it
+and understand that you can reduce your risk.
+
+Your current project is the true diagnostic, but you also have another company, which is everything
+epigenetics.
+
+What's the story there?
+
+So early days, true diagnostic, we realized no one knew anything about epigenetics.
+
+We didn't know much.
+
+We were learning as new studies came out.
+
+So we always wanted to create more of an educational arm or platform outside of true diagnostic.
+
+We had really A massive vision for it.
+
+We wanted to host public meetings on Fridays, kind of like these journal clubs to update people,
+research roundups, have a newsletter.
+
+It really just be an extension of true diagnostic and understanding the promise of epigenetics and
+all of the applications, clinical and non -clinical.
+
+As with everything else, we got too busy.
+
+It got put on the back burner.
+
+And then in December, a couple years ago, I just said, screw it.
+
+I'm going to do it.
+
+I'm going to create, I'm going to make everything epigenetics my own.
+
+I'm going to create more of an educational platform or just tell people what I'm already doing and
+keep them updated with what I'm already reading anyways, in case other people are interested and
+want to listen.
+
+So I don't monetize it in any way.
+
+I have a newsletter that sometimes goes out every month.
+
+Instagram is probably where I'm most active.
+
+I'm actually getting ready to start releasing blog posts on my website as well.
+
+People want to digest information from more of a reading standpoint.
+
+But I think it will come to a point where it's going to be like, you know, Andrew Huberman of the
+world, Rhonda Patrick of the world, right?
+
+Peter Atiyah of the world.
+
+Epigenetics is going to play into every single thing that they're talking about.
+
+We just don't know it yet, right?
+
+Epigenetics came out after the first iPhone, which is insane to say it's that new, right?
+
+We could only really measure these markers about 10 years ago.
+
+So it's really exciting.
+
+I hope to involve more people in it in the future, create more of a community around it.
+
+But again, don't monetize it and don't have any plans to monetize it anytime soon either.
+
+What have you monetizing?
+
+How can people buy something from you?
+
+In terms of true diagnostic or epigenetic, everything epigenetic.
+
+No, in terms of abstract marketplace, you are bringing goods and services and values to other people
+in exchange of other values.
+
+So how can they exchange value with you?
+
+What's the best way?
+
+In terms of people out by the test, I mean, that's, yes, right?
+
+That's the main point, main...
+
+flagship product, we have a true diagnostic, right?
+
+Because then you're actually able to apply some of the learnings you may have heard on everything
+epigenetics to factor a change or to make a change.
+
+It's really important to retest, right?
+
+It's a cool test.
+
+You get your numbers back, but with your hormone levels, with your CBC panel, you'd never test once
+and then not make a change and retest to see how that's being affected.
+
+So if anything, the second, third, fourth test are way more important than that initial test that
+you're doing.
+
+So yes, by the test.
+
+Secondarily, I love knowledge and information.

@@ -1,0 +1,668 @@
+# Al Brown, 17th Place, Rejuvenation Olympics
+
+Video: https://www.youtube.com/watch?v=iA0gZwU76pI
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 267/410 units; 4865/6810 words.
+Matched topics: Bryan Johnson, HRV, Rejuvenation Olympics, aging, biohacking, biomarkers, exercise, healthspan, longevity, medicine, nutrition, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+the mysterious Al Brone, number 17 on the Rejuvenation Olympics leaderboard.
+
+So welcome to the show.
+
+Thank you, big fan.
+
+I like your channel quite a bit.
+
+So what's your, let me ask you this, what are your results?
+
+Can you tell me some things like your Dunedin pace, your chronological age, and a couple of other
+achievements that might raise some eyebrows?
+
+Yeah, nothing too fancy there.
+
+I'm 44 and three quarters, in a couple months Dunedin pace of aging, the most recent test I got back
+was, I want to say end of October last year and it was 0.8, I believe.
+
+had another one, there's two within two or three months.
+
+One was 0.81 and one was 0.8.
+
+The best one I've had was and that was July 2024.
+
+Not a whole lot of differences.
+
+I would say more supplements and sleep differences between the two tests that in my opinion I think
+probably caused a little bit of degradation there.
+
+But you know without getting really into the blood markers and everything else that's just my
+speculation that shift work and things like that, less sleep and I kind of went a little heavier on
+some of the supplements that I hadn't been taking.
+
+When I got the 0.59 I was similar to what I am now which is basically nothing really.
+
+So maybe that might be one of the eyebrow raisers.
+
+I'm not a big supplementation person, you know, very limited that way and I've always felt better
+that way and I've always apparently had better results.
+
+with less supplementation.
+
+Other than metabolically, know, decent shape there.
+
+Body fat somewhere below 15.
+
+Try to stay between 155, 165 pounds, about six feet tall.
+
+Resting heart rates, try to maintain around 40 to 42.
+
+HRV, I think is...
+
+This is all Apple Watch metrics too, so I'll take it with a grain of salt, think HRV average is
+around 80-85.
+
+Yeah, any other metrics you want, think I've got most of them here, like I said, mostly through
+Apple Watch, but happy to share any of that.
+
+There's nothing secret there or anything.
+
+Well, those are pretty good metrics, right?
+
+The resting heart rate 40, 45 minus is around 50.
+
+And, and even that's considered to be pretty good.
+
+So four to 45 is, is pretty good.
+
+let's focus on Dunedin Pace a little bit.
+
+So you said shift work.
+
+Did I hear it right?
+
+Yeah, not consistent shift work.
+
+mean, I have for last 20 years, I've been on and off of shift, my rotating days and nights, days and
+afternoons, things like Typically nowadays, I would say eight to nine months out of the year, I'm on
+a fairly steady days, base schedule.
+
+But from time to time, just due to the nature of the work, sometimes we'll get put on shift for a
+period of days or weeks, which is pretty hard on the circadian rhythms and you definitely notice a
+lot of physical and psychological differences when you're back and
+
+forth like that.
+
+How does your day look like when you're on shift?
+
+So what I see here is that you're getting really good results when you're doing one kind of shift
+and you're getting, well, still good results, but not 0.5 when you're doing the other kind of shift.
+
+So what's the difference there?
+
+Tell us your day.
+
+I would say like the benefit to the day schedule is the consistency.
+
+It's still fairly taxing like I have to be at my desk usually by quarter to six so I get up anywhere
+usually about 20 to 4, 3.30, 20 to 4 in the morning.
+
+I've got a little routine that I do you know just some breathing, a little bit of exercise,
+stretching, get a bunch of coffee into me and then off to work for the day.
+
+I'd be home here usually by five or six at night.
+
+And then, you know, I try to consistently get to bed with, you know, the actual time I fall asleep
+is always different, but I try to aim for nine, between nine and 10 o'clock, which gives me five or
+six hours usually, which I know is not.
+
+as good as it could be or ideal, it seems to, for me anyway, it seems to be enough.
+
+Shift when I'm actually working nights, everyone back and forth.
+
+Typically I would start about six in the evening and then work till six in the morning.
+
+But the time I get home, it's usually 7.38, jump into bed.
+
+I've never been able to get more than say four or five hours at the absolute maximum when I'm
+flopping back and forth like that.
+
+like never ever am I sleeping past noon so I'd be up even if I go to bed at 9 I'll be up by noon and
+then start the day all over again the benefit to that is I find there's more
+
+time during the day to get things done you get a workout in you can you know if you have errands or
+things like that to do there's a huge benefit to having free time during the day but it's definitely
+a trade-off you're trading sleep and time with the family for
+
+not that it's a choice necessarily, but that's just usually the way it goes.
+
+You see, that's so interesting.
+
+I think you're the first person who's talking about not having optimal sleep and yet where you are
+interesting.
+
+let's zero into your sleep a bit more.
+
+What are you doing to still trying to get your sleep?
+
+To the best of my ability, I try to keep the bedtime consistency within an hour or so every night.
+
+I've tried all the usual techniques, the dark room and the...
+
+I have a fan blown to kind of provide a bit of white noise, cool temperature, things like tried
+pretty much everything that is reasonable to try, whether it's spending a huge sum of money or
+anything too exotic.
+
+I did actually, just within the last month or so, I bought a pulsetto device.
+
+I'm not sure if you're familiar with those.
+
+It's like a HRV training vagus nerve device.
+
+It provides electrical pulses on your neck.
+
+It's got a sleep function on it and I've been trying to use that this last month or so and can't say
+for sure that there's any huge benefit to it yet but it hasn't made anything worse either so I think
+I'll...
+
+HRV change with that?
+
+I've been watching that too and I haven't seen a huge difference yet.
+
+The odd day, I've noticed a spike which seems odd but if I use it a couple times, the one day I used
+it twice in the morning and I noticed it was up to 110 or something and it
+
+stayed up that high that day but then just kind of seems to baseline again.
+
+You know, yeah, long term I can't really say I've only been using it for a month or so Okay, so you
+wake up, then What's your exercise philosophy?
+
+No days off.
+
+Every day they try to get in.
+
+My bare minimum baseline is five kilometers running or the equivalent thereof.
+
+If I can't get outside, I'm in Canada and it's today for example, temperature wise it isn't too bad,
+it's only minus six or eight but the snow has that really slick consistency that I find hard to run
+on.
+
+So I put a few kilometers on the treadmill instead today.
+
+But generally, my preference is to get outside.
+
+Yeah, no less than five kilometers.
+
+When the weather's good and the traction's good, I tend to run with a weighted vest, 22 pound vest.
+
+I do about seven and a half kilometers with the vest or 10 without.
+
+Just typically what I aim for.
+
+Like I said, if I can't, for whatever reason, you know.
+
+Absolutely nothing less than half an hour 40 minutes at you know, 120 heart rate or higher just to
+You know zone two or higher just to maintain that cardio baseline Waits three or four days a week 60
+to 90 minutes Definitely nothing fancy there just regular chest-back
+
+split arm day leg day Shoulders, you know nothing nothing crazy there at all I just have dumbbells
+and barbells out in the shed here actually at home.
+
+So very, very cold in the winter time, but it's good motivation to keep moving and keeps the heart
+rate up.
+
+Well, you're, you're, you're underselling yourself a little bit because did you just say five
+kilometer run at least every day?
+
+Yep, yep, that's.
+
+Yeah, that's a lot.
+
+But saying that though, like I'm certainly not running at a, you know, elite pace or anything like
+that.
+
+You know, five minutes to 520 a kilometer is typically my pace, which is certainly not setting the
+world on fire.
+
+So it's more just for me, it's the act of actually making myself do it.
+
+But yeah, it's one of those things.
+
+I'm at a point where I've done it for so long that The psychological pain of missing a workout is a
+hundred times worse than no matter how cold it is or how little I feel like doing it.
+
+I'm gonna lace up because it hurts way more not to do it.
+
+You know, there is this meme on the internet, One Punch Man meme that it's an anime that some people
+are...
+
+that the main character is really strong and can one punch every enemy.
+
+Like at least they entertained in their minds that what does it mean to run 10 kilometers?
+
+It is really difficult, you know.
+
+So five kilometer is also really difficult.
+
+But even your strength training, right?
+
+Like 60 to 90 minutes, three, four times a week is a big, big workout, you know?
+
+there again, like it's a time commitment, but you know, the alternative, I think, like I'm at an age
+now where Sarcopenia and the atrophying of muscles is a real thing.
+
+So it's far more painful to me to not be doing these things that I know help and will hopefully
+prolong my quality of life as well as the actual chronological length of time that I'm here.
+
+So yeah, it's a commitment, but I mean, you know, it's...
+
+one step at a time.
+
+It certainly didn't happen overnight, but just over the years it's kind of evolved into what I do
+and seems to work.
+
+Yeah, good job.
+
+Maybe you can come to Prospera to get some folistatin gene therapy.
+
+I would love to.
+
+How do you, how's your nutrition?
+
+It's funny, you know, you get a lot of the people talking about blueprint and, you know, different
+fairly structured diets and things like that.
+
+I am sort of along those lines, I eat a very consistent type of diet.
+
+But as far as the timing and the sorts of things I eat, in many ways, very anti what the...
+
+like the Brian Johnson, you know, not eating for several hours before bed, well I'm the opposite.
+
+Like, I typically don't eat very much during the day and then I'd have one big meal at night.
+
+You know, I very loosely count the calories in macros, but more to ensure that I'm getting enough
+protein as opposed to, you know, like I certainly don't worry too much about calorie restriction or
+anything like that.
+
+I believe given...
+
+kind of, think Dave Pascoe was the one that kind of said, he's not intentionally calorie restricting
+himself, but given the amount of daily activity and exercise and things like that, probably you are
+calorie restricted, that balance of net calories in versus out, you
+
+might just be slightly restricted enough that, I don't concern myself too much with, gaining extra
+weight or anything like that it just seems to be with the one meal a day thing you pretty much eat
+as much as you need to and as much as you want really with it
+
+going into anything that's too unhealthy or processed stuff Okay, so you're paying attention to
+not...
+
+What's your main...
+
+What do you value the most here?
+
+Not eating processed food or paying attention to protein or fiber or what's your main values here?
+
+Yep, so I'll give you just a typical, so in the morning I would wake up, I would take, it's called
+Greens Plus, everything I take, there's nothing exotic, it's all stuff that's from Amazon or
+Walmart, but it's Greens Plus powder, which is just, like a nutrient
+
+I mix that in with some psyllium fiber, take a vitamin D pill, mix some creatine in with that as
+well, and a probiotic.
+
+breakfast and that gets me through most of the day.
+
+Typically I'll sip on some amino acids or something like this here which is just called amino
+energy.
+
+It's there again, know, off the shelf.
+
+It's got a little bit of natural caffeine and some amino acids and things like that.
+
+And typically that'll get me through the day and then six, seven at night I'll have my big meal
+which would be generally lots of leafy greens.
+
+I've been eating lot of falafel so stuff like that with not a huge amount, but a small portion of
+grains, like lentils and rice, some beans, things like that.
+
+And then I have such a hard time I mostly eat plants so I have a hard time kind of getting the
+protein that I need from solely plants.
+
+So that's when I would have generally after my supper I'll take coconut yogurt mix it up with some
+protein powder and put some seeds and nuts and things like that in there, berries, what not.
+
+Have one of those and then if I feel like I'm still low on protein I'll make up the difference with
+just off-the-shelf protein bars which...
+
+It's very processed and understand that but it's convenient and quick and it makes sure that I get
+up to, I aim for around a gram and a half per pound of body weight.
+
+So typically a couple hundred grams of protein a day would be the minimum.
+
+Okay, two questions.
+
+Firstly, how many hours do you eat before sleep?
+
+Sorry, how many hours between the last meal and sleep?
+
+How many are speaking?
+
+We're talking minutes.
+
+Like a lot of times, yeah, like it, that's where I'm very anti, I'm the antithesis of Brian Johnson.
+
+I, most of my meal is right before bed.
+
+So, and I...
+
+You cannot have so good heart rates or ability.
+
+And, man, you might be a genetic freak here.
+
+And that's where I think, you know, a lot of this stuff is so new and cutting edge as far as the way
+we measure things like this.
+
+But I believe so much that we're all such an individual system of, you know, we're microbes and
+viruses and everything that we all have that's different that the way that we adapt and the way that
+we, take in nutrients and sleep and everything.
+
+It's so individual that what works for me would definitely not work for a lot of other people, vice
+versa.
+
+And what's working for me right now might not in six months or a year or who knows.
+
+That's kind of where I'm such a big fan of the true diagnostic, being able to, and again, I
+understand it's not a perfect method of gauging a pace of aging or anything.
+
+We're not 100 % perfect yet.
+
+But just to be able to see what is working for me at this point in my life and what can I tweak or
+what can I take from somebody else that's working for them and maybe I can adapt
+
+and try something like that.
+
+So yeah, definitely work in progress.
+
+nothing I do is written in stone.
+
+I'm always open to very basic diet exercise stuff right now.
+
+always be open to trying a lot of these other new cutting edge interventions down the road.
+
+I'm just not in a position yet where I'm quite there.
+
+Have you ever tried to not eat three hours before you sleep and look at your heart rate variability
+and resting heart rate, then if it gets even better than that.
+
+Yes, I have and so it's kind of a dilemma for me because you're 100 % correct.
+
+My heart rate is better, but my sleep is worse.
+
+I find I have a harder time sleeping and a lot of that could just be habit.
+
+I used to go into bed when I'm full and satiated and not to, you know, get so used to that over the
+years that, you know, it may probably would take some time to come around to
+
+going to bed a little hungrier.
+
+But the few times that I have gone that route, I have found that I have slept more fitfully and not
+got as much deep sleep.
+
+So for me anyway, and again, like I would never encourage anybody else to, I think the science says
+that it's probably better for you to have a good size gap between your last meal and your bedtime.
+
+But again, like I just, it works for me.
+
+So what I'm doing for now, if down the road again, I might change it and you it might work better.
+
+But yeah, you're 100 % right on the heart rate.
+
+Going to bed after a meal, I find I'm probably in the 46 to 50 range.
+
+Whereas if I go to bed having not eaten a meal in the last few hours, I'd probably be in the very
+low 40s.
+
+Overnight, I quite often dip down into the 36, 37, 38.
+
+that seems to be whether or not it.
+
+There was this idea in older bodybuilding community that you might want to set your alarm to the
+middle of the night to wake up and eat, then go back to sleep.
+
+So you even keep your body in an anabolic state even when you're eating.
+
+So I do that, like I actually do that.
+
+I wake up at midnight and drink some water and if I'm hungry I'll have a protein bar to go back to
+bed.
+
+I'm definitely not afraid of eating in the middle of the night or before bed.
+
+It's just so used to doing it now that, I don't know, it just seems to work.
+
+you said that you're mostly eating, eating non-meat stuff, but what does that mean?
+
+And it was just about the kind of...
+
+back and forth studying athletes and people that were eating meat as opposed to plant-based.
+
+And I was quite intrigued just with the, you know, some of the metrics that the plant-based people
+were getting.
+
+Up to that point, I always thought that, you know, diet heavy in protein and meat was essential.
+
+So I tried going the other way there for a little while and I never went back.
+
+just, I haven't had meat, eggs, fish or anything like that for be almost five years now I guess
+since 2019 so over five years but I do supplement with whey protein just because whey and milk
+protein just because it's so much easier to get
+
+those amino acids that you're not getting from plants I'm just lazy it's so much easier to mix whey
+protein into something and know that I'm getting proper profile as opposed to and it's totally
+possible to do it from plants it's just
+
+know, little more thought needs to go into it, a little more planning and like I said, I'm pretty
+lazy when it comes to things like that.
+
+just have my set to, I know if I need to boost some protein, it's a pretty easy thing just to dump
+some whey in something and you know, get an extra 25 to 40 grams.
+
+So what about your supplements?
+
+You said you're not supplementing much, which is always a great opportunity to ask for your entire
+supplements.
+
+Yeah, you've heard the whole thing there.
+
+It's the creatine probiotic and vitamin D.
+
+I think it's a 2000 international unit vitamin D pill.
+
+Five grams, monohydrate.
+
+And yeah, just the greens powder, is, it's huge profile in the back of all the different vegetables
+and things that are ground up in that.
+
+But as far as at various times so I would say I was up to maybe 20, 25 different supplements a day,
+pill form mostly, some powders but the usual ones, the ones that you know you look at
+
+Dave Pasco's website or some of those guys a lot of the very common ones like trimethylglycine,
+alpha-ketoglutarate, extra magnesium, calcium, you know.
+
+all the same, all the similar type things.
+
+It's just, you know, I tried doing that for a while and I've done it without and I don't notice a
+big difference when I'm doing it and I feel just as good without.
+
+I, until I get some metric that I feel is, you know, could be helped with some particular specific
+supplementation, this time, Trying to get away from the whole shotgun approach of taking everything
+and hoping that everything works.
+
+I would rather take nothing and slowly reintegrate what I really think I need as opposed to kind of
+just guessing.
+
+That's that's wise.
+
+And I don't have any...
+
+real crazy things.
+
+You know, some of the more what might be considered unpleasant or, you know, I don't use hot water,
+so I kind of, I only ever have cold showers, infrared sauna every single day.
+
+But beyond that and like the no-meat thing, like there's nothing that is really, you know, any crazy
+supplement.
+
+too wild about anything that I do.
+
+It's all standard things that I would say the hardest part about getting into that is just the
+commitment part of the consistency.
+
+I'm about 10 minutes outside of the nearest city.
+
+We've got a few acres here, so you know, summertime and spring and fall, it's really nice to get out
+and get some trails and things like that.
+
+You can run and bike and just get outside.
+
+Yeah, mostly I would say my existence is primarily between work and home and running around.
+
+I've got three kids.
+
+taking them to their various activities and pursuits and trying to maintain, keep an eye on them,
+make sure everything is kosher at home.
+
+It keeps them pretty busy.
+
+I had some attendance issues in high school and sort of fell into a lot of partying and things like
+that and maybe got away from the good pursuits.
+
+At various times, I've like I said, I'm about 155, 165 pounds now.
+
+think when I was not looking after myself, I think maybe the worst shape I was in was about 240
+pounds.
+
+mostly fat, like I just was not in very good shape and smoking a pack a day for probably 20 years,
+drinking, you know, just things like that, that you just sort of fall into those bad habits and
+traps and certainly nobody's fault except my own.
+
+But at some point in time, you kind of have to evaluate where you're at and where you're going.
+
+And yeah, I would say it was probably Around the time my third child, my youngest son was born,
+completely quit smoking and drinking and all the extracurricular pursuits and bad eating and things
+like that.
+
+yeah, you've the last 10 or 11 years, I think it's slowly and consistently sort of moved back to
+feeling better and more natural, hopefully.
+
+more longevity and more health span and things like that.
+
+When your youngest son was born, that's when you changed the trajectory of your life to a healthier
+one.
+
+Yeah, think, and it wasn't any one thing, it was just, you know, I remember at that point in time,
+it was just around Christmas time and you you go to lot of Christmas parties and there's drinking
+and whatnot and I just remember feeling lousy on, was Boxing Day or right
+
+after Christmas and just all the bad food and the drinking and you know, smoking cigarettes and all
+those things and...
+
+if you have kind of a goal and a bit of a strategy, it seems to, in the long run, stay resilient,
+seems to work out.
+
+what's one thing that many people, that you strongly believe to be the case, but very few people
+agree with you on.
+
+That is such a good question and I've heard you ask it to others and I don't have a great answer for
+you.
+
+I would say, contrary to a lot of the people in this particular space, I would say the lack of my
+supplementation and the lack of rigidity maybe.
+
+Like I'm very, very fluid and flexible when it comes to, I'm not married to anyone.
+
+opinion or anything like that, like if a study came out tomorrow that told me that, you know, whey
+protein was the worst thing in the world for you, well then I would evaluate that and go from there.
+
+But I it, yeah, I don't have any beliefs that I am so embedded in that I wouldn't change.
+
+Like I don't, I don't know, the most contrary thing I think I probably do is my eating schedule, as
+you know, is very not consistent with what seems to be everybody agrees on.
+
+Like, that would probably be my most contrary thing that I do.
+
+You know what, think I finally figured out your secret.
+
+Your secret to a great Dunedin base and longevity is that You're not on social media.
+
+before you talk about it.
+
+Like there's no ifs, ands or buts.
+
+I don't have anything like that.
+
+I'm so interested and, you know, to me it's fairly new, this whole...
+
+biohacking, longevity, space.
+
+If I ever had an opportunity to develop a career in that field, I would always be open to doing
+something like that.
+
+But as of right now, I'm not actively engaged in any promotion of anything.
+
+Yeah, like I said, I would always be open to moving in that direction.
+
+But as of right now, one thing, be last fall.
+
+Just out of, some extra time and some boredom, I put together a little book of just things that for
+somebody like myself that's, know, a bit of a retread that has never, up until a certain point in
+their life had never really been involved in any sort of a health sphere
+
+or anything like that.
+
+quick little self-published Amazon thing just to kind of give the top 10 things that you know I find
+to be the most practical, simple, beneficial things for somebody that's just getting into it.
+
+So definitely would not recommend it.
+
+Here's the book anyway but it's not something I would even promote or recommend to anybody that's
+already in this space because it's you're far better off to go to one of the professionals or the
+medical professionals or
+
+there's so many great literature and other places out there to get information.
+
+This was just more of something to do to kind of, if one person ever came across it who was able to
+help them, then you know, that's kind of the way I looked at it.
+
+I've not promoted it, I've not done anything like that and I don't really intend to.
+
+just out there and yeah other than that I've got nothing that not trying to sell anything and not
+trying to not endorsing anybody's particular protocol or anything like that I think like I said
+before I think there's so many different things that work for different
+
+people that I would have a hard time I would have to truly understand and get involved in the the
+actual protocol to be able to promote something.
+
+So if I was going to promote it, I would want to try it long enough that I was able to test my own
+metrics and biometrics long enough that I knew that it was something that was
+
+And yeah, I'm not doing that at the moment.
+
+What is the name of the book?
+
+It's called walking death versus extreme longevity If someone searches it on Google, they're going
+to find it there.
+
+I just on Amazon I think it's just like a self-published Amazon But yeah, if you you go in Amazon or
+Kindle or whatever it's called It should show up there.
+
+I walking death extreme longevity the author is so humble that he is not He's so afraid to even
+promote this so you might actually find something extremely underrated Book they are so check it out
+if that's your interest.
+
+Well, Thank you very much for coming.
+
+I I Have a feeling people gonna find this Really inspirational.
+
+So thank you to you.

@@ -1,0 +1,1341 @@
+# Your Blood Age Is Probably Wrong | Zsolt Szabó Reveals the BORTZ Clock
+
+Video: https://www.youtube.com/watch?v=4sPoryFIsZ8
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 587/1179 units; 8223/14258 words.
+Matched topics: Bortz, PhenoAge, aging, aging clock, anti-aging, biohacking, biological age, biomarkers, cholesterol, epigenetics, exercise, glucose, inflammation, lifespan, longevity, medicine, mortality, nutrition, sleep, supplements
+
+## Focused Transcript
+
+Aging clocks show accumulated rate of aging.
+
+So it's not like how fast you're aging right now, but what you accumulated over time.
+
+It would tell you that if you are doing the correct choices in life and the first clocks that were
+there were trained on chronological age and the researchers were posting like, hey, you know, look,
+look how well is the correlation between the chronologic and
+
+It's valid if you are like police and you find a body buried somewhere, you need to know the age.
+
+That's why the second generation clocks started to be trained on mortality, so on actual mortality,
+not on the chronological ages.
+
+The answer the clock will give you is basically how much left you have.
+
+So for example, if my birth blood age is like years younger, that means my mortality, my life, my
+remaining life is someone of 12 years younger than me.
+
+you Today, I have a great privilege to welcome Zsolt Szabo.
+
+Hi Zsolt, thanks for joining the interview.
+
+Zsolt is the creator of longevity-tools.com and I reached out to him because of his involvement in
+the Bortz Clock, which is arguably the best biological aging clock to date.
+
+This interview will get pretty technical, but we will start it very approachable.
+
+In fact, I want to go into the code and algorithms itself later on.
+
+But basically I visited like all the best doctors, everything.
+
+And I realized that the early age that like no one can help me.
+
+So I had to learn to read medical studies and basically I did lots of experimentations on myself
+because of the necessity.
+
+I have basically no other choice, right?
+
+People in with this condition like commit suicide and stuff.
+
+So it was like very bad.
+
+So, and after basically I wanted to get my life back and fix whatever it could be fixed.
+
+so when I, know, and I did all the experimentation myself, I could see like how these different
+things like affect me.
+
+I was already into it.
+
+So I continued basically like now it's now called like biohacking or something.
+
+People around me noticed that I kind of knowledgeable for the general population about health.
+
+they reach out their problems and I was surprised that many times I could solve them.
+
+those are problems that, you know, people could not get solved through standard truth.
+
+And even to this day, if someone comes to me with the issue, I always say like, go to the proper
+routes, you pay your insurance, you know, do your stuff.
+
+And then I even like read those, you know, paper from all the doctors, see like which way they were
+thinking.
+
+And yeah, so even to this day, I help friends and all these like, I have multiple calculus, there's
+another public that will be like public soon.
+
+We can talk about a bit, I guess.
+
+And all those like inspired by real people, real problems.
+
+And so yeah, this day I own a longevity clinic in my city.
+
+So with the real doctors and everything.
+
+And when I'm there and I see I want to be there with the doctor speak with the patient and I see
+like, okay, this is the moment where, you know, the patient deserves like the, call them clients.
+
+the client deserves better answer, like, you know, this is, this was like an easy way out for the
+doctor.
+
+So, then I go lock myself in for like three months and do this like crazy calculator.
+
+It takes all the studies and basically tells you the correct answer.
+
+expert specialist doctor would calculate stuff for two hours, he would say this answer.
+
+So I'm trying to do that.
+
+So to enable the doctors to provide the correct diagnosis and the correct answer fast.
+
+So that's kind of the journey.
+
+yeah, basically the standard medical system was like letting me down over and over again and even
+later in like, like At least recently, like few years, I was experiencing some issues.
+
+would like, I pay insurance, right?
+
+So I scheduled all the doctors and everybody was like, all is normal.
+
+So that's why it's kind of on my t-shirt.
+
+And so, yeah, I was having some, I was experiencing some issues and uh I visited like all the
+specialists, neurologists, like nephrologists, know, hepatologists, like everything you can imagine.
+
+And then like one of the liver markers was...
+
+elevated but everything like still you know close to normal or normal and everybody was like all
+good all good all good and so yeah if you crunch numbers and you check like where each liver enzyme
+enzyme can originate you can see that there is value in that so some of
+
+them are released also from the gut so it's not just the liver some of them are from the muscle some
+of them are like different origins that can be found in blood serum right and I had like isolated
+elevated ALT like, okay.
+
+And plus I have like low iron even when I try to supplement and ALT is released also in gut.
+
+So it means like inflammation in the gut.
+
+So, like low iron absorption.
+
+I'm like, okay, it's probably celiac disease.
+
+So I went to do the lab test for celiac disease, my own again, you know, and I like surprise,
+surprise, celiac disease.
+
+And so I went.
+
+There was no CHED GPT so you had to the paper.
+
+Yeah, Yeah, yeah, yeah.
+
+So yeah, I again, was, and this story is actually more interesting that I went to the specialist
+doctor too, because you need in my country, Slovakia need like basically endoscopy confirmation,
+right?
+
+So I just went to doctor to just do the endoscopy basically.
+
+So I came to her and I'm like, Yeah, here is like how I found out here.
+
+Here are the tests from the labs and I just I need the endoscopy.
+
+And she went all out crazy, like all out crazy.
+
+You cannot do your own blood work.
+
+You cannot do that.
+
+And like, what the hell is happening?
+
+So all your colleagues could have figured out.
+
+like, you know, but then I was like, because she was like pushing it and like, okay, I'm not Uh, you
+know, I'm not having it.
+
+So I just went like all out.
+
+Oh, can I measure my weight in the morning?
+
+And she's like, yes.
+
+Can I measure my blood pressure at home?
+
+Basically I did this to her and she realized like, okay, you know, so, so she was like, she kind of
+agreed that yeah, basically if you can measure other biomarkers, why not these biomarkers?
+
+just because they're from blood or something.
+
+So what's the difference, right?
+
+So yeah, now I have good relationship with her because she later found out that I'm actually, you
+know, I know about this stuff.
+
+That was the time that like, this is nonsense.
+
+Like I need to, I need to kind of fix it.
+
+And the first step would be like to start my own clinic with the doctors.
+
+So yeah, we do that now.
+
+And this clinic is mostly for like wealthy people because I don't want to deal with insurance
+because insurance don't pay for all these tests.
+
+And the thing is that I quickly realized that I, if I will handle like rich people.
+
+I will not help the masses.
+
+So ah that's why like everything, that's not, I mean, you No, mean, let me take an issue with that.
+
+So tell me about this clinic.
+
+This is interesting.
+
+So is this yours or?
+
+Yeah, I'm the co-owner with one of the doctors.
+
+So basically I wanted to do it anyway, even if it...
+
+doesn't make maybe lots of financial sense or something like that.
+
+I also like doing some sports now, so do running.
+
+we also have like people that coming from sports background and want to improve their performance.
+
+So I have interpreters and calculators for that too.
+
+And uh also like weight loss.
+
+So if you look at average population, the being overweight and obese is like high impact on on your
+lifespan.
+
+this is also one of the things that we do that maybe it's kind of necessary to do in order to like
+have a longevity clinic in Kostya.
+
+it's, you know, so it's this weight loss is maybe not a full like longevity stuff, but hey, you
+know, I calculate the hazard ratios before and after for all-cause mortality and it's some serious,
+uh you know, some serious gains that we have there.
+
+So It just may be not as fancy as some biohacking, but for these people, it's the absolute first
+thing to fix basically.
+
+So, okay, is this a clinic where people come in and get some tests and perhaps some interventions?
+
+I'm not sure.
+
+Or is this like a full-on retreat that people can book for a couple of days?
+
+No, no, no, no.
+
+It's just the clinic.
+
+again, like mostly manage like people that want to undergo weight loss and we do it kind of really
+because many doctors do weight loss or try to do weight loss.
+
+But if you look at the way like how they do it and how we do it, it's night and day, right?
+
+So they don't even measure like muscle mass or like, you know, body fat percentage.
+
+So If they, if their patients are experiencing like weight loss, any weight loss doesn't matter from
+what they're like, yay, it's good.
+
+And we do like, we do charts and graphs each month for the clients, basically that how much muscle
+to fat was sold ratio.
+
+So what's the optimal ratio and the doctor see graphs.
+
+So this is in red, this is in yellow, in green.
+
+Is it Dexer?
+
+Yeah, we use Dexa.
+
+It's bias for us.
+
+And it was crazy.
+
+It was all the way, so like the body fat percentages was like, uh, even like plus or minus 10 %
+difference.
+
+And 10 % is like, it's so.
+
+it's like the difference between being a translator type.
+
+But for me, ah at the time I had like 9 % body fat and both agreed to 9%.
+
+So there is a, which was, which I was expecting for me not to be true because I'm the outlier with
+less than 10 % body fat.
+
+was the outlier and for me it was correct.
+
+some like, literally like average looking people.
+
+they looked like average, not an outlier and plus minus 10%.
+
+And we want to get a nice DexR that will do also, but it will provide some information for like
+sports people too.
+
+So there is like these different packages you can get and we want to have the, one of the higher
+models.
+
+I see, see, nice.
+
+So final question about your clinic would be that is this testing clinic or you have interventions
+as well?
+
+Yeah, the thing is in our longevity program, this is where you get this concierge medicine or
+something like that, we do lots of including genetics and lots and of tests.
+
+much is the most comprehensive package there?
+
+The, for the longevity analysis is 10 grand, 10 grand in euros.
+
+So quite a lot.
+
+that's why I said like, there's not a lot of, you know, clients in city like Kosice, right?
+
+But we calculated that that's the amount we need to charge because I, know, the tests are expensive.
+
+So you can either get into the program or not.
+
+yeah, that's it.
+
+And it's basically supervised with latest medication.
+
+Before we start talking about the clocks, I just wanted to ask you what kind of longevity
+communities are you frequenting or frequented in the past?
+
+They're either online or offline.
+
+Yeah, so I was just mostly looking at what Peter Attia does and Michael from Conqueror Aging or Red
+Triangles or something like that.
+
+And then reading papers, maybe looking at Reddit.
+
+And in the past, I also worked for the biggest longevity fund in the world basically.
+
+So there we had multiple companies.
+
+portfolio companies all around longevity because of my background in software plus biohacking.
+
+that's why I was there.
+
+yeah, so I'm in the space for quite a while I would say.
+
+All right, well then, biological aging clocks.
+
+I believe you might be the very first person who's an expert on that topic.
+
+You're an expert on that topic, are you?
+
+I'm not sure if I would call expert anything, right?
+
+I kind of have this imposter three normal weather.
+
+I'm a software engineer from like 15 years old and I still would not call myself an expert.
+
+you know, but yeah, I know a lot about these specific uh linear models that are uh like phenol age
+and boards plot age.
+
+Thing or two, I would say.
+
+All righty, so the scientists out there listening to this be easy on us because we are just two code
+monkeys talking about something that's your expertise and not ours.
+
+But my question is to you.
+
+What's the deal with biological aging clocks?
+
+Yeah, so as you know, there are many, many ways to estimate, right?
+
+would you want to do this?
+
+So basically these aging clocks show accumulated rate of aging.
+
+So it's not like how fast you're aging right now, but what you accumulated over time.
+
+And it would basically tell you that, Hey, if you are doing the correct choices in life or, or maybe
+not.
+
+the first clocks there were there were trained on chronological age.
+
+The first, uh, kind of.
+
+You know, perfect.
+
+So that's valid in this case.
+
+But for us, you know, it was not maybe a lot of value.
+
+So that's why the second generation clocks started to to be trained on mortality, so on actual
+mortality, ah not on the chronological age.
+
+So the answer the clock will give you is basically how much left you have.
+
+So for example, if my birth blood age is like years younger, that means my mortality, my life, my
+remaining life is someone of 12 years younger than me.
+
+think there is like, it's, it's much more important what you just said.
+
+And let me try to restate it in my worldview here.
+
+So what I've been noticing is that the bottleneck of longevity science is that we would have to
+measure how long people live, which takes lifetimes to do.
+
+Therefore that's not really a viable way to go about it.
+
+So we need another metric, another proxy for that and biological aging clocks come to the rescue.
+
+Now the first idea is to, well, okay, let's calibrate these clocks to the chronological age and
+let's see what happens.
+
+But then the industry has learned that, hey, m that might not be the best.
+
+That's not really what we are after.
+
+That's how old you are, but how healthy you are basically.
+
+And then what measures that or what's the end goal there is that a mortality is core, right?
+
+Like, so then the newer biological aging clock attempts are more like trying to, trying to go after
+mortality or for the optimal health of a person rather than a biological age, right?
+
+your optimal muscle, just to give an intuition, optimal muscle has, I'm not sure how we call it, but
+that might don't peak when you're 18, that might peak when you're 25, I believe, and different
+organs, different systems in your body have different optimal
+
+health peaks, different biological, different...
+
+So anyhow, we are after a measurement of a person's health, ultimately.
+
+I think you said it right.
+
+And I think there is one more thing that I noticed, which is uh like even to us, like, you know,
+people come to longevity clinics, these are health enthusiasts, That are health, basically these are
+healthy rich people, right?
+
+They want to be more healthy.
+
+They do lots of basics, right?
+
+So they would not pay like 10 K just for fun, right?
+
+They already know like, okay, do some exercise.
+
+I try to eat healthy stuff like that.
+
+But even for them, for this health instance, yes, when we, I many times there decline because I want
+to be there and I see that how they react.
+
+So yeah, this is your whatever insulin sensitivity, you know, like perfect modeling, blah, blah,
+blah, you know, which is super important.
+
+It's one of the most important things, right?
+
+But then we show them like, this is your biological age and these markers are aging you this much.
+
+And so This is the impact of each marker on, they're like suddenly like you see how, how they react.
+
+So one of the underrated like the super underrated thing of biological age clocks for me is to get
+the compliance out of clients.
+
+So suddenly they are listening and they are want to be engaged.
+
+And that's why I even did the, the phenol age calculator, which is, which you can do from your like
+regular checkup.
+
+So if doctors have patients that.
+
+uh I armed the wrong track so they can get the compliance out of them with the by age result.
+
+So I made it for this specific reason.
+
+Okay, so if people think that everything is perfect with them then you can still show haha.
+
+No, that's not the case Yeah, there is mostly for people that the phenolage I made for like doctors,
+like many, many times doctors know what make the correct calls and know what's wrong with the
+patient and they don't get the compliance out of them.
+
+So they're like, don't take the medication, then don't lose weight and don't do this, don't do that.
+
+And they see, they see the blood results and you know, most likely not, they will do the correct
+call, right?
+
+So to know what's happening and uh the Problem is that the doctor has to be like a psychologist or
+something.
+
+So need to get into the head of the people and everyone is different.
+
+Everyone like behaves differently, has different way of what's driving them.
+
+And doctor has like what normal practice, like five, 10 minutes to a patient.
+
+So you have to find the reason diagnosis and then be a psychologist all in five minutes.
+
+And what I realized that if you show them the biological age, suddenly they, they, when they see
+they are like five or 10 years older, now they're interested.
+
+They want to know more that they listen to the advice of the doctor.
+
+So this is why I made it for free because in our practice, right?
+
+We don't use a lot of the Levine phenol age because it's very rudimentary markers, but that's why I
+made it uh because we have better clocks, but that's why basically I made it public for free with
+everything.
+
+So other doctors could, and I even made a video in Slovak so other doctors can see how it works.
+
+I tried to work with the lab.
+
+So the lab will automatically provide this value on the lab tests and stuff like that.
+
+So I really tried to put it to as as many hands of doctors and patients as possible.
+
+Let's continue with the clocks.
+
+You mentioned that these are calibrated on ACM, the newer ones.
+
+But Ports is a newer one, yet it gives you a biological age.
+
+So, but if you reconcile it.
+
+It's trained on mortality.
+
+the boards is trained mortality.
+
+oh How, what's the, have an optimal, optimal 18 is the optimum or what?
+
+So the idea is that in the research paper, they mentioned the people from this is for strain and you
+can UK biobank.
+
+So if you're 30 and you have 10 years difference and if you're 60 and you have 10 years difference.
+
+So that's why I show all same percentage.
+
+So just to recap, BORTS is trained on mortality and the chronological age is one of the inputs.
+
+And basically you can move around like this minus plus 20 and that's around that much you can expect
+from these.
+
+So that's one of the like limitations I would say.
+
+if later in the future, a hundred years from now, you will be to fully age reverse.
+
+these will be no good for us, right?
+
+So these are good now.
+
+And why I like them specifically is that you can calculate it with the lab test that you already
+need to make an informed decision about your health.
+
+So you need all those markers to, you know, if you would want to do a proper checkup, proper annual
+checkup, not that.
+
+joke that we do like in the country.
+
+I even calculated how much it costs to do the blood panel that we do, that your insurance pays
+yearly, right?
+
+And it was like 12 euro.
+
+That's the cost.
+
+And you know, if I do my own test is like 300.
+
+I have it.
+
+And just to get back to original question, I really bad at this.
+
+go so off, you know, but like why we get the result as a number if it's trained on mortality, right?
+
+That was the original question.
+
+You can think about like, okay, so the average person lives whatever, 18, 19 and your life,
+remaining life is your biological compared to this like average.
+
+So that's kind of, it's the estimation of your remaining life.
+
+Basically, so if you are, if you are 12 years younger, you are expected to live like 12 years longer
+than the average, something like that would be the, would be the proper way to say it.
+
+I have way too many questions now.
+
+The age component.
+
+I'm not sure I fully understood what you said about the age component, but my understanding is that
+that's the kind of like a, at least in Fino age, because I'm familiar with the algorithm of Fino
+age, right?
+
+It's like a mystery box.
+
+This is, this is for to account for what the, the algorithm doesn't know.
+
+about your biological age.
+
+Do you understand what I'm saying here?
+
+Yeah, like the best way to think about it is these are linear models.
+
+So it's a simple math.
+
+Okay, so BORTS Like, yes, it's the same as Phenoid.
+
+I have another question.
+
+There is a problem with phenol age, which is like, let's say I set your albumin to 9999 and then
+your biological age is going to be minus 90, something like that.
+
+But you are in reality dead.
+
+I basically when I coded my tool, adjusted for everything, all of these cases.
+
+So uh I don't know, I can even share my screen.
+
+This is the board spot I tried, which is currently.
+
+you do it with Finoage as well?
+
+Yeah, the Phenoage uses the same features.
+
+But the idea, like you said, you enter albumin, right?
+
+And when you enter whatever, I would just not accept the value.
+
+So I will accept uh values that are compatible with life, I would say, and units.
+
+So for example, you see the cystatin is driving the age, right?
+
+And stuff like that.
+
+But it's important to know that this is a like naive approach, right?
+
+So because these biomarkers never move in isolation.
+
+So here is the correlation between each of these markers.
+
+So that's kind of nice thing to see too.
+
+the result in percentage results in percentage the same as here.
+
+percentage and here I explain what the result mean.
+
+So like I talked before, not sure if it's visible.
+
+So does result mean that you have mortality risk of an average 35 years old person?
+
+So that's, that's what it means.
+
+If it cannot go lower than around 2025 maybe then does that really mean that?
+
+So it's standardized based on the normal range, but also the age is kind of the strongest.
+
+So this is all relate.
+
+to how strong it is compared to the age.
+
+just to get back to your first original question, then basically here you can see, OK, this person
+doesn't change a single lab test, and he just ages from 53 to 63.
+
+And you see his age, it jumps, right?
+
+He's suddenly like, you know.
+
+younger, a bit more, but the biological age still went up, right?
+
+So his expectancy is someone of this person.
+
+yeah, these biological age models have, like right now we don't have the perfect score, right?
+
+But this is in practical reasons for this day I think this is one of the best way to or the best way
+to do it that's why I use it.
+
+You know what?
+
+That's what you are left with basically.
+
+All right, all righty.
+
+ah You know what, next, let me show you something because it might be useful for you and also a good
+transition to Mike's question.
+
+This is what we're talking about, uh Missing U-shaped curves for biomarkers.
+
+It's even what BORTS has.
+
+We just talked about it before.
+
+that you said if the albumin is too high then you're correcting it by not allowing the inputs,
+right?
+
+But if you think about it, in reality, if the researchers would have done the research properly,
+then what you would have is that it wouldn't be that...
+
+Yeah, yeah, so I yeah, this is the It wouldn't be a linear regression.
+
+It would be like U-shaped curves for everything, maybe except for C-reactive protein or something
+like that.
+
+But anyhow, we have the tissue, right?
+
+And what I've done, because I'm running a competition here and that would be really problematic if
+the most unhealthy people would get to the first place, right?
+
+I've done a lot of things, but eventually I ended up with, with my class cart and doing a research
+on it, uh, about what are the ACM optimas for all the finoage markers.
+
+So this might, you, you might be interested in these, these things here.
+
+and, and what I did is that I.
+
+kept these things, right?
+
+Like glucose, if you go lower than 4.44, I didn't implement the U-shaped curve, I didn't want to be
+that crap, but I just said, okay, if you're under 4.44, then you get the maximum score that you can
+get and you cannot get any better than that.
+
+I know what you mean.
+
+this is a different solution to oh the same problem that I experienced.
+
+And I didn't want to adjust the model.
+
+I just don't allow values that are not compatible with life, I would say, and then show warnings if
+something is improving, is too much improving.
+
+But in the real life, we know this value is not health improving.
+
+But to overcome this, next basically we can have a better models, right?
+
+We know how to do it scientifically and it's just person for like statistical people.
+
+we can do like, right now, We use these linear regression models because the data set is large
+enough for them, but not large enough.
+
+Large enough for fully AI model, which is a black box, So that's something like aging AI tries to oh
+achieve.
+
+They have this black box, which is like literally like fully, fully basically.
+
+and then suddenly you don't know why.
+
+It's just like you enter glucose maybe for even like better value and the age may be worse or
+whatever because it's fully uh like a model but for that you need just the only issue is we don't
+have, yeah, the only issue you need a lot of data.
+
+So if you look at how much data you need for this, you know, uh Another level on top of linear
+regression would be like this, not sure if I'm saying correctly statistics, but at least like random
+forest and stuff like that.
+
+So you have like levels and then you have like the full AI model.
+
+And uh we just like don't have enough data.
+
+So if you remove one, it would shift a lot.
+
+this is all, know, if absolutely all values are the same.
+
+that's why creatinine higher level is better.
+
+for boards because if absolutely all other blood markers are there and that NR did not change and
+the creatinine goes up, it's health improving in that case.
+
+Whoa whoa whoa whoa.
+
+So you have to have all of them.
+
+Okay, wait, wait, let me process that.
+
+So, levin phenol age does not include C-statin C, which is a better...
+
+uh kidney marker.
+
+so suddenly if you have C-statin C and you also have creatinine, then since C-statin C is a better
+marker, it has a higher weight.
+
+That's why it's actually the highest important biomarker in boards because like I mentioned, the
+kidney health is so important.
+
+But the model basically overshoots C-statin weight and then...
+
+subtract, it's not a correct word to use, but subtract the creatinine because creatinine also is a
+marker of muscle mass.
+
+So it's not just kidney health, but also muscle mass.
+
+So it's raised from muscle, right?
+
+So if you have like more muscle, your creatinine is higher.
+
+So this way model captures both kidney health and muscle mass.
+
+So it's kind of playing this.
+
+It's like the model is like one step ahead of us, I would say.
+
+So that's why it even did not.
+
+catched like ApoB or LDL cholesterol, which we know is super important.
+
+And it did not include it.
+
+And why it didn't include it?
+
+Because it did something similar there.
+
+So it took the total cholesterol, did the ApoA1, which is kind of the proxy to HDL.
+
+So in this way, it captured also like the bad cholesterol, but also some other things at the same
+time.
+
+So the model is kind of there.
+
+But this is just like how we try to explain away these things.
+
+We don't know like why the weights were selected like that, right?
+
+Let me ask a quick question.
+
+Like I've been thinking about it a lot.
+
+And of course, if I would read the papers, then I would know the answer.
+
+But do you think other biological aging cooks, like the epigenetic ones, let's say the Neidam pace
+has the same issue with the U-shaped curve?
+
+Are they using linear regression?
+
+Basically, that's the question, right?
+
+Yeah, I would say they use something like that because they will need to have lots of lots of data
+to use something else.
+
+So they would need to, the dataset would need to be like enormous and the dataset is probably
+smaller than what's circulating by biomarkers dataset currently available.
+
+So they just use something like that, but their inputs are like, they have many more inputs, I would
+say.
+
+So yeah, they probably, and the thing is like, do they include the chronological age, right?
+
+As an input.
+
+Yeah, sex on the body globally.
+
+Which increases your engaging because of C.
+
+R is calorie restriction maybe?
+
+SHBG pro-aging and anti question mark would be a good question.
+
+Yes, this is again like the speculation.
+
+Are you No, no, Please, can you please share this?
+
+Here, yes, yes, no text box now.
+
+my god, why is it so hard to find the...
+
+m The inclusion of SAGB, sex hormone blighting garbulin, which increases during aging.
+
+But also because of calorie restriction is sex hormone blighting garbulin pro-aging or anti-aging.
+
+Okay, so it increases during aging, but also in calorie restriction, right?
+
+Yeah, but something similar is happening with uh the...
+
+like testosterone for example, because this is like hormone, right?
+
+Wait, second one blinding goblurin more you the better.
+
+Yeah, the higher is worse.
+
+So in the the model, so if you see the coefficient, you have like smaller screen so you don't see
+the coefficient.
+
+But if you'd make the screen larger, yes, yes.
+
+Yes, So this means higher value increase biological age, right?
+
+uh yeah, again, this is something that according to the study authors, you we should not do, but
+again, this means that the model could be accounting or correcting for something else.
+
+just like with graphene, you know, the model could be like overshooting something else.
+
+and correcting, so it might be like, you know, it plays like 3D chess, the model.
+
+each biomarkers have to be there and that's only if we have all of them, then this is true.
+
+If we would remove some other markers, ASUS BG could go completely different.
+
+uh wait what's the problem here I mean SHGB is increasing during aging which is consistent Yes, it's
+consistent with this board.
+
+But it's also...
+
+is the CR that CR should be good.
+
+Yeah, but it also increases during current restriction, right?
+
+That's the question, basically.
+
+No, I don't understand because there doesn't seem to be a problem here.
+
+It's considered good.
+
+Calorie restriction.
+
+it's, you know, if you do calorie restriction, people live longer or model animals and stuff like
+that.
+
+So, and usually your markers go right.
+
+Yeah, But something similar is like.
+
+moment why are we blaming the model here why aren't we blaming calorie restriction here because like
+if you go on a crash diet then a lot of bad things are gonna happen even though the end result is
+going to be good right
+
+Yeah, but here it's like this colorization is meant as, you know, what people are doing for like
+anti-aging benefits.
+
+like 15 % CR or something like that.
+
+And I think Mike is asking like, so which is it, right?
+
+If it's increases during aging, but it also increases with CR, you know, but the this hexabond
+binding grow brain is also like a kind of used as a frailty index, which would make sense because
+like people which are like
+
+color restricted could be frail.
+
+If they are not like, if you're not doing it like professionally like exercising and doing the color
+restriction right, et cetera.
+
+This is the, and again, like one thing to note in these models is these models are right to the
+population level.
+
+Other markers are also related to that like ALT.
+
+low ALT, know, which is the model selected for higher value.
+
+So, so this model basically tries to identify weights.
+
+If we have all of them, this is why sex on binding global in like increases with aging.
+
+It's consistent with the words, but yeah, how about the calorie restriction?
+
+know this is something Michael is, I would say like top expert in right to to take a look at the
+individual level for him and for people like him on the color distribution.
+
+Which one is it, right?
+
+So should he optimize it?
+
+exception, but people don't realize it, right?
+
+People just want to know just the quick number, compare the scoreboard, who has the best number,
+right?
+
+But this best number might not mean the best individual level.
+
+So Michael could be like perfectly fine with, you know, higher sex hormone binding logon because of
+his color restriction, uh you know, which he does.
+
+And it could be like, it could be helped improving even though the model might show otherwise.
+
+So kind of his heart for him and for us to decide like, should we go for a bottom line number or
+should we go each individual marker?
+
+and we know like this color restriction is kind of good.
+
+So that's the question, right?
+
+I'm noticing a pattern here that one of the models are accounting for either going up is good or
+going down is good.
+
+you have another biomarker where it's where it's tricky, like it was in creatinine or SAG?
+
+It's the model is always like either it's just a simple math.
+
+It goes either up or down.
+
+And uh for this, you know, it just like the cumulation, you need to have all of them.
+
+And then the result is what it is on the population level, not an individual level, right?
+
+So that's the kind of nitpick if you'd say, and this ah would.
+
+get solved if we have lots more data and we can train a fully AI model.
+
+And this AI model would be like, yeah, Michael, for you, sex on binding global in higher, it's
+perfectly fine because you have these set of biomarkers, which means you are color restricted, but
+you are not frail at all.
+
+So perfectly fine, good, you know?
+
+So that's like, I I don't know, I would compare it to Is he calorie restricted?
+
+Yeah, yeah, yeah.
+
+Yeah, to my knowledge, yes, he is.
+
+Yeah, if you do calorie restriction, a of like endurance exercise, the stuff that we know, it's like
+health improving, right?
+
+And extending lifespan in model animals.
+
+so, you know, your testosterone will be in garbage territory, right?
+
+That's why some people, They were like, no, I'm not going to increase my calories a lot or whatever.
+
+I'm just like going to supplement these hormones.
+
+So this is parts that Brian Johnson took, right?
+
+He's on like less than two, something like 2000 calories a day.
+
+He was less than that.
+
+And so he increased it slightly to 2000.
+
+But if you do like one hour exercise in the morning and this and that, and if he kind of thinks a
+lot so his brain operates a lot.
+
+So he's clearly calorie restricted, know, and his blood work was showing it off.
+
+Yeah, instead of going and, you know, taking the calories in to offset this, he was just like, okay,
+I'm not going to do that.
+
+I'm just going to supplement the testosterone.
+
+C um has a very high coefficient.
+
+Quickly interpret it.
+
+Yeah, as mentioned, it's a kidney marker.
+
+And it's a better kidney marker than creatinine.
+
+it's not insular.
+
+are in uh Yeah, and cystatin is also by the way like there is some It's also like marker of
+inflammation a bit.
+
+So it's not just kidney.
+
+So it's like some inflammation uh information to there so that's why it's over overshoot it and and
+we know for sure that cystatin C is overshot because the creatinine is on the opposite, right so So
+the model definitely tries to overshoot C-statin and subtract the creatinine.
+
+And this way it captures both kidney health and muscle mass, basically.
+
+And possibly like inflammation.
+
+But if you go on my...
+
+Just please click like load sample data.
+
+And, but, uh, in 15 years, it means like, uh, the 30 % of basically of the people will die in 15
+years with the, around this value, you know?
+
+So, uh, but again, this is.
+
+again, like population level, if you know, it would be good to see, like your kidney markers and if
+it be good to see like, if like how much of this is like inflammation, stuff like that.
+
+But uh C-statin C is very important.
+
+And it shows here.
+
+So, so this is like, how many people, how many percent of people will die with different values of
+C-statin?
+
+Well, by the way, yeah, I have chronic high inflammation, genetically high.
+
+Okay, so it could be you know, it could be your kidneys are fine.
+
+But I'm like fat.
+
+So there is that as well.
+
+Yeah, you know what to do.
+
+I know what to do.
+
+So it doesn't calculate iron stores because the mathematical model I used to calculate iron stores,
+people did not have such a high ferritin.
+
+But you can do quick napkin math, multiply this by eight.
+
+So 366 by eight.
+
+yeah, it's just, age of therapy is high.
+
+Okay, but what's super interesting for you here is if you go uh down, you see like.
+
+Ferritin value was adjusted for inflammation because high sensitivity CRP of 2.2 is high and
+ferritin is also inflammation marker.
+
+So it's not only iron storage marker and inflammation marker.
+
+And uh the second yellow box or the third yellow box on the page, the ferritin, yes, this.
+
+So your ferritin is 366, but after I use mathematical model to adjust ferritin for inflammation.
+
+because ferritin is an iron storage, small sensitive iron storage marker, but also marker of
+inflammation.
+
+And what I do is I found the mathematical model to adjust ferritin, so to subtract the inflammation
+part from the iron, you know, so it's only the iron storage part.
+
+So for you, it's, you know, amazing that you see this, but it's still high.
+
+So you're see one year ago it was 239, right?
+
+Okay, so you eat something, check all your supplements if they have iron.
+
+Yeah, no, I don't take iron actually.
+
+Okay, if none of the supplement has iron, then you are risking like hemachromatosis, which is, you
+should go and donate blood.
+
+That's the only thing basically.
+
+Or what about the weight component of this?
+
+The weight is just there because what I need to do, those objective of this calculator, if you load
+some sample data, please click on load sample so we can see how it works for uh people because your
+is very rare, individual with, click underweight individual with iron
+
+deficiency the second, yeah.
+
+This is very common, right?
+
+In women, so they're like lean, often anemic.
+
+So it's like 77 % of young females, low iron if you use the proper cutoff of 50 for 30.
+
+And for me to calculate the, what this tool does is uh calculate the stores and why do I need to
+calculate the actual stores?
+
+Like how many milligrams of iron you have in your body is that I need to calculate a supplement plan
+for you.
+
+Here you see like if you take this supplement this long, this is how your iron will be.
+
+You know, the graph that's there.
+
+huh, huh, yes.
+
+in the green and the top, you see the personalized supplementation plan about the chart.
+
+So about the chart like stakes, 72 milligrams of iron, right?
+
+So if you take this, if you'd follow this, this is how your iron will go.
+
+So it's personalized.
+
+I don't see where is the personalized supplementation plan.
+
+about just about the in the green.
+
+That's that's the.
+
+Take your take, you know, the takes 72 million.
+
+Yeah, that's that's your personalized supplementation plan.
+
+But it's not for you.
+
+You know, you should not take iron.
+
+This is for like the the underweight woman.
+
+coffee or tea?
+
+Is that what I changed actually?
+
+I stopped drinking coffee.
+
+No not coffee, stopped caffeine completely.
+
+Okay, this is the thing because this coffee and tea decrease iron absorption.
+
+if you before any food where there is iron, like before you eat any like liver or meat, drink green
+tea or take calcium supplement and these two inhibit iron absorption.
+
+I just stopped calcium supplementation as well.
+
+Okay, so you did that.
+
+Yeah, so that's why your iron went up.
+
+you know, and this iron will accumulate.
+
+So this is something you should, it will slowly accumulate and then it will cause like fibrosis for
+your liver.
+
+So this is something, this should be like top priority basically.
+
+be looking at my liver biomarkers before I start to worry or wouldn't.
+
+No, this is something I would solve right away, to be honest.
+
+So go donate blood, which is the number, you know, it's an instant basically fix and then uh monitor
+iron and before any iron rich foods, take something that competes with iron or inhibits the
+absorption.
+
+For you, uh So, okay, this is like how it works.
+
+that's why the question was why there is a weight.
+
+So if I want to do this personalized supplementation protocol, I need to know the weight because
+from the weight, I can see like how much iron is in the body.
+
+Because if you have 40 kilograms versus 100 kilograms and your ferritin is the same, you have
+different amounts of iron in your body because your body is just bigger.
+
+So that's reason.
+
+But go to...
+
+So my question is that as I'm losing weight, is my iron level going to naturally like just get
+better or that's just completely unrelated to the weight issue?
+
+eh It might get worse because as your liver organs shrink down, the iron is compressed more.
+
+yeah, good way to get rid of iron is for example running.
+
+But for yours is high, I would go donate at least once and then monitor it and then do this stuff
+that we talked about.
+
+like, sweating, running, running is especially like runners.
+
+I work with runners.
+
+I'm a runner and they have very, very low iron because of some phenomenon called foot strike
+hemolysis, which is like when your foot drives into the ground multiple times, it's like breaks down
+the red blood cells, right?
+
+So the iron does that has anything to do with that or there is no.
+
+There has to be impact on the ground for the running, also like sweat, we lose iron through sweat.
+
+but I would also check, check every supplement if you take any iron or if not, maybe, you know,
+you're eating a lot of Oregon meat or something like that.
+
+eh Oregon meat.
+
+So before Oregon meat, then take calcium or coffee.
+
+And you need to limit what's coming in because you are naturally like a super absorber.
+
+So you need to like kind of inhibit a bit and then maybe use up more, get rid of it by, you know, at
+the start by donating blood and uh later, uh, you know, by sweating.
+
+So sweating does it and foot strike hemolysis.
+
+So just pick up running and you will be good.
+
+You will be good runner because your iron will be always good.
+
+yeah, that could be another thing because during my, perhaps up until I was 16, I was running a lot.
+
+was playing football and I was playing football a lot.
+
+And perhaps my body just get used to not caring about clearing away the iron or something like that.
+
+No, it's genetics.
+
+So this is people with like genetic predisposition.
+
+Or just, or just you eat excess like liver or something like that.
+
+You know, not sure.
+
+But check your supplements.
+
+Many times we find it in supplements if we see this, like some multi-vitamin or something.
+
+I will, I will.
+
+I mean, definitely, I probably have iron in my multivitamin.
+
+Yeah, so definitely check that and.
+
+people, I work with women athletes and we go like high, very high doses to get them into optimal,
+know, and because they absorb so little.
+
+So even if we do everything correctly and for you, you absorb a lot.
+
+check your supplement.
+
+So stop the income and increase the outflow of the iron.
+
+Alrighty, thanks for the diagnosis.
+
+Yeah, just this is not a medical advice.
+
+This is not a medical advice.
+
+And by the way, I did the calculator that you saw with the, the, one of the leading, the absolute
+best leading expert in the field.
+
+I purchased the most expensive standalone strongest air ventilation system.
+
+What is it?
+
+Is it the air purifier or is no, no, no, sucks the air from the outside and to the outside so it's
+like a two-way big whole stuff.
+
+uh But, but, but look, I'm working out on the treadmill for one hour, just steady-state cardio
+walking.
+
+You're working out you need to Yeah, CO2 goes up like you have to keep the windows open and that
+does a better job than...
+
+Yeah, if you work out, it's very hard.
+
+have to have a huge unit.
+
+So I have it to like 1000.
+
+So 1000 particles per million is my like, hey, it's dangerous, which is that's where the cognition
+starts to go.
+
+oh Okay, that's not that bad then.
+
+my, my, um, when I was doing the, I was talking about the exercise, it, it goes up to just to 1000.
+
+It doesn't usually hit it.
+
+So that's, it's not that bad.
+
+Yeah, that's not bad.
+
+So he get back, I get back with the price and he was like, perfect.
+
+And since he was such a high value, then he had in his contract that he has to live in a place where
+air is monitored.
+
+So, you know, when he's sleeping, he sometimes when people sleep like two people in small room in
+the morning, you can get like 5,000 particles per million.
+
+Which is crazy, you know, you can even get like, if you'll be like stuck for a long time, you could,
+you can get like persistent brain damage basically.
+
+You know, but it would have to be unreasonable time, like locked inside very small room with more
+people, stuff like that.
+
+But you can do, you know, it's, it could happen.

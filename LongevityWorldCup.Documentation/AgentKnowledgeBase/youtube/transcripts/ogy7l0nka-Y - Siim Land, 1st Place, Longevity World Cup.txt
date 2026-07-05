@@ -1,0 +1,1491 @@
+# Siim Land, 1st Place, Longevity World Cup
+
+Video: https://www.youtube.com/watch?v=ogy7l0nka-Y
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 455/498 units; 14919/15418 words.
+Matched topics: HRV, Longevity World Cup, PhenoAge, Rejuvenation Olympics, aging, aging clock, biological age, biomarkers, cholesterol, epigenetics, exercise, glucose, healthspan, inflammation, lifespan, longevity, longevity athlete, medicine, mortality, nutrition, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+Simland, you just joined the longevity world cup and took the first place right away with a 21 year
+age reduction on the board's clock and a 19 years age reduction on the pheno age clock. Your
+biomarkers put Brian Johnson on to
+
+Sim, how does it feel to be the healthiest man alive?
+
+Well, um I think uh you know that statement itself is uh hard to prove. Uh I guess you could say
+that I'm yeah number one on this particular longevity world cup. But uh yeah, I'm sure there's some
+people
+
+with equally as good or even better biomarkers. um which you know we can discuss about my particular
+test this test results and uh you know how good they are and what do they mean but uh yeah I guess
+um I would say that you
+
+know this particular test result that I did was very good in my opinion as well.
+
+So I saw some improvements in some biomarkers that um yeah I have been trying to improve over the
+last uh few months. So yeah, I'm happy with that particular test result and um yeah, I think uh you
+
+know those biomarkers were you know I would yeah consider them pretty optimal so I nothing really to
+uh improve myself currently.
+
+So I want to ask you about how did you achieve it but just a bit of philosophical question here
+because of course the competition is just about how would you prove right prove that someone's
+biomarkers are better than someone
+
+Yeah. So there is no in my opinion no single test you could use you know you can't just use one test
+because one test it might not look at your uh you know systemic health or your multiorgan
+
+system function it might look at some individual function of your organs or your epigenetics or
+something like that but uh for when you're talking about longevity then it mostly comes down to
+having as many of your organ systems and
+
+um body systems are working uh optimally and having like a very low risk of um disease and disorder.
+So any test isn't causally going to prove how long you're going to live. There's a lot of uh
+
+unpredictable nature to this and uh someone with perfect biomarkers, they might not have um that
+beneficial genetics for maximum lifespan and vice versa. someone with poor bio biomarkers but with
+excellent uh longevity genenics they might live a
+
+long time. So you know yeah with longevity it can't be just a single set of biomarkers and
+especially not one single biomarker the best we can do you know to predict someone's future
+longevity is to yeah predict their
+
+future risk of mortality and um other chronic diseases that might kill them.
+
+So I like to look at multiple systems in addition to just blood markers like your uh kidney markers,
+liver markers, metabolic health markers, inflammation markers, immune markers, etc. In addition to
+that, it's also important to look at things like your functional
+
+outcomes. So um because uh one of the biggest characteristics of aging is the loss of physical
+function. So, uh, not being able to, you know, lift stuff, not being able to run, not being able to
+get
+
+off the floor, not being able to maintain balance, not being able to sprint, jump, you know, all
+those things decline quite significantly with age.
+
+So, um, you know, being able to also have very good fitness and physical function, physical, I guess
+biomarkers, things like EOTX or grip strength and how many pull-ups you can do, how fast you can
+sprint 100 meters, all those
+
+things. um matter in a sense. Of course, you know, someone could have excellent physical fitness
+markers and they could also at the same time have poor blood markers. So someone who's very strong
+but uh they could have high inflammation
+
+or high triglycerides or something else like that which uh indicates you know poor metabolic health
+or poor insulin sensitivity and uh that's not the most optimal scenario. So the best best case is
+that you have you know at least above
+
+average fitness markers and um above average blood markers. So rather than having some something
+that is super good and the other thing is super bad. It's better to have some everything uh decent
+and everything above average. You don't
+
+want to go in one direction only. You want to spread out evenly and uh you can think of it your
+health as well. You want to improve your health markers and your health status evenly across the
+
+spectrum. So rather than just having perfect fitness but poor mental health, you you want to have at
+least decent fitness and at least decent mental health uh as opposed to the opposite.
+
+Ultimately, it would be pretty nice if we would come to a single metric, a single number out of all
+these. So just uh okay here here is something interesting. Um what is a biological aging clock? A
+biological
+
+aging clock is is a user experience record on top of mortality predictions.
+
+So what does this mean? It's like okay what's the hardest outcome when you when you're considering
+health as a whole? uh dying, people dying.
+
+That's that's the that's the hardest outcome that you can actually measure >> and then you can guess
+when people will die based on their current state of their body and that is that is how a biological
+aging clock starts.
+
+The only twist here is that well let's just make it understandable interpretable for for a normal
+human being because they're not going to understand if you tell them that oh this clock has a C
+index of 0.75
+
+and the the biological age is a number they can uh anchor their their attention to something because
+they already know what an age is. So are they their health is better or not? Now here is the thing
+
+that you're trying to to get at is that you see if if we look at the current biological aging clocks
+then you see that okay so here is a few blood biomarkers but look we have a bunch of
+
+other things that we can measure on people uh like V2 max and text viscera fat uh blood pressure
+like uh come on there is no way that the single blood derived calculation will be the ultimate
+number here like like that's that's just
+
+silly and and I've been contending with that for for for a very long time and I think I know well no
+I do know why this is happening why why we only have blood why we only have epigenetic
+
+aging clocks the thing is that there are no databases where where people's death is being recorded
+so what do we need for a V2 max and cyins See and uh what else do we have? Viscera fat uh kind of
+aging
+
+clock uh and and some function right. Uh what what do we need for that? We need a database from the
+1990s [laughter] uh for people to measure all these things uh thousands and thousands of people and
+then we follow up on them if
+
+they died preferably even how they died because if they got hit by a bus then it's not very
+relevant. So, so that's the that's the problem here that hey, we have clinical measurements and and
+we cannot
+
+cannot get to death events.
+
+>> So, >> yeah. Yeah. You know, as you said, death is the ultimate final outcome in the sense that
+um you know, your biological age doesn't matter without the context of death, right? So um you know
+the higher
+
+biological age is uh in the is is bad only in the context of dying right so that we know that a
+higher age is uh the biggest predictor of dying someone who's 80 years old they are significantly
+more
+
+likely to die of anything than a 10year-old or a 20-year-old so um I guess uh the mortality becomes
+relevant in the context of yeah the biological or the biological age becomes only relevant into the
+context of mortality. If we
+
+knew that people could live to 200 years, then um then the biological age in of itself matters less
+or at least within like you know 100 years. Like if you have a biological age of 100, we
+
+know that people would live to the age of 200 then it wouldn't be that big of a significance. But if
+you're you know 80 years old, you get a biological age score of 100 which we don't have data
+
+for. But uh theoretically then that would mean that okay you have 20 years higher biological age. it
+means that uh your mortality risk is probably significantly higher compared to your peers. But if if
+uh if you're only like
+
+50% of uh what we think is the maximum lifespan, then uh it's a bit less of a concern. Um but yeah,
+and and you know to say about that you you're going to die to something. So people don't just
+
+drop dead for unknown reasons. they died to certain diseases like mostly heart disease, cancer,
+neuro degeneration, maybe kidney disease and diabetes. Those are the biggest causes of death in the
+in the developed countries. So u these
+
+are going to be your clues in a sense as well of uh what do these biomarkers mean and as you
+mentioned v2x or cyatin c these biomarkers have you at least decent data about being associated with
+
+the future risk of diseases such as you know cistatin c is a very good marker of kidney health. You
+know that very high cycin C levels uh are seen in kidney disease and kidney disease increases your
+risk of heart disease and that is
+
+the biggest cause of death in kidney disease. Heart disease being that. So and the same with V2X we
+know that if you have a very low V2 max then people with a very low V2 max they you know you
+
+will just see it people with a low V2 max they're not able to sprint they're not able to even put on
+clothes at some point they're not able to walk any longer than a few dozen meters. So we
+
+know that's what aging and um I guess uh being close to death look like of having very bad kidney
+function and a very low V2 max and and by proxy of that you can then you know predict someone's it's
+
+it's not perfect. I think it's I think the biological age clocks will be more accurate the older you
+are. So if you're 20 years old you know your biological age doesn't really tell you that much about
+your future risk of dying because
+
+you're 20 right? you have at least 50 years. Even with an unhealthy lifestyle, you have at least 50
+years left in you.
+
+But if you're 80 years old, you're already above the average life expectancy in most countries. So,
+you're pretty much you have a few years left uh on average. You know, of course, you can live longer
+if you're healthier and you
+
+have good genetics, but you know, you're already living longer than the average life expectancy in
+that country. So, in that context, the biological age matters a lot more. So if you're 80 years old,
+you have a biological age score based on
+
+the board's [ __ ] or feno age that uses these common blood markers. You have a biological age of
+60, then um you know that means that you're probably healthier than the average 80year-old.
+
+So the life expectancy moving forward is probably higher than someone who is 80 but their biological
+age is 95 for example. So it becomes more relevant the older you get. And uh the younger age even a
+unhealthy 20 year old you know
+
+first of all their biological age will be is not going to be like 80 right if you're 20 years old
+that's impossible even an unhealthy 20-year-old will have a biological age maybe of 30 so maybe 10
+
+years higher uh but even then an unhealthy 20-year-old still has many decades left in their life
+unless they get you know unpredictable cancer or something else like that. If you have a low V2 max,
+you are less likely to be
+
+able to run away from an angry bus driver, >> right?
+
+>> Yeah, >> you can you can take vitamin D to increase your vitamin D to to levels that would give
+you a very good biological age. Um but ultimately uh this is this is a problematic strategy because
+when they were looking at and
+
+calculating the board's biological age which included vitamin D, it's it's a very big possibility
+that oh those people spend were spending a lot of time outside or have a very good diet and that's
+why vitamin D was a very
+
+important factor in that. So, so here is a here is a recent realization I had for us who are
+actually working on our our biological aging clocks to some level.
+
+Um what if we build biological aging clocks from only inputs those have causal uh those we know have
+a high level of causality like yeah you have low glucose numbers like that is pretty coal. So if we
+build
+
+a biological aging clock from only causal factors then perhaps we can we can actually get real far
+with uh with something like a longevity workup condition.
+
+>> Yeah, I agree. Modify with even like blood sugar. You can take metformin or something that can
+lower the blood sugar. So are you lowering your biological age by taking metformin?
+
+Well, I guess there's two ways to look at it. One way is that by having the lower blood sugar,
+regardless of how you achieve it, your body is experiencing less harmful effects from hypoglycemia.
+
+So, uh you could say that you know regardless of you taking metformin, the lower blood sugar and the
+lower glycemia is what you could say like preserves your body better or causes less vascular damage,
+less uh glycation or whatever
+
+the case is. So that yeah the outcome is the lower blood sugar which then would also mean that your
+body potentially ages slower if you have lower blood sugar or uh whatever other else marker that
+you're taking or using um you know
+
+you can't really uh gify or hack V2 max for example you can't there's no way you can get a
+significant higher V2 max by just you know taking a supplement or or uh fasting for longer or
+fasting for
+
+shorter or something else like that, taking a lot of caffeine before the test. You're not going to
+be able to get a huge improvement in your V2 max number if you haven't trained for it. So to
+
+have a high V2 max, you need to be actually training for it quite regularly. Maybe not super
+intensely.
+
+There's of course some things you can do to get better faster results with V2 max, but uh yeah, you
+can't, you know, take a pill and have a higher VMAX, but you can take a pill like a metformin to
+
+lower your blood sugar, which yes, on some of these um tests can result in a lower score. Now, for
+the record, I didn't take anything any like a pharmaceutical before this test. I didn't take
+Metformin. I didn't take any lipid
+
+lowering drugs. I didn't take any you know any particular uh pharmaceutical anything like that to
+gamma. I actually took very few supplements for this test which is quite surprising. Um I didn't
+even take bourberine. I didn't take
+
+anything that would lower like blood sugar. Most most of it was just the result of um like a cleaner
+diet and uh I guess eating less in general as as a as a whole. Um and um yeah and the same
+
+like for vitamin D for example. Yes, probably higher vitamin D levels from the sunlight are better
+than from a supplement. But uh I guess the counterargument to that is that you know it's better to
+probably have uh vitamin
+
+D levels in the optimal range or normal range with a supplement than being deficient in the vitamin
+D if that makes sense. So um yeah it's not very strong evidence that the blood vitamin D levels
+itself would be responsible for the
+
+health benefits or the reduced mortality.
+
+But um it is certainly true that the lower vitamin D even if you're especially if you're not
+supplementing as well would probably worse for you so so to say than taking that up with a with a
+supplement.
+
+>> Yeah. Yeah it is. I just consider that if like picking up if the test is picking up uh if the
+studies are picking up how much people spent outside that doesn't just mean vitamin D from the sun
+
+that means uh playing with the kid being active working whatever right so that that's how it can be
+misleading but yeah definitely there is some causality between higher vitamin D even from
+supplements.
+
+Um, okay. Uh, let me let me ask you about something that's been bothering me for a while. So, Brian
+Johnson, Brian Jones is not joining the Longevity World Cup.
+
+Um, and I've been long thinking about why is that? because he's the person who started thinking
+about himself as a longevity athlete. He's the very first person, right? Like he built his entire
+identity in in being the longevity
+
+athlete. He created his own competition, the rejuvenation Olympics, which he's winning, right? and
+and yet he doesn't want to compete in an independent uh competition. Okay. So at one point um he
+published his blood tests and I
+
+calculated what his biological age would be and I got to a result of minus 7.7 years which is great.
+Um it's great. Uh so in the beginning of two years ago I went to prosper and for 3 months I was
+
+measuring everyone there right and the healthiest person who I could find he he was working out he
+was eating well no smoke no nothing right um he he achieved minus 9.1 right contrast to to Brian's
+
+minus 7.7 years and and even Then he Jack Corn Cone that's his name even then he he would today only
+score to 128th on the longevity workup out of 200 right so where would Brian be in the bottom 50%.
+
+So I I just want to want to say with this that hey uh the long people on the longevity work cup are
+very happy to begin with. Um, so, so Brian scoring in the bottom 50% is not as bad as it
+
+sounds, but it's it's bad enough for him to to not joining.
+
+Now, later on, Claus Townend created two pull requests with with Brian Johnson on to the longevity
+workup. It's an open source project, so anyone can create pull requests. So he just created for
+illustration with two blood tests of Brian Jones on one he got
+
+minus 9.94 and one he got minus 5.88 88 years.
+
+Okay. So, so, so this is where we are and I know that you have calculated uh from another blood test
+of Brian previously and you got very similar results, right? So, so okay, he's healthy, but like why
+isn't he why isn't
+
+he making it to the to the top? Like what's going on there?
+
+Well, I think uh the biggest reason is probably the like competition. Um what do they called? Uh
+yeah, just his own leaderboard is competing with your leaderboard. So he probably doesn't want to
+promote another leaderboard that uh
+
+you know in terms of marketing competes with uh with his leaderboard. So it's a different test than
+a product. Yeah. and um you know the test that he's using is um you know he is an affiliate with
+that
+
+so it's probably some you know conflict of interest in terms of marketing and uh the product so um
+yeah I think but yeah to your point that um his bar markers you know aren't bad they're there's
+
+nothing inherently wrong with them if I were to estimate he would still be in like the top 1% of the
+US population in terms of health because you know there's millions of people and most US people
+
+aren't that healthy. So uh but yeah the the truth is that top 1% of health includes thousands of
+people right it's not just the top 10 of uh globally as you said people in the longevity world
+
+cup there are 200 people and what is the lowest score it's like still within minus 7 years right or
+something like that of of their chronological age so the the top 1% will include thousands of people
+and within that group of people
+
+there's going to be a lot of people with yeah minus 10 years lower than their chronological age
+minus 20 years maybe even more than that. So, uh, yeah, it's a big club and in a sense of, uh,
+people
+
+with great biology scores, not just Brian Johnson, but yeah, he wouldn't, as you said, he would
+probably be in like the top, he wouldn't make it into the top 100, at least based on the current
+list, right?
+
+>> All right. So, so what's your secret, >> right? Uh finally >> yeah I think when you look at these
+markers uh the 22 markers that are for the board's age clock they include things like your blood
+blood sugar CRP hemoglobin A1C
+
+average blood sugar uh APOA which is like a parallel marker for insulin sensitivity you have some
+liver enzymes you have some kidney markers uh you have some immune cells red blood cells etc. So uh
+I think you
+
+know the picture from there just comes down to having very good insulin sensitivity. So lower blood
+sugar and lower insulin so that your body clears out the blood sugar easily with sufficient insulin
+production and efficient insulin production. The lower
+
+hemoglobin A1C so the average blood sugar is going to be lower. Then you have a good uh immune
+system functioning. So all these different immune cells that's a very more complicated topic. I
+think that's very unpredictable immune immune systems and
+
+it's not that easy to improve. It just comes is more like a downstream effect from just having good
+metabolic health, good body composition, sufficient sun exposure and vitamin D and sleep etc. So
+it's very hard to like you know
+
+specifically try to improve specific immune markers. So it's more like a downstream effect. Um then
+you have the good liver markers. So lower liver enzymes typically speaking. So less burden on the
+liver and less uh yeah
+
+like less uh lower blood sugar and those things also contribute to that. And then good kidney
+function. So u lowered C.
+
+Interestingly, I mean one I guess contrary I guess you can say conflicting uh result from these two
+clocks is that uh the creatinin as I saw it lowers eno age score uh if it's lower but on the board's
+age
+
+it lowers the board's score if it's higher. So I don't know what do you think that is?
+
+Yeah, that's the easier thing to explain. There are harder things. But for creatinine, I think it's
+pretty straightforward. Like um what is creatinine in in itself? It's a kidney marker. So usually
+doctors interpret it like this. Lower your creatinine, the
+
+the better your kidney is. Okay. So here is a problem. you take creatine or you have high muscle
+mass, your creatinine will go up. Okay. Now, um having higher muscle mass is a good thing, right? So
+
+then in Borts we have something called cyatin C which is a much better kidney marker and actually
+that is the thing that that uh contributes to your kidney progress in the board's biological aging
+clock and if we
+
+and this makes the crotinine kidney kidney readings irrelevant. So this actually flips the
+creatinine uh equation that now that we took care of the kidney with cistatin C the higher
+creatinine you have the higher muscle mass you have so that's actually makes
+
+it it it better >> that's the that's the official explanation >> yeah yeah I mean I I agree that
+creatinine is very um influenced by yeah muscle mass exercise and protein intake So it's not
+necessarily good kidney marker without the context
+
+if if someone is exercising they have you know you know very high creatine can still be concerning
+even if you're otherwise healthy lean muscle mass and exercising. So it shouldn't be like above the
+reference range u uh for even
+
+healthy fit people. But if it's slightly on the higher end then it's another necessarily like a bad
+sign for those individuals. But if someone doesn't exercise, they're overweight, then the high
+creatinine could also be yeah like
+
+a worrisome sign because there's the only explanation why the creatinine is high is because of their
+you know poor metabolic health and poor kidney function in that context. So yeah that matters a lot.
+Um and another example is
+
+the the liver enzymes like ALP alkaline phosphotase and ALT and GGT. So um those markers can be
+lower if someone doesn't exercise. For example, I've seen a lot of um somewhat overweight, you know,
+not necessarily unhealthy, but somewhat
+
+overweight individuals who don't exercise that much or don't have that much muscle mass, but they
+have very low liver enzymes. So uh yes, you know, their body if you exercise then you're probably
+causing some more like this. I
+
+guess you could call like liver metabolism or liver damage similar to the kidneys that you're
+metabolizing the protein. So if you exercise a lot, you might have slightly higher liver enzymes and
+vice versa. If you don't exercise a
+
+lot at all, then you might have lower liver enzymes. But this is where I think we need to also look
+at yeah all these other physical biomarkers such as you know how many push-ups you can do or how
+
+many pull-ups you can do or how how fast can you run because if you have very good liver enzymes but
+you can't do a single pull-up or single push-up then is it is it better than someone who has
+
+slightly higher liver enzymes but they can you know do a lot of push-ups and pull-ups. Um, in this
+particular test, I had somewhat lower liver enzymes than my previous test, about like 20% lower than
+
+before. Um, and the reason I think was because uh I exercised a lot less for the last few months um
+before this particular test. So yeah, I've had like a more like a minimalistic workout plan which
+probably resulted in
+
+lower uh liver enzymes which I guess you could say improved some of the final result of this uh
+biological age score.
+
+So but my physical performance hasn't declined. I just exercised a lot less. I didn't do what you
+would consider junk volume. I didn't do like unnecessarily too much exercise and I exercised in a
+more like minimal effective dose uh way
+
+which um yeah maybe so but yeah but the thing with exercise is also like we don't know how much
+exercise is the best for longevity. You can make the argument in both ways like maybe what we do
+know
+
+is that no physical activity is probably bad for you that if you don't exercise at all you will
+experience faster decline in bone density loss, loss of muscle strength, muscle mass and frailty in
+the especially later years of life.
+
+Um but is it true that you would need to become like an athlete? Probably not, right? You probably
+don't need to be as fit as an athlete and exercise a day. So it's it's somewhere between those
+
+extreme this extremes of minimal effective dose and uh exercising a lot.
+
+So it's kind of a wide range of how much exercise is optimal and we don't you know don't have a
+clear answer to that.
+
+You know, I think Michael Lusgarden would probably have the approach of, you know, follow the
+biomarkers, look at the biomarkers and see what gets you the best results and try to, you know, use
+that as a prediction of your longevity
+
+that if your biomarkers are better, then this much exercise is suitable for you.
+
+And if you do too much, your biomarkers get worse, then it is like a worse outcome. But we don't
+know if it's completely true, right? It's that's his opinion. I tend to maybe also be in that
+
+direction a little bit. You know, if you exercise a lot and you get like uh poor sleep and your HRV
+goes down, your resting heart rate goes up, your u your like creatinine goes super high because
+
+you exercise a lot. Or if you um you have high inflammation from too much exercise, then you could
+yeah reasonably say that too much exercise can be bad for your biological age. Maybe it's not bad
+for your mortality risk, but um it
+
+could show up in like a worse biological age score.
+
+Um and I guess yeah, there's no clear answer to that. What I what I do know is that this time around
+I exercise a lot less in terms of uh hours working out and um one of the things that I did
+
+notice was the lower liver enzymes which also contributed to the lower biological age score with
+this particular test. It didn't improve some of the other markers that much. Um, like my creatinine
+was the same, maybe like even a little bit
+
+higher than before. My cyatin Cy is always kind of the same. My uh blood sugar is also kind of the
+same in that range. Inflammation is always very low.
+
+Immune cells are always kind of the same. So, the only big difference I saw from this minimalistic
+exercise program was um was the lower liver liver enzymes.
+
+Dave Pusco said that he exercised with you previously and you're doing it actually pretty hard uh at
+least compared to him. What does it mean for you to exercise less?
+
+H well I did um for the last for the last five months or so I've been doing uh just calisthenics.
+
+So uh calisthenics plus a weighted vest and a and a kettle bell. So, um, no like hard gym workouts
+or anything. I did, um, just a bunch of pull-ups, push-ups, uh, sprinting, um, squats, and walking
+
+with a weighted vest. So, you know, I I think the workouts are still hard in a sense. I still go
+pretty close to failure with uh the pull-ups and stuff. My pull I'm able to do now
+
+more pull-ups than I was before.
+
+um you know, partly because of getting better at pull-ups. It's like a sports specific movement. You
+just get better at doing the pull-ups. So, I didn't lose strength or anything. Um at least with the
+pull-ups, I didn't lose any
+
+strength. So, uh but I did like, you know, do a few sets close to failure few times a week. So, I
+did like every other day resistance training, but the workouts are quite short. Something like 20
+minutes, maybe 30 minutes at most.
+
+But the 20 minutes of calisthenics pretty close to failure.
+
+And the cardio I did was a sprinting plus some like lighter zone 2 cardio.
+
+But yeah, the total amount of exercise is way lower than last year and significantly lower than you
+know 3 four years ago when I was exercising one or one or one and a half hours per day on
+
+some on some days.
+
+Why did you So, you switched from gym to calisthenics.
+
+>> Well, I've always done a lot of calisthenics. So, um you know, every every few years I just
+switch it up.
+
+There's going to be years when I just do mostly weightlifting and other years when I do just do
+calisthenics. It's just kind of what's the life situation and um what's the goals right now. So, um,
+right now I
+
+didn't have like a convenient access to the gym and, uh, it was just better to do calisthenics, I
+think. Uh, plus I just I like calisthenics a lot more, at least for the upper body. So, I've
+
+always been like a calisthenics uh, enthusiast more more so than with weightlifting. But for the
+lower body, I prefer Yeah. like barbells. So, the best leg exercise is probably the barbell back
+squat, especially like a low
+
+barbell. So going very low with the the depth for hip bone density and spine bone density. That's
+like the probably the best exercise. Um yeah, so with a gym, I mean you could replicate the same
+program at the gym. You don't
+
+you there's no huge difference between calisthenics and barbells. It's just the difference. The
+biggest difference I did was just the the amount of exercise I did. I replaced high volume for high
+intensity. So I tried to be very I guess
+
+time efficient and focus a lot on just going to super close to failure uh rather than just doing a
+bunch of extra sets because most the growth signal for muscle growth and stuff comes from the first
+two three sets. If you start doing
+
+five, six, seven sets, you might get like only an additional 5% of the benefit. like 80% comes from
+the first two three sets. Even a single set if you take it super to failure can provide at
+
+least like 60% of the benefits of for muscle growth and the strength at least.
+
+>> Yeah. You see, I've been doing this uh calistthenics and and and sometimes with or very often
+with bodybuilding principles throughout my my life, right?
+
+But lately, I've I had a I have a personal trainer now, and I just noticed that the best that they
+can do is Olympic weightlifting. So, I'm like, "All right, so you are like really good at that." And
+I've never done anything
+
+like that before. So, let's let's do that. For the last half a year, I'm doing that.
+
+It's it's it's so different that sometimes all we do for one hour is is is deadlifts. Like one hour
+of deadlifts. Like what the actual hell?
+
+I've never ever done anything like this before. And I have no idea where this is leading to, but you
+know, I just I'm experiencing this as well. So >> yeah. Yeah. I mean, weightlifting is very skill-
+based. The same way with, you
+
+know, gymnastics or some of these more complex calisthenic skills. It's uh a lot of it is skill
+based. So, knowing how to move your body and um you know, with the snatches and clean and jerks, it
+not is not that much about raw
+
+strength. It's about technique. And uh to get good at tech technique, you need to put a lot more
+hours. So yeah, for for pure, you know, metabolic health benefits and uh muscle growth benefits, you
+don't need that much time. You can
+
+get it over with pretty fast. But for pure strength which is also kind of technique based and uh
+this skill-based movements like snatches and you know plch or front lever or you know whatever some
+stuff like that you need a lot of
+
+skill as well which arguably is also actually good for longevity because I think just turning off
+your brain and uh you know cycling on the bike on on the stationary bike and turning off your brain
+and just doing zone 2 cardio for 1
+
+hour on the stationary bike or just yeah going to failure on the lat pull down or the shoulder of
+press machine without engaging your brain, you know, you're leaving some other longevity benefits on
+the table because I think there's so
+
+much more to exercise than just, you know, going to failure or doing the cardio, getting your heart
+rate up or burning calories. It's also about using your brain. So, a lot of the sports that uh are
+associated with the highest life
+
+expectancy are things like tennis, um pickle ball, or just racket sports. Not only because of yet
+this rich people play tennis but the studies that control for the soio economic status also find
+that tennis is actually you know better
+
+for the brain and longevity beyond just the soio economic status it's you know you're using your
+hand hand to eye coordination you need to like sprint a little bit to maintains like this rapid
+movements this unpredictable movements I
+
+think that's very important to also utilize in uh in your exercise program so things like maybe some
+handstands to do balancing exercises, do some racket sports or basketball or soccer or something
+like that that you know enga
+
+or challenges you in more ways than just zoning off on the bike and doing it for 1 hour.
+
+Yeah, it's there is a there is a problem here very similar to the biological aging codes problem of
+measurements because it's really hard to measure something like an anima flow, >> right? [laughter]
+What what do you even
+
+measure uh of people moving in in in unpredictable way? It's just uh very difficult to measure and
+it's much hard much easier to measure if you put on someone on a treadmill and okay you walk for 1
+hour.
+
+>> Or or do you walk for one and a half an hour? Which one is better? One and a half an hour or 1
+hour. Perfect.
+
+>> Yeah. And is it better walk to walk outside or in the gym on the treadmill?
+
+So, so, so what else do you do other than than working out, resistance training? So, do you do
+cardio, V2 max training or or or anything else, stretching? I'm not doing any dedicated stretching
+at the moment. I'm like
+
+flexible enough and mobile enough. I don't have any, you know, mobility limitations. So, I'm not yet
+trying to, you know, increase my range of motion on some joints beyond what's necessary. And I think
+that can be potentially harmful
+
+as well to become super flexible. So, um yeah, I do do cardio. I uh over the last few months, yeah,
+I've been doing a lot less total cardio. So, I've been doing mostly sprint workouts.
+
+So short sprints few times a week with a few one minute rest or two minute rest and maybe a re
+regular steady state zone do cardio session as well somewhere there but nothing yeah like super
+intense
+
+um other things uh I think that are important would be you know diet obviously so um my diet has
+been quite similar over the last two years. So, I've been eating um come somehat of like a moderate
+protein
+
+intake. So, I aim for 1.4 to 1.6 g per kilogram of protein, which for me is between >> why moderate?
+
+>> Uh well, I think um first of all, there's no seeming benefits for muscle hypertrophy beyond 1.6
+grams per kilogram of protein. There's no additional strength or muscle growth gains, at least for
+most people.
+
+Even if there are, you know, let's say you might get five additional percent of gains if you eat two
+grams per kilogram, but um I think it, you know, that's not my main goal to put on as much muscle
+
+right now. So maybe for someone else it might be a goal. So the yeah, the benefits for me are not
+worth it to increase the protein. And what I've noticed is yeah, just other biomarkers tend to get
+better as well. I stay
+
+actually leaner by eating more moderate protein.
+
+by doing that. Um, so yeah, I aim for like 120, 135 grams of protein. I don't count the protein like
+I don't measure my macros or anything. I just know that this is how much I'm getting on average
+
+based on past experience and just eyeballing it kind of. Uh, then um carbs, I eat like a slightly
+higher carb diet. So I eat uh maybe 200 300 grams of carbs somewhere between there.
+
+And uh fat is also kind of moderate. So maybe 70 to 80 g of fat. So the ratios would be something
+along the lines of 20 maybe up to 25% at the most uh calories as protein. Fat
+
+is or maybe like 30% and the rest of it is carbohydrates. So yeah, I what I've noticed is that the
+higher fiber, higher carbohydrate, higher complex carbohydrate and higher these different uh fruits
+and vegetables that it just shows up better in my blood
+
+work. I also find it easier to lose weight and keep keep the weight off.
+
+It's actually very easy for me to stay lean year round and um a lot of the times I have to actually
+make sure that I eat enough food to not uh get too lean. So, uh, yeah, I eat like twice a
+
+day. I have first meal of the day is some protein with maybe like a cup of like a Greek yogurt or
+cottage cheese with a protein powder and a collagen powder mixed with some um, berries, blueberries,
+
+maybe a few nuts, walnuts. And then the second meal is after my exercise at around 4 p.m. And that's
+um you know that's going to be potatoes, some fish or meat with uh some uh vegetables like
+
+broccoli or carrots or cauliflower and uh maybe some fruit, apples, kiwis and stuff like that. The
+only like fats I consume are from Yeah. you know whatever you get from fish or meat.
+
+um some some a few nuts.
+
+I eat cheese as well sometimes. Uh a little bit of olive oil, but not like a ton. So for me, this is
+what has worked the best for my metabolism or lifestyle.
+
+So yeah, getting um at least 50% of my calories as carbohydrates and uh rest of them from fats and
+uh protein. But the issue with like going too high on the protein is that um you just uh don't
+
+have that much room for the other macronutrients. If you go like 2 grams per kilo of protein, you
+just you'll end up leading less less carbohydrates, which would u result in slightly lower thor
+functioning, slightly lower
+
+metabolic rate and um probably worse exercise performance as well because carbs are just much better
+at glycogen storage than a protein, which gets converted to glucose and then to glycogen.
+
+Um, yeah. At least what I've noticed is that a higher carb is way better for for my fat loss and um
+gym performance.
+
+>> What did you eat today?
+
+>> Today, uh I've had only the the breakfast. So, protein powder with uh I mixed it with milk, so it
+became like a pudding a little bit and uh blueberries and some pistachios.
+
+When did you wake up?
+
+>> Uh, today I woke up at 5:00 a.m. So I for some reason I woke up earlier. It's it's um Yeah. 11:30
+here.
+
+So few >> 11. Okay. So we're not in the same time zone there. Well, then you had an entire day in
+front of you.
+
+>> Okay. Um All right. So yeah, your your diet is very similar to to to most of the the longevity
+athletes who who come to my show, right?
+
+>> Yeah, I mean I I don't like prescribe to the idea that you need to have a 100% strict diet. Um at
+least not all the time. So um you know uh you can fit in certain foods that would be
+
+traditionally considered unhealthy, but uh in like small amounts they're going to be fine. So
+there's no uh maybe I mean certain foods probably can be harmful even in small amounts like some
+deep fried Cheerios or what's the Spanish food uh this kind of
+
+deep fried dough and donuts and stuff like that those probably are you know not the best even in
+small amounts but certain and like pastries refined carbohydrates high glycemic refined
+carbohydrates pastries and those kind of things uh in small amounts can
+
+also be harmful but you know in moderation they're going to be fine every once in a while um you
+know dark chocolate is is actually what I also consume that's a good tasty uh food and um yeah I
+mean certain like ice creams
+
+that are lower in sugar are less processed or probably like some of the healthier types of ice cream
+or healthier types of fat desserts so yeah you can make a healthy diet work even with some small
+amounts of um what
+
+people would consider unhealthy foods because uh the biggest determinant of your you know these
+blood markers and metabolic health is the energy balance.
+
+So if someone eats 100% perfect organic whole foods healthy diet but they eat too much they can gain
+weight right and by gaining weight their their triglycerides are going to be higher their liver
+enzymes are going to be
+
+higher their kidney markers are going to be worse and their inflammation markers are going to be
+also probably worse compared to someone who maybe has a 90% uh perfect diet and the 10% is some you
+know garbage. that person who follows
+
+this slightly unhealthier version of the diet, but they're either at energy balance or even at a
+slight calorie deficit, that individual probably will have slightly better biomarkers because of the
+energy balance is the biggest lever in improving your body
+
+composition, meaning that you lose body fat and also improving a lot of the blood markers. So, um
+yeah, that's a what people might miss a lot of times.
+
+They're very focused on eating specific foods or avoiding specific foods, but uh the energy balance
+is the biggest determinant when it comes to influencing your body's physiology and metabolic state.
+
+>> Yeah, that's a that's a very good point that ultimately uh how much is is more important to them
+than what in general?
+
+Yeah, I think you know they're very close together, but ultimately the how much is um slightly
+ahead.
+
+>> So, what supplements did you take for this test?
+
+>> Yeah. So, for this test, uh I didn't take a lot of supplements. I took omega-3s. So, I took two
+to three grams of omega-3s every day. And my omega-3 index was 9.2%.
+
+Um, which I think is also um, >> how how do you do that? What do you think? Like I'm I'm taking like
+six, seven omega 3s for like a past 10 years, right? And my omega 3 index is not is
+
+like six >> six seven again. Like it's it's so it's it's bothering me so much because Yeah.
+
+Whatever. What What do you think? Why why are you Yeah. Yeah, I mean there's some people I also know
+that don't take omega-3s and they have like 12%. So, so I I think um you know there's a probably
+
+a lot of other factors that influence it other than just the omega-3 intake. So, uh you could some
+some people might be oxidizing the omega-3 or like you know burning them for anti-inflammatory
+purposes more so. So if you exercise a
+
+lot probably your omega-3 index or the omega-3 burden or the requirement is higher. If you have
+higher baseline inflammation the omega3 requirement might be higher >> the inflammation is higher
+then your omega3 index is lower like there is
+
+>> I probably that's what I would suspect that uh >> because they're used for the anti-inflammatory
+purposes. Yeah. Yeah.
+
+So the omega-3s would be used for lowering the inflammation. The same with thamine. For example, if
+you have higher glycemia, so higher blood sugar and stuff like that, your thamine would be lower.
+Um, or like your body would need
+
+more thamine, your burn burn through more thamine. If you drink a lot of caffeine, for example, you
+burn through some magnesium. So, I mean, there's a lot of examples of different nutrients that have
+a higher demand based on, you
+
+know, what else uh is going on. So for omega-3s um you know omega6 consumption can probably raise
+the requirement for omega-3s and vice versa. Lowering omega6 intake could lower raise the omega-3s.
+
+Yeah mentioned exercise can increase omega-3 requirement. Some baseline inflammation require um
+increases the requirement. I don't know like visceral fat lowers baseline inflammation slightly. So
+maybe that can increase omega-3 requirement. So um yeah, but I
+
+mean let's say six 6.5% you know people say 8% is kind of the goal the golden zone but at least in a
+lot of the western population studies I've seen the 6.5% already is the lower
+
+risk category. So at le 6.5% I would say is uh the bare minimum and then maybe 8% is kind of the
+last threshold you want to surpass. I don't think there's any hard evidence that a 12% omega3 index
+
+would be better than 8% but uh 8% is probably better than 6.5%.
+
+times a week. Um then, um what else? I took glycine. So I took something like five 10 grams of
+glycine as I do uh regularly and >> 5.5 g >> five five grams up to 10 grams.
+
+>> Why? Oh okay. Okay. Uh because I've I've seen you talk about much larger dosages than five
+previously. So >> yeah I mean I I use it I measure it as in teaspoons. So I put like uh at least
+
+one teaspoon into my evening tea and on other times I might put an additional teaspoon into like a
+yogurt or something. So I'm not yeah like you know that specific about it or diligent about it. I
+just make sure that I want to get
+
+like a slightly higher intake. And you know the biggest thing for glycine what I've noticed is um in
+biomarkers probably like visceral fat what has had the biggest effect measurable effect effect
+effect because uh yeah the like
+
+um lower gly status has been seen to be associated with higher visceral fat and uh it's more about
+the ratio between methane and glycine that appears to matter more. So too high methanine intake or
+too high methanine in relation
+
+to glycine is what appears to increase uh the visceral fat and um like um worsen metabolic uh health
+or insulin sensitivity and restricting methanine actually helps with weight loss in a lot of um
+humans animal studies and there's a lot of people who
+
+also prescribe to that idea. What I've noticed is yeah, that reducing my protein a little bit has
+helped with weight loss for some reason. Maybe it's reducing the methane intake that has helped with
+losing losing some of fat
+
+and the visual fat especially. So that's why that's why the more moderate protein I think might work
+a bit better.
+
+>> What about NEC? What's your what's your take on GL gene? Right. Uh my understanding is that it
+doesn't do anything for younger people like us, but you're the expert here. So what's the what's
+your what's your take on adding
+
+Yeah, I agree that the Glac studies where they see this tremendous benefits for information and grip
+strength and gate speed and those kind of things, they're mostly done in like 75 year olds. Um, so
+yeah, I'm not
+
+expecting anything from NAC myself and um not until the age of like 60 at least. I wouldn't expect
+anything significant. I mean it does lower inflammation and CRP but my you know CRP is uh close to
+zero almost and uh
+
+there's no other like inflammation either in my body maybe I I I could take NAC if yeah I have some
+infection or um you know some flu or something else like that but I don't take it regularly and
+
+the only potential benefit to NAC for younger individuals could be uh like muscle soreness or
+exercise performance.
+
+So if you take NC after workout, you can maybe lower in inflammation and muscle soreness which you
+don't necessarily want to do because the you know inflammation from exercise is what actually drives
+a lot of the health
+
+benefits of exercise. So I'm not taking NAC after a workout or I don't recommend to do that but if
+you take it before a workout it could at least some in studies it helps to postpone a fatigue.
+
+So it makes enables you to exercise harder and longer if you take NC before a workout. Um so I take
+it like maybe sometimes before a workout like 1 hour before the workout but but not like
+
+Uh-huh. Uh-huh. Yeah. Interesting. Um I personally do want to take NAC. uh I don't think there is
+any benefit but you know who knows and it doesn't harm you so why not there is only one one problem
+
+with NAC uh for me which is platelet count so I I have a I have an issue with with platelet count so
+for the past five blood tests that I've done my platelet count was always low um not it's like
+
+almost falling off the the normal reference range, right? But there is something interesting
+happened on my last blood test. Uh my plate platelet count came back as a non-interpretable.
+
+So it turns out my platelet clumped together and and they they noticed it and they said, "Oh, they
+have to use a different kind of vial." So, so with that uh the we we are going to be able
+
+to tell what's your platelet count is.
+
+And that made me think you know if it like is it possible that all the previous platelet count
+readings that I've done was the same issue because what this platelet clamping together actually
+means is that you're reading
+
+artificially low numbers. So perhaps it's like I've been doing like five blood tests in all
+different parts of the world and it's like no one have noticed that I have this extra condition with
+my platelets and now the next blood test is going to
+
+tell everything do I really have low platelet count and do I have to worry about any adding NAC or
+not.
+
+>> Yeah. That's interesting. Yeah.
+
+Um >> yeah. Um >> a few other supplements I'm taking or was taking was asexthin. So um but I I was
+taking it not for like blood work reasons. Um there was some you know studies that it might lower
+CRP
+
+or some um LDL cholesterol but my CRP is already low. So but I was taking for the skin protection
+against UV radiation.
+
+Um, does this make it redundant to use sunscreen or not?
+
+>> Well, sunscreen is still more potent for uh UV protection than uh aexanin. So, the aexanthin just
+increases yeah the carotenoid content of the skin and that can act as a it's called internal
+sunscreen. So, it makes your skin more resilient against
+
+UV radiation, but it doesn't um yeah, like replace sunscreen. I mean, it might make it so that uh
+you know, you're going to be more resilient against the sun in like acute exposures. So, like if you
+go out in the
+
+sun for 5 minutes, then you ask something can replace that. But if it's not going to replace, you
+know, you being able to go in the sun for 60 minutes uh in the midday and not get any
+
+like um photoagging effect.
+
+Yeah. Um what else? So I mentioned protein powder, collagen powder. Yeah. I take them for other
+reasons than blood work. Uh then maybe Yeah. like um magnesium I took um maybe like every once in a
+while. I don't take
+
+it all the time. I don't think I need it that much. It's mostly just okay.
+
+Sometimes I maybe don't eat that much diet or magnesium, so I'll add it in.
+
+And >> you think you need it that much?
+
+>> Uh well, I eat a lot a lot of like foods that contain some magnesium. So, you know, every day I
+have some dietary magnesium. So like either fish, potatoes, um pumpkin seeds, walnuts. Of course,
+the quantities
+
+aren't that high for pumpkin seeds or walnuts to, you know, fully get your RDA, but um yeah,
+potatoes, seafood, some uh vegetables, etc. They contain magnesium.
+
+So, I think on most days I'm probably I'm hitting hitting the RDA and uh I just throw a magnesium
+supplement every once in a while to just maybe just ensure that I that I get it or just to
+
+top it off.
+
+So, I think that's pretty much it. Maybe like lutein and ziganin I was also testing for a short
+period of time for for ice strain. I think that it works as well. So, it has similar effects as
+
+asexan. But they also increase skin resilience against UV radiation and um the eyes as well. So they
+like provide antioxidant protection for the eyes against excessive blue light.
+
+And you seem to be pretty big on the carotenoids and and luteine, right? Um you see here's something
+interesting and I don't know what to take make of it.
+
+Uh, I have created biological aging crooks. I have I've probably created the most biological aging
+crooks in the entire world. I created hundreds of thousands of biological aging clocks before
+[laughter] um on the enhanced. Anyway, the
+
+interesting thing is on our enhanced database, the biological aging crops that I found to be the
+most optimal um tended to the like the most optimal biomarkers that I I got was uh the carotenoids
+and lutein. It's like and
+
+I'm like what what the hell like why [laughter] how's how's this this possible?
+
+>> You have any guests there?
+
+Well, I think the probably the health healthiest foods have a lot of carotenoids. So, um, sweet
+potatoes, carrots, salmon, shrimp, uh, scallops, uh, blueberries, egg yolks. I think just a lot of
+healthy foods have a lot of
+
+these carotenoids. And I guess you could they tend to fit more of like this Mediterranean style
+eating. So they're not like they're not processed foods, of course. Um, and they're Yeah. like
+different colorful vegetables and colorful
+
+pieces of protein.
+
+>> Oh yeah. So this is a proxy for your diet, not actually the the luteine level of your >> I mean
+for sure these compounds in isolation also have benefits like you know they've been tested in
+clinical trials to have benefits for eyesight and
+
+the skin aging and inflammation status etc. So the in isolation they also have benefits. Um but in
+in humans it's you know hard to say is it specifically those ingredients or is it just a I mean
+
+this is all things is the composition of the entire healthy food. They don't just contain these
+carotenoids. They also contain other things like other vitamins and minerals and other neutruticals.
+
+What other supplements did you take?
+
+>> I think that's pretty much it. Like I didn't >> creatine.
+
+>> No, I I didn't take creatine right now.
+
+>> Vitamin D.
+
+>> Oh, yeah. That one I did. I took 5,000 I use plus K2 which is uh around 120 micrograms.
+
+But um I didn't running up to the test I ran out of it a few weeks before I think. So, but I did
+take it for the last few months because of the winter months.
+
+>> Oh, I see. Yeah. You you're living in Estonia, right?
+
+>> I'm I'm from Estonia, but I was in uh Dubai at the moment.
+
+>> Ah, okay. Yeah, you're traveling a lot.
+
+How do you how do you make sense of your supplement stack? Like, are you taking things with you or
+that's a wash out period?
+
+Well, I guess the benefit is that not having a very uh large stack [laughter] to begin with. Um I
+know we had Dave Basco in our retreat in January when you were as well and he flew with you know
+
+100 supplements I think or something like that. Um >> which uh I would I would never be able to or
+wouldn't want to do that. Uh it's just too much hassle to uh try to take that much uh things. But
+yeah, I I most
+
+biggest biggest barrier for me for supplements is just yeah, not wanting to spend any more than two
+one two minutes taking them. So if I have 20 ingredients or 20 supplements, then I spend 5 10
+minutes just taking them out every time
+
+and uh consuming them. So yeah, that's just a obstacle that I want to avoid.
+
+It's I want to have ease of ease of use and uh quickness.
+
+>> Yeah. [laughter] Yeah. You have to do meal prep with supplements. I mean I measure it. My
+supplement preparation every Sunday takes one one hour 30 minutes, right?
+
+>> Absolute craziness logistics. Um so what what else? You know, here here is my problem. I I pretty
+much think I know most of the things that you do. So I I'm trying to figure out a way to to
+
+to ask you things in a unique in a more unique way. But but I just don't have anything for sleep. So
+>> So [laughter] how do you sleep?
+
+>> Yeah. Well, I I had a I slept a bit longer maybe for the last few months.
+
+I've slept um you know 7 and a half to eight hours on average which includes a nap like a 15-minute
+nap in the afternoon. So most days I've taken a nap short nap and uh yeah
+
+steeping kind of um with without like restricting myself to shorter sleep. I don't know if I don't
+know how much uh effect that would have had sleeping maybe 30 minutes longer but um yeah at least
+that's what I've I've
+
+>> How about something extra? Uh do you do anything extra? I know last time you didn't quite do
+perhaps it was red light therapy but do you have anything extra like let's say HBO or stem cell
+therapy
+
+in Dubai probably you have some opportunities >> uh no I haven't done anything >> and if you want to
+>> um not not really not at the moment um well the hbot yes so the big best benefit from hbot
+
+what I noticed was lowering homosy But this test my homoyine was acceptable. So it was 9 something.
+So without doing hbot I did it one and a half years ago and that lowered my home assisting quite
+
+a lot like over 50%.
+
+So but right now the 9 something was fine without doing hbod for me. So, I mean, I might do it
+maybe, yeah, I would consider doing it like maybe once a year for a few sessions, but um I don't
+know.
+
+I don't notice much. Well, of course, I haven't measured a lot of things that you could measure with
+it like tamer length or some other things, but um yeah, I think I don't think it the you know, at
+least
+
+for my age again, you know, I don't need to do stem cells. I don't need to do uh some uh you know
+very exquisite with potentially risky side effects uh protocols because um you know I can wait
+
+a few decades till we get more data with them. So uh yeah I mean there's a lot of yeah different
+things you need to do at different ages. So with with someone who someone who's younger than
+
+40, they just need to kind of maintain their health and uh between the ages of 40 and 60, you need
+to focus on building a lot of reserves so that you don't get fallen behind with bone density and
+muscle mass in older
+
+age. And over the age of 60, it comes down to just fighting fight fighting an uphill battle in terms
+of uh the entropy of aging that you need to, you know, put a lot more effort to maintain the same
+
+muscle. Whereas if you're 30 years old, you you don't even need to exercise to maintain muscle that
+much.
+
+Of course, if you exercise, then you will maintain it and even build it. But uh at the age of you
+know 80 it requires almost twice as much effort to get the same muscle building and bone density
+
+effects as someone who is uh in their 20s.
+
+>> Okay. So something interesting that I I noticed is that whenever we started talking about you,
+you very often started talking about other people like how can you you you help them in their their
+conditions and or or their ways? What
+
+prescription can you can you give them to to help themselves now? Okay, then let's double down on
+that. Here is the situation.
+
+uh we uh the audience who do not want to like spend their entire life on optimizing their entire
+health.
+
+So the question is about how to get to that point where you can have your health on maintenance and
+and and you're ready to focus on on on the fight that everyday life is bringing.
+
+>> Mhm. Um well I think um yeah the difference between maintenance and trying to build is uh mostly
+first of all you need a you need to make sure that you hit the the bare minimal signal for whatever
+the goal is to like
+
+increase muscle or strength or increase VMX because um you know if you're maintaining then you don't
+need to go to failure for so to say to uh build muscle.
+
+But if you are trying to build muscle then you need to make sure that you do reach that or at least
+this close to that and uh reach sufficient amount of volume. So um your muscle growth for
+
+example is determined by intensity uh volume so how much work are you doing and the frequency so how
+frequently. So if you're maintaining then you don't need you know you can you can uh give
+compromises for each of these comp
+
+components. So you don't necessarily need to go super intense if you do a lot of volume or high
+frequency or you don't need to have that high frequency if you if you go uh intense and high volume
+
+etc. So in a maintenance mode, you can sacrifice certain things without necessarily losing your
+progress because the body receives the signal that you know we still need to maintain our muscle and
+strength. But in the case of
+
+building you you can't make those compromise compromises and especially for the aging population for
+example you can't make the compro compromise that okay I'm going to skip my workout um especially
+over the long period of time
+
+because like if with aging the loss of muscle mass doesn't happen just you know just gradually like
+slowly slowly it's more about there's a long period of disuse like a few weeks and then you see a
+like rapid decline and you're not able
+
+to get back to where you started off from because of this this anabolic resistance and it's harder
+to regain the muscle. So as a elderly person who's 60 or 80 years old, they can't skip workouts or
+at least for you longer than
+
+one week or two weeks. Um whereas a young person, they can skip even for a few months and regain the
+muscle quite fast with muscle memory. Whereas an older person, they can't afford to skip for a long
+period of time because of uh
+
+disuse and uh it's going to be hard to just regain that uh strength. So, um, yeah, just being very
+consistent with the frequency of the workouts and, uh, maybe not necessarily having to do a lot of
+volume, but, um, or intensity. So,
+
+with the volume and intensity debate, it's okay if you do slightly lower intensity, you can get the
+same results if you compensate for that with higher volume. And vice versa, if you have lower
+volume, but higher intensity, you
+
+can also get the same results. So it's no specific answer to that how much sets or how much weight
+you should lift. But um as an older person if you want to build then um it's better to just do
+
+high volume and high intensity as well.
+
+At the same time of course not getting injured and um not overtraining but just doing a little bit
+of extra work probably is better for muscle growth than underperforming or underdoing the work
+especially in older years. Whereas
+
+at the younger age or maintenance phase, you can do less work and still maintain.
+
+But if you want to build or get results, then uh you can't compromise on that.
+
+So that's the workout part. Um and in terms of the dietary component, then yeah, if you want to get
+faster results, then be stricter with the diet. So um avoid all kind of added sugars, all processed
+foods, eat just whole foods,
+
+uh etc. Have regular meal times, calculate your macros. Like if you're strict with your diet, then
+you're probably going to get better results with it. But um you know, it's not necessary, at least
+for maintenance. You
+
+don't necessarily need to counter macros and you don't need to, you know, avoid all unhealthy foods.
+You can follow like 8020 rule or 90 9010 rule. But if you're really trying to if you're like life is
+
+on the line for lack of a better word um if you're like at a risk of diabetes or something else like
+that then the stricter you are then you know the faster you'll reverse uh your condition
+
+and improve your life expectancy by doing that. But for maintenance if you don't have diabetes then
+yeah you don't need to be that uh strict with it. So I guess the answer is yeah just putting more
+effort is required
+
+the more behind you are or um the worse your condition is if that makes sense.
+
+Um >> give me a complete set of biomarker measurements that if fulfilled you can say you're healthy
+and you can focus on other things now.
+
+Yeah, I think some simple biomarkers would be so for example for general stress and some aspects of
+fitness a resting heart rate is a good proxy of that. So a slightly lower resting heart rate in the
+absence of
+
+frailty and absence of u just poor fitness uh that's a good indicator of good cardiac function. So a
+resting heart rate of less than 60 I think is a good uh goal to have. So uh rather than
+
+higher than that HRV as well is uh you know useful if your heart rate is low and HRV is higher then
+that's a good sign of good fitness but HIV has a lot of um I would say
+
+maybe some individual differences or differences in measuring devices. So some people might get very
+stressed if their HRV is like 15 or 25 or something else like that, they're otherwise healthy, but
+their HRV is the only thing
+
+that's lagging behind. So, you know, maybe not get stressed about it. Uh, which will lower your HV
+more.
+
+Then beyond that, uh, from actual blood markers, I like the hemoglobin A1C is a useful test for, you
+know, like your average blood sugar level because, uh, on average, you know, your blood sugar level
+should be slightly lower than
+
+average. I don't think you need to go super low, but um you know having normal blood sugar or even
+slightly lower than that means that number one you're not eating it's either you're not eating too
+much highly refined carbohydrates and
+
+high glycemic foods or number two your insulin sensitivity is sufficient enough that is able to
+maintain your normal blood sugar and that is subjective of course you know some people you know you
+can have low hemoglobin see by just not
+
+eating any carbs at all or just having very good insulin sensitivity. You know, I ate 200 300 grams
+of carbs a day. My hemoglobin Cy was 4.5% for this test. Uh which is, you know, very low. You know,
+
+I didn't achieve it by eating zero carbs. And I'm pretty sure some people eating zero carbs have a
+higher hemoglobin. So, it's not just about avoiding carbs. It's the subjective individual and what's
+their subjective insulin sensitivity.
+
+uh then CRP is uh I think as a general systemic low-grade inflammation marker is a useful of course
+it fluctuates if you are sick it can be higher but you know um you can easily see that okay if
+
+a person has poor metabolic health their CRP is also going to be high if they have slightly higher
+triglycerides higher blood sugar higher liver enzymes you can predict that their CRP is also going
+to be very high or slightly higher
+
+than what's optimal so getting CRP as close to zero possible is is the best for having low uh low
+grade inflammation, low chronic inflammation.
+
+Uh what else markers?
+
+I think th those are like probably my top markers from the blood.
+
+Uh we mentioned resting heart rate. You know, V2 max of course can be useful, but I think uh
+probably you don't need to have like as high V2 max as possible. I think that's a bit redundant. You
+just need to have a
+
+V2 max that's sufficiently high and then trying to maintain it. Like you don't need to get it as
+high as possible. It's just that with age it declines. So you're uh finding an uphill battle again.
+So to maintain it, you need to
+
+be, you know, progressively increasing your cardiovascular exercise to keep yourself at the same
+spot with your V2 max. And if you don't do enough, then you're going to decline and eventually
+you're going to reach this, you know, disability threshold. if
+
+you're if you're with a poor fitness or you're falling behind too much which you know just means
+that you're not able to do everyday tasks that well [snorts] and u waist circumference I think is a
+very
+
+useful marker or more specifically the waist to hip ratio so your hips should always be wider than
+your waist so waist indicates more fat around the belly so fat around the organs and liver so more
+visceral fat
+
+uh whereas fat around the hips is the subcutaneous fat and that matters a bit less for heart disease
+risk than the visceral fat. So for men especially the visual fat matters more for women it matters a
+bit less but for both sexes it
+
+should be uh the waist should be narrower than the hips. What else?
+
+Yeah, I think those can be a good markers to focus on. Maybe cistatin C as a kidney marker. We
+mentioned that. So calculate your EGFR from chattin C not creatinine.
+
+For overall nutrient or nutrition status like albamin is useful. So how much calories are you eating
+and protein specifically?
+
+Um and from the lipids, you know, triglycerides are important. Having lower triglycerides slightly
+and the APO APO B and ApoE as a as a kind of ratio I I still think is important and useful.
+
+Do you mean Apo B and Apo A ratio and not Apo B and Apo A by themselves?
+
+Mhm. Okay. So, what do we have right now? resting heart rate, V2 max, waist to hip ratio or and
+viser or viscera fat, HBA1 CRP, cystinium, triglycerides, Apo B ApoA ratio.
+
+And if you have all of these in the optimal range, then you are healthy.
+
+Do you have all of these?
+
+>> Well, yeah. Yeah, I mean it's it's going to be that uh all other biomarkers tend to also move in
+the same direction. If those specific markers are in the the right spot. So if you have good
+hemoglobin C,
+
+then chances are your cyencers are also kind of in the in [snorts] the right spot. Um, and uh, yeah,
+with a lower resting heart rate, it at least means that you have, you know, you're not like
+cardiovascular compromised or you
+
+don't have like cardiac problems in a sense.
+
+>> Mhm. Do you have all of these in the optimal range?
+
+>> Uh, well, I would like to think so.
+
+>> [laughter] >> uh my my resting heart rate is like 38 or 40 at highest. My hemoglobin C was 4.5%.
+My CRP was 0.1.
+
+Um my APOB I think it was 66.
+
+My cist was 0.6.
+
+So, um yeah, I I I do think that at least the vast majority of them are in the optimal range, what I
+would consider optimal. Yeah. Then let's figure out how healthy I am. How about that? So, my resting
+heart rate is is
+
+between uh 40 and 50, right?
+
+>> That's good, >> I suppose. Yeah, that's that's good. The O2 max is is over 40. Uh, doesn't hit
+50. I'm not sure.
+
+>> What's your age? What's your age?
+
+>> Should it really matter?
+
+>> Well, for for V2 max it does.
+
+>> Your age, right? [laughter] >> Well, for V2 max, it does because it's uh significant. It declines
+with age.
+
+>> But uh I mean, yeah, like it's it's you know, it's better to have it. Yeah. It's it's more
+impressive. Yeah. to have a V2 max of 50 when you're older.
+
+>> Um but uh >> so I'm not not healthy. I'm already I'm already failing this test. Okay. Waist to
+heap ratio and visceral fat. Uh I don't I could look up the numbers, but uh there is just no
+question about
+
+me be it being not great. So, don't even need to go further than that.
+
+HBA1C, that's Let's see.
+
+5.3 4.9 last two measurements.
+
+>> Okay, that's good. That's pretty good.
+
+Then >> CRP uh 3.39 2.1, right? like a good uh threshold would be less than one as a starting point.
+Um well I think you know for your situation you you don't have like metabolic disease or you don't
+have like diabetes
+
+or you don't have any like kidney disease or anything like that. You probably just have a bit too
+much body fat. So for you uh improving the markers is going to be very simple and straightforward.
+If you just lose some
+
+um body fat then um it's going to improve uh those markers as well like CRP is probably going to go
+down. Uh your your blood sugar is already good but it could even get even better. So um and your V2
+
+max will also increase if if you have less weight to carry. So, you know, it's it's you know, weight
+loss isn't easy in the sense that people struggle with it, right, a lot before GLP1s, they struggle
+
+with it a lot, but it's not rocket science in the sense that, um, you know, it's it's not cancer or
+anything like that that we don't have a cure for. So, um, you know, I think that's a good sign
+
+in the sense that it you don't have like a disease. you just I mean there there is a certain amount
+of metabolically healthy or weakness that is possible.
+
+the acceptable range. So I I consider that too low but I I might be completely wrong on that.
+
+Um well that with the milligrams per decided I can say that less than 50 is um is the optimal. So
+the triglycerides has a interesting history that it was originally it was considered less than 300
+was considered normal but
+
+then it kept low kept lowered until 200 now it's 150. Uh but even then less than 150 is uh still up
+to the like less than 100 is probably fine and less than 50 is more optimal. So like with better
+
+metabolic health and better insulin sensitivity you would expect it to be less than less than 50
+milligs per acid.
+
+So um yeah because they lower triglycerolize means that number one you're either not consuming that
+much fat or at least in relation to your energy requirements that your body is burning off those
+triglycerides for energy. uh or which which is also number
+
+one is meaning that you either yeah like aren't you in an energy surplus or number two you have good
+metabolic flexibility so that your body can swap between uh glucose and fats for fuel. So high
+triglycerides
+
+are usually like the first domino effect for insulin resistance so that the high triglycerides in
+the blood begin to impair insulin production and then with impaired insulin production you'll have
+the higher blood sugar. So the first
+
+comes the high triglycerides and then comes the high blood sugar in type two diabetes. So, it's not
+the high blood sugar that comes first. In most cases, it's the high triglycerides first. And the
+high triglycerides usually comes
+
+from energy surplus or, you know, eating like a more processed food diet which is high in calories
+but also high in fats and carbs at the same time. So, that impairs the the insulin sensitivity and
+insulin production.
+
+So how crazy how how crazy it is that my my blood sugar uh insulin HBA1C uh triglycerides are like
+completely are great but but my CRP and viscera fat and and obviously body weight is pretty bad.
+Like that's
+
+not how it usually is.
+
+>> Yeah. Well, I mean as I said it's like metabolically healthy or weightness is still possible to a
+certain extent if you have a you know a decent diet and you do some exercise etc. Like being
+overweight and not exercising if if so
+
+if you didn't do your exercise and you had like a worse diet those markers would also be worse in
+addition to being uh more overweight probably. But because you do this other healthy stuff, uh
+you're managing those markers to a
+
+certain extent if that makes sense.
+
+>> Yeah. Well, um here is something that I'm not managing well, but now I'm very interested because
+you said Apo B Apo A ratio, right? Um that is 0.65 for me. But my Apo B is 100
+
+mg per deciliter. So that is obviously terrible, but the ratio is I think that's good. What do you
+think? Yeah.
+
+Well, AP 100 is not terrible. It's not like the best or good either, but it's not Yeah. super
+harmful or bad. I would say um less than uh less than 80 is like a good for um and bad. I would
+consider yeah like
+
+110 120 100 is yeah like it needs to be improved but it's not I wouldn't say that it's like a high-
+risisk category and uh you know again if if if you know that with the weight loss you could probably
+
+see the improvement in the APOB as well immediately. So you even if you didn't improve your diet you
+could probably see the APOB drop to less than 80 just through the weight loss even if you didn't
+change anything about your diet.
+
+Uh-huh. Uh-huh. All right. Um, well, thank you very much for for going through my biomarkers. Same.
+Um, you are on this health optimization journey and you are not alone in that. You have a huge
+following. Um,
+
+what what's your main message to people here? what's what's your philosophical project? What's
+you're trying to achieve?
+
+>> Yeah. So, you know, I'm interested in the longevity and uh life extension field as a you know,
+I'm interested in as like a science project or um humanitarian project a little bit. Um because uh I
+think that
+
+it you know first of all if we help to slow even if you know we set the goal to you know extend
+lifespan of humans even if we don't reach that we we will be able to figure out how to you
+
+know slow down age rate of decline we'll able to extend health span etc we'll be able to make more
+people live to the age of 90 and 100 in good health so I think that's already uh worthwhile to
+pursue.
+
+Not to mention all the you know technological advancements we'll make in the process to reach that.
+So you know I think it's just a logical conclusion. I think if you know you ask people do you want
+to find a cure? Should we like put
+
+money and science and effort into finding the cure to cancer and Alzheimer's? You know I think most
+people will say yes. Like 95% of people will say yes probably. So uh why not the aging like we can
+realistically at least
+
+we can uh square the the curve of aging.
+
+we can uh rather than people suffering for the last 10 years of their life and being hospitalized in
+the end of it we can square the curve that rather than 10 years it's going to be one year only
+
+maybe right so I think that's already worthwhile and in the process you'll you know also make people
+live on average 5 10 years longer so I think that's already a noble pursuit in of itself um so yeah
+I'm interested in just that
+
+component. Of course, it's also scientifically very interesting to uh okay, by doing this, we'll be
+also be able to, you know, be able to figure out biological immortality similar to some other
+species like the u immortal
+
+jellyfish or some some of these hydra species like that's a very uh hard question or a hard problem.
+So I think that's also just interesting scientifically even if we figure it out how do the jellyfish
+do it maybe we won't be able
+
+to apply it to humans but in the process of figuring that out of how the jellyfish do it'll you know
+probably be able to also learn something about human aging as well and square the curve a bit
+
+uh further that makes sense >> that makes perfect sense and finally I like to like to start with a
+end with a call to action here. But in this case, this is special because um because I will I will
+end with a customer
+
+testimony of your your youth span society because one of the thing that I've done um probably half a
+year ago or or at this point maybe even more is that I signed up for your youth pen society uh
+school
+
+group and and you guys had a longevity challenge where the challenge was about you do everything
+perfectly for two weeks and and you know at that point I stopped smoking many times in my life but
+it always came back and at that
+
+point I quit to cold turkey and and that was kind of the final nail in in the cuffin of smoking for
+me. And uh and and and my weight started to go down again.
+
+That's when I I went down to 103. That's what it that's what started like uh like a half year monk
+mode in my life basically. [laughter] So wow. Yeah. Like Yeah. Thank Thank you guys a lot. You and
+Inkaland, right? Um
+
+I wonder where Yeah. What's up with the youth pen society right now and where can people sign up and
+why should they?
+
+>> Yeah. Well, I'm glad to hear that the challenge worked or helped. um we named it to longevity
+society now so it's a bit uh straightforward more straightforward than youthful society um and um
+yeah it's just like a school
+
+community with uh we have some courses there plus live Q&A calls and uh people can yeah post on the
+wall and people can comment so yeah it's like a group community you can find it on school fun
+society or
+
+um longevity society.co is the URL.
+
+So yeah, I think if someone is interested in uh learning more like specific protocols that uh I I do
+and what we teach in the community, then you know that's the best place uh to find it.
+
+You start in the longevity society and after your training you'll be ready for the longevity world
+cup >> and take on sim.
+
+>> Take on your master. [laughter] >> All right sim. This was great. That was great. Thank you very
+much for coming.

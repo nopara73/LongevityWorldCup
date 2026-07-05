@@ -1,0 +1,987 @@
+# Siim Land, 2nd Place, Rejuvenation Olympics
+
+Video: https://www.youtube.com/watch?v=FOsVRc-f2wY
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 412/511 units; 6663/7939 words.
+Matched topics: Bryan Johnson, HRV, Rejuvenation Olympics, aging, biohacking, biological age, biomarkers, exercise, glucose, hallmarks of aging, inflammation, lifespan, longevity, longevity sport, medicine, mortality, nutrition, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+In your mind, you might have cognition effect, will and value according to a certain philosophy.
+
+And what I noticed in interviews that you're giving that of all these things, everyone is only
+focusing on cognition of yours.
+
+What do you know?
+
+What can you tell me about this supplement?
+
+I would like to focus on you instead.
+
+So my question to you is, welcome to Finland.
+
+Who are you?
+
+I was already doing my YouTube channel during the last year of university.
+
+And I just figured I wasn't...
+
+interested in becoming an academic or doing ethnographies with which regular anthropologists would
+do, I was more interested in writing was still something of what I was deeply passionate about and
+what I wanted to do.
+
+So I actually just wrote, started writing my own books about mostly health and nutrition and that
+kind of topics.
+
+And over the course of, by now it's almost eight years I've been doing online content creation.
+
+And I've just been doing or been focusing on that for the last eight years and growing my channels
+over the past few years.
+
+My focus has mostly shifted to longevity and life extension.
+
+So I don't like cover it specifically on my channel that much, but I do, you know, like like the
+idea of like the longevity escape velocity and just human life extension with science and this
+advancements in
+
+medical technologies.
+
+But my own content is more down to earth of, you know, what are the actual practical things that you
+need to do to extend your life expectancy and slow down aging.
+
+So yeah, right now I've been focusing on these topics and in total I've written like eight books
+which are covering exercise, nutrition and minerals and collagen and blood sugar and a lot of
+different topics.
+
+And my ninth book is coming out in a few weeks.
+
+It's gonna be about longevity and it's called the Longevity Leap, which is gonna be my best work by
+far, most comprehensive, most evidence -based and one of the most, like one I'm most proud of as
+well.
+
+So yeah, that's gonna be the ninth book on the list.
+
+I'm also married, so it's my second year in marriage, finishing second year soon in a few months.
+
+And yeah, that's kind of my life story as of far.
+
+Well, it's interesting because all this led you to to reporting some some keycast results here
+because for according to the research that I've done for a while, you were able to the record or the
+claim to have the lower
+
+Dunedin space of aging in the entire world that I could find.
+
+That's pretty interesting.
+
+So you get to this point somehow.
+
+What was the number?
+
+I've seen people with 0 .6 even.
+
+Theoretically 0 .6 is the lowest speed that you could go, but the test itself is somewhat of an
+anomaly or it's not clear what it's going to actually mean in the long run.
+
+So it's a kind of interesting test and interesting leaderboard, but I wouldn't put a lot of value or
+a lot of emphasis on the test itself.
+
+All the other biomarkers and some other more traditional markers, I think, are more valuable, in my
+opinion.
+
+By the way, I have found someone who apparently has 0 .58.
+
+Hopefully he can come to my show later.
+
+Of course, there is this, you can make a metaphor of a murder happened and you are picking up the
+clues.
+
+What could have happened here?
+
+And maybe Dunedin base is the equivalent of the clues, the evidence of the murder.
+
+And if you...
+
+You clean up the evidence, like you clean up the Dunedin pace clock, that doesn't make you like make
+the murder not happen, the murder happened already, you know, in just picking up the traces that it
+left.
+
+So that's, I don't know how much it's just a fingerprint or...
+
+Yeah, well, the, at least the studies we do have right now is that a lower Dunedin pace value is
+leading to a lower all -cause mortality risk.
+
+It's not actually one of the best, it's not the best marker for the biological age.
+
+There are other clocks that are more accurate for that, but it is good for...
+
+Well, I think, for example, the Horvath 1 and Horvath 2, at least those have the highest
+correlations with chronological age and even like the phenol age, which has a correlation of 0 .94
+and 0 .96.
+
+and they're better than the do not impace.
+
+The do not impace is for the old cause mortality risk is a bit, it's like a different thing, which I
+think it's actually, you know, still slightly better because, you know, having a lower biological
+age, we don't know if it's
+
+going to actually translate over to greater longer life either.
+
+But, you know, having a lower risk of mortality kind of indicates that you're at least risk of dying
+to any cause, whether that be any of these chronic diseases is a bit lower.
+
+Yeah, that's, that's, I wanted to note this exact same thing that you just said.
+
+My understanding is also that you don't really want to correlate with chronological age.
+
+You want to correlate with clinical outcomes.
+
+And as far as I understand the Dunedin pace correlates better than the Horvath Crooks.
+
+That and well, is that enough of a correlation, correlation, not causation?
+
+What is quite a hint.
+
+There's not a lot of studies on them as of now, so we'll take a few years to get more clarity and by
+that time we'll probably have some better clocks as well.
+
+What's your general feeling about longevity as a sport?
+
+Taking any sport in the elite level is probably unhealthy to a certain extent.
+
+So it probably applies to the longevity sport as well, if you can call it that.
+
+At least with regard to traditional sports, so like Olympic athletes, they do live longer than the
+general population.
+
+So there was a 2021 study showed that Olympic athletes had on average five years longer life
+expectancy than the general population.
+
+Interestingly, women generally have a longer life expectancy than men.
+
+almost like eight to 10 years, but the regular women who weren't Olympic athletes, they still had a
+longer life expectancy than Olympic men as well.
+
+So even as an Olympic male, you have a lower life expectancy than the general population woman, if
+that makes sense.
+
+So there are like a lot of sex specific differences in longevity, but regardless.
+
+to answer your question, then I think anything in extreme can be harmful, at least from a mental and
+psychological health perspective.
+
+So I think there's not a lot of evidence that having this sort of a very strict or hardcore
+biohacking routine is going to make you live longer.
+
+You know, Brian Johnson and all these other people who are doing this, they're kind of hedging their
+bets.
+
+for the longevity escape velocity.
+
+So their goal is to stay alive until the longevity escape velocity occurs or we don't know when it's
+gonna happen, but after a certain point, your life expectancy is going to increase more than the
+year has passed.
+
+So like every year that has passed, thanks to the medicine, you'll stay alive for two more years.
+
+So you're gonna outpacing death.
+
+So their idea is that right now I'm just going to make sure that I don't die literally, that I don't
+die to anything.
+
+For the time being, for the next few years, I'm going to be super strict with my diet because then
+in 10 years after the longevity escape velocity has occurred, then I'm going to get back the
+dividends
+
+of 100 years of life expectancy thanks to the medicine and the science.
+
+Of course, it's very theoretical.
+
+We don't have any evidence that it's going to happen or, you know, right now we don't even know.
+
+We don't know necessarily like what to look at with that because we don't know clearly what causes
+aging.
+
+It's been advancing quite a lot over the last decades.
+
+but it's still a lot of unknowns.
+
+And of course, in humans, it's very hard to do these long -term studies with regard to actually life
+extension and longevity.
+
+And even in animals, like we don't know how to consistently and reliably extend their lifespan
+exponentially.
+
+Like there are a few gold standard methods like, you know, the calorie restriction and the repimicin
+treatment.
+
+Those are probably the two best ones.
+
+But even then, you know, the mice still die at some point, so they're not immortal.
+
+There are cases of immortality in nature, like these hydras and certain jellyfish kind of creatures,
+but we haven't made mice immortal right now.
+
+because you're going to get two marshmallows at the end of the experiment.
+
+So it's kind of this mindset that people in this space have, which I do think is, you know,
+obviously rational, makes sense to do that.
+
+But at the same time, if you look at the current longest living people in the world, the
+centenarians and people, the super centenarians, then none of these people had any good health
+routines.
+
+None of these people took any supplements or exercised or anything like that.
+
+They of course made it that far thanks to the genetics, but it kind of goes to show that there's a
+lot of more wiggle room in longevity than people think.
+
+Like some people think that if you eat a cookie or some ice cream or if you had a beer or something
+like that, then you're immediately like, you know, disqualified from the longevity game and you're
+gonna
+
+die prematurely and you're never going to make it to a hundred.
+
+So like there's so many centenarians who drink whiskey and drink beer every day or wine.
+
+and still make it to the 100s.
+
+Now you don't know your genetics, you don't know if you have these good genetics.
+
+If you have family members who made it to 100, then it's very likely that you have those same
+genetics as well.
+
+So like, if you have parents who have been centenarians, then your likelihood of becoming
+centenarian or your likelihood of not getting heart disease is also like exponentially lower.
+
+And yeah, I think it's smart to be careful and diligent with your diet and exercise and those kind
+of things.
+
+But you also need to realize that being super strict with it would make sense if you know you had
+the answer.
+
+But that would require that you actually have proof that what you're doing has the answer and that
+it actually is reliably going to work in extending your lifespan.
+
+But with all the information out there, we don't know what's the perfect diet for longevity.
+
+We don't know what's the perfect exercise routine for longevity.
+
+We don't know what are the best.
+
+supplements for longevity.
+
+Of course, we know some things like we know some diets and some like exercise routines and some like
+biomarkers are linked to reduced mortality and reduced risk of heart disease, for example, but it's
+still not 100 % clear.
+
+And there's so many other factors that can affect those results.
+
+So if you are super strict with a particular routine, then you think this is the answer, but you can
+never know that this is the answer.
+
+It's always like just hedging your bets and taking the path of what makes most sense or what's the
+current evidence kind of indicates right now.
+
+What's your path?
+
+What's your, what's your, what does the day of day of life looks like in in scene life?
+
+When I wake up in the morning, I'm going to go outside, get exposed to some sunlight to help with
+the circadian rhythms and just, you know, I'm walking the dog as well at the same time.
+
+So just getting the day started.
+
+After I come in, I'll have like tea, play with the dog a little bit.
+
+And then after that, I'll just start working on the computer.
+
+After that, I'll take a break, get outside a little bit again.
+
+more like a bright light exposure.
+
+I'll have like coffee.
+
+I'll have a protein shake to get my daily protein intake in and also support my workout.
+
+And after the protein shake, I might have, you know, do some more maintenance, easier work.
+
+So like emails or some easier kind of administrative stuff.
+
+And after that, I'll go to the gym or go for a run, whatever the particular workout is for the day.
+
+After the workout, I might do a sauna.
+
+I have dinner with my wife and after dinner it's not really like work mode although you know the
+last eight months I have worked after dinner as well quite a lot but usually you know we're sitting
+on
+
+a couch watching something or doing whatever other like kind of a recreational leisurely activity
+kind of just downtime and I'll go to bed around maybe 10 p and yeah that's pretty much it I have a
+very
+
+regular consistent routine with that most of the days look like that unless I'm like traveling but
+even if I'm traveling, visiting like family members or going to some event conference or something
+then the day kind of still looks very similar
+
+I like the routine, I like the consistency and the habits and just thrive in making these small
+incremental steps towards whatever goal it is in that moment.
+
+And in what environment are you doing your daily routine here?
+
+Like you have circadian lighting, I see you have some plants and so how does it look like, your
+environment?
+
+It's, well, I got a standing work desk.
+
+I can adjust it with the remote and I'm on a walking treadmill.
+
+So the walking pad.
+
+So if I'm usually doing something easier on the computer, then I'll walk at the same time and get my
+steps in.
+
+I have right here, I don't have any like window or anything.
+
+I have window on the side.
+
+So, but I don't look out that much out of it.
+
+Maybe sometimes if I'm taking a break from my eyes, but yeah, I'm just looking at the computer.
+
+I have a few houseplants and that's pretty much it for my office.
+
+Like I have my supplements in the cupboard next to me.
+
+And most of the time I'm just on the computer working.
+
+And I just more like to go outside more frequently.
+
+So I don't need to have an actual working environment because I'm gonna go outside quite often.
+
+So, and get some sunlight as well at the same time.
+
+Move, eat and sleep.
+
+You're already like, it's called me your routine.
+
+Anything else you...
+
+make sure to take care of your sleep.
+
+Yeah, so one of the biggest things that I do is making sure that I'm not exposed to a lot of
+artificial light before bed.
+
+So like these kind of blue lights that I'm exposed to right now, I'm gonna turn them off or dim them
+down to more amber and orange lights.
+
+So I have a pink Himalayan salt lamp in the bedroom.
+
+Right now with the summer, we have a nice kind of balcony in our apartment.
+
+So the sun set actually directly sets into the window or like we can see it.
+
+So we open the balcony door.
+
+And while we're sitting on a couch, we're getting this natural red light, which is one of the best
+things for your sleep and circadian rhythm.
+
+So I'm getting this red light that helps with melatonin, it's anti -inflammatory and has also skin
+benefits.
+
+But of course it's not very powerful, but it's good enough from the perspective of the sleep.
+
+An hour or two hours before bed, I'm getting this very nice red light if the sun is setting.
+
+After that, I'm just going to put on the blue blockers.
+
+So even if I am looking at my phone or turning on the bathroom light, then I'm not getting it into
+my eyes.
+
+What other things I do is I stop eating at least four hours before bed.
+
+So I'm having my dinner at 5 p and going to bed at 10 p So then I'll be also not digesting the food
+while I'm sleeping.
+
+And I do notice that my deep sleep scores and REM sleep also kind of increases when I do that.
+
+In the past I've had later dinners, but over the last two years or something I've just eaten a bit
+earlier and yeah, it makes the sleep much better.
+
+I don't like to eat like super early, like I don't like to eat like 3 p and then stop for the night.
+
+I like to have like a nice dinner and that makes me like nice and tired.
+
+And usually it also just fits my daily schedule much better.
+
+So finish work.
+
+around that time and I've come from a workout and it makes the most sense for me to have the dinner
+at that time.
+
+Other things that I do, I'll take some supplements for sleep.
+
+Usually it's like magnesium, maybe 200, 300 milligrams.
+
+And I'll also take three grams of glycine, maybe even five grams sometimes.
+
+And both of them help with relaxation.
+
+Glycine also lowers your body temperature, which is gonna be good for sleep onset.
+
+and staying asleep.
+
+And I'll also take like a microdose of melatonin on a lot of the nights.
+
+So like 0 .3 micrograms or 0 .3 milligrams.
+
+And crudose melatonin, I don't need it for sleep, but I take it for the like antioxidant effects.
+
+So I think that melatonin is a very powerful antioxidant and very powerful for longevity in my
+opinion.
+
+So I'm going to take that on a quite often, not every night, but quite often.
+
+And In my bedroom, I'm sleeping on like right now in the summer, I'm using the eight sleep mattress.
+
+So it's cooling down the bed, lowers the temperatures of high, high body temperature and high
+bedroom temperature, reduce sleep quality.
+
+So I'm just trying to, it's kind of, it's just very convenient and it's amazing.
+
+It lowers the temperature quite nice and it's much easier to fall asleep in the summer.
+
+I don't use it in winter because it's already quite cold.
+
+Like I do think that, you know, you can't feel the antioxidant benefits of melatonin, but I do think
+that it's important, at least from the studies in other animals and also the association of like the
+artificial light exposure and
+
+like diabetes and obesity and neurodegeneration even.
+
+So yeah, I'm just not willing to sacrifice my melatonin levels, even if I don't need to wear the
+blue blockers, if that makes sense.
+
+Yeah, well, I mean, but But I guess you have a sleep tracker and your sleep tracker is punishing you
+when you're sleeping on an airplane, right?
+
+Yeah, I mean, usually if I am sleeping on an airplane, then I'm not going to sleep the entire like
+eight hours anyway.
+
+So like if I'm traveling across the ocean or something like that, then there's going to be, I'm
+probably going to sleep like, you know, two hours, three hours, something like that.
+
+So if I'm oaring on the plane, then yeah, it's going to show very bad scores.
+
+At home, When I'm at home, the 8 Sleep does track the sleep quite nicely.
+
+And on those nights, on most cases, I'm getting still like, you know, 95 to 100 on the 8 Sleep.
+
+And that's not so that's not the same as with the other trackers.
+
+Like the other trackers might give like different numbers, but I'm not losing a lot of quality in
+that either.
+
+Yeah, actually, even the ordering.
+
+How did you get there?
+
+And what else you're doing?
+
+So I think I've always had a bit higher HRV.
+
+And if I were to think about what are the biggest things that have given me the results, then they
+would be just staying at good body composition.
+
+So not being overweight, being more leaner and exercising.
+
+Those are probably the biggest contributors to my HRV numbers.
+
+And if you look at the studies, then it kind of pans out that way as well.
+
+So like metabolic syndrome, diabetes.
+
+obesity, sedentary behavior, they do lower the HRV with age.
+
+So like my age can also affect that.
+
+So getting older typically reduces HRV and more like stress.
+
+So psychological stress and emotional strain, those things lower HRV as well.
+
+So I don't have any of those things.
+
+I'm not obese.
+
+I don't have diabetes.
+
+I'm in good health and good body composition and I'm also like not really stressed out that much.
+
+And, you know, I exercise quite often.
+
+So doing some cardiovascular, although my HRV was high already before I did cardio.
+
+So I don't think the cardio necessarily is that important, but just any form of exercise should be,
+should be like added if you want to increase the HRV.
+
+And interestingly, there is one study finding like a linear association between daily step count and
+HRV.
+
+So the more steps you take, you know, up to 20 ,000 steps a day.
+
+is linked to a higher HRV, which probably because of movement, probably because of a losing weight,
+and maybe because of a lowering stress as well in some sense.
+
+And maybe like saunas and cold therapy, they can also improve that.
+
+But I don't think they're like the biggest movers in this.
+
+Yeah, I'm doing sauna, I'm doing cold therapy, I'm exercising, I'm doing cardio.
+
+and I'm not getting anywhere there.
+
+Although speaking of obesity, like look at me.
+
+So yeah, there are like, there are individual differences as well.
+
+Like I wouldn't say that you need to compare yourself to others with your HRV.
+
+So you can move your needle to a certain extent.
+
+Like if you find your baseline is, I don't know, 45, then you can.
+
+reliably increase it to a certain extent.
+
+Is it decreasing?
+
+Or is it staying stagnant?
+
+So yeah, that's what that's what matters most, because there might be some other genetic differences
+or some other things that is all that affect that.
+
+And I wouldn't like be super concerned about because I mean, and there's no data that having a HRV
+of 100 already is somehow better than a HRV of 50.
+
+Like, at least in studies, like a HRV of 50 is already in the general population, the top HRV.
+
+It's interesting for me because my HRV is around 40, but my resting heart rate is around 49, which
+is actually pretty good.
+
+So Why is my HRV so bad?
+
+And maybe it's because of obesity, right?
+
+And speaking of obesity, the only things I've been, I conquered how to move.
+
+I haven't skipped a single workout for four years at this point.
+
+I conquered so many things, but I couldn't do one thing, nutrition.
+
+So how are you in relationship with your food?
+
+Yeah, I've done like many different diets.
+
+first diet I think that I tried was more like a regular bodybuilder diet but I started with
+independent fasting so I did the 16 and 8 method independent fasting and eating like a higher
+protein lower fat
+
+maybe moderate carb diet so I was eating like cottage cheese chicken breast broccoli potatoes rice
+and that kind of thing with 16 and 8 method I think it worked you know very good Then after that I
+tried out the keto diet
+
+for a few years and I mean it worked as well but I wasn't progressing as well with exercise as I
+wish I was.
+
+Maybe I was just overdoing it with both the intermittent fasting and keto but I do think that if
+you're exercising regularly and you're physically active then it's more, I think it makes more sense
+to just eat carbs as well and you don't need to do
+
+a keto diet or a low carb diet.
+
+unless you maybe have some blood sugar issues or something like that.
+
+That's why right now, over the four years or so I've been eating.
+
+I guess I don't have any real restrictions on my diet.
+
+Of course, I try to not eat like actual junk food or something, but I don't have any worry about
+carbohydrates.
+
+I eat plenty of carbohydrates.
+
+I'm not low fat either, but I do try to stick to more of like a Mediterranean style diet.
+
+So I'll eat olive oil and fish and nuts and seeds as my main source of fats.
+
+And then I'll have, you know, protein comes from eggs, fish, mostly some meat, beans and legumes.
+
+And my carbohydrates are potatoes most often, but you know, every once in a while, a few times a
+year.
+
+I'll have some rice or a buckwheat as well.
+
+And then, you know, might have some grains as well.
+
+So like bread or whatever, not on a daily basis, but a few times, a few times a year, you know, when
+I'm traveling, for example, or in a restaurant, then I'll, I'm not like afraid of foods, if that
+
+You know, I'm, I'm very healthy.
+
+I'm physically active.
+
+So I have no, nothing to worry about any like food really harming me or making me gain weight, if
+that makes sense.
+
+And I think that's kind of the goal.
+
+You shouldn't be super afraid of foods as long as they're consumed in moderation and as long as your
+other biomarkers are good.
+
+So yeah, I don't have any specific diet.
+
+If I were to categorize it, then it would be like a Mediterranean diet with a bit more maybe
+carbohydrates and a bit more protein as well.
+
+Well, you see, this is one of the reasons why I'm doing these interviews is because when you give an
+account like that, and it might be useful for the listeners as well, because we give an account like
+that, we
+
+get into your mind how you're thinking about food and hopefully that changes our minds as well,
+while listening to you and becoming more like you and less like us.
+
+There is one thing that people often ask you about or asked you about years ago, which is autofaggy,
+autofaggy, you will say the correct word later.
+
+Now, I don't know much about that, but I come from the, you know, the bodybuilder eating way that,
+you know, if it's catabolism, then it's bad, that kind of thing.
+
+So give me a pitch.
+
+Let's give me your pitch of autofraggy.
+
+Yeah, so autofraggy is this intracellular process that eliminates debris material and different
+kinds of junk material that accumulates inside the cells.
+
+It is involved in many different kinds of diseases as well as aging as well.
+
+So the older you get, or not necessarily with everyone, but with different diseases and different...
+
+or yeah, with aging as well, your junk material accumulates and also like this mitochondria inside
+the cells become quote unquote broken or less functional.
+
+So mitochondrial dysfunction is one of the hallmarks of aging.
+
+Autophagy is able to eliminate them through a process called mitophagy.
+
+So mitochondrial autophagy.
+
+So mitophagy is important process for longevity.
+
+It's for sure like a buzzword to a certain extent that We don't know necessarily how do you measure
+it, what are the different, you know, most optimal ways to activate it and stuff like that.
+
+Yes, there are things like exercise and fasting and calorie restriction and coffee and some
+supplements that have been shown to increase the topology, but it's hard to like measure it like
+reliably.
+
+And even then you don't know how much is, you know, enough or how much you need, so to say.
+
+So many people, might think that more is better, but it's actually not the case.
+
+Like sometimes it's, you know, it's also involved in some like negative aspects.
+
+So some of the like viruses or some of the malignant cells can also use the same process to survive.
+
+So it's not necessarily always good and you don't know when or how much or how little you would
+need.
+
+So it's much better to focus on like some of the other.
+
+healthy lifestyle activities that, yes, activate that heart attack exercise and making sure you're
+not overweight, but I guess you shouldn't chase it.
+
+It's not something that you want to pursue just for the sake of it.
+
+Well, moving on a little bit, maybe this will be a quick question.
+
+It always was a quick question so far.
+
+Do you have any vices?
+
+I think health or...
+
+Regarding health, yes, that would jeopardize your way to immortality.
+
+At least in the past, I was more like sleep deprived.
+
+So like I slept less and I...
+
+What does that mean in Aura scores?
+
+Well, I mean, my Aura score maybe might have been like 70, 80, something like that.
+
+You know, sleeping something six hours is...
+
+was something common and on some nights, five hours.
+
+I used to do like also like this polyphysic sleep.
+
+So sleeping only like two hours a day divided into 20 minute naps.
+
+So I think I've been a bit more careless with sleep in my past.
+
+I think I don't think it has any long -term effects or has had any long -term effects on me.
+
+But yeah, I'm right now trying to deliberately sleep like seven to eight hours at least and not.
+
+like not like push through that.
+
+Next, another thing I wouldn't call it a vice, but I think it's just worth mentioning.
+
+So like, you know, I'm not, like I said, I don't have any perfect diet or I don't have any specific
+diet.
+
+So, you know, if I feel like having a cake or a pizza, then I'll eat it.
+
+So I don't worry about it.
+
+And there's no evidence that, you know, doing that is going to be somehow harmful.
+
+as long as you're on point and pretty healthy, 80, or in my case, 90 % of the time.
+
+So having birthday cake, I have been super strict about it as well.
+
+When I was doing keto, then I was like, I never ate anything that had sugar or carbs or something
+like that.
+
+But since then, over the last four or five years, I've been more loose with it.
+
+I've actually lost weight while doing that.
+
+I've built muscle, my blood work is much better than it was in the past.
+
+So it's not that some foods are inherently bad, some foods are worse than others, but the no food,
+no single food assumed in one occasion is going to make you sick or give you some sort of a disease
+or make you
+
+So like having birthday cake or at Christmas having some whatever thing or even like if you're, you
+know, okay, today I want to, you know, have some sort of a quote unquote bad, worst food.
+
+then it doesn't matter in the long scheme, as long as you're maintaining good body composition, as
+long as your biomarkers are good.
+
+Do you do anything extra?
+
+Like that other people don't tend to do in terms of biohacking, let's say.
+
+Well, in the longevity space, a lot of people aren't still doing the sonos.
+
+I've been doing that since I was born, pretty much.
+
+And I think the data about sonar benefits are also pretty clear by now.
+
+And it does appear to reduce the risk of heart disease and Alzheimer's and alcohol mortality as
+well.
+
+The reason for that could be, you know, whatever it could be, because it mimics the benefits of
+exercise to a certain extent.
+
+It could be that you're getting activation of the C -chart proteins that improve your glucose
+tolerance and like metabolism.
+
+And some people say that it's because of healthier or wealthier people are able to afford a sauna.
+
+So that's why those associations are there.
+
+But it's important to realize the context of these studies.
+
+Well, I think it's because the anatomically modern humans, so the homo erectus, they were quote
+unquote like hunter -gatherers.
+
+So those are our, you know, closest like relatives and through evolution.
+
+And we aren't that much different from an anatomical, from a physiology side than those individuals
+were.
+
+Of course, you know, there's no like, I guess, no established human diet.
+
+So humans aren't omnivores, aren't carnivores, or they're not herbivores or something like that.
+
+Where omnivores were like eating whatever we find.
+
+And that's the reason why we survived, because of just eating whatever that we could find, whether
+that be other animals, slimes, insects, fruits, vegetables, tubers.
+
+whatever what might have been fish seafood.
+
+So we ate everything that we found or was edible.
+
+You know, if there were Big Macs in the savanna, they would have eaten those as well.
+
+So it's I don't think that it's, you know, it's not really a very, you know, worthwhile or it might
+be worthwhile, but it's not something that we should like really focus on, like what the hunter
+gatherers ate, because they're first of
+
+all, we live in a completely different environment.
+
+We're completely like a different lifestyle as well.
+
+So we shouldn't like try to emulate the diet of hunter -gatherers because there's probably some
+mismatches there because of that.
+
+And also like our goals are probably different.
+
+So, I mean, it's wrong to think that the hunter -gatherers lived only until their thirties.
+
+So that's not true.
+
+Like they could have lived easily to their seventies if they didn't die during childhood.
+
+So just the high rates of infant mortality are what reduced the average life expectancy of these
+hunter -gatherers.
+
+But at the same time, there's like almost no hunter -gatherers who live to the age of 100 or 110 and
+120.
+
+And of course that could be because of just medicine.
+
+So if you get medicine and you get good healthcare, then that's what mediates the results.
+
+it kind of just goes back to the end, like the environment and the lifestyle.
+
+So, and what's the goal?
+
+So, you know, I wouldn't say that you need to emulate because we don't emulate almost anything else
+from the hunter gatherer lifestyle.
+
+Like we don't emulate the sleeping environment.
+
+We don't emulate the mating tactics of the hunter gatherers.
+
+We don't emulate the societal structure of the hunter gatherers.
+
+So I don't think it makes sense to try to be like a hunter gatherer in terms of your diet.
+
+Of course, there are some people who do better with the more ancestral diet and there are, yeah,
+like some foods obviously that are pretty modern and very like new to our diets.
+
+So like different kinds of refined oils and refined grains.
+
+Yes, they generally do like worse than your blood work and they are associated with poorer health
+outcomes.
+
+But again, like the dose matters and the dosage makes the poison.
+
+I mean, you should, yeah, try to eat like 80%.
+
+or as much as you prefer, quote unquote, natural or whole foods.
+
+But, you know, there's still a lot of processed foods, quote unquote, that are still healthy.
+
+Like olive oil is processed to a certain extent, cottage cheese or cheese itself is processed, but
+cheese is relatively like benign as a food.
+
+And, you know, whey protein is one of the most bioavailable forms of protein in the world.
+
+And it's processed.
+
+It's actually like an ultra processed food.
+
+So it's not.
+
+then they would have lived to the age of 150, for example, but no people has lived over the age of
+122, which is the record currently.
+
+So you need to do something that is new or something that changes like the pattern.
+
+Yeah, we don't want to be the Luddites.
+
+Speaking of something new and changes the pattern, sleep well, eat well, exercise well.
+
+When you say these things, everyone knows and everyone agrees.
+
+This is the consensus.
+
+But speaking of something new, what is a thing that you believe strongly to be the case, but many
+people disagree with you?
+
+Maybe, I guess maybe, innovative fasting is something that has become less popular over the last few
+years.
+
+And a lot of like longevity scientists and experts might be against it right now.
+
+But I think at least what's their argument is that it's not better than regular calorie restriction
+and it can make you lose muscle, which is like a net negative.
+
+But there's no actual studies looking at that interval fasting is going to be making you lose muscle
+or that your results in lower muscle gain as long as you're like doing resistance training as long
+as you're eating enough protein.
+
+So yes, like a lot of people might struggle meeting their protein target with intermittent fasting,
+but it doesn't mean that that intermittent fasting is inherently making you lose muscle.
+
+So to say, yeah, there's just been no human studies that shows that it's going to make you lose
+muscle as long as you're doing resistance training and as long as you're getting enough protein.
+
+Yeah, you know, in the world, world and days.
+
+it was that you have to eat five times a day, right?
+
+Five times a day diet.
+
+And if you were not doing that, then you were not following the zeitgeist, the culture.
+
+And at that time I was reading a lot of Lion MacDonald and he seemed to me reasonable.
+
+And he was saying that doesn't matter how many times you are eating during the day.
+
+And then in the 2020s, these were your diet or one omad, these one meal a day.
+
+And anyway, I'm butchering the names, but the point was that you're eating on the days when you are
+working out and you try to not eat or only just a little protein on days when you are not working
+out and
+
+These were always interesting to me.
+
+I eventually ended up doing one meal a day for a long time and then I stopped.
+
+I just become a three meal a day regular person at this point.
+
+So I'm not sure what, but yeah, it's really interesting.
+
+And of course the recent studies that, well, look at that.
+
+You can eat a lot of protein and your body is going to use it over maybe even days, right?
+
+You know what I'm talking about?
+
+Yeah, that 100 grams protein.
+
+Yeah, yeah, yeah.
+
+Anyhow, since I am an evil capitalist, I would like to ask you to tell people what can they buy from
+you?
+
+What value can...
+
+offer for them such a value that they are even willing to give you money for?
+
+Yeah, so of course they can check out my books on Amazon and I also have a course, longevity course,
+a 10 week course that's had hundreds of people joined already over the last year and it pretty much
+covers
+
+exactly what you need to do.
+
+for exercise, diet, supplements, sleep, and many other blood work topic as well.
+
+So it tells you actually the optimal blood work ranges and the optimal exercise routine.
+
+So, like I said, there's no, we don't know a hundred percent what is the most optimal path to
+longevity, but I think this is the closest one that I've managed to create that is based on the
+latest science
+
+regarding risk of alcohol and mortality and...
+
+Sinan, it was an honor and a privilege talking to you.
+
+Thank you very much.

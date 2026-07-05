@@ -1,0 +1,1554 @@
+# Richard Heck, 7th Place, Rejuvenation Olympics
+
+Video: https://www.youtube.com/watch?v=RaEUPU1Oej4
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 685/1084 units; 9842/14178 words.
+Matched topics: HRV, Rejuvenation Olympics, VO2 max, aging, biohacking, biological age, biomarkers, cholesterol, epigenetics, exercise, glucose, longevity, longevity athlete, medicine, nutrition, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+So yeah, it grows over time.
+
+have kids, make mustache.
+
+Yeah, my kids like my beard as well.
+
+anyway, Richard Heck number seven on the rejuvenation Olympics and...
+
+I believe you did not give a public interview before, so maybe an introduction is in order.
+
+Who are you?
+
+Yeah, so I'm Richard.
+
+I live in Atlanta, Georgia in the US.
+
+I started kind of seriously looking at my health probably about two or three years ago.
+
+I've always been pretty physically active, tried to eat right, but never really kind of honed in
+until recently when I kind of following fitness inflores and I was like, well, you I should probably
+be doing these things and not these things.
+
+then, you know, when you start getting in your 40s, like, yeah, you start encountering kind of the
+effects of aging and it's like a little eye opening, experiencing that and realizing, okay, well,
+what can I do to slow it down as much as possible?
+
+And so that's kind of why I think I'm here today.
+
+Mm -hmm, what can you do?
+
+That's what we're gonna talk about.
+
+You said you're in your 40s, may I ask about your chronological age?
+
+Yeah, I'm 44.
+
+And you have a Dunedin pace of 0 .68.
+
+Have you ever done biological age tests?
+
+yeah, so one of my weak areas is my, telomere length.
+
+And I feel like that's what a lot of the biological ages calculate.
+
+The biological ages, they go by telomere length.
+
+I'm actually older than 44, but things like inside tracker.
+
+if I use like a phenotype age, all those are like in the mid to low thirties.
+
+So it just depends on which variables they pull, whether I'm older or younger than I actually am.
+
+Well, you have a heart rate variability of 116, which is Simlan's level.
+
+So that's pretty impressive.
+
+Any idea how you got there?
+
+Yeah, so it's kind of I feel like it's more genetic based then like my vo2 max is like It's 45 right
+now.
+
+I got it up to like a 52 like a few months back.
+
+I was doing ward zone 2 training, but It's like I have a really good HRV score.
+
+My heart rate is like 44 at night.
+
+I think something like that Yeah, it's pretty good, but then like I'll do a mile time and it'll be
+like eight minutes and I'm like, okay, like it's not, it's not as good as the numbers show as far as
+like the
+
+heart rate and stuff.
+
+But yeah, it, I would say when I first started wearing whoop, I love whoop by the way.
+
+When I first started wearing it, my HRV was probably like, 50s to 70s HRV when I added once a week
+boxing class, it's like 45 minutes, but it's basically like 30 minutes of zone one non -stop or zone
+five.
+
+HRV went from like 50 to 70 to like like around 90 it was a it was a very meaningful jump and it was
+for me it was like apparently I wasn't doing enough zone one.
+
+I was doing like way too much casual, like zone two, zone three stuff, but adding that once a week
+thing and really spiked my numbers.
+
+But after that, I've kind of optimized it over time.
+
+I tweaks to my diet and changes and stuff, and it just kind of increases over time as I try to
+figure out the right nutrition, right sleep, right exercise for my body.
+
+I try to...
+
+Follow other influencers, see what they're doing.
+
+what did they tweak?
+
+What did they do?
+
+OK, let me try it in my data.
+
+Every three months, I do blood tests.
+
+I see what works, what doesn't work.
+
+And I try not to move backwards.
+
+I try to move forwards.
+
+So what aura, or a ring is telling you about your resting heart rate is the lowest heart rate that
+you have at night.
+
+So my question is, what does VUB tell you?
+
+What is this resting heart rate?
+
+Is it the lowest heart rate that you have during sleep or the average heart rate that you have
+during sleep?
+
+Yeah, I'm not sure how they do the calculation on that.
+
+Okay, I haven't done my Apple Watch from time to time.
+
+Usually I just charge my Apple Watch overnight.
+
+That's why I don't use it for my sleep metrics.
+
+But the times I have done it, it's been similar when I tried to use the two.
+
+But yeah, I'm not sure what the calculation is.
+
+So the whoop is a watch, right?
+
+yeah, it's a watch.
+
+I'm actually taking a month off from wearing whoop.
+
+Once a year, I'll take a month off just to, you know, it's a blessing and a curse.
+
+It's nice to have something to say like, hey, you need to go to bed on time.
+
+Hey, like you should stop eating like three or four hours before you go to sleep, all that.
+
+But then sometimes it's like, I want a month off.
+
+Like me and my wife went to a concert earlier this week and it's like, I'm gonna be up to like 1130.
+
+Like, I don't want this thing like.
+
+The Samsung Card application has a feature creep.
+
+So maybe that's not what you want.
+
+take a step back.
+
+We get back to the biohacking topics.
+
+I wanna ask all about your routines and stuff.
+
+But before that, could you tell...
+
+me the story of your life.
+
+I was born in Louisiana, lived 10 years in Louisville, Kentucky and then moved to Georgia at the age
+of 12 and I've essentially lived in Georgia since then.
+
+went through, you know, primary secondary school, got a bachelor's degree in computer science.
+
+do back end database development work as a career.
+
+I've been doing that for 20 years now.
+
+Yeah, wife, two kids.
+
+My kids are in elementary school.
+
+Yeah, my wife and I both work full time.
+
+We just really very busy lives and so for me as I look at my longevity routine I try to say okay how
+much can I do without just throwing the whole thing out like what's maintainable because if I
+
+start adding stuff that's too hard or mentally like that's too much meal prep time or you know how
+much can I do to be able to like maintain this plan so that's what that's how I essentially came up
+with my plan it's just like you know
+
+minor changes over time, just figuring out what works.
+
+Actually, it's interesting that you said that you have a family because I'm not sure I I have ever
+interviewed any longevity athletes with a family.
+
+seem to they seem to be, you well, not with the family.
+
+Julie has a kid and stuff, but it's like they seem They tend to be single and have time and have
+like able to sleep well.
+
+well, I think of it more like the meals, right?
+
+Like my family doesn't want to eat the same meals I do.
+
+So it's like, okay, breakfast and lunch, like, okay, I prepare the kids breakfast every morning.
+
+Like they do something different than me.
+
+And that's totally expected.
+
+But for dinner, it's like, you know, I don't want to make two dinners.
+
+my wife doesn't want to make two dinners, you know, based on what we do.
+
+so that's why if you look at my nutrition or my diet plan, like Breakfast and lunch is stable.
+
+I could do the same thing every day.
+
+I'm happy with it.
+
+I enjoy eating what I eat.
+
+But then dinner, it's like, hey, I'm not cooking two meals a day.
+
+So I think that's where I give up probably the most gains in that dinners are kind of a free for
+all.
+
+Just try not to overeat and try to do the right thing.
+
+But at same time, I'm going to do something that works for everybody.
+
+I don't have to make two meals and complicate things.
+
+Yeah, your point about sleep, yeah, it's tricky as well.
+
+I think it's trickier when the kids are younger.
+
+Now that they're in elementary school, don't need you to get up with them in the middle of the
+night, that type of thing.
+
+So it's quite a bit easier.
+
+one thing I noticed is that when multiple people sleeping at the same place, then the carbon dioxide
+levels by the morning go to the roof unless you keep the door open.
+
+But if you keep the door open, then the noise comes in and the light comes in.
+
+So then you have to install the window open, but if I keep the window open, then I have a problem
+because allergy season, allergy comes in, then I cannot breathe properly.
+
+So had to install some kind of air filtering system, proper filtering.
+
+That should be something I should test.
+
+But yeah, I've never really noticed it or done any analytics or analysis on any of stuff.
+
+anything I sleep pretty I'm pretty out when I'm out and so Yeah, typically have any problems
+sleeping unless Like much earlier was a concert earlier this week and like it screwed up my sleep
+for like the next four days I was waking up in the middle of the night
+
+like When I get my pattern down and I'm like consistent like same time every night like I sleep like
+a rock and yeah Don't really get waking up at all So the only news report that I've seen about you
+so far, because you're quite a newcomer
+
+here, was talking about your main focus is sleep.
+
+Is that so?
+
+Yeah, I think that's pretty accurate.
+
+For me, it's the easiest one to do.
+
+Diet's hard.
+
+I love cookies and pastries and all kinds of baked goods.
+
+for me, diet is hard.
+
+Exercise, I go through the motions like, yeah, I can do the routine.
+
+My routine's not very hard.
+
+I think the hardest thing for me to do is to find an hour each day to try to do zone two when I have
+my zone two days.
+
+aside from that, like sleep is the easy one.
+
+So I'm like, yeah, sleep's really important.
+
+Because for me, it's like, I'm excited to go to bed and yeah, you know, it's not an issue for me.
+
+So I like sleep.
+
+Alright, Are you into dreaming as well?
+
+Like lucid dreaming or something like that?
+
+to be I used to try to do like the lucid dreaming stuff and try to figure all that stuff out It's
+been a while life is so busy right now I haven't had time to get back into that
+
+but I would like at some point to like yeah get back into lucid dreaming and the ability to control
+my dreams and That just sounds like a lot of fun Yeah, this conversation didn't came up before, but
+I'm wondering how lucid dreamers sleep
+
+tracker metrics are.
+
+They might be able to figure some interesting things out here.
+
+I did not really write any code for, well, no, three years, maybe last three to four years.
+
+And just, just the last week I started writing code again.
+
+I actually, started a new, I started writing code for a new website.
+
+It's going to be longevity word cop.
+
+But, but I got back to coding and now we have the AI stuff.
+
+And just as you said, it's so empowering.
+
+mean, setting up the website, the backend, the SSL, NGINX configuration, things where, you know, you
+had to read tutorials about it back in the day.
+
+My kids are in sports, so I do interact with folks like playing baseball, playing softball, that
+type of thing.
+
+So yeah, I guess maybe it is more extended than I'm thinking, but yeah, I don't know.
+
+Life's just kind of like a blur.
+
+Yeah, family and work and biohacking, time for anything else.
+
+That's many things.
+
+So how present are you in cyberspace in full rooms and stuff like that?
+
+Or Yeah, no, not really.
+
+I just want to see what's coming next.
+
+It's a lot of fun.
+
+So what's coming next?
+
+I don't know, I Ray Dalio's new book, The Singularity is Near, and provides a lot of insights as far
+as like what's coming as far as like medical stuff and technology and yeah, so it's, I don't know,
+it's a lot of different paths you could go down.
+
+Seems we're entering an age of abundance.
+
+you know, everything that's coming, so we'll see.
+
+In age of abundance.
+
+Hopefully, I think that's the optimistic view.
+
+We don't blow each other out.
+
+You know, should be a good future.
+
+Let's talk about the age of abundance then.
+
+I'm not going to ask a question for now, but since we are in what brought us together is the
+Rejuvenation Olympics, which is closely tied to the games because we are building a new game out of
+nothing that did not exist before.
+
+And the foremost game philosopher in the world is Bernard Suits who wrote the book The Grasshopper.
+
+So are you familiar with the traditional story of the ant and the grasshopper?
+
+So the ant was working all summer, the grasshopper was playing all the summer and winter came and
+what happened to the ant is that it survived.
+
+That's the rule here.
+
+when scarcity is gone, all we have to do is play games.
+
+There is no other activity but to become grasshoppers ourselves.
+
+So what do you make of the Rejuvenation Olympics?
+
+you mean like in context of the grasshopper or like.
+
+If you don't want to go as crazy philosophical as I am, that's okay.
+
+Yeah, so I guess what I make of the Rejuvenation Olympics, I think it's a fun concept.
+
+I think it's great to try to socialize the concept of trying to slow down aging because there hasn't
+been another good way besides the kneading pace to be able to do that.
+
+From my perspective, I like it because, again, it doesn't use telemeters and it puts my score at an
+advantage.
+
+I think it's a lot of fun.
+
+It is fun to try to hack your way to see if you can get lower score.
+
+The thing is, the need in pace is kind of like...
+
+the worst it's ever gonna be, because it's only gonna get better.
+
+They're gonna come out with new metrics, they're gonna come out with new stuff.
+
+In 10 years from now, we may look back on it and we're like, yeah, we were using that old Dunedin
+page, nobody uses that anymore.
+
+So what's it gonna become, who knows?
+
+But it's what we got now, and it's the best we got now.
+
+So we're gonna just try to see if we can hack our way through it, to see if somebody can get a sub
+50 or something and share their results and then.
+
+everybody else who's interested will be, you know, I don't look at the rejuvenation Olympics like a
+zero sum game.
+
+think as long as everybody's socializing all their data and what they're doing, I think we can all
+learn from each other and get better scores and see how good we can be.
+
+So, you know, the need and pace may be like, you know, again, in 10 years we might like laugh at, be
+like, yeah, it didn't account for ABC or whatever.
+
+But yeah, I don't know.
+
+I just look at it as a fun activity to try to hack our way to better health.
+
+Well, even if you lose in the Rejuvenation Olympics, you still end up in a much better place than
+before you started the journey.
+
+all we got.
+
+Moving slowly onto the bio -hacking stuff, don't worry.
+
+But before that, I would like to ask you to talk about a bit about religion, philosophy,
+spirituality.
+
+by Wacking, Day in the life of Richard Heck.
+
+Yeah, so I wake up around 6 a Try to get a little bit of my stuff out of the way before the kids
+wake up for school lot of my morning routine is based on the fact that I had like
+
+a herniated disc a couple years ago.
+
+That was like one of my first Occurrences with feeling old and like I went to physical therapy and
+they're like, yeah, you should walk fire to begin every session walk on the treadmill five minutes
+going forward, five minutes going backward.
+
+So that's what I do every morning.
+
+I get out of bed, put my contacts in, brush my teeth, go down.
+
+I do my five minutes forward, five minutes backward.
+
+I have a red light device, a red light panel that I put at the back of my treadmill to slip in some
+red light while I'm just walking on the treadmill.
+
+And it's like I'm a piece of toast or a piece of bread.
+
+You know, I get toasted on both sides every morning.
+
+I do about...
+
+20 minutes of back exercises, because I'm going to be sitting in a chair for eight to 10 hours that
+day.
+
+So yeah, I get my back's exercises in.
+
+I do a, before I do the walk, I do a pre -breakfast, which is like, it's a variation on the, I think
+it's called the green giant that Brian Johnson does.
+
+But it's just collagen, peptides, cocoa, and cinnamon.
+
+I do that, you know, I do about 20, 30 minute workout.
+
+I wake up the kids.
+
+I'll make them breakfast and I'll have my breakfast shake That's like a cup of berries a Scoop away
+protein parsley chia seeds frozen strawberries pumpkin seeds and kale It's a lot.
+
+I'm full like after all that three glasses of juice But like I'm not hungry so yeah, so then I start
+working.
+
+Later in the morning, I'll have some green tea and pomegranate juice.
+
+I don't really like the taste of green tea, personally.
+
+But it's great.
+
+I look forward to lunch every day, especially the sweet potato days.
+
+But yeah, so.
+
+And so that's my diet routine.
+
+do afternoon snack with green tea and pomegranate juice.
+
+And then dinner is like flexible.
+
+I try to make good choices, but you know, it's me and the family eating.
+
+So, you know, we just try to come to an agreement on what we'll all eat.
+
+And, you know, I've got a five and an eight year old, they're picky.
+
+So we have to pick something that we can all eat.
+
+So yeah, so that's the nutrition part of it.
+
+As far as supplements, I do vitamin D3 or K2, turmeric every other day, minoxidil, imonastatin, take
+300 micrograms of melatonin at night.
+
+And so yeah, that's the nutrition and supplement stuff.
+
+Exercise, like I mentioned earlier, I do boxing one day a week.
+
+I do the Brian Johnson workout on Wednesday, Fridays resistance training and then off days I do
+typically try to do 30 minutes of zone two.
+
+I said a lot, right?
+
+So I just try to get some walking in every day.
+
+Sleep, wake times 9 p I'm typically asleep, wake up at six.
+
+I think that pretty much covers it.
+
+I'm just kind of going down my website, but yeah.
+
+You seem to be on some things.
+
+You took Rian Johnson stuff and then you changed it around.
+
+Now this signals or suggests to me that you're not building your routines and diet and these things
+up for...
+
+since the last decades.
+
+When did you start to really pay attention to these things?
+
+So the morning shake I've done for probably about a decade, but it used to be like, okay, I put a
+scoop of whey protein in with some milk and a banana and I was pretty happy.
+
+Like I do that every day.
+
+And that was the extent of it.
+
+Everything else was like, you know, just kind of a free for all.
+
+Ashwagandha made me dizzy.
+
+Even broccoli sprouts made me dizzy.
+
+And so I have like this weird thing where if like I get maybe too healthy, I start getting dizzy.
+
+I went to the doctor and they had MRIs done and all this and they're like, yeah, everything's good.
+
+They gave me some kind of medication.
+
+Like if you're ever feeling dizzy, take this.
+
+And I think it's like some kind of migraine thing.
+
+I took it once or twice and I'm like, well, I'm just going to not eat these foods and not have dizzy
+spells.
+
+So that's the route I ended up going.
+
+as I got deeper and deeper into the nutrition, I'm like, well, what?
+
+What can I eat to improve my stuff?
+
+like, you know, obviously I went the Brian Johnson route, watching scene with like the collagen and
+the glycine and all that stuff.
+
+Like I've taken kind of bits and pieces of things I find over time.
+
+And then I really like Michael Lusgarden's approach.
+
+I don't know if you've seen his content, Conqueraging or Dodd Trying.
+
+He does a lot of the, hey, eat normal foods, try not to supplement if you can.
+
+I really kind of...
+
+respect that approach because I think it's, yeah, the fewer supplements the better if I can just get
+it from natural food if I can.
+
+So, kind of, yeah, my approach is just kind of like molded and formed over time.
+
+then, you know, I take blood tests, but blood tests were kind of expensive.
+
+It's, you know, on insurance.
+
+I can't just go to my doctor and say like, hey, like I'm eating more broccoli now and I want to see
+if my such and such went down.
+
+Like they're going to throw me out of the office, right?
+
+One of the biggest things is like, you know, a year ago I figured out that there's companies that
+work with like Quest Health.
+
+So in the US it's called Quest is one of the big labs.
+
+You can get the three main labs.
+
+So CBC, lipids and metabolic.
+
+You can get those all for $40.
+
+And you don't like for me, like an office visit, even with insurance, it's like 150.
+
+And I had to like twist the doctor's arm to try to get me to like prescribe these labs.
+
+I can just get myself for 40 bucks.
+
+I was like, my God, like I can do all these tests for 40 bucks like every three months.
+
+Like let's, I don't like getting blood like every three months.
+
+so that's kind of what brought me to where I'm at.
+
+Yeah, I have a big problem with the blood tests myself because I'm not able to do it too frequently.
+
+It's a huge hustle where I live at least.
+
+I'm not living in a big city.
+
+So that's problematic.
+
+And I believe Michael Lust Garden is doing home test kits, blood tests.
+
+Yeah, some of his labs, yeah, sometimes you'll have the one where it, so like the, the true
+diagnostic, they have the TASO where you just stick it on your arm.
+
+Like I love those cause those are real easy to do.
+
+But the ones where have to your finger and you have like eight to 10 blocks drops of blood, like I
+can't do those.
+
+Those are really hard for me.
+
+So yeah, like I think he does a mix of them based on, yeah, whether he's using like, yeah, which
+test he's running.
+
+I assume he's doing a mix of both.
+
+Yeah, probably he's doing a lot.
+
+But it will be interesting to see what the epigenetic stuff is coming up with because through
+diagnostic is saying that they can tell you a lot more than how much they are telling you.
+
+They're not telling you your vitamin D.
+
+They are not telling you your lipid profile and these things, even though they...
+
+I don't know.
+
+I don't think they know it as well as the original blood test would, but they probably have a good
+estimation for that.
+
+So that might be the future here and that will make our job much easier.
+
+I would I would love to have a kit where it's like I give my three labs and like it comes in a tasso
+form I don't want to prick my finger and get blood all over everything I would
+
+love to have that like monthly service like you know 50 bucks a month or something like that like
+obviously cheaper the better but like right now it's like I feel like it's like a hundred bucks a
+month or something that you bleed everywhere
+
+Yeah, it should only get better from here.
+
+So it's just getting cheaper and cheaper to do lab work, which is fantastic.
+
+So yeah, age of abundance, we'll see.
+
+All right, so I wanna talk about what you do, but I also want to talk about what you do not do.
+
+the formula of success is to do the things that you should do and do not do the things that you
+should not do.
+
+you do things that you know you should not do?
+
+So one is the bedtime thing, going back to the sleep.
+
+But it's also like, it's really hard when you do social events and stuff at night, typically there's
+going to be alcohol.
+
+I enjoy drinking, but I don't really drink as much as I used to.
+
+I hardly drink really at all anymore.
+
+But if I do drink, I'll try to do it in the middle of the day.
+
+If I do it later in the day, I make sure I like walk on the treadmill for like 15 minutes, something
+to like help my sleep score.
+
+Cause again, going back to whoop, it'll, it'll complain to me.
+
+If I had one drink, like my HRV goes from like in the one twenties to like in the fifties or
+sixties, like it, it's a terrible night's sleep for me.
+
+So, so yeah, it's really kind of like, yeah, alcohol is like one of the the things that I've kind of
+given up over time just because I could see it in the data that it's not good for me.
+
+So yeah, that's probably one of the things.
+
+Trying to think of other things.
+
+I I spent a year trying to get my cholesterol down.
+
+Yeah, I couldn't do it.
+
+My cholesterol for the past, I don't know, three or four years was like, hovering over 200 or at 200
+and doing like the black lentils every day that I hated.
+
+I was able to get it down to like 170, 180.
+
+And then, yeah, no matter what I did, I just, I tried all different types of things.
+
+I just have, I have a blood type that's very sensitive to LDL.
+
+But yeah, they, I went to a hard doctor, all the tests.
+
+Everything was fine.
+
+They put me on a statin, like 20 milligrams and I'm like, that's a lot.
+
+So like I did it for a month, two months.
+
+I got my scores.
+
+I'm like my scores, my like cholesterol and I'm like 150 or something.
+
+I'm like, okay, like that's great.
+
+But I don't really want to be on 20 milligrams of Rassuvistat in the rest of my life.
+
+So I had that and my score actually didn't go up.
+
+I don't know if there was some other intervention I did, but yeah, it kind of stabilized.
+
+So now I'm like, okay, if it's stable at 10 milligrams, what about five milligrams?
+
+I'm taking a little break this month, but probably later in the year, early next year, I'm going to
+try to have it again and see what happens in my cholesterol.
+
+Because I did notice in my data, again, this is the value of testing every three months or even more
+frequently sometimes, is I did notice my HbA1c went from like a 5 .0 to 5 .5.
+
+So I'm like, OK, like either I've eaten too many cookies or something or Yeah, or it's based on the
+statin.
+
+I just need to do more analysis and try to figure out, you know, if I drop the five milligrams, does
+my HbA1c drop back down to like around a five So, yeah, you know, it's just like there's always
+there's always some number to chase, seems.
+
+But yeah, just trying to figure out what the right balance is.
+
+Staying with the do and do not do theme and alcohol.
+
+So I'm from Eastern Europe, And alcohol is an epidemic here.
+
+Like if I'm going to eat something like that's really good, like I'm going to eat like something
+that's really good.
+
+So I like the idea of that principle and like that helps you like not eat like.
+
+Bad food or at least if you're gonna eat bad food limit it to like a special occasion that type of
+thing So yeah Yeah, I mean I for me it's like I just don't want to be hungry so I
+
+tons of food with that diet routine I mentioned like after breakfast, I'm just full after lunch.
+
+I'm just full and by dinner.
+
+I'm hungry again, but you know I've eaten so much good food in the day, I'm like, okay, well, I ate
+some bad food now, but it's not that big of a deal.
+
+It's like the 80 -20 rule or whatever.
+
+You just try to do the best you can.
+
+for me, I'm like, okay, my life's too busy.
+
+I can't have a perfect routine and maintain it.
+
+I'm pretty disciplined, but I know if I get to a certain point, I'm be like, if I'm miserable, I'm
+not going to follow it.
+
+slowly hacking my way one thing at a time like what's sustainable what's not sustainable and just
+you just kind of you just got to figure it out so so yeah What area do you have to exercise the most
+amount of willpower to?
+
+With my routine, like, were you saying what's the hardest one for me to do?
+
+So, for example, exercise, I have started an exercise routine by doing five minutes, three times a
+week about five years ago, and I slowly built it up.
+
+now I'm probably even overtraining, I'm exercising so much, but it just happens to me.
+
+don't have to make myself exercise.
+
+On the other hand, for nutrition, it is not happening for me.
+
+I have to exercise so much willpower to eat properly right now that it's crazy.
+
+So what area do you have to exercise the most willpower on?
+
+Yeah, I mean, I would have to say it's got to be diet.
+
+The sleep's consistent, the exercise, like I just go through the motions and just do it.
+
+My schedule, because my wife and I are so busy, it's just like, I have time slots for everything.
+
+And it's like, okay, this is my time slot to do this.
+
+So yeah, the exercise and sleep are pretty easy.
+
+Honestly, the diet, I go to the grocery store, know exactly what I'm going to buy and I've got to
+use it.
+
+So it's like, I don't really have to think about the diet because I do the same thing every day.
+
+think the biggest thing for me is like after I eat dinner and I'm like, okay, do I want dessert?
+
+Yeah, I dessert.
+
+That's part of me for the day.
+
+All my, so when I work, I have like a lot of screens.
+
+I try to put all my screens in dark mode just to kind of like save up my eyes a little bit.
+
+turn down my, the light on my phone is probably like, brightness level is probably like 25%.
+
+Like I said, it's pretty low in hopes that that helps my sleep.
+
+Sometimes it makes it a little hard to read during the day, but it does, feel, help at night to
+reduce the blue light.
+
+So that's, think, one of the big things I do to just try to help with the environment.
+
+you also mentioned you have a kneeling chair, right?
+
+It's good in a way that you can kneel and you can squat on it.
+
+So it has two positions for you.
+
+What worked for me as well is an exercise ball.
+
+So I'm switching between kneeling chair, exercise ball and normal chair.
+
+So yeah, that's a...
+
+tried the exercise ball and my desk is also adjustable to where I can stand, but I felt like between
+those two, if I'm doing like intense programming, I can't focus.
+
+It takes away my focus to the extent to where I can't like focus as hard.
+
+Whereas the kneeling chair, I can still have like extreme focus if I need it.
+
+I tried those two and yeah, just like my compromise was, okay, if I'm on a call.
+
+I'll do the standing desk or I'll do the ball because I don't have to like, don't need extreme focus
+to like be on a call.
+
+if I'm heads down programming, yeah, I need everything I got.
+
+you become the code.
+
+It takes a while to get used to the exercise ball for sure.
+
+Maybe after half a year, a year, that's when I started not noticing it anymore, okay.
+
+I did it for about a month.
+
+Yeah, maybe I just did it more time.
+
+Yeah, you can also do, I believe they called it both soup balls or something that you put on your
+normal chair and that's wobbly as well, but not as wobbly as an exercise ball.
+
+So that might be a compromise there.
+
+Sleep, diet, exercise.
+
+What should we start with?
+
+Diet, we talked a lot about your diet, so let's talk about it from a different point of view.
+
+How does your, how do your macronutrients look like?
+
+I'm not sure.
+
+I haven't really looked at it from that perspective.
+
+When you say macronutrients, what are you referring to?
+
+just protein versus fat versus carbs?
+
+Like that type of thing?
+
+Most people I talk to here usually can't tell at least how much protein they are eating daily.
+
+Yeah, I'm between 120 and 140 grams.
+
+So I do know that one.
+
+I don't know the other numbers, but yeah, I'm around 120.
+
+It may be a little bit high.
+
+So one of my high numbers is creatinine, which I've tried to get down.
+
+I actually just yesterday switched to from a whey protein to a plant protein.
+
+I'm going to try that for a few months and see if my creatinine goes down.
+
+funny thing is like I put...
+
+like I mentioned earlier, like when I built my website, I'm like, Hey Chad, GPT, here's all my
+stuff.
+
+Like I also asked it, I think a couple of days ago, was like, Hey, I high creatinine and I have, I
+forgot what the other one was.
+
+two, two biomarkers.
+
+wanted to try to optimize.
+
+And the first thing came back with like, Hey, you need to switch from animal protein to plant
+protein.
+
+And I'm like, okay.
+
+And I was like, you should also probably do less protein.
+
+And I'm like, okay, well, I don't really want to do that.
+
+It's just a...
+
+Yeah, but as far as macronutrients, yeah, like around 120, 140 for protein.
+
+I have high creatinine as well.
+
+I'm not sure, does it have to do anything with creatine, like taking a lot of creatine?
+
+So that's why I so like half a year ago I was like, I'm gonna take creatine out because that's
+likely what's driving up my creatinine score and everybody's like, don't worry about creatinine like
+it's not a big deal like you can look at other metrics to get your
+
+kidney function health and it's like, okay, that's great.
+
+But then like, you know, also look at like the phenotype aging calculation uses creatinine and I'm
+like, okay, if I want a good score for that I have to actually like figure out creatinine and try to
+get it lower because it is a
+
+It's a useful biomarker because it does increase with age.
+
+So yeah, I'm just trying to hack it to what I can do.
+
+a lot of the people I follow, they don't do animal proteins.
+
+They do plant proteins.
+
+it's like, yeah, it's probably the right direction.
+
+But I will say it doesn't taste as good as the animal protein.
+
+In my morning shake, I had it this morning.
+
+I'm like, this isn't as fun.
+
+I think it's maintainable.
+
+Maybe in two weeks from now, I'll be like doing 50 -50, like this 50 % scoops between the two to try
+to come to a compromise.
+
+You know, there are people doing research on extremely high protein amounts and they are saying
+that, it's impossible to do this research on anything else other than whey protein because people
+just not gonna eat that much protein.
+
+No matter what kind of protein source they are giving them, only whey protein is the one that people
+are willing to actually eat a lot of.
+
+That's the best tasting.
+
+I was disappointed to notice that.
+
+I'm like, I'll switch to plant protein.
+
+Then I had the taste, and I'm like, hmm, this isn't as good.
+
+I'm like, my media thought was like, well, maybe I can slip a little bit of banana in my shake in
+the morning or something.
+
+Or maybe I can use something like counteract the fact that I'm using plant proteins.
+
+But yeah, I don't know.
+
+I have to figure it you tried pea protein?
+
+Now I haven't tried that one yet.
+
+The one I got said plant protein.
+
+I'll have to look at it closer to see if it's a Costco.
+
+It's one of the bulk items.
+
+But yeah, it may be pea protein, but I'm not sure.
+
+I have not tried it in a powdered form, but I'm buying energy drinks and protein enriched energy
+drinks and every day I'm drinking one and it tastes great and it has pea protein in it.
+
+So I suspect that might be good.
+
+Try it once.
+
+Also regarding the creatinine, what you do is probably the responsible thing to do.
+
+I went to another direction, you know, when a drug goes, when a drug has side effects, then what you
+do is you take another drug to chase the side effects of the previous drug.
+
+So what I decided is not to take out the creatine.
+
+I'm going to take a lot of creatine.
+
+But I decided to do, well, There is examine .com, which is the BL evidence -based database.
+
+And on examine .com, there were two things that might improve creatinine levels.
+
+One is L -carnitine and the other is Panax ginseng.
+
+This is the Coran ginseng.
+
+So I just decided to take those and my next blood test, I will see if it gets any better or not.
+
+okay, your fiber intake seems quite high as well.
+
+Do you know numbers there, maybe?
+
+I have a spreadsheet with it on there.
+
+It's I'm definitely getting especially so this So this this new protein I'm taking like it has eight
+grams of fiber with it.
+
+I'm just like, okay Where'd all this fiber come from the whey proteins like no fiber.
+
+So like yeah I'm giving getting even more now than I had before.
+
+I'm definitely over 30 grams Yeah It's I think I feel like one of my big changes that I don't have
+good analysis on, but I feel like when I started doing protein shakes at night and started mixing
+the chia seeds in with that, a
+
+lot of my fiber is front -loaded in the day.
+
+I do a lot of my stuff in my shake and in my lunch, but I don't have anything in the evening because
+typically I'm just like, I'm eating whatever we have for dinner, which again, is community food and
+not something personal for me, which...
+
+typically means it doesn't have a lot of fiber.
+
+I moving that fiber to later in the day probably helped out some with my biomarkers and my scores
+and stuff.
+
+I feel like maybe that's affecting my cholesterol and why my cholesterol, even though I'm having my
+statin, my cholesterol is staying the same.
+
+So it's a theory, but yeah, I'm wondering if moving the fiber throughout the day and not just having
+it bulk at one time is making a difference.
+
+But yeah, I think I do do a lot of fiber, so especially now.
+
+tried eating animal fiber.
+
+so I have done psyllium husk.
+
+I've tried twice to do psyllium husk because that's what everybody says.
+
+Like psyllium husk is great.
+
+Both times I did psyllium husk and my next blood test, my, my blood counts look like I was fighting
+an infection.
+
+And that's actually one of my bad Dunedin Pace scores.
+
+Where I scored like a 72 or 73 it was because I was doing a psyllium husk and I had to pull it from
+the diet Because it was like it was it was making my white blood count.
+
+I Don't know the metal if a sites or which one it was but it's the one that's like fighting off an
+infection For some reason psyllium husk like my body starts like going crazy trying to like fight it
+for some reason This is after like two or three weeks.
+
+I tried like low dosing it in to see if my body would adjust to it.
+
+Because everybody says how great it is, but for me it didn't work.
+
+So I don't.
+
+take it in a powder form.
+
+I don't know what was your way of taking cyanium husk there.
+
+I was mixing it with whey protein and it was like a post -workout shake.
+
+I either did it there or I did it in the morning with my morning shakes.
+
+That's how I mix it in my chia seeds.
+
+I just put the chia seeds in the shake.
+
+Like trying to avoid meal prep.
+
+honestly, I can't like chia seeds that much just because there's so many other flavors in the shake,
+but yeah, I'll have to think about that.
+
+Did it change anything biomarkers for you as far as like, or was it just a taste thing?
+
+I know it's a taste thing.
+
+you ever eaten chia pudding before, like what you buy in a store?
+
+OK, so you cannot compare it.
+
+Anyway, just try it and you'll see.
+
+How do you move?
+
+Firstly, let's talk a bit about red lights there.
+
+So every morning you do a walking forward and a walking backwards and you have a red light panel
+behind your treadmill.
+
+I have two questions.
+
+One is that what's the point of working backwards?
+
+I was always interested, but like didn't really, was able to put it anywhere.
+
+So you're not doing your sides or in front and it's pretty far from you.
+
+Okay, that's a lot of questions.
+
+You start wherever you want.
+
+Yeah, so the first one, the walking backwards, so that was picked up from the physical therapy for
+my back.
+
+I think what they told me was walking backwards engages your hamstrings and your glutes.
+
+It's also something I think that Brian Johnson does as far as like, that's part of his like knees
+over toes guy stuff, like walking backwards is like the preliminary stuff before he actually does
+his.
+
+this thing's and apparently it's like really good for your hamstrings and your glutes and your lower
+back.
+
+So that's kind of why I walk backwards.
+
+But then it's also walking backwards.
+
+It's like, again, I'm like a piece of bread and a toaster.
+
+It's behind me in the treadmill.
+
+So when I walk forward, I get my back.
+
+When I walk backwards, I get my front.
+
+So I get both sides.
+
+I'm like a piece of toast.
+
+But the and like I got the red panel.
+
+Obviously, like there's a lot of videos on like, OK, like red.
+
+red light therapy is good, yada, yada, yada.
+
+But like Brian Johnson did it and then later Brian Johnson was like, well, I don't know if it's like
+really helpful and all this stuff.
+
+And it's like, okay, but at the same time, Brian Johnson has like these people with these lasers
+like zap in different parts of the skin and all this stuff.
+
+And it's like, well, if you're doing all that, you probably don't need red light therapy.
+
+If you're like already getting like this very intensive treatment, like zap and all your like your
+bad areas on your skin and stuff.
+
+So, I think it's probably helpful.
+
+definitely may be a placebo, but honestly, the warm light on the skin in the morning, honestly, it
+feels pretty good.
+
+So I enjoy it.
+
+I don't think it's a burden to do or anything like that.
+
+So yeah, that's how I ended up in this routine where I do it every morning.
+
+Okay, okay, that's interesting.
+
+I might be doing the same.
+
+Okay, Brian Jones on workout routine.
+
+I've seen his video a long time ago.
+
+It was pretty all over the place.
+
+What's your experience with that?
+
+Yeah, he kind of covers a lot of different things.
+
+I do probably 80, 90 % of it.
+
+don't, in the interest of time, I don't do, so like at the end he does like a four by four.
+
+I don't do the four by four just cause like doing his workout in general is like 40 to 50 minutes.
+
+So I do that and then just do like a 30 minute zone two on the treadmill.
+
+And even that, that's my longest workout of the week.
+
+It's like an hour 20, something like that.
+
+It's a lot of time.
+
+do like that it gets, it's like a mix between resistance training and like stretching.
+
+Like it's like, and I think even in his video, he like mentions like, Hey, this isn't like the end
+all be all for exercise.
+
+Like this is just what I do.
+
+And it's kind of like pulled it together, but I do think it's a good routine.
+
+I don't like the idea of doing like the same thing every day because like, I like to like.
+
+jolt my muscles and surprise them and do different things.
+
+But I do like it from a once a week perspective because I like the mobility improvements.
+
+I've seen mobility improvements from doing like the knees over toes stuff.
+
+I do think there's some benefit to doing like that type of workout.
+
+It is kind of all over the place because it's like, I think it's designed to get like all the
+different types of groups and stuff.
+
+I kind of hope that it would like increase my vertical, but I haven't actually measured that.
+
+Yeah, at some point, yeah, I like to measure my vertical and see if those exercises like actually
+help.
+
+Cause like the big thing, I think with these over toes guys, like, he's got like a 50 inch vertical
+or something like that.
+
+And it's like, well I'd like to be able to dunk a basketball.
+
+Like that would be cool.
+
+But yeah, I don't know.
+
+It is kind of like a mix of different things or it feels that way doing the workout.
+
+Okay, so what else do you do here?
+
+Boxing, yeah, boxing.
+
+So whenever I try to go back to like, know, Brian Johnson at the end of his video has a four by
+four.
+
+I had trouble on the treadmill doing a four by four, getting my heart rate in the zone five range.
+
+I don't know if there's special equipment that's easier to get in zone five.
+
+If I'm running on the street, it's easier for me to get zone five, but it's hard to maintain four
+minutes of zone five.
+
+at least for me with boxing, I feel like it's a cheat code because like, if you're boxing, you're
+doing, yeah, well, I think of it like, okay, I'm doing zone three cardio, but like, if we're doing
+drills, like partner drills where we're going back and forth with
+
+combinations and stuff, there's always the fear of getting punched in the face.
+
+And it's like, even though I'm not working that hard, like the fear of getting punched in the face
+drives my heart rate up.
+
+So it's like I'm doing zone three work and I'm getting zone five benefits.
+
+So that's the way I kind of look at it.
+
+I feel like it's kind of a cheat for me to be able to get zone five without having to like the
+mental challenge of actually doing zone five workout.
+
+So, for me, it's really hard to do zone five workout.
+
+I've been doing a lot of martial arts and self -defense systems and stuff.
+
+I was also doing boxing before.
+
+And one thing I noticed is that my muscles here, you know, when you're hitting, so I'm not sure how
+good that is.
+
+for me because it just, it gets really.
+
+Well, maybe if you do it consistently, you get used to it, but maybe it's just so hard on those
+muscles that...
+
+Because these are explosive movements all the time.
+
+So how do you find boxing from a longevity point of view?
+
+Yeah, I don't really like to do it more than once a week.
+
+I do like the zone five I get from it.
+
+There's 10 minutes of jump rope and push up.
+
+I'll get little bit of shaky hands afterwards.
+
+And I've looked online and it's just like, yeah, that's just part of it.
+
+You're gonna get a little bit of shaky hands if you're hitting the bag, like a heavy bag too hard,
+like something that doesn't have as much play or as much movement.
+
+I think that's the only thing I've noticed where I have like a little bit of like pause where I'm
+like, I don't know about this from longevity, but I really enjoy doing it.
+
+It feels really good.
+
+So yeah, I'll likely continue to do it once a week until I find something else that I like better.
+
+for me, I feel like it covers one of the areas because none of the other stuff I do is really zone
+five.
+
+Yeah, just like 30 minutes.
+
+So there are no days when you're not doing anything.
+
+I don't really consider like 30 minutes of zone 2 hits.
+
+I just look at it as counteracting the fact that I'm sitting all day.
+
+So yeah, I don't really have like a day off or I do absolutely nothing.
+
+I feel like it's good to just kind of move every day.
+
+Okay, and some interesting stuff here.
+
+What's that about?
+
+Yeah, so after the five minutes walking forward and backward in the morning, I do a minute on the
+inversion table just to kind of stretch out.
+
+again, it's from my physical therapy for my back.
+
+I went to a chiropractor for probably a couple months still trying to like, I spent over a year
+trying to get my back right.
+
+But yeah, they had the inversion table.
+
+They had one of the shaking inversion tables, but mine's just a basic like, yeah, just flip you
+upside down.
+
+That might be good for these things, but what do I know?
+
+Never had back pain to fight with.
+
+yeah, I like the I think they call it the primal squat.
+
+It's actually part of my resistance training.
+
+I do like my resistance training on Friday.
+
+I'll do like 25 push -ups, five pull -ups, five chin -ups.
+
+Like I do this rotation where I do a bunch of stuff and then I'll do like a one minute primal squat
+where I'm basically just like, it's like just a really deep squat where I'm sitting on my heels and
+I do that for a minute and then I'll do another set.
+
+And that's like kind of my recovery period but it's also the like to your point, like kind of the
+animal movement type stuff.
+
+It's like being in uncomfortable positions that you're not used to.
+
+I feel like it's an important thing.
+
+But yeah, like the walking on all fours and I've seen that kind of stuff and yeah, I would at some
+point like to get back into doing like a yoga thing maybe on the weekend, but there's no time at
+this point.
+
+But at some point I'd like to do something like that.
+
+you know, to your point, like better flexibility, that type of thing.
+
+It's as you get older, your body just gets stiffer.
+
+So, yeah, just keeping things loose.
+
+Sleep, sleep.
+
+You talked about it.
+
+Anything that we didn't talk about regarding sleep.
+
+mean, I used a blindfold to sleep because my wife goes to bed after I do, just to make sure I cut
+out all the light.
+
+I try to read for the last 30 minutes before bed.
+
+I just kind of cycle through books, but yeah, I try to do that versus watching TV, but a lot of
+times we'll like, we'll stay up, we'll watch like Unsolved Mysteries or something like that.
+
+That's actually not probably not very good for sleep, but but yeah, it's yeah.
+
+My sleep schedule is pretty basic.
+
+It's just the same time every night.
+
+And, I just wear the blindfold and it cuts out all the light and it's, it's great.
+
+It's like, can't sleep without my blindfold now because I like it, like pitch dark and like, there's
+always some like natural light coming through the windows and stuff.
+
+So just having that like perfect, perfect darkness is, It's really nice.
+
+What kind of blindfold are you wearing?
+
+The one that pushes into your eyes or the one that has like a space for your eyes, you know?
+
+space on it.
+
+It was like 20 bucks on Amazon, but it's got padding around your eye or whatever.
+
+So it's against your face and it's pretty flush, but it's also got the padding so it's not touching
+your eyeball.
+
+It's out maybe an inch or so.
+
+So yeah, it's not pressing against my eyeball.
+
+I can open my eyes with the blindfold on.
+
+It doesn't disrupt my sleep or anything.
+
+But yeah, also like...
+
+I roll and I move a lot at night, having something where it's not like touching my eyeball is nice.
+
+You know, I was traveling around the world for a long time and that's when I was wearing a blindfold
+still couldn't decide which one is better.
+
+The one that's touching my eyes is just this pressure feels like, you know, feels like, hey, that's
+something good.
+
+But I decided to use the ones that's not pressing my eyes because that feels more natural, I don't
+know, whatever.
+
+is like comforting so like yeah, it could be like a good thing for me.
+
+I'm like I Just I when I feel my eyelashes touch it.
+
+I'm like, I don't like that.
+
+So like when I my eyes or whatever I do I do like the space but I honestly I've never really tried
+the other one.
+
+So I'd probably be like you and go back and forth All right, so let's talk about your supplements.
+
+You've already mentioned all of them, but I also have a couple of specific questions.
+
+One is that you're taking with piperine.
+
+I believe the piperine is because they say that it's better absorbed by the body, but you're doing
+this every other day and...
+
+Why is that?
+
+Why every other day?
+
+I was doing it every day, but I mean the dosage is pretty high.
+
+I can't remember what the dosage is on it, but I didn't know if it was necessary for me to do it
+that frequently.
+
+So I started doing every other day and I haven't noticed any difference with like biometrics or
+anything.
+
+I did notice when I originally started turmeric that my sleep scores were a little bit better.
+
+So I did notice a little bit improvement in my stats.
+
+It was like very marginal, but it was like, okay, it's a couple of points, like both HRV and resting
+heart rate.
+
+So I did notice a difference there, but yeah, when I went to every other day, I didn't have any
+noticeable differences.
+
+yeah, I just started alternating.
+
+Okay, that makes sense.
+
+That's a tough question.
+
+think there's a lot of anti -sentiment about statins.
+
+Maybe more so.
+
+Like for me, I tried for a year to try to get my cholesterol down and I couldn't.
+
+And I have a family history of like heart attacks on my mom's side of the family.
+
+it's, yeah, for me, anything I can do to reduce the possibility of having a heart attack, obviously
+I'm gonna take it.
+
+so there's like, yeah, there's just a lot of.
+
+negative sentiment around statins.
+
+think may or may not be justified, but for me, think it's in my case, a good option to take.
+
+I think because I feel like a lot of people who are on the leaderboards are typically going to be
+people with better diets than mine, and they're going to have better natural cholesterol because
+they're not like eating the bad food that I'm eating at night.
+
+And so I am kind of taking the statin, feel like to overcome that a little bit.
+
+But I also think it's just the genetic thing.
+
+Like my body just builds LDLs like crazy for some reason.
+
+But I mean, I guess that would be the one thing that is probably maybe controversial about what I
+do.
+
+finally I would like to ask you if there is any way that people can buy goods or services from you.
+
+Yeah, I mean I don't really sell anything I'm just you know here to socialize and just Be another
+data point for folks to look at and say okay.
+
+He's doing this Let me try that see if it improves my biomarkers.
+
+I'm just kind of just here to share but yeah, my website is heck yeah health calm and my Email
+address is at the bottom.
+
+But yeah, just feel free to reach out if you have any questions or anything Happy to help out
+however I can Well, heck yeah, that was great.
+
+Thank you very much for coming to this interview.
