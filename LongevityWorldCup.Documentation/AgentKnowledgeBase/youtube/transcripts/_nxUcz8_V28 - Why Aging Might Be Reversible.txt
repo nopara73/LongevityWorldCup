@@ -1,0 +1,1033 @@
+# Why Aging Might Be Reversible
+
+Video: https://www.youtube.com/watch?v=_nxUcz8_V28
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 435/680 units; 6641/9193 words.
+Matched topics: Bryan Johnson, PhenoAge, Rejuvenation Olympics, aging, aging clock, anti-aging, biohacking, biological age, biomarkers, epigenetics, exercise, inflammation, lifespan, longevity, medicine, mortality, nutrition, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+is the first thing you would want to ask based on what you have heard.
+
+I had an idea.
+
+So I looked at a video of yours and I found your story fascinating and I would like to go through
+throughout the episode I would like to go through your story.
+
+However, I want to start with something completely different because you see I'm in the longevity
+space for a while and I don't think I've ever heard a coherent argument for why this really might be
+the first
+
+time, for why we might be the last generation that will have to die or not have to die, right?
+
+This question of, did we achieve longevity escape velocity?
+
+But in your presentation, you actually gave a coherent...
+
+explanation for that.
+
+So I would like to ask you why do you think we might be able to achieve longevity escape velocity?
+
+Okay, great question and it's a great question to start longevity or rather to maximum lifespan is
+of course a genetic trait because we know that mice live for two years and people live 90 maybe 80
+years and maybe whales live 200 years.
+
+So actually maximum lifespan is some...
+
+genetic trait which is transformed in generations and heritage this can be fixed if you have some
+access to genetic information you can edit it and somehow rewrite genetics and we seem to different
+technologies, different tech which is
+
+already in place which is helping us doing that.
+
+Well first of all genetic engineering of people is already going on.
+
+I usually give the example of treating hemophilia, the disease with unclotting blood.
+
+ah But maybe you have heard that a couple of weeks ago scientists have concluded a treatment for
+children who were blind since they were born.
+
+So was a genetic therapy people who were born blind.
+
+And they started to see that the condition was somehow treated through genetic therapy.
+
+So we already have some...
+
+means to edit the genes.
+
+But the other question is how do we edit them to live longer?
+
+There maybe two answers to this question.
+
+One question is very simple.
+
+If you look at the super centenarians, people who live over 110 years, we will realize that they are
+mutants.
+
+They are X men and X women.
+
+So they have some genetic traits which...
+
+prolong their longevity.
+
+Let's say many of them have cloto gene expression based on the cloto gene mutation, specific
+mutation which helps you offset neuro generative disorders.
+
+And we could use that cloto gene polymorphism as a target for the gene character.
+
+That's one simple question.
+
+How we could win a little bit like 10 years oh maximum lifespan maybe.
+
+But their main goal I think is to create whole new genetics.
+
+mean to create new genes.
+
+which maybe have not been invented by nature yet, which can maybe useful for longevity.
+
+oh on the other hand, maybe we can transfer some genes from other animals who lived longer than the
+animal peers.
+
+Let's say we all know about naked mole right.
+
+who lives like 40 plus years, maybe longer because they don't seem to age at all.
+
+based on what Google published great research on naked mole rats showing that the mortality rates
+are not rising so that means they are not essentially aging and the way people age and maybe you
+have heard about the work by Vera Gorbanova and Andrey Siluyanov
+
+they are Russian origin scientists but they work in US So it will be very easy for you to access
+their works and I will share some links maybe for our podcast also.
+
+So Vera, Gorbunov and her team actually managed to transfer some genes from mole rats to mice, which
+resulted in mice living longer or suffering less from cancer.
+
+And the good thing here...
+
+even okay, let's mention just a little bit of that here.
+
+So in December 2021, was also Google origin team, was DeepMind.
+
+They published, neural network which was able to predict the structure of proteins.
+
+Structure of proteins is super important because structure is what makes and predicts the function
+of the protein.
+
+And any protein is actually a biological machine.
+
+So everything which is happening in your body right now is actually more like 90 % of that is
+processed by proteins as biological machines.
+
+So you could process something to live longer, you could inject some machines into your body to live
+longer.
+
+But to do that you actually need to inject some genes which will hold those proteins and express
+those genes of course so that they are transpired to become proteins.
+
+So what recently in I second half of the last year 2024 Based on that work, Google published all the
+protein structures for all living beings who were sequenced.
+
+So all the sequenced living animals or plants or whatever, ah the genes were, their proteins were
+published, the structures were published as a big database.
+
+So we know How to say that?
+
+Well, before actually, to explain why this is important, we should mention that 50 years before
+Google, for 50 years before Google published this works.
+
+scientists were trying to discover these structures and they were only able to discover 200 or so
+structures, like several hundred structures.
+
+But now we have hundreds of thousands of protein structures published in three years.
+
+So this a...
+
+You can actually mine this database to find any proteins with any function you want it to fulfill.
+
+So we end up creating pills and...
+
+think it will be in this word.
+
+uh it goes into your bloodstream and it crosses the blood brain barrier.
+
+the brain because it has...
+
+something like a compass to go to your brain it will not go to express in your liver that's actually
+right now for example we're using mostly adenoviruses for infecting and for gene therapy
+adenoviruses or lentiviruses I think are also being used a lot so
+
+adenovirus works differently it's basically a respiratory virus so it goes to the lungs or it goes
+to across your body to infect like uh five or ten percent of your cells.
+
+So adenoviruses are also good for doing general gene therapy but if you want to some gene therapy to
+end up in your brain you want to use some neurotrophic viruses.
+
+that's I'm not saying that it will be like exactly Zika virus but I'm just giving you an example
+what can be done here.
+
+but the most fascinating thing which fascinates me most is that of course I think you use a lot
+chart GPD or whichever language model in your work, right?
+
+So to create content, to create text.
+
+So DNA is also a text and you could ask, you can train and this is actually already been done.
+
+It's already been done.
+
+There are language models.
+
+which are trained not on the human text, but which are trained on the DNA and RNA sequences and
+protein sequences like the examples I gave.
+
+So we can actually ask a language model, uh big language model to create a protein which creates a
+specific function.
+
+what I'm trying to, like, In the end of the day, I'm trying to say, we're right now holding all the
+prerequisites to put together technology which can edit the genes.
+
+And I would agree here with...
+
+ah Jean Ebert who is saying that aging is actually not drugable.
+
+You cannot drug, you cannot treat aging with drugs.
+
+You should somehow replace aging or edit aging in your genes.
+
+Because editing your genes is something like, you know, like transferring, for example, organs from
+the pig.
+
+It's very difficult to print an organ.
+
+For example, to 3D print a heart, you will need to advance our 3D printing technologies a lot.
+
+But nature already gives you peaks, and you can grow hearts for people.
+
+And this is being done.
+
+The hearts are being transplanted to people.
+
+editing your genes is the same workaround.
+
+put something in your genes and you ask nature to actually help you with the feed aging with these
+proteins you send to your genes.
+
+And I was just trying to show that this potentially can now be done and we understand every step of
+this process.
+
+So now, uh usually when people get to understanding uh every step, they need several dozen years.
+
+through dozens of years to create the technology.
+
+What I'm hinting here is that a weapon of mass destruction was to break something, the tool to break
+everything was created later than the controlled nuclear reaction.
+
+So first you get something to control, you create weapons.
+
+say the proof of concept is already there and the proof of concept here for aging would be gene
+editing.
+
+uh the Rutherford moment for aging, defeated aging, already happened in 2007.
+
+This was the Rutherford moment anti-aging technology.
+
+like the moment for nuclear bomb was created by the Rutherford in 1911.
+
+So we are already the Rutherford moment in biology of aging.
+
+This is also scary.
+
+and are so exciting.
+
+this is actually...
+
+Maybe I have an inner feeling.
+
+Maybe I want to suggest we look at the other side of this coin.
+
+What does it mean for us?
+
+Should we for example be like Bryan Johnson who I like very much.
+
+Should we maybe dig a bunker in our house, put all the medical equipment in our house and stay all
+the day like doing some exercises, trying not to die?
+
+Should we, what should we do actually about that?
+
+So we're living in this great moment.
+
+Let's say we believe that.
+
+Well, I think that it's...
+
+We should not be uh overdoing this.
+
+You should live a normal life, actually.
+
+You should be doing everything you can do reasonably to live longer and you should do also
+everything you could do reasonably to help that process.
+
+So right now I think we are helping this process because we are talking about that.
+
+We making this idea more well-known, right?
+
+So we helping.
+
+anti-aging research, we are calling people attention to this problem and that this may be done.
+
+So that's my main goal, I think.
+
+I don't think I'm very successful as a biologist, but I think I've done a lot in telling people the
+idea of it.
+
+So that's also a good contribution.
+
+We are saying about some bad event which may happen, which will make you suffer.
+
+It's very natural to be afraid of pain.
+
+And this is, by the way, a great question also, because ah when I...
+
+uh As a biohacker, would say we should fight for our life, we should always try to live longer, we
+should hope for the better that some treatment will be created for whatever disease we may have in
+the future.
+
+So if there is some relative or some friend, we should support him in his idea to live longer if he
+has some condition which is threatening his life.
+
+But ah it's up to the person to decide whether he'll...
+
+is able to take some more suffering, let's say, if he's suffering.
+
+It's a valid...
+
+It's better that oh nobody ever has to do that.
+
+But it's a valid reason when the person may want to give his life for something.
+
+But aging is not a valid reason to die.
+
+That's what I think.
+
+So there may be some reasons are good, some reasons are not valid.
+
+And aging is not not a valid reason to die.
+
+While extreme sports may be...
+
+or something up to you to decide.
+
+Yeah, I see.
+
+So ideally, we have unconditional right over our own bodies, whatever we want to do, right?
+
+Who cares and coke.
+
+But if something comes along that forces us to do something that we don't want to do, like aging,
+then that's not a valid reason to die.
+
+I wanted to go back.
+
+a moment because you mentioned gene therapies and I mentioned that I heard a lot about you.
+
+So I heard a lot about you in Prospera, the promised land where Bryan Johnson got his gene therapy
+and one of my friends there, I spent three months there and I even at one point lived in the same
+house with Ivan and Anna.
+
+I even interviewed them if anyone wanna check out Unlimited Bio interview.
+
+So their idea is that they are creating a cocktail of gene therapies with which we can improve our
+human condition.
+
+And one of the gene therapy that they are trying to do is Clotho.
+
+And you mentioned that as well.
+
+So now my question to you is that Is this the ideal gene therapy what they are providing or going to
+provide that makes centenarians live longer or you think it's some watered down version of it yet?
+
+I think it's very reasonable to expect that's the thing.
+
+That's one of the things we need to do.
+
+And this is what Anon does, is actually the example of the first wave of gene therapies for
+longevity.
+
+So like I mentioned, the second wave, the more advanced technologies to transfer whole genes.
+
+But what Ivan is doing is transferring certain adjustments to the gene, which will inject the...
+
+gene itself in the form of plasmids, let's say, to produce proteins which can be uh producing the
+adjusted clotoprotein to improve cognition.
+
+But it's actually very important.
+
+I will share a link with you for this podcast ah of some research about actually there's going to be
+a clotopeptide therapy which is injectable in the form of peptides.
+
+It was already tested in the mice and it offsets cognitive deterioration very well.
+
+I should mention here that Clotogym actually fully offsets Apogee genes uh negative effects on
+Alzheimer's disease prognosis.
+
+So people who have uh Apogee 4, uh the most negative allel of Apogee, but at the same time they have
+Clotogym uh positive mutation.
+
+Yes, but more importantly it improves cognition.
+
+So like people who couldn't lose weight on the ozempic they lose weight and people who couldn't get
+smarter they will get smarter on Clotho.
+
+So that's ozempic for the brain.
+
+That's very fascinating that we are standing in like two to five years from the peptide also therapy
+of Clotho.
+
+And this is just another way to do this.
+
+Also a valid way to do this.
+
+A little bit more conservative traditional way because we know a lot about peptides we know how
+peptides work take, you know what they say about new drugs, let's start taking them before the side
+effects appear.
+
+okay, yeah, right.
+
+like you could guess from whatever we discussed in the beginning of this podcast, I'm obsessed with
+blood-generated therapies.
+
+And people sometimes ask me, so right now I'm 42 years old, and people sometimes ask me why did I
+choose this field?
+
+and I was given different answers like I don't want to age, aging is pointless or I wanted to be in
+this field because it's evolving very quickly but then I remembered one story from my childhood so
+when I was like seven or eight or maybe nine years old so for several
+
+years I've been uh experiment on a tomato.
+
+I was uh in Russia it's very popular to grow tomatoes on your land.
+
+So it's like homegrown tomatoes.
+
+It's very popular vegetable in Russia.
+
+ah unlike what my parents usually did, they picked the crops in the autumn and threw all the
+tomatoes away.
+
+I was carrying my tomato home and bringing it back next summer.
+
+So I was doing that for three years trying to extend tomato's life.
+
+So that's what I uh doing and I was actually thinking for real, for serious, I was thinking that I
+extended the life of that tomato by 200 % because it did not live one year but it lived for three
+
+or four years.
+
+So and this gives me just the idea that I was fascinated about the idea of longevity ever since.
+
+Not just for myself but to find the...
+
+potential of longevity in nature around me.
+
+So to find, to experiment on something which I could, which I could access.
+
+Now to get to the serious part of it.
+
+When I became 30, like 32, maybe 10 years ago, I decided why don't I switch to myself.
+
+for us, it is always presented for us, we always have access to, more or less, always have access to
+our body.
+
+So that's why it was very natural for me to start experimenting and measuring uh my body.
+
+And I did not start immediately with experimenting.
+
+I started with measuring, collecting different biomarkers of myself.
+
+Now I need to mention here that in Russia, a blood test is a very cheap service.
+
+So like complete blood count, if you want to do it without insurance, it will be like $500 in
+maybe...
+
+US but it's thousands times cheaper in Russia.
+
+And therefore recently Bryan Johnson mentioned he has measured 32,000 biomarkers.
+
+And I have like 16,000 medical measurements of myself over the 10 years.
+
+So I'm measuring 1,300 different parameters, just blood, saliva, feces, whatever, 1,300 parameters.
+
+10 years I had like 16,000 data points.
+
+I will show a very quick demonstration of this.
+
+My affinity age is around 33.
+
+By the way, well, this is what it looks like.
+
+So like when you're a lot of blood tests.
+
+Oh, I'm sorry, this is in Russian.
+
+Let me translate that.
+
+Are you going with the name bio data online as well because that's how I've uncalled you.
+
+So I became a regional CEO for some average company in Russia.
+
+Then I started a company which I believed at first would become my family office.
+
+So a family office company usually works for your family and that was a longevity family office for
+my family.
+
+So I was using that company to sign contracts, attract attention, enter into some collaboration with
+institutes or labs to...
+
+access medical technology in the way I want to access it.
+
+Because I spending a lot of time studying aging itself or technology we could use to extend our
+lifespan or at least half-span to make us healthier.
+
+approaching me to show whatever technology I got just for medical examinations, checkups and that's
+what we started to do as a service.
+
+Sorry, can you illustrate a user journey here?
+
+Like what did someone do?
+
+How did they benefit?
+
+I mentioned I measure with 30 to 100 biomarkers with myself and we basically provide this service
+for our company.
+
+So we provide we set up experiment biohacking experiment as a service.
+
+So we when we approach the company we interview you we collect your available medical records from
+your past.
+
+We set up a medical examination in some countries, including Russia, where you would measure 1300 or
+so blood biomarkers.
+
+And then, as a founder of the company, as the guy who is responsible for putting all this data
+together, I will discuss your strategy, what you will do next with this data.
+
+So here there's a bottleneck.
+
+not really big, but it's very difficult to delegate that task of working with this data and breaking
+it into small pieces of work for the team, for the medical team.
+
+So I was not able to delegate that, let's say, so far.
+
+doctors with the medical teams and in like three or four months it will be reasonable to carry out a
+follow-up examination which will be smaller not that expensive and it will be a proof successful in
+addressing the original uh issues which have been uncovered by the first
+
+set-up examination.
+
+And to give you the idea, when you do 1300 biomarkers in one go, you will definitely discover like
+20 or 30 deviations.
+
+oh some imperfect places where your biomarkers actually deviate.
+
+But not all these deviations need to be addressed at this point.
+
+Because you should address the root cause of an issue and then let the body solve the other
+deviations.
+
+So the idea is not just that.
+
+What does he use?
+
+So he's using the software, um but did he go through the examinations and stuff with you?
+
+He did not uh go through the full checkup by now, so maybe he will go through that in the future.
+
+So, no, he's just using BioData for storing his medical data in our app.
+
+This is the same tool we use for our clients, and basically it's free.
+
+So we're just sharing our tool.
+
+It's more like a community thing, not like a service.
+
+But we distribute our app for community, and we have like 300 active users.
+
+the registered users are like 5,000, think.
+
+Mm-hmm But I think that what we see as 300 or so users, just different people coming and going.
+
+Because when you have blood tests, you don't have them every day.
+
+unlike me, you don't even have them several times a year.
+
+You just put some data, then you go back whenever you have some new blood tests.
+
+And you put them in the system.
+
+Yeah, the idea is actually to put six categories of data in the app.
+
+Right now in the...
+
+of that we've put oh genetics, blood tests, oh food-food recognition through your photo and we are
+struggling with sleep, important sleep date.
+
+by the end of the year I hope we will integrate activity and exercises and weight tracking.
+
+It's almost ready so we are finalizing these categories of data.
+
+also of course, questioners are important because we need to ask questions.
+
+but to do that, to actually achieve that goal, I need to anyway put all the data together.
+
+So whatever data we collect from our VIP clients, we need to collect from you.
+
+We need to make this data collection very comfortable and not demanding on you.
+
+so that you can easily collect your sleep, weight, nutrition, blood test, upload your genetics and
+then we get on top of that with our guidelines and through our guidelines the chart board will give
+you the service.
+
+So it's also not chart GPD, that's what I'm hinting at.
+
+We want rather to use our existing guidelines to work with the data.
+
+know-how of the company, so so it's not that it's not that you can take photos of your food, you can
+put your genetics, can put your blood test in that right now.
+
+It will not give you many feedback.
+
+So why Ivan is so happy?
+
+Because Ivan knows a lot about his blood test and he's very interested in the experiments he's
+running.
+
+So Ivan is a biohacker, course, and he's very much interested in seeing his data in one place.
+
+So that's why he is one of the happy users of our app.
+
+very often we get questions, how do I get recommendations from the app?
+
+No, man, you don't.
+
+Not now, later.
+
+Come back later.
+
+You know, are you familiar with Mike Lustgarten?
+
+was in a conference with him, yeah.
+
+yeah, so what he's doing is that he's calculating all kinds of statistical correlations and all
+kinds of stuff like that from his diet and his blood test, a lot more than blood test, but blood
+test is the basis of it.
+
+And then he's always adjusting the inputs that he's putting inside his body based on what outcome he
+got.
+
+Absolutely, I was doing the same thing for 10 years.
+
+So a lot of blood tests like 1300 biomarkers are not done for fun.
+
+You're doing that to...
+
+and also, anyway, that's somewhat expensive even in Russia.
+
+And I wouldn't be doing that if it was not like for practical reasons to somehow adjust and track
+your progress, my progress in this case.
+
+So yes, should only actually measure something which is practical for you.
+
+That's a very good rule not to measure something you don't understand or you can't put to practice.
+
+Well, maybe the AI can understand it and tell us the action of our results.
+
+That's a recent idea, but I'm not over optimistic about this because you know in BioData like three
+years ago We have to deal with different questions when people come and say, OK, my doctor told me
+this.
+
+What do you think about this?
+
+But now they came, OK, ChubbGPD told me this.
+
+What do you think about this?
+
+So and you know, actually, through this experience, I get that people get unreasonable advice from
+ChubbGPD.
+
+And my experience is different.
+
+My experience is different.
+
+I use ChubbGPD a in...
+
+assessing the data.
+
+But ah what I think is happening is that through reading, through constant work with the data, I
+grew more professional in putting the questions, putting together the questions and putting the
+data, quality data into the job GPD and also tracking and avoiding
+
+because if you just take five pages of your blood test and you upload it to chat, please check.
+
+It will hallucinate, it will lose your data, it will disregard some of your data.
+
+So when you upload anything in ChalkGPD, the first question you should ask is, please repeat what
+data you see now, what do you understand from this file, what raw data you have just obtained from
+me.
+
+Because if you ask that question, you will see that it uh tends to...
+
+No, no, no, no, no, no, no, no, no, no, uh Mm-hmm.
+
+disregard the context of stress but not just the stress the residual chronic stress which the people
+are experiencing and their emotional state so let me try to explain why this is important it may be
+obvious it may look obvious but it's not that obvious actually so everything is
+
+which is happening in our body is actually controlled by the brain So chronic stress of course
+affects how hormones are working and there is actually even an idea.
+
+One of the theories of aging is hormonal endocrine theory of aging.
+
+So and for the past seven years when we worked with the data, worked with people, worked when I
+worked with myself.
+
+um We were disregarding that part because we always outsourced that part to psychotherapists.
+
+So we were saying, somebody is coming and he has some health issues.
+
+Let me give you an example.
+
+For example, one of the clients, a tennis player, has an issue with his oh right arm.
+
+This is very typical for the tennis players and we suggested like 10 different means how to work
+with this condition.
+
+But after four months the condition was still there and the medical way to avoid that will surgery
+and it's in the irreversible changes like cutting some ligaments to let the hand work in different
+way and the pain will go likely could go away so but through studying
+
+the mental background of this case we realized that there is a huge tension in the muscles and there
+are changes in the posture, there are changes in how the person perceives the posture and how the
+person perceives himself in the space.
+
+So, and this is a very tricky question.
+
+If you go for surgery, that's I will do earlier, I will say, okay, conservative treatment is not
+helping you, let's go for surgery.
+
+We will just...
+
+proceed to the next stop where the pain will come back and the next ligament will also be ischemic.
+
+It will not have enough access of oxygen because of the stress is there because we have not worked
+with the mental condition.
+
+So I'm putting more focus here and I even think ah Maybe in contrast with what I was saying in the
+beginning of the podcast, maybe we cannot defeat aging at all without fixing how we think.
+
+So maybe we cannot justify aging with genetics.
+
+Maybe we should also consider some mental practices like meditation and some specific way of, you
+know, biological feedback practices.
+
+So what I'm interested in right now is a biological feedback and neurofeedback.
+
+I was interested in...
+
+Now we've got a great access to the brain biomarkers or brain activity and we even have ready
+products on the market helping you to use neurofeedback when you meditate trying to fight pain or
+when you're trying to relax use some stress coping techniques.
+
+So I think the next big thing which we need to master is neurofeedback.
+
+Yeah, those are fascinating topics.
+
+I've been using just a blood oxygen measurement ring, not the whole ring, but it graphs, it creates
+a real-time graph of what's going on with my blood oxygen.
+
+It's a big question, not for us to discuss here, because you know Greenland shark, who lives 500
+years, actually lives in...
+
+Yeah, she's living in hypoxia all of her life.
+
+So, and that's also what is happening with the whales.
+
+So actually sea creatures, ocean creatures, they live most like all different, know, jellyfishes,
+all those guys, and they are the longevity champions of the earth.
+
+and the living hypoxic state of their life.
+
+But oh I'm not saying that Wim Hof practice is good for everyone or good at all for humans, but it's
+an interesting field of research and of course we should rely on...
+
+of information, of cognition.
+
+I don't do Wim Hof.
+
+um Even though it's called hyperbaric exagination, it also produces hypoxia training for you because
+when you go into a hyperbaric chamber Yes?
+
+you get saturated oxygen.
+
+But when you go out of the hyperbaric chamber to the regular, your body starts to think you are
+hypoxic and it starts turning on hypoxic control mechanisms.
+
+That's how hyperbaric oxygenation is good for your health because it helps you create hormesis.
+
+So I'm saying here, I'm just saying here that I use hypoxia in my biohacking protocols.
+
+And I think it's basically a good thing because for example, with hyperbaric chamber, I was able to
+enhance my maximum oxygen consumption by 15 % or so.
+
+Mm-hmm, mm-hmm.
+
+assess that, first of all, you should do some sports.
+
+You should do some sports.
+
+You should not lie on the sofa.
+
+If you're lying on the sofa, no biohacking will help you, actually, if you're not doing anything
+with your lifestyle.
+
+You should eat well, you should sleep well, you should exercise enough, and then you go for these
+fancy supplements, human bar oxygenation, and whatever training and gym editing.
+
+uh Nothing is working if you are just lying on the sofa and doing biohacking on the sofa.
+
+Well, wouldn't that contradict to what you said in the beginning that you don't think we should be
+living in the way of Bryan Johnson's living, you know?
+
+What's the right balance you're striving here?
+
+Let's go for Pareto distribution 80 to 20.
+
+So like, would you mind that in exercises, for example, the mortality curve flats out after you do
+like 180 minutes of intensive exercise.
+
+So there's no need to like exercise every day, for example, you should do breaks in your exercises.
+
+So and put it this way.
+
+The first steps you will take for your longevity will be very efficient and very cheap.
+
+But step number 100 you take for your longevity will not be that effective and will be more
+expensive.
+
+yes, diminishing returns.
+
+if you already do...
+
+uh lifestyle, that's super cool.
+
+Let's find a dozen of supplements you could take, let's go for hyperbaric chamber maybe once a week.
+
+Let's uh balance work and life a little bit and find also some space for friends because when we
+look at Super centenarians, people we mentioned in the beginning, who live more than 110 years.
+
+These people from different countries, different races, like Asians, Europeans, they eat different
+diets, like Asian diet, European diet.
+
+They live in different regions, some of them live...
+
+like in the south some of them live in some different climate, climate is different.
+
+But they have only one thing in common.
+
+But anyway, super centenarians, what they teach us, they teach us two things.
+
+Genetics and the proposal for living.
+
+I wanted to ask you what do you think about the concept of longevity as a sport?
+
+Well, I absolutely support the concept.
+
+I have not enrolled in Rejuvenation Olympics because for me it's technically difficult to take all
+the tests and send them back to France.
+
+I'm going to participate in the Chinese version of Chinese.
+
+is a Chinese version.
+
+It's based on this, more or less the same concepts.
+
+It's testing and then...
+
+So I'm more in touch with Chinese community of bar hackers and longevity enthusiasts.
+
+And anyway, well, there are two sides to this.
+
+Is biological age the best biomarker?
+
+Is it actually the most informative biomarker?
+
+You could be actually dying, but your biological age could be actually quite good.
+
+And I have an example of that in my experiment.
+
+ah So let me mention it, because it's important.
+
+And it's not a private question.
+
+Part of that checkup was also a phenol age indicator, which you mentioned in the beginning.
+
+And my phenol age was still 32 years, like 10 years younger.
+
+But a month later, I ended up in the hospital and it was obvious that my condition was critical.
+
+And the biological age did not predict that.
+
+But I knew that something was wrong because I was doing a comprehensive checkup and I had a lot of
+markers from my...
+
+gut have which showed me that I have a colitis, have blood and other pieces so was looking for the
+reason.
+
+and the reason got on top of me, it got ahead of me.
+
+So biological age, you should always remember, is not a panacea, is not guarantee that you are going
+in a totally in right direction.
+
+But anyway, uh if you're a few measurements, like with different methods, for example, if you are
+using the more...
+
+you use to measure biological age and I use five or six methods to measure biological age in my
+experiment.
+
+Then some of the methods actually breastfed that problem in advance.
+
+Biological age, however, is not giving you the answer what is the problem.
+
+None of the biological clocks I used actually pointed to the gut.
+
+it was uh only the precise uh comprehensive biomarker panel which pointed that the problem is in the
+gut.
+
+So this is the hard science of it.
+
+Maybe boring, but it's important to remember that just competing, just being on the top of the
+Rejuvenation Olympics does not mean that you will not die the next month.
+
+anyway, biological age is...
+
+ah an important indicator, it lifts some of the questions.
+
+uh It's very important to measure it in the dynamics also to see how you compete versus yourself.
+
+That's also important.
+
+So I know that you are running a version of rejuvenation olympics, so tell me where we're getting at
+here.
+
+Sure, I'm running the Longevity Vert Cup.
+
+And it's using phenol age for this year, but every year I'm changing the biological aging clock.
+
+In fact, actually, Michael Lustgarten believes that Grimm age is the one that is most correlating
+with all cause mortality.
+
+I don't know, all cause mortality age, some kind of...
+
+biomarker like that would be more reasonable.
+
+But I wanted to mention that PhenoAge is using nine biomarkers, right?
+
+And PhenoAge was developed by Morgan Levine et al.
+
+And they also developed later on another biological aging clock called SystemsAge.
+
+True Diagnostic is selling it on the name of SymphonyAge.
+
+And that, as I was looking at it, that wasn't using nine, it was using something like different
+biomarkers, but of course, that's not from blood anymore, that's only from epigenetics.
+
+So I assume as technology is progressing, we get better and better biological aging clocks.
+
+They are looking at more and more biomarkers.
+
+We are able to...
+
+mine more and more data out of our little blood that we are giving to them, then we should be
+getting to better and better numbers and eventually, because this is the bottleneck of the research
+on ageing that, hey, how do you know that you actually succeeded in reversing
+
+You really have no idea.
+
+But ah if we get better and better biological aging clocks, then we will have the metric to go
+there.
+
+ah At least that's my vision.
+
+Absolutely, we need to promote the idea the more we use different biological clocks and compare same
+people across different biological clocks methods the more precise this technology will get and uh
+I'm not totally pessimistic about this and I'm like I said
+
+Some methods of deep molecular biological blocks usually tend to grasp serious inflammatory
+conditions and they help...
+
+may help early diagnosis.
+
+So this makes great sense to compete across different biological blocks and tell more, give people
+more information about what is the difference and find ways to involve.
+
+eventually as we are getting more and more serious and starting to make money.
+
+see the biological aging clocks as some kind of a qualifier.
+
+So anyone can submit in the biological aging clocks, but only the top 100 progress towards to the
+next phase of the competition where more tests are to be done by them and then we're gonna get much
+better results and then
+
+the top 10 is flown to Russia to a small house with a lot of cameras and getting tested to all kinds
+of things.
+
+So that's how I see a competition to be evolving in the long term.
+
+But I think it's exciting and starting...
+
+It's like you know...
+
+having horses on the streets in the beginning of the 20th century and then having only cars in the
+streets in 1930.
+
+But this happened like overnight because the adoption of Chachi-Pidili grew billions of people in
+first months of the release.
+
+ah We usually, I mean, a lot of people still think about aging as something unbeatable, something
+which cannot be defeated, something which will take a lot of time from now to solve.
+
+And we started with this question because you are in the longevity podcasts.
+
+But you have not been getting any arguments actually that this is happening in our lifetime, right?
+
+You are also doubting this concept.
+
+So if you, a longevity podcaster, is being contrary on this, then I would guess this is the most
+difficult question, which I want to, the most difficult complicated idea I want to put into the
+people's minds.
+
+We are living in the world where tech is evolving exponentially and we should not underestimate the
+exponential velocity of this.
+
+So what's your value in the marketplace, in the global marketplace?
+
+Why should people give you money?
+
+Is there anything you would like to point people towards?
+
+we're just fundraising to complete the development of our product.
+
+So what is valuable about our approach, think, is one of the few, maybe the only startup trying to
+put six categories of data together.
+
+Like I mentioned genetics, blood tests, questionnaires data, and we have some approach to work with
+that data.
+
+value will be totally automating the decision taking process because you cannot take decisions on
+health, for example, if you don't have a question or if you don't have genetics, you don't have
+blood tests.
+
+current approach is to have different apps for different data.
+
+So the data is not converging in our apps, it's stored in fractional apps.
+
+And my vision is to unite all the data in one place.

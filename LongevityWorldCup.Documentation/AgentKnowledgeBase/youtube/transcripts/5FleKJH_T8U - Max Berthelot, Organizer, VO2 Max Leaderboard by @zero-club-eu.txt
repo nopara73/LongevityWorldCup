@@ -1,0 +1,977 @@
+# Max Berthelot, Organizer, VO2 Max Leaderboard by @zero-club-eu
+
+Video: https://www.youtube.com/watch?v=5FleKJH_T8U
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 422/659 units; 6283/8620 words.
+Matched topics: Bryan Johnson, HRV, Longevity World Cup, Rejuvenation Olympics, VO2 max, aging, biological age, biomarkers, cholesterol, epigenetics, exercise, glucose, longevity, longevity sport, medicine, nutrition, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+deeply love and deeply passionate about.
+
+So yeah, so that's finally the start that we always dreamed to start and finally we do it.
+
+What's the topic?
+
+health and longevity.
+
+describe what Join Zero is, do preventive diagnostic platforms where people can get tested two times
+a year for 50 biomarkers.
+
+And we offer that to a lab close to your place.
+
+We started it a couple of weeks ago in France and it's coming to Europe.
+
+And we do the analysis, we do the recommendation on what's good, what's not good, what you should
+improve while you stand.
+
+the idea is to give you a picture of where you stand with your health and also see if we can detect
+some trends and see if there's anything wrong or this prevention, I would say.
+
+And then we help people change their behaviors, nutrition-wise, exercise-wise, sometimes drugs or
+supplements, what they should take or if they're missing something with their nutrition.
+
+Yeah, and that's what we do.
+
+And we started Xero as a community around the topics of like longevity and health and how to live a
+healthy life till 100.
+
+And the project was called like Xero Club and we started as a European community.
+
+People joined from all over Europe and we help people like find the right products they were looking
+for, find the right plans, find the right protocols that fits their life in terms of improving their
+health, their longevity, everything.
+
+that's how we started and now we have these preventive diagnostic platforms where we help people get
+better.
+
+And I heard you guys are selling some snake oil as well.
+
+Could you talk about that?
+
+along the process of building the community and before building this preventive diagnostic
+platforms, one of the big pain of the community was to source the right product.
+
+There's like basic product that you need to have like in terms of like health and longevity and
+olive oil is one of them.
+
+it's one that is very like Brian Johnson is talking a lot about.
+
+the thing that he sourced the best olive oil for him that you're selling in the US and it was a
+little bit weird to us because like is a supply come from Portugal and Spain, so it goes through the
+US and then you order
+
+from the US and if you're European, it's coming back again from the US, so it's a little bit like
+crazy to think about that.
+
+So we decided to source a great olive oil as well we found one in Italia.
+
+We tested it for many, markers.
+
+And that's the one that we're seeing now.
+
+And I think Brian Johnson did this like funny jokes about snake oil and he renamed his oil snake
+oil.
+
+R is not the same, but and we decided to launch this like a supplement brand around the objective
+called Zero Nutrition.
+
+And we have like a supplement for the morning.
+
+We have the olive oil and we are like working on like a sleep formula to get to help people actually
+better because sleep is a foundation of longevity.
+
+And we have many more products coming soon.
+
+yeah, we're having this brands of supplements, longevity supplements, and yeah, and the oil is part
+of it.
+
+I also want to note that that's really interesting that you said that they are sourcing from
+Portugal, shipping to the US and then shipping back.
+
+But the shipping back is not happening, I believe, because around half a year ago, I wanted to buy
+some snake oil and it turns out there are very few European countries it's shipping.
+
+It is not shipping to my country.
+
+They gave me back the money, But so I'm not even sure if you can even get that in Europe at this
+point.
+
+you can get it.
+
+In France, you get it.
+
+Some of our friends did order it, and we tried it a couple of weeks ago, And you can also buy the
+supplement and the cheaper OK in France.
+
+You sometimes have some problems with customs.
+
+Especially when they come in Europe, they come through like, Netherlands, I think.
+
+And I had one issue one time with like one package that was lost at the customer in the Netherlands.
+
+So I, I believe it's part of like the zero principle, but yeah, we don't like we didn't really like
+really name the community zero because that It was more because of like Brian being like zero.
+
+And we started at that because we were the first like community.
+
+Like when we initially started like the zero club, was really the community of like people
+interested in Brian Johnson, a blueprint protocol.
+
+And then we extended a bit.
+
+Like we had people joining for like different like a perspective of different ideas.
+
+And they were like, people were really looking.
+
+for like a way to get better and not necessarily like applying all like the Bryan Johnson principle.
+
+So we extended that and we tried to summarize like what's the science today that like nutrition for
+longevity, what's the exercise for longevity, et cetera, cetera.
+
+So that's what we try to do.
+
+But initially we really like, well like the...
+
+Only people passionate about Brian Johnson, impressed by what he was doing.
+
+And we were like, okay, we want to meet each other and to talk to each other and see, are we the
+only one in Paris or in France following this Brian crazy blueprint?
+
+Or is there any other guy out there that would be interested by his protocol or just applying his
+protocol and just discovering that There were people actually outside of our circle of people that
+were interested in that.
+
+We were like, wow, this is so cool.
+
+So that's how we created the community.
+
+And I think, I believe after a couple of weeks, we renamed a Zero Club and then we just kept the
+branding around Zero.
+
+So everything, yeah, we are like a joinzero.co with the website and...
+
+And we are like zero health for the platforms and we have zero nutrition for the supplements.
+
+All right, zero is a cool number.
+
+Well, mean, zero and infinity are quite similar, you might, you can go forward to get to zero.
+
+Okay, now the reason that you're here, so this is called Immortacombat podcast series because I
+started covering the Rejuvenation Olympics and I started to branch out to similar, looking to
+similar attempts, similar leaderboards.
+
+And I noticed you guys have VO2 Max leaderboard.
+
+Is it because the co-founders are called Max?
+
+That's a good point.
+
+I never thought about that.
+
+Okay, No, no, this is not because of that.
+
+Everything we do at Xero is trying to make things accessible, to make longevity accessible, to make
+better health accessible, easy.
+
+So when we say accessible, it's like...
+
+It's not expensive.
+
+can get access to it.
+
+It's easy to implement in your life.
+
+Something we noticed was the problem with the Rejuvenation Dash leaderboard is that you have to do a
+test first and you have to take the test, like the true diagnostic test, which is very expensive.
+
+And we wanted to have a way for people when they joined the community, because it was exactly that.
+
+People were joining the community and they were starting to exchange with people.
+
+They were starting to look at our guides on nutrition, on exercise, on everything.
+
+And they were starting to very passionate about the topic.
+
+But they needed a way to, where do I stand in my journey?
+
+What's my current health status?
+
+And that's the reason why we launched the diagnostic platform.
+
+But before that, you're probably not ready to commit to such a high entry fee, I would say.
+
+So true diagnostic is 500 dollars.
+
+Zero platform is like 400 euros a year for two sets of diagnostics.
+
+So we looked into all the scientific...
+
+content and everything.
+
+And we found that one of the things that Peter Attia was talking a lot about was like VO2 max.
+
+And it was like, and when we did some research around VO2 max, it's not the perfect proxy, but it's
+a good proxy to, I know there's like these like things with cardio and et cetera.
+
+So, but it's a somewhat good proxy for like knowing where you stand with your health.
+
+And it's super easy.
+
+Like everybody, not everybody, but almost everybody has like a Garmin, has like an Apple watch or
+like any like a Fitbit or whatever like Woof or Ua or any like wearables that can give you your view
+to max.
+
+So most of people have that.
+
+So it means that it's a way for people when they join a community straight away, they can just like
+compare themselves to the others and just see like, okay, you're...
+
+35 and you're a woman, you have like, I don't know, 50, 60 in VO2Max.
+
+Wow, this is really cool.
+
+You're very high in the, based on your age and like your category or based on the people in the
+community, you're very like, you're scoring very high or you're scoring somewhat low, et cetera.
+
+So that's the reason why we choose like the VO2Max.
+
+We found it was more accessible for people.
+
+I love this leaderboard and I think the fact that it exists is really cool, but you have to take the
+test and it costs a lot and you have to wait to get your results and to sign
+
+up in the leaderboard, et cetera.
+
+So with the VO2Max leaderboard, you just have to, okay, my VO2Max is 47, okay, let's take a picture
+and add my name in the list.
+
+Let's a step back to zero.
+
+What is Vo2Max?
+
+So the VO2 max is your capacity, your lung capacity to treat oxygen And it's your maximum capacity
+to to ingest oxygen.
+
+It's measured with a tracker.
+
+Usually, you can go in a lab or place to test your VU2 max if you want to have a very precise
+measure of your VU2 max.
+
+They put you a breathing mask.
+
+So every time you're able to run for a brief and be okay for a minute or two.
+
+then we increase the pace and the maximum pace is your maximum view to max.
+
+And it gives you like, and based on your age, it gives you a good approximate of like, okay, are you
+in good shape?
+
+Because if you're too fat, you're gonna have problems to run and if you're too like, if you're
+small, if you...
+
+if you don't read correctly, if you don't sleep correctly, et cetera, et cetera.
+
+So your view to max will be impacted by that.
+
+So that's the reason we say it's a good proxy for measuring your overall.
+
+and you believe it's probably a better proxy than, let's say, grip strength or any other metrics,
+with the exception of maybe some biological ages which are like actually trying to measure your
+biological age.
+
+So that seemed to be the best metric there.
+
+I wouldn't say it's better than grip strength.
+
+I think it's complementary to that.
+
+So in the zero protocol, when we advise people, we have guide somewhere on our website.
+
+When you join the community and we have a lot of content on like...
+
+nutrition, exercise, et cetera.
+
+we do like, we advise people to do three simple tests.
+
+There's the squat test and there's like the push-up test.
+
+So how many squats can you do in one minute?
+
+How many push-ups can you do in one minute?
+
+And the VO2 max.
+
+And also I know there's also a grip strength.
+
+Brian is talking a lot about that.
+
+I mean, not anymore, but he used to talk and in the list of things that he recommends to buy, he's
+like recommending to buy these things you use.
+
+So you do that and you, because he said that the strength in your hand is really, again, a proxy for
+like getting old.
+
+And it's true that my grandparents probably can't like do like, I don't have...
+
+a lot of like force anymore in the end and they can't do the same thing as I can.
+
+Or my wife sometimes is just asking me to open a bottle and she can't even open the bottle that is
+very like...
+
+And I'm always concerned, I'm like, you should be able to open.
+
+So you should do a lot of like grip strength.
+
+So yeah, so I wouldn't say it's better, but it's just an easy way to do that because to measure your
+grip strength, you need to have a...
+
+dynamometer or something like that.
+
+so again, you need to have something to do it, to measure it.
+
+And you have to have this tool in comparison of like the VO2 max where probably most of the people
+have their VO2 max just on their wrist.
+
+Do you have any experience on the accuracy of Okay, let me just throw out a bunch of VO2 max
+measurements and what my experience with their accuracy was.
+
+You already described the main measurement where you put on a mask and you get on a treadmill and
+then you start walking and they are making it faster and more inclined.
+
+Now that's actually pretty hard to...
+
+to get because the treadmill, I was looking into that, the treadmill actually has to go much more
+inclined than most treadmills are getting at.
+
+So was the problem that I found for me and I couldn't even found any place where I can measure my
+VO2 max in other than if I would.
+
+go to a big city and I would try that.
+
+So anyway, then there are other ways.
+
+One is that maybe new for you is that true diagnostic is an epigenetic proxy for VO2 max.
+
+And I found that extremely inaccurate or there are, well, what I did, what I think the most accurate
+is that I, I made Chedgy BT design a protocol so I can do it with my own treadmill, you know, and
+
+possibly that's the closest number I get to my VO2 max to figure it out.
+
+But I also have an ordering and I also tried to do it with an ordering and eat.
+
+gave me a terrible number like I'm like a non-functioning woman or something.
+
+So I wasn't very happy with the ordering accuracy.
+
+So it's interesting.
+
+Just in that way.
+
+It's easy to measure every day.
+
+If you go to do some running every day or to do some exercise, you're going to see the trends up or
+down, and you're going to see if something is okay or something is off.
+
+Second thing is, I would say that...
+
+This is the reason why in the leaderboard we asked which webbuzz you use to report that number.
+
+Because we've noticed the differences between Huawei, between Garmin, between Apple Watch, all these
+things.
+
+Otherwise, you could cheat.
+
+All right, all right.
+
+Well, talk about the big picture a bit.
+
+So this podcast series is mainly, so far mainly about the Rejuvenation Olympics.
+
+But I might have mentioned it before, but I'm currently working on the Longevity World Cup 2025.
+
+So I am also launching a competition here.
+
+Do you have any vision or big thoughts about longevity as a sport or the emerging longevity sport
+industry?
+
+I think, I don't know if it's gonna, I mean, people are interested in longevity more and more,
+that's true.
+
+I know that the rejuvenation leaderboard is a sort of like gamifying the goal and.
+
+the first thing is that to gamify something, you need to have a way to measure it regularly to see
+the progress.
+
+Because if you see the progress, you're incentivized into doing better, doing better, doing better.
+
+And that's what we're seeing in the community.
+
+So I would say that if you're working on this leaderboard, World Cup 2025...
+
+This is amazing and this is really exciting.
+
+And I think there's a place in the world where later, maybe in a couple of years from now, there
+will be people very into like positive like behaviors, I would say.
+
+That's what Brian Johnson is trying to do is that, okay, why are we destructing ourselves with all
+these like behavior like...
+
+drinking alcohol, like drinking shitty foods and stuff like that, when we know it's bad for our
+health, we're trying to change the mindset and we're trying to have people very passionate about
+taking care of their body and taking care of their health.
+
+So in that sense, I'm sure it's going to take off and it's going to be more and more people like you
+say, athletes of the longevity.
+
+in the future.
+
+We're going see more more Brian Johnson out there, which is cool.
+
+Also, to do that and to do this revolution, I really think that we need to find a way to...
+
+That's exactly what we're trying to do at Xero.
+
+So yeah, so that's my take on that.
+
+And I'm sure there are to be more and more people in those competitions.
+
+I don't know if one day there will be official Olympics, rejuvenation Olympics.
+
+But I think that's cool.
+
+mean, that's really exciting to see people fighting each other.
+
+Like, I have the lowest pace of aging of the planet.
+
+like, okay, I'm better than you, et cetera.
+
+We can see that the sense of like, human are very competitive.
+
+so, that's a, I think a good path for that.
+
+To trigger that, that good behavior in people is like gamifying and trying to do these things.
+
+It does seem to me that you have stumbled upon the major issue here, which is that what's the
+number, the measuring, the measurement system here, that what are we measuring here?
+
+And I'm trying to, in the longevity workup, I will sidestep this issue by saying that every year I
+choose a different metric.
+
+And maybe as scientists figure out better and better metrics, I can get more and more closer to
+perfect, even if we never get to perfect that way.
+
+So I will start with phenol age, by the way, which is you can go to a laboratory to measure a couple
+of biomarkers and we'll see how that will turn out.
+
+let me try to sell you on the just sorry, how do people apply for your work?
+
+Like, is it like, so for 2025, what metrics did you pick?
+
+It's going to be the final age?
+
+it is that you have to go to a laboratory, do a couple of biomarkers like C-reactive protein
+creatinine, whatnot.
+
+And you have to type it in, upload a proof just like yours, and get on the leaderboard.
+
+Yeah, we do offer those measurements in the full test.
+
+So first of all, what are you guys even offering?
+
+And people who later on are when the longevity world cup is running are watching this and want to
+measure those things to enroll them, tell them how can they use your service to do so.
+
+So we have a list of like 50 plus biomarkers for women and men.
+
+The list is a bit different for men and women because we measure our months as well.
+
+And we offer, so people come to our website, they sign up for it, they pay for a year, euros for a
+year and they got 50 biomarkers that they can check through a lab close to their place.
+
+They go on our website, they search for the closest lab to their place, they book an appointment,
+they go there, they get their blood.
+
+Sorry, the closest lab like you have affiliated labs or it's like any lab that's.
+
+We saw, so that's the reason why for now we're in France.
+
+So we signed some deals with like European labs, but we started the experiment.
+
+He started in France because it was easier because we were discussing with the French team mostly.
+
+So, but those labs have labs across Europe, in most countries across Europe.
+
+And we choose.
+
+labs that are already doing medical testing for the medical state program usually.
+
+They already exist.
+
+They are close to your place.
+
+We have thousands of labs in Paris from different lab networks.
+
+We sign deals with those networks.
+
+So far we have like three deals with three labs, networks.
+
+So you go on our website, you find the closest, you go there and they take your blood and they do
+the testing.
+
+And then a couple of days after, like probably two or three days after that, you get your results in
+your Zero Health app.
+
+And we show you like...
+
+your biomarkers in a different way that the labs use to show you.
+
+The labs use to give you a PDF with a range and just no explanation, nothing, just the name of the
+biomarker and the range.
+
+And usually it's average range that you don't want necessarily compared to.
+
+So we worked on that and we provide you a new UX showing you What's the marker you should improve?
+
+Which markers are at risk?
+
+Who are the ones you're very good at?
+
+We also highlight if you're in the top 10 % of your category, stuff like that.
+
+So we really worked on the range, a pair like your age, a pair like if you're a male or a woman, et
+cetera.
+
+we give you each biomarkers, we explain what it is.
+
+why you should stand in that range and what you could do to, what can you do in terms of nutrition
+or exercise to have an impact in that biomarker.
+
+And there's a summary, global summary of like your overall health and like what's the, what's what
+we learn from this test.
+
+That's what we give to people.
+
+And then you're going to decide to improve some of the markers.
+
+You're going to decide to, okay, I need to change my nutrition because I discovered I'm like a pre-
+diabetic or like because I have like something like I'm going to take supplements because I'm
+missing like some vitamins or like minerals or like nutrients or
+
+So I'm going to change my nutrition.
+
+So you're to do that and you're going to have some action steps.
+
+And then six months later, you're going to do the testing again.
+
+Sometimes Usually when you start doing some changes in your daily life, on certain markers you want
+to get tested again in three months from now, not six months, not waiting six months, but three
+months.
+
+So we're going to offer some options to retest some of the markers more regularly.
+
+we negotiate that with labs, but all these markers They are very expensive.
+
+So it's like 400 bucks or two times a year.
+
+And usually if you go to a local labs and you ask, you take the list of biomarkers, the 50 plus, and
+you go to your local labs and you ask them, you tell them, okay, I'm okay to pay
+
+I want to do the testing.
+
+Either they're going to look at you.
+
+Okay, you need to have a prescription from a doctor.
+
+Sometimes it happens.
+
+They're not ready to let you pay for that.
+
+And when they are ready to make you pay for that, they're going to ask you like, probably more than
+six to 800 euros for one test, for one screening.
+
+And we offer two.
+
+So that's what we did.
+
+We did like the deal with the lab networks and we tried to lower the price, but at some point, what
+we're saying like right now for 400 bucks is there's almost no margin for us.
+
+It's just like we want to offer the best for people.
+
+So we're trying to add this like affordable entry fee, entry price, and also get a good
+understanding of your health.
+
+So it was a decision between like, which biomarkers should we include and which ones should we not
+include by default.
+
+But which biomarkers are essential to give a good idea of your overall health.
+
+that's how we choose the list of biomarkers.
+
+We have a doctor, functional doctor in the team.
+
+So she worked on that.
+
+Yeah, and that's what we offer for now.
+
+And in the future, probably we're going to work on the action steps.
+
+We're going to work on the recommendations.
+
+But for now, it's mainly the test, biomarkers analysis, and explanation on which biomarkers, where
+you stand, and what you could do, but simple recommendations.
+
+Let's focus on the future here because I think there is a revolution going on that not many people
+are realizing yet.
+
+You're familiar with epigenetics, right?
+
+There are epigenetic markers and people can get out all kinds of information from them.
+
+But you know what's interesting is that you can get out from epigenetic markers information that is
+traditionally only available from traditional tests.
+
+So the idea is that let's say vitamin D level.
+
+No, no, no, let's go to glucose level.
+
+That's a better example because your glucose levels are going up and down almost in daily level,
+right?
+
+Like in an hourly level, like your blood glucose.
+
+But your epigenetic fingerprints of glucose is a much more longer timeframe that how much glucose...
+
+was going on in your body in the last three months, something like that.
+
+So that's how the epigenetics are different from traditional blood tests.
+
+the point is that you can actually mine out a lot of information from epigenetics and it is just a
+single finger prick, right?
+
+So what just happened like a week ago is that through diagnostic announced, True Health, which is a
+home test kit.
+
+They send you the package, you do a finger prick and you send them the sample and they are looking
+at 150 biomarkers.
+
+So it's like assuming it will work.
+
+If it works, then...
+
+It really is going to blow my mind because I had so much problems in getting, well, first of all,
+get a lab any nearby.
+
+But even when there is a lob, they are only checking like 20 tanks.
+
+as you said, if I want more, money is just one thing, right?
+
+Like I have to pay more money.
+
+if they are even checking it, but also I have to give a lot more blood, a lot of blood.
+
+If I would want to test 150 biomarkers, I think I wouldn't have blood left.
+
+That's how much blood they would be taking from me with their methods.
+
+So maybe you wanna, if it works out, maybe you wanna check that out because...
+
+Yeah, yeah, I've checked it out.
+
+Yeah, so this is pretty interesting.
+
+This is different markers, these markers, and you know that that is the...
+
+the scandal with Theranos, the startup that exploded.
+
+there's certain markers that you can't measure with just one drop of blood.
+
+And that's physical.
+
+you can't like, so the 150 biomarkers that they claim to measure are like really like not
+necessarily the same that you need to measure on a monthly or three monthly basis and the one that
+are included in our list.
+
+And those in our list, some of them probably could work with the system, but I'm not sure.
+
+But some of them, it will never work.
+
+And that's the reason why we choose like lab networks is that it's exactly what Function Health is
+doing in the US.
+
+So for each markers, there's a really thorough process for measuring it.
+
+And even the order of the tubes, the detecting the tubes, some of the tubes have some product in it
+that's just like a...
+
+put some product in the blood so that it stops the process of the blood oxidizing.
+
+And if you do that too before the other one, you're going to kill the results of the glucose,
+instance, or the LDL or HDL or whatever.
+
+So my take on that is that what true diagnostic announced is very exciting, but it's the measure of
+different things.
+
+They measure the pace of aging of each of your organs.
+
+epigenetic text, let's say if you want to measure your glucose, your HbA1c or like LDL, HDL or like
+some marker like that, you need to have like more blood.
+
+And to do that in a proper way and to make sure that the results are accurate, you need to most of
+the time go to a lab.
+
+So that's my answer.
+
+But I dream of...
+
+Yeah, it's a tough question.
+
+I'm usually not complaining.
+
+But it's not easy on a daily basis, to be honest, to get the good food, get enough exercise per
+week, take care of your kids, take care of your family, your wife, spend time with your wife.
+
+and still build a company because we are startups, it's the holidays and you have to work a lot.
+
+So getting good sleep, all these things.
+
+I really believe in the 20-80 % rules.
+
+So that's what I'm trying to do right now.
+
+It's like applying the 20 % that will give me the 80 % outcomes on my health.
+
+But I can't really like...
+
+do everything I would love to, but that's okay.
+
+yeah, you have responsibilities.
+
+You have to do them.
+
+especially, I would say the hardest part of that is like, food and sleep right now with small kids.
+
+My kids are super young, they are three and two.
+
+So it's not easy.
+
+Give me a low hanging fruit bio hack that worked out for you.
+
+So two coffee.
+
+So I used to have like a really, really bad sleep and I stopped coffee.
+
+So now, be totally honest, sometimes I drink one real coffee in the morning, a couple of hours after
+waking up in the morning, not too late in the day.
+
+But most of the time I drink decaf.
+
+That's my trick because I love the taste and I like having something warm in the morning.
+
+And also I love the fact that there's no sugar in it.
+
+So I don't really want to replace that with another drink.
+
+So I drink decaf and that had a huge impact on my sleep.
+
+And the second thing I did, I'm trying to do, and again, I can't really do it every day, but that's
+okay.
+
+I'm trying to eat earlier in my day.
+
+So my last meal.
+
+So I'm trying to have my last meal around 5.30, 6 p.m.
+
+Like an American person.
+
+This had a huge impact.
+
+It's like the biggest impact so far on my health, on my sleep.
+
+so my recovery has exploded.
+
+Every time I do that, my recovery is super high because my resting up rate, which usually goes down
+to the lowest point around 6 a.m.
+
+in the morning.
+
+And the problem is that you have kids.
+
+and you wake up usually around 7, 7.30, sometimes 8, but I'm a late sleeper.
+
+So if I sleep till 8, 8.30, if you let me sleep without noise or anything, I would sleep till 8.30.
+
+And the time between like 6 a.m.
+
+and 8 to me is like doubling my recovery because of the resting heart rate And what I found is that
+if I eat around like 5 PM, 5.30, 6, my resting heart rate will go at the lowest point around 3 to 4.
+
+10.30 And yeah, my resting up rate will go down to the lowest point around 3 to 4 a.m.
+
+I still sit down with them and we still have conversation about the day and everything.
+
+Just, I don't eat.
+
+And I do that sometimes, not every day.
+
+But when I do eat, my sleep is really better.
+
+So that's a low-angle food for...
+
+To me, it's the biggest...
+
+And I've seen...
+
+Brian Johnson talking a lot about that lately.
+
+So I think that's the lowest input you can do in your life is like eating earlier.
+
+Yeah, you know, if you're anything like me and you sound similar, then you're already very close to
+optimal, well, resting heart rate and heart rate variability.
+
+you probably obviously notice that if you're eating at, let's say nine or 10 PM, then your resting
+heart rate and heart rate variability is just as as it can be without drinking alcohol.
+
+around, if you're eating around eight, then it's still bad.
+
+At the time of eating at six or eating at five, I'm not sure at that point if it gets worse.
+
+I mean, if I eat at four or if I eat at five, it makes no difference to me or I did not notice any
+difference.
+
+Maybe if I do some statistical correlation, trickery, then I can find something, but...
+
+but not noticeable by intuition at least.
+
+So it looks to me you're also already pretty close to, well, you're hitting the 80-20, right?
+
+On the caffeine stuff, caffeine is making your sleep worse.
+
+It used to, when I...
+
+Our chief medical officer like Emily, that's one of the first thing I did when I started to chat
+with her about my health and I did my first test and we started to look at my numbers and
+everything.
+
+And I was telling her my sleep was like...
+
+during that grade, was waking up and not during at night.
+
+had troubles falling asleep again and all these things.
+
+And she mentioned that she said that the caffeine cycle is pretty long in the body.
+
+So you need to at least stop coffee for a month before seeing any big impact on your sleep.
+
+And I did try before that during some like stopping caffeine for a week, but I never did that for a
+month.
+
+And I was like, okay, month seems pretty long.
+
+But she was like, because before that, I was like, I did an experimentation without caffeine for a
+week, but I stopped also like any decaf, anything, because I was like, I knew that there was a
+little bit of caffeine in the decaf.
+
+I used to be a very huge caffeine consumer.
+
+I used to drink like four or five cups of coffee and before that when I was younger like 20
+something I used to drink Coke Zero a lot and there's a huge amount of caffeine in that.
+
+And I used to drink Coke Zero for like all day from lunch to dinner.
+
+I didn't really realize my sleep was so bad because of that.
+
+I was not like really like...
+
+Maybe I knew, but maybe I'd rather have the Coke.
+
+I stopped the Coke also for all the shitty products they have in it.
+
+I never get back to that fix again.
+
+It's been a couple of years now.
+
+Then the coffee really changed.
+
+If I have a coffee in the afternoon, then...
+
+I wake up around 3 a.m.
+
+in the morning and I always have some trouble to fall asleep again.
+
+And I fall asleep again around 5 and then I wake up at 7.
+
+My sleep is really not great.
+
+caffeine is as...
+
+But again, what Emily mentioned to me was there's some people that ingest really well caffeine and
+they are totally...
+
+Some people, you probably know some people like that.
+
+They tell you, I can drink a coffee at 6 a.m.
+
+and I'm going to sleep like a baby.
+
+And we all know those people.
+
+And she mentioned that it's a biological thing.
+
+Like some people can process the caffeine and some people can't.
+
+I'm probably part of those who can't.
+
+Really, really good.
+
+I think they are lying.
+
+I mean, no, so they don't know that they are lying, but you see, like you have sleep trackers and
+stuff and that tells you things, most people, most people don't even realize their sleep is bad.
+
+So, so yeah, let's, let's say there is the, these new GLP-1 drugs.
+
+You probably heard about them.
+
+people are not talking about it, but it actually ruins completely their resting car traits and heart
+rate variability.
+
+Like they ruin them completely.
+
+And it seems that people are not picking up on it, only the ones who are using fitness truckers.
+
+And for normal people who are not sleeping regularly and not monitoring their sleep, they are not
+picking up that.
+
+hey, this actually messes up their entire sleep.
+
+ask you Peter Thiel Contrarian question.
+
+Are you familiar with that or not?
+
+All right, I'm just gonna pose it point blank.
+
+So my question to you is, what is...
+
+the thing that people are giving you the most money for?
+
+What's the largest value that you create?
+
+So the diagnostic platform is probably the one that people pay the most, but our supplements as
+well.
+
+So most of the people who did the test also ordered the supplements and the olive oil.
+
+So that's the value we provide to the world is that we are helping people get better health and they
+are ready to pay for it.
+
+Well, Max, this is the last time that I will shy away from trying to pronounce your name.
+
+Thank you very much for coming.
+
+Join zero.co and the V02 Max leaderboard.
+
+It was a pleasure.

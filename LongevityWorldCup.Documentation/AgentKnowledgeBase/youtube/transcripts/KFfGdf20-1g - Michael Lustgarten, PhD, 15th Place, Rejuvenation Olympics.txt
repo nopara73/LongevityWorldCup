@@ -1,0 +1,2323 @@
+# Michael Lustgarten, PhD, 15th Place, Rejuvenation Olympics
+
+Video: https://www.youtube.com/watch?v=KFfGdf20-1g
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 974/1320 units; 15489/20117 words.
+Matched topics: HRV, Peter Diamandis, Rejuvenation Olympics, VO2 max, aging, biohacking, biological age, biomarkers, epigenetics, exercise, glucose, inflammation, lifespan, longevity, medicine, mortality, nutrition, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+Conquer aging or die trying.
+
+Most people want to talk about the first one, but I want to talk about the second part of that
+sentence here.
+
+So you can interpret it in two ways.
+
+One is that you died trying to conquer aging.
+
+You died and failed.
+
+But the other is that died because you tried, because you tried so hard.
+
+So what do you mean by that?
+
+So it's the first.
+
+don't think it's the, I'm trying my best to avoid the second.
+
+So I can't stand the idea of aging.
+
+I can't stand the idea of functional decline and everything that goes with it, increased disease
+risk, increased mortality rate for every year that we live past a certain age.
+
+So I'm trying to do everything I can, know, everything in the scientific literature to my own
+biohacking pursuits, tracking the correlations where.
+
+If I do die and I say if, just because everyone that's ever lived has died doesn't mean it will
+always be like that.
+
+Eventually, the knowledge of what we know in terms of aging, is some slope to that, right?
+
+Are we down here where it's flat?
+
+We know basically nothing.
+
+We're just primitive monkeys in the jungle throwing rocks and stuff hoping that it works, maybe.
+
+But the rate of aging is a constant.
+
+So how close are we to matching those slopes, right?
+
+I don't know how close and the way I look at it is kind of like the 300 Spartan view.
+
+I'm gonna die trying, doing everything I physically can, as much brain capacity that I have,
+bandwidth, to try to not die, right?
+
+So now, the other side of that equation is what interventions are you doing and are you doing no
+harm and actually improving the cause or getting yourself closer to because you're things that
+haven't been approved, FDA approved, or they're just as in
+
+scientific literature on it, and you're just taking a leap.
+
+So I try to minimize that risk by focusing almost exclusively on diet and supplements and other
+prescriptions with a demonstrated need.
+
+So I think that's the lowest risk approach, whereas others are taking 100 supplements, 150
+supplements.
+
+trying all kinds of crazy stuff, and I say crazy, maybe it's not crazy, maybe I'm just behind the
+times.
+
+So to me, that would minimize my risk of this, I died trying because of what I was doing, versus I
+died trying where I took the lowest risk approach that should have given me the most gains.
+
+I'm sure you know, just as one last point, there's a guy named Aaron Trawick who was in this space
+kinda.
+
+but he was in more of the biohacker side and not maybe necessarily understanding the science of it
+as much.
+
+So whether he overdosed on ketamine in a float tank or was trying some kind of intervention aimed to
+improve his health, he died in his 20s.
+
+So I'm trying to avoid that fate with everything that I do.
+
+You know, there was a famous bodybuilder, don't remember who was training other bodybuilders later
+on and he told to one of his trainees, his bodybuilder that if you want to be Mr.
+
+Olympia, don't ask me to cite anything.
+
+Like that's not how people become Mr.
+
+Like there is a huge amount of gross science out there and they have Well, die trying.
+
+Along those lines, so there is no one size fits all prescription, right?
+
+And what works in the published literature doesn't necessarily work at the individual level.
+
+So you may have a randomized control trial of 50, 100, pick your sample size.
+
+You know, the larger the sample size, the closer you would expect to be representative of a
+population -based average that should work for most people.
+
+But the fact is, and this is where I see the frontier of individualized Nutrition, precision,
+medicine is does what works for other people work for me?
+
+And if not, what will work for me?
+
+So the idea of the bodybuilder saying, don't ask me to cite anything, that kind of goes to this
+point.
+
+What is the individual prescription?
+
+What works for you may not work for me.
+
+If beta -carotene is associated with higher albumin for you, I work with clients who it's the
+opposite in their data.
+
+Their correlations are actually the opposite.
+
+So I don't try to push anyone towards my diet my supplements or lack of supplements.
+
+work with people who have a completely different diet, who try to supplement the heck out of
+everything.
+
+It's all about following the data though.
+
+What do your biomarkers say?
+
+What can we do to improve specific biomarkers and biomarkers of organ and systemic function?
+
+And it's personalized, right?
+
+But it takes a lot of data to get to that point.
+
+Someone's gotta be willing to test six, seven, eight times per year, over and over year after year,
+in order to see what do the correlations show, Michael is garden.
+
+Welcome to the Thanks, Adam.
+
+I have been very excited to host you.
+
+In fact, I have been probably the most excited to host you because what you're doing is what Brian
+Johnson aspires to do, right?
+
+Like follow the data, DDD, data -driven development.
+
+Every calorie must fight for his life.
+
+and you're doing that and your data is actually out there and you're showing people how you're
+deriving your conclusions.
+
+I would like to go on a little bit of methodological philosophy then I will give back the words to
+you because...
+
+what this is going to be about, at least in the beginning, is about your methodology, because that
+is unique, that is something that very few people are willing to do, and even if they are willing to
+do, they still cannot.
+
+And now we are back to mathematics.
+
+So, where you lie on that spectrum is somewhere you are an N of 1 experiment.
+
+and a very rigorous one of that.
+
+So, what you're doing, as far as I understand, is that you take note of everything that you're doing
+in your life, what you're eating, what your workout, when you're sleeping, everything, and then
+you're trying to find correlations in between
+
+between these actions and based on that collaboration, you're building your learnings.
+
+So just to contrast that to, let's say, Dave Pascoe, who is more like the fuck around and find out
+guy.
+
+I don't have a question there, but I think you have a lot of thoughts based on what I just said.
+
+So I don't know.
+
+I don't know that Dave is so much in the F around find out camp, even though he takes a lot of
+supplements.
+
+I think he I think he's so first of all, he lives life like he travels all over the world and and
+does all kinds of quote unquote fun stuff.
+
+And I put that in quotes because I'm a different kind of guy.
+
+I think I'm God with without trying to sound egotistical.
+
+I'm happy to be like a Nikola Tesla and just be in isolation for most of my life working at the
+science of this.
+
+And if that means I've sacrificed the social aspect of it when considering I was never socially, you
+know, popular, you know, amongst the masses, I'm okay with that.
+
+So he lives life and I appreciate him and that mindset.
+
+But I think, I think he's gotten to the point where he's played around with his own data for so long
+that it's, seeing what sticks and keeping, keeping it there and, and throwing out what, what might
+not now, is there a lot of noise in there?
+
+because 150 supplements, there's gotta be some noise.
+
+And the same thing could be true for Brian, who's taking about 100 supplements.
+
+I don't know, but I wouldn't put him in the F around find out boat in terms of his data, right?
+
+So yes, we got a lot of things to touch on.
+
+So one, yes, I put all of my data out there.
+
+then also in terms of statistical rigor, right?
+
+So proving causation, which as you know, is a whole nother can of worms in itself.
+
+I generally don't go after this is what caused this.
+
+And the reason I say that, especially when you're looking at a hundred different variables for each
+biomarker, and now if I'm looking at 30 biomarkers, you you do a hundred times 30, You've got 3000
+comparisons, right?
+
+With a false discovery rate of just 0 .05, there's going to be a lot of false positives in that data
+set.
+
+I don't know which ones are false positives.
+
+So if I impose an FDR, you know, an extra level of statistical rigor on just beyond the unadjusted
+correlations, I'm potentially throwing out important correlations that I wouldn't know.
+
+And then I may only follow those correlations that are significant at a certain threshold, but I may
+be missing most of the other stories.
+
+So for now I've used the unadjusted correlation based approach.
+
+If I have 10 nominally, know, p -value less than 0 .05 for example, 10 or 15 or 20, whatever it is,
+significant correlations with a given biomarker, and then a subset of that are significantly
+correlated across the net of 30 or so biomarkers, I'll follow those
+
+So for each test I may have four or five different interventions that I'm doing at once.
+
+Now, for most people who, are classically trained in science, they'll say, that's stupid.
+
+You need to do one intervention at a time and do that 10 times and then take the intervention away
+and then see if you get a result.
+
+But how am gonna generate 20 blood tests?
+
+How will my arms, how will my veins look?
+
+I'll be like a heroin addict, I don't wanna do that.
+
+I'm not trying to, right?
+
+So I've found that the correlation -based approach over a long period of time, as I've been doing
+this since 2015, I've gotten out 50 plus blood tests.
+
+and following the correlations at the top of the heap.
+
+And then trying those interventions, okay, I've got these five foods or nutrients that suggest
+higher this, okay, let's try it.
+
+Next blood test comes around, I recalculate the data.
+
+If they were true or involved in that story, their correlation should stay relatively strong.
+
+If they were not a part of that story, their correlation will weaken, other stuff will pop up, and I
+continue to iterate that process over and over and over.
+
+Until I get to the point where I'm like, okay, here is the foundation of my macros, my micros, fiber
+intake.
+
+Now here are some weak spots.
+
+What can I do without blowing up the full system?
+
+Because that seems to push everything towards youth and lower all cause mortality risk.
+
+What can I do to optimize some of these weak spots without blowing up the full core?
+
+So that's where I am now with that approach as you know, I've optimized a lot of stuff towards youth
+at least right now, but I do have weak spots.
+
+so in terms of people tracking, right?
+
+You've got people wearing fitness trackers, you've got people tracking their diet, which is a market
+size of about 20 million people, you've got people tracking sleep.
+
+The problem now is it's not generally integrated across measures.
+
+Like you do Some companies, fitness, you'll have blood testing companies that are linked with the
+fitness tracking stuff, but, you know, and then even the recommendations that they make aren't
+generally very good.
+
+So I'm actually in development with an app right now to basically bring my simple correlations
+-based approach to the masses.
+
+So anybody that's tracking diet and has a few blood tests, they can start to look at their own
+correlations, which saves an immense amount of time.
+
+It's like seven to 10 hours of every time I get a blood test, so we'll be able to get that data
+within minutes.
+
+So I'm working on building towards those tools where people can do it much faster and analyze their
+own data or come to me if they want some help.
+
+Are you developing the app in what language?
+
+I don't know.
+
+Let's assume I want to do that and I don't want the entire stuff, but I just want the main stuff.
+
+So what do I do?
+
+It's pretty straightforward.
+
+So if you have one blood test, you can't really do much with that.
+
+So let's just start with weighing all of your food, right?
+
+But then even tracking your supplements, right?
+
+So for, let's say that there's a 50 day period in between blood tests, day one blood test, day 50
+blood test.
+
+So if you're tracking your dietary intake, if you're tracking your average daily heart rate as a
+measure of how physically active or how much stress that, know, cumulative stress, If you take that
+49 day average in between blood tests, that then lines up with the latter
+
+blood test.
+
+So now each blood test has a set of variables that align.
+
+So now you blood test another 50 days later.
+
+Now you have two sets of data, two 49 or 50 day groups of data that you can compare just even using
+a two sample t -test.
+
+And for variables that change, you can just go across the board, macros, micros, supplemental
+intake, HRV, resting heart rate, pick your variables of interest.
+
+to see what's different in the inputs and what's different in the outputs.
+
+And maybe there are 10 things that have a significant, nominally significant difference, know, p
+-value less than 0 .05.
+
+Nonetheless, there are gonna be some things that are gonna be different.
+
+And then you have some hypotheses.
+
+Okay, albumin went up, these things changed, is it causative?
+
+If it's causative, if I keep them high, let's see what happens.
+
+All right, so then going from two tests for the next 50 -day period or however many days in between
+tests, using that same approach, For each subsequent test you have those inputs because you're
+tracking them, the average
+
+intake for the full period.
+
+Now you have three tests, and even though three tests isn't a lot to look at correlations, you can
+still get a ballpark idea of stuff that may be related.
+
+Stuff that's completely unrelated, the correlations will be flat, and there may be a lot of, there's
+obviously not a lot of noise in that data, but that's basically the guts of it.
+
+Tracking, lining up the blood test data with the inputs, whatever you're tracking.
+
+After two tests, two sample T tests, after three tests, looking at just simple correlations.
+
+And then, you know, as I mentioned, adding another layer of statistical rigor, you know, for some
+things I have 2000 data points, right?
+
+Like HRV, resting heart rate.
+
+And because I've tracked body weight and a whole host of other metrics, knowing that body weight is
+a big, strong, it's strongly correlated with both HRV and resting heart rate.
+
+If I'm looking at other factors that may be involved, I adjust my model.
+
+So I don't just look at simple correlations.
+
+I look at multivariate adjusted linear regression models, which sounds like a fancy thing, but it's
+just one step beyond the simple correlation.
+
+So that's the approach that I've used.
+
+It's pretty simple, I'd May I have a quick selfish question on that?
+
+So I just started doing a diet one week ago when it's RFL.
+
+high protein, high fiber, low fat, low carb.
+
+my HRV and my resting carterate is amazing ever since.
+
+But my blood pressure...
+
+went up like I have high blood pressure now I don't know why it shouldn't be the opposite I'm even
+doing potassium calcium magnesium and even salt like I'm doing a bunch of supplementation so I don't
+think it should be that so do you have any guesses what could
+
+happen here that raises an interesting point, right?
+
+If a certain diet supplement or group of supplements or even prescription meds, rapamycin, pick
+your, know, pick your geroprotector or senolytic of choice.
+
+If that improves one biomarker in isolation, maybe that's great.
+
+So not to, you know, poop on the keto crowd and the carnivore crowd.
+
+And I'm open to every diet, being good for health.
+
+You just got to show me the net sum of the data, A lot of people in that community will say, well,
+look at my markers of metabolic health, glucose and lipids, and then not show any other data.
+
+So can you, now maybe the other data's great, and they just don't show it for whatever reason, but I
+try to look at the sum across a net of as many organ systems as possible.
+
+not just blood pressure, but kidney function, liver function, inflammation, metabolic health, lung
+function, you know, so like a forced expiratory volume, right?
+
+function during workouts, right?
+
+If you know your strength in a given set of movements, is your strength better, worse, or the same,
+right?
+
+So for your diet, if that's the only thing that you changed, I would take the, check off the box
+across all of the biomarkers that you're checking.
+
+Does it seem to be a net positive?
+
+If so, that's good, but then there are gonna be things, like you said, your blood pressure, that may
+not be positively impacted and in fact going in the other direction.
+
+So then the question What can you do within your current diet to positively impact blood pressure
+while still keeping the positive changes on everything else?
+
+So, and I don't know what the answer is there.
+
+That takes a lot more tracking.
+
+No, no, that's that's interesting.
+
+It didn't even occur to me to try to somehow actually combat my blood pressure.
+
+analogy along that, so one of my weak points is homocysteine.
+
+So homocysteine increases during aging.
+
+It's basically a marker of hypomethylation.
+
+It's related to blood pressure and dementia risk, all cause mortality.
+
+So my values have been close to age expected for a few years, probably for I think 20 tests in a
+row, age expected data.
+
+I've tried every methyl donor you can think of.
+
+I don't have genetic methylation issues.
+
+at least based on SNPs.
+
+I've had values half of where they are now about 20 years ago.
+
+So I've had this age -related increase, even though I've had a lot of positive impacts on other
+biomarkers.
+
+I've tried the folate methyl B6, trimethylglycine, I've tried serine plus B6, every biochemical
+pathway that's been linked with homocysteine.
+
+So recently I was able to make a dent.
+
+Now whether I can repeat that, I don't know.
+
+But again, I'm not trying to blow up the rest of the system.
+
+trying to make small changes to improve these weak spots while keeping everything else.
+
+So one of those changes from my latest test was cutting mushroom intake.
+
+So mushrooms, as I'm sure you know, sperminine increases lifespan in animal models, ergothionine
+increases lifespan in animal models and is related to neurodegeneration when its levels are low.
+
+Potentially important metabolite, but that's a story for another day.
+
+So mushrooms, fiber, niacin, mushrooms are an all -star.
+
+So I've been eating about 250 grams on average per day.
+
+for probably about three years.
+
+Which seems like a lot, but who knows how much is too much or what is the dose, right?
+
+What dose is optimal for just food, right?
+
+So, mushrooms have niacin.
+
+Niacin comes in two main forms, nicotinamide and nicotinic acid.
+
+So I've had problems with NAD being relatively low and also age expected or worse.
+
+but yet my niacin intake is two and a half times the RDA.
+
+So how do you square that circle?
+
+How can I have two and a half times the RDA for a nutrient that's known to increase NAD?
+
+How does that make sense?
+
+So I know that nicotinic acid in my case raises NAD, even very low dose.
+
+So then that argues that mushrooms may not contain nicotinic acid.
+
+They may contain nicotinamide.
+
+Now the reason why that's important is because nicotinamide raises homocysteine more than nicotinic
+acid.
+
+That's been shown in at least one randomized controlled trial.
+
+Alright, so then I've got the hypothesis.
+
+If that's true, and I cut mushroom intake down, not eliminated because I still want some
+ergothionein and sperminein and fiber and everything else, magnesium, all of the other great things
+it has.
+
+If I cut it down, will I see a change on homocysteine?
+
+And if so, that even just 10 milligram per day change of nicotinamide may have been causing higher
+homocysteine.
+
+My homocysteine went from an average of about 10 micromolar for 20 consecutive tests to a value that
+I've only seen with high dose B12 by cutting to nine micromolar.
+
+Not a big difference, but it's my lowest value of 20 tests.
+
+Whether that's mushrooms, I don't know.
+
+I'm gonna keep mushrooms down from 250 to about 95 grams per day.
+
+All of the other biomarkers didn't change for now.
+
+I don't know about epigenetics or Dunedin paste, telomere length.
+
+I don't know what happened there, or phenowage and albumin and glucose inflammation, none of those
+went in crazy directions.
+
+So I basically kept the core and potentially improved one biomarker without blowing up the system.
+
+So going back to your data, it's a matter of finding which aspects of your diet could be causing the
+blood pressure increase.
+
+And I don't know what it could be.
+
+But that's something you'd have to track and look at correlations over time.
+
+By the way, that's a beautiful story.
+
+This is the pop culture, and there is some published evidence for it, right?
+
+Okay, let's try didn't do a thing.
+
+High fructose, fructose is known to damage the liver as it's metabolized in the liver.
+
+My diet had about twice as much fructose as it does now.
+
+I cut the fructose intake, it didn't do a thing.
+
+Green tea, high dose EGCG, which is found in green tea, has been shown at least supplemental form.
+
+But I was drinking probably four times as much green tea then as now.
+
+You know, I created two challenges for you, but you've already overcome the first one without me
+even saying it.
+
+So let's just move on to the second one.
+
+You're reading in a way that every color must fight for its life.
+
+But you're trying to do this with whole foods, even though the logical conclusion, if you would
+really take that goal to its extent, would be that you should try to do it with the most isolated
+supplements because, that has the least amount of calorie and you're not
+
+going to saturated fat in a...
+
+let's say selenium supplements instead of what's that not Brazil not right.
+
+So what do you say to that?
+
+Yeah, so there are two things there.
+
+One is I prefer targeted supplementation with a demonstrated need, which is basically a medicine
+mindset, right?
+
+You have a given disease, you have high blood pressure, we're gonna give you a diuretic, right?
+
+You have demonstrated problem, what's the best solution?
+
+So I'm not completely opposed to supplements.
+
+So I have experimented with, as I mentioned, higher dose Foley B12, B6.
+
+I took five grams of supplemental BCAAs to test homocysteine.
+
+I do things with demonstrated need that are up to a point resistant by diet, right?
+
+Just as another example.
+
+So for whatever reason, or maybe it's because I took antibiotics like candy, candy pills as a kid.
+
+So my mom, I was sick as a kid for whatever reason.
+
+My mom went to the doctor, got me some penicillin.
+
+Penicillin bottle went on the shelf.
+
+When I was in a relatively young age, I learned how to unscrew that screw top, which is supposed to
+be resistant to children And I was like, I don't feel well today.
+
+I'm going to take some penicillin.
+
+And each test has been higher than, than it should be.
+
+It's outside of the range.
+
+So what's causing So I tried to look at correlations over four tests and the long story short is,
+you know, the F round find out is one side of the story.
+
+The died trying because maybe I wasn't open to, you know, for example, if I have cancer, am I gonna
+say, I'm gonna track correlations with diet for 20 tests over the next three years and see if I can
+beat cancer or am I gonna do chemo and everything else in the rapid
+
+short term, right?
+
+So there's a balance there between, I need to fix these things ASAP.
+
+right, so Candida is something I wanna fix ASAP.
+
+I don't wanna F around and find out anymore.
+
+This has been at least a problem since 2017.
+
+It could be something that goes back 30 years.
+
+So I worked with a doctor yesterday and rapamycin's on the way.
+
+I'm gonna do that experiment.
+
+So now we've got, what does rapamycin do to my data?
+
+And because I've got 50 plus blood tests, I'll be able to see if it does something to Candida as
+it's a known antifungal, it's known to eliminate Candida.
+
+at least in vitro, RCTs are limited.
+
+But, you know, so I'm not opposed to the supplements and G -R protectors.
+
+It's just demonstrated need and things that are resistant by diet.
+
+Now to add one last bit to that story, you know, it goes to the lowest risk.
+
+If it, yes, every calorie is fighting for its life in my approach, but that mindset also suggests
+some amount of, know, my diet sucks.
+
+I'm not happy with it, you know.
+
+have to, you know, so that's not it at all.
+
+All of the foods in my current approach have come there by, you know, trial and error, but also
+because I like them and I feel satiated almost exclusively on this approach.
+
+Could I eat pizza and ice cream?
+
+And after a blood test, I do eat some of that junk and it's interesting, like, I generally don't
+have problems with satiety where I'm like, God, I gotta eat ravenously like that.
+
+I haven't had that issue, fortunately, knock on wood for a few years.
+
+But on the days when I have cheat meals immediately after a blood test, when my fiber intake is at
+least half of what it generally is, I really have to use some willpower to say, all right, don't
+overeat today.
+
+And I think fiber and the approach is big part of that.
+
+anyway, going back to the point of each calorie fighting for its life and why not just supplementing
+with it, there's something about food matrix.
+
+Now whether that actually is involved in optimal health, I don't know.
+
+But I just think getting it from Whole Foods, trying to get it as much from Whole Foods as possible,
+whereas taking all of it via supplement, I think the Whole Food based approach is the lowest risk
+based approach.
+
+So polypharmacy in older adults is not generally associated with better health.
+
+Now granted, polypharmacy being they're taking numerous amounts of medications for various health
+related conditions.
+
+So is it so different where you've got someone who's generally healthy and they're taking 100
+supplements?
+
+Fast forward 50 years, now they're generally older and taking 100 supplements.
+
+Are those supplements now good within the context of aging or what is the net effect?
+
+So I try to limit as much supplements as possible, trying to get the diet to optimize it as much as
+I can with the thinking that that's the lowest risk based approach.
+
+But even on a whole food based diet, I guess, I don't know if Steve Jobs was a fruititarian.
+
+for most of his life or just did that once he was diagnosed with cancer.
+
+But even on a whole food based diet, it may not be optimal.
+
+What is an optimal diet?
+
+So another thing, I have another thought here, right?
+
+For the longest time, the idea was eat real food and exercise.
+
+And forever I've thought that that's just not good enough.
+
+What is the evolution of that approach?
+
+So within a whole food based approach, how much protein, how much fat, what micronutrients, right?
+
+And then how do you even address those questions, right?
+
+So I try to get closer to that with whole foods still thinking that that will be the lowest risk
+based approach.
+
+But even on a whole food based approach, it can be negative if you go too far in one direction or
+the other.
+
+Let's take a person, a normal person, right?
+
+He's not taking supplements and not eating healthy.
+
+Okay, now let's give that normal person some supplements, some vitamin, multivitamin, fish oil and
+vitamin D.
+
+So that person, that normal person is healthier.
+
+Would you agree that normal person is healthier than the one wouldn't take anything.
+
+Yeah, maybe not.
+
+And then I'd say I'd have to see the data.
+
+But in terms of the foundations of health, I think the foundations are what, what you hear everybody
+say and it's cliche, but it's pretty much true.
+
+sleep quality and duration, short sleep being bad, very good, very long sleep also being potentially
+bad.
+
+short, short sleep can impact things like metabolic health and glucose levels.
+
+So if someone's not paying attention to sleep quality and duration, things like slow wave which
+declined during aging, or the percentage of slow wave sleep, which declined during aging, and that's
+involved in dementia risk.
+
+So sleep is a humongous part of this approach.
+
+So if the person who's just taking some supplements doesn't improve sleep, the other side of it is
+regular exercise.
+
+Now, even there, comes to prescription.
+
+At what intensity?
+
+For how long?
+
+Because exercise is a stressor.
+
+If you're not conditioned to it you run a marathon, you'll feel terrible for a pretty long time
+after you ran that marathon, right?
+
+Like David Goggins talked about how he bones broken in his foot or something like that and he ran
+like a hundred miles or did some ultra marathon, right?
+
+So exercise is a stressor.
+
+The question is frequency, dose, intensity.
+
+getting those right beyond just exercise a certain amount every week is a big part of the approach.
+
+But then even when it comes to diet, diet is another foundation, you know, like as I mentioned,
+know, macros and micros.
+
+And how many calories, right?
+
+Calorie restriction, even I don't think we have to go to 25, 30, 40 % like the animal models to get
+big increases in health or lifespan in terms of CR.
+
+In my case, it's like a mild restriction over a long period of time where the net effect on the
+biomarkers is like 10 biomarkers out of about 30 going in the right direction versus wrong in terms
+of how they should look in terms of aging or all cause mortality
+
+So leanness, in part by mild to moderate CR in conjunction with regular exercise training year over
+year, week to week, you for a long period of time.
+
+So for me, these are the foundation.
+
+Now how much will supplements add to that?
+
+I don't know, but I'd bet that someone that's lean has very low levels of visceral fat, who's highly
+functional, doesn't have to be a VO2 max of 60, it could be something lower than that, but above
+average fitness,
+
+and consistently gets good sleep quality and duration where you're avoiding that age -related
+decline for slow -wave sleep, I bet that that's at least a 20 -year gain in average lifespan.
+
+Now, does that get you to 120 and beyond?
+
+Well, adding supplements and rapamycin and geroprotector senolytics on top of that, add to it,
+that's where we have to get into the testing.
+
+for example, if my albumin is what you'd expect to find in a 20 -year -old, or glucose is in the
+80s, which is what you'd expect to find in a 20 year old.
+
+CRP is below the limit of the, HS, CRP, below the limit of detection.
+
+If I'm taking rapamycin and I've already got the majority of my biomarkers are youthful, how's it
+gonna impact my lifespan further?
+
+Now, if it impacts things that, like Candida, which could potentially shorten lifespan or other
+microbes that may be accumulating that I don't know of, Okay, maybe that's a benefit, but I prefer
+to see the quantified approach to someone's got
+
+the foundation down, they're taking a given supplement or drug or prescription, whatever it may be,
+and now they see a further improvement in certain metrics.
+
+Okay, I'm with that, but for the generally healthy person who has not optimized the foundation or
+isn't trying to optimize diet, exercise, sleep, I don't know how much it helps.
+
+In fact, maybe it could be even detrimental because maybe they're mega -dosing stuff they wouldn't
+ordinarily see on a normal diet.
+
+Maybe it's not in the format that you would get from food.
+
+Maybe it's, I don't know, because some of these things are not in the same, maybe you get a form of
+B12 in a supplement that you're not getting in food, right?
+
+And then you've got the food matrix, which helps with absorption and other stuff, right?
+
+So I can't say with any certitude that someone taking the supplements in general without the
+foundation would be good for health.
+
+OK, that's where I was going with it.
+
+Okay, first of all, I would like to just note that getting my grandma to take a pill every day will
+cost her...
+
+I can't do that, by the way, I can't get her, but it would be infinitely easier than getting her to
+exercise or sleep well or eat well, right?
+
+So anyway, so we have the person who's not doing anything.
+
+We have the person who's taking some basic supplements and you're saying that, well, we're not quite
+sure if it's making any difference.
+
+But there is a third person here who is taking supplements based on data.
+
+So we don't really have those kind of people.
+
+who are like rigorously measuring but having bad sleep, bad exercise, bad everything, but taking the
+right amount of supplements to get, how did you say, optimize yourself into the optimal range,
+something like that.
+
+that's an idea for a supplement company, right?
+
+And then, And then the question is, what's the test?
+
+So let's build a supplement company.
+
+What's the test here?
+
+You can have regular blood test, which is quiet problematic.
+
+That's a very bad user experience.
+
+You have to go to a doctor and maybe in the US it's easier, but in Hungary, the medical bureaucracy
+is impossible to navigate even if you just want to get a single blood test.
+
+But there is something else called epigenetic tests, which are also trying to tell you...
+
+They can tell you the same things what a blood test can tell you and that's just...
+
+I'm getting there, don't worry.
+
+I know that you've done, you've tested them, so I wanna ask about they don't even claim because I've
+talked with Brian, Ryan, CEO of TrueDiag, that they are not allowed to legally tell you a bunch of
+things that they probably know.
+
+because then they would be medical services and what not, bureaucracy, government encroachment on
+people, usual story.
+
+The point is that they, in theory, would be able to tell you stuff and now the question is how
+accurate those things are, right?
+
+And you've done those tests and I've heard you say that, well, I've done those tests the same day
+and then they didn't really correspond.
+
+But there is an argument.
+
+There is an argument there and I would like to ask you about this argument.
+
+I've heard the true diagnostic people saying that it is possible, they're not claiming that, but it
+is possible that the epigenetic tests are better than the blood tests because what the blood tests
+are showing you is more fluctuating day to day, but what the
+
+epigenetic fingerprints are telling you on longer time frame.
+
+what was your experience in this?
+
+Alright, so we got two thoughts here that I wanna address.
+
+The first is, so my niche, generally, everybody has a niche, right?
+
+I wish I could have, I don't know, 300 million followers on Instagram or whatever it may be because
+the masses all know about, 300 million people know and appreciate and love what I do.
+
+That's not the case.
+
+My niche is, and people that I work with is they're highly motivated, they're willing to They're
+willing to blood test.
+
+And this generally is not the average population, right?
+
+This is, I don't wanna say the far right side of the normal distribution, but these are the highly
+motivated people, CEOs, execs, et cetera.
+
+Now, can I convince people who are above average intelligence to get closer to the far right side of
+the normal distribution?
+
+Can I convince the average person off the street who doesn't care anything about diet or exercise or
+sleep to optimize their health?
+
+That's a very difficult, and there are plenty of other people in this space who are, who that's
+their niche, right?
+
+So, and that's okay, that's just, you what can you do, right?
+
+So, and it's like that in any business, you know, you have people who politically lean a certain
+way, you have people who diet lean a certain way.
+
+My niche is my niche.
+
+Okay, now, second is, and I'm okay with that, it is what it is.
+
+That said, going back to the grandma who maybe she doesn't exercise or eat well or sleep well, I do
+think it is possible, and obviously conventional medicine could attest to that, right?
+
+You have high blood pressure, you take a diuretic, blood pressure goes down.
+
+There are certain things that do work for isolated situations in terms of improving health -related
+outcomes.
+
+Now, with the mindset of longevity, does that translate, right?
+
+So I'd say, It could, right?
+
+So for example, the stomach produces less acid during aging.
+
+And as a part of that process is acid is required to have protein digest, protein digestive enzymes
+to have maximal activity.
+
+So protein digestive enzyme activity output declines during aging too, in part because of the
+decrease in stomach acid output.
+
+another aspect of aging that may be related to that is poor kidney because if you're not digesting
+protein when it's in the stomach and absorbing it into the intestine, more of it may make it to the
+large intestine where it's fermented by gut
+
+bacteria into potentially deleterious metabolites that negatively impact kidney function.
+
+Now, that happens during aging.
+
+These metabolites increase during aging.
+
+Is it because older people are eating more protein?
+
+They're not eating more protein.
+
+But to me, it makes sense that older people may have a problem with acid secretion by the stomach.
+
+and protein digestion with more of it being fermented by gut bacteria.
+
+Now, that's a relatively easy fix.
+
+People could take, in that situation, there are acid supplements like BTA and HCL and others, which
+can lead to an increase in stomach acidity at least within an hour, at least based on published
+studies.
+
+So someone's eating a high meat diet and they know they have problems with kidney function, maybe
+taking some acid supplements in conjunction with protein digestive enzymes.
+
+whether it's pepsin or trypsin or whatever they can find, that could potentially limit how much
+protein goes to the large intestine, more of it absorbed into the blood.
+
+Could potentially impact muscle mass because now you're actually using it for what it can be used
+for.
+
+You have less of these protein or amino acids in the gut where they're not gonna be fermented into
+metabolites by bacteria that can negatively impact the kidney.
+
+So now you've got a feed forward positive loop just based on one or two supplements and a targeted
+demonstrated need.
+
+knowing that there's decreased kidney function during aging, there's decreased stomach acidity
+during aging and decreased protein digestive enzyme output during aging.
+
+But in that situation, I'd have to see your grandma's kidney function other biomarkers related to
+that and her protein intake to see if she'd be a good candidate for that demonstrated need to just
+take those supplements because you're a certain age.
+
+Maybe your kidney function is good and you're taking these supplements, don't need it, it's just
+wasted.
+
+energy and money, right?
+
+So I think a lot of people are in that situation where they take supplements and don't have any data
+and it's just basically hope.
+
+You know, it's, I think it's going to work because it worked in animals.
+
+I don't have any of my own data.
+
+But I think that's a flawed approach and potentially dangerous.
+
+was the beginning of the grandma story.
+
+epigenetics.
+
+I'm a big fan of Ryan and, Hannah and True Diagnostic, big fan.
+
+You'll never hear me say a bad word about them.
+
+They are fantastic.
+
+And I don't throw around superlatives easily.
+
+I don't see this as an epigenetics versus standard blood test battle, right?
+
+So, I see it as a hierarchy, right?
+
+So, at the top of the hierarchy is physical, cognitive, emotional, health and function.
+
+Now, as a part of that story is body composition, right?
+
+percent body mass, percent fat mass, visceral fat mass, bone density.
+
+These are the top of the pyramid.
+
+We wanna have optimal levels of all of those.
+
+And if there's any decrement in any of those things over time, which are well known to happen, more
+body fat, more visceral fat, less bone density, et cetera, something's wrong.
+
+And because we can potentially intervene there.
+
+But what's under the hood, and I think most people stop there, right?
+
+They look at the scale or they go to the gym.
+
+But the fact is most 70 year olds, even the most highly motivated people, maybe 70s and early age,
+most 85 year olds, compared to where they were in their 20s, less muscle mass, less function, et
+cetera.
+
+But what's underlying that?
+
+So if you dig under the hood, which is what I'm trying to do, we can take it step by step.
+
+You've got cells, proteins and metabolites, epigenetics, and then DNA.
+
+Now we can't control our DNA, right?
+
+That's just the script for what can happen, right?
+
+And even if you've got a genetic risk for certain outcomes, based on a few thousand SNPs all working
+together, it's still a risk, it's still a potential.
+
+You would need that script in conjunction with diet and lifestyle to now really further assess risk,
+which there are no studies as far as I know.
+
+It's only, here's your genetic risk for this given outcome.
+
+but there's a lot more to that story.
+
+So I place very little emphasis on what the genome is.
+
+Even with demonstrated, you know, like, okay, you have the MTHR, the methylfolate SNP, so maybe
+you'll have higher homocysteine, but then most people don't measure homocysteine.
+
+You've actually got to look at the downstream measure.
+
+So I see epigenetics as the, you know, the modification, the methylation modification on DNA as
+being as close to molecular as you can get.
+
+It's an important part of the story.
+
+In fact, everything at the top is optimized, but the epigenetic stuff is not optimized.
+
+That could be the early warning signal.
+
+For example, my Horvath epigenetic gauge, which I know that the true diagnostic team is not a fan of
+because there are better tests of all cause mortality risk, Horvath's is not.
+
+It is the best clock for how old are you, but who cares how old are you if it doesn't predict your
+mortality risk?
+
+I see value in that because I don't want my my predicted age to be older than my chronological age.
+
+It should be 18 years younger, like phenol age, like the other standard blood test markers, but it's
+not.
+
+So I see the epigenetics as the early warning sign, because if that data is aberrant, potentially
+other stuff upstream, the metabolites, the proteins, the cells, will start to become aberrant,
+because if your gene expression is messed up as the epigenetics is a
+
+marker of, are you having genes that are overexpressed or underexpressed?
+
+So to me that's the early warning sign and I included it the approach because I don't want to leave
+any of these boxes unchecked.
+
+You know, I'm doing metabolomics, I'm doing the cells, know, so white blood cells, red blood cells,
+know, platelets, all of that stuff.
+
+And I'm also doing the big picture stuff, physical function, leanness, know, bone mineral density.
+
+I see it as a part of the story.
+
+don't see it as a binary, you know, epigenetics or the other.
+
+Now I know people in this space are placing a lot of emphasis on tests like Dunedin PACE, but it's
+only a part of the story.
+
+number 15 on the Rejuvenation Olympics leaderboard.
+
+just for the listeners to see the comparison, I am number 520.
+
+So are your statistics here?
+
+So chronological age, biological age, pace of aging, longevity.
+
+We already said that.
+
+And have you got your symphony age results?
+
+So not yet on the symphony age.
+
+It's very promising, even, and I guess I'm going to end up disagreeing with true diagnostic on this,
+but the Olmegaige, I'm not, I'm not yet convinced about Olmegaige or symphony age, even though
+they're both strongly associated with all cause mortality risk.
+
+Dunedin -Pace is in the same ballpark.
+
+So how much of a ROI am I getting by using those two other tests versus Dunedin -Pace?
+
+I don't know, I got a lot.
+
+So by the way, I don't even know what my symphony age is, but what I found it very interesting is
+that I always felt that I'm overweight, right?
+
+And my lungs are not great as well.
+
+So I was not really sure like which ones are, which one is the worst.
+
+And it turns out my lungs are worse than how overweight I am.
+
+And it really ended up in a way that I have very good genetics in terms of heart health.
+
+I am in the top...
+
+I was 13 in the heart stuff and 16 in the muscle stuff in symphony age, but heart and metabolic
+health was terrible.
+
+it did highlight to me that, you know, I do workouts properly for five years, didn't skip a workout,
+but not eating properly, right?
+
+it gave me lot of value that, hey, these are the things that I should focus on and don't worry about
+the other things because these things are breaking right now.
+
+Okay, so what's your Dunedin piece?
+
+yeah, hang on, wait.
+
+So along those lines, and again, I love and appreciate true diagnostic.
+
+I'm a huge fan of them.
+
+But just to push back is, so for example, the lung prediction, that's a DNA methylation prediction
+of your lung function.
+
+Now granted, the data was probably trained on people who actually measured lung function, and then
+they looked at marker genes that were associated with the actual lung function.
+
+whatever the value, there are many ways to assess lung function, to physically assess it rather than
+the prediction of it.
+
+So it seems like I'm tiptoeing on both sides of the fence where I appreciate the epigenetic
+predictions, but then on the other side, of saying that maybe the epigenetic predictions in all
+cases are not the best way to assess some kind of outcome.
+
+So for example, I've actually measured my lung function and I have a spirometer, which nothing too
+crazy expensive, hundred and something dollars USD.
+
+I get, it every week.
+
+three times a week and I'm able to, three days per week, so I'm not doing it every day, but I've
+done that for now since 2022.
+
+It declines during aging.
+
+Your forced expiratory volume declines during aging.
+
+Now, am I gonna place more value on an epigenetic prediction of that metric or the physical actual
+measure?
+
+So for example, too, the fit age is also DNA methylation prediction of your strength or some fitness
+measure.
+
+I actually measure my strength at every workout.
+
+for some things there may be value, for others there be more direct value.
+
+For example, I can't measure telomere length as a physical thing.
+
+Sure, I could use like other methods that are a close approximation to telomere length as a cellular
+measure.
+
+So true diagnostic is using a DNA methylation based estimation of telomere length, which isn't the
+actual telomere length measured, but there is published data that the DNA methylation based
+estimation of telomere length may be a better metric relative to the
+
+actual measurement of telomere length.
+
+So for some things, the epigenetic estimation of a given outcome may be better.
+
+Whereas for example, I can't measure telomere length physically, but for physical measures that I
+can measure, I look at the physical measures.
+
+I don't need someone to, or I don't need a test to say your fitness age is this.
+
+Apologies for people in the language.
+
+MF, I can actually measure my fitness age.
+
+Physically, I can measure it.
+
+I don't need a prediction of it.
+
+I need a prediction of the things that I can't physically measure, right?
+
+Now I only have three tests in 2022, maybe that's not enough data for a full year average.
+
+In 2023, I tested eight times and thus far I have data for four tests in 2024.
+
+So I see more value in looking at an eight year average in 2023 versus a four test average, a four
+eight test average in 2023 versus a four test average in 2024, or maybe you just take my 15 test
+average since 2022, right?
+
+Maybe that's more representative of three tests because when you do My average Dunedin pace over 15
+tests is .82.
+
+So I actually think I should be lower on the list.
+
+Now, would other people be lower on the list too?
+
+If we took all of their data and tracked it versus their best data?
+
+I don't think you just take your best data.
+
+Anyway, so that's my spiel on that.
+
+Yes, my best data puts me at number 15, but if we took my average, I'd be a bit lower.
+
+That said though, Dunedin pace increases during aging.
+
+So if we look at the three tests in 2023, eight tests in 20, three tests in 2022, eight tests in
+2023, and the four tests in 2024, it has not increased.
+
+In fact, it's a little bit lower than where it was in 2022.
+
+So at worst, I've resisted an age related increase.
+
+When considering an increases during aging, it gets harder for the people that you've interviewed
+like Jeffrey Gladden and some of the others that are older than me chronologically older than me
+that have similar data.
+
+It gets harder for someone of an older chronological age to have values of 0 .6.
+
+Whereas people of a younger chronological age like Seamlan, and don't get me wrong, I'm not knocking
+Seam, I'm a huge fan of Seamlan, huge fan.
+
+He's gonna be humongous in this field for decades.
+
+He's in his 20s, so for him to have a 0 .66, I expect him to have that data.
+
+Or Genvell, who's in her 20s, I expect her to have data in their 20s.
+
+For someone of an older chronological age, Brian, who's still younger than me by a it gets harder.
+
+So at worst, or maybe at best for me, I've resisted any age -related increase over the past two plus
+years, which is for me almost more informative than here are your best three tests over two years.
+
+So that's the Dunedin pace.
+
+just for some context to the listeners, the previous regional Olympics before the big update, the
+previous one had two lists.
+
+One of the lists was the first one, the first result, the need and pace result of yours compared to
+the next results and how much you are reducing compared to your first results.
+
+So that was not a great list because that doesn't only incentivize you to improve, it also
+incentivizes you to have as bad first result as you can.
+
+So anyway, they removed that.
+
+But the second one was actually wait by ages, right?
+
+So old and you had 0 .7 Dunedin pace, then you were ranking higher, then a person who is only 30
+years old and has a 0 .6 Dunedin pace.
+
+So that was actually something very informative here.
+
+But here, after the update, what we got is just average Dunedin paces.
+
+And yeah, the younger people have an advantage because of their chronological age.
+
+So that raises an interesting point.
+
+And I don't know if the true diagnostic peeps are gonna listen or Brian's team is gonna listen,
+whoever's responsible is gonna listen.
+
+Hopefully they do because I think discussing it and what's the best way to look at it is important.
+
+So I think the top of the leaderboard is gonna be dominated as you mentioned by people not just who
+are chronologically young, by women too, right?
+
+Women live longer than men on average.
+
+So I'd expect women should have a slower epigenetic pace of aging relative to men at any
+chronological age.
+
+So the top of the leaderboard should be chronologically young women, right?
+
+So, but then you could, do you then have a gender specific, you know, or sex specific leaderboards,
+two different leaderboards, but then as you mentioned too, chronological age, right?
+
+So then do we start to group it by chronological age range?
+
+Because someone like, you know, like someone chronologically 70 with a Dunedin pace of .6.
+
+That's fantastic and should get more respect.
+
+I don't know, more respect, whatever respect that comes from that, whatever street cred, right?
+
+It's important to highlight that, you know?
+
+So that's another way to potentially look at it.
+
+But the other side of that too, as I mentioned, is that year to year change.
+
+You know, maybe there are people like, so, it's funny because, you I say I've got the secret sauce,
+right?
+
+I don't necessarily have the secret sauce yet.
+
+And when you hear secret sauce, you think, what drugs are you taking?
+
+No, that's not it at all.
+
+But, you know, we touched on this earlier, you for the people that are taking every supplement on
+earth, every medicine on earth, trying to biohack their way to the super longevity, I've got the
+secret sauce.
+
+And the secret sauce is the data, you know, because people who are just throwing the kitchen sink at
+whatever biomarker of choice and are not actually tracking what they're doing, Maybe they'll have
+some success, but I don't anticipate long -term success with approach
+
+In contrast, over 15 tests, I haven't discovered the recipe for something like Dunedin Paste yet to
+get me down to 0 .6 in that range.
+
+But based on other biomarkers, it's only a matter of time and data collection.
+
+So for me, that's the best approach.
+
+Now, even without that, yet, I see age, resisting age -related increase.
+
+So, you know, initially they had that percent reduction from your first test.
+
+So I see value in looking at resisting age -related change, right?
+
+Here's people's data that started tracking five years ago, and they've seen no age -related change
+five years later.
+
+To me, that's important, right?
+
+You're resisting an aging process, right?
+
+So absolute values in terms of the number is important, or your best data is important, but what's
+your data over time way more than three tests, I see that.
+
+So we could do four different distinctions.
+
+Separation based on sex, based on age, year to year change, best data over a given time just when I
+want to throw in that maybe in the future technology gets so good that we don't really need to worry
+about the woman versus man distinction.
+
+So anyway, I do fall into the geek category, but for those who don't know, I don't wanna have to
+take my shirt off, but there are shirtless pics of me all over the internet, and I'm lean.
+
+So I don't think I fit the classic geek stereotype where I'm just some nerd behind a desk.
+
+I'm a little bit of other stuff too.
+
+I've always been interested in optimal health and fitness.
+
+I grew up on bodybuilding magazines back when magazines were actually a thing when I was a kid.
+
+And I had the thought like, you know, sounds terrible.
+
+somewhat sexist, I guess, don't know, whatever the word is to say, I always thought like the big
+dudes, the fit dudes, they always get the hottest chicks.
+
+I always thought that, right?
+
+That's always been a thing of mine, so whatever.
+
+So I was like, wanna be fit and strong.
+
+I want all the women to be physically and sexually attracted to me.
+
+So since I was, I don't know, 12, 13, I was a part of the gym life, right?
+
+Going to the gym often, getting fit and staying lean.
+
+I really didn't know anything about optimal health and nutrition.
+
+I tried every diet and supplement and, you know, pill under the sun.
+
+and then in my twenties, I got to the point, the point where I was just like, I don't know anything
+about this and I want to.
+
+So I read a book by Dr.
+
+Roy Walford, who wrote beyond the 120 year diet.
+
+And once I read that book, the light bulb went off and you know, the, the I suffered from a lack of
+initiative and motivation and drive through my mid twenties in terms of life goals and passion and
+what's my purpose, what's my value.
+
+But once I read his book, the light bulb went off.
+
+I want to study aging.
+
+I want to study the metabolomics and the biomarkers.
+
+I want to know about calorie restriction.
+
+want to be optimally fit for as long as physically possible.
+
+Now he died at 80.
+
+He was CR.
+
+for a big part of his life, but there are other parts of his lifestyle that may not have been
+optimal that may have contributed to his demise.
+
+That's a story for another day.
+
+But that got me into, I need to go back to school.
+
+I need to learn hardcore biochemistry.
+
+I need to learn about physiology.
+
+That's where I got my, like did my PhD.
+
+So I basically got, took all the courses to get a biochemistry degree, got into grad school where
+the focus was on aging.
+
+One of the best places to study aging at the time with the goal of studying aging as a scientist.
+
+And then the rest is history, you know, I've been in academia for the past, you know, since 2003.
+
+So I'm probably gonna get out sooner rather than later to focus on doing this stuff for, you know,
+myself and others full time.
+
+So yeah, so that's how I got into What about your tribes, both meat space and cyberspace?
+
+There are no universal truths.
+
+I wanna just ask you about all the different kinds of movements, sleep vices, whatnot.
+
+Firstly, just could you describe a day in your life?
+
+Yeah, let's see.
+
+an ideal day, right?
+
+And I've just got a conquer raging or die trying.
+
+And that's what I'm here to do if that is such a perspective, right?
+
+Or, you know, it either is gonna happen or not.
+
+So an idea would be on the beach, chilling with loved ones, stress -free, while also having this
+other stuff, the other side of this, which is obviously I'm gonna still spend a significant portion
+of my time documenting the approach in terms of biohacking, quote
+
+unquote, biohacking aging and the science behind it and all of that.
+
+You know, an ideal day is, you know, wake up, eat, analyze my data, analyze others' data, read the
+literature, prepare new videos, because I'm obsessed with that.
+
+Like, I've got so many tabs open for videos that I could make that I just don't have the time,
+because my life right now is pulled in other directions by commitments that I don't have a choice
+right now.
+
+But that hopefully will change in the next year or so.
+
+There are a ton more videos that I can make.
+
+Get in some exercise.
+
+And literally I can analyze data and make videos all day.
+
+mean, I love doing it.
+
+So, you know, a combination of the beach, getting some sun, growing some of my own food, if not all,
+hanging out with my loved ones, making videos, documenting the approach, all of that exercise.
+
+That's all part of the optimal day for me.
+
+I don't have all of that right now, clearly, but...
+
+I don't want to say on the mental health journey.
+
+I've been far from where I am now and I'm working towards so you're not running away from sun.
+
+No, definitely not.
+
+Working towards the fully enlightened, fully, you know, as happy as I can be approach.
+
+Do you have any devices?
+
+So I guess junk food is a vice, but I've learned to minimize it.
+
+I wouldn't say conquer it because it's kind of like saying an alcoholic has conquered their
+alcoholism.
+
+my early, know, so I grew up on junk food.
+
+My mom would buy boxes of cakes and cookies and, I eat 2000 calories of cake and just go to the park
+and run around and play basketball for three hours of baseball, whatever it was.
+
+But it caught up to me in where I started to some weight and be in suboptimal condition.
+
+I had this binge kind of anorexia or binge purge cycle where I'd eat 10 ,000 calories and then cut
+my calorie intake over five or so days so that I'd get relatively lean, but that was terrible for my
+physical, emotional, and cognitive health.
+
+So I love eating.
+
+I think it's an addiction for most people.
+
+So I've learned to manage it where, you know, I've minimized that binge aspect of my personality.
+
+So alcoholism runs in my family.
+
+I don't have that problem, problem, fortunately, but you know, this junk food addiction is in my
+DNA, especially in large amounts.
+
+So after a blood test, seems that if I do have some quote unquote And I know Brian doesn't have any
+cheats, although he did mention that he had like some bread recently, which is a cheat.
+
+But for me, if I go completely cold turkey with any junk, sets me up for one of these binges and I
+don't want that.
+
+That's the antithesis of optimal health.
+
+So immediately after the blood test, I'll have some quote unquote junk, you know, whether it's
+chocolate mixed with sugar and peanut butter or cheesecake, whatever it may be, whatever I'm craving
+on that day.
+
+but sticking to my calorie goals, but not paying attention to the macros and micros.
+
+So not sticking to the macros and micros, which I do for every day, is not followed for two to three
+days.
+
+I've stuck to two days immediately after the blood test, but for whatever reason after this blood
+test, I didn't stick to it for three days after the blood test.
+
+While still eating a decent diet, but I had other stuff that I wanted, but calories were on track.
+
+So I'm basically satiated with the junk and then it's like, I don't want anymore.
+
+And then I cut the junk out until the next test.
+
+So I've managed it.
+
+I don't think I'll ever conquer it.
+
+If I think I've conquered it, I'll end up binging and that's terrible for me in every way.
+
+Okay, so no hookers and coke.
+
+Where did the data lead you in terms of diet right now?
+
+are you eating?
+
+Yeah, wait, wait.
+
+So, so when you consider that, that, that the majority of women aren't generally attracted to me.
+
+And I don't say that happily.
+
+I wish the opposite were true.
+
+for whatever reason, whether it's the physical or what's in my head.
+
+I shave it off, right?
+
+But you can see if it grew in, I'd have a patch and then some here and then there'd be a patch.
+
+So I'm not trying to comb it over.
+
+rejuvenate your hair?
+
+Not yet, it's not limiting to lifespan, right?
+
+So anyway, the hookers at this point would probably make me more sad than happy because it's a
+superficial treat, I guess, and then it's I'm looking for a more long -lasting kind of thing, all
+The Coke too, or any other quote
+
+unquote fun stuff, I'm not opposed to it.
+
+I do have clients that do some of that stuff.
+
+It's a matter of dose.
+
+How much of it can you get?
+
+As straight edge as you can get, but for others that don't want to be a straight edge, the question
+is how much of it can you get away with the fun stuff where then starts to negatively impact your
+health, quality of life, your biomarkers.
+
+And if somebody wants to do some of that stuff and none of their biomarkers look bad at very low
+doses or microdosing, whatever it may be, you know, go for it.
+
+I'm not anti -fun.
+
+I'm pro biomarkers.
+
+I'm not anti -fun.
+
+What's the balance of both, right?
+
+I mean, only one night of doing it, like the next day is completely, you have like three days, your
+biorhythm completely done.
+
+Not coke, not just coke, right?
+
+Just alcohol, right?
+
+or staying up late, staying up late, throws it off or overeating too much, certain amount of
+calories throws it off.
+
+Yeah, I know what that feels like for the overeating and staying up late.
+
+I try my best to feel good every day, not, you Okay, so we still didn't find out what you're eating.
+
+yeah, so that, mean, not that that's a secret, right?
+
+I post that everywhere for those who don't know, but the diet is rich in, so I eat, I guess I have
+to start with, eat fish every day, sardines are in the approach every day, I'm not vegan, and that's
+only because the biomarkers suggest that it may be optimal for
+
+So I'm not vegan, but the diet is mostly plant -based outside of that.
+
+I do include eggs sometimes, I'm open to including beef, but, Like you said, there are only so many
+calories in the approach and other stuff has stronger correlations in my data than eggs and beef.
+
+Whereas sardines are giving me omega -3s, omega -3s decline during aging.
+
+Besides the correlations, I like them.
+
+They're more satiating than eggs and beef.
+
+So if I was gonna go higher on meat, it would be with fish.
+
+outside of that, carrots and red bell peppers are staples in the diet.
+
+Carotenoids seem to have a big positive impact on my data.
+
+So alpha and beta carotene.
+
+beta -cryptozanthin from the red bell peppers, tomatoes in watermelon for lycopene, which are
+carotenoids, about a pound or 450 grams of collard greens as a low oxalate green for lutein and
+zeaxanthin.
+
+Beets are a staple, mostly for the nitric oxide potential effects and potential effects on blood
+pressure, but also a very strong net positive correlative score.
+
+And it's also crazy to say, but nitric oxide is a big part of the beat story.
+
+it's like nature's Viagra.
+
+I see Brian trying to do penis rejuvenation and tracking his nocturnal hard -ons.
+
+And I don't want to say I don't have a problem with that.
+
+most important research.
+
+Right, right, but I don't have a problem there.
+
+don't know what's optimal, but I don't have a problem there.
+
+And I don't know if it's because of 330 grams of beets per day.
+
+so beets are beets are a part of the everyday approach.
+
+Parsley is in the everyday approach to potentially inhibit CD 38 is a part of the NAD story.
+
+Strawberries, frozen strawberries, which I make in a smoothie with the beets and parsley and some
+flavoring agent ginger, cinnamon, or vanilla beans.
+
+So I eat a lot of strawberries, probably about 500 grams per day, frozen strawberries, staple in the
+approach.
+
+Nuts and seeds, a mix of almonds, peanuts, walnuts, flax seeds, which cover a variety of bases, some
+of which omega -3, monounsaturated fats, fiber, niacin, et cetera.
+
+Dates are in there, mostly to sweeten up the flax seeds.
+
+Brazil nuts for the selenium.
+
+See if I'm missing it out.
+
+I eat a cooked mix with the collard greens, tomatoes, chickpeas, which may have a positive impact on
+kidney function in my data.
+
+Turmeric, black pepper, which seemed to be an all -star for multiple biomarkers.
+
+I do add some salt to that, but a very small amount.
+
+Mustard powder for the sulforaphane and broccoli, is also part of the approach.
+
+So cardamom and cloves.
+
+There's a lot.
+
+list it all in diet composition videos without the sake of boring you too much more about my diet.
+
+These are your staple.
+
+What about your peers?
+
+How many peers do you take a day?
+
+Yeah, so right now consistently nothing.
+
+Nothing right now.
+
+For about nine months of the year, I supplement with vitamin D, 1 ,000 I use per day.
+
+I have not got that answer yet.
+
+From a rejuvenation Olympic athlete to take not a single pill right now.
+
+But that's not all year round like that, right?
+
+So next week, once rapamycin comes, I'm going to be on rapamycin for probably two weeks, maybe a bit
+less.
+
+Well, actually, it takes about a week to get the Candida results.
+
+So that's at least a two week supplemental period.
+
+But the vitamin D is there.
+
+I don't take it in the summer.
+
+Unlike Brian, I try to get sun exposure without sunscreen.
+
+It's hard in Boston, though, because the cloudy days and weather's not always great.
+
+but I did the experiment, only had sun exposure for like four days so far in two months and my
+vitamin D was 38, which I wanna be above 30.
+
+How much above 30 is optimal for 25 hydroxy D, who knows, but that's with no supplementation and
+only four days of sun and I'm not deficient.
+
+usually I get a lot more sun in the summer, so that illustrates that I don't need vitamin D in the
+summer.
+
+do have NMN, which I play around with.
+
+I do have nicotinic acid, which I play around with.
+
+But even there, I'm still trying to optimize NAD through diet with not much success yet.
+
+But that's it.
+
+That's it for supplements.
+
+I do use supplemental vanilla in the mouthwash to try to kill off a bad microbe in my oral
+microbiome.
+
+So that's technically a supplement.
+
+I do have vitamin B6, which I've experimented with, but I haven't used that in a while.
+
+yeah, other than an occasional vitamin D right now, if I don't get sun for a week rapamycin, yeah,
+nothing for off and on NMN and nicotinic acid, but nothing consistent.
+
+Where did you get those guns?
+
+I'm not a big guy, I just lean.
+
+So I mean, you look like this, maybe not that big, it's 90 minutes compound movements.
+
+I'm not doing bicep curls and tricep push downs.
+
+I'm doing overhead presses and clean and jerks and pull ups.
+
+Yeah, trying to stay as fit and strong as possible, not lose an ounce of strength during aging.
+
+90 minutes is a Yeah, I used to go longer.
+
+used to be a three hour workout, but the heart rate variability in wrestling, heart rate was
+terrible, overtrained, I felt tired all the time.
+
+So I could go longer.
+
+Part of it is a mental thing too, where if you're running, running becomes a mental thing after a
+while, where you run a certain amount of time.
+
+If you're doing sprints, it's not a mental thing.
+
+It's very simple and quick, right?
+
+But if you're running for 10 and 20 minutes, it's a mental challenge, right?
+
+part of it is the challenge.
+
+don't want to just do an in and out workout and be done.
+
+really want to, it's my brain, right?
+
+It's all right, MF for let's go.
+
+Your data suggests you're recovered, let's go.
+
+Don't bitch out.
+
+You're not going for 45 minutes.
+
+You're going for every rep on every set for all 90 minutes.
+
+And I don't want it to be 95 and I want it to be 99.
+
+I do a set workout so that I can track it over time.
+
+So if I go longer, I'm being an old man, you know, because, which, it sounds like a slur, but you
+know, the old phenotype is old mice have to take more breaks when they run, right?
+
+They need more rest than recovery.
+
+So if I can do the same workout, the same sets and reps, same weight for every movement that I'm
+doing, for a standardized workout, as I'm 20, as when I'm 90, 100 plus, in the same amount of time,
+how much have I aged?
+
+how age is my physiology at that point.
+
+So that's challenge, right?
+
+Some of that is a challenge and it's almost like I'm literally fighting against aging in that
+moment.
+
+For example, my pull -ups had been 12 to 13 and these are strict above the bar, none of this, I'm
+barely getting there for, I don't know, five, six years.
+
+But I was also 15 to 20 pounds heavier during that time.
+
+I probably had a bit more muscle mass.
+
+As I've gotten leaner, it's gotten harder to get to the 12, forget 13.
+
+Now there is gonna be some small amount of muscle function loss with a 20 pound weight loss, right?
+
+It's almost impossible to not lose some amount of lean mass and lose 20 pounds of weight, which I'm
+okay with.
+
+But, lately it's, or not lately, but in the past couple months, it's been 10 reps of pull -ups.
+
+10, now I'm down two reps.
+
+Is that because of The weight loss and lean mass loss, is this a motivation thing?
+
+Is this an aging thing?
+
+So now my mind is like, all right, MF or let's go.
+
+Are you just being lazy?
+
+Like, are you just bored with pull ups?
+
+Like, so I'm back to 11, but I've got to get back to 12 before it's two years have passed and now
+I'm back to 10 and now I've aged, right?
+
+For whatever reason.
+
+So yeah, it's a 90 minute thing, but a lot of this is a mental thing, you know, I try to push myself
+mentally, not just You see, you couldn't be more different in this from me.
+
+I'm doing the exact opposite.
+
+So I'm of course doing this three times a week, some resistance training, but maybe it's 30 minutes,
+40 minutes at maximum.
+
+But I'm doing it even that in a way that I have like periods, maybe half a year periods, every half
+a year.
+
+I decide, okay, so this half a year I'm doing kettlebell, this half a year I'm doing body weight,
+this half a year I'm doing bodybuilding.
+
+So I'm prioritizing and always changing up and this way I can keep my motivation up.
+
+I'm also doing the, well, I call it cardio, but often it's just playing with my kids.
+
+But what I'm most proud of, because this is a unique solution, and I think you couldn't incorporate
+this into your routine, that every day I do three workouts in the morning, in the middle of the day,
+and at night.
+
+These are just 10 -minute workout, five to 15.
+
+And in the morning, I put on some video, and this can absolutely anything.
+
+For one week I'm doing a single video right it can be right now I'm doing take one though right next
+week I'm going to do karate and then kickboxing so now I'm going through martial arts but it can be
+tai chi or or or whatnot whatever you can find like I see Dave
+
+Pasco is doing P90X and I want to know what P90X so put it on that I am going to try that thing out
+for a week.
+
+So if I'm doing, instead of doing pull ups, I'll do pull downs or more rows or something.
+
+Let's just say for my lats and my back and biceps, right?
+
+I'm not, so if I'm changing it up and then I go back to pull ups at some period of time, because I
+haven't trained that movement, it ends up being weaker.
+
+Sure, I got general muscle stimulus and maybe it's more fun because I've got more variety, but now
+I've got to work back to get to where was for the number of reps on pull -ups, right?
+
+me, it works better for me to have a standardized workout.
+
+I don't generally suffer from motivation unless I'm in some amount of sleep debt and my heart rate
+variability resting heart rate are below average.
+
+impacts my motivation worse than even a mild sleep dead.
+
+So I generally don't have problems with, now I have to do this movement during the workout or like I
+enjoy all of the, and I have even like a whole routine is basically mapped for those 90 minutes.
+
+isn't, I feel like doing this at this time, I'll do this.
+
+It's a certain order, I do it in order because for example, don't wanna do pull -ups and then do a
+row.
+
+So I'm doing super, the whole thing is a cardio workout for 90 minutes.
+
+It's basically circuit training.
+
+So, you know, there's an order to that whole process where I can do it the most efficiently, not
+just in terms of time, but in terms of maximizing gain, both cardiovascularly and functionally,
+right?
+
+So, and everything in there too is with the goal of, like you mentioned stretching, stretching is a
+big part of it.
+
+Mobility is a big part of it.
+
+Balance is a big part of it.
+
+Where I'm actively training those things during the workout.
+
+Now if I was doing other stuff to change it up, I wouldn't be tracking those things because I
+wouldn't be actively doing them.
+
+I'd be doing other stuff, whereas workout to workout, week to week, I can see how I'm progressing or
+not and then do more, do less to try to improve a given movement.
+
+here is an idea.
+
+Try out Anima flow.
+
+You heard about that?
+
+on in macro?
+
+Yeah, animal flow.
+
+Move around like an animal.
+
+If you ever need a change, then you can try that because you can do that in a more structured way as
+well, but you can also get a feel of play, you that's more like capoeira, Yeah, yeah, yeah, it's
+from Copper and a bunch of other things.
+
+Anyway, what about your sleep?
+
+So, I had some more about the exercise.
+
+So, there's this idea that's pervading that as high a VO2 max and as, work out as much as you can to
+be as physically strong as you can, but I'm in a slightly different boat where I'm not aiming for my
+peak.
+
+capacity in terms of function.
+
+I'm happy to be above average for my genetics, but I also don't want to over train, which the
+markers of stress being heart rate variability.
+
+And I don't think the majority of people in this field, the influencer space is looking at it like
+that.
+
+For example, not to name drop, but I know Peter Attia is the get your VO2 max as high as possible,
+but the energy cost and work involved to get there is an amount of stress that may not optimize
+heart rate variability and resting heart
+
+And in that case, when considering that exercise is well known to increase average lifespan, but not
+maximal, where are the 120 year old marathon runners or fitness enthusiasts in animal models, wheel
+running in rats gets them an average lifespan
+
+increase, but does not get them to the maximal.
+
+So there's something great about exercise, but also bad for maximal lifespan.
+
+I want the max and beyond.
+
+So for me, it's what's the dose of exercise that gets me as close or beyond to the maximal while not
+being overtrained using the metrics as a guide for that.
+
+So I'm happy to not have my peak strength or peak VO2 max, but to have above average levels and
+resist age -related decline.
+
+For me, those are more important metrics than a VO2 max of 65, like any elite endurance athlete, but
+have heart rate variability of age expected and wrestling heart rate, right?
+
+All right, so that's the exercise story.
+
+wanted to make sure I got that out there.
+
+Sleep is still a work in progress, immensely better than it's been.
+
+I sleep with earplugs because I'm on a busy Boston street.
+
+Hopefully sooner than later, that's not the case.
+
+I'll be closer to the rural and out of the city, out of city life.
+
+have a blackout shade, but I do have some light pollution because I'm on the street and it's lights
+there.
+
+Room temperature and humidity seems to have a big impact on my sleep quality, which is not great
+because although my AC works better when it's not 90 degrees Fahrenheit, it struggles in the extreme
+heat in Boston at least.
+
+So that impacts sleep quality.
+
+that's something I'll have to improve once I live somewhere else, not in this city.
+
+But sleep consistency, going to bed at the same time every night is almost a constant It's rare when
+I'm asleep later than usual.
+
+mean, sometimes I'll have some academic stress, which I can't stand, which will get in the way of
+sleep quality.
+
+My sleep onset will be an hour and a half later, just because I'm thinking about bullshit that I
+don't like thinking about, which is one reason to get out of academia.
+
+But generally, that's not the case.
+
+I try to minimize that.
+
+But going to sleep at the same time every night, trying to sleep as much as I physically can, which
+doesn't always work.
+
+Sometimes, I 30 minutes of sleep that where if I can, I'll take a nap on that day to catch up.
+
+yeah, sleep optimization, the eating window is early, ending it before the majority of it before 1 p
+Sometimes even 11 to 12 a to give as much time to pee out all the water rich fruits and vegetables
+that I'm eating.
+
+But that's probably where the weakness is in my data where I still wake up sometimes use the
+bathroom at night two times during the night and PSA I don't have prostate problems, or at least I
+don't think I have prostate problems based
+
+on PSA levels.
+
+So I don't think it's that.
+
+It's probably a chronically hydrated problem.
+
+But ending the eating window as early as possible helps minimize that because I used to have OMAD.
+
+I used to eat OMAD and eat from like six to nine at night, fast all day.
+
+And I was up at 10, 11, 12, one.
+
+The sleep was terrible.
+
+I've minimized that dramatically.
+
+Sleep quality is immeasurably better and nothing affects my mental health more than a great night of
+sleep.
+
+And I like having good mental health, not feeling depressed.
+
+Yeah, it seems like you can improve upon stuff on sleep.
+
+So might come even further along than 15th place on the Rejuvenation Olympics if you get there.
+
+how much sleep makes it better because that's been pretty much a constant.
+
+But if my sleep quality was worse in duration, I'd imagine it'd be worse.
+
+I don't know that I can further improve the need in pace based on sleep.
+
+There are other stuff, other secret sauce.
+
+Maybe I'll that, that Conqueraging or Diet Trying secret sauce, secret juice.
+
+What's the secret juice?
+
+there something extra that you're doing that other people don't do and that's the secret sauce?
+
+secret juice is the data.
+
+It's tracking the data, following the data, you know?
+
+And from the people that I'm working with as clients who are doing that themselves too, or I'm
+tracking their data and helping them make evidence -based suggestions, people that are watching the
+YouTube videos that may be trying it on their own, I don't think very many
+
+people have that secret sauce, right?
+
+And maybe it's not the secret sauce immediately.
+
+Maybe it takes three years of discovering the secret juice recipe, right?
+
+things that are resistant to change, biomarkers that are resistant to change, I've found that they
+are not resistant to change using this approach.
+
+I've got the secret juice for now.
+
+We'll see how long I can live using the secret sauce, but yeah, so far so What about the
+environment?
+
+house like physical spaces, mean, I'd say right now it's not optimal.
+
+That's my whole life right there.
+
+Well yeah, and the YouTube channel, yeah.
+
+So that's literally everything I do.
+
+From the time that I'm not working on academic stuff, it's time with the 15 year old, it's the
+YouTube, every second of the day, not just every calorie, every second of the day is pretty much
+accounted for.
+
+Sometimes I do screw around, right?
+
+Because you can, one focus on academic pursuits all day, every day.
+
+I'm not that guy and I'll look at just dumb stuff.
+
+And then I'm like, what am I doing?
+
+Five minutes later, I'm like, what am I doing?
+
+And that gets me back into what I was doing, right?
+
+So there's a balance between focusing on nonsense and focusing on the really serious stuff.
+
+So I do have a little bit of nonsense that I'll pay attention to.
+
+any other athletes on the Rejuvenation Leaderboard that you know.
+
+Dave and I have corresponded a few times.
+
+Brian and I have corresponded by email a few times, one time on Zoom.
+
+Anybody else that I know?
+
+Trying to think of anybody else.
+
+I've tagged Steve Ioki telling him he needs to catch up.
+
+I've tagged Peter Diamandis telling him he needs to catch up too.
+
+Yeah, there are some people that just post and don't reply, which is kind of like the TV, and I
+fucking hate TV.
+
+I don't know, but it's interesting because like people of your generation and in that ballpark, in
+that age range, maybe I'm a generation or two ahead of my time, right?
+
+Where you fast forward.
+
+75 years, 50 years, 25 years, when will we have this technology in our homes, right?
+
+the correlations is something you wake up and based on your biometrics, whether it's peeing in the
+toilet, pooping in the toilet, or some finger prick blood test, whatever it may be, you've got your
+data for the day.
+
+I don't know if you've seen the movie, but Gattaca, have you ever seen the movie Gattaca?
+
+So it's basically a genetic version of the future.
+
+It's one of my all time favorite movies.
+
+What is one thing that many people disagree with you, but you strongly believe to be the case?
+
+Yeah, that's interesting.
+
+Are there things that you think might be true like that in my case?
+
+I can't think of anything off the top of my If you tell me to sleep well, well, yeah, thanks, like
+no shit, Sherlock, you're not saying anything.
+
+Everyone knows that you should sleep well.
+
+But if you tell me something that a lot of people disagrees with, but you actually think that, hey,
+this is the thing that I strongly believe, like you might actually give me some food for thought,
+provide me some value.
+
+yeah, I get the premise.
+
+The only reason I'm having trouble with it is because if I believe something so strongly that I'm
+married to that idea, for me, I lack an open -mindedness in that scenario.
+
+And I hope that I'm not married to any of my ideas so strongly where I'm not open to someone else's
+perspective.
+
+So I tend to think that I'm not married to an idea or an approach.
+
+so strongly that I don't consider that something else could be true.
+
+So I think the first thing that pops into my mind is there is no one size fits all for diet.
+
+And this may be controversial, but the idea that someone could be on a carnivore or an animal -based
+diet and it's a suboptimal approach relative to other diets, maybe that's controversial.
+
+And the reason I say that is, and I'm not on a carnivore diet, I'm far from it.
+
+almost exclusively plant -based, but I think that based on someone's biomarkers, if you show me the
+net of your biomarkers are improved on a given diet, carnivore, vegan, whatever it may be, I'm open
+to it, right?
+
+But just the idea that your diet is X, it can't be good because Mediterranean diet seems to be the
+best, which by the way, the Mediterranean diet is only a shade better than the Western diet.
+
+It's like, it's not much better.
+
+I mean, it's...
+
+pizza and pasta.
+
+I don't know pizza, but it's a little bit better, but there are higher levels even to what's
+considered a Mediterranean diet.
+
+For example, I'll give you a quick example.
+
+Yeah, I know what the research considers to be a Mediterranean diet is very different.
+
+So that's the first thing that I could think of, but I don't know if there's something that you
+think maybe that I would be very strongly, I mean, my core philosophy is you gotta test.
+
+Like, some people will come at me with so much certitude sometimes in the comments, YouTube comments
+or elsewhere, where I'll show the data, I'll show the mechanistic hypothesis, and they'll say, you
+gotta do X, Y, or Z with so much certitude.
+
+You see, I tried to go way too abstract with this question, but what I wanted to ask you is that
+this is the time, the show for call to action for an advertisement.
+
+So do you have a product right now that you're selling, that you're value, that you're providing to
+other people It's such a big value that they are even willing to give you money for Yeah, so the
+obvious is I have t -shirts in any color or red blue.
+
+I don't know red white and blue Not for any reason that's just the colors Yeah, there are plenty of
+ways to support me and what I'm doing besides t -shirts Watching YouTube watching YouTube videos.
+
+I have a patreon where I have various tiers people can check out I post my daily data for fitness
+metrics.
+
+I post my daily diet post early videos, these are all separate tiers.
+
+I post correlations with the data.
+
+It's another tier.
+
+offer one -on -one consults.
+
+So there are many ways that people can support me and I can offer value back.
+
+So that's probably the best way is Patreon and t -shirts.
+
+There are also affiliate links that are on those sites too.
+
+So people have blood testing, whether it's true diagnostic or NAD or any blood test in general, if
+they use discount links that are under the YouTube videos that help support what I do.
+
+And then there's ways to donate, you know, I've got things like buy me a coffee.
+
+I've got, I also wrote a book in 2016 that people could check out, but that's on a slightly
+different topic, microbial burden and what we can do to fight back.
+
+So yeah, those are the ways to support.
+
+Michael Asgarden, conquer aging or die trying fellow freedom lover.
+
+Thank you very much.

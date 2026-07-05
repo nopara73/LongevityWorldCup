@@ -1,0 +1,19 @@
+# The Hidden Limitations Of Fitness Trackers #fitness #dataAnalysis
+
+Video: https://www.youtube.com/watch?v=q1G_DhbTuqY
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 3/5 units; 122/126 words.
+Matched topics: exercise
+
+## Focused Transcript
+
+You know, I use this stupid Whoop that I I mean, I have issues with it because it's kind of like uh
+it's it's it's not really open source and it's very closed, you know, it's closed source also,
+
+>> So, what if you want to do something else or or or for example calculate the HV throughout the
+day or having a moving average or make a time series or calculate other things you can and you
+
+try to export the data and it's an issue also. I mean so there are things you can do like for
+example you can buy a chest strap and then you know you can you can get the raw data at the
+intervals and no

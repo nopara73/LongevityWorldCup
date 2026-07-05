@@ -1,0 +1,543 @@
+# Can Stem Cells Make You Live to 150? | Yuta Lee, Accelerated Biosciences
+
+Video: https://www.youtube.com/watch?v=bZ5TSc8-C9I
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 193/472 units; 4370/8930 words.
+Matched topics: Bryan Johnson, Longevity World Cup, age reversal, aging, aging clock, anti-aging, biohacking, biological age, biomarkers, epigenetics, exercise, glucose, hallmarks of aging, healthspan, inflammation, lifespan, longevity, longevity athlete, medicine, mortality, nutrition, rejuvenation, senescence, sleep, supplements
+
+## Focused Transcript
+
+Goal: Push lifespan beyond 150 years.
+
+Founder and CEO of Accelerated Biosciences.
+
+So, 150 years, uh?
+
+What's the plan?
+
+>> Well, the plan is to reach what we call longevity escape velocity.
+
+Have you heard that before? A term?
+
+>> I had Aubrey de Grey on my podcast.
+
+>> And I asked him to tell me what longevity escape velocity is.
+
+Still not 100% sure. I know, I spent um an unreasonably uh lot of mental power to actually
+understand the term longevity escape velocity and and it's still not 100% clear and now I'm starting
+to think I'm
+
+some kind of extremely stupid person.
+
+So, this year I'm 54 years old, next year I'm going to be 55, there's nothing I can do to stop that,
+right?
+
+But if you take biopsies or samples of cells from every organ in your body, it'll have a different
+biological age.
+
+That's a standard deviation from your chronological age, right? And that age for every organ is
+really just a a function of your genetic heritage plus your lifestyle, right? You know how some
+families have bad hearts, some
+
+families have bad stomachs or even bad uh you know, Alzheimer's uh history in the family. Uh that's
+your genetic heritage, right? Not much you can do about that. But then your lifestyle, right? Do you
+drink? Do you smoke? Do
+
+you not sleep well? Are you exercising?
+
+And that really changes the dynamic of that biological age of that organ.
+
+Right? And so, the idea is that you want to reverse your biological age by more than 1 year.
+
+If you're increasing your chronological age by 1 year, but you're reversing your biological age by
+more than 1 year, then technically you're going backwards.
+
+And when you reach that backwards motion, then you've technically achieved longevity escape
+velocity.
+
+>> So, longevity escape velocity in the audience interpretation, it's applied to a single person
+here, and not like to humanity.
+
+>> Well, I think that's actually a very good point. Um you know, we can only affect our own uh
+lifestyles and our own um biological well-being, I guess. And um but before the entire society to
+reach
+
+uh LEV, I think it would take a very solid uh medical intervention.
+
+Right? As solid as, for example, vaccines.
+
+Um as solid as insulin, right? Being invented for the first time. Changes the lives of a lot of
+people, right? And so, I think it um it really takes that kind of medical intervention to to really
+
+drive an entire society to be younger or live longer.
+
+>> I want to ask you about the measurements here. How do we measure biological age here?
+
+>> That's a really great question. And in fact, uh it's something that a lot of people are working
+on, right?
+
+Usually they use um methylation, which is the changes in your epigenome, um as a measure of how old
+you are biologically, right? And there are a lot of different methods to measure that.
+
+And um unfortunately, none of them are very accurate right now. They all have very large standard
+deviations. And so, if you were to take the same test at the same time in triplicate, it will come
+in
+
+at a different range.
+
+Which means it's not accurate yet, nor precise.
+
+So, I think we're the whole industry is kind of working on finding the right accurate measurement of
+biological age, right? So, it's so you have to distinguish between your genome and your epigenome.
+Your genome is your hardware.
+
+Then, every cell in your body in the nucleus has your DNA.
+
+>> And it's pretty cool. And so, basically what we're doing is we're taking that methylation. As you
+get they discovered that when you get older, there are more proteins put on to the epigenome. Um and
+and that's correlated with the age.
+
+And so, the the you know, they're using that as a measure of how old your biological age is.
+Unfortunately, it's not very accurate now. So, we're all looking for a right clock tease.
+
+>> Well, is there is there any any idea? Do you have any ideas like what would be a a positive
+change that we can engineer by by by actually putting ourselves in a different environment and and
+change
+
+And we are based in uh Philadelphia, Pennsylvania.
+
+Um and uh what we have is stem cell platform called a human trophoblast stem cell, which happens to
+be the earliest stem cells that you could possibly find without any ethical issues.
+
+Feel a sharp pain in her abdomen, go into the ER.
+
+The doctor will scan her and go, "Uh-oh, you have a tubal ectopic pregnancy. That means the embryo
+is stuck in the fallopian tube."
+
+And they have to schedule an emergency salpingectomy to remove it.
+
+Stem cells are really the earliest state of a cell, right? So, it's the original cell that can
+differentiate or turn into all the different cells in our body.
+
+Okay? And a stem cell is actually defined as a the original cell that can create another stem cell
+of itself and yet at the same time turn into all different cells in your body.
+
+Okay? So, it's the original cell, right?
+
+And um they're all over your body, right? In the beginning, we all started from the embryo and
+that's the the original human embryonic stem cell and that's where we all came from, right?
+
+Later on, as we become adults and human beings, there's still stem cells hidden in literally every
+part of your body.
+
+And and so they the stem cells are are extremely important. But your stem cells will um exhaust over
+time as you get older, unfortunately, right? So this is part of uh aging that we're trying to solve.
+
+They do slow down, they do stop, but new ones will come.
+
+different types of cells in your body.
+
+So for example, your muscle cells will have muscle stem cells.
+
+Um your uh liver cell your liver's stem cells within create other liver cells to help you uh
+metabolize, screen out toxins in your body. This is for example, right? So the stem cells are always
+there and then
+
+So, you can't you constantly have a regenerating pool of cells in your body.
+
+Right? No one's putting in any new things in your body. So, when you start putting new cells in your
+body, that's called cell therapy. Right?
+
+So, that's your you're trying to take an outside healthier cell to put into your body to help help
+it fix something.
+
+Make sense? Yeah, and so that's called cell therapy. And that's actually one of the the hottest
+sectors um in the next next evolution of uh biology. Right?
+
+We spent about 200 years, you know, designing chemical drugs, right? But unfortunately, these
+chemical drugs only block a cascade of proteins or uh so block the symptoms.
+
+>> Or not deeper, but a step back. So, if I If I understand it correctly, the the very long-term
+promise of stem cell therapies is that we conquer stem cells or cells in a way that basically we
+will be able
+
+to do anything uh with our body in regards to cells. So, what about peptides? Are they coming in
+here somewhere?
+
+>> I heard the peptide uh designer uh So, there is a platform called Ligan Legend AI and they are
+designing peptides and supposedly they have like a breakthrough in peptide design.
+
+Then he he explained to me the difference between peptides and and let's say something like creatine
+or other supplements is that creatine's is really small. It's like it goes into every part of your
+body. You you cannot
+
+really combine and engineer creatine and and and smaller molecules like that. So, why we have so
+much potential in in peptides in contrast to to to other supplements, those are like really small is
+that oh, we can actually like
+
+like engineer these peptides and combine them in many different ways. Those can uh create targeted
+effects in our body. I'm sure it does.
+
+Um but not all exosomes are the same.
+
+Not all stem cells are the same. Not all cells are the same, right? So for example, if you have a
+senescent cell, uh these are cells that are old.
+
+Um they stop dividing. They they refuse to apoptosis. They refuse to die.
+
+So as you get older, your immune system doesn't doesn't surveil very well and and they don't catch
+these old cells anymore.
+
+But these senescent cells accumulate in your body and they're fueling out a lot of pro-inflammatory
+messages. Literally sending out these exosomes saying, "Be old. Be inflamed. Be inflamed."
+
+Right? And this inflammation is actually the cause of a lot of aging diseases we have today.
+
+Cancer's also doing the same thing, right? So if you have a tumor, it's putting out a lot of uh
+messages, probably telling your neighboring cells, you know, "Be Be like me. Be a tumor. Be a
+tumor." Right?
+
+>> I I that makes makes sense. Yeah. I see what you >> And and to and so and so to to come back to
+your your your um your earlier point, there are a lot of companies trying to
+
+make these lipid nanoparticles to synthetic synthetically make these extracellular vesicles to
+probably deliver drug or deliver some gene therapy.
+
+Um many times you'll find that these synthetic formats will accumulate in your liver and cause
+toxicity, right? So, your body has a natural way of recognizing something that's synthetic versus
+something that's natural.
+
+>> Can you measure that in a blood test?
+
+Can Can you see that some stuff accumulated in my liver? As these normal liver markers, they they
+catch that, right? Or not?
+
+Yeah, is your liver functioning the right way? Is it digesting? Is it Is it enzymatic action, right?
+
+>> So, you can reasonably safely mess around with NAD like that until your liver GGT and whatnot >>
+G O G G P T, yeah.
+
+>> [laughter] [clears throat] >> Okay, so I'm not I'm still not seeing how we how we were how we get
+to 150 from here, but uh >> Ah. Still, about 3 years ago a researcher from the National Institute on
+Aging, which is part of the NIH uh in
+
+the US calls me and says, "Utah, we saw one of your presentations in Seattle, and we hear that you
+have the earliest themselves that you possibly find without ethical issues."
+
+They discovered that the old mouse is biologically getting younger and the young mouse is
+biologically getting older.
+
+As a second experiment, they did not stitch them together, but did a plasma transfer and the same
+thing was happening.
+
+So, what does that mean? It means that you can rejuvenate an old mouse just purely by function of
+the proteins coming off the blood of the young mouse, right? So, based on that, he was thinking, if
+you can rejuvenate an old
+
+mouse just by young blood, what happens if you take the earliest stem cells and their secretome, all
+the proteins coming off of it, and you put it towards these senescent cells I was telling you about
+earlier?
+
+And what we discovered is that we can systemically downregulate all inflammation, not only in the
+dish, but also in in animals in our in our mice study. Okay? And the inflammation Well, that
+particular experiment was retro-orbital. So, you have to take a
+
+needle and stick it in the back of the eye and inject it.
+
+>> [laughter] >> But normally, you also inject it through the tail vein. So, there's a very big vein
+next to the tail of the mice. Um you can inject it through and it's no different than us going to a
+hospital
+
+and getting a a blood draw, right?
+
+Yeah. And so so we can systemically downregulate all inflammation in the blood and so we're going to
+use this material now to go after some infla- inflammation-based diseases.
+
+But how do we get to 150?
+
+The idea is if we know that we have the earliest Okay.
+
+>> All right. Did you say that stem cell therapy is uniquely well suited for high inflammation?
+
+>> Uh say that say that again. The stem cell therapy is what?
+
+>> Uniquely well suited for someone who has higher inflammation.
+
+>> Yes, our our stem cell and the exosomes that come from our cells It's very good for for down
+regulating inflammation systemically.
+
+>> You do that in caution?
+
+>> [laughter] >> Yeah, I'm biohacking with it. So.
+
+>> Yeah, I'm 54, yeah.
+
+>> You're 54, really? Okay, you're enjoying the longevity birth cup.
+
+I have to see [laughter] how you stack up.
+
+>> It's working. It's working. It's working. It's supposed >> Yeah, you know, this is really
+interesting because um Joy Dr. Joy Kong um course I'm just it's just an anecdote, but I met her in
+person and she's like
+
+compared to her age, her her skin is like almost like perfection. How How does she do that?
+
+And she's saying yeah, she doesn't care much about lifestyle. She's just doing the stem cell therapy
+stuff. So >> Yeah.
+
+>> who is doing stem cell therapies so far all of them I met look really impressively. That's that's
+what I would say.
+
+>> It it does work because you know, the the cells themselves um tend to be cleaned up by your
+immune system fairly quickly like within within a week.
+
+So so only our cells don't have that problem because we are Go ahead.
+
+>> Can we put it in context here like in your opinion how much does it work? So we have let's say a
+scale of something like exercise, sleep, nutrition, red light therapy plunge, stuff that work less
+and less.
+
+Right? Like where would you put um stem cell therapy in this scale?
+
+You know, would you put it like oh it works actually much better than exercise right now what you're
+doing?
+
+>> I I think this is just my opinion, okay? I think it's just really hard to compare these things.
+Right? Because um you know the lifestyle interventions, you know, sleeping well like what Bryan
+Johnson does, right? Sleeping well, eating well,
+
+exercising um taking all these supplements. I mean I think that's that helps but there's only so
+much you can do with that. Right? And I think for us to live to be on 150 really need uh medical
+
+intervention. We need some something some new technology or some science to help us break through
+that barrier.
+
+As I I think the only way to do that is Yeah, obviously all the lifestyle things will help, uh but
+it really requires intervention.
+
+Like what we're doing, right? And so so how we're approaching this is the same exosomes that we're
+telling you about earlier, right? That can down down regulate inflammation.
+
+We believe that we can use that as a prevention.
+
+And that this material, just like the old mouse and the young mouse, can help you either to slow
+down, stop, or even reverse your biological aging.
+
+So you can imagine, you know, our children when they start at 20 injecting this as a prevention at
+the right dose and right frequency, when they turn 100, they still have the internal organs of a
+20-year-old.
+
+>> You mentioned right those and right frequency.
+
+Um yeah, it's a kind of worms, but let's say take me uh what yeah, uh in terms of of longevity and
+see >> Yes.
+
+>> How often should I do what based on your current knowledge?
+
+>> How often you should do do what do you mean? Do you do supplements or >> No, no, stem cell
+therapy, right? Like for exercise. Oh, I should probably exercise around three times a week.
+
+For for weightlifting, right? I should probably do that. I should probably do some other kind of
+exercise, but but what for stem cell therapy? How does this look like?
+
+>> Well, I can only tell you from my personal experience, right? Um I'm I'm also biohacking with
+that with our material and uh I do very high dose exosomes once a week.
+
+And um after a while, you can maintain it by once a month.
+
+>> then that's that's like a real solution like >> It is.
+
+>> we actually have something something that comes out of medical innovation that's not just
+exercise and whatnot.
+
+>> That's what we're working on.
+
+>> can you make this happen as fast as possible, right?
+
+>> Yes. So, we're we're we are um running some clinical trials about uh 14 employees right now.
+
+We've raised about 20 Yes, it's I founded the company.
+
+So, this is my father's invention. And so, uh back in 2005, he came to me and said, "Utah, I
+discovered a really interesting stem cell." He is he's 85 years old and still working.
+
+And so, uh so, he said He's still No, he's doing it and he's he's doing research as well, so >> Uh
+no >> Yeah, so >> What's what's your What's the name of your father?
+
+>> Yeah, no no worries. Soft mice.
+
+>> Uh the best we could do with mice is calorie restriction, so so why if you could do something
+better than with stem cells than I would expect to see something to happen with stem cells on mice.
+
+>> Well, look, I think it's what you're what you're asking and the evidence that you're hoping for,
+right? Is is we're so early on. We're literally just at the beginning of it, right? So, two pieces
+of evidence
+
+that I see in cell science that that at least we could see that anti-aging or longevity is no longer
+science fiction, right? The first one is what I told you about earlier, the parabiosis, right? We
+
+know that young protein or young blood can actually affect an old mice to go younger.
+
+And we believe the same thing can happen to human beings, right? The second one is um you probably
+heard of Shinya Yamanaka uh from Kyoto University and the induced pluripotent stem cells, right?
+
+What he did was he took a Sendai virus and he put four transcription factors in it.
+
+And was set it on the a skin uh an adult skin cell was able to a factory reset all the way back to a
+stem cell state that they called induced pluripotent stem cells or iPSCs.
+
+Now, why is that so important for longevity?
+
+If you if you can turn one cell and reset it back to a stem cell state, that means theoretically you
+can turn every cell in your body back to an earlier state, right? So, longevity really just is an
+engineering
+
+problem, right? And so, there are two companies um that are very famous in this field that's trying
+to do the reprogramming.
+
+That's a good one. Wow. Well, um Wow. I got one for you.
+
+Um investment in longevity.
+
+That's always been a strange one to me.
+
+You know, I I I say in a lot of podcasts and also in my keynotes sometimes if you're above 50 like
+me and especially if you're ultra high net worth, right?
+
+What is beating the S&P 500 for the next 10-15 years going to mean to you? Nothing.
+
+Right? And if I were I mean, I'm doing it already, but uh you know especially these these ultra
+night high net worth individuals, you should be investing almost all your money in longevity.
+
+Because that's the only thing left to compound, right? Is your is your health.
+
+Um can't take it with you, right?
+
+So, I I'm I'm a very big proponent that um against all of the proper way of thinking about
+investments, I think everybody should invest more in longevity.
+
+Right now, you can pick any strategy you like.
+
+The fun part of it, right? You can >> The fun.
+
+>> It is a hard part and the fun part, right? You get to pick. Like, for example, I'm picking, you
+know, uh heterochronic parabiosis. Other people are picking reprogramming. Other people are picking
+supplements or exercise. I'm >> What sounds question for me because
+
+personally I did set up on this question that okay, so I want to get into longevity, but what the
+hell should I pay attention to because if I pick wrong, then I spend a lot of time and energy and
+effort and
+
+probably even money on the wrong thing, right? That's uh the breakthrough comes from another place.
+So, what my solution was here is to create a competition where people compete with each other on
+longevity on biological aging clocks, right? The
+
+longevity World Cup. And that way I can I have a have a hand in every single longevity intervention
+that's currently working because if something is working, then these people are going to be the ones
+those are
+
+they to use this, right?
+
+game changer will come from. I have my ideas, you know, other people have their ideas.
+
+Now, that's the fun part I think about longevity, right? Is that you know, in contrast to all the
+other sciences where people are really just competing with each other, right?
+
+Longevity is the one where if one of us wins, everybody wins.
+
+So, there's really no need for the feeling of competition, meaning, "Oh, I'm going to try and beat
+you. I'm going to try and be better than you."
+
+I think you just do what you do, and if somebody wins, that will come to the surface, and everybody
+can use it, and everybody wins.
+
+Right? It's not a zero-sum game. It's actually one person makes it, and everybody makes it, right?
+So, that's the key.
+
+And so, you know, if you if you go to um these longevity conferences, uh I'm I'm going to be doing
+keynote at the Lifespan Summit in Berlin at the end of the month.
+
+That's going to be pretty exciting.
+
+Um and uh Longevity Summit Dublin is going to be at the end of June, right?
+
+These are all very exciting scientific conferences. Now, the great part about these conferences when
+you go, everybody's super supportive of each other, and that's the reason why.
+
+And if you've ever gone to any of the scientific conferences, everybody's super protective. They're
+competing with each other. They're trying to outdo each other in the science, right? Even in cancer,
+which is crazy. Like, you could be at these
+
+cancer conferences, and they're like, "Well, no, my strategy is better than yours." Or my you know,
+my technology is going to be better than yours.
+
+So, there's a very intense level of competition to try and outdo each other in academia, which I
+think is less prevalent in in longevity. So, and that's where I love about longevity.
+
+Everybody's super supportive of each other, and they're fun conferences to go to because everybody
+knows that we're all working towards the same goal.
+
+And so so, you know, highly suggest you go to as many of these things as you can because, if nothing
+else, you'll come back a more positive person.
+
+>> You see, that's how I noticed the the athletes, the longevity athletes, the Kabat test as well.
+It's like Okay, so I I do this competition and I didn't end up winning it, but in the end, I just
+ended up being much happier
+
+than I would otherwise would be. So, I I really end up winning just That's a competition, yeah.
+
+>> That's right. Everybody wins, right? And so, and that's longevity, right? I I'm All the companies
+that are out there, man, I hope they all make it because you know, Life Biosciences, I mean, if they
+succeed in their reprogramming, they can
+
+make blind people see again. How cool is that, right?
+
+And, you know, I'm not working on my eyes, but I might go blind one day.
+
+And if I do, then that will be ready for me, you know? These are the things that they're very
+exciting. I'm very, very supportive of all the technologies that are out there as long as they have
+a
+
+longevity focus on it or health span focus. Super supportive of everybody. I think I I think that's
+the way it should be.
+
+You know, we're all we're all in the same boat.
+
+>> You you Yeah, you know, our our website's acceleratedbio.com, right? And then you can learn about
+our science and and um well, you know, I'm happy to I talk to everybody, so happy to teach everybody
+as much as I can
+
+about stem cells. But but my call to action is very simple. Everybody said it earlier. Everybody
+invest in longevity.
+
+If you are wealthy, invest money.
+
+If you are less wealthy, invest your time.
+
+Learn, you know, um educate yourself and participate.
+
+You know, go to the conferences, meet the people, um find other ways to participate and and to to
+discover longevity your way.
+
+There is not one path. There's a lot of different paths because we're still early on and there are
+many ways to tackle this problem, right? There are all these hallmarks of aging, you know, if you
+want to look at it from
+
+scientific standpoint. You can attack any single one of those and as long as you succeed in any
+measure that adds to the science, that adds to the knowledge of how we can possibly ex- extend our
+lives, our health span and
+
+our lifespan, right? So So, there's no one path and there's no winning path. I think, like I keep
+saying, everybody wins. So, figure out how you want to participate and jump in and do something,
+right? And um and and, you know, even if
+
+you just come to the conferences, um you'll meet the coolest people on Earth and the nicest people
+on Earth and they're all working on very science.
+
+So, that's a really great place to learn.
+
+And so, I highly recommend uh Life Summit in Berlin at the end of the month and then Longevity
+Summit Dublin at the end of June in Dublin.
+
+Very exciting ones.

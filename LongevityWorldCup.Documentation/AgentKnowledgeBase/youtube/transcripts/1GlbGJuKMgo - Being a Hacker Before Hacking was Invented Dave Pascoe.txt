@@ -1,0 +1,252 @@
+# Being a Hacker Before Hacking was Invented | Dave Pascoe
+
+Video: https://www.youtube.com/watch?v=1GlbGJuKMgo
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 75/501 units; 2502/14148 words.
+Matched topics: aging, biohacking, biomarkers, exercise, medicine, nutrition, sleep, supplements
+
+## Focused Transcript
+
+So we're we're talking like ancient days here. This is way before the internet.
+
+It's going to put you into a new light in in in people's eyes here because you're usually talking
+about biohacking and other stuff.
+
+for a very long time because programming is changing completely. Right now we are talking to the
+computers like talking to junior developers or other humans or I don't even know what what
+conceptual uh level we should we we should call it
+
+but let's come full circle back to the punch cards era as far as I understood you guys were spending
+a lot of time in your heads uh in order to figure out what program you can run because running that
+program
+
+was expensive. So you prepared it and you brought it there and then you spent like an entire day
+thinking what the next software, what the next instructions should be. And I see something very
+similar happening right
+
+now, especially with the better programmers. I'm not there yet. I'm my my AI runs I'm only running
+like one or two AI at the same time and they are running for like a couple of minutes perhaps half
+an hour maximum but I see
+
+the better programmers who are unfortunately not me they are running many AIs at the same time and
+they are running them for days right and running these things are really expensive so they really
+have to figure out what
+
+instructions they they should be giving them. Do you do you see any parallels there? Am I even
+characterizing that era correctly? No, you you are. And I wanted to clarify for the folks at home
+because I mean I see that you understand and I
+
+definitely understand because I was there, but for the folks at home, you have to you guys have to
+understand that like Adam said, we only got one chance at running a program each day because we
+would have to think about it
+
+all day. We would have to, you know, run through it in our heads, right? We used to what we called
+play computer, right?
+
+we went, we were so intimidated because it's all these much older kids and here we were 15 year
+olds, right?
+
+But the cool thing was uh we were given there was four of us and we were given four pro or five
+programs to do and one of the programs I saw happened to be that sample >> of running sine wave
+right and I'm like
+
+I'm taking that one and this one these are mine >> and because I already knew how to get the lowest
+amount of CPU out of that it even though we didn't finish Like one of the guys didn't finish his
+program, we
+
+password in once. It would record your ID and password to a central file that I had access to and
+then it would terminate but give a message that said, "Oh, invalid password." and it would terminate
+to the real login screen.
+
+So people would go in, they'd go to log in. Oh, must have fat fingered my password. They try it
+again, they're in, they're in on their account now. But I would have my account running on all of
+
+these terminals before students would come into the class. I even did this in college. U before
+students would come into the class, they would all try to log in. First time, oh, I must have
+screwed it up. second time, boom, it
+
+And so at one point I just completely automated my my job so I could check out mentally start
+listening to podcasts and you know health related things and reading books and listening to audible
+and learning it all about all the new
+
+things that weren't known as biohacking quite yet but you know we're the beginnings of biohacking.
+
+So that's that's how the one thing kind of bled into the other. don't want to run that much ahead.
+But are you currently playing around with stuff like agents, open claw, stuff like that?
+
+tokens and I couldn't even get anything useful to them yet. But uh maybe I should work at Open AI so
+I can have free credits or something like that.
+
+That's why I purchased uh some additional servers here at home and I'm running my own local models.
+
+>> But I think I'm talking about the model. So I'm using Corsor and Codex 5.6. 3 model but just
+today uh the GPT 5.4 came out which obsolate codeex 5.3 and uh and anyway so I I just I'm not
+
+running any other AI model now I I tried around and this one actually does what I want and the other
+ones are [ __ ] so I just can't can't be bothered. I I I spend my money. Unfortunately, as I'm
+
+getting better and better, I spend more money, but for now, I can still still pay it.
+
+>> Yes. Yeah. So this is this was the time when you >> before internet this was uh about the time
+when we're doing local area networking and uh because I wasn't really able to participate in the
+local area networking portion I got into other
+
+things like I started doing uh performance tuning of uh applications of the databases even of some
+of the mainframe itself which involved collecting a bunch of statistics you know, on how the system
+was running.
+
+>> Oh, sorry. Just I I just want to say I didn't read that line. I didn't read it.
+
+weekend warrior, right? When I would get out of work, I would I would go to a health club and I
+would go, you know, run on the treadmill and and do the machines. But I realized that just
+
+sitting all day was not healthy. So, I started taking more breaks and, you know, doing ex exercise
+snacks, which that phrase wasn't even coined back then. That was something relatively new, but but I
+was doing those, you know,
+
+taking a break every so often and doing some push-ups or go and just do a little sprint and come
+back and I'd be refreshed and energized to go hit it again. But I I realized there were two
+
+other I mean two other levels to that, right? One was the complexity of the human body that it's a
+very complex machine and that's why I went to my doctor because I wanted to be able to
+
+get some blood testing so I could see what my values were because you got to get a baseline. That's
+that's first in any system. Get a baseline. what what is the system doing right now without you
+
+manipulating it at all and then start doing some manipulations and see how that changes your
+baseline and then iterate that again and again but I couldn't even get my doctor just to give me
+basic tests right um he laughed me
+
+out of his office because I asked for uh testosterone estradi and estrogen and he's like men don't
+have those things women have estrogen and estradile I mean he just thought it was a totally idiot
+idiot laughed me out of his office and I
+
+us to be consumers and you know to our teachers were programming us to be good workers you know in
+uh in a class system you know where we're going to be in this capitalistic society where we the
+
+workers are going to help the owner build the company or keep the company running. This is how we've
+been programmed since we were born.
+
+And we can recognize this programming that what society has programmed us to do and think and
+behave. We can look at that and we can supersede our own programming if we're aware of the
+programming. We can modify that. We can
+
+the way it's its core kernel and everything was was built. Anyway, uh I built everything that I was
+doing under OS2 because I could have all these things running simultaneously and they could
+communicate to each other. Uh the
+
+threads were like you could create semaphors to communicate. Again, if one died, I could immediately
+spawn another that took its place and it didn't take the entire operating system out of whack. You
+know, everything stayed stable.
+
+And so I created this bulletin board system that these list brokers could dial into and the
+mainframe would instead of creating a mag tape it would create a file that then got transferred via
+this halap this highle language
+
+application programming interface. it would transfer that to oh actually no no there was a direct
+link from the mainframe to transfer a file to a micro system. So I I had a server that the main
+frame that was dedicated just for
+
+the mainframe to transmit these files to at the end of its processing job. Then I had Halapi running
+that so that these files became available to the bulletin board system. And now these list brokers
+could use their acoustic modem, pop it
+
+in the the modem, dial up, order off of the bulletin board what list they wanted to get, which would
+trigger the mainframe system to create it. the back end would then produce a file that later they
+all they had to do is dial back in
+
+And so all these things kept coming into play to make what should have been like super enjoyable. I
+just loved the heck out of it. It kind of made it a nightmarish hell through most of it.
+
+>> Okay. Uh so at this point you're you're already doing the basics right in healthwise. Sleeping
+well, eating well, supplementing.
+
+>> My late late 20s, early 30s.
+
+>> I was interested in my sleep because uh the Zo headband at one point, Dave Asprey loves to talk
+about that, by the way. Um, the Zo headband came out at some point and I don't even know what
+
+year that was. I was an early adopter of that. It was a a headband that used to strap around your
+head and it would read brain waves like directly through your skull. And so you weren't like how
+
+things are on your wrist or in a ring.
+
+They're getting signals through the body that then they apply algorithms to to guess really at what
+brain wave you're in. And that's why none of them agree by the way between the Garmin, the Aura, and
+the Whoop. They completely and my
+
+eight sleep mattress pad. They all completely disagree on how much deep sleep, REM sleep, how much I
+was awake, how long I actually slept, all different because they're really guessing. The Zo headband
+was truly reading what brain wave you were in. So,
+
+it was it was excellent data.
+
+Unfortunately, the company ended up going under and um there was a community of like developers that
+kept it alive for as long as they could, but because the uh the padding the pads that were part of
+the headband would wear out and
+
+they were no longer producing new pads, you know, it eventually just died out because the the pads
+were no longer workable. So, I was I was doing things like that. I was monitoring my sleep. I was
+doing lots of uh exercise, just not
+
+to any degree. I didn't know what I was doing. I would go to a gym with a clipboard. On this paper,
+I would have a print out that I printed off on my different like nautilus machines that
+
+lean looking, but muscular. And I thought, all right, I want to try that.
+
+So, I I bought that program and started doing that, but it wasn't taking care of my nutrition
+because for some reason, I mean, I knew garbage in, garbage out. I knew that junk food wasn't good
+for you, but I
+
+could see that I could eat junk food and it wouldn't kill me, right? I didn't feel any different
+when I was eating junk food. So, I thought no harm, no foul. And then there were times in my
+
+life where I was just when I was living off on my own, I was existing on uh chipsoy cookies and
+beer, you know, that was kind of like calories. I thought you needed calories to survive, which
+worked. You got your
+
+energy from calories supposedly, but I didn't realize that uh that was not proper nutrition, which
+is probably why in my 30s I felt old. I looked old. I felt like my life was over. Like I was like
+not
+
+attractive. I didn't have anything to look forward to. Um I couldn't seem to get a date, you know?
+It was just really annoying, right? So, it was just it was easy to become a geek and throw yourself
+
+So, high school, girls looked. 30s, girls weren't looking anymore. But I wasn't putting the work
+into it until P90X came out. And um yeah, that pretty much changed my my social life now. Now I
+started having a lot of confidence,
+
+was getting a lot of lot of looks from people. But again, my diet still was not right.
+
+And I thought, see, diet doesn't matter.
+
+I can look good. I can feel good. I can be strong. Doesn't seem to matter what I eat. But I didn't
+know how that was aging me and how that you on a cellular level, I was not doing myself any
+
+favors. didn't learn that till much much later. So I don't want to skip too far ahead.
+
+>> Just two things uh that that came to mind. So I I guess now we we we moved on to health stuff. So
+let me ask you uh yeah first selfish question. Do you take morning pills before blood test?
+
+>> Yes >> I do. Um, >> yeah, >> particularly my thyroid medication.
+
+That's all that's it. That's all I take before my blood test. And the reason being is because I want
+to make sure that the thyroid the level of thyroid hormone that I have is appropriate.
+
+>> Normally, do you take PS on wake up?
+
+>> Yeah. Just the thyroid medication. I have to take that very first thing when I wake up and then I
+have to wait >> Oh, I see. I see.
+
+>> Wait an hour to take my other empty stomach supplements.
+
+>> Yeah. Just just the logic right the logic here is important that if your normal state is taking
+the PE then perhaps you shouldn't kid yourself with baseline without peers you know >> yeah but
+different supplements have different half-lifees they'll stay in
+
+your system longer than others and so yeah there are some that are fast acting and they're cleared
+really quickly like for example my Um, my T3 thyroid hormone, it sticks around maybe, you know, a
+couple of hours, whereas the T4
+
+sticks around for days.

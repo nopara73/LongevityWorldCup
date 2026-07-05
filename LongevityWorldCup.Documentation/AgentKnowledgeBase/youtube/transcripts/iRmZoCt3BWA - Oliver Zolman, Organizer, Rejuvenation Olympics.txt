@@ -1,0 +1,520 @@
+# Oliver Zolman, Organizer, Rejuvenation Olympics
+
+Video: https://www.youtube.com/watch?v=iRmZoCt3BWA
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 218/322 units; 3282/4563 words.
+Matched topics: Bryan Johnson, Peter Diamandis, Rejuvenation Olympics, aging, aging clock, biological age, biomarkers, epigenetics, exercise, healthspan, lifespan, longevity, medicine, mortality, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+My understanding is that Bryan Johnson talks a lot about THE ALGORITHM and that he does not trust
+his mind, but he lives according to the algorithm.
+
+But who writes that algorithm?
+
+My understanding is that he has a team of scientists who are writing that algorithm that Bryan
+follows.
+
+And my understanding is that you are the SCIENTIST BOSS meaning you are the highest level of the
+dominance hierarchy of Bryan Johnson.
+
+Is that everyone.
+
+Can you introduce yourself?
+
+About 21, right.
+
+Yeah, so it's a consultancy company I started during medical school back 2016.
+
+I think I was in third or fourth year of medical school then.
+
+So about halfway through in the UK system.
+
+yeah, it was designed the clinical guidelines for different medical conditions so that there were
+more up -to -date included studies which had been missed or therapies and tests that weren't
+available locally but were available elsewhere, trying to solve a
+
+bunch of issues with the current guidelines for specific medical conditions.
+
+and then using those on clients in a one -to -one way to try and improve the results that they're
+getting currently with the existing healthcare system that they were using.
+
+And normally that was in the UK or USA.
+
+They're the most two common places.
+
+All right, and I've also seen Longevity School.
+
+That's a separate project of yours.
+
+Yeah, so longevity school is kind of the way of putting all those guidelines together in a
+structured way and focused on longevity.
+
+So age rated conditions mostly as well.
+
+So that is directed at clinicians initially.
+
+So training clinicians because.
+
+it's quite complicated, you know, clinical guidelines.
+
+They're not really designed for individuals to understand.
+
+Uh, it's more for doctors or specialist clinicians and.
+
+You also need access to like prescribing capabilities, understanding all the medical school stuff as
+well.
+
+So it's quite complicated to teach these things to individuals.
+
+But yeah, it's initially the first version is for clinicians.
+
+And it's all the guidelines that I've been using on clients like, like Bryan, or other people in the
+US and UK mostly as well.
+
+you touched on Bryan there, which is probably your final piece of introduction here.
+
+So My understanding is that Bryan Johnson talks a lot about THE ALGORITHM and that he does not trust
+his mind, but he lives according to the algorithm.
+
+But who writes that algorithm?
+
+My understanding is that he has a team of scientists who are writing that algorithm that Bryan
+follows.
+
+And my understanding is that you are the SCIENTIST BOSS meaning you are the highest level of the
+dominance hierarchy of Bryan Johnson.
+
+Is that Well, yeah, it's basically my...
+
+So my longevity school guidelines have been around for a long time, back in 2016 was when I started
+these, writing these things.
+
+And yeah, so I've been doing it for years already.
+
+I bring in experts as required for individual clients.
+
+because sometimes people have rare conditions that everyone's a bit different and you often need a
+specialist just for that kind of person as well.
+
+So when you write a clinical guideline, it has to be peer reviewed by experts and sometimes by
+patients as well.
+
+It's good to involve them in the guideline writing process.
+
+But yeah, so it's a mix of doctors, PhDs and patients that help peer review the guidelines.
+
+let's move on to the topic of today, which is rejuvenation Olympics.
+
+What's the story?
+
+I think I was the first person to create the field of competitive rejuvenation in a biostatistically
+reasonably accurate way.
+
+So I started this around 2017 -2018.
+
+and I have the Zolman rejuvenation leaderboards for that's related to my ways of measuring
+biological age as well, which are the Zolman clocks, which are coming out soon.
+
+But yeah, initially, so I made these leaderboards because I was frustrated with seeing people
+online.
+
+saying doing all these pseudoscience therapies or dodgy therapies or even legitimate therapies but
+then not publishing their results either casually, informally or even in a more formal
+biostatistically accurate way or even more formally in a study, like a case report,
+
+case series or a proper trial.
+
+So it was my frustration there seeing that some people were just kind of saying stuff and expecting
+you to believe it kind of a lot of snake oil, oil sales people.
+
+then I was like, why not make people actually show their markers in a way that these that are good
+markers as well, not just random markers and do that independently verify it and get around all the
+possible ways of tricking,
+
+you know, submitting fake results or whatever, or someone else's results as well.
+
+That's another way of getting around it.
+
+And then also doing this in like a biostatistically accurate way as well.
+
+So it's like using the best markers in the most accurate way and like in a non -fraudible way as
+well.
+
+and making it fun and accessible at the same time.
+
+So yeah, I've got these Zollman rejuvenation leaderboards which have been around for a while and I
+started using different biological age markers on there and different leaderboards for different
+kinds of things.
+
+But then the issue there is it's very complicated and expensive to do these things because measuring
+biological age is very tricky.
+
+And it's not, it's yeah, it's still very tricky.
+
+But that's one of the main things I'm working on in my research.
+
+But a way of doing that, that's kind of accurate and kind of easy to do, like doesn't require
+complicated devices, just a blood test is this pace of aging test by true diagnostic.
+
+So there are downsides with that because it does vary quite a lot month to month.
+
+And also it's a very new marker, so it's not super validated.
+
+But it is based on a 45 year data set of following people in New Zealand, I think, following them
+for 45 years.
+
+So it's important to not just do a one time point thing and then rank people on that because they're
+just going to have a good day or a bad day and the result will be completely different the next
+week.
+
+It's about taking the average of a good period of time that's kind of clinically relevant and then
+ranking people based on that.
+
+So yeah, the reason I went with the true diagnostic one and built that leaderboard is because just
+the ease of doing it.
+
+It's just a simple blood test.
+
+it's not, um, and it's easy to access in USA and there aren't issues between assay variation, which
+you get with, um, even regular blood tests like, uh, like BNP is one, um, brain, natural edict
+peptide.
+
+That's something that's released from the heart in heart damage and a few other things.
+
+But the problem with that is.
+
+you have to use the same assay between different BNP tests and different labs will use different
+kind of kits, different brands of BNP test.
+
+So then there's doesn't that makes it trickier to compare between people.
+
+But with this, yeah, with the true diagnostic one, it's just one provider.
+
+So you're always getting like the same, the same kind of, there's not that issue of inter, inter
+provider accuracy.
+
+May I ask what are your stats here?
+
+stats, statistics, chronological age, biological age, pace of aging, what you know.
+
+Oh, me personally?
+
+So it's not very accurate below age 30, 35.
+
+So again, this is another issue with biological age testing.
+
+So each marker kind of starts changing and becoming clinically relevant.
+
+It can change a little bit, you know, at young ages, some markers, but then they start changing a
+lot more after a certain age.
+
+And this is different for each marker.
+
+So like most of the people you see on this leaderboard, they're all like the top ranked people.
+
+I think they're all kind of 40 plus, age 40 plus or 45 plus.
+
+And that's because then you can show a greater reduction relative to your chronological age.
+
+Because we're comparing the average of the...
+
+of the pace score against the chronological age.
+
+But obviously if you're young already, then you can't really go much younger.
+
+So it doesn't really rank very well.
+
+And also because aging doesn't really occur much until kind of 40 plus really, that it's not really
+a useful expenditure, useful use of resources doing that particular test at a young age.
+
+So yeah, this test again, like this leaderboard, it's more for age 40 plus.
+
+I think that's where it may be clinically useful and predictive.
+
+But again, it's still a very, you know, it's an epigenetic marker.
+
+It's kind of a new field.
+
+This one, this exact pace has gone through various iterations, even in the past few years, it's like
+a new version coming out each year.
+
+So it's still very early stage.
+
+And, you know, my advice really is like, You don't want to, if you had a 200 pound or dollar or euro
+budget, you wouldn't want to be spending it all on this epigenetic clock kind of stuff because
+
+that doesn't make any sense at all.
+
+This is like a fun extra thing if you've got a lot of spare money to add in this test after you've
+done all the standard medical care stuff to see if it helps guide you in some extra way.
+
+Because remember, you don't just measure it one time.
+
+You've got to do it several times to really get an accurate reading as well.
+
+So yeah, that first 200, because that's roughly the price of the test, it can be even more actually,
+like even $400 just for one of these tests if you're doing the whole panel with true diagnostic.
+
+You wouldn't want to spend your only $400 on that.
+
+You'd want to do it on, if it was testing, you'd want to do it on a basic blood panel or, you know.
+
+scales or maybe or a ring or sleep testing depending on your medical history.
+
+let's zoom in explain to me the Dunedin pace clock what what is it actually measuring slowly I will
+slow you down Um, so there is a good explanation on their website.
+
+I think they got some pictures as well.
+
+So yeah, definitely check that out.
+
+Uh, so pace it's, it's like all capitals.
+
+So I think it's, it, it's an acronym.
+
+I don't know what for, but yeah, it, it.
+
+but it's also not an acronym because they're trying to measure the pace of aging.
+
+So if you have you get a score between 0 .5 and 1 .5 and if your score is around 1 .1, I think
+that's the average.
+
+It's not one, it's a little bit different.
+
+But yeah, if your score is 1 .1, that means you're aging at the average pace, the average speed
+compared to their reference population that they followed for 45 years in New Zealand.
+
+But if you have a score above 1 .1, then you're aging faster and below, then you're aging slower.
+
+Okay, so how are we going to age backwards here?
+
+Mathematics doesn't come out, so if it starts from 0 .5, it cannot go negative.
+
+this test doesn't work for assessing that.
+
+It's just a kind of prognostic risk factor.
+
+So it's like predicting your speed of aging relative to that cohort.
+
+It's not telling you whether you're getting younger or older.
+
+So it's a bit different.
+
+Yeah, it's like a, it's not a marker that can tell you whether you're getting biologically younger.
+
+It's just showing how your, whether your speed of aging is, is changing with age.
+
+Okay, so just to understand for those who did not try it, you take a little bit of blood, and you
+send it to true diag.
+
+company and they tell you a bunch of things but one of this is going to be your pace of aging from 0
+.5 to 1 .5.
+
+Now what do they do with that blood?
+
+What's going on with that blood?
+
+So they get, I think they get rid of the red blood cells and the white blood cells, and then they
+just take the white blood cells.
+
+And I think only a certain type of them called PBMCs.
+
+they're the ones they use.
+
+So they, there's like a standard technique for isolating those.
+
+And you have these PBMCs and then they're doing the test on them.
+
+And it's an epigenetic test.
+
+So they're measuring the epigenetics in these PBMCs, peripheral blood mononuclear cells, that is.
+
+And then they do the epigenetic tests and that's where they're reading the sorry, sorry, sorry.
+
+Let me stop you there.
+
+We have the blood, red blood cells.
+
+You take the red blood cells out and there are something called PBSCs that you take out of the red
+blood cells, it's part of the red blood cells.
+
+So in the blood, you've got red blood cells, white blood cells and platelets.
+
+And so we're just taking, they take out the white blood cells and then they're just running the the
+epigenetic test on the white blood cells.
+
+Oh, white, not the red.
+
+And then they look at just a certain type of white blood cells.
+
+And then they measure the epigenetic test on that one.
+
+And that's where you're seeing, you're looking at the methylation values on the DNA within the white
+blood cells.
+
+So you look at the genome, you look at chemicals on the DNA in the white blood cells.
+
+and depending on whether they're a certain factor, like high or low, then they add all those
+together in an equation and then they tell you your different scores in the report.
+
+It's quite complicated.
+
+All right, all right, thank you.
+
+If we would have more time, I would have untangled that with you, but let me move on to another
+question.
+
+So, Rejuvenation Olympics, right?
+
+Now, you have two leaderboards there in the website, rejuvenationolympics .com.
+
+What's the difference between the two?
+
+Yes, there's the absolute, well yeah, there's the first one at the top, I think is the reduction
+one.
+
+Diane Ginsburg, she is a or James but not sure how to pronounce her name.
+
+She's an Yeah, she's good.
+
+So the interesting thing have like a Healthier a longer health span and lifespan than men and that's
+picked up in this test as well So they have generally better scores than men on they Yeah, so
+there's a question of whether to
+
+break up the leaderboards into men and women or not, because it's kind of good if you're, if you're,
+if you're a man comparing yourself to a woman, because then you're like, because women, we know
+women have better life expectancy, and
+
+health expectancy on average.
+
+So that's why.
+
+It's kind of good to compare to women if you're a man, because you know that's a real thing.
+
+So you're comparing against something that isn't potentially a statistical error.
+
+But yeah, that's getting into a bit complex on the statistics side.
+
+Who else do I know?
+
+A lot of these are private or anonymous as well.
+
+People can be on there, but they can still be anonymous.
+
+But yeah, there's, oh, Jeffrey Gladden, he's another doctor.
+
+So he's got his own scores up there.
+
+That's pretty cool.
+
+Peter Diamandis.
+
+He's got some nice scores.
+
+another doctor.
+
+So there's quite a few doctors on here, which is interesting.
+
+So yeah, the three people I know that are on there are all doctors or, or All right, when will be an
+update?
+
+Do you know?
+
+So they, I think, yeah, they might be delayed until, I'd say, May, May time.
+
+but hopefully soon.
+
+And yes, this is one example of a leaderboard that you can do.
+
+I'm going to be putting up more leaderboards on my website, updated version with some more simple
+ways of doing it as well on my website, oliversolman regarding rejuvenation Olympics do understand
+that this can be really big.
+
+You are creating a completely new sport.
+
+And it has such peculiar characteristics.
+
+Hehehe It's a sport where you don't have to have age groups.
+
+like you can't punch me in the face, except if we are playing a game, let's say a kickbox game, like
+then that's the goal.
+
+So games can transcend ethics and laws.
+
+And you know, if you gamify the longevity space, create...
+
+this game, then you might actually end up contributing to the field in a much larger way than you
+initially expected.
+
+I made it as well because I love, I was saying in another interview actually last year, they were
+asking about this, is yeah, because of competition.
+
+I'm a very competitive person and encouraging that sense of competition in other people.
+
+It's like a great way to make it more fun, but also scientifically valid at the same time.
+
+That's well value and where you can find value is what other people disagree with you on, but you
+believe strongly.
+
+So this is the contrarian question of Peter Thiel.
+
+So my question to you is the contrarian question of Peter Thiel.
+
+What is the thing that...
+
+Most people disagree with you, but you strongly believe to be the case.
+
+tough one, tough one let me think Well, yes, I think one of the major issues I'm trying to solve is
+measuring biological age accurately in each organ.
+
+And people believe that's not possible.
+
+But yeah, I think I've found a way and I'll be I'll be publishing on that soon.
+
+I know you said I didn't have any papers because I only want to publish like really good papers that
+not publishing for the sake of publishing.
+
+So yeah, I think people think you can't measure biological age accurately, but I think you can.
+
+But it's quite different than the current methods right now.
+
+Yeah, you heard about Symphony H.
+
+Symphony Edge, no.
+
+So TrueDiag said that they are planning to replace DunedinPACE with the Rejuvenation Olympics with
+Symphony Age, and Symphony Age is looking at different organs, the age of different organs.
+
+That one yeah, yeah, so again, that's epigenetic so it's it's not very it's not very good.
+
+Unfortunately right now The True Diagnostic have their own one as well right now the the the organ
+specific age for epigenetic testing, but it's Yeah, I've been I've been using it, but it changes
+like 20 30 years month to month so
+
+it's very hard to measure something indirectly.
+
+Like, epigenetics is very good for measuring age of the immune system, because that's where you're
+using, you're using the white blood cells to measure it.
+
+But other things, it's like, yeah, it's, it's gonna be almost impossible.
+
+It's just not gonna work for for super accuracy, unfortunately.
+
+You are in this world as an entrepreneur seeking to create value and...
+
+mean, obviously my work with Blueprint where I designed the supplements there, that's like quite
+nice products potentially as they iterate and get better.
+
+So that's, you know, that's some good value.
+
+I think longevity school is a very cool concept because I think there's a big need for that, both
+for the general public and for clinicians and other stakeholders as well.
+
+So yeah, I think longevity school could be very But yeah, the clinicians version is very different
+from the mass market version.
+
+And yeah, there's still a while yet to get it off the ground because it's very complicated.
+
+All right, it was a pleasure talking to All

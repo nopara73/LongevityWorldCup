@@ -1,0 +1,1465 @@
+# Dave Pascoe, 11th Place, Rejuvenation Olympics
+
+Video: https://www.youtube.com/watch?v=b3D1k1-w9K4
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 634/1324 units; 9257/17886 words.
+Matched topics: Bryan Johnson, Rejuvenation Olympics, VO2 max, aging, biohacking, biological age, biomarkers, exercise, hallmarks of aging, healthspan, longevity, medicine, nutrition, pace of aging, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+Dave Pascoe, welcome.
+
+The number one most compared person to Bryan Johnson.
+
+Why do you think that is?
+
+You know, that's a great question.
+
+Are you familiar with Michael Laskarton?
+
+yeah, yeah, I've been in contact with him.
+
+I'm going to be doing an episode for his channel.
+
+He's going to review all of my blood work.
+
+yeah, that's good opportunity.
+
+I just had a conversation with him two days ago and he talked and I presented to him his method,
+right?
+
+That what he's doing is his testing and he's doing some correlation statistical magic and then he
+figures out what to do, right?
+
+What Brian Johnson is telling, what he's doing, but Lars Garten is doing more more rigorously or
+he's doing the thing, not his team, right?
+
+In any case, I mentioned or I contrasted this approach to him, to you, that as far as I understand,
+your approach is more like, fuck around and find out.
+
+How true is that?
+
+I love that as a description.
+
+Yeah, there's some truth to that.
+
+I mean, I started mucking around with this stuff at least a decade ago.
+
+I think my approach is probably a little bit more scientific now than it used to be.
+
+Before I just took supplements and I had no real idea why or whether I needed them.
+
+Now at least I can do testing.
+
+And I can see whether it's something I need, it's something I'm deficient in, maybe I'm getting too
+much of.
+
+So in that regard, at least I know a lot more than I used to know.
+
+And so it's more more of a guided approach.
+
+Plus, you know, now there's so much more information out in the literature, in books, podcasts,
+experts that are talking about different longevity supplements.
+
+and things that our body produces normally when we're younger that we produce less of as we get
+older.
+
+And so those are things that, know, knowing those, it has helped me to target, you know, my
+supplementation and what I'm doing so that I'm not just picking things out of the blue, but I, but I
+definitely will try things just to see how they affect me, like for my end of
+
+You see, I'm not against this approach of constantly trying things and being in somewhat of a
+chaotic place compared to Michael Lustgarten right?
+
+Everyone is chaotic.
+
+Because there are other, let's say, disciplines, for example, entrepreneurship.
+
+There is way of, that's called a blitz scaling, when you have to scale up a company very fast.
+
+And we had very similar experience when users started to use our software and the money started to
+come in and we had to keep hiring people even though we had no idea if those people are going to be
+good or not.
+
+And even when when they turned out to be not good, if they didn't create trouble, we are not firing
+them, right?
+
+I only fired people who created trouble, those people who didn't do much or didn't do their job,
+were like, you know, they were, I consider them as reserves, right?
+
+They were there that when something happens, then we can pull them into and get them to work
+properly.
+
+and this seems very wasteful, like you're wasting a lot of money to a bunch of supplements and most
+of them don't work, but waste is something that an organic, like a dynamic system has to work with,
+has to tolerate.
+
+So I personally...
+
+like that approach and if I'm mischaracterizing you then please tell me.
+
+I don't disagree with what you're saying.
+
+It depends on what you're trying to target, though.
+
+I know that some folks are really just interested in longevity.
+
+mean, know, Brian talks about longevity as his sole approach and almost everything that he seems to
+do based on what I've heard from his podcasts and things are to the end of longevity.
+
+That's really not my main concern.
+
+My main concern isn't longevity.
+
+My main concern is health span.
+
+So I'm looking for things that will...
+
+Well, all right, so let me put it this way.
+
+To me, longevity and the whole pace of aging are mostly moved, in my opinion, based on diet,
+exercise, sleep, the basics.
+
+I think you were probably going to ask me this later about something that I believe that other
+people probably don't believe.
+
+But I think that our whole pace of aging is really...
+
+I've been doing my homework on your previous podcast.
+
+Yeah, they've Yeah, I think that our pace of aging scores, like the people that 0 .7, 0 .8, 0 .6.
+
+I think that those are actually normal.
+
+I think the higher pace of aging scores are abnormal.
+
+think that's what the food that we eat, the lifestyles that we live, know, all of the processed
+foods and the chemicals and things that are added in that.
+
+I think that's what makes us age faster.
+
+So the people that are on the Rejuvenation Olympics leaderboard, in my opinion, from what I've seen
+of talking with some of those folks, the things that they have in common are the things that they
+don't do.
+
+It's the things that they remove.
+
+And that's what seems to have the biggest lever.
+
+to longevity.
+
+having said that, you're probably going to ask, which I would ask reasonably, OK, Dave, if you
+believe that, then why do you take all those stupid supplements?
+
+And that's a valid question.
+
+But the supplements, in my opinion, really aren't to address longevity.
+
+They're to address the higher level organ systems like the brain, eyesight, heart health.
+
+Because you can live a very, very long life.
+
+You can have longevity and still go blind.
+
+You can have longevity and still go deaf.
+
+You can have longevity and still get hardening of the arteries.
+
+You know, you're going to lose your hair.
+
+I mean, there's still things that I'm interested in preserving rather than just my longevity.
+
+I want to improve my health span.
+
+And so to me, that's what the supplements.
+
+are there to target.
+
+So for example, I know from genetics that I have three genetic markers for the same macular
+degeneration that my dad suffered from.
+
+So many of my supplements are targeted for my eye health.
+
+So I take lutein, anthazanthin, luteolin.
+
+I do take things specifically for different organs, brain health, heart health, eye health, know,
+things like want to pick up on many things there.
+
+Maybe just a quick note that actually just with my conversation to refer back to Michael Laskar
+then.
+
+It turns out Brian is interested in more than just longevity.
+
+Brian is interested in vanity because when I asked Michael what's with your hair?
+
+Why don't you have hair?
+
+It's like, well, that's nothing to do with longevity, But Brian is interested in these kind of
+things, right?
+
+So there is some more comprehensive.
+
+Maybe the facial stuff is longevity stuff.
+
+Well, I there's nothing wrong with appearing youthful.
+
+I mean, I dye my hair, right?
+
+I would be completely gray.
+
+In fact, I started going gray when I was in my 30s.
+
+So I've been coloring my hair for 30 years.
+
+So I mean, I don't fault anybody for wanting to look younger.
+
+You want to look the way you feel.
+
+So why not?
+
+no, it wasn't a criticism, it was just a notion that, there are other objectives to Brian's protocol
+than longevity itself.
+
+Because if you would really want to max it out, then it's like last garden is like, well, my hair is
+going away, it doesn't matter.
+
+so this is on a little bit on Brian for that too.
+
+So I'm actually trying to defend him, even though I like to tease a little bit about Okay, this is
+just a quick note here.
+
+So we tend to leave before the last, you know, last couple of songs.
+
+So, you know, we're I guess I'm home by maybe one a in those cases.
+
+Because I just listened to a podcast with you with someone who just came out, I think before
+yesterday and you, he told us, yes.
+
+And Stephen told a story about you that you didn't want to go out at night because you are very
+protecting of your sleep.
+
+And in his particular case, he wanted me to go out.
+
+It was starting at 9 .30.
+
+I mean, nothing.
+
+Because I want to live my life.
+
+I want to go out and I mean, what's the point of longevity if you're not living your life, right?
+
+If you're tucked away and you're avoiding people and you're avoiding going out and having fun and
+living, then what good is life?
+
+Yeah, you know, like the real longevity cure will be when you can sit around, smoke weed and cigars
+all day and you still live forever, right?
+
+That's probably coming, who knows?
+
+Well, we'll see, we'll see.
+
+I want to talk about your statistics here.
+
+Firstly, your chronological age is 60.
+
+Okay, I just say statistics and you are going to correct me.
+
+Your chronological age is 65.
+
+Your biological age is, I don't know that, your average pace of aging is 0 .74 on, at least on the
+Rejuvenation Olympics leaderboard.
+
+And you are 10th on the Rejuvenation Olympics leaderboard.
+
+Did I get something wrong Yeah, so my chronological age will be 62 here in another week or two
+weeks.
+
+Biologically speaking, it depends on whose test you're looking at.
+
+So the last two diagnostic tests I had, I think my biological age was 37 .95.
+
+That's the one I put on my website because Some of those, again, depending on whose test I use, will
+say that my biological age is like 53.
+
+I'm at least, according to most biological tests, I'm at least 10 years younger than my actual age.
+
+And then as far as my ranking on the Rejuvenation Olympics leaderboard, that varies day to day.
+
+So I think if you actually click and sort on best pace of aging, I would tie for 13th place.
+
+And so that list changes, the actual ranking changes every single day.
+
+So I don't know what I am today.
+
+So right now you are 10th.
+
+what's interesting is Julie was a big loser of the rule change of the rejuvenation Olympics because
+you have to have X amount of tests, otherwise you're not going to be verified.
+
+And if you're not verified, are automatically, I think 60 plus place, right?
+
+You cannot get better than that.
+
+So, so, so what I wanted to say there is that there are people who have good results, but didn't do
+enough tests.
+
+anyway, I want to get to something else here.
+
+So there was an update of the Rejuvenation Olympics.
+
+When this update happened, I think they made a mistake and I think through diagnostic accidentally
+published a bunch of data that they were not supposed to publish.
+
+And that was the symphony age data.
+
+And your symphony age data was published.
+
+So I was using oil -based paints, again, in fairly enclosed places, painting.
+
+And I knew at the time that wasn't really good for my lungs.
+
+I just had no real perception of how bad that was going to mess me up.
+
+I do notice it when I run that, you know, my running is labored or my breathing is labored, I should
+say.
+
+And so I'm a very slow runner and I've been trying to overcome that.
+
+So I've been watching my VO2 max, you know, climb as I've been training, but it's, it's been a long,
+slow fight.
+
+How are you trying to overcome that?
+
+What strategies do you so I would love to say that I've been doing, the prescribed VO2 max training,
+because I know people do have good training plans for that.
+
+in doing marathon training, I'm mostly just focusing on zone two training, but, I've been told by a
+trainer that I have a whole nother gear that I've never explored, which is my, would be my anaerobic
+gear, my zone.
+
+like it's on five, I guess it would be.
+
+And so I've been trying to focus a little bit more on that recently.
+
+You know, just doing more sprints, doing heel repeats.
+
+You know, I've actually found I bought a Carol bike back in November and I've been using that
+because it uses Rehit.
+
+So it's I do the two twenty second sprints on the Carol bike.
+
+And for the longest time, I didn't really think it was doing anything for me, to be honest.
+
+because it's an AI driven bike and so it keeps changing the resistance based on how you're doing.
+
+So to me, it felt like I was never getting any better.
+
+It was always just as hard.
+
+But one of the things I noticed this year when I did the American Lung Association Fight for Air
+Climb, I do that every year.
+
+This year it involved running up and down bleachers at Comerica Stadium in Detroit.
+
+And it was, you it's always been a good challenge for me.
+
+And I've always trained prior to, you know, doing the actual event this year, though, I didn't get
+to train at all.
+
+And I was shocked when I looked at my results after the fact, because I really just thought I was
+having fun.
+
+wasn't, I didn't think I was breathing heavy.
+
+I didn't think I was really pushing myself.
+
+My score in completing that was better than any of the four or five years prior.
+
+And I came in, I think, a minute short of coming in first for my age group, which really shocked me.
+
+I thought, wow, I can't even fathom what would have accounted for that.
+
+And then later I had to do some training for Mount Kilimanjaro.
+
+So that's another story.
+
+I didn't get to go because of the global tech disruption and Delta Airlines.
+
+In training for that, I was doing a lot of, a lot of high miles and my, first six mile run, again,
+without any kind of buildup, I just started right in the middle of the training program was better
+than the time of my six mile runs ever.
+
+I'm like, the only thing I'm doing different is this Carol bike.
+
+And I truly believe the Carol bike has improved my cardiovascular fitness just from that.
+
+didn't mean this to be a commercial.
+
+It's just that this completely surprised me because again, I didn't think I was improving, but
+apparently that was really helping my VO2 max.
+
+It was helping my cardiovascular fitness.
+
+So it's like a normal bike but with AI -adjusted resistance to be in your zone of proximal
+development?
+
+Free your free your breath.
+
+It's actually a very undersubscribed YouTube channel, but I...
+
+You know what I've been doing for a while now is that every midday I do a breathwork exercise.
+
+It's a follow along YouTube video.
+
+every week I change the video and so for one week I practice one breath work and this way I got
+really familiar with a lot of different kind of breathing techniques and I just found this channel
+where you know most of these things don't have any progressions in it,
+
+But the musculoskeletal system, that does surprise That was very surprising as well.
+
+Well, I got a theory here that I have been 12 in musculoskeletal, right?
+
+And I've been working out and everything without problems, but I'm also pretty overweight.
+
+So my theory is that you're skinny and I'm fat, therefore I have a lot more muscle to carry around
+as well than you are.
+
+But well, you might.
+
+you might figure out what's going on later on.
+
+I know my muscle mass changes radically from time to time because I keep stripping down and then
+keep building back up again.
+
+So every time I train for another half marathon or marathon, I end up stripping myself down
+radically.
+
+And then once that event is over, then I start rebuilding again.
+
+So yeah, it's all over the place.
+
+So something else that was also one of the worst is your heart.
+
+Any idea why?
+
+You're like the doctor giving me the bad news here on a public podcast.
+
+Am I Chris Helmsworth learning that I've got dementia in my cards?
+
+Your hormones, your hormones were exceptional.
+
+But I've been given a clean bill of health so far, heart -wise.
+
+So that's interesting.
+
+Okay, well, I don't know how correct this is, but if you are looking at my data, it is completely
+correct.
+
+For me, my worst is lungs and metabolic health, which is like, that's what I know that because of
+the smoking, my lungs are not great, and because I'm fat, my metabolic health is not great.
+
+But the best is Musculoskeletal system and my heart and that makes perfect sense because I've been
+working out since I know myself and My heart is I actually have some genetically good heart or
+something like that and and I've been also doing soccer for I know 20 years the first 20
+
+years of my life, so so my heart should be pretty good, but Maybe some, maybe your data is the...
+
+Okay, now this is definitely wrong because how can I have a six pack and have bad musculoskeletal
+system, right?
+
+My telomeres, wow.
+
+Well, back in 2012 was the first time I heard about telomeres.
+
+And I was just turning 50.
+
+I was just training for my first marathon.
+
+And I heard that telomeres get shorter as we age, because every time the cell divides, they get
+shorter.
+
+And so I thought I'd get my telomeres tested, because I just assumed that it was going to come back
+and tell me I have the telomeres of a 20 -year -old.
+
+I was shocked when the results came back.
+
+It said I had the telomeres of a 68 year old and I was only 50 at the time.
+
+So that was a big surprise.
+
+And I thought at that point that I was doing all the right things as far as exercise and nutrition.
+
+You know, within reason, I was just doing what everybody else was doing.
+
+So I didn't think that that was out of the ordinary.
+
+But I did a consult with this particular company that gave me the results and they asked me
+questions about my lifestyle So they said, know, just tell me about your your average day, you know,
+what tell me about your job and things like that So I'm like, well, yeah,
+
+I'm a I'm a network security architect and engineer.
+
+It's incredibly stressful Things go from, you know zero to a hundred miles per hour in about two
+seconds flat sometimes And then I'm tasked with working around the clock to get whatever the
+situation is resolved.
+
+So it's super, super stressful.
+
+And I'm also living with and taking care of both of my parents who are down hard with cancer, their
+second cancer piece.
+
+So this time they couldn't take care of each other.
+
+So I was there to do that.
+
+And then of course I was training for my first marathon.
+
+I was doing P90X, which is a really extreme workout program.
+
+And they're like, whoa, stop, OK, so we've seen this before in really long endurance athletes that
+have much shorter telomeres because of the stress that they put themselves under.
+
+We've seen it with caretakers of elderly parents because of the stress that involves.
+
+We've seen it with type A personalities and very hard driven people that have stressful jobs.
+
+So I did, I adopted those.
+
+I adopted sauna.
+
+I started doing a deep dive into things that would benefit health or take away from health.
+
+of course, diet and processed foods was one of those things that I was not paying that much
+attention to.
+
+thought I had a good diet, relatively speaking, as far as what everybody in the world assumes is a
+good diet.
+
+once I started doing this deep dive and realizing that the processed foods and all the additive
+ingredients, the preservatives, the food colorings, all those things really add up.
+
+And so I started slowly taking those things out of my diet, eating more just clean vegetables,
+fruit, grass -fed beef, all organic stuff.
+
+Of course, I didn't do that all overnight.
+
+It took a while to slowly change things out.
+
+And of course, since I was the one buying the food and bringing it home and getting it from my
+parents, there was a lot of pushback from them because I was changing what they were comfortable
+with and they were not having it.
+
+They realized that cancer cells can basically be immortal because they produce their own telomerase.
+
+So their telomeres never shorten.
+
+And so in studying that, scientists figured out how to create telomerase activators.
+
+And so one of the first products I heard about for that was TAM818, which is a fairly controversial
+supplement because...
+
+The studies for it really, I guess, are not that robust.
+
+But there's a lot of claims that it can do what they say it can do, which is increase telomere
+length.
+
+And things like TA65, that's another product.
+
+after being sick like the month of December, January, and February with some type of flu, I don't
+know if it was COVID, I have no idea, I tested again immediately my true diagnostic right after that
+because I wanted to see.
+
+So that was probably dumb on my part because I didn't realize at that point that they were going to
+be averaging our test scores.
+
+So here instead of testing at my best, I began testing at my worst because I wanted to see the
+impact the worst would actually be.
+
+So after being sick those three months and taking the true diagnostic test, I think my pace of aging
+went up to, It went up from 0 .66 to 0 .77 maybe.
+
+It went up fairly high from being sick those three months.
+
+And then I think my telomeres shortened again.
+
+I'm going to guess right now because I don't have the numbers in front of me, but I think it went up
+to like a 58 -year -old instead of a 53 -year -old.
+
+then I was in Italy for 30 days, and I went on a completely different diet than what I'm on
+normally.
+
+So when I was in Italy, I decided to do like the Romans do and just do what everybody did.
+
+I didn't take any of my supplements with me, so I was off my supplements for 30 days.
+
+At home, I eat very low carb.
+
+I'm basically no sugar.
+
+and no caffeine.
+
+But while I was in Italy, I was very high carb, very high sugar, and high caffeine.
+
+So, you we'd do the double espressos or the cafe dopios every afternoon.
+
+That was really to combat the carb food because you'd hit the carb highs and then you'd do the carb
+crashes after that.
+
+So you'd have to do the double espresso to pep yourself back up again.
+
+And of course, you can't just have a double espresso without doing Cornetto with cream, right?
+
+So you're doing the pastry along with the caffeine.
+
+And so you get that nice sugar rush and you're good for a little bit again until the next crash.
+
+So by then you're ready to eat again and do more carbs.
+
+So I did the roller coaster the whole time I was there.
+
+I had terrible sleep.
+
+So immediately when I got home, I blood tested again and I did another true diagnostic test.
+
+And I think at that point, my pace of aging went up to 0 .8.
+
+So, you know, it obviously had an effect.
+
+And my blood markers were not good as expected.
+
+My testosterone took a huge nosedive.
+
+It went down to 78.
+
+From about 900 down to 78.
+
+You gained weight?
+
+No, I'm talking about my testosterone level went down from.
+
+you ate a lot of pasta, therefore you gained weight and your testosterone despite that went down and
+not Surprisingly, my weight really didn't change that much, but I had visceral belly fat that I
+could grab.
+
+So I lost muscle mass, but I did gain belly fat.
+
+So one of first things I did when I got home after doing the testing, I did a ProLon five -day fast.
+
+Normally, I do those two as a complete body reset, do those, nothing but water.
+
+Well, the Prolon Fast is a fast -mimicking diet.
+
+So it comes to you in a kit.
+
+It's like a giant shoe box.
+
+And then within the shoe box, there's five separate boxes.
+
+And each one of those boxes is a day.
+
+And in there, it will contain soups, nut bars.
+
+There's about 600 to 800 calories a day that you consume of the foods that are provided.
+
+And that's divided between like a breakfast, a lunch, a snack, and dinner.
+
+So it mimics a fast just because it's so calorically restricted that your body thinks that you're
+fasting.
+
+But at least you're getting some food so you're not like just ready to chew your arm off.
+
+And typically in doing those, I'll lose eight pounds on average if I'm doing nothing but sitting.
+
+If I'm active during one of those fasts, I'll lose up to 12 pounds.
+
+So I thought, well, this would be a good time.
+
+I'll do a full body reset.
+
+I'll lose a little weight, and I'll be good to go.
+
+So I did that.
+
+I lost the belly fat in the five days.
+
+That was nice and quick.
+
+I did the reset.
+
+I think I did another blood test shortly after that.
+
+And I got to see my blood markers all come back to baseline again.
+
+So it was a fascinating experiment.
+
+Again, had I known that the Rejuvenation Olympics was going to change the rules and do an average
+rather than your best pace of aging, I never would have tested in those worst of times.
+
+So that's really dinged my average score.
+
+Well, that's what you capture for you because this is a wonderful example how games are changing
+your motivation.
+
+So if there is no game, then what you're going to do is that you're testing to know the result.
+
+I think it's also a derivative of ashwagandha.
+
+tested pretty badly with my telomeres as well and I want to make them longer as well for whatever
+that works.
+
+There was another person here, Stephen Shore.
+
+He's into, well, he's unlike all the other Rejuvenation Olympics people I interviewed.
+
+He's more into all kind of traditional herbal medicines, traditional Chinese, traditional Indian,
+traditional Swiss, what not.
+
+And he's like a master of medicine, some kind of guru or I don't know.
+
+And showing, flexing that, I have telomeres like a baby.
+
+And he's saying it's because of his protocol.
+
+Yeah, I ordered his telomere stuff and I'm going to test it that is it really gonna work because
+what he's putting in at least the telomere is whatever is just normal some herbs, some stuff that
+you can get anyway so
+
+that made them not successful.
+
+And then of course, I tried to emulate as best as possible the things that I saw that were making
+people successful in those avenues of life.
+
+And so I've always tried to do those.
+
+And so even when it comes to my longevity, my health today, where I am today was based off of
+guesswork and a lot, like I said, patterning myself after what a lot of other people did before me
+and hoping that it was
+
+gonna come to fruition to be what I expected it to be.
+
+And so like when it came to high school and doing a lot of partying, smoking, getting into drugs and
+stuff, lot of my friends did that.
+
+I didn't fault them for that or judge them for that.
+
+There's a famous finance guy by the name of Dave Ramsey.
+
+He has this saying, live like no one else so that you can live like no one else.
+
+And it's such a brilliant concept because it applies to so many more things than just finance.
+
+It definitely applies to health, fitness, longevity.
+
+If you live like no one else, eventually you will live like no one else.
+
+It's very profound.
+
+It reminds me of Guru strategies.
+
+You could go between vegans and carnivores, right?
+
+There's two extremes.
+
+Those work for those people.
+
+The vegan people are very happy being vegan and the carnivores are very happy being carnivores and
+it works for them.
+
+But trying to force a carnivore to be a vegan or force a vegan to be a carnivore?
+
+No, it's never going to work.
+
+You can't make everybody agree.
+
+So we've got to be able to just coexist and to be able to do the things that work for us and not
+have to be forced into somebody else's point of view.
+
+Would you say don't tread on Sure, sure, that fits.
+
+Are you a libertarian?
+
+I don't know if I could call myself that.
+
+Even when you get into diets, I couldn't call myself a vegan or a paleo or a keto or carnivore.
+
+I'm a mix.
+
+I like to think of myself lover?
+
+I am, I am.
+
+And so we still muse over a lot of things every day.
+
+I also have, like I said, my drinking group, which is kind of fun because, you know, some of them
+are in bands.
+
+So we like to go see their bands play and we like to go to concerts.
+
+And I have a running team.
+
+I have a church community.
+
+So my influences are very diverse.
+
+And I like it that way.
+
+And so, yeah.
+
+I'm a product of all of those people that are in my life and I'm very grateful for that.
+
+Okay, I didn't want to spend too much time on it because that's where you talk, you always talk
+about these things, right?
+
+Sleep, eat, pills, supplements, move and so on.
+
+so I'd like to ask you keep it fresh and keep it new.
+
+let's first start with your environment.
+
+What kind of environment are you existing in terms of health optimization kind of environment?
+
+Do you think it matters?
+
+I don't know.
+
+mean, honestly, I don't know.
+
+There's so many things that in the health and fitness space, whether it comes down to vaccines or
+anything else, yeah, I mean, there's so many things that may or may not be true, and I don't know.
+
+So pretend like they're true as far as potential mitigations go, but then I also pretend like
+they're not true so that I'm not stressed and worried about it.
+
+I've had people ask me like, how can you eat fish now?
+
+Because there's so many microplastics in fish and they tell me they've given up all fish.
+
+many people have problems because plants do nothing, nothing at all.
+
+And you cannot just put anything in there.
+
+So purifiers don't take...
+
+Carbondyde exercise.
+
+Do you know what I'm talking about?
+
+I do now.
+
+Yeah, I wasn't sure before, but now I do.
+
+I'll do micro greens.
+
+have things like, and rosemary and mint growing in my basement, among other stuff.
+
+so the plants to the degree that they can are helping my, my air quality.
+
+I also have, there's, there's one right here, an air doctor in every single room of my house.
+
+So it's, it's a air filter.
+
+I do the same for my water.
+
+I have an Aqua True.
+
+So I filter my water before I drink it.
+
+I even have one, a filter in my shower, my shower head.
+
+So takes out all of the chlorine.
+
+Because I noticed before I got that that my hair would tend to get very dry, my skin, my face,
+everything would really dry out after a shower.
+
+But since I put the filters on, my skin quality has improved a lot.
+
+So yeah, there's a lot of things like that in my home that I try to mitigate for the exposures.
+
+Okay, It's good to know because I found that many rejuvenation athletes don't do these things.
+
+And I'm glad you asked.
+
+Nobody's asked me that so far in any podcast.
+
+So I'm glad you asked.
+
+Yeah, I've done a lot myself, so I hope, you know, circadian lightning and lighting and stuff should
+make a difference.
+
+Like every morning I wake up and after the bathroom stuff I come to the computer and I put on
+electric muscle stimulator, light, blue light, this light, everything that I can.
+
+Okay, what is the largest...
+
+stacked together things that you're doing.
+
+so for instance, the first thing I do when I wake up, while I'm still in bed, I At the very bottom
+of my bed, have a Magnetico magnetic pad.
+
+It's like a 20 gauss system.
+
+It's basically thousands and thousands of little magnets.
+
+And supposedly, according to Dr.
+
+Jack Cruz, supposedly it's the magnetic field from that is supposed to be helping my physiology.
+
+Not exactly sure how or if it really does do what lame to do, but I have one, so I trust in that.
+
+And a further up layer on my bed, have PEMF mat, it's called a beamer.
+
+It's got scientific evidence to prove that it helps with blood flow to the small capillaries and
+helps blood flow more efficiently through the body.
+
+And then just above that, I have my eight sleep.
+
+So it keeps the bed cooled or heated however I need.
+
+Just above that, I have a grounding earthing mat.
+
+So that's connected to the ground.
+
+always grounded while I'm in bed.
+
+And then, you know, above that I have my regular sheets.
+
+So while I'm in bed, before I get out of bed, the first thing I do is I turn on the beamer and I'll
+do a beamer session.
+
+And I have my Nano V also right next to the bed.
+
+And if I didn't have the Nano V going with the cannula all night long, I will turn it on when I wake
+up and I'll put the cannula in and I'll be breathing the mystified air that comes out of that.
+
+And that helps with protein folding, oxidative stress.
+
+A lot of top athletes use that.
+
+I'm using it right now because it's the only mitigation I know that addresses the whole loss of
+proteostasis as far as those hallmarks of aging goes.
+
+So I'll be breathing that, doing the PEMF session and stretching.
+
+So I'll be doing my legs stretched over my head or one leg over my head or the other leg straight
+out.
+
+I'll be doing my morning stretching.
+
+While I'm in there, I also included four.
+
+I guess they would be, I'm sorry, it's a far infrared sauna.
+
+I included four near infrared floodlights.
+
+So I'm getting near, far and regular infrared treatment while I'm in the sauna.
+
+And I'm listening to podcasts or I'm meditating or I'm watching Netflix.
+
+So it depends.
+
+So I'll be stacking those, those things together.
+
+I noticed that I cannot decide when I'm doing the bathroom stuff, you know, while I'm brushing my
+teeth, should I be listening or should I be present?
+
+You know, it's always like, that is the perfect time when I cannot decide.
+
+It's like, okay, if I go to a sauna, sure, I'm listening to something.
+
+If I'm doing cardio, I'm listening to something.
+
+But when I'm doing something that I'm doing every day, but still I need some presence.
+
+Now that's when I'm like, well, I don't know.
+
+So what's your philosophy?
+
+mean, it's just gradually just kept increasing and still some podcasts, the speakers speak really
+slow so I can easily do it at three times normal speed and still understand them just fine.
+
+Where others are fast talkers.
+
+So maybe only two X is the best I can get.
+
+sleep.
+
+can imagine you're doing so many things with sleep that how can I ask about something something
+something valuable something something surprising is there something surprising you're doing for You
+know, I've I have tried all of the sleep hacks that I've heard people like Dave Asprey
+
+or Ben Greenfield or really just about anyone that have recommended sleep hacks.
+
+I think I've tried them all and some have worked for me, but only for a very short time and then
+stopped working at all.
+
+Or will have a very specific effect like For example, at one point, just taking peptides, collagen
+peptides before bed really made a big difference.
+
+All of a sudden, I was sleeping terrifically.
+
+I don't know if I had some sort of deficiency in collagen peptides, if that's even a possibility.
+
+But doing them really profoundly impacted my sleep for the best.
+
+But then that didn't last very long, and then it didn't seem to have any effect anymore at I can
+take things like ketones, like liquid ketones, like ketone IQ before bed.
+
+And I will have really interesting lucid dreaming.
+
+So if I want to particularly have a lucid dream at night, I will do some ketones before bed.
+
+And it's kind of fun to play You can also put some nicotine patches on interesting, I tried that.
+
+Maybe I'll have to give that a shot.
+
+Gosh, what else?
+
+I found though it seems to me now for the best sleep just doing nothing seems to work great.
+
+did my I had to redo my bedroom because I had a lot of junk light coming in from the outdoors.
+
+So now that I have blackout curtains and I sleep with a sleep mask and I've taped off just about
+every LED in the room, which there are a lot of now that my room is super dark.
+
+and I keep it really cold, I sleep quite well.
+
+And right now I'm going through a course of CJC 1295 with ipamarylin.
+
+It's a growth hormone, it's a cretogog, it's a peptide.
+
+And in doing that right now, my sleep has been amazing.
+
+So I've gotten like my first 100s on my whoop in very long time, thanks to that.
+
+That's not a question again.
+
+What have you not talked about?
+
+What have people not asked you about your eating habits before that you would like to share?
+
+Well, I'm not caloric restricted.
+
+People like to compare me to Brian, and Brian is caloric restricted.
+
+someone else pointed out to me Maybe I am, I'm just unintentionally caloric restricted, because I
+don't count calories at all.
+
+I could care less about calories.
+
+I just eat until I'm full.
+
+And I eat like a horse.
+
+I don't even think about food.
+
+it's often late into the evening when I realize I haven't eaten.
+
+And so I have to set an alarm for myself or make a note to myself to eat dinner at three or four p
+because I like to be done eating by five.
+
+And I found on my sleep tracking for my scores, I sleep a lot better.
+
+when I'm not digesting food.
+
+So if I've got at least three, maybe even four hours before my last meal and bed, it's much better
+on my sleep scores.
+
+exactly I found the exact same thing.
+
+Actually I'm leaving, I'm a slave to my calendar and to my reminders.
+
+So when do I eat, when do I do anything, I always have a reminder.
+
+Anyhow, let's move on to supplement.
+
+before we do one more thing I'd like to say about that.
+
+It kind of makes sense that that would be better off for our health, not just for the scores of the
+sleep.
+
+Because when you're sleeping is when your body is doing its major repairs.
+
+And if you're digesting a big bolus of food, it's in your stomach, your blood supply, all of your
+bodily functions are being focused digesting that food, so you're stealing that, processes away from
+your body doing its
+
+healing and repair.
+
+So again, that's why it's important, not just for a score on a sleep tracker, but for your body's
+benefit.
+
+Sorry, the lights automatically turned off on me again.
+
+there we go.
+
+For your body's benefit, yeah, because it's like afternoon, I would be out somewhere, so there's no
+reason for the lights to be For the body's benefit, it's best not to be distracting it with having
+to digest stuff.
+
+So I just wanted to add that It's interesting for me.
+
+I'm always either on a huge diet and I'm losing a lot of weight or I'm gaining a lot of weight up.
+
+So in the last five years, I am like every year, two or three times, I lose 10 kilogram and I gain
+back 10 kilogram.
+
+it's Right now I'm losing 10 kg so right now I'm on the good...
+
+I'm eating clean, I'm not smoking, I'm everything but...
+
+Sometimes I was standing while working.
+
+There was always some difference.
+
+So I didn't have that kind of problem like like normal programmers are suffering from the chair and
+monitor Yeah, I would have to set the alarm like every 15 minutes or every 30 minutes to go get up
+
+and do an exercise snack.
+
+Like just go get up, go into the kitchen.
+
+I've got a chin up bar, you know, in the hallway and I'll do some chin ups or just go do some
+pushups and come back and go back to coding again.
+
+Or just go run down the street and run right back.
+
+So, and I keep changing them.
+
+Every day I use a little bit of gymnastic ball, a little bit of kneeling chair and a little bit of
+normal chair.
+
+So that seems to work pretty well.
+
+Yeah, I like Okay, okay, supplements.
+
+So, I don't even want to go into what kind of supplements you're taking.
+
+I will ask about one, maybe two, but I am more interested in a more meta issue here.
+
+Firstly, just give me a number.
+
+How many pills do you take a day?
+
+You know, I'm going to have to consult my own website on that because.
+
+It doesn't have to be accurate.
+
+Because you know, stuff like that to me is trivia.
+
+I don't keep it in my brain because, you know, it's just taking up space.
+
+So I have to refer to my own website most of the time for everything, even when I'm like packaging
+up my vitamins to know what it is or my supplements, I should say, to know what it is that I'm
+taking.
+
+I'll refer to my own website because I don't keep all that in my head.
+
+I know why I take it when I add it in, but then It's gone.
+
+It's just part of a routine and I don't have to even give it any mental energy after that.
+
+currently taking about 130 individual supplements per day.
+
+That's over 170 capsules per day.
+
+There's currently 83 in the morning and 96 in the evening.
+
+And of those, it's about 107 or pill type supplements and the other 20 are in powdered forms that I
+mix with drinks.
+
+Now that varies.
+
+That was as of when I packaged up my vitamins for the month last month.
+
+I'm always adding and removing things into my supplement stack based on the experiment that I'm
+trying with it at the time to see is doing anything for me?
+
+Is it beneficial?
+
+Is it moving any of the markers that I'm working on right now in my blood labs?
+
+So it's a longevity thing or it's like for my telomeres, those are pretty much always consistent,
+even though I'm probably going to drop the TAM 818 now that I've gotten to where I want to be.
+
+But many other things are being experimented in and removed back out again.
+
+So it's just a constant flux.
+
+So what I want to ask you about is your logistics here.
+
+Tell me about yeah.
+
+I recently, within the last few weeks, I added a section on my website to explain that and show some
+pictures.
+
+So yeah, one of the things I do, in fact, I think I've got one here somewhere.
+
+Okay, this isn't one of the ones that I typically use, because the ones I typically use are clear,
+but as an example, this would be one day's worth supplements.
+
+So Sunday, Monday, Tuesday are the morning supplements.
+
+This would Wednesday would be the afternoon supplements if there are any.
+
+And then Thursday, Friday, Saturday would be the evening supplements.
+
+And typically each one of these can contain about 30 pills.
+
+then 30, three zero.
+
+And so when I'm taking them, I can usually swallow about 15 at a time.
+
+So that's two swallows, two swallows, six swallows in the morning to get my morning supplements in.
+
+And I'll typically take those with something like V8 juice or a smoothie.
+
+It has to be thick because if I try to get this down with water, I'll gag, I'll choke.
+
+I can't do that.
+
+So something thick like a V8 juice works perfect.
+
+It just helps everything just slide right on down.
+
+So I'll have a stack of these.
+
+that I'll fill for the month, because I don't want to be going through this process every week.
+
+It's a big pain.
+
+It takes me about two, two and a half hours to segment out all of my supplements for the month.
+
+And I've got underneath my bed, I have a, I think you can call it a, it's like a, it's a plastic
+bin.
+
+It's very flat, shallow, but it's long.
+
+I think more it's like a garment.
+
+a garment holder, but I keep all the active supplements that go in here in that.
+
+And then each, I don't even have a good example, but on the top of every one of my supplements, I'll
+have a sticker and the sticker will say, you know, one like for one morning or two if I'm supposed
+to two in the morning and one E for evening.
+
+I, with that, I don't even have to look and see what the supplement is that I'm putting in the
+container.
+
+I just know how many of them need to go in which section.
+
+So that makes it really quick because there's no examining of, I got to read this and say, I have to
+take these many.
+
+No, I just look at the cap and put that many in my hand and that many go into the containers.
+
+And then this chest of drawers right over here, every one of these drawers contains supplements.
+
+There's no clothes in these.
+
+And so when I run low in that plastic bin that's underneath my bed, I'll go grab another one out of
+here and replace that.
+
+if that makes sense.
+
+So that's the logistics of the larger storehouse versus the active supplements versus then what gets
+put in this for the month to use.
+
+And then as I'm pulling out of here, I can see when I'm getting low on something and then I'll go
+and order it on Life Extension or Amazon or wherever I'm getting that particular supplement from.
+
+Okay, okay, okay, nice, nice.
+
+It's interesting how as the number of supplements grow, these things get, things become a problem
+that you wouldn't think would ever be a problem.
+
+I just saw a friend of mine taking six pills.
+
+It's one by one, you know?
+
+I'm like looking at you, what are you doing man?
+
+So I'm hoping that'll happen, because I'd really like to meet her took me months for Diane.
+
+Diane booked, answered right away, but booked for a couple of months later.
+
+So she must be pretty busy here.
+
+You know, that was one of the reasons I joined the Rejuvenation Olympics in the first place is
+because I thought, I thought based on the tagline on the website was that they're going to
+crowdsource longevity.
+
+So to me, that meant that, wow, okay, they're going to get all of the people that are in this top 10
+or even the top 20, get us all together and form a mastermind and try to find out what is it that
+we're all doing in common, or what are things that
+
+other people are doing and getting better results, but doing it more simply than like what I'm
+doing.
+
+And that would be awesome, how much we could learn from each other from that.
+
+That's what I expected was gonna happen with the Rejuvenation Olympics.
+
+And then I was really disappointed to see that that never happened, that Brian never got anybody
+together.
+
+And instead his answer seemed to be, do what I do, follow my N of one, eat my nutty pudding and do
+my green drink and buy my products.
+
+And I was seriously disappointed by that because I just thought that was a really big missed
+opportunity.
+
+So I'm glad that you are doing what you're doing by bringing us all together.
+
+And that's why I reached out and found Jenvel and Julie and well, they were the only two people I
+could find.
+
+under rejuvenation Olympics.
+
+So I'm glad there's somebody like you that went out and actually did locate many, many more people
+and are in a roundabout way bringing us all together so that we can learn from each other like I
+hoped we would have done to begin
+
+That's interesting, I took a note of that.
+
+Maybe I somehow tried to create a common forum after I interviewed enough people to have some good
+crowd there.
+
+Is that, or probably would disagree with, is that the question you were thinking you know something
+that other people do not or other people think differently.
+
+So how do you think differently?
+
+What is the thing where you think different?
+
+So the one that I alluded to in the beginning, that our pace of aging is really based on what we
+remove rather than what we're adding or what we're doing.
+
+So that's something that I think that most people are not picking up on.
+
+If you want to improve the pace of aging, stop doing all the foods that we're normally eating, all
+of the processed foods, and start eating more natural stuff.
+
+because that'll eliminate a lot of the things that I think are aging us artificially.
+
+Another one, I mean, there's so many.
+
+I'm a natural skeptic on everything.
+
+When I try a new thing, I try it to prove that it doesn't work.
+
+So when it does work, I'm always pleasantly surprised.
+
+something like testosterone replacement, that's something that, it kind of irritates me because, I
+don't think it's really necessary for a lot of people.
+
+I find that most of my friends are on testosterone replacement hormone and I'll ask them if their
+doctor ran a full hormone panel on them and they'll say, yeah, they checked my testosterone and it
+was low.
+
+And I'm like, no, not just your testosterone.
+
+What were your other hormones?
+
+What was your pregnenolone?
+
+What was your progesterone?
+
+What was your DHEA?
+
+And they're like, I don't know that.
+
+And they don't think they even ran that.
+
+And they'll show me their labs, and they're not on their labs.
+
+And it frustrates me because, my testosterone is really high and I don't take any testosterone
+replacement hormone.
+
+Instead, I focused on the fact that my DHEA was lower than it should be for a 25 -year -old athlete.
+
+Same with my pregnenolone.
+
+Pregnenolone is an upstream precursor of both DHEA and testosterone and estrogen.
+
+So by supplementing with Pregnanolone and to some degree even DHEA, you are going to increase your
+testosterone and your estrogen naturally.
+
+So without having to get stuck in another paradigm of the medical model that we have today, where
+they love to get you addicted to a prescription.
+
+right, because you'll be a customer for life on that prescription.
+
+We're now doing that with testosterone replacement.
+
+know, people are, doctors are just going directly to, we're going to give you a, you know, either an
+injection that you're going to do every day, or you're to do weekly, or we're going to, you know,
+we're going to put a pellet in your butt, whatever it is, you are now
+
+going to be tied to this for life because you are going to, you know, you're going to completely
+sever your own bodies.
+
+natural ability to produce testosterone.
+
+So your testicles will shrink and some people have even looked into getting like testicular implants
+to look like they used to do if that's something that really is important.
+
+But to me, think that's the most important, to look good, right?
+
+To have nice looking balls.
+
+So To me, it's so much easier to go at the root, to go upstream and address the pregnenolone issue
+first.
+
+It's a very cheap and simple supplement.
+
+So is DHEA.
+
+And by increasing those, you can increase your natural production of testosterone without cutting
+off the production from your balls.
+
+And good functional medicine doctors know this, but when you're going to the average Joe Blow doctor
+on the corner who, offers PRP and stem cells and all the cool stuff now.
+
+I think sometimes these people don't really even understand what it is they're offering.
+
+They're just offering it because people want it and people will pay money for it and they'll be a
+customer for life.
+
+And that's probably a very controversial perspective.
+
+And there's probably a lot of doctors out there that will argue with me, but I know there are a lot
+of functional medicine doctors out there that will also agree with me.
+
+Okay, okay, that's good.
+
+I think something very similar has been said by Jeffrey Gladden, Dr.
+
+Is he also a functional medicine doctor?
+
+I'm not sure, he was a cardiologist.
+
+love his podcast is there any trade that you do so can people somehow hire you for something or buy
+something from How can people give me money that was the other question you ask everyone yes, I love
+that
+
+question because just to look at people's faces like How can people give me money?
+
+an anarcho -capitalist, everyone has to know that.
+
+But it's an important question, It's a great question.
+
+takes us out of our normal paradigm.
+
+I tend to give away everything that I do for free on my website.
+
+But how people can actually give me money is by ordering things off my website.
+
+I mean, if you see something that you find interesting, even if it's just like cookware or the
+things that I use for my garden Maybe it could be the supplements, it could be anything, even some
+of the biohacking tools
+
+that I use.
+
+If it's something that you're interested in looking into or obtaining, I have discount links on my
+website.

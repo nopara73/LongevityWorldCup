@@ -1,0 +1,912 @@
+# Making Bitcoiners Fitcoiners: @ssdabel
+
+Video: https://www.youtube.com/watch?v=LOpt3H5E-cs
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 371/1086 units; 6334/15803 words.
+Matched topics: Rejuvenation Olympics, aging, aging clock, biological age, biomarkers, epigenetics, exercise, longevity, longevity athlete, longevity sport, nutrition, rejuvenation, supplements
+
+## Focused Transcript
+
+Okay, let's start with the consultation.
+
+I don't think I've ever invited anyone who I had a history with, so this might be a good opportunity
+to start out by familiarizing my listeners to my tragic backstory regarding health and fitness.
+
+And if we are doing it well, then it might shed ra shed light into why you're here, especially in
+the the Fitcoiners series of my podcasts.
+
+I don't know how that's going at the moment.
+
+But at the time I know that you had some serious fat loss goals.
+
+And so I thought that it was going to be just about that.
+
+And then it slowly kind of dawned on me that, you like you just like to nerd out.
+
+I mean, you did have fat loss goals.
+
+So that never changed.
+
+But you just really enjoyed nerding out on these general...
+
+fitness, health, longevity -related topics.
+
+And you just had a lot of questions, which often I didn't even know, like, where did you come up
+with that question?
+
+and because this is a series called FitCoiners, the intersection between fitness and Bitcoin, I
+wanted to interview you and shamelessly promote you to Bitcoiners.
+
+Maybe someone will want to have some consultation and nerd out on fitness.
+
+Well, let's see if I can live up to that.
+
+Unfortunately, it just has to do with whatever is available in your country or in most countries.
+
+But, you know, some of those things might very well be longevity enhancing, right?
+
+Yeah, we are living in a scary world.
+
+fitness.
+
+So I have a big question.
+
+I have a big question first.
+
+I want to understand the history of the...
+
+I guess, bodybuilding or fitness.
+
+So I just tell you what I understand and you are going to tell me like the complete history.
+
+So how I understand things have been evolving in this fitness space was that back in the days there
+were the Arnold's bumping iron on the muscle beach kickstarted this hey, let's make our muscles
+bigger kind of movement.
+
+And that was called pro science, although they figured out a bunch of things and later on as
+research papers started to come out and stuff, the early internet with Lyle McDonald and...
+
+I don't know who else, maybe Martin Berkham.
+
+The early internet started to like, like, like evolve a certain kind of mentality that was not, you
+know, it was not, the mainstream, mainstream magazine, what the mainstream magazines had or the diet
+feds, right?
+
+but an evidence -based fitness community started to be created or evolving and I think that's where
+you come in, right?
+
+So firstly, can you tell me the history of the fitness community up until today and where you come
+in?
+
+from way back when?
+
+And then I guess like someone would help them so that it would stay on, but they would be just lying
+on the ground and they would like push up a barbell with their feet.
+
+So it's very funny to like, read some of these write ups of how training used to look like before we
+had all the tools that we have.
+
+So by the time Arnold came, like, I mean, that was after all of that.
+
+And that would have been the era of Steve Reeves, who is often looked at as the like the last or
+maybe like the first or the last great natural lifter, depending on how you look at it.
+
+Let's say he was the first fitness influencer.
+
+That was like world famous we could we could look at it look at him like that of course without the
+internet and I mean even television was like not what it is today, but he was the the first like
+strength and Muscle based athlete who became famous just for being
+
+aesthetic and being strong essentially so there are several movies with him and He's considered
+natural by many.
+
+So Frank Zane is iconic.
+
+he was like after Steve Reeves, he was like maybe the first like aesthetics person, not just like a
+muscle monster, but like really like, like just a beautiful physique.
+
+And like that's still people aspire to look like that.
+
+And I mean, really from Arnold up until I've been truly pretty close to to what would have been the
+earlier stages of the evidence -based fitness industry, which would have been like sort of late
+2000s, like early 2010s.
+
+Like up until that point, really the lifting culture that was created by Arnold is the one that was
+kind of ruling everywhere, which is sort of like approach to fitness based on the limited
+information that we had that was science based and just a lot of intuition.
+
+That's certainly how training was approached.
+
+So you would not be looking at evidence of any kind.
+
+You would just look at, okay, like what feels like it's working like, okay, I'm getting a good pump.
+
+That means that the muscle is working.
+
+You know, with, with nutrition, it would have been like, okay, protein is good.
+
+How much protein do we need?
+
+You know, a gram per pound that that should be good, but more is probably better.
+
+And then, the evidence -based sphere, especially now, looking back to those late 2000s, early 2010s.
+
+Like that was kind of a that was the golden era, I would say of or the silver era of the evidence
+based fitness industry, because that was a time when someone showed up who looked somewhat fit or
+had some evidence showing that, OK, they actually know what they're
+
+So that's how someone like Martin Berkan or Martin Berkan, I guess, would be the proper
+pronunciation.
+
+He was truly a revolutionist and it was revolutionary at the time when he introduced intermittent
+fasting to the world.
+
+Like what is now so common knowledge, mean, people in Hungary and And in any country that I've been
+to, like they talk about intermittent fasting and like everybody knows what intermittent fasting is
+today, but not many of them have heard about
+
+Martin Birkham, but.
+
+yeah, and then like that really started then and then.
+
+The evidence -based fitness sphere has grown so fast that now we have actually seen pretty much like
+the highs and lows of it.
+
+now it has become like at first like science was something that needed to be made accepted by the
+fitness audience.
+
+I asked you to make it long.
+
+This is important context because I'm gonna ask you about longevity soon enough, but just a little
+bit of connection there that I noticed that, know, in longevity, there were like mouse studies that.
+
+And not just mouse studies, but there were studies that mTOR activation, you know, in the
+bodybuilding community, mTOR activation is good in the longevity community, mTOR activation is bad.
+
+It makes you live shorter.
+
+So then the folk knowledge, the folk science of longevity of David Sinclair and whatnot is that.
+
+Okay, so we have to...
+
+limit the amount of protein, that how much we are eating and animal protein is bad, the plant
+protein is the best.
+
+So I see a change from this mentality from proteins bad to there are people like Peter Attia or
+Brett Schoenfeld who are starting to look at the evidence -based community, like the people who you
+are surrounded with.
+
+And Lyall is cheating on him for sure.
+
+No, no, no, there is a guy, there is a longevity youtuber from New Zealand who is also something
+like...
+
+So that's what I was mixing up there.
+
+let's not get into longevity yet, but you didn't talk about yourself here.
+
+So where do you come in?
+
+Also, I was trying to be healthy.
+
+I was also kind of into longevity.
+
+I was into longevity a lot more back then than I am today, interestingly, which is kind of funny
+because I was rather young.
+
+And so, yeah, like, I got into it.
+
+Probably seven million or more.
+
+don't know how many he has now, but that is sort of, and like that's big because he is an evidence
+-based fitness YouTuber, for example.
+
+And maybe he was the first one that was like actually evidence -based and actually like solid
+information and is also super, super famous.
+
+Not that this requires that much creativity, but.
+
+I couldn't even really bring myself to think about my, even my own personal fitness during this
+period.
+
+And so really this just, for a while I just viewed it as procrastination and then I just said, man,
+it's easier, less stressful for me to just accept that this is a hiatus and I'm just going to fall
+off a little bit and then I'm gonna return when I'm ready.
+
+Anyway, so I was pushing this game conversation because I'm going to get back to it.
+
+But first we have to talk about longevity.
+
+So what do you know about longevity?
+
+Like how much...
+
+does someone in the evidence -based fitness community hears about this stuff?
+
+So it's not the main thing that I work with, certainly.
+
+I have no longevity clients.
+
+Most of what I learn about and have to inform myself about or really just apply to help people or
+just related to the vein side of fitness, not the health side of fitness.
+
+you know, building muscle and losing fat while those are actually some of the best things that you
+can do for your longevity.
+
+Longevity so -so for health, certainly.
+
+But so it's definitely strongly interlinked with health, but it mainly has to do with your vanity.
+
+Longevity is something that I was very interested in at some point, so I did try to learn about it.
+
+And some things just overlap.
+
+So it's like some things that you will do.
+
+for your aesthetics or your vanity are also gonna be good for longevity.
+
+And then you will find out about it and you will be like, cool.
+
+I guess that's good because a lot of the things that you will do for your muscle building and being
+ripped sort of ambitions are not gonna be so amazing for longevity potentially.
+
+And so when you find out that it's overlapping, then it's always a nice sort of realization or
+surprise rather.
+
+Like in general in life, often the things that make you acutely happier are not gonna be the best
+things for you in the long term.
+
+And that certainly can apply to fitness.
+
+like for example, anabolic steroids, if you're abusing those, then it's definitely not a great thing
+for longevity.
+
+And so yeah, was very, very interested in longevity when I was in like, I don't know, 2021.
+
+I would say that's when I was the most into the longevity topic.
+
+Mainly because I was trying to preserve my youth.
+
+Like, I don't know, I just had this pathological fear of, yeah, basically just aging.
+
+Like I always looked older.
+
+That was my huge fear.
+
+So because of that, I started getting into longevity a lot around that time.
+
+So I was actually consuming info about that a lot more than I would do these days.
+
+And then guess as my fears around that sort of started to go away as I grew a bit older and wiser,
+also my interest started to vein.
+
+But I'm in the field and I do consume a lot of content around that, so around just fitness in
+general and inevitably I will come across things around longevity as well.
+
+So I would say these days that's the most like organic or that's the primary way that it happens
+sort of just organically.
+
+So you guys are not really measuring the length of your telomeres or looking at biological
+epigenetic aging clocks, stuff like that.
+
+Yeah, no, So that definitely not, some people are into it like just to like nerd out, but yeah, we
+measure our biceps and that's the things like that and maybe waist.
+
+on a philosophical level what are the differences and similarities between video games and sports.
+
+it's actually good that you say that because I actually wanted to say that earlier that I think
+that's what actually drew me to a large extent to fitness back in the day.
+
+So when I so it's not a coincidence when I was into longevity a lot more, that's sort of coinciding
+with the time that I got into just fitness in general as well, like seriously.
+
+So I was into sports, but fitness not so much, at least not consistently, other than sometimes
+getting a bit leaner for a pool party or something like that.
+
+But I did get into lifting in a more regimented way when I was really struggling with a bout of, I
+would say depression.
+
+And around that time, I just needed an outlet.
+
+And so yeah, I got into fitness because of that and And it was basically almost like a video game in
+terms of what inspired me.
+
+like, okay, maybe this is gonna help me.
+
+And so OK, what is needed for that?
+
+Well, like I need to work out, need to eat a lot more protein and whatever.
+
+And so it is very much like that because that's what I'm doing in a video game as well, like
+upgrading the character, upgrading the armor.
+
+progressing from A to B and becoming this stronger, more agile version of yourself.
+
+that was the thing that really hooked me in fitness as well.
+
+So like, it was useful in that, it kept me engaged, but like, it kept me so engaged that everything,
+everything suffered because of that.
+
+So like, I actually oftentimes accomplished nothing because well, I was thinking about my diet all
+day.
+
+Like I could literally spend a whole afternoon just planning out my macros.
+
+It was just passing time.
+
+And you can approach fitness like that as well.
+
+Where like actually like you know what to do already.
+
+There is no real reason to think about this all the time or to let this consume everything.
+
+But because it's comfortable, because you already know what to expect, it's rewarding in a way to
+like, okay, let's create the perfect structure for my training and my diet.
+
+I guess that's how a lot of people fool themselves with anything that requires creativity or
+productivity.
+
+Structural ecosystem around you that is making sure that you're on track.
+
+So you have your coach If you're a kid, then you have your parents who might be also like pushing
+you Everybody knows already that like okay, it's end of school like okay now I need to go to
+training so it's a lot more straightforward in that way and Man, I cannot
+
+even cannot even imagine how it must be like to like getting like getting ready for an Olympics,
+let's say, and like for four years, everything is about this one event.
+
+Maybe we talked about telomeres before.
+
+Telomeres are the things at the end of your DNA caps, at the end of your DNA, and that's the old
+school longevity metric that the shorter your telomeres are, the older you are biologically.
+
+since then, people figured out new metrics like epigenetic aging clocks.
+
+Actually, Horvath clock was the first one.
+
+And I'm pretty sure it's something like that in Croatia as well.
+
+Well, anyway, then these epigenetic clocks started to gain momentum, right?
+
+Because how cool would it be if we could measure people's biological age as opposed to chronological
+age, right?
+
+So then Johnson, actually, it's his...
+
+You heard about Brian Johnson, this tech bro, vegetarian tech bro that goes around and spreading the
+ideas of longevity all over the media.
+
+Yeah, is he the one with the big channel?
+
+It was pretty good, actually.
+
+You might want to check main scientist, Oliver Zollman, who I, by the way, interviewed, He figured
+out that, it would be pretty cool to create some longevity leaderboards, you people that you measure
+your epigenetic age and well, let's put you on a leaderboard
+
+compared to other people.
+
+And then, and Brian Johnson teamed up with True Diagnostic and whatnot.
+
+And here we go.
+
+have now something called the Rejuvenation Olympics where thousands of people are competing with
+each other who can reverse their biological age the most.
+
+So what I started to do myself is I started to interview these rejuvenation athletes.
+
+So now my channel or my podcast, what I started to do after I stopped the stuff mostly, is that I
+started to interview these rejuvenation athletes and well, I'm trying to be on the forefront of the
+rapidly evolving longevity sport industry, right?
+
+I'm even considering of maybe I should launch my own competition, the Immortacomba, that's the
+working name for it.
+
+you're not gonna figure out how to achieve longevity escape velocity by writing scientific papers
+and making incremental improvements and running a bunch of rats in a laboratory for two years.
+
+Like that's extremely slow process, We need the scientific papers to confirm what we already
+strongly suspect it's kind of like what the bodybuilding communities, the bro science, they figured
+out a bunch of stuff, but because they were competing with each other, right.
+
+But after later on the scientific papers came and well, this was true.
+
+This wasn't true.
+
+So now all these longevity athletes are trying out really crazy stuff.
+
+and trying to figure out which moves the needle.
+
+It's like, no, well, I'm actually biologically just as young as he is.
+
+It's just certain things just look different, and we associate those things with aging.
+
+Or is there something that is like more central to like the human, which is like actually a signal
+of your biological age or closest correlate?
+
+Yeah, would love to know.
+
+Yes, so the big debate or the big questions are is that so there are these epigenetic age clocks and
+now the question is that okay so what if I if my epigenetic clock says that I am five years old then
+does that mean that my biology is like a five years old or
+
+does that just mean that I succeeded to manipulate the epigenetics in a way that it is telling me a
+false biological age?
+
+You know, so is it a fingerprint and am I like cleaning the fingerprints of my age or is it like
+some really deep causal relationship?
+
+So these are the questions, right?
+
+So it's interesting.
+
+or even, know, for example, when you get blood work, like there are certain things that you can do,
+which will very reliably change markers that you're getting.
+
+like, for example, if you drink a whole bunch of water, or then like your blood viscosity will be
+different.
+
+You should be more hydrated.
+
+It's like, well, but then don't drink a shit ton of water before you go take your blood work.
+
+If normally you wouldn't drink it, like you want to know what actually the drug is doing to you.
+
+like, you know, could that thing be that you're measuring something that is like really just, that
+is manipulatable, but It doesn't mean that actually like you're aging less.
+
+It just means that you've managed to manipulate that one thing that you can measure.
+
+So what your work focuses on is how to get...
+
+bigger muscles and how to have less fat.
+
+Are there other objectives here?
+
+other objectives as far as what I work with and what people want to work on, or in terms of like, In
+the longevity space, people want to have slower biological aging or lower biological aging crooks,
+and they tend to want to look younger, right?
+
+In the beauty industry space, they just want to look younger.
+
+So in the evidence -based fitness community is...
+
+The fat loss and the muscle gain, the main objectives or are there other ones like, I don't know,
+strength gain.
+
+yeah, main objectives, definitely that.
+
+as far as, so yeah, if you're looking at the industry, that's for sure the main thing.
+
+Strength is, there's a very significant part of the fitness industry that is concerned with
+strength.
+
+It depends on how you look at it, know, like, a power lifter is that in the fitness industry you can
+say that but you can also look at it like well that's an athlete like that is power lifting is an
+actual sport whereas like
+
+you know bodybuilding you can also look at it as a sport to me that's more of a beauty pageant and
+then you know like your like I would say it's closer to the longevity field than it is to like an
+actual sport that
+
+could even feature on the Olympics or something.
+
+So very similar in that it's not perfect.
+
+Ideally, probably you would want to look at more things that are indicators of your biological age.
+
+But now you found this, it seems promising, like, okay, this is probably the closest to what you
+have.
+
+But it is far from ideal.
+
+Like, ideally, we would measure muscle growth.
+
+Like, we could look inside the muscle and we would see what's happening.
+
+Like, is it growing?
+
+So that is pretty much the extent to which we look at that.
+
+And around that, It's funny because like, you know, like the fitness industry is one where out of
+these two main goals, which is fat loss and muscle growth, so many, so many mini sub goals are born
+
+that for pretty significant periods, actually, they can become the main goal, main goals themselves.
+
+But yeah, like vanity.
+
+So fat loss and muscle growth is definitely the two main ones.
+
+Okay, let's focus on that because my follow -up questions would get too complex of an answer if we
+start with the subgoals.
+
+So, how do you move to get jacked and how do you move to get lean?
+
+So, give my listeners a specific ideal training plan.
+
+two specific idea training plans for these two goals.
+
+What do you do to do these?
+
+Only training.
+
+Okay, so by move you mean like how you actually move your body for them.
+
+Yeah, so to be big or to build muscle, basically move in a way so that you...
+
+First of all, what you move is the muscle groups that you want to grow.
+
+So for most people, that's pretty much going to be the whole body.
+
+So it's just the reset.
+
+Basically with that one you're training your abs if you raise up your leg with this one you're
+training your lower back actually, also but mainly your butt so glutes and also your hamstrings so
+that that would be the back of your thighs so So from and beyond that
+
+you want to throw in some extra stuff to just round things out for your arms and your shoulders So
+some bicep curls some tricep extension things like this.
+
+So instead of a big six, and with that basically you will train your entire body.
+
+And you probably want to do somewhere between six and ten sets for all muscle groups basically.
+
+And from this you can already accomplish that.
+
+Really like, I would just, I would not go crazy with how many sets you do.
+
+I would just go for, I would just go for training hard.
+
+Honestly, that's more important in the beginning especially than training a ton.
+
+You can always do more later.
+
+So you only want to leave one or two reps in the tank, And basically, that is your rep range that
+you're working with, which is like there is no rep range, really.
+
+As long as you're training hard enough, any kind of rep range will work.
+
+Somewhere between six and 10 sets per muscle group.
+
+So, and by muscle group, so like your chest would be a muscle group, your abs would be a muscle
+group, your front of your thigh, so your quads, that would be a muscle group.
+
+Really, like you want to look at each of these individually, like you will have to...
+
+Don't just do 10 sets from like, OK, from this big six, so like 10 vertical pushes and 10 horizontal
+pushes.
+
+Be a bit more systematic than that, like, If I went through all the muscle groups now, then this
+talk would last forever.
+
+But somewhere between six and 10 sets per week.
+
+And really, how you distribute that.
+
+So are you going to be doing five workouts a week, and you're going to be training one muscle group
+separately on each workout?
+
+Or are you going to do three full body sessions?
+
+Really, I would just make that depend on what's logistically feasible for you.
+
+Because in terms of the actual results, it doesn't really matter.
+
+So you can build muscle with pretty much any sort of arrangement.
+
+What matters a lot more is how many sets you do and whether you're training hard.
+
+So if you do 10 sets, you can get in 10 sets by doing two sets five times a week, or you can get in
+10 sets by doing 10 sets in one workout.
+
+Some might be marginally better, but really most of them are equivalent in terms of how effective
+they are.
+
+So it really just comes down to logistics.
+
+And yeah, that is basically, in a nutshell, how you move for building muscle.
+
+For losing fat, really like it's not even, you can pretty much just not move and just, Fat loss is
+more about not eating.
+
+But you do need to eat some to not just waste away.
+
+So you want to eat definitely your minimum protein requirements.
+
+That would be.
+
+Before you go into eating, I'm going to ask you about, so don't worry.
+
+But cardio, wouldn't you consider that something that makes a difference or not really?
+
+Yeah, so it definitely makes a difference.
+
+The main difference between how we think of movement for muscle building and for fat loss is that
+for building muscle, movement is essential.
+
+So you can actually build some muscle even without training.
+
+For example, if you were following a very low protein diet, and then you start eating a high protein
+diet, that will actually build some muscle, it or not, but minimal.
+
+So to go from, like even to look like me, and I'm not a muscle monster, but definitely more muscular
+than the average person, if you just wanna get to that level, that's not gonna happen without
+training.
+
+Whereas like to be 5 % body fat, as lean as the lean as bodybuilder that you will see.
+
+You can actually do that while sitting on the couch the whole time.
+
+It's just gonna suck because like you will have to eat very little.
+
+So cardio or any sort of movement is really just there to increase energy expenditure so that you
+don't need to eat so little in order to create the calorie deficit.
+
+it's really just, it's giving you basically an energy buffer.
+
+And then the food that you're eating as like little like handfuls of cash that you're taking out
+from your budget.
+
+And then, yeah, you can think of cardio as like basically like more money that you're pouring into
+that budget that you put aside.
+
+So the bigger the pile of money is, the more you can take out and still not run out of money.
+
+And so that's kind of how it is with cardio that like it is helpful.
+
+But really it's just a convenience thing because really, like if you think about how we live, it's
+actually quite depressing how little energy we expand day to day.
+
+Even if you're a bigger person, like a hundred kilo person might burn, I mean, barely more than 2000
+calories if they are very sedentary.
+
+So, you know, if you want to create like a 500 calorie deficit, for a person weighing a hundred
+kilos is actually not a lot.
+
+But even for 500 calories, like you would have to eat like 1500 calories.
+
+I mean, that's not a lot of fun.
+
+Whereas like if you are fairly active, so you get in, let's say, I don't know, 10 ,000 steps a day
+and maybe you do some cardio beyond that.
+
+I mean, you could be eating closer to like 3000 calories and still be in a deficit.
+
+So that's why doing some sort of activities is useful.
+
+Okay, so for nutrition does it matter too much how you eat for building muscle?
+
+Is there a reverse relationship here?
+
+for fat loss, what matters is nutrition for building muscle.
+
+What matters is resistance.
+
+So it is pretty much an inverse relationship.
+
+So for building muscle, it's mainly about training and nutrition is there as a support mechanism.
+
+Whereas for fat loss, it's mainly about nutrition and training is there as a support mechanism.
+
+you do, actually, that is one thing.
+
+It's good that I said training and not cardio because...
+
+So some resistance training is important if you want to lose fat.
+
+I would say not essential because you can get lean, as lean as you want, without any resistance
+training.
+
+at a certain point, you're going to lose muscle.
+
+The leaner you are, the more muscle you're going to lose.
+
+So you're very overweight.
+
+You're not going to, pretty much any muscle you're not going to lose.
+
+once you start getting like, As a man, if you're getting to the point where you start seeing your
+abs at all, you got to start thinking about muscle loss potentially.
+
+So you've got to do some sort of resistance training to prevent that.
+
+And then once you start getting like really lean, so not just seeing your abs, but even seeing your
+abs without flexing them and your face starting to look very gaunt at that point, you might actually
+not even be able to avoid muscle loss altogether.
+
+And at a certain point, that's why you cannot get leaner because even the muscle that your body is
+starting to eat up is getting too little and it's actually reaching to your heart muscles and then
+obviously you're gonna die.
+
+So that's why we have essential fat levels because at a certain point we cannot keep losing that and
+at a certain point we cannot even lose more muscle.
+
+So, but anyways, so training, resistance training is important for fat loss to just preserve as much
+muscle as possible, hopefully also to gain some while we are getting leaner.
+
+But it's really, as far as fat loss as a mechanism, it's really like just an optional thing for the
+most part.
+
+Like for the process of fat loss, it is not required to do any sort of exercise and it's really just
+nutritionally driven.
+
+For muscle building, is, so protein is important.
+
+But since the protein requirements for building muscle are high, but not astronomically high.
+
+So for most people, it's going to be somewhere between 100 and maybe like, I mean, I would say 200
+grams of protein.
+
+But realistically, more like 100 to 170 grams, something like that for most people.
+
+That's going to be how much protein you need to build muscle.
+
+If you eat a very, very crappy diet and it's not high in protein at all, mean, crappy from a
+bodybuilding perspective, I realize for longevity it might be different what constitutes a crappy
+diet.
+
+Even then you're getting in some protein, right?
+
+except for pure oils and table sugar.
+
+mean, almost everything has some protein in it.
+
+So you're going to get some minimal amounts in no matter what.
+
+And it's a dose response relationship between protein intake and muscle building.
+
+you basically cannot screw your nutrition up so much that it would be completely non -viable for
+muscle building, or it would be very, very hard.
+
+On the other hand, like without the stress stimulus that is your training, like you don't you don't
+have the most essential thing that is going to trigger trigger the muscle building process.
+
+So like muscle protein synthesis, which is basically the the process of creating the new tissue that
+you're trying to build.
+
+that is happening just by eating protein, actually, like some of these amino acids that are in
+protein, or triggers for that.
+
+But it's a relatively small trigger.
+
+If you're training, that is like many, many fold.
+
+Like you're elevating those synthesis rates so much higher.
+
+So if you're health conscious and somewhat ambitious...
+
+if you're very ambitious, then you're taking the illegal pills that Honestly, Bodybuilding or muscle
+building is actually very nice in the sense that you're going to be saving a lot of money once you
+learn about what are effective pills and what pills aren't
+
+Other than creatine, creatine monohydrate, which is really one of the very cheapest supplements that
+you can buy.
+
+Other than that, really nothing is not caffeine.
+
+Well, if we consider that a supplement, which I mean, it is a supplement, it's just like, for a lot
+of people, it's just part of their morning routines anyway, like to have coffee.
+
+But yeah, caffeine and creatine, pretty much like those are the two things.
+
+Everything else is not really helping with muscle building.
+
+It's just like, like beta alanine, for example, I like how it makes me feel.
+
+It's like this cool stimulant.
+
+And it, it's actually more useful for endurance athletes, ironically, but, you know, I like how it
+makes me feel like I also like the skin tingles that it gives me.
+
+But it's not really helping you with muscle building.
+
+So caffeine, if you're using it within the limits where you're avoiding addiction, so that would be
+like up to 100 milligrams for most people.
+
+But the mental thing can add up over time so if it helps you pushing yourself harder in the gym then
+it's going to make a difference.
+
+Creatine is...
+
+is actually is actually performance boosting, but it also depends on how full your muscles are with
+creatine to begin with.
+
+So creatine is stored in the muscles naturally.
+
+But normally it's not saturated fully.
+
+But it's going to be more or less saturated for different people.
+
+For for someone who is following like a vegetarian diet, or vegan diet, especially.
+
+Well, then I suppose like, well, I'm not sure if creatine would be fine with them.
+
+But I guess you can, well, no, cannot.
+
+I think there is no such thing as vegan creatine.
+
+mean, I don't know.
+
+Maybe they can somehow produce it in some super synthetic way.
+
+yeah, assuming that that doesn't exist, creatine cannot be vegan.
+
+For them, could actually be vegetarian.
+
+It could be actually useful because they don't have naturally very saturated creatine stores because
+they are avoiding animal products.
+
+that can be.
+
+I, for example, don't notice anything from creatine.
+
+I don't even gain weight from it.
+
+I guess I just have my store saturated enough just through my diet.
+
+But some people like actually like they gain like two kilos they look fuller in their muscles and
+they are like measurably significantly stronger so It's it's worth trying and since it's so cheap
+with basically no side effects to really talk about that are gonna be
+
+noticeable at least for anyone It's it's worth using and That's pretty much it, man Alright, so by
+the way I asked Chet GPT is there vegan creatine?
+
+Yes, like what?
+
+Vegan creatine is typically made from synthetic sources as creatine itself is naturally occurring
+compound found in animal tissues.
+
+Common examples of vegan creatine, creatine monohydrate.
+
+The most common and widely studied form of creatine often derived from synthetic processes, making
+it vegan -friendly.
+
+Well, there you go.
+
+Then vegan friends, use the nice synthetic creatine.
+
+Okay, anyway, contrary and question time.
+
+Sometimes I'm not even sure if people should.
+
+Because the thing is that like, what I do, and what I specialize in is, it's like, I'm, if someone
+wants to know what to do to build muscle or lose fat, whatever, I'm My knowledge is up there, like
+at a very high level, like honestly, like these big names
+
+in the industry, like Mike Isdratel, whatever.
+
+I honestly really don't think that he's better at that than I am in practice.
+
+Like, sure, he has accolades and whatever, and he can do many, many things that I couldn't, but that
+in particular, like getting someone lean or helping them build muscle, I don't think he's better at
+that.
+
+Or really, almost anyone than I am.
+
+As far as what are they actually gonna get from this?
+
+Because if they think there is gonna be some life -changing thing that is like, now that they're
+with me, muscle is gonna come onto them like this and...
+
+fat is gonna like melt off.
+
+It's like, no, man, mean, like muscle building is still gonna be slow.
+
+Fat loss is still gonna be uncomfortable.
+
+Like you will have to be the one who has to do the dieting and you will have to be very patient for
+all that muscle growth.
+
+And so I just don't like, I believe that I'm clear enough on that, but I still feel a little bit
+uneasy.
+
+delusional now and that's why they hired me or they just think that this coach -client relationship
+could actually benefit them longer term.
+
+That would be great, But yeah, like if you're really passionate about the things that I specialize
+in, which is this muscle building and fat loss game, then yeah, like you would be in very good hands
+with me.
+
+At the same time, like you can do a lot of this by yourself if you just educate yourself a little
+bit.

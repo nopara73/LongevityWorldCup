@@ -1,0 +1,14 @@
+# AI Crushes Doctors: Medical Diagnosis Revolution?!
+
+Video: https://www.youtube.com/watch?v=6fHX6XvR3G4
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 2/2 units; 56/56 words.
+Matched topics: medicine
+
+## Focused Transcript
+
+There was a recent study that they had three groups of people. One was with doctors, one was with
+doctors plus AI, so they can use an AI and one was AI only. And then they have to diagnose
+
+patients. And it turned out that the AI vastly outperformed the doctors and the doctors plus AI.

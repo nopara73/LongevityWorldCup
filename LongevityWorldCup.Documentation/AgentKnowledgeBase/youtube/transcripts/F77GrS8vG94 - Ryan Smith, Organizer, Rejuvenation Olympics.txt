@@ -1,0 +1,1245 @@
+# Ryan Smith, Organizer, Rejuvenation Olympics
+
+Video: https://www.youtube.com/watch?v=F77GrS8vG94
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 500/629 units; 8796/10363 words.
+Matched topics: GlycanAge, Peter Diamandis, Rejuvenation Olympics, age reversal, aging, aging clock, biohacking, biological age, biomarkers, cholesterol, epigenetics, exercise, glucose, hallmarks of aging, healthspan, inflammation, lifespan, longevity, longevity sport, medicine, mortality, nutrition, pace of aging, rejuvenation, supplements
+
+## Focused Transcript
+
+Unfortunately And in our current reporting, actually, we have a different cutoff for the smoking
+versus non-smoking That AHRR loci is a very interesting location.
+
+It is related to a lot of different behaviors.
+
+But in the case of smoking in particular..
+
+particular, smoking is one of those things that is actually an irreversible methylation change at
+that loci.
+
+So generally, the more that you smoke, the more the methylation decrease generally, one of the
+things we know about smoking is that if you stop smoking, you actually will gain methylation back at
+that loci, but only to
+
+a certain sort of extent.
+
+And on average, actually, that is there at that AAHRR loci.
+
+And so he's right around that cutoff where it might have been restored, but it is very, very
+unlikely to ever go back above that location due to that permanent that smoking would have.
+
+And on our report, we look at just that one low side because it is by far the most described
+methylation change with behavior.
+
+However, there are now certainly many more and much more accurate ways to assess the total smoking
+behavior across a lifetime.
+
+In fact, even the newest smoking predictors are actually better at quantifying risk of smoking
+outcomes and even self -reported smoking status where you're giving sort of a pack per basis.
+
+And so that loci is just one of the many loci they would change with smoking that we can find from
+these epigenome -wide association studies.
+
+But to not abstract it too much from the overall biological age, the changes with smoking are one
+thing, but the changes have how smoking influences biological age is another.
+
+And unfortunately, across the board, that is a very negative change.
+
+could have happened Why marked as a non So as we're training these things originally, we are reliant
+on self -reported data.
+
+And so we're sort of reliant on what people tell us, not to mention with our cohort specifically, we
+are also, I would say, dealing with very generally healthy individuals who really are doing mostly
+healthy behaviors.
+
+And so it's very likely that, and again, as I mentioned, this has now changed in our reporting, but
+previously we had probably a larger range of of non -smoking than smoking related signals mainly
+because we were probably
+
+dealing with non -smokers who are current non -smokers who might have smoked in the past and they
+might have skewed that differential for us.
+
+But as I said on the newest one, we actually have changed it even to some ambiguity stages.
+
+So usually between 83 and 79 we have sort of unknown status and then we've changed sort of above 83
+and below 79 as being sort of a smoking Let's talk about your company next.
+
+How did the name come?
+
+You know, we really started in the market with biological age as our sort of the main project we
+want to tackle.
+
+And we were always thinking about how to educate people on chronological versus this concept of
+biological age.
+
+And so like many in this space, you know, we thought this true age would be the better way to say
+this is what you actually are aging.
+
+And so we sort of took that true age concept and applied it to the name, true diagnostic.
+
+Okay, true age concept, tell me about that.
+
+So I know you have Dunedin Pace and OmicM right now.
+
+What's the true age Generally, we started this company when DNA methylation sort of was really just
+starting.
+
+This was in really the start of 2020.
+
+At that point in time, sort of seven years after Steve Horvath's first clock, which was really one
+of the first multi -tissue biological age clocks to get widely used and widely validated.
+
+And so this concept of really started with the goal of assessing the biggest risk factor in every
+chronic disease and death.
+
+And I think the biggest issue is we all know that chronological age is certainly a risk factor for
+every disease, but this biological aging process could even be better.
+
+Being able to molecularly categorize how your body is aging could then predict disease much better
+than just chronological age, which is a relatively arbitrary number for the number of trips you've
+taken around the sun.
+
+It's not really directly related to your own biology.
+
+And so this, I would say the search for biomarkers of aging has gone on a long time.
+
+Even initially it was sort of how old you are plus one year for every pack per day you smoked going
+to our original conversation.
+
+And so with that being said, the search has gone on for a long time.
+
+In 2013 with C4Bath, these methylation biomarkers were able to capture more risk than chronological
+age alone.
+
+If you were younger with this test than your chronological age, you were protected from negative
+outcomes in these big studies.
+
+And vice versa, if you were older with this test, you were more likely to develop these outcomes.
+
+And so it was really good at assessing that biggest risk factor.
+
+And a lot of people got very excited about that.
+
+We were certainly a little bit slower to start this company in a doc, but we started this in 2020.
+
+And now we have the largest DNA methylation data set in the entire world.
+
+We've tested now over 75 ,000 patients since we started.
+
+And we've used that to help create better and more informative clocks.
+
+So the three that are probably the most prevalent on our platform right now are going to be the
+Omicage, as you mentioned, which is the most accurate predictor of lifespan.
+
+It's 92 % accurate at predicting death within a five years period.
+
+The Dunedin Pace, which is a pace of aging, it tells you how quickly you're aging right at this
+moment.
+
+It's the only third generation sort of biological age clock, and it's been validated in over 100
+studies.
+
+And then we have a newer clock that we're launching just in a week or two that was developed with
+Yale, Dr.
+
+Albert Higgins -Chance and Raghav Sehgal, who are now being able to tell you.
+
+age of every organ system in your body, or at least 11 organ systems in your body.
+
+So those three clocks for us are all second generation clocks, all very well published and
+validated, and we will be using them on our platform to help people understand their biological
+aging.
+
+That's the symphony age, correct?
+
+All right, let's get back to your company a bit.
+
+So now I'm sort of the head of research and development.
+
+But with that being said, yes, I am a founder and took a winding path to get to where I'm at now.
+
+My undergrad experience was in biochemistry.
+
+Had a lot of interest in peptide and protein chemistries.
+
+So did a lot of research and recombinant and solved peptide synthesis, went to medical school after
+undergrad, went to the University of Kentucky where I sort of went to my first two years, which is
+all the clinical
+
+schooling I should say, but then passed my step one, got to my third year where I got more involved
+with the patients on the clinical side of things and absolutely hated it.
+
+I didn't love what I was doing, sort of formulaic application of medicine dealing with very sick
+patients.
+
+And So I decided to do something else.
+
+So at that point, I was lucky enough to meet a business partner of mine and we stumbled into, I
+would say one of our first business was creating a compounding pharmacy that specialized in some of
+my
+
+area of interest, peptides and proteins as a new class of drug molecules.
+
+That business was called Taylor Made Compounding and it grew incredibly rapidly.
+
+We were the fourth fastest growing company in healthcare.
+
+We went from me as a first employee, 2016 to about 200 plus employees over in 2019.
+
+So we grew really, really rapidly.
+
+And really, I was very lucky in this experience because I got to learn about this new space of
+medicine that I did not know existed, which was this integrative preventative area of medicine that
+was really only happening on a cash pay basis.
+
+And in the US, I think it certainly had a renaissance.
+
+So we built a huge practitioner list.
+
+And in this, I should say, one of the things that we were always interested in is validating the
+effects of the products we were doing.
+
+A lot of the things that we were doing were in phase two or phase one clinical trials, very early
+stages, and we wanted to see how they were affecting outcomes.
+
+And so we were always looking for ways to have, I would say, a surrogate marker that could tell us
+about outcomes, right?
+
+We didn't have time for a 40 -year placebo -controlled trial to assess the effects of some of these
+drugs.
+
+So we're always very interested in surrogates.
+
+And that's when I started to get very interested in these methylation clocks as surrogates, because,
+you know, again, to hopefully study a lifespan intervention, something that could increase
+longevity, we don't want to wait half of our
+
+You know, we might wait half of our lifetimes for an answer that is no, it doesn't.
+
+and then we're back to the drawing board.
+
+And so these clocks have been developed theoretically as surrogates as well where we might be able
+to see how they're affecting health span and lifespan on shorter intervals to see what is happening
+and changing those trajectories.
+
+So I got really excited in this idea but I think moreover than that I got just excited about
+methylation as a biomarker specifically.
+
+So in 2020 we decided to sell that pharmacy and then create True Diagnostic.
+
+We actually in January of 2020 and then bought our building for two diagnostic in March of 2020
+right at the start of the pandemic.
+
+So many ways I can go from there.
+
+Let's go with this.
+
+Imagine a product where you send in blood every month, just a finger prick, and they are sending you
+back customized supplements, what to take.
+
+So that's a pretty cool concept because they're...
+
+are certain supplements that you can measure and you can pump up to be on the optimal level, right?
+
+You don't even have to measure things, those are hard to change with supplements, only the ones that
+you can easily control and relatively non-controversial.
+
+So this is the...
+
+This is the method of one of the guy Michael, do you know who I'm talking about?
+
+yes, Michael Asgard and yes, so that's pretty cool.
+
+This is his method.
+
+And I just wanna tell you how, because it seems like you are on the edge of some huge revolutionary
+thing here because from a finger prick, you can now, admittedly, it's not super accurate currently,
+but you can actually
+
+guess and eventually, hopefully guess much more accurately all these biomarkers that you just have
+to take a lot of blood from to So that's super exciting for me.
+
+Yeah, I would agree.
+
+I think it's one of the most exciting things is the scale of data.
+
+Molecular biology has always been a little bit less expensive than other parts of biology.
+
+For instance, obviously now we can sequence a whole genome for $250.
+
+And that's a massive amount of information.
+
+And we can't quite do the same with some of the traditional measurements of these things that
+require liquid chromatography and mass spectrometry.
+
+know, they sort of are testing the mass of molecules to identify them.
+
+What we've done with epigenetics to some degree, and we were not the first to start this, Dr.
+
+Horvath and Dr.
+
+Riccardo -Marianni have both done similar things where they use the signals of gene expression to
+actually predict certain biomarkers within the body.
+
+Horvath started with proteins.
+
+Marianni started again with proteins.
+
+But they have some really great use case examples.
+
+the case of Dr.
+
+Marioni, he's created a predictor of C -reactive protein.
+
+That's obviously a protein and it's an inflammatory protein.
+
+It's measured on every single blood test that almost anyone would take now.
+
+And the DNA methylation prediction of that protein is actually better in almost every way than that
+of classical HSCRP.
+
+It's more predictive of disease, it's more precise, it's more associated with lifestyle outcomes and
+events.
+
+It's almost like a running ad.
+
+it is better than the blood test, the WorldSchool blood test.
+
+And by saying that, we need to go back to why we take these blood tests, right?
+
+What are we trying to find out?
+
+And usually we're using them as markers of particular disease processes, right?
+
+So it sort of tells us how likely are we to develop a certain outcome.
+
+It's just a better marker.
+
+And we actually can predict it with the but we can do many things like this.
+
+That's just one good use case example because we know it's better in almost every way.
+
+But we can predict, you know, again, supplement levels like your omega -3 fatty acid levels, your
+ketone levels, your, you know, even spermidine and some of these other really unique endogenous sort
+of products are now supplements.
+
+And so we can do a lot with just a single drop of blood.
+
+And I think as you mentioned, there's a long way to go on this, right, in terms of accuracy and
+precision, but it's very clear that we can see signals.
+
+biological outcomes within the gene expression markers.
+
+So for instance, one of my favorite examples of this is lung spirometry.
+
+This is something that most people don't always think of as a biomarker, but it's a very important
+biomarker.
+
+Things like the amount of air that you can express out of your lungs, we call that the forced
+expiratory volume, or FEV1.
+
+This is a really good biomarker for things like COPD.
+
+COPD is the third most prevalent disease in America.
+
+and we have no diagnostic test for it.
+
+We have, I should say, no preventative or risk -determinant diagnostic test.
+
+We can only diagnose it in a clinic once you've developed the disease.
+
+And that's unfortunate, right?
+
+We want to be able to detect things early and make changes early so that we can prevent disease.
+
+It's always very much easier to prevent than to treat.
+
+And so one of the tests to confirm COPD is this FEV1.
+
+We can actually predict your forced expiratory volume of your with a correlation of 0 .9, that of
+the traditional measurement.
+
+And we don't need you to come into the office.
+
+We don't need you to perform a test with your lungs.
+
+We just need a drop of blood.
+
+And from that same drop of blood, we can also tell you about your risk of, you know, 10 other
+diseases.
+
+We can tell you about your molecular biomarkers.
+
+We can tell you about your aging.
+
+We can tell you about your immune cell subsets, all with just one drop of blood in the DNA that
+comes from that.
+
+And the reason for that is that we have so much information within the DNA of your blood.
+
+All of these gene expression are now, for the first time, due to artificial intelligence
+breakthroughs, able to be interpreted.
+
+And so we have now, we just did a little bit of a merger slash acquisition, which took us from about
+35 employees to about 75 employees.
+
+And so we are still relatively small, but I would say growing rapidly as this diagnostic area is
+growing.
+
+All right, and my next question will be who are the shareholders, but there is a conspiracy theory
+here.
+
+And there will be a good segment going into the Rejuvenation Olympics, which is, you know, I've
+heard from multiple places and they are disconnected from each other.
+
+but I was pressing it and turns out they are just speculating, but multiple people are speculating
+the same thing based on, well, based on speculation.
+
+So the idea is that the Rejuvenation Olympics have not been updated for a very long time because
+Brian Johnson is invested in true diagnostic.
+
+Therefore, he doesn't want an update to happen until he's...
+
+he gets low enough to be on a good place.
+
+Yeah, I could understand why people would think that.
+
+I want to mention just maybe the history of Rejuvenation Olympics to start, which is that it was
+entirely Brian's idea.
+
+He thinks certainly that he considers himself a rejuvenation athlete, someone who is focused
+completely and fully on living for as long as he can and taking the proper care of his body.
+
+And I think that he wants to start a movement around that as well, where people are doing the same.
+
+So together, we started this Olympics sort of website and idea and and we in order to do that we we
+basically set one parameter What is the the parameter that we're going to use for this leaderboard?
+
+And that is what we said is the Dunedin pace just because of its validation We know that it responds
+to intervention like caloric restriction So it satisfies a lot of the scientific boxes that we would
+want
+
+for an age biomarker And but but we wanted to do this in collaboration with Brian.
+
+So we created it as a set website in terms of the Rejuvenation Olympics.
+
+And so originally we were starting to update that.
+
+We try to do it sort of every month.
+
+But as you know, recently we have not done it, probably in the last six months.
+
+So that's certainly our fault.
+
+But I will also mention, Brian started the leaderboard at number one.
+
+The age reversal.
+
+He went from a point 1 .01 rate of aging.
+
+So he's actually faster in aging than his actual chronological age.
+
+And then he reversed that to, I think, a 0 .69 biological aging, which is an incredible reduction.
+
+And he was number one on that leaderboard.
+
+Now, actually, before even this led these last few updates, he was number seven.
+
+So he's been bumped down a few spots, certainly.
+
+And regarding the Absolute Leaderboard, he's relatively young, right?
+
+45 years so the older you are, the larger.
+
+progress you can make in there.
+
+let me bring up a couple of problems with With Dunedin PACE.
+
+And rejuvenation Olympics, of course.
+
+Well, my very first problem, so Dunedin PACE is not a biological age measurement, so it's not like
+you're 35 years old and you come down like your Omicam age to 29.
+
+No, Dunedin PACE is the...
+
+pace of aging measurement.
+
+And that brings up a couple of mathematical the first that came to my mind is that the unofficial
+winners of the Regiounaiton Olympics are people in cryo chambers, right?
+
+They have slowed their pace of aging a lot.
+
+the problem is that it doesn't go negative, right?
+
+You don't, like, you go only one way with Dunedin pace, but you actually wanna go backwards.
+
+I can address those if you'd like.
+
+So first of which, I think that that's exactly what we want the leaderboard to do is to tell us
+about who is slowing their aging the most.
+
+And I think that goes along with the second topic, which is the pace versus the overall age.
+
+And I think that for us, You know, one of the concepts around any biological marker of aging is
+effectively, can we actually reverse this process?
+
+And that's a hard one to answer.
+
+Do we see reductions in biological age clocks in certain interventions?
+
+I think that, you know, with these being so new, still have to ask the question of are these, do
+biological age reductions in these clocks increase lifespan by the same amount?
+
+And so for instance, I'll give you an example, glycan age is a great biomarker that's based on
+glycans, but you can change it pretty easily with pretty large deltas with just estrogen.
+
+can cause up to a 20 year age reduction in glycan age just with intervention.
+
+we know that glycan age, I should say that estrogen therapy doesn't actually increase lifespan by 20
+years.
+
+And so, want these to be predictive measures of outcomes.
+
+And in order to do that, we also have to show that the interventions that are registering as changed
+within the measurements are also changing the outcomes.
+
+And whenever they're too modifiable, that actually makes us worried because so far no one has beat
+aging, right?
+
+We've all, we're all succumbed to aging at this point.
+
+Some people have done better than others in terms of, you know, centenarians who can live over a
+hundred versus people who might die pre - but at the time no one has beaten aging.
+
+And so for us to see massive age reductions, I think is first off an expectation that I think is a
+little bit unreasonable at this point in time.
+
+You know, if we can see age reductions of one or two years, that's significant, right?
+
+Because that could mean that we're increasing lifespan by that same amount.
+
+And that's not trivial.
+
+You know, the maximum lifespan has seen very, or the average lifespan has been very little increase
+over the past couple of decades.
+
+so I think we need to set reasonable expectations about the amount of reversal as well.
+
+We don't want these things to have major changes unless they're also having major changes in
+outcomes.
+
+Otherwise, they're not effective surrogates.
+
+And so we want to be careful about the age reversal topic.
+
+That's obviously what we're gearing for, but we have to figure out how to effectively prove it
+first.
+
+then generally in terms of the pace of aging, it might not have a negative pace of aging, but it has
+a negative compared to chronologic.
+
+So as long as you're below one, that again, it's going to be then slowing that rate.
+
+And one of the reasons we chose that to mean pace over the age biomarkers is because, as I
+mentioned, it's responsive to change in for things that we know already improve lifespan and health
+span.
+
+So in particular, it's the only clock that has been shown to be significantly reversed with caloric
+restriction.
+
+The calorie study done by Columbus of showed this, that all the previous biological clocks didn't
+see significant reductions with caloric restriction, but we know caloric restriction is the most
+validated therapy for age reversal or lifespan extension in almost every animal
+
+And so this is sort of our check -in.
+
+Does it work with the thing that we know really works well in the most validated study?
+
+And the Dunedin -Pace was the only one to do that.
+
+In fact, those first -generation clocks trained to predict chronological age, they actually went up
+with caloric restriction.
+
+went in the wrong direction.
+
+so that's why we at True Diagnostic will never use those first generation clocks, but it's also why
+we selected the do, need, and pace.
+
+We wanted it to be a true measure of what people were doing that actually responds to interventions
+we know extends lifespan.
+
+So that's sort of why we chose it.
+
+And I think hopefully speaking to those two deficiencies, which I think might not be as big of
+deficiencies as we've been.
+
+How does Dunedin paste changes over a lifetime?
+
+Yeah, so across age, we see a trend that increases.
+
+I liken it a bit to compound interest, you know, except the opposite, right?
+
+The slower that you're aging, the longer you can keep it slow.
+
+But if you start to accelerate aging at any point in your life, you're more likely to age faster.
+
+And so you start sort of rolling down that hill a little bit quicker and exponentially increasing
+that age.
+
+And this can start very, very, very early.
+
+There's data that shows that even in children, low socioeconomic status or adverse childhood
+experience that they have increased rates of aging that then even predict their aging rates at age
+35 or 45.
+
+And so we know that this is a process that is important from the moment that we're born and then
+will tend to increase over time.
+
+That's why also on the Rejuvenational we actually take into account the trends with age so that we
+can make sure that it's not only 18 year olds that are on that leaderboard but consistent among
+different age groups.
+
+Of course, of course.
+
+So we know that this increases with age.
+
+We are able, you know, and going back to your sort of middle school mathematics, we do this equation
+y equals mx plus b, right, where we set the slope of that line.
+
+And we use the average slope increase as a way to control for expectations of where you would be
+with age.
+
+we use that as a correction factor to your overall rate of aging.
+
+And so, you know, I will say that there's one big weakness with that.
+
+And the weakness then goes to extrapolating to say that I'm aging at a rate of an 18 -year -old or
+I'm aging at a rate of a 15 -year -old.
+
+the reason for that is because even though it has a slow linear trend up with age, it's not
+incredibly definitely not as linear as those biological clocks, right?
+
+Which, up directly with age.
+
+As a trend, this is a lot more sort of a very, very slow gradual incline.
+
+And so even though we use it as a correction method, it's not probably not sufficient to say, I've
+got the aging rate of a 12 year old or a 13 year old, because that's a sort of a strange
+extrapolation.
+
+So we use it to normalize.
+
+But I think that if you're trying to extrapolate to what age you are based on your rate of aging,
+it's not the best method to do that.
+
+So with Dunedin pieces and that the children are aging much faster say 30 years old and then very
+old people are aging much faster again.
+
+the pace of up significantly as we age and starts relatively low.
+
+So the average rate of aging in younger individuals is more like 0 .75 than it would be in your 80s,
+which might be more like 0 .98 to 1 .05 or something.
+
+So it tends to go up with age.
+
+So then you have the Omic age and the symphony age that's coming up.
+
+is there any relevance of these ages to the future of rejuvenation Olympics in the Orvichans?
+
+Yeah, know, biological aging is a complicated topic..
+
+It really is.
+
+You know, when we first started our company in 2020, we had the nine hallmarks of aging.
+
+aging.
+
+So everyone sort of saw these as, you know, definitive changes would happen with age.
+
+Now, conceptually, people have published even 15 or 16 hallmarks of aging.
+
+And that's because as we get older, we see dysfunction in a lot of different ways.
+
+We can see it in our mitochondria.
+
+We can see it with telomere length shortening.
+
+We can it with a proteomic degradation.
+
+And there There're so many things that change with aging.
+
+And one of the problems with aging is we don't know what's causal versus correlative.
+
+So we're not sure what happens first, right?
+
+It might be that, again, certainly not true scientifically, but I'll use it as a hypothetical case.
+
+It's almost like telomere shortening could then cause proteomic dysfunction.
+
+And so we don't know what's cause or effect.
+
+So what we're really to do is to characterize changes that happen with age so we can basically use
+those as risk factors to inform us of what might happen.
+
+And so when we're doing this this, originally, again, this was done with like nine bug -based
+biomarkers in the case of pheno-age age.
+
+And then it was sort of progressed to more large -scale molecular markers.
+
+And so now people are doing biological age clocks for proteomics, metabolomics, DNA methylation,
+these big large -scale markers.
+
+But the problem is it's very complex.
+
+And so, you know, we take incremental steps in getting better and better biomarkers.
+
+And we know that they are incrementally better because they're more predictive of outcomes, right?
+
+That's what we want at the end of the day, a very, very predictive biomarker.
+
+And so these biomarkers continue to get better.
+
+In the case of omic age and symphony age, the way that they've gotten better is certainly increased
+hazard ratios.
+
+So we can see that they predict disease outcomes better than other clocks.
+
+In the case of omic age, better any other clock in the cohort that we measured it in.
+
+And then the other thing that's very unique about these two is that they're able to tell you why
+you're aging.
+
+And this has been a big weakness as well with the biological clocks because you could take our
+tests, for instance, and you could see that you were 10 years younger or 10 years older.
+
+But the problem is we would tell you the same interventions regardless.
+
+If you were 10 years older or 10 years younger, we'd tell you what we know about improving aging,
+which is very outside of the things you probably already know.
+
+And so the question is if you if you're not going to get personalized recommendations based on how
+you're aging, why take the test in the first place?
+
+Because does it help you to actually know a lot of people have the same critique of genetic testing,
+where you can take a test for your genetics, but there's very little you can do to change it outside
+of gene
+
+therapy, which is, you know, very rare.
+
+And so so the question is, why test and so with symphony age and with omic age, we now have ways to
+tell you about your aging, right?
+
+We might not all age in the same way.
+
+So for instance, your friend who is a smoker, he might, you know, have increased lung aging, which
+then increases inflammation throughout the body, which might hurt cardiovascular or metabolic aging,
+you know, versus someone else who, let's just say, you know, has a terrible
+
+diet, right?
+
+You know, just only eats no vegetables, eats only, you know, high saturated processed fat foods, all
+of a sudden, he's going to have worse cholesterol, worse metabolic health.
+
+He might have, again, inflammation, but in a different way, not coming from his lungs, but coming
+from sort of these diet related things.
+
+And so both of those people might have increased aging, but in very different And the treatments to
+slow that, we might want to give different recommendations, right?
+
+For the first person, it might be stop smoking.
+
+For the other one, it might be improved diet.
+
+But with the previous test, you couldn't make any of those recommendations.
+
+Now with the newer clocks, what we can do is, we can actually tell you, for instance, with symphony
+age, which is the one that will go on rejuvenation on the Olympics leaderboard, we can actually tell
+you what
+
+organ system is aging the fastest versus the slowest.
+
+So we can say, for you, you might have aging two years older in your lungs.
+
+And we might say, here's the things we can do, or we know to reverse aging within the lungs.
+
+So now we can make personalized recommendations.
+
+So I think these clocks have made a step forward because they're more predictive, but they're also
+now explanatory.
+
+And so now we can make some recommendations.
+
+So on the review of the National Olympics, we're actually going to add a top five leaderboard for
+all 11 organ systems.
+
+we hope to figure out what people are doing really improve those organ systems, aging, and then make
+hopefully recommendations that people can share based on their own success.
+
+So we have your chronological age, which is the answer to the question, how old are you?
+
+And we have the Omicam age, which is your biological age, which is the answer to the question of...
+
+How old are you if you would have been frozen in a cryo chamber for 300 years?
+
+So you might say I'm 30 years old even though you're 330 years old.
+
+So that's your biological age.
+
+And then there is the concept of how fast you are aging, your pace of aging, and Dunedin pace.
+
+And then final concept is from your symphony test that's going to happen in the future and that is
+on ages on different organ systems.
+
+let me give you an interesting idea that I had.
+
+I was thinking about just from a conceptual point of view, what would the pace of aging be?
+
+be pretty useful for people and you know from a system design point of view the feedback is pretty
+slow so I buy your product Okay, so it is super fast compared to many things.
+
+I buy your product, it comes in a few days if I'm in the US, I'm not in the US, so it's gonna be a
+few weeks, and then I prick it, and a few weeks, and so this is
+
+What would be cool if you could just put like a continuous aging, pace of aging monitor on yourself
+and...
+
+and when you eat a donut then all my pace of aging go up.
+
+Now that would be a pretty good instant How feasible is it to put a small device on you and keep
+monitoring your pace of aging?
+
+Yeah, so I think that you have a couple ways to answer that question.
+
+One is in the technical feasibility.
+
+You know, could we actually do, you know, a diagnostic like that, that they could measure enough
+resolution.
+
+right now, unfortunately, the way that we do this molecular biology for DNA methylation, not able to
+do sort of point of care systems, right?
+
+So that would be a great thing if we might be able to even have something in the physician's office,
+right?
+
+That you could go in, you know, take a blood draw, put your blood draw in and get a result very
+quickly.
+
+the moment that doesn't exist.
+
+In the future it certainly might, but the technology doesn't exist.
+
+so you can't do methylation, but you might be able to do other biomarkers, right?
+
+Like metabolomic biomarkers, like we already know that glucose obviously is a metabolite.
+
+And there are continuous glucose monitors that work.
+
+One of my sort of passion projects is actually biomarker tattoos, where you can actually look at how
+a biomarker is changing based on the color change of a tattoo on your body.
+
+which I think is really interesting.
+
+But the problem with those is that usually they're based on one metabolite, right?
+
+Or one measurement.
+
+So like glucose or albumin or something of that nature.
+
+along with that, generally one biomarker is not sufficient to predict outcomes or to predict their
+pace of aging.
+
+So I think that that is the technical problem.
+
+With that being said, you're going to start to see a lot of this.
+
+So for instance, we helped a big toilet brand with some of our data create a metabolomic measurement
+of biological age in the urine so that every time you use the restroom you can get exactly and my
+toilet to analyze my stool.
+
+And so, you know, they're looking for metabolites in the urine that they can sort of, you know,
+predict biological aging with.
+
+And so it's certainly happening.
+
+But the problem, I think, is that usually they can't get enough data to create highly predictive
+models.
+
+And without highly predictive models, you might be getting the wrong information sometimes.
+
+And that's a big problem because that's really what we don't want.
+
+We don't want you to get information.
+
+you do as best you can to change that whenever it's the wrong information.
+
+It's not directly correlated to that outcome.
+
+And therein lies the problem with generally is that again, it's so complex and there's not very much
+agreement on the definition.
+
+There's no objective, I would say, The reason that people use time until death is because they think
+that's probably the most objective how long are you living?
+
+And that's one of the other problems is that, very unlikely that anything that you do within a
+probably a 24 -hour time period is going to have a major impact on your lifespan.
+
+And so again, this is where that pace of aging can sometimes be almost too responsive, right?
+
+Because let's just say that, you know, we do everything we can for positive health within a 24 hours
+period.
+
+That's still a very, very small fraction of our overall life.
+
+And so, that needs to do is it needs to have such precision in the directionality that that
+precision is very very hard think of this as You know, there's probably not a lot of other know
+different criteria.
+
+Let's just say that you know You go to a lake to test water quality one time in the you know in your
+entire lifespan Is that day that single day going to be?
+
+consistent with your overall trajectory and in so for instance You might have had rain the day
+before or the day and you pick up more mud, you know, or debris because things are flowing off the
+land to the water.
+
+One single time point is very difficult to be able to predict trajectory and outcomes, especially
+when the time period that you want to measure it is such a long period.
+
+so I think that there's a technical problem with that, but there's also a conceptual problem, which
+is that if we really want it to give us good information, it has to be so sensitive that it works in
+one single time.
+
+one single test throughout all of the dynamic changes that happen with our body across age and time
+and you know all these different things.
+
+And so I think it's really really difficult.
+
+I would love for that to be the But again I think our understanding of aging isn't resolute enough
+to get that level of precision.
+
+And at the end of the day I think that you know we would love to make those claims but we also want
+it to be real you know science.
+
+It's easily defendable and I think that that's really hard.
+
+And so I would love that at one point in time.
+
+I think that we certainly will get there.
+
+The way that we get there though is through multiomics.
+
+This idea of really large scale data and using the new technology of the age, these machine learning
+models, these neural nets, these transformer models to be able to create really predictive signals.
+
+And so I think that it's certainly not out of reach, but we're not there You know, it's important to
+talk about the limitations of the metrics even only for the game of longevity because the main
+problem with games is this concept of
+
+The monster era of bodybuilding is the concept of value capture where the value is the size of the
+muscle.
+
+That's a classical example.
+
+But even in you could have a concept of, there will be many kinds of value captures with pace of
+aging and one...
+
+one obvious way would be that hey if I really want to win this thing then I'm going to freeze myself
+and that's how you know like that's a value capture here and and obviously that cannot be the goal
+but
+
+Well, yeah, you know, why I think and again, I think you bring up a good point, though.
+
+I mean, there's so many points of value capture.
+
+But I also think that, know, with what you're talking about with cryopreservation specifically, I
+think we should talk about this thing called the longevity escape velocity that you're probably very
+familiar with.
+
+But it's this idea that we will start to have technological improvements that are so helpful in
+terms of increasing lifespan that will actually age slower.
+
+than the amount of technological improvement that we have to escape lifespan.
+
+And so cryopreservation is one of those things.
+
+If you can get even extension of 10 to 20 years in your life, the amount of technological innovation
+to help us live longer in that period of time could be pretty incredible.
+
+So I think that slowing your rates of aging or stopping it entirely with something like
+cryopreservation I think are certainly exciting reasons because the science is growing so quickly in
+the area of longevity.
+
+In fact my working theory is that it might be the rejuvenation Olympics that unintuitively brings us
+to longevity escape velocity and there are many ways to make an argument here but what I like to do
+is from the philosophy of games which
+
+is that life could be conceptualized as a bunch of games happening simultaneously and you are Every
+time you play a game, you take on an agency, you become a completely different person.
+
+We are right now the people of having a discussion, that's who we are.
+
+But if you go home and talk to your family, if you have, then you become the father or the son.
+
+You become a different person, you switch agencies.
+
+That's the fluidity of agency.
+
+But you know what's really interesting here is that playing sports these agencies are so powerful as
+a motivation that these are above the like bodybuilders not using steroids, like steroids are
+illegal everywhere, but they are unofficially
+
+allowed to do that, right?
+
+Like games, are above the I can punch you in the face only if we are playing a kickbox game or some
+kind of martial arts, but otherwise it's like what the heck is completely illegal for me to hurt you
+in that way, to
+
+violate your property as your body.
+
+So games transcend Law, they transcend ethics, interestingly.
+
+And, you know, if we have such a motivational power, like a game of rejuvenation, a game of
+longevity, that is transcending laws and ethics, then interesting things will come out of that.
+
+Yeah, yeah, it does allow you to push those boundaries, I guess.
+
+You know, I've never really thought of it that way, to be honest with you.
+
+But I do like that.
+
+collectively we can all learn the same lessons together.
+
+What is your vision?
+
+a lot of ways to answer that, I think.
+
+I have, you know, I certainly have visions for, you know, I think aging.
+
+I certainly have visions for, you know, DNA methylation as a biomarker.
+
+And I think that those are wildly different, actually.
+
+And so whenever I think about specifically my vision for you know, I do think that right now we're
+limited in our ability to investigate aging.
+
+And it comes from this lack of clear defined endpoint or outcome.
+
+And also the lack of any surrogate way to measure that outcome.
+
+So right now in the US, we do a trial for aging because as a endpoint outcome, it's never been
+approved before.
+
+It just recently got approved in dogs by the company Loyal.
+
+is doing some amazing work in drug development for canine life extension.
+
+so I think that right now we don't have a game for longevity in it recognized within the government.
+
+And I think that that's a big problem.
+
+But I also think that these aging biomarkers, need to mature even need to be effectively trusted by
+researchers.
+
+And the concept of age needs to also change for most physicians.
+
+Most physicians and people think of aging as a vanity thing, All the different change that might
+happen in our skin or our appearance as we age.
+
+But what we're trying to do is to tell how this is actually a health marker that predicts outcomes.
+
+And so I think conceptually we need that to hopefully the aging biomarkers, the the regulatory
+pathway will all change.
+
+And then we can actually start to do work of assessing what works and what doesn't have a true north
+to really commit to the game, I guess, in the investigation.
+
+So that's my vision, I think, for hopefully aging and and how we go about solving it.
+
+I think that already there was some very, very exciting things such as, you know, whole organ
+transplants.
+
+I think that partial reprogramming, these are the things that get me excited about maybe possibly
+increasing and that longevity escape velocity.
+
+what can we expect from the rejuvenation Olympics in the future?
+
+Well, first and foremost, an update.
+
+Finally, I think we'll get an update here very soon.
+
+So we hope to have this updated by the end of the month.
+
+By the end of next month, which would be June, we will have a redone website with new interfaces,
+with new ways to consent, and also hopefully the ability to compare different aspects of aging
+versus the entire data set so that we can actually go
+
+in and do your own analysis.
+
+see what the averages are, what that equation of, for instance, is of the regression line with age.
+
+we want this to be So you can actually go in there and ask questions and hopefully get answers.
+
+And along with that, we hope to have...
+
+Yeah, so we want to you to be able to see some of the data that we have on this.
+
+For instance, like looking at where the people who have the best ages live, you know, what areas of
+the country do they live?
+
+You know, not not individuals, but way, it's not personalized, confidential information, but but
+aggregates to look at trends and patterns.
+
+So we can say, you know, out of the top 100 people, are they taking a supplement more?
+
+that is more frequently used than the bottom 100 or something of that nature.
+
+So we want the ability to sort of use these big meta -analysis from big data sets to even interact
+and maybe find some lessons and then suggest maybe lessons to be learned.
+
+these will all happen in successive ways.
+
+This interactive database probably will not happen anytime soon, probably I would say four to six
+months.
+
+But at the very least, we'll start with updates on the current leaderboard in a month.
+
+two, we will add some, I would say, some new features that will look and be then we will start to
+add the symphony age, organ system aging rate reports.
+
+Those are the immediate focuses, but in the future, I think we want to make this a community more
+than anything, that people are able to interact with, that people are able to find lessons and ask
+questions.
+
+You know, famous board game developer said the heart of every game when he's designing, the heart of
+every game is the point system.
+
+And right now, that's what you have.
+
+shared expectations of something is going to happen.
+
+So people come together and they were talking and they were like a temporary community expecting
+something to happen.
+
+And that is what's happening in like a football game that people come together, they are watching it
+and they are expecting who's going to I don't know how to add this element, the goat.
+
+to the Rejuvenation Olympics, but I think something that is...
+
+the anticipation and something to happen, that's missing here.
+
+Do you have any thoughts on that?
+
+that's a great idea.
+
+I think the expectation, though, I think is we all age, right?
+
+I think that that's the, you know, I often liken this to, you know, if you try and write a script
+for Superman, it's sometimes very difficult because he's so powerful.
+
+You need an effective enemy.
+
+And here, I think we have such an effective enemy, it's hard to mount any reasonable response in
+aging.
+
+And so I think you know, the way that they sort of write for Superman is fighting against time.
+
+And I think that's the exact same thing that we're doing.
+
+We, limited concept we have universally is this time feature.
+
+And so I think the more immediate results that we can get, they can translate this into lifespan
+extension, quality lives with fans, friends, family members, pets and animals.
+
+I think that that will be the way that we drive more of expectation where people are exceeding
+expectation and then therefore drawing our attention, just like that goat, right?
+
+I think so I think we need more immediate results.
+
+feedback to draw attention to abnormal results, which in this case would be lifespan extension.
+
+You see, in some sense, this is the most significant game that humanity have ever do you know, like,
+personally on the rejuvenation Olympics?
+
+From the current leaderboard?
+
+know, I actually know a lot of them from the current leaderboard.
+
+Yeah, you know, mean, there are quite a few, you know, I think that in the top 10 leaderboard now,
+we obviously have Brian Johnson, you know, there is Jen Bell, who's number four on the leaderboard,
+you
+
+know, who's very involved now in these spaces.
+
+We have some of one of our physicians and Dr.
+
+Diane Ginsburg, who's on the leaderboard.
+
+We have Tiat Lim, who is really advocating in parts of Southeast Asia for age rejuvenation.
+
+And then we also have Michael Lusgarden, who we talked about before, who is sort of one of those
+expert data -driven biohackers.
+
+And then also, you know, even now we actually even have Brian's father, Richard Johnson, which is
+certainly very interesting because, you know, they've done some of the plasma exchange and
+transfers.
+
+So those are some of the people I think that I, you know, I've talked to, you know, in this
+exploration.
+
+many, many We still have most of the participants who are on the leaderboard coming from our
+integrative medicine So people who are managed by physicians trying to do that preventative health.
+
+And so usually I know their physicians very always trying to find that result.
+
+So we've got even at one point Steve Aoki and Peter Diamandis were on both of those leaderboards.
+
+And I think that for what...
+
+Yes, yeah, absolutely.
+
+So the contrarian question is, what is it that you strongly believe to be the most people disagree
+with you on that?
+
+this is like to think that a lot of my views are driven by science.
+
+And usually science has consensus because it's fact driven.
+
+And so I would say that there's probably not a lot of contrarian opinions I hold necessarily in the
+field of aging.
+
+I think know, even in aging, I think the most controversial topics with lack of consensus go to
+things like is aging a And, you know, I think that right now the consensus is probably FDA does not
+have it
+
+as a disease.
+
+The World Health Organization does now have an ICD sort of extension code that lists aging as the
+cause of many disease, which is great.
+
+I think it's But I think that, you know, many researchers here in the United States, to not think
+aging is a disease.
+
+And I think that that is something I would disagree with.
+
+I do think aging is a disease.
+
+I do think it is modifiable and mitigatable, maybe not in major ways at the moment, but certainly in
+ways that would affect quality of life and total number of years lived.
+
+I'm an evil capitalist.
+
+I always ask my guests this question.
+
+How can people give money to you?
+
+Ooh, so, you know, again, we've been a private And so the best way I think to sort of help our
+vision or our cause is to participate, you know, to get your own aging tests done and also, you
+know, maybe
+
+get involved in research studies that we're doing.
+
+So whenever, if you do a test, in addition to doing a test, you know, maybe filling out those
+questionnaires that come along with it to give us great data to maybe find some useful Right now,
+we're not
+
+raising I hope that we can get the community involved and provide a valuable service while we do.

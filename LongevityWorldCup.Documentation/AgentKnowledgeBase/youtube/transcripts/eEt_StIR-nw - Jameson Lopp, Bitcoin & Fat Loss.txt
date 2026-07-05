@@ -1,0 +1,514 @@
+# Jameson Lopp, Bitcoin & Fat Loss
+
+Video: https://www.youtube.com/watch?v=eEt_StIR-nw
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 200/484 units; 3862/8726 words.
+Matched topics: HRV, Rejuvenation Olympics, aging, biological age, biomarkers, cholesterol, exercise, glucose, longevity, medicine, mortality, nutrition, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+other week of scaling debates, arguing ahead of us.
+
+And went and I did my workout, showered, came back to my house and I actually got, I ran into a
+police blockade trying to get back into my neighborhood.
+
+And so it took probably 20 or 30 minutes of me sitting there and then eventually talking to the
+police more.
+
+So this series is about...
+
+Bitcoin and half the reason is because I started a Rejuvenation Olympics interview series.
+
+So that's about people trying to slow down their aging and And I felt like I'm moving too far away
+from Bitcoin and somehow maybe I could I could bring the two together and and and see find some
+
+Bitcoiners who did some something quite significant in health and I recalled you had an article back
+in the day called fat to fit and I would like to talk about that but I would also be curious what
+
+happened since then.
+
+So let me set the stage.
+
+A couple of years ago you went down from, I translated it to Europeans, so don't worry, from 94
+kilogram to 79 kilogram, 34 body fat percentage to 21 body fat percentage, and 100...
+
+14 centimeter waist circumference to 90 centimeter and all these in four months.
+
+Now, I think 34 body fat percentage to 21 body fat percentage in four months is the crazy number
+here for And one year later you still kept it.
+
+So tell me about that.
+
+So, you know, late 2020, I started thinking, you know, how do I protect myself from COVID?
+
+And when I looked at the various mortality metrics, it seemed to me like the biggest issue...
+
+that you had to worry about in terms of like comorbidity is just obesity.
+
+So that helped.
+
+But I think it came down to simplicity as well as what's the most straightforward, simple way to
+improve my health or at least reduce my fat.
+
+And so that was my primary goal for that first period.
+
+And then over the years, I've started experimenting with other things, trying to continue to improve
+my health in other ways.
+
+You know, I noticed that obesity seems to be, unless you have some really nasty vices, you know?
+
+Obesity is the single thing that one can do to lower their biological age.
+
+go that far to say even more than working out but you know then the variables start to confound.
+
+So what's the simplest, least effort way to lose a lot of fat?
+
+Tell us, can't wait.
+
+Yeah, so I think a lot of it has more to do with cutting out bad things from.
+
+You know, the first sort of quip that you may hear a lot that I think is actually quite accurate is
+that you can't outrun a bad diet.
+
+And so, especially in America, we have the standard American diet or SAD, you know, for acronym.
+
+And, you know, I think that already puts us at a big disadvantage.
+
+more of it.
+
+So, You know, specifically I ended up choosing a ketogenic diet and you know, that was mainly
+because my research concluded that, you know, when your body goes into ketosis, you really
+supercharge your body processing fat as a store of energy as
+
+opposed to normally it's going to be using carbohydrates to actually.
+
+create your energy to power your metabolism.
+
+But you know, several years later, as I've tried a few other diets, I don't necessarily believe that
+keto is like the perfect diet for everyone.
+
+The reason why I think that it works for a lot of people, and the reason why I think it works for me
+is really because it forces you to be mindful about what you're eating and it forces you
+
+to avoid a lot of those ultra processed foods.
+
+So, you know, basically on a ketogenic diet, it means I'm eating meat and vegetables and maybe a
+little bit of fruit, but you know, just that of, you know, cutting out a lot of the shelf stable
+products.
+
+I think is what really did it.
+
+Another thing that I also started doing is carrying around essentially a gallon jug of water that
+has my time of day markings on it and making sure that I'm well hydrated.
+
+And I've done a little bit of fasting as well.
+
+I've tried intermittent fasting, I've tried multi -day fasting.
+
+And I think that that may be good for...
+
+sort of resetting your body, or it can certainly be helpful for getting into ketosis if you're not
+already in it.
+
+Though I found that fasting while in ketosis is far easier.
+
+You generally don't get as hungry when your body is running on fat as its energy stores, more of a
+slow burn type of thing.
+
+But point being with the drinking all of the water is that I found that...
+
+Just making sure that you're drinking a lot of water throughout the day also prevents you from
+getting hungry and wanting to snack.
+
+Because water does help fill you up and especially helps during fasting periods.
+
+But while I did all of this without specifically counting calories or looking at macros or anything
+else like that, I think that it was a sort of...
+
+confluence of all of these other habits that resulted in me just naturally getting my caloric intake
+down and making sure that I was burning a lot more than I was ingesting.
+
+When you're talking about ketogenic diet, do you mean like there are two types, right?
+
+Like a high -fat or a high -protein one?
+
+Like which one are you talking about here?
+
+So I was focused more on high fat at the time since, you know, the fat was the my source of wasn't
+really tracking my macros or how much protein and fat I was getting at the time.
+
+That was something I started doing a few years later, annoying, and I really only started Tracking
+macros when I decided that I wanted to start adding more muscle so you know this early experiment
+with ketosis I
+
+was primarily focused on Losing fat and that certainly worked and I was you know I had started going
+to the gym and lifting weights, but not in any sort of Highly regimented fashion.
+
+I didn't really know what I was doing.
+
+I didn't have I any professional advice or spend a ton of time, you know, coming up with a
+weightlifting plan.
+
+I was just going in and, you know, doing like three sets of Macs on a variety of different machines
+and whatever, just to make sure I was, you know, actually working out my muscles.
+
+But I, I don't think I really gained much muscle during that.
+
+And what I realized, after sort of being plateaued there for a couple of years and trying harder to
+gain muscle, I realized that on a ketogenic diet, it's very, very difficult to gain muscle because
+normally, you know, in
+
+order to, in order to actually add muscle, you can't just eat protein.
+
+You also need carbohydrates to turn into, I think, glucose to help get your body into...
+
+position where it can start building up your muscles.
+
+That was, you know, something that I started doing last year when I actually got a professional
+trainer and they completely switched up my diet, which has led to a whole other journey over the
+past year.
+
+the environment that you're existed in at that time?
+
+And then of course, trying to stay in a ketogenic diet while traveling and being on airplanes and
+stuff is also very difficult.
+
+Especially when you go to Europe, there's a lot of breads and pastas and so on.
+
+It can be probably almost as difficult to be vegetarian, trying to stick to meat and vegetables.
+
+But these days, I'm not actually in ketosis.
+
+I'm sort of carb cycling in and out of...
+
+low carb and high carb days, but not actually trying to keep my body in a state of ketosis.
+
+What about the fasting that you mentioned there?
+
+Are you talking about complete fast or protein fasting?
+
+Yeah, basically water fasting.
+
+I've done up to, I want to say like two and a half day fasts, just experimenting.
+
+Like I said, it's more of like a slow burn rather than when you're eating.
+
+sugars or carbs at a meal, you know, that'll last for a little while and then you'll kind of have a
+crash.
+
+It's just more difficult to maintain your concentration and keep your general level of concentration
+and acuity managed.
+
+I have not gotten so far as to doing like a glucose, you know, real -time glucose monitor, but one
+of the things that...
+
+I have appreciated is sometime last year I got the the aura ring.
+
+And so, you know, that's primarily your first sleep tracking.
+
+It doesn't do as good of a job at tracking your sort of athletic metrics.
+
+But just from looking at the sleep tracking alone, I realized eating later at night drinking alcohol
+in the evenings These are things that impact your sleep quite negatively and So, you know that has
+resulted in some more
+
+behavioral changes as well for me and also just trying to to stick to know a more regularly
+scheduled time of going to sleep.
+
+You know, Ura gives you these these scores every day when you wake up and I feel like they are
+generally accurate with just like sort of looking at how I feel myself and I can tell, you know,
+when I'm out too late
+
+or if I'm even having like a single glass of wine or something with dinner, it has a noticeable
+impact.
+
+how well I sleep in.
+
+This is sort of like I said at the very beginning, you know, there's some very fundamental things
+here, like far more important than going to the gym is what what are you putting into your body?
+
+What are the inputs?
+
+If we're looking at our body as a sort of type of a biological machine, obviously, it's all about
+inputs and outputs.
+
+So you know what food, what macros, what level of hydration are you getting, but also on the sleep
+side, how much and what level of quality is that sleep?
+
+If you don't have those really basic foundations, then pretty much anything else you do is going to,
+it's not going to be as affected.
+
+And so I'm also, I mean, I've got a number of things in flight right now that I'm experimenting
+with.
+
+And, you know, one of them is I'm going to be trying out the eight sleep, which is basically a
+mattress cover to help regulate your, your temperature.
+
+I was, I'm a really hot sleeper and especially during the summer, you know, sometimes I've noted, I
+get, get so hot that it'll wake me up in the middle of the night.
+
+Hopefully that's just like another thing to help bring more consistency to that aspect.
+
+Because if you consider you spend like 25 to 30 % of your time sleeping and that's a really
+important regenerative cycle for a variety of your biological processes every night, it's worth
+paying attention to.
+
+Yeah, you might spend a month on that to actually figure out what's the right temperature for you at
+what time of the day, right?
+
+How many pills did you and do you take in a day?
+
+it's a funny question because it's it's more related to an ongoing new experiment that I'm doing
+during that first couple of years I was only taking one or two pills I was taking a ketogenic
+specific vitamin
+
+which had things like magnesium and potassium and There are certain vitamins and minerals that
+ketogenic diets tend to be deficient on, and you want to make sure that you get plenty of those.
+
+So I think I was taking that ketogenic vitamin and then maybe fish oil.
+
+But about a year ago when I started messing around with some of these metabolic age tests, and
+trying to look more on the longevity side of things, that's when my supplement intake exploded.
+
+I probably take over 20 pills a day at this point.
+
+I have three or four different longevity -focused companies that I subscribed to, and I do sort of
+blood and stool testing.
+
+look at various markers.
+
+Some of it is for gut health, some of it, the microbiome health, and the rest of it is just looking
+at sort of metabolic health in general, trying to put a number on is metabolic age higher or lower
+than
+
+your biological age?
+
+And I haven't really settled on how I feel about them yet, because like I said, I'm doing like four
+different companies at the same time to see if they're even sort of in sync with each other.
+
+And a lot of this seems to be really early days, kind of hand wavy.
+
+The science is still a out there unproven.
+
+So, you know, I'm not at the point yet where I would necessarily point at any one thing and say, you
+know, this is the way that you improve your metabolic health by just like taking a supplement.
+
+You know, obviously I think they're like drinking less alcohol helps.
+
+The weird thing is that some of these companies are really big on veganism and just like avoiding
+meat altogether and that's very difficult for me so yeah I don't know I also I went through this
+whole cholesterol saga at the
+
+end of last year where it was I was already having a high cholesterol from being on a ketogenic
+diet, which is completely expected.
+
+But then what was unexpected was when I got a personal trainer and they completely changed my diet.
+
+It was basically one year ago last summer.
+
+They changed my diet to a high carb and ultra high protein diet.
+
+So it was around.
+
+100 grams of carbs a day and 200 grams of protein per day and My cholesterol actually shot up even
+higher and it was so high that my primary doctor wanted to put me on statins and You know, I have no
+
+history of heart issues and I ended up having to go to a number of other doctors, you know
+cardiologists and lipid specialists and basically determined that the, the simple cholesterol blood
+tests that doctors normally give you when you get an annual
+
+physical are not quite nuanced enough to give you a full picture of what's happening with your
+cholesterol and with your cardiovascular health.
+
+And basically it's, it's entirely possible.
+
+And also I got much more advanced lipid panels that do things like look at your apolipoprotein B,
+for example, look at the size of your cholesterol particles.
+
+And the reason why those things are interesting is cholesterol particle size is very large and
+fluffy, then that's generally considered safer.
+
+Whereas if you have a lot of really small particles, those particles are more likely to actually
+like pass through the cells of your blood vessels and you'll get basically get stuck.
+
+you know, preventing heart attacks and heart attacks are a result of, you know, plaque building up
+and basically constricting your blood vessels.
+
+So short version is cholesterol is very complicated thing.
+
+And, you need to look at a variety of different markers.
+
+If you have no plaque buildup, then you need to look at additional cholesterol markers to get a
+better understanding of what is your actual risk.
+
+Is your cholesterol the bad type that will build up and cause plaque, or is it likely to just
+continue floating around your body and not cause you any problems?
+
+I just watched something about cholesterol today and it's a kind of worms for sure.
+
+You also talked about SARMS.
+
+They help bind to your...
+
+your muscles, your proteins, essentially to help encourage more muscle growth or sometimes fat loss.
+
+There's a variety of different SARM compounds out there, but it's the S, the selective part that
+makes them more interesting than steroids.
+
+So, you know, I'm not a doctor, but my understanding is steroids is basically like blasting your
+whole body.
+
+with this signal that just says, you know, grow.
+
+Normally you do like a six or an eight week cycle.
+
+And then depending on the type of SARM that you're doing, there's certain post cycle therapies that
+you might still want to like take various supplements.
+
+Because they can for example affect your testosterone levels Not as badly as steroids, but you know
+there are still effects there, so I tried a couple of different SARMs and You know they definitely
+work I think the one that I
+
+I could like lift heavier weights when I was at the gym.
+
+And I think it did help, you know, improve my, my fat loss and possibly, you know, some addition of
+muscle while I was doing all of that.
+
+But I haven't done them since then.
+
+So the one that I'm looking at starting pretty soon is, it's called semerelin or sermerelin.
+
+And that's one that is specifically supposed to help both with adding muscle and reducing fat.
+
+Had a bad experience with that.
+
+Turns out they raise, raise, well, talking about ordering, your resting heart rate goes up
+significantly every single night and your heart rate variability goes down.
+
+So I was trying to make it work.
+
+They certainly ruined my sleep, but on the other hand, there could be an argument made that even
+though it ruins the resting heart rate and heart rate variability, the actual health outcomes are
+positive.
+
+But, you know, I'm not gonna test it on myself.
+
+There is no, you know, magic pill or injection or whatever.
+
+I mean, I guess some people are playing around with like metformin and ozempic and other stuff, but
+that's new enough that I'm kind of afraid that, you know, five or 10 years from now, a lot of
+studies are
+
+going to come out about terrible long -term side effects of them.
+
+There's some interesting arguments to it.
+
+I think we both know a number of people who have essentially been living on the carnivore diet for
+several years.
+
+I don't think I would really want to do that myself for one, because I mean, I think you need fiber
+at the very least.
+
+You're gonna probably have some digestive issues, at least what I've read from other number of
+people who did carnivore long -term and then ended up stopping was usually due to various digestive
+issues that came up.
+
+But once again, this is the type of thing where I don't think that there's one diet that works for
+everyone.
+
+I did read an interesting book a year or two ago.
+
+I think it was basically called Eat Right for Your Type.
+
+And the author of that book made an argument that...
+
+your blood type can actually be an indicator of like what the best type of diet for you is.
+
+And this is, it is kind of hand wavy science.
+
+It made sense, but once again, it's not necessarily like great peer -reviewed and tested science.
+
+But I will say that that book said that, you know, with my blood type, which is type O, that
+ketogenic diet works really well for people of blood type O, because we were historically more of
+the hunter
+
+Everybody's body is different.
+
+And so this is why I don't go around saying, everyone must eat ketogenic diet or everyone should be
+carnivore or so on and so forth.
+
+so one of the most important question is So everyone can lose weight, right?
+
+I weight like three times a year I go down 10 kilogram, but but then then then I always come back so
+and You aren't so How did that happen?
+
+you know, I think that it has to do with how strict you're willing to maintain, whatever things you
+put in place.
+
+So, you know, for me, the nice thing about keto was that I could basically eat whatever I wanted
+until I felt full.
+
+so eat a lot of meat and vegetables.
+
+If you're hungry, eat more and that it generally was not going to add.
+
+more fat to your body itself because your body is in your fat processing mode.
+
+You know, if you, for whatever reason, you know, don't have the ability to stick to more strict
+regimens of diet and exercise, then it can be a lot more difficult.
+
+And not for everyone.
+
+I think this is...
+
+to your diet for a very long time already?
+
+Yeah, also, as I think I stuck to that diet pretty strictly for two and a half, three years, you
+know, up until a year ago.
+
+Now, I guess what I didn't mention, you know, when I changed up my diet a year ago and I got the
+personal trainer, I gained a lot.
+
+But I was also trying to bulk up.
+
+That was the whole idea was eating high carb, high protein and adding a lot of muscle.
+
+but also added a decent amount of fat as a part of that process.
+
+So, you know, now once again, experimenting with trying other things where, Right now, from a weight
+perspective and a body fat perspective, I am higher than I was 18 months ago.
+
+And I'm still trying to improve of adding muscle and losing fat.
+
+So that's like one of the reasons why I'm looking into peptides to see if they can help.
+
+It's very difficult to both add muscle and lose fat at the same time.
+
+Everybody wants to do that.
+
+But as I saw for the experiment with the last half of last year, when I added muscle, I also added a
+lot of fat.
+
+And I could cut, but I would be afraid that if I went back to my hardcore strict keto diet, yes, I
+would definitely lose muscle, or I would lose fat, but I would probably also lose muscle.
+
+And that's one thing that I have noted.
+
+amongst the people that I'm familiar with that stick to strict carnivore and strict keto diets, they
+tend to be pretty lean, you know, not, not very high on, on the muscle side of things.
+
+seems to me just from sort of anecdotal experience, looking at my own body, looking at other people
+who are very strict about low carb diets.
+
+that if you are going to do that, it's gonna be pretty difficult to have a higher level of muscle.
+
+And so that's what I'm trying to go for right did the lean thing for several years and I just wanna
+see how can I reshape my body?
+
+And, you know, I haven't found the perfect setup quite yet that is working for me, but, you know,
+there's a lot of different variables that you can play around with.
+
+There is this training philosophy that maintenance is a myth.
+
+There is no no maintenance.

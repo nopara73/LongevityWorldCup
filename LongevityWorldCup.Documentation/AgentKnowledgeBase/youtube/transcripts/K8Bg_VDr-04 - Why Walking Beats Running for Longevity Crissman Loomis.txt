@@ -1,0 +1,1035 @@
+# Why Walking Beats Running for Longevity | Crissman Loomis
+
+Video: https://www.youtube.com/watch?v=K8Bg_VDr-04
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 360/429 units; 9308/9764 words.
+Matched topics: HRV, Longevity World Cup, PhenoAge, VO2 max, aging, aging clock, biological age, biomarkers, cholesterol, exercise, glucose, hallmarks of aging, inflammation, lifespan, longevity, medicine, mortality, nutrition, sleep, supplements
+
+## Focused Transcript
+
+Uh walking is one great example of a habit that's the S tier. It's one of the most effective habits
+you can have and it's neglected by a lot of the top longevity influencer. If you say I ran
+
+10,000 steps, that doesn't get you any of the longevity of walking to 10,000 steps. So it's uh it's
+very clear on this tried back again to some of the research on running and they find that
+
+there's kind of an optimal dose of it.
+
+Honestly, if you run about half an hour a week, you get all the longevity benefits of running. So if
+you run for 10,000 steps a day, you get nowhere near the 75% reduction in all cause mortality
+
+you'd get from walking 12,000 steps. If you're in it for the long game, trying to live for
+longevity, then all you need to do is put in regular effort even at a low rate and it's going to
+just steadily
+
+build into you're going to be at the about the best you could be anyway. So the whole point of it is
+that uh steady wins the race in this case.
+
+>> [music] >> Chrismann Loomis, welcome to the show.
+
+You are one of those people who like to put the results out there and I'm interested in your journey
+here.
+
+Can you tell me a little bit about your journey? Why why are you even even in this space?
+
+>> Well, it um it started really uh with a book that's called The China Study. Um my father read it.
+It's quite a famous book. It talks about um the correlations between diet and health within China,
+which has a very large data set.
+
+Um but the author has um a bit of an axe to grind in my opinion.
+
+He's very strong against saying that everyone should be 100% vegan and live that way. So uh my
+father actually read it and then he said, "Okay, I'm going vegan. I'm going vegetarian." I was like,
+"Okay." I read it once and I
+
+actually went vegan for a full year.
+
+And after that, uh aside from uh almost getting cavities, getting warned about by my dentist that
+there was getting way too much sugar in my diet, so my teeth were rotting from too much fruit. Um I
+question like is it
+
+really the thing? Like do vegetarians just live longer than people who are not vegetarians? So I
+started to go into Google Scholar and just go through all the studies that I could find on veganism
+or vegetarianism versus uh
+
+people who eat meat or people who eat fish or other things. Um and that really started the journey
+where I started to say, "Well, these things we kind of hear you say that that this is better for
+
+you, that is better for you." I just really started to go into the research and look at the
+observational studies to see, "Okay, well, the people who do these habits, do they actually live
+longer or not?" Vegetarians maybe have a
+
+slight advantage, but it's going to be equaled by example pescatarians who eat fish, which have a
+life-extending benefit to it. Vegans actually seem to anything perform a little less well than
+vegetarians.
+
+The lack of protein, they have some respiratory issues that seem to show up as they're too strict in
+things and a lack of protein overall.
+
+Once I had started from there, I just started to go into it, "Okay, well, I'm doing exercise. I go
+running a certain amount of things, but how much do I really need to do?" I mean, given I'm
+
+doing it for the purpose I want to live longer and healthy, but as much of that life that I can get,
+I want to spend doing things other than running.
+
+It very quickly turned into a kind of question of like, "Well, how much should I be running? How
+much should I be lifting weights? Do I need to go and spend an hour every day or is it just 45
+
+minutes a week is enough?" And the data for observational studies is quite good.
+
+There are many data sets that have large amounts of samples of this that you can go into to see,
+"Okay, well, what is actual results of this? Which people actually live longest?" And then once I
+started there, I just kept on pulling
+
+things and started publishing on my blog to say, "Okay, look, oh well, this is useful information.
+I've kind of boiled it down to what I feel the the prime components." And then put it onto my blog
+and then started sharing that with
+
+And that was exciting and interesting.
+
+And uh by training I'm a mathematician, so um the other thing I want to say, "Okay, well, okay, this
+reduces all cause by mortality, let's say, by 30%, which is like the from drinking coffee. If you
+
+drink uh two cups of coffee a day, it'll reduce your all cause mortality by about 30%.
+
+Okay. But, that doesn't mean you're going to live 30% longer.
+
+That means your chance of dying in any given year is 30% less, which increases as you get older and
+older. So, I started looking at that to say, okay, well, I need to be able to convert these
+
+numbers of reducing all cause mortality by 30% to say, how much life is that actually worth?
+
+And then I can do the comparisons of other things. So, I started doing some actuarial tables um, and
+saying, okay, reducing all cause mortality by 30% every year will give me how many actual extra
+years of expected life.
+
+Um, so then I made a calculator out of that so that anyone could go on to that and I one of my my
+pet peeves in life is sort of if you go into longevity, you read
+
+about things that are healthy for you, often times you'll get uh what I call just a a laundry list,
+right? An unordered, unsequenced, unquantified list of like 10 or 20 things.
+
+And I'm always like, okay, yeah, maybe they're all good, but which one is the best and how much?
+Like, is it worth it to worry about this at all? So, uh that became one of my main missions is just
+
+going through and every time I see like uh these are the things that are good for longevity and
+exercise is going through and then trying to quantify exactly how much benefit you get from each of
+them and at what point should
+
+you just stop reading the list because these things, yes, it might be slightly better for you, but
+you won't even notice the difference. It won't be you won't be able to see it.
+
+So, that was sort of how I got into it and then I've just been kind of continuing to expand from
+there.
+
+>> Regarding that, let me ask you a question because how would you evaluate this? So, this is a
+dilemma that I have in the longevity specific training is that you see, okay, on the one hand, you
+want
+
+to improve your biomarkers, right?
+
+>> And let's say you do do do specific workouts like strength training and running, cardio, high
+intensity, whatever. This improve your biomarkers so much better than something like learning how to
+fall.
+
+Like >> Learning how to fall, okay.
+
+>> to fall. It improves your biomarkers, but it If If you're only looking at it from the
+optimization of biomarkers point of view, learning how to fall doesn't matter if you're doing the
+other things, right? But, on the other hand,
+
+most people die from falling. Okay, they have other problems, but eventually not most, but a huge
+percentage a fall leads to their eventual death.
+
+>> So, how would you Yeah, how Where would you put it if you I don't know what you meant by your
+categorizing them. Do you have a actual numeric system here or >> Yes. Yes, exactly. So, um So, I
+started with the basically
+
+quantifying each of them based off of what the reduction in all-cause mortality is.
+
+And then from there, I went into build that into the tiers of longevity and to say, "Okay, this is
+tier S, A, B, C."
+
+And you can quantify each of them against each other. Something like how to fall, honestly, is one
+that I haven't looked at directly, so I don't have any numbers ready to go on that.
+
+But, that's going to be a combination of things of the frailty you get as you get older. And a lot
+of the issue with falling is not that they don't know how to fall, but rather that they don't have
+
+the power to do the response to catch themselves.
+
+My father is getting older as well, and is also uh struggling sort of getting around the house. He's
+uh over 90 now, and is sort of beginning to kind of uh counter surf, if you will, right? To just so
+he doesn't fall on
+
+something, because it is a very big thing as you get into that age.
+
+Basically, I focused only on the things where if we can get enough observational data that we can
+say, "Look, this is going to reduce your all cause mortality by this percent." And that's the basic
+the the ground truth for me of which uh
+
+intervention I'm going to focus on is the one that's going to give you the greatest reduction all
+cause mortality.
+
+>> What about the morbidity?
+
+Because there is another tension in the biological aging clock space that should we include
+morbidity or is it just mortality?
+
+>> Right. So, there was there was an excellent study done by Harvard Medical School uh the Chan a
+Harvard Medical School where they looked at the five greatest interventions for living as long as
+you can. And they end up being kind of what
+
+you would think they are. They are don't smoke.
+
+Okay? We have we have some findings on that at this point.
+
+Other ones are do muscle training, do exercise, eat a healthy diet, and maintain a what healthy
+weight.
+
+And of those five things, he also then took a look at the morbidity versus the mortality of each of
+them.
+
+And he found basically that each of them give you after the age of 50 or so a certain amount of
+lifespan out of it, an additional lifespan. And of that lifespan of that additional lifespan, 80% of
+it will be uh healthy life, not
+
+uh with any major diseases, not a morbid life.
+
+So, I try to simplify that by saying, "Look, I'm going to look for the greatest life extension
+because that will also 80% of that also will be healthy life."
+
+The one exception to that um unfortunately um that had a negative effect was BMI. So, carrying
+excess weight on your body um and this doesn't kick in as quickly as you think. You don't need to be
+like
+
+the it has a deep basin to it. But once you get to around a 30 BMI, and by the way, this isn't like
+it whether you're getting that from muscle or whether you're getting from from fat, basically
+
+you're carrying the extra weight either way, is that then seems to kick in morbidity significantly
+faster. So, you don't it's going to cause you to have more unhealthy uh years of thinner life. So,
+in terms of that, that's the only
+
+exception I really found. Otherwise, generally things that are good for extending your life also
+extends your healthy life.
+
+So, aside from being particularly careful about your overall body weight, I think that generally you
+can simplify it just down to looking for what extends your life.
+
+>> It occurred to me that sleep was not in there. Is there a reason or not?
+
+Sleep is so oversold and it just doesn't I mean I I get it. Like it seems like it's it's super
+important, especially if you have a bad history of it. But I mean, there's a bunch of contradictions
+here. First of
+
+all, the optimal amount of sleep is just for all cause mortality 7 hours. That's considered to be
+the Okay, the time you want to sleep.
+
+>> It's 7 hours total hours of sleep.
+
+>> They should be the same hours, right?
+
+You shouldn't be going, you know, sleeping early one night and sleeping one late night the other.
+
+But in terms of all cause mortality, it would be like a D tier or something. And also it's more
+important that you sleep less hours than that you sleep more hours. I mean, there's a kind of a
+
+feeling that oh, I should be sleeping half of my day and then I'll live forever the other half. But
+actually, it's less healthy to sleep 8 hours than it is to sleep 6 hours. So, the correlation
+actually goes the opposite
+
+way. Like people who are worried about their sleep because they're they're think they should be
+sleeping too much. Actually, you should be sleeping 7 hours and if you have a choice, sleep less not
+more.
+
+So, it's a bit counter intuitive that way that basically the benefit runs the opposite way and the
+effect size just isn't that great to put it on the edge of you'd live longer drinking coffee even if
+it messed up
+
+your sleep than you would from the lost sleep time you get from having caffeine in your system for
+an example.
+
+>> Yeah, let's okay. Let's talk about cholesterol and then peptides because I've been a a bit >>
+Mhm.
+
+>> Well, I I think I'm not conflicted on cholesterol anymore, but but there are still open questions
+for me. So, my understanding is that there are all these metabolic markers, right? Like glucose and
+insulin and triglycerides and
+
+cholesterol and whatnot. Okay. There is no no scientific debate about anything except except one
+thing. Glucose has to go low.
+
+HbA1c has to go low, not too low, but low generally.
+
+>> Insulin has to go low. Triglycerides has to go low.
+
+Um okay. So, what HDL Yeah, probably have to go up, you know.
+
+LDL Okay, now we have a problem with LDL it doesn't really matter.
+
+Probably VLDL matters more. Everyone want to say that VLDL has to go go low and apoB is the one that
+really matters, which has to go low.
+
+Problem. I have a problem because in the longevity work up, I don't know if you heard about that.
+It's a competition I launched.
+
+And >> Yeah, I saw a bit about it.
+
+>> Yeah. Last year we were using PhenoAge.
+
+This year we are using Board's age.
+
+And the interesting thing about Board's age is that it considers total cholesterol and the higher
+your total cholesterol is, the better your Board's age is.
+
+And you know, it's not a >> [laughter] >> Right? Right? Exactly. Okay. So, because because this is
+not a it wasn't a choice a design choice by the author.
+
+This is what result he found based on the data set that he was examining, right?
+
+>> [laughter] >> Right. Now, that that gets me conflicted, right? I It got you conflicted as well.
+
+Okay, so what's your what's your take on Do you have any speculation here?
+
+>> Let me let me look back and and talk about limitations of PhenoAge first cuz I mean um that's
+quite an interesting one. It's been around for a while.
+
+But like here's one that's kind of funny I find from that one to start with, right? So it it can I
+think it has triglycerides or something in PhenoAge.
+
+I know it has um uh glucose. It has glucose level or insulins.
+
+>> It does glucose.
+
+>> And that's like an artifact. Like basically glucose is not as good of a biomarker if you're
+looking at longevity as HA1BC. Like that one is going to give you a much better reading about sort
+of the long-term glycation
+
+of the bloodstream. I'm making up terms I'm actually as I mentioned a mathematician not a doctor.
+
+>> Borts have both.
+
+>> Borts HBA1C and >> Borts.
+
+>> The Borts I K Croc has both in it.
+
+>> Right, so you get better indication from that. But another fascinating one is that PhenoAge
+doesn't have LDL at all or cholesterol. And the reason that is is that of all those here's a here's
+one that you might not have thought about
+
+cuz I haven't written the blog post yet.
+
+It's in work. I believe actually that the most important a biomarker for a cardiovascular disease is
+not cholesterol, LDL, HCL, APO1, LPA, or homocysteine. It's actually HSCRP. So HSCRP is a it's a
+monitor of how much
+
+inflammation you have, systemic inflammation in your body.
+
+And it's much more accessible. You can reduce it much easier than you can reduce your cholesterol.
+
+I'm sure that you've heard that people trying to lower their cholesterol through their diet. It's a
+hard slog and you've got to change a lot of the foods that you'd like to eat. Which I mean even for
+foods that people like to eat
+
+is a is a hard to thing to do make change for. And actually if If look at it in terms of the all
+cause mortality, ground truth, did people die, lowering your CRP will have a greater reduction
+
+cardiovascular disease than lowering your lowering your cholesterol.
+
+So, I hadn't heard of measuring cholesterol as a positive thing all in one way, but it has the like
+as a mathematician it has the feeling of they were looking for things that had a simple linear
+
+relationship as opposed to like a U V shaped or a a hockey stick or a shape, right?
+
+Cuz I would think um you mentioned HDL.
+
+My HDL is ridiculously high. That's not a brag, it's supposed to be bad for me actually. Like a
+couple of things say it's not good. I try to enter it into those little online calculators of how
+
+long you're going to live. So, I punch in my HDL of 110 and it blocks back invalid answer, please
+enter a valid value for HDL. I'm like, come on, man.
+
+So, like it's one of those things that HDL also has a U shape to it. They believe that probably it's
+low, but then you look at okay, what a cause this high HDL? And there are basically three
+
+things that can do that. One of them is alcohol consumption.
+
+Check, I am a moderate consumer of alcohol and sometimes immoderate. Don't tell my longevity
+followers.
+
+Another one is uh walking.
+
+And I have a walking desk, so I walk 20 to 30,000 steps a day. And it's like the the chart is
+linear. Basically, the more you walk the higher your HDL will be.
+
+And then the third one is uh weight lifting and >> That's that's unreal. That's too low.
+
+>> Well, if you I tell you if you were walking all the time you were programming, you would get in a
+lot of steps, too.
+
+>> Yeah, you know, I just got the standing desk and it's a game changer already.
+
+So, I'm I'm now starting to feel like maybe I could do the walking stuff as well. Well, where were
+we? Wait, you also said uh the the the lack of U shaped curves, which is very important because
+
+when I first implemented uh the PhenoAge algorithm, right?
+
+>> I'm like, what the [ __ ] is going on? The higher your albumin goes, the better it is.
+
+It's like, you're dead at one point.
+
+Yeah. So, there are a few things like CRP. CRP can go as low as it can go.
+
+That's okay. There is no U-shaped curve, but almost everyone everything else have a U-shaped curve.
+
+>> So, yeah, there is a lot of things about PhenoAge. And when I realized Okay, so my class got and
+did a research about where these limits should be in in the PhenoAge algorithm.
+
+And when I realized it, I was like, okay, so let's look at other biological aging clocks. And turns
+out all the [ __ ] biological aging clocks has the exact same problem. And this is such a such a
+design flaw. Like like, what the
+
+[ __ ] man? Like, come on.
+
+>> It just It bad.
+
+But >> Right, they're just they're just doing like a like a linear fit, basically. They're trying to
+say, okay, we're just going to use these things as a bunch of linear things and do a linear model to
+it. And
+
+most of the biological stuff have a sweet spot, not not a the more the better.
+
+>> Yeah, but uh but the argument is that it works on a population level.
+
+>> What else do we have here? You talked about peptides, right? I really don't know that. What's the
+difference between a peptide and and a regular supplements? Like, what's going on there?
+
+>> Right. I mean, the the peptides are going to be sort of um um and I'm not entirely sure on this
+yet, either. I tend to be a a slow adapter cuz when you're using the the baseline
+
+of all cause mortality, you have to have a lot of people doing it before you can get the data to see
+whether they died faster or not. And at this point in the research, I think that basically from
+
+healthy life habits, uh healthy diet, um healthy habits, healthy exercise, you can get to probably
+over 90 years old. And then after that point, now we're on a different it's a different game. So,
+you talk about the kind of the
+
+Well, I was mathematically modeling it and this part didn't work out, so I just added in a a fix.
+
+I did that for the the uh longevity tables as well. I noticed it like, "Okay, so if I stack together
+all of these reduction in all cause mortality, eventually all cause mortality would be like half a
+like 5% or something, and then I
+
+would get predictions that you're going to live to 140."
+
+Which nobody's going to do. So, I have around the age of 100, it's just a flattening thing. Like,
+whatever your interventions are that got you to 100, they're not going to get you past that.
+
+And now it's about a 50% chance every year of dying.
+
+Right? So, the peptides are still I think that they will be the future, but I'm not actually sure. I
+mean, we had Well, you know, it's kind of like a a long person who's been trying to live longevity
+stuff for
+
+a long time. When the microbiome came out, it was really exciting and people thought, "Oh my gosh,
+we're going to figure out how to decode the microbiome, your gut biome, so that you eat the right
+foods, we'll turn this around."
+
+And aside from being able to like fix celiac disease through a transfusion of uh bacteria, really
+nothing has come useful out of it aside from eat fiber, right? So, is I mean, I I've done my
+American Biome, American Gut, and other
+
+things to have my biome sequenced. And it's I mean, sometimes it's like a "You have a great biome.
+Yay, I'm a good person." "Your biome is bad here. Oh, I'm bad." And like the basically the the
+
+probiotics and the prebiotics seem to be questionable in their effect at all. It doesn't seem to
+work and sometimes even counterproductive. Like they found things where if you take pre probiotics
+too aggressively, then then you actually
+
+damage your native fauna. And maybe too much variety is also not good. So, I'm hopeful that that
+peptides will become will actually have benefit to that. And at this point they seem like they do.
+
+Like with Ozempic and some of the other things.
+
+But in general at this point I'm like, okay, well, if I do these habits I can get another I'm 55
+now, so I could get another 45 or so maybe years out of it and hopefully they'll have figured out
+something more
+
+stable by that time cuz I don't think at this time I don't have any particular peptides that I
+recommend aside from the ones that are already being done like like Ozempic and semaglutide for
+losing weight, which is very healthy.
+
+>> Yeah, I actually I tried liraglutide right one of the earliest daily dose stuff.
+
+>> But it completely messed up my sleep, heart rate.
+
+>> Not just heart rate and heart rate variability, but also I actually wake up at night because it
+messes up my sleep so much. The reason why this side effect didn't appear yet at that point is that
+
+people have a shitty sleep, so they just don't notice it gets shittier, you know? But my sleep is
+really good already.
+
+>> I mean, the response they usually get from the the people who are pro Ozempic and other things is
+like, okay, titrate the dose, right? Like okay, drop it down so it's not messing with your sleep,
+but
+
+it's still a little suppressing your appetite. I don't know.
+
+>> Anyway, what's the point? The point is that I really tried to hack it around and perhaps there is
+some some hope if if I would try semaglutide or retrotrizeptide I don't know what is that.
+
+There might be hope, but based on the mechanistic stuff that I've read, I'm not very hopeful about
+those, you know? So, we'll we'll see.
+
+So, that I I I don't take anyone's word for anything. I go to the studies. So, then I went into the
+studies and started to go through them.
+
+And there's uh the study it's not new.
+
+That's one of the other things that's funny about it. One of the studies I was reading was 1977 that
+talked about, "Look, the maximum your body then tries to um cover for the loss of the motor
+
+neurons by having one neuron control more muscle fibers." Right? Oh, this muscle fiber doesn't have
+a neuron, we'll sprout and then cover that muscle neuron, so you don't notice the loss of the motor
+neurons because they're
+
+starting to cover more weight. But, that only works until you get a load of about five times what
+they started with, and then instead of like covering for the sixth one, the whole motor neuron then
+becomes
+
+overloaded and you lose all five in an instant. So, there's uh they have beneficial sprouting what
+they talk about, but then as once you're getting to like an average a motor neuron density of around
+five times what it started with, now it's
+
+unproductive negative sprouting, and it's basically accelerating the loss.
+
+So, that's why the process kind of is invisible and people like, "Well, maybe you just go to the gym
+and you'll be fine." But, the gym does nothing for your motor neurons. The cases are very clear.
+They will make you stronger, so
+
+the motor the muscles that still remain can still be fired. But, once you lose all the wiring, it
+doesn't matter how strong the muscle fibers are, you don't have the wiring for it, and you can't
+move anymore.
+
+Uh Tony Oreggia and I, we have some disagreements on this kind of thing, but uh he absolutely is the
+source of this, and this is the the biggest challenge that we have is trying to find a way around
+this, and this is something
+
+that new look Aubrey de Grey in his seven hallmarks of aging or 11, whatever, completely misses the
+this particular mechanism that takes everybody out, and is not cured by say improving mitochondria.
+
+>> I'll tell you I'll break that gray. I'm just going to interview him. So, if you have any question
+regarding this, then throw it.
+
+>> Please challenge him on how are we going to live without motor neurons?
+
+See, that's that's the thing. We need much more attention on this because no matter how good your
+mitochondria. So, um Maria Branyas Morera, the woman you mentioned who died at 116 last year, her uh
+mitochondria was ex- cellent. The
+
+function of her mitochondria was comparable to some teenagers or something. Um she had great
+biomarkers, but it didn't save her from >> possible? She didn't exercise and stuff.
+
+>> Yeah, I mean she was in a wheelchair from I think her 80s or so.
+
+So, uh the the doctors are saying we can't imagine why she died. Meanwhile, she's old and and
+strength and weak and a wheelchair for the last 40 years of her life.
+
+Yeah, she had really good genes and other things. She had uh some definite benefits and some very
+strong things. I read the the whole paper um that uh Tony linked to as well on her uh cause of
+
+death and kind of how well she was doing. She did really great on the uh the PhenoAge uh you know,
+results as well.
+
+I don't know if she'd have won your contest. I don't know if I guess if they die, they're no longer
+eligible comp- competitors, right?
+
+>> Well, you know, the PhenoAge is historical, so Yeah, it's good work.
+
+Actually, it's That's a pretty good point. I I might just add her as a as a you know, honorary
+athlete.
+
+>> Yeah, and I'm very interested in where would she rank in the longevity World Cup, you know?
+
+That's >> Let's see. So, um I was sort of like >> Maybe but maybe Mike. Maybe he's taking over Mike.
+
+>> I mean, yeah, so Mike is uh Mike, he won your uh the PhenoAge contest. Uh deservedly so. He's
+Mike also has his one ground truth, and for him it's PhenoAge, right?
+
+Like he's trying to minim you know, reduce his PhenoAge, and he's he's laser-focused on all those
+markers.
+
+But for me, I don't I don't think the markers matter as much. I think that there's can kind of
+become like a fetishism, right? Where it's like, "Okay, my triglycerides are 70, but I want them to
+be 50" kind of a thing,
+
+right? Um and I don't think that gets you material increase in longevity.
+
+So although I I very much enjoyed having the throwdown with uh Seem Land and Brian Johnson.
+
+And uh was proud to be uh better than uh Brian Johnson on 27 out of 50 biomarkers despite being 6
+years older.
+
+But I don't I mean, I don't think that stuff is going to give you that good of an indication for how
+long you're going to actually live versus some of the habits.
+
+Uh walking is one great example of a habit that's the S-tier. It's one of the most effective habits
+you can have, and it's neglected by a lot of the top longevity influencers. Brian Johnson, as far as
+I can tell, does no effective
+
+walking.
+
+And you cannot speed run the walking.
+
+Like, if you say, "I ran 10,000 steps," that doesn't get you any of the longevity of walking to
+10,000 steps.
+
+So it's uh it's very clear on this. So let's try back again to some of the research on running, and
+they find that there's kind of an optimal dose of it.
+
+Honestly, if you run about half an hour a week, you get all the longevity benefits of running.
+
+So if you run for 10,000 steps a day, you get nowhere near the 75% reduction in all-cause mortality
+you get from walking 12,000 steps.
+
+You get around the 30% or so reduction you get for aerobic benefits. So but neither of those really
+are going to show like it's really hard to look at someone's biomarkers and say, "Does this person
+run? Does this person
+
+Right? Like these kind of things just don't show up in that level of granularity, and so it's I
+think it's more important to focus on the habit level, also because they're just more accessible,
+right? Like if someone says,
+
+"You really should have a lower LDL."
+
+It's kind of like, "Okay, where do I get that from?" Right? Like, how do you do that in your life
+and know that it'll have an effect? But if somebody says, "You really should walk 12,000 steps a
+
+day." then that's something that you can make a plan around and actually do.
+
+Like, one of the fun things is um they used to say, I think actually some people probably still do,
+but sitting is bad for you. You shouldn't sit.
+
+So, okay. So, now you have this guilt feeling. Like, every time you sit down in a meeting as opposed
+to standing, or you sit down to eat a meal, you're like, "I'm killing myself by sitting here." Or
+
+watch a TV show. And I looked at the numbers at it, and the trends were kind of weird, right? Like,
+lots of people have desk jobs and live just fine.
+
+But it turned out that there was definitely a negative correlation with longevity once you got after
+12 hours of sitting.
+
+But the thing is is when you talk about someone who's sitting for 15 hours a day, it's not that
+they're sitting for 15 hours a day. It means they're literally doing nothing else. There's no other
+time left in the day once you're
+
+sitting for like 15 hours other than getting up and going to the bathroom, maybe cooking food. So,
+it's not about the sitting, it's about the once it gets to that level, you're not walking or doing
+any kind of activity. So,
+
+reversing the frame of it to say, "Look, I'm not going to tell you about you shouldn't be sitting.
+You don't have to set a little timer to distract yourself and jump up and do a bunch of jumping
+
+jacks and get back to your work, which also is going to destroy your concentration during your
+work." Just right? I mean, focus.
+
+>> yeah. It's like, "Fuck, I'm so annoyed by these uh yeah, micro breaks. The best thing in the
+world, except that you want to get [ __ ] done." And >> Exactly. Like, that was Like, just as you're
+starting to focus in on
+
+something, like, the next thing you need to do, and then you have a little alarm go off, and now
+you've got to do that.
+
+So, instead of that, they don't worry about that at all. Just make sure that you get in the walking.
+And you can do that on the way to work, on the way back, while you're working, whatever.
+
+So, the the positive framing for that I think makes a huge benefit in how actionable it is and
+accessible it is for people to get the benefit out of it as opposed to kind of looking at the
+
+>> Well, although now that we have AI programming, now we can do we can just tell the AI to do
+something and you always have like some time like I'm just waiting for the AI to finish the thing
+
+that I want. So, now I'm doing like micro-brain.
+
+>> We're back back into the age of compiling, aren't we, right? Like, I got to wait for it to
+compile, so I'm going to go ahead >> [laughter] >> Let's talk about the exercises here. The the the
+You had the
+
+I just watched a TED X Talk from you and there there was a dilemma >> Mhm.
+
+>> on how to Well, first of all, one study was that you don't have to run a [ __ ] load of time. The
+other study was that you have to run a [ __ ] load of time. So, right.
+
+What's going on there?
+
+>> Right. So, the the thing is is that often times they're sort of like you should run a lot and
+then they're looking at sort of the biomarkers you get out of it, right? So, actually the the
+specific thing is they often talks
+
+about how VO2 max, which is your lung capacity, is correlated with long life.
+
+And basically the higher your lung capacity, the longer you're going to live. But then the other
+side of it is the study that I mentioned before, which says that if you run, let's say, about half
+an hour or so a week,
+
+every week, then you're going to that's all the benefits you're going to get out of it for
+longevity. So, I was looking at this conflict saying like, look, I should be as super fit as I can
+with the
+
+maximum amount of VO2 max that I can achieve, but you're telling me I only have to run once a week.
+
+And that one puzzled me for a long time until I found a study by a pair of Australian gents who
+looked to see how basically your VO2 max improves over time. And basically VO2 max is as long as
+you're
+
+running every week, it's just a straight line for how much total time you run.
+
+Whether if you run three times a week versus once a week, the only difference is is that you're
+going to progress three times as fast.
+
+But if you're running for a year or two, you're also hitting the max either way.
+
+You just hit it three times faster if you ran three times a week. So that was how I resolved the
+paradox of realizing that yes, you should be a Should your lungs should be as healthy as they can.
+But if you're in it for the
+
+long game trying to live for longevity, then you're not you got a race coming up or something, then
+all you need to do is put in regular effort even at a low rate and it's going to just steadily build
+
+until you're going to be at the about the best you could be anyway.
+
+I shouldn't say the best, but you'll be close to where you could be.
+
+So the whole point of it is that uh steady wins the race in this case. If you're just steadily
+building and you don't ever take a break so you fall down again, like it'll your body will then
+
+drift off all of the the genetic advantage, you know, the biological enhancements you made. As long
+as you're keeping consistent over the period of a year or so, you will be fit. Um so that was the
+resolution to the paradox is it
+
+doesn't have to be 8 hours. Like most of the studies on exercise are like one or three months
+studies. So they don't get to that point. So then they try to cram it in as hard as they can. They
+run every day for
+
+like an hour or two hours or something.
+
+But for longevity, you're much better served just by doing sort of a a minimum amount of it and your
+body just continues to improve over that time until you reach pretty close to where you would be
+anyway.
+
+>> What's your ideal training protocol for longevity? No, no, no. I mean the types of trainings.
+
+>> So there's Thanks. There's four components. So I've I've put together the unaging challenge,
+which then goes through and teaches the ideal longevity training outfit. So there's basically four
+different components that all seem to be accumulative with each other. So,
+
+one of them as we've talked about is just aerobic exercise. And this is running kind of any speed
+that is fast enough so that you're able to be a little bit out of breath. You would have
+
+trouble having a normal conversation.
+
+The second part of it then is the high-intensity interval training. And the response that the body
+has to high intensity. This is at 90% of your maximum heart rate. This is the point where not only
+can you not talk, you're
+
+you're lucky to get out a few words.
+
+This is maximum effort. And this has a huge benefit on top of just doing the aerobic stuff. So, it's
+a separate component orthogonal.
+
+The next component after that is I consider to be the weightlifting. The strength training. And this
+one we talked about having like lots of exercise and having a U kind of benefit where there's a
+sweet spot to it.
+
+Strength training actually is not a U. I think of it as like a V. Like a many people are shortening
+their lives because they do too much strength training. The optimal amount of time for strength
+training for longevity is an
+
+hour or less a week total time in the gym.
+
+Right? So, you look at like a Brian Johnson and other people who are doing a half an hour an hour a
+day.
+
+After 2 and 1/2 hours, the longevity studies are very clear from observational. You would have lived
+longer if you had stayed on the couch.
+
+Like it's that it's that bad. And after 2 and 1/2 hours, now you will die faster.
+
+>> So, stop. Don't don't don't tell me the fourth one. I want to speculate on that what that might
+be. It's the most interesting, but but let's talk a little bit on the on the on the strength
+
+training part. Okay, so I I told you I I put a lot of thought about that.
+
+>> A lot of thought into how to construct ideal program for longevity. And I didn't even come this
+far to to have the categories down. But but then again, like I I already like I I have a feeling
+that I
+
+would have done something like aerobic high intensity and strength training and and weight lifting
+resistance training, right? I would have I probably would have ended up somewhere here. But then
+again, on the strength training stuff, you said 1 and 1/2 hour a week. Here is
+
+something interesting that I've been thinking about that science might not capturing.
+
+Okay, so what does the science capture?
+
+Science capture stuff that can be well parameterized.
+
+2 seconds, 3 seconds. These parameters, this is what science can parameterize.
+
+Now, what does, let's say, a gymnast do or or these animal flow exercises, walking and walking on
+all fours and tumbling around on the ground.
+
+Street workout, stuff like that. You know, these are very messy exercises.
+
+You're not even exercising, you're just a monkey on a playground, right? Doing all kinds of hard
+stuff and you end up having muscles. Okay.
+
+This is one that I've been thinking because a gymnast because these people can When I was doing
+these kind of things, I could train so much more than right now I'm doing actually weight lifting
+Olympic weight lifting because of a
+
+club. That's what I have access to.
+
+And I've never done it, so that's something interesting. Okay, but when I was doing these gymnastic,
+street workout, playground workout kind of stuff, I I could work out so much more and so much longer
+because there are so
+
+many different kind of muscles moving you can move so many different ways that the ultimately your
+you can recover from them much better.
+
+If you're doing more interesting exercises, then perhaps you can push out the workout optimal
+workout windows for longevity much longer than what scientists measured about lifting weights in the
+gym.
+
+Yeah. Um So, my my routine is sort of the opposite of that. So, literally three exercises a workout,
+four reps or so, uh four sets of each exercise.
+
+And it's optimized to do the maximum amount of muscle possible. So, like a bench, incline or flat,
+and then uh lat pull-down of some kind, or pull-down, or bent-over row, and then squats or
+deadlifts.
+
+Right? And so, uh the whole thing for me is optimized to get the most amount of muscle moving and
+make sure we've got full body movement. And yet and minimize the amount of time. So, that's like a
+
+48-minute workout.
+
+But I say that, and yet uh my current challenge is I'm working on doing a muscle-up.
+
+>> Which is back Yeah, it's back to the gym this kind of thing. And it's been great.
+
+Like I've been having so much fun with it because despite doing this kind of exercise a lot, I can
+do maybe 12 chin-ups, no problem. I'm getting from getting this kind of an exercise is lats, muscles
+that I've never used. Like
+
+I've never exercised. So, I'm starting from like zero, um and I'm probably about 4 months into it
+now. And now with bands, I can do a muscle-up. And trying to make smaller and smaller bands to
+
+Um but that's uh focusing on the power aspect of it, cuz muscle-up requires the explosive power to
+get yourself momentum to get past the hard part.
+
+These things I'm still uh trying to do some additional kind of gymnastic kind of things. Like one of
+the guys who was giving me advice on it was able to do it back when he was a gymnast.
+
+But, yeah, um it's it's interesting. I don't know. Like if you're doing kind of a greater variety of
+things, would it be okay? A lot of the people who are doing more of it are just doing kind of split
+
+body, but they're doing basically the same thing those days.
+
+>> How about what one thing that I'm a little bit conflicted on, not a lot, but there are these
+static exercises, right?
+
+Like gymnasts do a lot of um holds and planches and these are the best exercises for lowering blood
+pressure, interestingly.
+
+If you do a static cord exercise, then you lower blood pressure. We know that gymnasts are doing a
+lot of these things, and we know that gymnasts are one of the people who live the longest among
+
+all the gymnasts and what's the other thing when you have to jump? Jump around, pole jumper, and
+something like that.
+
+>> Yeah, a uh pole vaulter.
+
+>> Yeah, okay. But but gymnasts static exercises. Have you ever looked into static exercises for
+longevity or is it just out of scope?
+
+>> Yeah. Yeah, so I I did an article where I was looking at blood pressure, and that one comes up,
+right? So, the isometric exercise we were doing a wall squat, right? Basically, you you get down and
+you lean against the wall.
+
+Mhm, I tried it. I already do squats as I mentioned quite significantly, and I found no benefit at
+all over what I was already doing for the squats.
+
+Um which kind of makes sense. I mean, it was but for people who are not doing an exercise, then the
+isometric is going to give them the biggest bang for improving their blood pressure. So, I've kind
+of
+
+looked at it in in that sense, especially for the blood pressure thing that you mentioned, but I
+didn't I found that since it didn't give me any benefit over the squats that I was already doing, I
+kind of thought, "Okay, it
+
+doesn't seem like it really is giving a specific benefit to it." So, I do find that I'm able to do
+whatever I want. The squats and deadlifts will also give you flexibility, which is shock which
+surprised me. I thought I needed
+
+to do stretching.
+
+Um I haven't stretched in years, but I can touch my toes, which I couldn't do before I was doing the
+uh exercise and the weightlifting in the gym.
+
+So, the the basically the or the fundamental exercise, I think give will you the most benefit out of
+it.
+
+And I don't know, it's it's sort of difficult then, as I said, since I'm always looking at the all-
+cause mortality, it's hard to say, "Okay, this person was doing this kind of exercise."
+
+All you've got to kind of All you've got really is the time in the gym, and it seems that more after
+about an hour is not a good thing.
+
+>> You just dropped a clue there about the fourth pillar that it's not going to be stretching. Okay.
+
+>> No, it's not.
+
+>> Let's me guess.
+
+Is it balance?
+
+>> Okay. Okay. Okay. Now, this is getting interesting. What could it be?
+
+So, we are talking about an exercise, right?
+
+Exercise type.
+
+We talked about motor units, as a perhaps something about explosion.
+
+>> No. No. No. Okay. Okay.
+
+>> F- Okay. Okay. I I I don't know. Tell me.
+
+>> Walking.
+
+>> Oh yeah. Oh yeah. The Okay. Okay. I I know what you mean. Yes, of course. The You know on
+exercise activity aspect, right? That >> Yeah.
+
+>> Well, I didn't look into the studies, but that's my understanding as well that So, it has an
+additional benefit even if you do all the exercises, right?
+
+Uh >> No, they mean all of these I have kind of studies in various ways, but all of them stack with
+each other are cumulative. So, the benefit each of them I find it to be fascinating cuz
+
+basically I mean you could do sort of a a pyramid of this cuz the high intensity interval the high
+intensity you can only do it for about a total of a half hour total time per week, right? Cuz it's
+
+high intensity. We're going at maximum effort.
+
+And then um for the running you can do around 30 minutes of that. And then for the weight lifting
+it's about an hour and then the walking the walking is the easiest and the hardest of all of them
+
+because all you're doing is walking and you most most people can do it.
+
+Um but at the same time to get the right dosage you need to do it for about an hour and a half to 2
+hours a day.
+
+Um and for many people if you haven't built that into your life or you have kind of things that you
+do where you're walking or gotten yourself cheated and gotten yourself a walking desk, it's very
+difficult to get that amount. It's
+
+one of the Uh the Unaging Challenge has four different stages to it.
+
+And that's the one where I kind of get um more negotiation if you will. Like, what if I How about I
+only walk 8,000 steps a day? Right? Like is it What about 10,000? Let's see. You know,
+
+10,000 like the challenge 12,000 steps to do what you can.
+
+I mean this is always of course always your own ability and time and and life intervenes and that
+kind of thing. But at the same time I've had several people who have come back of like, "No, that
+
+was the most significant of the four challenges." Like, "Walking 12,000 steps steps a day, I sleep
+better, my VO2 max got better from the walking than the aerobic challenge." Right? So, I've had
+actually several people like, "No,
+
+that's when I lost weight." who have said, "Actually, that was the one that moved the needle the
+most."
+
+Because it's such low intensity, you can do much more of it, and it just has sort of a steady It
+reduces your uh CRP, the inflammation marker that I talked about the most.
+
+Because you can just do it for the most clock time of any of the exercises.
+
+>> Really? Okay. What's the Un-Aging Challenge?
+
+>> So, the Un-Aging Challenge is a a program that I do. It's a year-long challenge. Uh the idea
+behind it is that we're going to teach you all of the habits that will give you the longest
+
+life. So, the the quick pitch is 1 and 1/2 hours of exercise a week, and extra 20 years of life.
+
+Right? And uh we're we're not counting the walking in that uh hour and a half.
+
+I mean, just uh I mean, that's uh that's not really exercise. It's just walking.
+
+>> Um so, there's a bit of a slight of hand there, but the other ones like the high intensity, the
+running, and the weightlifting all could be completed in a total time of an hour. It's 90 minutes
+
+a week. So, uh we go through four different challenges in the year, and each challenge then is just
+getting in used to the new habit that we build. Um starts out with a high intensity in the
+
+aerobic. The next challenge is then the strength challenge. After that, it's walking, and then we go
+into tuning of the diet. Um with some very basic things on that. Um sort of like just counting kind
+of servings of certain things as
+
+opposed to getting into calories or grams or anything. It's been fantastic.
+
+I found it to be hugely rewarding.
+
+Of course, the first people who've been willing to do it have been my friends and family.
+
+And it's been noticeable the impact. So, I have a I want to have my birthday party, and my friends
+come over. Sort of the year after we did the Un-Aging Challenge with my friends, my friends
+
+were noticeably healthier. I mean, we're 50-year-old guys or women.
+
+And they were noticeably stronger and sort of more fit after the Un-Aging Challenge, which was
+really gratifying and makes me very happy. So, the challenge we're we're doing it ongoing.
+
+People can join when they want to. It's free.
+
+Um you track your things on a spreadsheet with other people. We're looking at maybe improving that
+with a vibe coded AI something so that it's easier than a Google spreadsheet. But, we put people
+into sort of groups and
+
+teams so that you can see the other people. They can see what you're doing.
+
+It just sort of makes it feel less like a thing you're doing by yourself and more sort of an effort
+then and have some joint collective statistics for it.
+
+Um, we're going into the after we had the fast starters. This is our second year of it. And, uh, I
+hope to grow it to very large numbers, but honestly it's still quite small.
+
+>> But, I don't know how effective this kind of challenge is, but for me this was the one that that
+made uh the largest difference. I did I did sim lands two week long longevity challenge at one
+
+>> You know, I was for many years I was trying to eat healthy. For many years I was trying to stop
+smoking. And, on the longevity challenge I just >> Okay.
+
+>> Now, it's cold turkey time. So, I stopped. Two weeks no smoking at all.
+
+And, after that for I don't know, like five months passed and I still didn't smoke a single
+cigarette. So, like this was the one that made the difference for me. This social challenge that I
+never tried before.
+
+Try. Good luck with that.
+
+>> It's not bad. It's not bad ideas. Yeah.
+
+>> Okay. Well, thank you very much for coming. This was This was excellent.
+
+>> Yeah, thank you. Uh, it's great to talk to you. Um, if you have more questions, please take a
+look at my siteonaging.com.
+
+You can register for the unaging challenge there. You can try the calculator to see what are the
+things that'll make give you the most longevity. Um, it's great to talk to you and um thank you for
+being one of the referees
+
+for many people to try and better themselves.
+
+>> unaging.com >> com >> It was a pleasure.

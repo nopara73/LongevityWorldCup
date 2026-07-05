@@ -1,0 +1,705 @@
+# Jon Sabes - Longevity Financial Partners
+
+Video: https://www.youtube.com/watch?v=JC23iUQRiX8
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 301/943 units; 4514/11903 words.
+Matched topics: Bortz, Longevity World Cup, PhenoAge, Rejuvenation Olympics, aging, aging clock, biohacking, biological age, biomarkers, epigenetics, exercise, longevity, medicine, mortality, nutrition, rejuvenation, sleep, supplements
+
+## Focused Transcript
+
+you know, I cite the, I cite Pink Floyd, you know, or just, you know, time.
+
+It's one of my favorite songs like Pink Floyd time.
+
+Listen to that song and the words and one day you find 10 years have gone behind.
+
+no one told you when to run, you know, no one said start running and you look behind and 10 years
+have gone.
+
+And so like, it's anxiety.
+
+And so you're, you have to like stay calm.
+
+So how do you find the calm within that?
+
+Like that's a real interesting, and the way you do that is this idea of self mastery and recognize
+that it is clock time and that there are changes happening here.
+
+As listeners of this show have probably already noticed, I've been trying to identify the market
+players around biological aging clocks.
+
+And that's where I came across a curious project called FoxO Technologies.
+
+And today's guest is its founder, who as far as I know is not at the company anymore, Jon Sebus.
+
+Welcome to the show.
+
+I had $200 million to go buy these policies when I started the company.
+
+It was very exciting business.
+
+it was through that, the creation of that business, that journey that led me to biological aging and
+epigenetic clocks, which I'm sure we're going to get to.
+
+And so that's kind of the story.
+
+mean, Jon is a, is an active guy.
+
+I'm a busy body.
+
+I've been an entrepreneur for 10 years, but I've run, I created and run a software development
+company and your world is still very far away from me.
+
+m But we'll see some touch points there.
+
+uh So, okay.
+
+Regarding your ventures, were you running them in parallel or in a serial manner?
+
+Yeah, I'd say it's sequential.
+
+um Serial, yeah, in a sequential sort of.
+
+So the things I've been doing really, again, started with GWG as a financier and structured
+financial professional, learning about actuarial science and the life insurance industry, uh
+building that business uh quite successfully, uh being frustrated then with,
+
+And so that led me to, you know, I yelled at my team, there must be a better way, blah, blah, blah,
+blah, blah.
+
+Of course, no one did anything.
+
+So I started reading peer reviewed scientific articles.
+
+I'd never read a single one And so uh I self-studied and learned about genetics and then ultimately
+epigenetic science, which led me to Steve Horovath and the epigenetic clock.
+
+So that's sort of how I work.
+
+I describe that as developing a realm of competency.
+
+And you want to stay in your lane in your realm of competency.
+
+think entrepreneurs often kind of chase shiny objects outside of their realm of competency.
+
+And while I certainly don't pretend to be a you know, a PhD level, you know, uh epigenetic
+biological researcher, I do understand the science behind it.
+
+And I do understand a commercial application for that science, which was originally to predict how
+long people live for life settlements.
+
+But then I saw a larger opportunity for the life insurance industry at a whole for underwriting.
+
+that that became the spin off of Foxo Technologies.
+
+And they proposed a different way to become a publicly traded company and get the growth capital I
+would need to commercialize and build Foxo Technologies.
+
+So I decided not to do my IPO and transact with this SPAC, which ended up being a disaster in its
+own right.
+
+And as I like to say, I got SPAC and betrayed by some board of directors and they fired me.
+
+And so here I am today, you know, a few years out of that, uh and my new company is called Longevity
+Financial Partners, where I'm continuing to work in the area of finance, financial services, and its
+convergence with longevity um in multiple respects, because I,
+
+what I, the observation I came to was all financial products are deeply intertwined into longevity.
+
+And, and, and the industry, the financial services industry really hasn't recognized that.
+
+In fact, they've been so ignorant of it, it's, you know, absurd.
+
+And so like, that's really been my quest and I'll call the areas in which I've been working in for,
+you know, almost two, well, over two decades.
+
+Okay, so many interesting things there, but I want to go back to Fox a little bit because...
+
+look, in the biological aging clock space, I've been exploring people like the MuhDo clocks, the
+Bortz blood clock, uh phenol age, and there are a bunch of clocks, but when it comes to the...
+
+the Horvat line of clocks, you know, the Horvat 1, Horvat 2, Grimm-Age, Grimm-2.
+
+ah Then there is the Clock Foundation, the MyDNA age, Foxo Technology holds some license.
+
+is the Pan-Gear Capita who holds Horvat licenses.
+
+I have an understanding of a lot of the clocks and the people behind them that you described.
+
+It's been a little uh time since I've been closer to that area.
+
+But let me back up maybe to kind of uh give some perspective, at least mine, as to these clocks and
+certainly what they are from my perspective and certainly how I propose to commercialize them.
+
+You know, so I had come to this conclusion that genetics, there wasn't anything in genetics that was
+really telltale about predicting longevity.
+
+I mean, yeah, I could ask you if your parents died at age 70 or are still alive at age 100.
+
+And certainly that, that was indicative of something.
+
+But who cares?
+
+And so, and then I, and so I kind of come to that conclusion by my own research.
+
+And I had really understood a lot more about genetics and genetic science, what it was, what it
+wasn't.
+
+And my brother, cause I've been yelling at my team, he gave me a copy of Nature Magazine and the
+cover story was Dr.
+
+Steve Horvath has discovered something incredibly interesting, this clock, this epigenetic clock.
+
+And so I read the article and by this time I could understand certainly what it wasn't.
+
+And I wasn't sure what it was, but it looked like it wasn't genetics and it looked like it was
+something very interesting.
+
+Like I'm like, Whoa.
+
+You know, and so you go back and you read that original article and it still holds to this day.
+
+And so I, I contact, I was, I was making a lot of trips out to the West coast.
+
+So I contacted Steve Horvath and I said, Hey, can I.
+
+You know meet you.
+
+He's yeah sure come by office hours Tuesday.
+
+Okay, great So I went down to UCLA and I sat down with Steve went to his office and sat across from
+him I said, let me understand this.
+
+Let me get this right this this biological clock thing if I've got two 60 year olds Okay, you know
+and by all means measures they look pretty much the same But one guy's epigenetic clock says he's 70
+biologically age 70 and the other guy says he's 50
+
+By your epigenetic clock.
+
+Are you telling me that the hazard ratio of risk of mortality for the guy who's biologically 70 is
+really much greater than the guy who's biologically 50?
+
+He goes, Oh, hands down 100 % blah, blah, blah, blah, blah.
+
+Like he was, know, Steve Horvath is a Harvard trained, you know, MIT, mathematic, you know, Austrian
+biostatistician.
+
+goes, Oh, I could tell you if they smoked and how much they smoked.
+
+go, well, that's really interesting because.
+
+That's the second question on the life insurance application.
+
+The first one is how old you are, the biggest driver of a perspective mortality.
+
+The second question is, you a male or female?
+
+And the third question is, do you smoke or not?
+
+I'm like, so you're telling me you can pick up an epigenetic signal on a tobacco use.
+
+He's like, hands down, not only if they smoke, but how much they smoke.
+
+I'm like, well.
+
+So anyways, that was the business that led me down a whole, that was Foxwood Technologies.
+
+We ended up then, so then we ended up doing all of our own baseline research.
+
+We recruited, I forget the sample, N of 500 people.
+
+asked them, we set up this storefront and we gave them Starbucks coffee cars to give us blood, their
+medical records, spit in a tube.
+
+We got all the microarrays.
+
+We did all of the traditional lab tests.
+
+We did all of the microarray epigenetic scans using 480K, or I can't even remember all that shit.
+
+And we did it.
+
+And then we used the machine learning.
+
+And this was, the way, before AI, we were at D1 of automated machine learning.
+
+I'm like, fuck yeah, get that thing.
+
+I don't really, you know what I mean?
+
+And so we get the Data Robot and he puts all the data in it and we sit there and we watch all the
+robots start to do all the analytics.
+
+And sure enough, We saw all the signals for all the same health things out of these epigenetic
+clocks for all of them.
+
+So what do all these clocks do?
+
+Okay, I'll pause there.
+
+Yeah, of course it works.
+
+Of course it works.
+
+Cause all it's doing, right, is it's building on the biological signals and I'll pause here for a
+minute.
+
+Cause this is the big observation that I came to, which has really informed me, which is a message
+that I like to talk about.
+
+a because I don't hear people talking about this.
+
+Because what it informs us is that our lifestyle, because we hear about all lifestyle, what it tells
+you is how lifestyle impacts the trajectory of your health at a molecular level, at its source.
+
+So when you smoke, when you exercise, when you eat shitty food, you are impacting your health.
+
+at the source code level through gene expression.
+
+And so what these clocks do, depending on a lot of things, ultimately are picking up these signals
+of which there is a natural, obviously, biological aging clock thing happening.
+
+But layered on top of that now is all of the lifestyle further impacting gene expression.
+
+And so those clocks are just layering up those at some level to what's just called a base source
+plus these things to come up with some sum.
+
+And so that's what my, that's how I describe the clocks.
+
+had some bad partners who, you know, really didn't believe in me You know, so anyways, that's,
+that's what happened with Fox.
+
+So it's all good.
+
+You know, I'm not done.
+
+And maybe, maybe we'll someday get saliva-based epigenetic underwriting uh commercialized.
+
+Maybe, maybe I'll be that person to do it.
+
+Now I understand what's going on, uh at least on Foxo's part.
+
+regarding biological aging crooks.
+
+um I was actually hoping there is a bit more involvement there, okay, so one thing I thought you
+got...
+
+Well, I was assuming that you guys had the license to GrimmAge and PhenoAge for exclusive usage,
+right?
+
+But as I see...
+
+we did, we did.
+
+Well, what happened to you after Foxil?
+
+00:26:21,593 --> 00:26:20,209 uh So a couple things.
+
+uh Well, I created my next company, Longevity Financial Partners, and that's continuing to work in
+financial service, the intersect of financial services and longevity.
+
+So I'm continuing to work in the longevity space.
+
+um But here I've been about, I'll say I've been returning to my roots.
+
+More about product design.
+
+um and that uh deals with uh aging and longevity generally.
+
+We are in this aging society and we, so it's about healthy aging.
+
+What does healthy aging look like and how can we create and better design financial products that uh
+help individuals as they age and how can we support them with healthy aging?
+
+So I've worked a lot with the guys from Blue Zones, for example.
+
+as a way to communicate what does healthy lifestyle and aging look like?
+
+Because we know, I know from epigenetics and studying other areas of science, like it's so
+important, like this lifestyle, it drives so much of the health and longevity outcome, which if we
+can get more people to do it, that's just a better thing for society.
+
+So that's what I'm working on today.
+
+I wrote a book called Healthy Wealthy Longevity available on Amazon.
+
+That book is, uh it's really, I'll call that a self-help entrepreneurs journey book.
+
+It's my story, not specifically like, well, I did this and I did that, but it's all about a
+philosophy of, of that I have developed over uh many decades now of, how do you improve the odds of
+getting what you want out of life for as long as possible.
+
+And, and I think there's a construct there and I articulate that.
+
+epigenetics and DNA and how those things combine into lifestyle like we've talked about here today.
+
+Because I think if more people knew about that, they may improve their lifestyle uh because it cares
+for you over the long haul.
+
+growing old and with good health and vitality, your nine-year-old self will thank you uh big time if
+you do that.
+
+um You don't want to spend those last years in a state of poor health, uh impoverished and alone.
+
+You want to try psilocybin mushrooms that expand your consciousness, go for it.
+
+But don't do them every day.
+
+So it's just kind of common sense.
+
+And I think it's the 80-20 rule where if you take care of like the basic 20%, you'll get 80 % of
+your health outcome, which is move more, just exercise.
+
+You gotta exercise.
+
+Just move, move, move, move.
+
+That just means eat clean.
+
+I don't supplement.
+
+I don't biohack.
+
+oh Live with purpose.
+
+stay focused, purpose on your work and then engage with others.
+
+Don't isolate yourself in a way that just sort of like you collapse.
+
+And that's something I've been working on much more over the last few years.
+
+oh of a side question.
+
+You mentioned you're 59.
+
+Did you a, did you done a phenyl age test lately, from calculated from blood, not from the, from the
+epigenetic route?
+
+Yeah, mean, lately, uh no, haven't, I haven't done that, but I had it done a lot.
+
+Oh, went over my Fox, so technology days.
+
+And yeah, I mean, I was consistently 10 years younger.
+
+The summit's 14,250 feet or something like that.
+
+So I'm to get some altitude and oh to be able to do that at, I'll call it chronologically 59 is
+like, that's real.
+
+Yeah, that is, that is.
+
+You heard about these longevity competitions like rejuvenation Olympics or the longevity world cup.
+
+I have not.
+
+I'm not familiar with that.
+
+Now, I just wanted to mention that there is a guy called Dave Bosco who became known in these
+longevity, because of these longevity competitions, right?
+
+And he's 63 years old.
+
+ah Perhaps you could be the next Dave Bosco because you're looking pretty young, at least through
+the camera here.
+
+And it's got these, uh you know, by the way, uh he, died two days ago.
+
+um Watson and Crick discovered this double helix structure, which is the mirror.
+
+of half of mom and half of dad to create double helix structure and it's got these you're gonna hit
+me with a bunch of words but oh these nucleic acids a C Ts and Gs and then four
+
+different nucleic acids So there's a A's and T's go together and C's and G's which by the way when
+we measure CPG sites this is a this is an incredible thing when when the epigenetic clocks using
+these using the
+
+the microarray technology developed by Illumina, incredible technology by the way, it measures the
+methylation patterns at the CPG sites.
+
+Okay, so these genes, this genome, which is A, C, T's and G's, the A's and T's are connected and the
+C's and G's, that's it.
+
+And so the C's, what we're measuring CPG sites is, is there methylation at that at the seaside.
+
+That's what it's only measured.
+
+Not even looking at the A's and T's.
+
+And so anyways, we have this DNA structure and a strand of DNA, if you were to kind of string it all
+together is about, I think it's six feet long.
+
+This is just absolutely insane.
+
+think this science fiction is so, if we could really, and we can bring it to life, there's
+incredible YouTube videos that actually depict what's happening here.
+
+And so what happens is that, so the question is, how does this cell, sort of one cell know it to be
+a fingernail, an eye, a cheek, a lip?
+
+It's through epigenetics, it's through gene expression.
+
+So the methylation is the primary mechanism for causing, by the way, this, so the question is, is
+how does this six foot strand of something get rolled up and packed inside of every fucking cell?
+
+Which by the way, if you, you strung all of the cells end to end, I think goes back, goes from the
+earth and the moon, I got in the book, goes from the earth to the moon like 60
+
+Like if you strung all the DNA in your body together, you go to the moon and back like 60 times,
+it's ridiculous.
+
+So the question is, what happens is that DNA rolls up into these tiny balls.
+
+It binds itself up into these tiny balls called chromatin.
+
+Oh, you're jogging my memory, but it's coming, so good.
+
+So your DNA inside your cell is wrapped up in these tiny golf balls.
+
+If you've ever done a baseball or a golf ball, you take a baseball and you unwind it and you see the
+string, that's what the chromatin are.
+
+And what happens is in epigenetics is when you methylate at the CPG site, it causes the ball to
+unwind and expose a specific strand of the DNA, which allows RNA transcription to manufacture the
+protein to become an eye cell, to become a finger, to do the function of
+
+the cell that the cell is supposed to do.
+
+Now, this is all so fucking crazy.
+
+that this works, it's beyond like, I'm I'm blown away by it.
+
+So that's, I'm glad we talked about it.
+
+I haven't talked about that in long time, but when I learned this, I was just like, what's going on?
+
+And this is why epigenetics and DNA methylation are so important because they're causing, literally,
+physically causing the DNA to either close, or unravel to expose and explains why, you know, none of
+us have perfect DNA.
+
+We have tons of DNA mutations, like super like, and that's getting mutated all the time in
+replication and all these things.
+
+It's sun, all this stuff.
+
+And what happens is, like, that's why lifestyle can keep a mutated gene closed.
+
+And so you don't develop the bad thing or it causes the gene to open, which expresses good health.
+
+Okay, so that's why lifestyle is so important.
+
+You're literally methylated in causing gene expression by physically unraveling the DNA to allow for
+RNA or preventing RNA transcription.
+
+And so that's, I guess, the story of DNA and uh why epigenetics is so important.
+
+So if you have DNA in all our cells, then how these gene editing technologies even work?
+
+it's like, that's a lot of set target to edit.
+
+Yeah, I mean, it's absolutely crazy.
+
+How do we ensure that it goes into all the cells?
+
+Well, that's beyond my pay grade.
+
+but you know, those are the real challenges, honestly.
+
+Those are the real challenges that, know, precision-based research, precision medicine and
+precision-based in the researchers, this is the field of precision medicine.
+
+And this is why...
+
+You know, when we think about, you know, the future of medicine, and I'm such a big believer in why
+AI is so important to this is you can only imagine the complexity of this stuff and the ability to
+use these tools to read it, understand it, and effectuate the
+
+So um anyways, yeah, that's the future of precision medicine.
+
+That's why, you know, they talk about reprogramming the methylation.
+
+So a lot of the...
+
+the longevity chat, right, is about DNA methylation, epigenetic reprogramming.
+
+Because if you can reprogram all of the DNA to this earlier state, you should basically manifest
+these younger proteins that look like my younger self, because I'm just a bunch of garbally proteins
+with some electricity running through it.
+
+And so like, Thinking about your health that way and thinking about you by yourself biologically
+that way is like, oh, okay.
+
+That's really what I am.
+
+So, you know, take care of this machine because when this machine isn't in really good operating eh
+status, it's it's really horrible.
+
+And I was like, you know, so I was like, wow.
+
+So this thing is real.
+
+And then I ended up finding some of the research on this phenomenon and some of the explanations of
+why that is.
+
+And so the point being, I think it's very instructive uh as we're aging and longevity, which is the
+rate of compounding or the, is accelerating.
+
+Yeah, yeah, it's accelerating.
+
+You know what I mean?
+
+If you do it, it's, if you.
+
+Well, I mean it is like it's it's accelerating if you you know, so compounding your rate of
+compounding if you read a company was constant like in in in clock time But your perception of it is
+faster than your rate of return is higher as you get older.
+
+So that's good news Okay, okay, so this is something I've been thinking about as well and I actually
+created a paradox myself called the longevity paradox.
+
+what you just said is that as we age, we perceive time to go much faster, right?
+
+uh Even though there is a clock that tells us that one hour or one year has passed, we don't
+perceive that at the same rate.
+
+I glanced through the research, right?
+
+I didn't write a book about it like you did, but as far as I understood the reason is because of the
+novelty aspect of it that as a child, everything is new for you.
+
+You have new experiences everywhere.
+
+But as you're getting older and older, you've seen this stuff.
+
+You've done everything.
+
+You don't register those experiences because those are not that novel for you anymore.
+
+Okay, so what supports this hypothesis?
+
+uh Sleep, right?
+
+You go to sleep.
+
+Some things happen, but it feels much faster than it actually is.
+
+Even if when you're awake and you're trying to lie in your bed and you can't fall asleep, but you're
+kind of asleep.
+
+Time passes like crazy, even then, you know?
+
+You're like, oh, one hour passed already, what's going on?
+
+People who fell into coma, when they wake up, they feel like it's instantaneous, because nothing
+happened in the coma, right?
+
+Not even dreams, or maybe dream, I don't know, whatever.
+
+The point is that these things are supporting this hypothesis.
+
+All right, so then what's the longevity paradox here?
+
+People who are into longevity, they are usually...
+
+Usually, no, they are always very, very hard on their own routines and habits.
+
+And they have to wake up the same time, sleep at the same time, do this, don't do this,
+procedurally, one after another, morning routine, night routine, perhaps midday routine, right?
+
+Eat the same, I don't know, but they have a much more regimented life.
+
+So, but what does that mean in terms of time perception?
+
+Does that mean if they are not experiencing that many new things, so yeah, they are chasing
+longevity, but they end up just spending their time much faster.
+
+And that's the paradox here.
+
+haven't thought of it in that paradox that way.
+
+guess, let me back up.
+
+I think the paradox that I perceive is that, As you recognize that time is accelerating, right?
+
+Your perceived time is accelerating.
+
+Like you should get nervous about that.
+
+it's like anxiety.
+
+you know, I cite the, I cite Pink Floyd, you know, or just, you know, time.
+
+It's one of my favorite songs like Pink Floyd time.
+
+Listen to that song and the words no one told you when to run, you know, no one said start running
+and you look behind and 10 years have gone.
+
+And so like, it's anxiety.
+
+And so you're, you have to like stay calm.
+
+So how do you find the calm within that?
+
+I'm glad we're covering.
+
+Yeah, and right, I did come across the theory as well, like there is some brain changes happening,
+right?
+
+And I don't know why, maybe I dropped it because it didn't support my hypothesis.
+
+In fact, if that's the case, then the longevity paradox is resolved because that probably also means
+the healthier you are, the slower your time perception is, right?
+
+my question to you is that what's one thing you strongly believe to be the case, but very few people
+agree with you on?
+
+Okay, so start out by, well, there are these goals that you have to do, and the goals are...
+
+The whole idea is the name of the application is the first step, right?
+
+The first repetition, first step.
+
+And because the first muscle you train is your mind, right?
+
+So there are these goals every day.
+
+You're asked three questions now, four questions.
+
+ah The goal of this application is to get your basics right.
+
+So what are those sleep, nutrition, activity and vices?
+
+Okay, vices, right?
+
+Alcohol and whatnot.
+
+Now the four question is always about how did you do in these and then you're rating for yourself
+and eventually it ends up with a couple of nice graphs and if you do perfectly then...
+
+You know what's healthy and what's unhealthy.
+
+Even the person who knows least about healthy food, even they know that a Pizza is probably worse
+than a salad, right?
+
+Even they have an idea like that.
+
+So you don't need a university course about nutrition.
+
+You don't need to be a nutritionist.
+
+If you don't need knowledge, then what do you need?
+
+I don't even know the bond.
+
+there are bonds that we have as individuals, right?
+
+To our intention, what's our bond with our intention?
+
+A healthy diet, a physical body, spirit and faith.
+
+our self-discipline, what's our bond to our self-discipline, what's our bond to our family and
+friends, what's our bond to career money and purpose, and what's our bond to purpose.
+
+So you just circle them, you know, or whatever, you know, write them down.
+
+And that's how you, you know, that's the sequential.

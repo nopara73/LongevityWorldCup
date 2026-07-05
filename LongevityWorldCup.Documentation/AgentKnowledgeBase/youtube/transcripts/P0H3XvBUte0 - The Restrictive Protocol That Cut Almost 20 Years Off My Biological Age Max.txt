@@ -1,0 +1,1221 @@
+# The Restrictive Protocol That Cut Almost 20 Years Off My Biological Age | Max
+
+Video: https://www.youtube.com/watch?v=P0H3XvBUte0
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 439/531 units; 10313/12055 words.
+Matched topics: Bryan Johnson, Longevity World Cup, PhenoAge, VO2 max, aging, aging clock, biological age, biomarkers, cholesterol, epigenetics, exercise, glucose, inflammation, lifespan, longevity, longevity athlete, medicine, mortality, nutrition, sleep, supplements
+
+## Focused Transcript
+
+Max, you are currently number three on the longevity World Cup.
+
+And last year you finished in the top 10 as well, right?
+
+Your chronological age is 42, and your biological age is, according to both aging clocks, is 19.
+
+What made you walk the path of a longevity athlete?
+
+Oh, that's a deep both personal and philosophical question.
+
+Well, first of all, I'm very goal-driven, and um that seemed like a logical goal, as something that
+I've been thinking for of um since the childhood. Of like how far can I push uh the longevity?
+
+And how how far the humanity will be able to push longevity overall.
+
+So, that it was always on top of my mind, and um at some point, as I started doing research in the
+past, let's say, 7 years, it started becoming more and more realistic to make um some kind of
+changes uh that
+
+are also measurable.
+
+And that's where I started acting, and I started doing uh regular blood testing, and improving my
+diet and uh lifestyle.
+
+Um in the past, let's say, 2 years, I became even more scientific about it.
+
+And I started doing uh monthly blood work that I would send to multiple labs across the world. I
+would have several different specialists review this blood work, and uh I would also significantly
+design my diet. And it's a very
+
+restrictive diet, and uh design my lifestyle as well.
+
+So, it was pretty much like a dream, and that eventually beca- became a central goal, and in my life
+that I'm currently committing myself to.
+
+And big part of it is the longevity community that started making all these videos and putting out
+the research and their personal achievements that convinced me that this is not just a dream, but
+it's quite achievable,
+
+especially if you set your mind to it.
+
+What longevity community are you frequenting?
+
+Yeah, so definitely longevity community is centered around Michael as Garden who is our shared
+friend as far as I understand.
+
+Because he's so scientific and data driven, but I did hope through multiple clicks in different
+longevity communities trying to understand who is serious about it and who's actually able to do
+real achievements and as my personal knowledge has been improving,
+
+I went from just like mainstream influencers to all the way to biochemists and uh immune system
+specialists who would put out the material out there.
+
+And um so I I hoped through multiple longevity communities as I was like selecting for more and more
+scientific people um who would also try to talk about longevity not just in abstract terms, but
+prove it with their
+
+own blood test. That was very important.
+
+Because I know a lot of people out there they can write a book, you know, they can uh invite guests,
+they can do whatever, but me and you uh we actually try to track it uh systematically.
+
+Are you like as obsessed as Michael is in terms of tracking the inputs and outputs and correlating
+them.
+
+>> What's how does it look like for you?
+
+Yeah, so I have a data science background professionally speaking.
+
+And so I know how important it is to be able to attribute the results to what you're doing.
+
+So you can be doing a lot of things. You can be taking like a hundred supplements, reading all of
+the longevity books, and doing whatever.
+
+But if you're not able to correctly attribute the results of what you're doing to the metrics in
+your blood data, it will be all in vain. At two years I've been being very diligent. I would say
+
+in terms of the diet tracking I'm about like 80 to 90% like Michael.
+
+So I'm tracking almost everything. I let myself go when I travel and I have to go off my diet.
+
+Uh but even still I try to I bowl my diet and put it all into tracker.
+
+And um the blood test and so when I when I have like blood test and I do it about every one month
+and I call it a cycle.
+
+And some cycles I call them dirty and some cycles I call them clean. So if we if for example I was
+traveling, I would just mark the cycle as dirty in order not to obscure my data so that if I want
+
+to do some very clean derivation of what has been happening, I would only look into the into the
+clean cycles. And if I'm trying to explore for some ideas, I might look broadly in all of the
+cycles.
+
+And uh I'm trying to be more thoughtful about it.
+
+Uh right now I just mark them binary like dirty clean. I want to introduce the degree of cleanliness
+to that.
+
+Um Yeah, because I just as Michael I'm trying to also see how detrimental to my biomarkers um is
+when I don't follow the diet, when I travel, when I let myself eat something, um, that is was pre-
+cooked for me.
+
+Um, in a statistical way.
+
+Okay. So, hm, let me let's say challenge you there.
+
+Um, there are things that we cannot see and cannot be entirely sure about them. Right? Like there is
+like let's say randomized control trials even more, um, n of one experiments, those are actually
+rigorous. And then uh, there is
+
+observational data and >> Mhm.
+
+how you feel >> [laughter] >> about this, right? Consciousness is is a peculiar thing in a way that
+you can observe things that other outsiders cannot observe inside what's going on.
+
+Mhm. Um, and of course there are a lot of a lot of, um, failures and false data coming in or in
+you're interpreting things false, but perhaps the hope is that in the whole uh, it's going to
+
+it's going to be beneficial. Right? Like I'm not sure. I haven't seen, uh, omega-3 study that
+extended lifespan.
+
+>> yet astraga- there is an extracted thing from astragalus that might have your telomeres uh,
+lengthen. Okay.
+
+>> Mhm. Uh, and first of all, I'm not even sure if longer telomeres are better, but it's a good
+guess, right?
+
+And I'm not sure this astragalus is helping, but it's a it's a possibility. And finally, I am sure
+that the the astragalus stuff that I'm taking is not harming me.
+
+Right? So, I do a cost-benefit analysis like this, but there is just no way I can I can put data on
+it. Yes.
+
+Yeah, I'm I'm in I'm in exactly the same situation as you are.
+
+If I was trying to precondition every supplement or intervention I do on uh it being, you know, like
+10,000 n um like 20-year study, you wouldn't you wouldn't do anything, right?
+
+So, you need to operate with a with a certain um biases and assumptions. And I would say like a lot
+of the supplements I take about probably 40 supplements, maybe 40-50, half of them are um
+
+I introduce them as I say uh for the future to uh to analyze. So, a lot of the supplements are
+benign or they have very low risk.
+
+And in a sense that if you're wrong, you're just not doing anything, right?
+
+You're just eating a pill that has at best a placebo effect on you.
+
+But if you're right, then it might have some uh beneficial properties.
+
+And for some of them, what you can do, you can start taking them now.
+
+And then in the future, you can test them by elimination.
+
+Like once your diet stabilizes, right?
+
+And and you say, "Okay, I have nothing else to try."
+
+And also, there is like a compounding risk because there are always these what-ifs. Uh even in the
+supplement um industry, uh there are some impurities and heavy metals that are involved in the
+production of them. And uh there are
+
+a lot of little things you can can by just postponing this problem for the future.
+
+So, this is one thing that I do.
+
+About one 1/3 of my supplements are related to the collagen synthesis because I'm uh one of the
+things I'm really afraid of is um long-term deterioration of the connective tissue, the cartilage,
+the joints uh which might just make you im-
+
+immobile or hit your life.
+
+And a lot of the collagen-related things that can help your collagen synthesis today and kind of
+postpone the the disease for far future are actually pretty benign. So, this is like one thing you
+can do. You can postpone things from
+
+some problems for the future and just take them right now because they're they're benign or they're
+super low risk. There is no compounding risk there. The other thing is, as you said, there are
+different studies, right?
+
+>> So, I I I have a I have a personal question here. Personal.
+
+I'm personally interested in this question.
+
+Um red red blood cell distribution width is the um the biomarker on in the pheno age biological
+aging clock that has the highest um coefficient. Uh meaning it's the most important for that clock
+other than age, other than
+
+biological. Can I lower it somehow and I just I just couldn't find I couldn't find any way, right?
+Do you know what what can you do because I just just want to say that clearly something can be done
+because
+
+you guys are doing it. Yeah. But what is it?
+
+That's such a tricky question because the lag is like 120 days or something, right? Um for some of
+the blood cells to recycle.
+
+And um in my like it's so hard to tell looking backwards, but I suspect the very clean diet like if
+is very beneficial because there is so much stuff uh for in the pre-cooked food um that
+
+they put besides um besides like fats that you don't want in your body, but also all kind of
+additives that just make taste better that I suspect affects it. Um maybe contributes to some kind
+of background inflammation.
+
+Um even when I would experiment with different oils, like I could taste I can I can tell the effect
+on my body when I switch from an oil that has high omega-6 to a lower omega-6
+
+Uh so, I would say examples?
+
+Well, I recently experimented rice bran oil. So, rice bran oil is what is used for tempura in in
+Asian cultures. It's like a staple at default.
+
+And one of the things about it is that it has a really good um fatty acid profile.
+
+Um and it has also some compound that further reduces LDL.
+
+But, it has high omega-6.
+
+So, it's kind of a trade-off.
+
+I had to switch to uh sunflower high um high oleic oil.
+
+Um because that one doesn't have high omega-6, and you could tell the difference.
+
+Um like if you're highly sensitive to certain like inflammatory processes, and you know how it feels
+in your body, like maybe it's a brain fog uh frequently if it if it you know gets into your like
+brain uh crosses your uh
+
+blood-brain barrier somehow, uh you you can feel even some things in your in your in your brain uh
+through the brain fog, like uh high histamine load in your body or salicylate load or glutamate uh
+load or maybe amines uh like uh for
+
+example, if you let out on the counter mushrooms for too long, mushrooms have high amines, and they
+will develop histamines in it. So, you can kind of tell those things if you're if your in your
+system is already wired
+
+uh for whatever reason, um for example, you have good sleep or whatever, you can start feeling it
+even worse because you're taking some, I don't know, high omega-6 oil, for example. So, that's
+that's what you can sometimes
+
+tell even before it kicks in in your biomarkers that this food is probably wrong to me because I'm
+getting maybe a bit itchy or foggy or moody, for example. High glutamate in in in can manifest as a
+high irritability.
+
+High folate uh, might also, um, alter your mood.
+
+And, uh, yeah, I've seen I I I accidentally had it high >> way or a bad way? In a bad way. I
+accidentally had both uh, as high because at some point I was taking too much glycine and in some
+people glycine
+
+converts to too much glutamate and my glutamate level shot up in my blood work.
+
+Um, So, gluta- glutamate? Mhm, yeah.
+
+>> I never tested that. That's >> Yeah. related. Yeah, it's just an amino acid, but, um, it's
+somehow involved in neuromediation in in your brain and, uh, too much of it is quite toxic to your
+brain.
+
+Um, so, um, when I did the Iola test, uh, it flagged it as super high and then I was like, "Why am I
+having it super high?" And I dropped the glycine supplementation and it went down
+
+immediately. So, what I'm saying is that you just need to trust your um, very subjective sense and
+feeling that something is off, you know, when you change your diet and because maybe you're just
+feeling a bit moodier. Um,
+
+maybe you're feeling a bit more itchy, more wired, um, more irritable. So, you can kind of guess a
+lot of things, but you use the blood work as a confirmation uh, for your guesses. Yeah, but, uh,
+
+going back to RDW, if I were to put some in make some bets on what helped, it was uh it was just
+like a clean diet, like limiting yourself to let me eat food that I would prepare myself and
+
+preferably like veggie based because it also increases the volume of the food you're eating. I
+suspect that played a significant significant role.
+
+Like I don't think it's a single supplement that helped with RD18 for me.
+
+Yeah, since I've been doing this trying to to do the same things as you guys do, I noticed myself to
+eat a lot of vegetables. Right. And I lost 15 kg, actually 20, but gained back five, which
+
+is a sad story, so let's not go into it.
+
+>> [laughter] >> I created a custom agent um that would tell me one thing, if this food is healthy
+for me or not healthy for me.
+
+I've been developing this for a half year now and and this is the best best uh best of my knowledge
+of nutrition, right? Okay. So, first of all, important criteria is that I only wanted to rule out
+from my diet that
+
+there is a scientific consensus that it is not good, like almost in any circumstances or perhaps in
+trace amounts.
+
+All right. So, number one, hydrogen hydrogenated trans fats.
+
+Uh >> [laughter] >> Yeah, don't add this.
+
+Don't even need to talk about it. Yeah.
+
+I'm also trying to avoid all kinds of fast-acting carbohydrates Yeah. except when I'm working out.
+Right? Mhm. So, it's like I'm not putting honey in my in my tea even though it's natural.
+
+Yeah, honey is terrible. It's a pure fructose.
+
+Yeah, it's a fructose that bypasses a lot of healthy metabolic processes in your body. Actually,
+that's one of the ways I was able to significantly drop my triglycerides that were always very high
+throughout my life is
+
+that I figured out that fructose actually makes my triglycerides high.
+
+So, I dropped all of the fructose from my diet even the fruits. Um I only eat pears sometimes. And
+my triglycerides went down significantly. But yeah, I mean that's like just because it's natural
+doesn't mean it's good.
+
+Yeah, you know, it just today I've I've listened to the new Physionic Insider video about fructose.
+
+And there was a new study where fructose somehow converts into some molecule that alcohol converts
+into and it damages your liver.
+
+So, the trick is to avoid fructose or eat a lot of fiber with fructose. And then the the fructose or
+the food the fructose doesn't get into the lower intestines.
+
+Yeah, but I had to stop it because it seems like the Where were you getting this >> stuff, inulin?
+
+Yeah, because I mean, you just need to know your body, you know. I switched from like from inulin
+type of fiber to acacia type of fiber.
+
+Um and things got even better.
+
+Um so, yeah. That definitely there is a lot of complexity in there with the my microbiome studies.
+What's your diet like at the age?
+
+Yeah, so, um uh my morning is uh I eat, uh, 100 g of I make a baker porridge out of the oil oatmeal,
+sunflower lecithin, um, which makes it also tastier, but it's also a good, um, gut protector. And,
+um,
+
+this is something your liver needs, uh, for the enzyme production.
+
+blending it into soup puree.
+
+And I in this way I eat about 3 to 400 g of butternut squash a day. It gives me three types of
+carotenoids alpha beta carotenoid and beta cryptoxanthin which I'm also experimenting and I want to
+see how how far I can push my liver
+
+enzymes. Like they are right now in a very good range but they can be tiny bit better.
+
+And then I need basically some kind of a filler because I spend anywhere between 2500 calories a day
+to 3500 calories a day based on how active I am and what kind of workout I do.
+
+So I add maybe sometimes more oatmeal. I have some as backups if I I I run out of food I would uh
+have sushi. So I just eat like sushi with like salmon. I consider it to be
+
+good enough treat also. I have like a back up strategy where I don't just jump all the way to hot
+dogs and on pizza but I gradually make things uh uh easier to like more pleasant to eat
+
+without sacrificing too much. So what what I eat also a bowl of pears with uh with 0% Greek yogurt
+as as like a treat. Like you need to have a treat of some kind during the day.
+
+Um what's You you don't seem like a person who is skipping the meat from ideological reasons. Or are
+you?
+
+Oh, that's a tricky question. I try not to um eat meat.
+
+Uh both for for the reason because I want to reduce my methionine.
+
+But also, if you try to be cholesterol conscious, you just going to limit yourself to like chicken,
+turkey, and certain types of fish.
+
+But then you even with the fish you need to be careful. At some point I ate so much fish every day
+that I had um arsenic um uh too much arsenic in my blood, basically. I started itching all over
+
+the place. I took arsenic tests because a doctor told me, dietitian told me, and yeah, I was really
+high on arsenic.
+
+So, I try not to eat meat because meat is less universal in my mind in terms of storing it in the
+fridge. Like bacteria starts working on it as as if you don't freeze it. But then if you freeze it
+and
+
+then you reheat it, now it's mushy.
+
+Mushy. Yeah. But my my go-to usually in terms of meat is just salmon.
+
+Makes sense. Here here is my how I Mhm.
+
+I also have high cholesterol. I actually have like perfect triglyceride Okay, so I am overweight,
+right? So, let's start with that. Mhm. But every metabolic factor of mine like glucose, insulin,
+triglyceride, um you name it, it's in a perfect range.
+
+With the exception of um what's LDL and apoB, right?
+
+>> [laughter] >> Which is like Mhm. Yeah.
+
+>> I I'm not It is So so if you go to a doctor and you ask how's your your your apoB or LDL, then
+they're going to say, "Well, it's it's it's it's almost dangerous, right?" But if I'm looking at
+like you
+
+or my class customer, if I'm like, "Holy >> [laughter] >> I'm going to die."
+
+So all right. So how did I reconcile the meat thing?
+
+Um firstly, I was really confused about the saturated saturated fat thingies. And then I looked into
+that, okay.
+
+So what's what's the real problem here?
+
+So what are we actually like really sure that it is increasing your LDL apoB? Uh it is the myristic
+acid and palmitic acid part, C14 and C16 of the saturated fat, right?
+
+So now this agent of mine, when I click click a photo of a food, then it's going to recognize that
+it's it's steak and it's going to calculate what percentage of calories the myristic and palmitic
+acid
+
+is and I set that 20%. Okay. So it was it was 50% previously, but I'm like, "Okay, so now now I know
+that that this is this is not good for me, so I did some test new blood test and okay,
+
+so 50% doesn't work. I went down to 20% and I can eat some some meat, right? Like For example,
+ribeye steak is like right on 20%, right? So, some days I'm like, "Ah, I shouldn't eat." Some days
+
+I'm like, "Ah, I should really eat it."
+
+Uh but But but but yeah, so so this is my strategy. Do you Do you think the myristic and palmitic
+acid um picking them out is is solid or are there other saturated fats that are problematic? Oh,
+that
+
+that's uh outside my knowledge uh because I haven't looked into the breakdown of the saturated fats.
+I just try to avoid them altogether because I can. Um I'm likely not to be excited about steaks as
+much as I used
+
+I had really used to eat a lot of meat at some point in my life, but I'm just like not excited about
+it anymore.
+
+Uh so, I try to avoid I just try to avoid the whole thing altogether, but I do sometimes feel like
+my body wants saturated fat.
+
+Like there's some kind of a craving that I can only satisfy either with eggs or like full-fat milk
+products or yeah, the burger.
+
+And I haven't figured that out yet.
+
+Um but I yeah, I'm trying to avoid saturated fats altogether uh because I already eliminated pretty
+much everything in my LDL is not perfect and my APOB um my it's getting constantly compromised by me
+eating uh milk
+
+products uh that are not 0% like full-fat or like half-fat.
+
+And um what else is compromising it? Eggs, yeah.
+
+Um so, I as I was talking in the beginning about that attribution, I first need to get to the
+baseline where I could do where I do absolutely everything to reduce my LDL.
+
+Then I measure and I see what is my baseline. What is the minimum possible achievable LDL that I can
+hope for without like taking the prescription medicine.
+
+And then I will try to go backwards and start to introduce, you know, like a little bit of meat, a
+little bit of like full-fat milk products and see how it spikes because I have no idea what is my
+lowest
+
+possible achievable LDL is right now and I suspect there's some genetic factor as well uh involved
+with that.
+
+So, yeah, I mean saturated saturated fats are tricky because all of the foods with saturated fat is
+tasty and it gives you a strong long-lasting memory of them being tasty.
+
+Yeah, you see um regarding the dairy and and the eggs.
+
+Um for for the eggs, I really couldn't decide on I should eat them or not because my understanding
+is that some people are hypersensitive to the dietary cholesterol and some people are like not and I
+don't know which one I am. So, I just
+
+I I just I just keep going and see if it goes down and eventually I might have to say goodbye to
+eggs.
+
+Yeah, I did notice my apoB was jumping like from um I can't bring up the measurements right now and
+look quickly.
+
+It was jumping like quite a lot like uh 50% up up and down between the dirty the dirty cycles and
+clean cycles and uh that made me conclude that okay, this is the diet.
+
+Yeah, so I I I sometimes get like .7 um grams per liter and sometimes I would get uh like the worst
+one was like 1.15.
+
+Um so okay, this is not exactly It's a big jump. It's a big jump. Yeah, so it tells you that okay,
+it is the diet makes a difference because I know like some of the cholesterol related things like uh
+
+lipoprotein A uh people say oh it's a genetic or it's really hard to manage.
+
+But um when I saw this whole utility that also somehow correlates with a clean dirty cycles, I knew
+that okay, this this can be controlled, this can be managed.
+
+Especially with like apoB and apoA, the ratio matters as well. So maybe your apoB was going to be
+not perfect, but your apoA could be perfect.
+
+Um so this is also another trade-off that you can think of. Yeah.
+
+Uh tell me about your supplements since we are we're going from diet to supplements.
+
+Oh yeah, I mean I have um whole range of supplements that I as like grew this stack over time by
+trying to address specific needs.
+
+So a lot of supplements in my diet are there to support support like enzyme production by the liver
+or uh pancreas.
+
+Uh which was guided by Iolo and the blood work. And a lot of it worked. So I saw actually my uh
+liver enzymes changing 2x uh going down uh by I mean just supplementing the building blocks.
+
+Um What are the building blocks my liver enzymes like sunflower lecithin, serine uh I think it's
+called phosphatidylserine or something like that. Um So this are the building blocks, uh for the
+enzyme production.
+
+Interesting. I'm not taking any of them.
+
+I mean, maybe you don't need to, right?
+
+This is like this is basic >> so many things that I'm surprised that >> [laughter] >> Yeah, well, I
+mean, this are like the things that you arrived to take and when you start looking into your
+biochemical pathways and you start suspecting bottlenecks
+
+somewhere and then you test it by providing the I don't know the cofactors or some building blocks
+that you think might be bottlenecking. You somehow Um I have as I said like I have about like 30% of
+my supplements around the
+
+uh collagen synthesis or helping it or or like reducing certain types of inflammatory action that
+might be actually undermining your um joints.
+
+That also at the same time helps general general uh inflammation reduction in your system. Like
+quercetin um for example uh curcumin Mhm yeah.
+
+I don't I don't remember all of those antioxidants, anti-inflammatory things that I'm taking, but I
+arrived to them either as a result of trying to reduce um the activity of the system to the
+histamines or
+
+as a as as a pro- proactive step of trying to help my body build uh cartilage and do the repair in
+the joints and connective tissue.
+
+So, a lot of a lot of like I think like it's called lute- luteolin, quercetin.
+
+Let me pull up my list of the supplements here.
+
+Luteolin, quercetin, you know, like a lot a lot a lot of things they have multiple action like
+vitamin E for example, I noticed it has a lot of correlation with uh Michael noticed when he looked
+at my data has a lot of
+
+correlation with uh biomarkers going the right way.
+
+Lycopene, something that uh all men should be taken after a certain age. Uh fun Mhm.
+
+Fun fact about lycopene, when I looked at the NHANES 3 database, uh what PhenoAge was was built on,
+I actually created an algorithm that brute forces biological aging clocks from the from from that
+data. And so, I
+
+created like hundreds of thousands of biological aging clocks, and lycopene was perhaps even the
+highest, but certainly the carotenoids was the highest correlated in in groups with other
+biomarkers, right?
+
+Highly the most highly correlated to to to how much people died from aging-related causes.
+
+And that's that's that's a big thing because you would expect something like glucose >> or Yeah.
+
+>> or or RDW would be would would be there, but no, it's lycopene. What the heck? Yeah. Yeah.
+
+Yeah. Um lycopene is really important uh for male health. Um Yeah, so let me see what else I have. I
+have for like Boswellia. This is uh like a resin that um prevents your system from attacking your um
+
+your joint tissue.
+
+uh, I don't want to compete with my DAO enzymes.
+
+Um, yeah. Um, what else?
+
+Yeah, did a lot of probiotics, um, prebiotics, specific fiber I already mentioned, like acacia
+fiber.
+
+Um, yeah. And, uh, a bit of a vitamin B complex.
+
+So, a whole bunch of things, um, I was optimizing at some point my NAD, uh, levels.
+
+And I discovered like NMN, TMG, um, NMN and TMG, um, combo is good because, well, TMG also like
+subjectively discovered that I just feel better. It was the time when I used to have bad sleep. The
+TMG just like helps it
+
+better, but there's also insurance, right? Because there is a theory that you might be depleting
+your methionine methylation pool if you're just taking pure NMN.
+
+So, what I do, I take TMG because it provides, uh, uh, like, uh, it's methylation donor. But then on
+top of that, what what I do, I take creatine because creatine is one of the cons- another consumer
+of the methylation
+
+So, creatine is like one of those supplements that you encounter over and over and over from in in
+different body systems, right? We encounter it like it's a part of the brain health.
+
+Um, it's part of the methylation pool, it's part of the um, muscle and bone building. So, a lot of
+the things that I'm taking have more than one function.
+
+Uh, just accidentally.
+
+Um, yeah. Especially those that are like anti-inflammatory, antioxidative. And uh, what I also do, I
+try to measure my, um, oxidative oxidation burden because something you need to be very careful
+about. I know some people go bananas
+
+with antioxidants and then they just cross their fingers and hope they don't have a redox stress in
+their body because you might be having not enough oxidation in your body.
+
+But, um, I will did both the blood work, um, in the lab.
+
+Uh, that included some of the my glu- glutathione oxidation. So, you can tell how much of your
+glutathione is like getting oxidized. And uh, there are some secondary markers in Iolo test kit that
+Michael helped me use as a secondary
+
+evidence of like where my oxidative stress is and I'm definitely can go more with, um, antioxidants.
+
+Uh, but yeah, but I also take a lot of antioxidants.
+
+Like you said Mhm.
+
+on the podcast, the CEO of Ligen Dal, which is a company, uh, seemingly revolutionizing peptide
+design. Mhm. And and the way he he explained to me the difference between peptides and other
+supplements is that usually these other
+
+supplements are much smaller and get to a lot of places in your body and interacting with a lot of
+different things, but peptides are more more targeted. Um Now, I have two questions for you.
+
+Are you taking any peptides? What do you think about peptides? And uh is is this could this really
+be a revolution?
+
+entrepreneurial world where um just the the pure definition of the peptide is being like less than
+something like 50 amino acids, right?
+
+like research purposes, which is kind of the case, right? If they run an experiments on themselves,
+then everyone benefits from it, right?
+
+If you're willing to to take a risk and own it, um then everyone benefits from it. So, I feel like
+there is a revolution in that sense. I feel like health industry needs some areas that allows this
+move fast, break things kind
+
+of mindset that exists in the software sector, where people can move really fast and experiment and
+you know, if they if they go into the ER like what happened into this uh longevity fest, where
+people took like a whole bunch of
+
+peptides and went to in whole bunch of them went to the ER because of that, then yeah, that's on
+you. So, I'm very excited about that. I'm closely monitoring the peptides, especially the the
+scholar the Wolverine
+
+I don't remember exactly the peptides in the Wolverine stack, but uh these are the ones that are
+specifically targeting the recovery of the cartilage and joints because this is one of the very
+tricky areas, right? The The cartilage doesn't
+
+have blood vessels in it, it doesn't regenerate that easily. So, every mistake that you ever make in
+terms of the fitness injury, you will be paying for, you know, tens of years of your life, if not
+forever. And the Wolverine stack is
+
+promising to address it at the potential tail risk of if you have a tumor, your tumor will grow
+blood vessels and accelerate because of that. So, that's why I'm not taking it yet.
+
+But, I'm closely monitoring it. One of the peptide that I'm using, um is just like the copper uh
+peptides.
+
+I forgot the exact name of the copper peptide. I put it on my skin uh because that's like the lowest
+possible risk. It's like a low-risk thing to put the copper peptide on your skin to try to help the
+cartilage um
+
+regeneration in your skin. Cartilage is a very scary thing uh when it comes to like skin and and
+joint tissue because like once it goes wrong, once you start having some misformations of the
+cartilage, it just stays like that and
+
+and then you have to deal with it. It's Yeah, it's something that you you want to avoid having
+problems with for as long as possible.
+
+You're really thoughtful.
+
+I wonder how Okay, so I can see, I can hear, or I can imagine a lot of proof of work uh behind your
+words here, a lot of time spent on these things.
+
+I wonder, are you working in the space somehow, or is that your hobby?
+
+Uh just a pure hobby.
+
+Yeah, I really like this longevity space. It gives me, you know, this longevity space gives me the
+vibes of like early software development community.
+
+Um right, you know, when internet was internet was early and and and and emerging and all of this
+move fast break things software culture was happening. I feel like this is what has happened with
+longevity community except
+
+except the stakes are higher. Like if you if you do a wrong experiment on yourself, you're going to
+pay a price.
+
+But at the same time the reward is also pretty high because you're going to feel better, you're
+going to sleep better, you're going to you're going to have higher fitness performance. Eventually,
+you're going to live better.
+
+>> Mhm. And here in the longevity space same thing. We have our own own talkers, our own data
+scientists, our own scammers. Uh we have everything for a successful project.
+
+It's a real organic community. You here and now. We are Some some basic things. Where do you live?
+Or what do you do?
+
+Oh, I live in France.
+
+I do all kind of small projects for myself.
+
+Um like software related.
+
+And but most of my time I try to actually dedicate to the longevity.
+
+The problem is that because I'm constantly experimenting with routine and the like style uh I
+constantly lack the time to do the research.
+
+And it's mostly the execution that's taking time because every time I adjust my routine or the diet
+or whatever, I need to learn a new cooking routine or do new kind of like fitness routine.
+
+And that that adjustment takes a lot of like effort, willpower.
+
+I'm trying to make longevity experiments. I'm very inspired by Michael's Garden, who is just able to
+uh follow his diet to the T and um do the the thorough blood blood work and put out the good
+research.
+
+I hope to be get to get there soon.
+
+Yeah, perhaps at one point you can get the panel with him.
+
+Would be Although you guys already know each other, but still it would be fun.
+
+Seems like both of you are quite data heavy here.
+
+Do you work out?
+
+Yeah. Um I I used to work out. I um like used to do like a classic gym. Like there was a a short
+period of powerlifting different periods of different martial arts that I partially regret because
+they did uh
+
+earn me different physical traumas, as I said.
+
+Especially joint-related issues are and cartilage-related issues is something you I've been still
+trying to rehab.
+
+But it taught me to be very mindful about my cartilage early in my life.
+
+And right now what I'm trying to do I'm trying to do things. I'm trying to increase my VO2 max, so
+my uh cardio metrics are pretty good.
+
+Um I mean by some metrics uh like in terms of like endurance, how long I can last after I I
+transition from like aerobic to anaerobic uh mode I'm actually pretty high up compared to the
+population, but
+
+my VO2 max is pretty average.
+
+So I'm trying to do the high-intensity interval training like the Norwegian 4 by 4 split.
+
+Um How long have you been doing that?
+
+Well, I've been doing it like for like half a year, maybe a year, but um I was waiting for the
+cardiologist to give me uh the green light to be able to do it like very intensely.
+
+Um uh because I'm just not lucky how some people are to have stellar aerobic uh performance.
+
+So, now I have to double down on it.
+
+And I um yeah, so I'm doing going to be doing VO2 max I'm already doing it, but I going to increase
+it like 2x my activity do instead of once a week two times a week, three times a week. Um and
+
+I'm trying to switch to the uh calisthenics, but only like very very carefully selected calisthenic
+exercises because what they do they strengthen your cartilage.
+
+So, the same story. Like I have already enough of the muscle mass, so I probably could have more uh
+to not worry too much about it.
+
+But, now I can prioritize the the joint building and cartilage build and cartilage and uh tendon
+building.
+
+And uh that's what calisthenics um if you are very careful about the exercises in calisthenics
+because there's a lot of exercises that are exist for for the reasons of the competitions, right?
+That's when the when athletes and
+
+go compete, you know, and or earn the points and do all these things like Maltese cross and
+whatever.
+
+This is not super healthy for your joints, but it earns you points in the competitions.
+
+And so, the calisthenics um repertoire is littered with exercises that are impressive, but you need
+to really scrutinize them for what is the trade-off in terms of the health versus uh beauty, for
+example. And so, that's what I'm
+
+doing right now. I'm like slowly adjusting my calisthenic routine to prioritize uh muscle building
+and joint building without being distracted by uh some flashy things. I'm pretty early on in there.
+
+Um, but probably something I'm going to be doing for the rest of my life. And my my plan for when I
+get like really old and I cannot like move, it's going to be swimming. So, um, that's something that
+is
+
+I will start doing maybe this year.
+
+And, uh, because yeah, at some point you're just going to end up just swimming and maybe doing a
+bicycle uh, when your joints are barely moving.
+
+That's that's the plan.
+
+And uh, another thing, yeah, I do a little bit of I'll do a little bit of a box.
+
+I have boxing, uh, which is helpful for the neuro, um, n- motor neurons.
+
+Because, um, this is another thing that goes, uh, away with age. You lose like 98% of your motor
+neurons by the age of like 110. And, uh, one of the ways you can try to prevent this from
+
+happening is by using them.
+
+But, if you are limiting your exercises to very specific exercises, then you might not be using all
+of your motor neurons. But, if you do like a full body activity, um, like swimming or, um, some kind
+of boxing, I mean, not
+
+sparring, but like just boxing workout, then that gives you a chance of using all of your motor
+motor neurons in your body. Plus, you might be able to properly time and measure your reaction time.
+
+Um, again, something that you want to know.
+
+Um, it's it's like a way to know like how far your neurodegeneration has gone.
+
+Yeah, that's interesting. I I I also have like enough muscle, right? Like >> Mhm.
+
+I don't need any more.
+
+Uh, so I would go for calisthenics and yeah, I've done martial martial arts fighting sports and one
+martial art, uh Kyokushin karate, which uh for 20 years, right? And I've done football, soccer.
+You're not American, so football
+
+for for 20 years as well. And right, just as you said, recently I went to an MRI, right? Uh my knee
+was hurting from deadlifting.
+
+the interventions that will like just increase the range of motion for for the knees and um, buy
+even more time for better intervention 40 years down the line.
+
+Um, yeah, so it's all about buying time right now.
+
+And I really think that the health industry will become like the next tech industry in our lifetime
+in in terms of um the money involved and the the pace of progress and and the focus uh by the
+society.
+
+So right now everyone is obsessing about the tech sector and I think the focus will switch to
+actually medical sector because this is one of the few things that will both benefit from AI boom uh
+but also the one of the things that
+
+will be really hard to replace with AI.
+
+There's still going to be a lot of hands-on work and uh judgment calls made by the doctors.
+
+So, I think um there's going to be a strong synergistic effect in there.
+
+trading it like it's uh like it's a commodity.
+
+And uh the margins on it is going to be super low.
+
+And because uh everyone will be able to benefit from it.
+
+How do you sleep at night?
+
+Uh Oh, I had I had a I had a long story of trying to fix a broken sleep. So, at some point in my
+life I used to work very hard.
+
+Uh was a lot of I had a lot of stress. I had a lot of um I had I had uh run down my health also a
+little too much.
+
+And my and my sleep broke. Um to the point where I started having second-order health effects like
+on my heart, on my other organs in my body.
+
+I actually wrote wrote a long blog post that I don't share I don't advertise it on the internet
+because I almost shared with friends, but it's public.
+
+Um so, uh when you go to maxlongevity.co, uh, you you're going to see this blog post about sleep.
+It's very long. It has like 50 different interventions for the sleep.
+
+But right now, I finally fixed my sleep.
+
+The things that help me sleep right now is um, cold room, uh, sleep hygiene, going at the right
+time, um, trying to have like fixed routine, um, I take, uh, some supplements that help me as well,
+like uh, liposomal
+
+melatonin is really good. It clears out better from your system than regular melatonin.
+
+So, you don't have grogginess in the morning, so you have cortisol earlier in the day.
+
+Um, have like light exposure, so it's like how you wake up is as important as how you fall asleep,
+because if you wake up efficiently, then you have a better like cortisol cycle.
+
+And, um, um, you know, it helps you fall asleep later in the day.
+
+Um, yeah, so basically, cold room, um, then, uh, all the all the classic sleep hygiene things, like
+dark room, um, where, um, orange glasses if you are on a screen before bedtime.
+
+Uh, that that really helps, actually.
+
+It's like magic. For some reason, when I put my super orange, like, uh, from the glasses from the
+Bon Charge that are very efficient filtering blue light, um, then I actually feel like I fall asleep
+better taking magnesium.
+
+Um, but also specific kind of magnesium, so you don't want magnesium from this from the, um, sea
+products, because that one might have, uh, histamines in it.
+
+Uh, so, you need a specific kind of magnesium.
+
+Um, then, um, what else, um, that helps me? Yeah, try I'm trying not to eat like what, 4 hours or
+even 5 hours before sleep. That makes significant impact on the sleep quality.
+
+Um and uh just keeping up with the physical load throughout the day. I try to drink 2 L of water but
+in the first half of the day so that it doesn't interfere with the sleep.
+
+Um Avoiding any kind of like inflammatory things. I just try to stay away from spicy food.
+
+I have I have like a ton of gadgets. I have like a whole drawer of gadgets that I tried throughout
+my life.
+
+Um I have things that like a white noise helps a lot.
+
+Actually, waking up with the smartwatch vibrating on your wrist is a better wake up so then you
+know, you don't associate alarm with something annoying and upsetting.
+
+It's more of a like someone like gently tugging you on the arm.
+
+Uh so I prefer that.
+
+Um The cooling mattress helped me quite a lot so the temperature control which involves also taking
+or not taking shower before sleep. For some people, taking shower actually makes their body lower
+their temperature lowers temperature before
+
+sleep and it helps them. For me, it does the opposite. It wakes it up.
+
+Uh so I try not to do it before sleep or like right before sleep. Um Um yeah. [sighs] Many many
+things. Um The right mattress, the right um the right pillow.
+
+Uh the clearing your nasal passages name nasal passages is quite important so if you don't know
+what's the state of your breathing apparatus, you might want to go to ENT specialist to get
+evaluated.
+
+It's really helpful because it's not just guesswork. They will go with the camera down your nose.
+They will run some chemical tests on you and you might discover that it's not just about your
+throat. You can have
+
+weak cartilage in your nose. You can have inflated turbinates. You can have uh floppy You can have
+your neck being too muscly, for example.
+
+Uh another problem, right? For people who do too much with certain types of sports.
+
+And um once you know all of these issues, you can be address them.
+
+For example, you can do the saline wash with a neti pot to actually expand uh so it does like a
+expand uh like shrinking your turbinates and uh freeing up the nasal nasal passages. And also it
+
+Uh the like all these all these hacks you can do with the with the breathing apparatus, with the
+diet, for example. What you can do if if glycine works for you, glycine actually lowers the the
+brain
+
+So you can take glycine before sleep with your tea. You can take serine or different se- serine-like
+molecules like L-serine.
+
+Uh for example, they they also helps you relax and fall asleep. I I have a special gadget that it's
+like a fridge that you put on on your your forehead.
+
+So it's like actually just like a fridge unit. Just sits there and it cools down your your frontal
+cor- cortex to help you fall asleep.
+
+Uh they stopped manufacturing that one.
+
+So I get it's the same one that Bryan Johnson has, the same model.
+
+So I had that. Um it helps quite well.
+
+Um uh then Yeah, I tested like five or six different mattresses in my life that were all like very
+expensive, from like gel mattresses to spring mattresses to foam mattresses until I arrived to like
+spring mattresses being the best for me.
+
+Um What's your sleep position?
+
+Uh I So I I trained myself to sleep on the back.
+
+So I couldn't sleep on my back for a long time because I was slightly overweight for some time.
+
+And my my my breathing pathways would close, you know, when you sleep on your back. I did some sleep
+study and shows, you know, you don't sleep well, you start snoring.
+
+So, I still snore. Uh uh but I can still at least be asleep. But by teaching myself to sleep on my
+back, I postpone any kind of future issues with my spine and shoulders.
+
+Because uh now I, you know, I have like a very straight spine during uh during sleep.
+
+The biggest impact in my life on my sleep, when I had a terrible terrible sleep, was NMN. And that
+was many years ago, six or seven years ago.
+
+I I I was trying to improve my sleep and I decided to try taking NMN not for sleep, but for
+longevity.
+
+And suddenly I noticed my sleep has improved. And I did some research and I found that around the
+same year there was a paper that said that NMN is related to the circadian cycles.
+
+And you can actually influence them if you take NMN at um at the beginning of the day.
+
+Um and so that clicked and explained, you know, why NMN helps me. And I even today I notice if I
+stop taking NMN for 2 weeks, it actually um my sleep gets worse.
+
+Um so, yeah, NMN made the biggest impact in my life on my sleep.
+
+Surprisingly. Would that also work with NR?
+
+I don't know. I think I tried NR at some point and it I don't know whether it was the same or
+different.
+
+But uh I just didn't see a reason to switch to NR. I know it's cheaper.
+
+Um but um NMN did not degrade any of my biomarkers, so I went with NMN. But, it was really important
+for me to try different manufacturers because I remember once I was taking NMN for a long time, and
+I could tell there
+
+was some kind of impurity in it because it was causing when I would take like 500 mg uh it was
+causing a leg twitching at night. So, I'm prone to like restless um like um movement at night.
+
+And I would when I would take too much of that NMN, legs would start twitching at night.
+
+And then I switched to a different brand, and it was never a problem with the with different brands.
+
+Um yeah, but I don't know how it works now. I I tried uh taking niacin uh the no-flush one and the
+and the flush one.
+
+And I don't know. Well, the problem with the flush niacin is because it gives you a flush, it kind
+of also primes you for sleep, like it gives like feeling of relaxation.
+
+I know that's a people even take it to help them with sleep because they take it and they get they
+get flushed, and then they're like, "Oh, I'm relaxed." And then they fall asleep.
+
+So, we talked about the basics, right?
+
+Workout, sleep, nutrition, and supplements.
+
+I wonder if there is something else that you think is that that you're doing and you actually think
+it's working and comparable to to this?
+
+I think well nutrition, supplement, uh fitness uh sleep hygiene. I think like the stress management
+is a really important thing.
+
+And it's kind of complementary to this to to sleep.
+
+All right? Because if you have high stress, you will have problems sleeping.
+
+There is like a a concept of called like window of tolerance which which means that you want to be
+neither too relaxed nor too stressed.
+
+Right? You want your stress level to to manage your capacity.
+
+So, you don't want to be too zoned out throughout the day.
+
+And so, you need to see stress as both like an adversary and a stimulant.
+
+And learning what kind of stress you like and what kind of stress you want to avoid because it wires
+you in a wrong way is something I learned to be um really important throughout the life.
+
+So, uh as part of the window of tolerance management, uh it's a it's a it's a psychological
+psychological concept.
+
+There are various interventions you can do to push yourself either from the zone of not enough
+stress to too much uh or like or from the zone when you have too much stress. So, everyone knows
+about
+
+like stress reduction, right? They know that right, if I'm stressed, I need to I don't know,
+chamomile tea. I mean, all those like even I I'm kind of making a joke with chamomile tea, but there
+are a
+
+lot of things about like breathe breathe work, box breathing.
+
+Uh I don't know, grounding techniques, um supplements, uh sitting in a quiet room, whatever.
+
+But, almost no one talks about techniques for actually stimulating yourself in in a healthy way. And
+many of them are quite easy. It's can be aromatherapy, right? Uh people might like some in put to
+put on some infusers or um
+
+some meditation scents because they're actually stimulating them in the right way.
+
+Like the rosemary smell, for example, does the work for me pretty well. Or going out, doing like
+bilateral movements, so when you swing both uh arms and legs bilaterally, that actually regulates
+your system quite well and
+
+helps in both cases when you're under stressed and over stressed, it pushes you into this um uh
+perfect zone of stress management.
+
+Um >> if playing a game would be something like that as well.
+
+Yeah, you need to like work with your dopamine levels as well, right? So, if you feel like you've
+been starving on the dopamine for whatever reason, uh then if you play a game and you get yourself
+like a quick kick of dopamine.
+
+So, it's now it enters like a zone of like ADHD management, like people who have like ADHD or self-
+diagnosed ADHD, they do a lot of like uh dopamine therapy where they um you know, like create a
+dopamine drip
+
+o- of of like some side distractions on the side that give them a little bit of dopamine while
+they're doing the important task.
+
+Uh So, yeah.
+
+>> they are dolphins doing these don- dopamine management things all the time, right?
+
+>> Yeah. Yeah, like Yeah, as they learn as they learn to to plan to do like a long-term planning,
+they need to somehow reward themselves for the short-term tasks that are not rewarding yet.
+
+Like you eat a candy or whatever. Well, of course, if you're doing if you're doing longevity by
+hacking, like don't eat a candy, but you can reward yourself in other ways, like eat something
+tasty, right? Like for instance, I reward
+
+myself with a tasty coffee. That creates a reward in a brain. It makes you walk outside, and I think
+this is something people do not talk a lot about that there is the flip side of stress
+
+management when you don't have enough stress in your life or you don't have enough dopamine.
+
+Yeah, interesting. All right. Um so, what's one thing you strongly believe to be the case, but very
+few people agree with you on?
+
+Oh my god.
+
+Uh let me see.
+
+Let me think.
+
+Let Yeah, I think actually doping doping yourself with unhealthy rewards is important. Like I just
+mentioned with going for a walk and having a cappuccino somewhere, right? If you over-engineer your
+diet and the lifestyle in order to hit those blood marker
+
+milestones you will sacrifice significantly psychological well-being.
+
+And so you need to find a way to dope yourself with psychological rewards that will create minor
+trade-offs when your blood blood biomarkers, but will actually help you to keep going long-term,
+right? So you don't relapse
+
+and eat a Nutella jar somehow.
+
+So this is the part of the bodybuilding culture where they have a cheat day, you know, when they
+have like carb windows and all of like a calorie refeeding cycles and so on where you need to
+consciously give up
+
+and let yourself eat something unhealthy.
+
+You can have this like back-off system like when I when I have when you don't jump like all the way
+into hot dogs, but you maybe have some kind of in-between states. Maybe not a
+
+burger, but a sushi.
+
+If it's a burger, maybe not a full-fat meat, but a lean patty.
+
+Right? If it's Okay, if it's a fat patty, maybe you don't have fries on the side.
+
+Or like no no sauces or something like that.
+
+So if you have this back-off system that like in my case it's like a full hierarchy of things that I
+fall back to then you it's it's crucial to dope yourself with rewards along the way.
+
+And and know what I know what those rewards are for you. And don't do it like once a month. You
+might even do it once a week.
+
+Every day, so even even even during the day you will have like a small cheat of some kind that you
+allow yourself to do.
+
+Just to be able to keep going.
+
+Um so that you don't have huge relapses and you just don't go depressed uh from being on too
+restrictive food.
+
+One of the things that hasn't hasn't been discussed at all, I think, in the longevity community is
+how you can significantly improve your quality of life without sacrificing the diet by leaning into
+the variety of textures in
+
+So, different cuisines achieve um tasty uh food in different ways. Chinese cuisine heavily leans
+into the combination of textures and they have a whole vocabulary of words for the textures of food.
+And they know how to combine different
+
+textures. They want to have like three or four different textures in the same dish.
+
+Texture is not a food ingredient. It's just a cooking skill.
+
+And if you are really mindful about having a variety of textures in your in your diet and not just
+turning everything into a soup or a porridge, then you might actually last very very long.
+
+And you can significantly diversify your food. For example, in my case, this is why I do a lot of
+baking and I bake frequently with uh chickpea flour or some other kind of flours that are actually
+healthy.
+
+And that allows my brain to have something to chew on, you know.
+
+Or for example, I have a buckwheat uh buckwheat flakes that are made from the pure buckwheat flour.
+That allows me to have something to crunch on.
+
+Um that I add, for example, into my uh Greek yogurt with uh with pears.
+
+So, if you you will really into tricking your brain into enjoying your food by having a variety of
+textures, you can actually make your diet that could be like very strict or quite palatable and
+enjoyable uh for your body.
+
+It's just something that's not discussed at all, I think, in the longevity community.
+
+that um you can diversify >> Yeah.
+
+Max, this was excellent. Where can people find you?
+
+Well, you you can uh go to my blog uh m i x longevity.co dot co and you can just subscribe to my
+newsletter if I ever publish another blog post, which I'm planning to. People been asking me to make
+a blog post about
+
+Um then you'll get updates um on the on your uh Longevity Olympics website under my profile, you can
+find my email address. You can contact me there um by writing me an email.
+
+So, these are the two main ways of how you can reach out to me. I mean, I read emails.
+
+So, if you write me an email, I will I will respond.
+
+Max, number three on the Longevity World Cup took the took the handle Max.
+
+>> [snorts] >> Early power move. Yes. So, thank you very much for coming. It was a pleasure. Thank
+you, Adam.
+
+It was a pleasure, too. Goodbye.

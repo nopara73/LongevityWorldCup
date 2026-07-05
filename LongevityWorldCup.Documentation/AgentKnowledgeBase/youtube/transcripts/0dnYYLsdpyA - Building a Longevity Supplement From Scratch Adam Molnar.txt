@@ -1,0 +1,1597 @@
+# Building a Longevity Supplement From Scratch | Adam Molnar
+
+Video: https://www.youtube.com/watch?v=0dnYYLsdpyA
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 510/794 units; 15642/21379 words.
+Matched topics: PhenoAge, aging, aging clock, biohacking, biological age, biomarkers, epigenetics, exercise, hallmarks of aging, healthspan, inflammation, longevity, longevity athlete, longevity sport, medicine, nutrition, sleep, supplements
+
+## Focused Transcript
+
+>> So cats as well. And >> mostly Mal targeted >> because dogs and cats are like the same >> uh >>
+same disease.
+
+>> They are malleians. So actually that can that's work. But there are few ingredients which doesn't
+work for cats.
+
+uh for example uh from pharmacy you cannot give um aspirin to cats because if I'm right because they
+immediately die from that so that's like a toxic for them not for dogs so there are few ingredients
+you have to be careful about
+
+but this one is called propos >> so will this make my cat live forever >> yeah of course >>
+excellent >> there is a class of a new class of supplements that I've been trying to get my hands on
+but it's very difficult
+
+because the only company that is creating that is Novos and also there is like Steven Shore he was
+>> perhaps the first or one of the first longevity athlete I interviewed he's also try he's also
+trying to create uh
+
+things like this except he's going to the in in the root of the more like uh you know these these
+all kinds of herbs and med medicinal Chinese ashwagandha this kind of stuff >> right so he he he
+lives in Hawaii so
+
+anyhow the the problem is that I could never never import I wasn't I wasn't able to import it to
+Europe right uh but what is this kind of supplement the the the philosophy behind these is are that
+
+there is the hallmarks of aging scientific geoscience paradigm that is dominating the field right
+now and it identified a dozen or so hallmarks and >> some people had a great idea hey what if we we
+we just uh target each and every
+
+hallmark of aging with a supplement right and that's what you did as well Adam Morinar, uh, welcome
+to the show.
+
+>> Thanks for having me. It's absolutely honor.
+
+>> So, before we get into what this thing is and geek out on the ingredients and stuff like that, >>
+tell me your story. Tell me tell tell me tell me your story and then the story of of cells
+longevity.
+
+>> Yeah, sure. First of all, thanks for having me. It's an absolute pleasure and uh so my story is
+if I to wrap it up real quickly I think I would say it has it had several versions and milestones
+
+but at the moment uh I just summarized it the other week like what am I doing I have a few projects
+going on and a series of interest in my life it's very hard to say like I'm just a software
+
+engineer or I'm just a martial artist bit of both but even other topics I have deep interest in
+psychology Um since I know my mind, I want to create things that can actually give um people tools
+and opportunity to make
+
+Yeah. Well, we are close to yes, right?
+
+I mean, artificial intelligence is trying to mimic intelligence. So, >> trying to do you press the
+touring test.
+
+Okay. Maybe I don't.
+
+>> So, okay, let's go into this. You also have a good story and that's cool because every supplement
+company has to have a good story and and you have one. Um tell me that >> um about the supplements.
+How did it all
+
+>> How it was started?
+
+>> Yeah. The beginnings >> in the hospital.
+
+>> Yeah. All right. So actually there is one origin story for the pet product and there is one for
+the human and the last the the latter one is I not occasionally speak about so I will tell both if
+you mention soon. So the
+
+whole thing started when I was like a few years ago with my dog in the hospital in the pet hospital
+and um this little guy had a very serious uh surgery um life-saving surgery and um for like
+
+almost two weeks every single night I had to spend the nights in the hospital with him just waiting
+for the IV to drop to get all the checks and blood work done and all these controls. So a lot of
+
+time and in the beginning it was we we were not sure that he's going to survive. So um I tried
+everything that I can do. So I was at the time reading um the book from Sinclair right how long we
+
+live. I'm not sure how is it English but pretty much something like this is the title. So I just I
+just checked it and I was like okay so there are things which uh could help this dog as well
+probably.
+
+So why don't we try oh this and that but I was not trusting um what I can read I never do so I
+always try to go back and see what is the what are the papers
+
+saying what's the background how it's working so for me it was a whole new era so I try to just get
+the grasp of it understood the structure and there was this doctor who was like super busy with
+
+everything and continuous because I spent two weeks there right so I was like hey doc I have an idea
+can I just can you just please tell me or explain me this and initially he was you were just a
+software engineer can
+
+shut up like what can you know and he was right but I had time and I had dedication I really wanted
+to make things happen so I was reading reading trying to connect the dots and I was
+
+just all immersed in this whole serial biology thing and this was not the first time I was touching
+that field a few years before I did it for family health purposes and and some other neutropical
+reasons um I can mention those as well
+
+later but here at this point I started to have more and more meaningful questions and the doctor was
+very kind to answer those. So he was kind of just tailoring my attention into the right fields and I
+was reading reading and
+
+making this up. So after a few weeks uh I ordered a bunch of ingredients I thought are useful at
+home. I had already had a lab. I just put things together and started to give it to the
+
+to the dog. Dog uh started to get better and better and in a few weeks.
+
+>> You already had a lab.
+
+>> Yeah. At least for supplementations. So the interest for longevity and supplements are coming
+from like 10 years sooner. So when I was working in San Francisco in tech companies, I saw my
+friends um were all on aderall
+
+retaline all these stuff and some of them really had super bad side effects especially when they try
+to calm down from those stuff. So I was witnessing that they are performing insanely good compared
+to my ADHD at that time and it
+
+was just very obvious that how how big performance boost they are getting from this but also at the
+same time they started to get miserable and I witnessed those. So when I came home from there uh
+
+I had the first project about trying to figure out what herb supplements you just mentioned or what
+else can you just supplement so that you at least have some effect. uh pro probably or hopefully
+great effect but not that
+
+potent thing that can actually make your brain become a slave of that ingredient.
+
+So that was that was the first idea. So I already had like stuffs around and knew how to approach
+things at least but I didn't have this background of going deep into cellular level and
+understanding those stuff. So that's
+
+when I started to go that direction.
+
+interesting point or pivot point was when few weeks later we went back um checking the dog was
+checking the the doctor was checking the dog and basically he was super surprised and he said like
+all right it's great that
+
+everything is going in the right direction but what happened I was like why he was smiling and just
+looking at me like we knew a secret or had a secret together and he was like is the dog
+
+taking the thing you mentioned I was like yeah why because the all the values and everything and the
+blood work and and just the pace of generation of of the tissues were just like much higher than he
+got used to. So he said like
+
+yeah it can be a miracle or something is happening with this dog. So is he taking what you
+mentioned? I was like yeah I'm supplementing him totally and uh he said like all right you know what
+let's come
+
+back next day sit down because we have to make this thing a thing because more uh living little
+creatures would need that and appreciate that. So that's why that's how we started this whole whole
+story at that time.
+
+>> When was it?
+
+>> And did you did you do this with other dogs as well since?
+
+>> Um so we have the previous versions.
+
+This is the the first version. I just got it like two weeks ago literally. So this is the first
+batch manufactured from everything and yeah so he was giving it to a few other dogs but we
+
+didn't do the blood work yet. So our next step is actually uh they have this shelter for lost
+animals. So um we are planning to do like a proper blood work supplementation blood work checked
+supplementation of this and check the
+
+values for them. So not enough sample yet. It's more like anal at this point.
+
+But yeah, >> is it that that hard to get a blood work supplement? Bad blood blood work for a for a
+dog as to a human >> or the bureaucracy is not as crazy.
+
+>> Bureaucracy is not as crazy, but it's decent. So it's it's like the fact that they are doctors,
+they have their own shelter and they have their own paperwork. So they they can do everything in the
+right order to just
+
+actually get it done. they have all the certifications and and allow to do that but it's not easy.
+Other way would be going through the university and and doing uh that which has way more bure
+bureaucracy and uh well this is costly.
+
+>> Okay. So this is already based on the hallmarks of aging or is no it's not it's different and
+this is not based on the hallmarks of aging is it?
+
+Well, all of the these are related. So, >> if you just check the ingredients, this does have NMN for
+example. And >> where do I see? Ah, here.
+
+>> Yeah. NMM, PQQ, CoQ10, Fetitin. Yeah.
+
+>> Yeah. I am taking that at home.
+
+>> Yeah. For what?
+
+>> It's a it's it's a fiber supplement.
+
+>> So, and it's it's it's it's the tastiest fiber supplement.
+
+>> It's really good, right?
+
+>> Yeah. I love it.
+
+>> Yeah. I always I always make some call it vitamin water, but you know, it's full of creatine and
+collagen and all kinds of stuff.
+
+>> But when I don't put enu in it in it, it's full.
+
+>> That's right. So the whole It's a bit It has some after taste though. So the whole thing besides
+being a really great fiber source uh it just mostly here in this for the taste.
+
+>> So what happened is uh initially I just did put together the first powders and mixing it into the
+food trying to make it disappear and stuff. So then I learned a lot about what is when how how
+
+does it feel when something actually dissolves in oil and something is like lipopholic or just the
+like hydropholic or what what is like uh the idea of of um these ingredients actually getting into
+your body and just getting absorbed
+
+in different pH levels and and also like what is uh what needs water, what needs some fat source.
+And so all these kind of questions became apparent when I started working on this. I just heard
+about these things but I was not really
+
+aware what does it mean. So this was a hard lesson to learn when I actually did a proper solution.
+Then uh all these guys who need some fat source like oil and stuff became extremely bad to eat
+
+and the taste was just awful. So for example um theostil bean is unbearably having a bad taste. So
+it's like really unbearable and also isocetin. Most of the flammonoids and polyphenols are just just
+having these extremely bad taste
+
+when they are dissolved. And it's great for me. I mean, I don't really care if it's if it's healthy.
+I just take it and I don't really mind even though you have a a really bad aftertaste. Sometimes if
+
+it's just purely dissolved, but for the pets, they just simply don't take it because if they feel
+something in their food which they're familiar with, they will immediately recognize even if it's
+not conscious, but they will know that
+
+>> Yeah. So for example here we have um HPBC which is a cyclloextrin. It's a version of
+cycllodextrin and what they're doing is >> what's cycllodextrin?
+
+>> So what you can imagine uh them as like big balls that you can put things into.
+
+So they are just all around uh in the in the solution and they can digest given forms of ingredients
+and they can cover their taste, their smell and also when they when they actually uh reaches your
+cells and stuff it it can helps you
+
+with with it can help you with the absorption. So it's also good for absorption of the ingredient.
+This means that for example in the case of fisetin they could find significant multiplefold uh
+performance boost. Don't we have a
+
+bit too little air here?
+
+>> You have to reset it. Yeah.
+
+>> Let me let me tell you about CO2.
+
+>> Yeah. What was the topic topic?
+
+>> Um cycled >> dextrin. Yeah. It's actually um one of the industrial secrets and there is a reason
+why we didn't put on on it. So um besides the efficacy of ingredients and how much I believe that
+they are good
+
+that they are just ingredients that you have to find a way to supplement and this is more like a
+manufacturing um feature or until now it was kind of secret um intentionally like u because this got
+the certificate not as just a
+
+supplement but it's more like um I'm not sure how is it in English but when it's not a um a pharma
+thingy but close to that. So it had to go through a rigorous 8-month process with doctors and with
+
+the board and stuff and lab tests and did everything so that this can get the stamp of being between
+the supplements and the and the big pharma thingy. So it's more official. That's why you don't need
+to put all the ingredients and
+
+amounts on it because the board checked it and got the stamp. So it like basically protecting us and
+and the thing and and basically um the brand itself but also like stating and protecting consumers
+that it's safe and
+
+it does what it's supposed to. So um it's protecting customers by not putting the amounts in it >>
+by putting a stamp on it that actually experts check it because believe it or not you must know but
+most of the
+
+supplements uh in most of the places in the world does not need any kind of rigorous uh examination
+for example. So, it's totally up for the manufacturer if they just go in there and make sure that
+
+the product is great and matching their standards at least. Uh, so it's funny um or not, but for
+humans, you don't have those standards. So, you can really sell anything. Uh for for pets, you
+cannot.
+
+So, yeah. So, let's talk about that because listeners of the show probably know that I have a way of
+of figuring out which supplement brands to never buy again.
+
+>> A blacklisting. That's right. So what I started to do is to look at a couple of ingredients
+because the there are a few things where there is like a a better version and a cheaper version and
+
+usually the cheaper version uh doesn't >> is not that effective or or even even has some toxic
+elements to it like some some some kind of [ __ ] So I I have like a huge list of blacklist and
+there is three companies
+
+that survived that blacklist and and I guess now it's four because I'm looking at this and you you
+did choose the let's say uh vitamin B9 material folate 5 mth, right? Mhm.
+
+>> I I I think is it folic acid or >> Yeah.
+
+>> Yeah. The folic acid is the is the shittier form.
+
+>> Although that's not not toxic which is good but still you know or or the CoQ10 here which is the
+ubiquinino.
+
+>> Yeah. It it it usually have two main streams. The ubiquininal and ubinon and one of which is like
+fat soluble but but much more um unstable molecule. So that's why they usually put it into like some
+oil solution and in like the soft
+
+gel capsules because that's the only way they you can uh sustainably supplement ubiquininal even
+though that's more likely to get absorbed only if it survives the the way down there. So that's
+interesting. Here we have in in
+
+the CoQ10 case pureb which is a form when they already dissolved and stabilized it. So it's very
+easy a very well absorbing absorbable uh part but it uh they choose a different way of u stabilizing
+it. So it's like a a
+
+solution already how you can just supplement it. So yeah that's that's one thing here but um going
+about around um the different forms of supplements I really tried to find those ones which does
+actually make sense and not harmful. for example, um I
+
+I didn't know probably I I'm not sure if you know, but please tell me if if you knew this, but in
+the case of vitamin B6, for example, which is perodoxin, the common form, uh and the better form is
+
+for example B5B.
+
+So in case of pyodoxin what happens is it can it can stack up and it's not really good for your
+health because it can have neurological effects that you don't want and because everyone every cheap
+energy drink every supplement
+
+everything tries to put vitamin B because that's one of the most researched and everyone knows about
+vitamin B is something you can lack and it's good for you. Well, on paper and from a hints, yeah, it
+is true. But if
+
+every every supplement, every ingredient you take into your body during the week is containing
+predtoxin that stacks up and it's not good for you. So, for example, P5P is great. And so, in in
+case of vitamin B's, there are metilated
+
+and activated forms. Not every vitamin B has a metilated form but you can just say most of the
+vitamin B are having some kind of activated form which could be like in the case of vitamin B9 as
+you
+
+just mentioned methylab and the other one is uh vitamin B12 which has which is methylcobalamin in
+our case. So those two actually got into the product into both not because I just wanted to give
+some vitamin B's but because NMN uh and
+
+NR which is uh NR is in the human version because in Europe you cannot supplement NMN um for humans
+um officially but since it's close to a pharma uh thingy then you can put NM into that. So that's
+the difference. I
+
+would prefer NM um over NR. It's my >> but I just had to go the legal route. So that's why it's very
+close. I mean they are using the same pathway also in our cells to just go there and they convert
+
+into each other at some point. So it's not bad but anyway the thing I want to say is like if they if
+enem uh is doing its job so it's it's filling up the mitochondria with power right. So that's
+
+why we take enem to to >> powerhouse of the cells. Exactly. Lot of lot of articles are talking about
+this and everyone knows what is NAD supplementation these days except maybe not but we hear about a
+lot about these
+
+things influencer celebrities with the IV infusions. Everyone's taking those.
+
+So it it's like they're not secret secret anymore. I mean not anymore secret thing that they're go
+to. But you can supplement those things with NMN and NR and it's great for your your cells.
+
+And we can go into this topic uh if you want. Um what I'm just saying here is B9 and B12 came here
+as a metilation donor or as a metal donors because if let's say with an with an analogy if the mito
+
+mitochondria is is overpowered and you just supplementing it, it's like a reactor. It starts to does
+it job. The whole cell is cell is happy for what's happening and the city is having a good time.
+let's say with a with anology of
+
+it being your your power your um place of living. So it's like a city lights glowing up uh it gets
+the life it's great. So this is what happening but in and near the reactor you actually have
+
+some side effects and uh the homoyine levels are just going up and you just don't want that and this
+is not just happening because of NMN or NR or any any supplementation it happens generally and
+especially in elderly people and the
+
+way we got u more elderly we just have more higher and higher levels so we don't want that so that's
+why as a precaution and as an insurance next to these mitochondrial boosters. You want to always
+supplement something that's
+
+actually protecting from the side effect potential side effects and that's why these metal donors
+are just good for uh bringing down the homocyine levels. So >> okay this also creates a problem for
+me because it has a good number of Okay. So
+
+first of all we have we have uh >> two two >> two human products here and cells longevity cell.
+
+>> So the main brand >> Oh you call this longevity and the main brand is sales.
+
+>> And this is sales charge.
+
+>> Okay. So the longevity product. Yeah.
+
+>> Uh, you have a good number of vitamin B here.
+
+>> My problem here is that I'm supplementing with the B vitamin B complex.
+
+>> Mhm. So, I'm not sure what to do with this because I really didn't don't just want to add add
+this on top of my existing vitamin maybe complex supplementation, >> but I'm not sure if I want to
+like
+
+replace it either.
+
+>> So, what what do you say to that? Well, most of the vitamin B's and especially uh here which we
+have um a bigger amount of so like B9 and B12 for example B12 is totally fine if you just overdose
+it
+
+kind of because it just goes out uh so there is no serious harm um harmful effect regarding those
+according to the studies uh it seems so like um I try to base everything we do here on based on
+
+studies and I try to get these number of questions which are rising and and try to get meaningful
+answers for those so that I can be um you know rest assured and at least feeling calm like giving it
+
+to my parents for example and to my friends. This is how this whole thing started. Uh and and that's
+why I checked it. So as far as I know these are in the safe range even though if you have more
+
+from this for example if the B6 would be wouldn't be P5P then I would say like yeah double check the
+amount of predoxin you're supplementing into your body. Um, but as far as I know, this is pretty
+
+much safe to to take it with some other thing. You don't need to, but this shouldn't be the show
+showstopper.
+
+>> Can Can you check life extensions vitamin B complex? Yeah.
+
+>> Right now, what what does what does B6 what kind of B6 does it have?
+
+>> Is this the only vitamin B complex that survived?
+
+>> You're rigorously happy there. Yes, >> I like it.
+
+Our life is about filters these days, right? Before we we had to filter, we get to acquire the
+information and masters were passing through apprentices. Now we have the job to filter everything
+out there. Yeah, it's
+
+actually uh both.
+
+See it's saying like S preduxin HCL and there is a P5P predoxical 5 plus >> okay and what about >>
+this is how much >> 3 migram do I see >> 3 millig yeah >> and it's 100 migram >> okay >> let me just
+tell about maybe it's
+
+helpful for you but stop me if it's not like >> if you just read them linearly uh you don't see what
+the structure behind what created this list. So because otherwise it would be just a bunch of
+
+>> okay what's the structure behind it?
+
+>> So the idea was first give mitochondrial support. So all the papers supporting that idea like
+okay somehow give an extra mitochondria support. So what what are the ingredients for those? Before
+you tell me about mitochondria support,
+
+uh why mitochondria support?
+
+>> Why do we even care? So is this already from the hallmarks of aging?
+
+>> Somewhat connected. So >> but not maybe uh I mean are you not believing in this whole direction
+or just questioning? I'm curious about your >> So I believe this is speculative, right?
+
+>> Well, that's it. I I I just think this is speculative, right? like uh if we put creatin here and
+and what let's say okay just just lithium right like it's very lithium is very very trendy these
+days
+
+because it might actually microdosing it might actually prevent dimementia maybe as well I'm not
+sure >> they say it's neuroprotective >> neuroprotective yes >> uh but you put creatine here and
+like the millions of millions of study on creatine. You know there is like a huge
+
+disparity of how sure are we about creatine and how sure are we about micro doing lithium.
+
+>> Right. So so this is very speculative. I am very interested in this because this is in my main
+field right the hallmarks of phasing is the core of where I am working.
+
+that could be combined together to have like a very meaningful effect and when we don't have to take
+very um serious um drugs um but we can just take these and they are mostly or significant percentage
+from uh fruits and and
+
+natural stuffs and and made from those.
+
+So we can combine them in a way to build up a flow of effects like a a chain of uh effects that we
+might desire which can have a good effect but are not dangerous or not that dangerous. So I
+
+try to uh be or sail the waters in a way that these things uh should be researched not that much
+necessarily according to my measures as creatine itself but at least to have some serious studies on
+like if they efficacy safety
+
+how they work together and uh from that direction this is the direction I I came from so I don't say
+I know everything I just try to do the homework and uh try to involve some other people who I have
+
+more in-depth understanding of given fields. Let let be it molecular biology.
+
+I have a a friend who is a Stanford PhD and more uh having the an expert in laundry and more having
+the focus for foil 3 and and those molecules. So I had the combos with him. I had the combos
+
+understand everything. It's a huge field and maybe I'm not right with one or two uh molecules
+because I just misunderstood something or the researches went into other direction.
+
+But what seems promising and seems to have a good uh synergy is I think it's worth exploring and
+worth uh going in those directions. And this is what I try to pursue like all right how we com how
+
+can we combine things so that they can actually help each other not just you know one thing from
+here one thing from there a lot of lot of um great supplementations uh out there but I ended up
+buying for a huge amount of
+
+money like a bunch of different supplements just to cover um the the targets from from this uh
+supplement as well and I ended up like having six or 10 supple taking those just to have my need for
+uh addressing or targeting the
+
+12 formworks of aging answered. So that's why it's it's like a solution for myself uh kind of
+thingy. Um yeah does does it answer uh your >> so look I'm not it is clear for anyone who thinks
+about
+
+it just a little bit that we are not going to solve aging by going through brute forcing through
+every single molecule there is in the universe with every single combination of them and every
+single like all kinds of doses,
+
+right? And then doing doing randomized control trials and then we do so many on so many populations
+that then we can have like meta analysises right and the meta analysises can like argue with each
+other and the meta analysis of meta
+
+analysis right like this is not the way like there must be another level of conception where we can
+find truth here because otherwise we have no chance.
+
+>> Okay. So and what is that other level of conception is I'm not sure right uh perhaps perhaps this
+is it um what's what's the system what's the logic behind behind says and says charge >> yeah all
+right so as a system actually
+
+it started more holistically I I do meditation a lot and I believe that longevity and maybe even
+just a question what longevity answers on its own is is a different topic but but I think it it
+
+not just about supplementation so it's just one thing uh as you just said like we didn't figure out
+everything but at this point I try to make like at least 80% good combination of easily um like like
+a supplementation that's
+
+easily acquirable and that you can take daily and um that does most the job that's possible to do in
+the easiest and and possibly best form that's that's possible. So this is the the idea when um I
+framed it together. But how it
+
+started was first I was geeking out about mitochondria.
+
+Should they boost it or not? It seems like yes it's a great idea because of different reasons
+because there is this inflammaging thing happening. There's a huge inflammation in our body. The
+CD38 gene is just getting overexposed over
+
+time. They say then it's basically chewing up anammen and and that's just not good for you. So there
+are different studies starting from that that idea that as you age that certain things are changing
+in your body which will make
+
+make it imbalanced and if the balance would be there and the mitochondrial energy would be there
+your body will solve most of the things for yourself as it does until age I don't know 25 and you
+can drink a lot and and and eat [ __ ]
+
+and sorry yeah you want to say something >> so and does it work like that >> so the the one part of
+uh supplementing this thing seems to be um having a really great effect but I don't think
+
+it's it's the the full scope. So my idea was all right so you supplement um let's say you increase
+NAD+ levels uh so what happens well at some point uh at some level your body starts to uh act on it
+
+and starts activating steroins even more and those um procedures for for kind of fixing yourself
+starts to happen. It regulates uh I mean it upregulates AMP activation it um can somewhat regulate
+mTor. So these famous uh three or four
+
+word uh fourletter abbrevations are definitely there which we can all google but I was like all
+right so if this is really a thing and if the science mostly agree on this what else can we do so uh
+
+there is a traditional track I think it was mostly familiarized by by sinker's original root which
+is like the reseratrol plus an right so this was the the first and then they realized that actually
+corsetine is a really great
+
+molecule on its own but it's not it's really hard to get to absorb. So that's why there are
+different forms which science and people have interest in. So like reserrols better absorbing um
+alternative could be throbbin like
+
+corsetines better absorbing uh alternative could be isocetine and there is uh the fisitin itself
+which if combined with uh cycodextrins it's also a big boost for absor absorption. So there are few
+things that if you combine
+
+you will get uh a synergistic um better effect in the end and these are the synergies I was looking
+for first just for fun and for supplementing it to myself. So the idea was all right we
+
+boost the mitochondria energy what happens next. So then uh there will be one route for fixing uh
+yourself. This is mostly about the uh DNA um repair uh route. There is another route for fixing EMP
+activation and how your body absorbs
+
+energy and how it relates to that. All right, great. So this is now more related to inflammation and
+reducing inflammation which is a very very important thing. The what is the cause of inflammation is
+very different. It
+
+can be diet, lack of sleep, it can be stress, it can be a lot of things. But if that happens, there
+is a high chance it's almost sure that your body is going to going down on the on the wrong route.
+
+So in general, the idea is if you reduce inflammaging and starting by reducing inflammation, that's
+that's good for your body. So those two were the first uh compounds that I just did put together,
+try to find the best forms.
+
+These were very research. I just tried to combine them. Okay. What else makes sense?
+
+>> Just to just to be clear on this uh inflammation. What in this is aiming to reduce inflammation.
+
+>> Yeah. So here from from the gas actually you can see isocarcetine.
+
+>> Yeah. That's a that's a nice flamoid and terostine.
+
+>> Right. So wait. So isocarcetin is just like keretin but like a better form of it.
+
+>> Mhm. Yeah. Theostin, >> right?
+
+>> That's something I've never even heard about actually.
+
+>> It's uh it's like resveratrol just um five times more bioserbable.
+
+>> Okay. So people's people people say bourberine is like a natural as well. No >> no it's a natural
+um metformin >> metformin. Yeah.
+
+>> Than it doesn't have bourberine in in it because well I considered it. Um >> so bourberine has
+really great science as well but also the bad ones. So they say it's it can have serious downsides
+and uh
+
+>> I just didn't want it to didn't want those and also the dosage would be uh bigger and I had to
+really carefully select like how much from each to make sense even including them and and what
+
+should be those that are actually in >> right you can't put creatine in it because it just okay wait
+there is the there is the reason that okay creatine you need to put a lot more in it
+
+>> uh because it's a lot of powder and the capsule would be too large but >> is that the reason or
+there is like a an actual reason why you didn't put >> creatin in it I didn't even consider
+
+things that are too big to fit into two or three capsules so I wanted to create something for myself
+and family and friends which are easy to absorb and everyone can take it And uh for example
+
+ladies like my girlfriend doesn't want to take creatine because she's just concerned about growing
+too much muscles and I know it's not that easy but you have to explain like it's not drinkable
+muscle but but yeah this is the thing so
+
+I didn't consider creatine but here the idea was what are the most necessary ones and for example
+with the mitochondria it's not just NMN or NR to supplement that but also PQ QQ is really great
+according to the studies for um
+
+mitochondrial biogenesis. So it actually creates more mitochondria which is good for you. Now you
+can boost that and with CoQ10 you can protect it. Okay, it's a bit oversimplification but they are
+together on the mitochondrial level and
+
+then responsible for having more energy making little reactors which are supporting and protected
+then this can support uh the guys who are going out and and fight on different pathways uh for your
+uh for reducing inflammaging or
+
+inflammation for fighting uh the DNA uh damages. So these are great for you and the this these um
+here you PQ CoQ10 and NR uh here are the first layer. Then the second layer are the these also
+antioxidant
+
+um compounds like isocorinos fisetin and then also asantine which is a very potent antioxidant uh
+fat soluble. So that's also needed there. I try to also balance uh water solubility and fat
+solubility. So having antioxidants for
+
+both dimensions and they each of them has also some great effects. So asentine for example is really
+good for eyes for your skin. So it has already well examined and proven effects on its own but in
+general I was considering it as
+
+well as a as a fast antioxidant because that's also very important for you. So also like uh theostil
+bean is a really great um neurop protector. It has a cool studies around neurop protection. It can
+go past the blood brain barrier and just
+
+in general a really great thing uh for neurop protection as well is besides being a powerful
+antioxidant and a great phenoid and an empky um upregulator.
+
+It's also and inflam inflammaging fighter it's also great for allergies and different sorts of
+things. So these are in general having multiple really great effects. But the idea was uh
+inflammaging and and modulating the pathways which should be modulated. But
+
+what it was hard because what I found is for example mTor uh inhibition is is something that also
+according to studies we want but it's very hard to do with little amount of of um ingredient.
+
+>> It depends on what studies you look because if it's bodybuilding then the opposite.
+
+>> Yeah. Yeah, you want to activate it.
+
+>> It's crazy. I I'm not sure when is the time when actually longevity people will actually have a
+fight with the bodybuilder community.
+
+>> Yeah. And I I was bringing I was bringing it up like even years ago and they they they just not
+aware of each other now. Now probably they are fighting already because it's like >> Yeah, it's
+probably starting from the
+
+>> a lot of protein or a little protein, right? Because the longevity folks were for a very long
+time with the Sinclair was you know when Sinclair was the like a the spearhead of this movement he
+was
+
+like protein is bad you have to have very little protein even if you have then it has to be >> vegan
+or something >> vegan yeah so okay but now people like Peter is coming in with the bodybuilding
+
+studies right and Dr. bread stanthia and whatnot and like now everyone is like high protein that's
+the good that's good >> absolutely it's >> so the fight is happening >> absolutely and you know it
+it's just a question like if I say like okay it's
+
+inhibiting enter a bit and just uh according to some most well research studies or the main ones we
+know about at least they say like 5 to 10% decrease in in uh the the growth trajectory or
+
+just the the speed I'm not sure is if you are actually having like a m an inhibitor there, but you
+can still gain, you can still have uh a huge boost on your body in general, just not with the
+
+same pace. But if I just have to sacrifice a bit of muscle growing pace for like a big impact on my
+health span and longevity, of course, I mean, it's a no-brainer for me. So, I think the
+
+communication there is not really like this. It just seems like they just have to understand the
+underlying mechanism a bit better. No. Well, I mean, look, there are ideas that you should wake up
+every three to four hours after every
+
+cycle at night, eat some protein for that to keep the honorabolism going, right?
+
+>> Consume consume page. Just consume everything.
+
+>> So, only only side effect of protein is greatness.
+
+>> Oh, yeah. Of course. And it doesn't make your kidneys go bad and stuff. Yeah.
+
+After >> I don't think it does. You think it does? I'm not sure if it does, but what they say is
+it's definitely strain on it. So maybe the amount should be u at least regulated. So I think we
+should
+
+take >> as long as you take blood tests, right?
+
+>> Then you should be fine.
+
+>> Check for creatinine levels and stuff.
+
+>> So >> is not that good actually.
+
+>> No, >> no. So right I'm doing this longevity work and phenino age is one of the thing and
+creatinine is is one of the the pheno age thingy right so cretinine is basically showing how much
+muscle you
+
+have okay and how bad your kidneys are okay but there is this boards uh um boards humanities boards
+clock this is the biological aging clock where creatinine okay so infino age the less creatinine you
+have the better your
+
+phenino age is.
+
+>> But in Bors the more creatinine you have the better your B age is >> because in BS there is also
+cyatin C which is a better kidney marker than creatinine is. Therefore if you have cyatin C if you
+look at cyatin C then
+
+the higher your creatinine is the more muscle you have. Right. So now it it turned around it's just
+you know >> all right I have to check that level.
+
+Yeah, I'm curious because every blood test I do, I'm somewhat concerned like am I having some kidney
+issue or I'm just working out and supplementing too much and I I have it all the time and I
+
+feel good but you know I just couldn't make it straight and I always read about it and yeah it's
+maybe just because of protein supplementation and working out and stuff and probably there's no
+problem but how can I make sure maybe
+
+with that one.
+
+>> Yeah. Awesome. Anyway, sorry I sidetracked the whole thing. So, um, if I want to sum these two
+things up very briefly, the >> we never ever had this focus podcast before. So, >> no, I checked
+your podcast actually and
+
+you have really great questions and usually your guests are answering them very well. So, I just
+feel like I had already three or five different directions with every question. But, this is such an
+interesting feel and it can go
+
+everywhere. I enjoy it a lot. So how I sum up this was actually longevity is um was made to target
+all the 12 hormones and you can take it daily. So I call it like a full spectrum daily longevity
+
+formula and the target mechanism is boosting mitochondria protecting it then reducing inflammaging
+and then trying to do neurop protection. So because some of the ingredients are already great for
+the brain, I was like, okay, why don't
+
+we also address what's happening in the brain because that's a very significant part of of aging and
+having all sorts of diseases around that. So that's why >> that would be great if we could save the
+brain.
+
+>> Yeah, absolutely. And if few compounds are already great in it, uh why don't we just make and try
+to make it full stack?
+
+So that's why uh also very very researched ingredients like althanine which is also great and
+considered as a neutropic came into place. Also CDP choline uh these are all modulating
+neurotransmitters and they're in general very good and very safe uh for you and
+
+combining them with like energy boosting and uh neurop protection they are all having a really great
+effect on on the brain very search combos. So then then we did some focus groups and in the ladies
+in the focus groups were just
+
+like saying like okay cool uh I would buy it but could you do anything that actually is better for
+your skin as well? Is is there a chance or it's not fitting? I was like you know what I
+
+didn't think about it but actually if we just check very similar methodologies are great for
+building a baseline and and and helping the cells in your skin as well. So why don't we just add for
+example vitamin B7 there uh some zinc in
+
+an activated form and also >> hyaluronic acid >> low molecular for sure and those are added as well
+>> that's that's another yeah low mor yeah okay >> gone >> yeah so this is how it was made and then
+I realized like we are so close if I
+
+kind of compare it I mean the ingredients and the and the effect mechanisms if I just put them
+together and if I just compare them against the 12 hormones of aging, there were only a few which
+didn't really have um been
+
+addressed. And I was thinking like okay, is it even possible?
+
+Is it even possible to create uh a supplement which is like one or two pills because obviously
+people don't really like to take more than three pills at max and not the big sizes. So I mean
+talking about average people not by
+
+hackers obviously we just stick everything. People who are listening to this are laughing at you
+right now.
+
+>> Yeah, of course.
+
+>> 100% daily routine.
+
+>> I know. I probably I mean if they like it, I'm happy if they take it as well.
+
+But it was more like a general thing, general idea. So So this was the the the idea like okay, can
+we make it happen?
+
+And what I realized is a few fields like tal nutrition and in general autofagy was not really
+something that was easy to address with small amount of ingredients.
+
+And I was just looking out like is there safe and effective forms of addressing those and for
+example lithium was one of them which which came as a latest >> teleotrician lithium.
+
+>> Yeah it has some effects.
+
+>> Yeah or it seems like it does have some effects.
+
+>> Astrogalus did you check that?
+
+>> Astrogus is great. Uh but it just doesn't eat into it. Yeah.
+
+>> Yeah. Astro is great. And yeah, I also checked DA65, which is more like a proprietary molecule.
+And I was just looking around the studies, but it's something that I couldn't get my hands on. So it
+was a
+
+>> it's very expensive.
+
+>> Yeah, >> they was taking it for >> Oh, cool. I'm I'm kicking the stuff right now. So yeah, I my
+telomeres are getting longer according to through diagnostic epigenetic estimation. Cool.
+
+But I'm not sure if it's just, you know, measurement. Um, yeah, whatever.
+
+>> Yeah, we'll see. We'll see in the long term.
+
+>> Absolutely. Um, so also with this, um, super curious to see according to the different longevity
+studies, what is the real effect? Because on paper and in my mind, according to the experts and
+according to the support systems I built
+
+around it, on paper, it's great. uh it's it's supposedly safe and I I'm not telling it's the best
+thing around but I wish uh that that turns out turns out as well and I just really want to see what
+
+it's capable of with the with the tests.
+
+So probably the next big step for us is like making bigger studies and just um just convincing
+enough volunteers to to take it and do the blood tests and the different uh longevity uh h tests
+with
+
+that. that will be super exciting to see to be honest. Um I have a very interesting personal story
+with that is um I'm curious why why it happened but but what happened is I was already taking this
+after after I realized that
+
+this is great for the for my dog and in general for animals I was already working on it. Uh
+obviously I was all in the studies and I wanted to take it myself. So at the home lab I was putting
+
+it together started taking it. I felt a lot of uh great effects. Um I felt in general more
+energized. My my uh skin looked younger. Uh I needed less sleep even though I tried to put enough.
+So it
+
+was a great effect as well. Maybe placebo maybe not. Who knows? I have to take into consideration
+that some part of it was that one. But anyway, I was thinking it and I was thinking is it is
+
+it good for me really or should I just stop supplementing it and or or is it having a profound
+effect? Anyway, things went on. I had a super stressful job and what happened is I got an injury or
+this is what uh first
+
+the doctor said and I was thinking that it's it's an injury because of crossfit but here I had
+serious pain and it turns out that um uh first I went to check if it's my appendix if I have if I
+have
+
+appendicitis or not and they were they were telling me after the first blood test like no your
+inflammation marker inflammation markers are just not showing any kind of inflammation that would be
+related to appendicitis. I was
+
+like okay cool but could you please at least check with ultrasound or something and well Hungarian
+hospitality was our hospital system was not that great and they just uh rejected and saying like if
+you don't have it you don't have to to
+
+get that uh check. I was like okay cool.
+
+Yeah. So they they sent me home.
+
+>> So I had serious serious pain for days.
+
+I had to fly which with appenicities you should not but I had to fly for work. I did. Um then I came
+back and I went finally could get um a check in uh in private um medical center and they were
+
+saying yeah it was up in the cities but it seems like it's over. It's actually it's just going down.
+So uh I asked them like okay so could you uh like do the surgery or something and they said no at
+
+this case uh there is no need for that probably but go back to the original hospital you were at and
+they should they should check it again and I was like okay cool so it was that and they
+
+were just not checking it thanks god I it didn't um explore or some serious thing didn't happen so I
+went back to the hospital and they said yeah hm interesting well uh okay now it's gone so you you
+shouldn't do anything But it
+
+still hurts, right? So what happened? I went home. Few weeks passed. I couldn't work out. I couldn't
+do anything. I could just walk, which I did like daily 10 kilometers. I was trying to maintain
+myself and it was just just that part
+
+hilarious to me that no one can really help me. It seems like I had a serious thing. It still hurts
+and no one really doing anything. Anyway, I went in after so I I woke up today when I was
+
+screaming from the pain. It was unintentional. I didn't want to scream.
+
+I was just woking up immediately screaming. It was a very interesting thing to walk up for
+screaming. So anyway, I went to the hospital and at that time they did all the blood work.
+
+They did the ultrasound to a different hospital and immediately they told me like you know what um
+your only chance is you right now go up to the fourth floor you just so get under surgery. So
+
+I get get and and I did got the surgery and they were super kind, super professional. everything
+went well and you know when they just remove the appendix they send it for some for studying it so
+that they can make sure
+
+it's uh it doesn't have cancer in it and all these regular checks they do so what they found is my
+doctor said like you know what I heard it at the university that this could happen but never in my
+
+entire life and practice I've seen something uh in person that that actually happened with you I was
+like okay what is it oh you don't don't be afraid It's all good and the tissues are great and stuff,
+but what happened is
+
+actually something uh somehow the body just overgrew a layer like a cocoon around the around the
+appendix which was about to explode and it started exploding internally but it just basically kind
+of overgrew it and somehow closed it so that it was
+
+protecting the rest of the body from the appendix from exploding. And they told me it's it's um how
+do they say like it's um miracle of sting or something like these words. And I was like okay
+
+why is it a miracle? Well because the body needs so much energy and so much dedication and uh also
+in the same time uh my inflammation markers were low and the body had so much energy inside to do
+
+this very quickly and very efficiently.
+
+They said it's not usually uh what normal bodies uh can do or do often times. So I was I was just
+wondering you know like I was taking these um supplementations at that time already like I don't
+know 3 4 months in.
+
+>> It's totally anecdotal. I'm just wondering like you know they said inflammation markers down. So
+maybe my blood tests were in it's a bad thing at some point that my blood test didn't show the
+inflammation because I was
+
+taking a lot of things that are pushing down inflammation but also the same time it didn't explode
+but also it had a lot of energy to to protect it. So probably these things add up and make sense. So
+
+probably my body was much if this thing had to happen my body at least could do something with it
+internet to try to protect um rest of the system holistically. So I don't tell it often because you
+can argue it a lot of ways
+
+like yeah this could happen that could happen there might be no >> 10 kilome walk.
+
+>> Yeah. Yeah. Okay. Maybe maybe that you know I don't know but for me it was a bit like interesting
+and well I don't say convincing but at least motivating to put more effort into researching and
+going further if this could be something
+
+that makes the body more capable and ready for the everydays and uh and to the stress and to the to
+the bad things and if it is then it's it's worth worth it for me. So yeah, this this is more
+
+about the longevity and and how the cells longevity supplement and how it was formulated. Um in the
+end I wanted to address all the 12 hormones of aging uh first just for fun. Then I realized it's
+actually good and when it when it
+
+it made sense on paper and and um uh okay it might be fun but what I did is like I put all the the
+pomod articles and everything I could uh in a ra store which is an AI uh based uh vector store
+
+for semantic research right and I I I started to use AI and because I'm an AI architect in general I
+was trying to use the profession to to build up a backend system for my research so that not just
+
+chat GP is hallucinating or random [ __ ] but actually um like uh agentic workflows plus Rexto with
+all the materials behind to to try to research for example the pharm phicinetic u interactions and
+some other aspects of the of the supplements. This is I I put
+
+endless hours into it so that I can uh first understand it second fast track the development of the
+supplements get better questions based on what I found that I can uh go to the experts because
+usually they don't like okay here's my
+
+day use me it's more like okay what's your question and I wanted to get the right questions so this
+is how I try to prepare uh and and when I realize that this is actually more and more making
+
+sense and and they are having like uh this excitement That was a point when I realized that okay
+this is maybe worthy to create an actual supplement like the books something that you can also sell
+from
+
+not just something uh that I can give to the friends and this this was how that guy was created. So
+this tool was developed in the in the same time um so that it can be great for uh for human as
+
+I see it in her eyes >> no I'm not a doctor I don't dare to go against um you know researchers and
+and science but in general it seems to me and according to what I read it seems to
+
+be like a a super potent drug Um but and and also some >> but >> yeah I just feel it's uh according
+to what I read is it just way too much and have serious side effects or can have
+
+side effects and I just feel maybe not right um please tell me what what is your up to date more up
+to date probably more up to date um idea with rapamy but it feels to me the side effect just
+
+isn't really worth it and you can have better alternatives uh from different directions to to have
+longevity effects without putting that very potent drug into your body which have serious things.
+
+>> That's very interesting. So look, all I know about tropommyasin is that the longevity skeptical
+longevity people, you know, the the people who are poo pooing most of the things all the time are
+actually for rapomy, right?
+
+>> But uh >> okay, it's more like a religion or something.
+
+>> I I I don't really look into stuff that I can't have access to, right?
+
+>> So >> yeah. So for me as well, I don't have access to it. And the other thing is I'm not at the
+level um of scientific knowledge to dare to play with it after the things I've read. So definitely
+it
+
+was a it was the frontier. It was like really an innovative solution opening longevity sciences or
+at least extending longevity sciences with a big factor. I'm glad it happened. Even they they named
+mtor about it, right? So it it was definitely
+
+a a defining thing but I just feel for daily consumption uh with my knowledge and at that level
+where I can make at least uh educated decisions or or guesses uh uh these compounds are more safe uh
+to me than going into properly
+
+dozing reprocin after somehow getting it even if it's like pure not pure uh dosage is very important
+there timing is very important there interactions very important. So, it's it's really like um a
+serious tool that you need to know how
+
+to use, but probably I don't need that tool at all. So, I'm not sure and I really cannot comment
+without um making um an educated um comments on it. I just feel that this became uh I just became
+
+more um kind of sidetracked into other directions that I'm blindness or my sins depth to be honest.
+Okay, let me ask you other about other stuff because so obviously it doesn't have creatin in it.
+There is no space.
+
+>> You miss it, right?
+
+>> It doesn't have fish oil in it, right?
+
+There is no space.
+
+>> Okay, so far we are in agreement there. I It seems to have some space still for a little bit of
+vitamin D, doesn't it?
+
+Maybe >> you know I I brought alo like uh capsules and and now I'm feeling my own capsules.
+
+>> Some sometimes Yeah. food by the way if food looking at it is like yeah mine has usually have
+some space in it. It doesn't.
+
+>> Yeah. my my manufacturer.
+
+Yeah. Yeah. That's why it's in cap.
+
+>> But about the capsule, so this is a DR caps. So that means it's um it has some extra layers uh on
+top of it which is protecting the capsule from gut acid.
+
+Because I checked on a lot of supplements and what I found is even if they put those really great
+ingredients into the capsules that they say they do, for example, acetisantin is super sensitive for
+get acid. So even if
+
+that's that's first of all very expensive ingredient, then it's also sensitive. So you really don't
+want to um waste it in your gut acid. So >> and that's just one. There are a few. So what what what
+is this capsule then?
+
+>> It's called Dr. Caps.
+
+>> Yeah. The products.
+
+>> Yeah. Okay. Okay. So, did you check them? Like do not age was really the I have the blacklist,
+right? But even Life Extension have failed in some way because it has it has shitty products on
+their website that's not from Life
+
+Extension and perhaps there was some really old old line of products that were shitty. So, but but
+do not age they they they were the only one that passed with flying colors on my blacklist. So did
+it did it pass your back list?
+
+>> It did actually. I think I think their stuff are great. Uh what I felt is >> there is a reason
+why it's like three times more expensive than any other supplement.
+
+>> That was my reason why I why I didn't buy those because I just felt if I put together everything
+and this is in general not just dunat but in in every so first I just wanted to buy this and
+
+take it. Uh-huh.
+
+>> Uh I really didn't wanted to start a supplement brand or something. Um I enjoy creating products
+and stuff in general. I this is how I if I feel and sense a problem somewhere and I can solve it
+somehow then I always like to
+
+just finish it and and package it in a way that it can be uh of use for anyone else and it could be
+beneficial. This is just the way of my thinking and how I work. But it was not uh the intention to
+
+just create the pl the nth uh longevity product or or whatever.
+
+But I just couldn't really source the things for myself in a way that they are actually addressing
+all the needs I want, addressing all the 12 hormones of aging because why not? If that's possible
+and these are the hallmarks
+
+that should be addressed according to the science that are meaningful, why why don't I create it for
+myself? At least at that point I was totally um convinced that this is the way to go for myself
+
+and I still believe it's it's great. I I mean at this point I feel you're questioning this 12 for
+let's talk about it later. Um I'm curious because I'm not that uh knowledgeable pro probably around
+this topic. What what is the
+
+criticism about it? But what I found is is is great that at least longevity science agrees that
+there are 12 things that you can take into consideration in not just your body is actually getting
+older but actually that 12 approaches
+
+that you should be aware of and what what's happening in your body that you can address. So for me
+it was very compelling and exciting to see like I was like all right great then and these
+
+are the 12 topics that if I am taking care of there is a higher chance that my body will tank it
+later and I will thank it for myself later. So this was more like the approach u when I was setting
+
+the goal to to make that covered as well but anyway get to getting back to the topic.
+
+So I tried to find those suppliers and ingredients in general which which I could use. And to be
+honest, I just found the end result always very expensive >> and and very hard to get. And and when
+I
+
+actually started to put the formulation together and I went after the ingredients and suppliers uh
+some of which are yes from China but they are like from uh those ones which my manufacturer had long
+time long-term
+
+contact with and they already researched them. They already had the lab tests. So I can believe that
+they are from the higher quality and they are high quality. So I could trust what I saw and and she
+also confirmed that they did a
+
+lot of tests before for other appliance for some ingredients for example the corsetine um which is
+also a more mainstream uh supplement. So anyway, when I try when I checked and some of which is from
+Swedish lab and so I tried
+
+to get great supplements but on the on the right price as well and if I added them together uh I
+didn't have the formula the final formula at that time just the just the main ingredients I
+
+found like all right cool so even if I had to manufacture it this this is making much more sense
+than just randomly buying everyone's product which already have huge markup on them and maybe that's
+fitting um the budget for US people plan and
+
+maybe um if you seen in Asia for example in Singapore you can find only NM product for like $300 or
+something like this only NMN for a month. So for me that was not really not the dimension I
+
+was thinking in. So >> I interviewed the founder of Dunage >> and he said that >> they were testing
+NMN products from Amazon >> and they didn't have NMN in it or very few had some like it was like it
+was an
+
+NMN so that's why they decided to not sell their NMN product in Amazon because other people are
+selling the same with very cheap price.
+
+>> Like how do you compete with that?
+
+>> In general, I found that this is a problem in with the US supplement market, right?
+
+>> The Hungarian one is quite a thing as well.
+
+>> This looks like a real paper. Sorry for accepting and not reading.
+
+>> You're just cookies and stuff. You're just putting wild rum.
+
+Yeah, it was a long time ago I was reading it. But what I want to want to show you is that the the
+way that they they've chosen these hallmarks were very narrow. Like anything that happens outside of
+your
+
+body, right? Like this is not part of your aging.
+
+>> Right. Like any impact that stress in general comes, Right. So, so but even even the things that
+internally happen they have like three other condition that it's not just the internal things but
+also very specific kind of internal
+
+things that made me wondering about that okay so if we really this is really the core of aging but
+if we really fix these things like are we really anywhere yet with aging, >> you know, even if we
+fix the halls of
+
+aging, I'm not sure if we solved it.
+
+>> So anyway, it should be here somewhere. But okay, >> I totally agree with this. So to be honest,
+I'm coming from a background where we did a lot of meditation, uh a lot of exercising, kung fu, and
+
+different martial arts my whole life. um whenever I if I'm just looking at my life I feel like uh
+supplementation like this is just one tool so you have to understand the intervention points and the
+abstraction of the system right so
+
+uh I think stress in general uh if it's too much and if it's a given type it's just not good for you
+even if it's a physical stress emotional stress there endless amount of materials on how um
+
+emotional things actually just having a profound impact on the body like we can we can go into the
+psychological rejection and and and just say like psychosomotical things we can talk about
+epigenetics we can talk about a lot of
+
+things which are super related but also super unrelated to supplementation and stuff so I think if
+you look more holistically then you have to take care about your mind as well and there are certain
+levels there as well emotions
+
+then your body so even uh just the body internally you can take supplements and and Make sure that
+the levels in your blood markers are just great. But what affects those levels? The supplementation.
+Even if it's the
+
+perfect supplement, if if that exists at all, even that would be uh not having good enough effects
+on you. If your mind is is currently overstressed and you were everywhere and you just basically
+from from the brain you are giving
+
+condition to your body to to make hormones and and make yourself feel [ __ ] So longevity sometimes
+I think we are just too much observed with I mean bhacking wise with the supplementation but it's a
+it's a more holistic thing in
+
+>> So but this is the end game this this single pill right? Yeah, >> like one pill a day is the end
+end game of longevity, right? Okay. So, that's problematic. Uh we will get there. I'm I am
+optimistic in that sense.
+
+>> But before we get to a single pill, we're going to get to 100 pill a day, right? And before we
+get to a 100 pill a day, we're going to get to uh 100 pill and 10 daily injections, right? And
+before
+
+we get to 100 pill and 10 daily injections, we get to 100 pill 10 daily injection and hyperbolic
+chamber and workout and all kinds of [ __ ] right?
+
+Like the very first way how we are going to solve aging is unfortunately going to be like living
+like robots, right? Yeah.
+
+>> Living the perfect life or not perfect but like >> in a very very constrained one. And then we're
+going to be able to leave out this and that. Perhaps we don't even have to exercise anymore because
+the PS are good
+
+>> And eventually we're not just going to get to a single pill and live forever, but we're going to
+get to a single pill and live forever and be able to >> get smart.
+
+>> To get smart, to stay smart, to do all kinds of drugs and alcohol and sex and everything, right?
+Like >> this is this is the real real thing that people want. By the way, of course they want to
+they want longevity, escape
+
+velocity, but what they really want is hedonism escape velocity, right?
+
+>> Like when they can do all kinds of uh dopamine crazy activities and get away with it.
+
+>> He thinks so. You know what actually what's funny?
+
+>> Okay, tell me what is funny. But before that just this thing every time a normy is looking at us
+what are we doing they they they they are saying something like okay but then you don't really leave
+
+>> right and what they really mean is like >> don't drink >> they want to do activities that
+destroys their body right >> but of course it sounds much better you don't really live your life
+Right.
+
+>> It's so exciting. It's it's a really good topic. So, in general, like what makes you feel like
+you live your life?
+
+Because for example, [ __ ] Instagram is is >> perfect your life.
+
+>> Perfected. I would to suck your life and to make you the most dopamine addicted um animal without
+proper uh control over their life and stuff.
+
+>> I'm just starting to get into Instagram.
+
+I wonder if it's >> I'm sorry you mentally stop. Please get the edict and get over it.
+
+>> All the longevity athletes are on Instagram, you know. I didn't even do any Instagram. I just had
+this profile and then then I was trying to do the Twitter, trying to do YouTube, stuff like that.
+Just people started following
+
+my me on Instagram. Why?
+
+>> Yeah. Yeah. It's happening. And for professional thing, it's good.
+
+>> Like, >> okay, >> I think so.
+
+>> No. I I >> try now. I only take >> want to try it now with me on camera.
+
+Let's see what happens.
+
+>> Uh you should be able but >> is also taking things on the camera and seeing what happens.
+
+>> I don't try new things before sleep.
+
+That's that's my thing. That's my new thing.
+
+>> I'm so much of you.
+
+>> Uh yeah. So there is something I don't remember. I didn't want to over those.
+
+>> Hamine. That's that's that's it. 200 and 100. No, that's not that bad.
+
+>> H Okay, whatever. What's up with the with the mysterious black charge?
+
+>> It says um it's clear energy, mental clarity, and relax focus.
+
+>> Actually, how about the skin?
+
+>> Oh, nothing about skin. Yeah, I'm sorry.
+
+You have to take this one for the skin still. So the the big difference is this builds up and this
+is good for your everyday uh longevity stack. So it is a full spectrum longevity. It builds up
+
+maintains the things. So supposedly be the kind of the insurance for your life.
+
+So this is the one that you're taking to to max out the potential of getting these things right. But
+what happens if you for whatever reason need some extra energy and honestly >> okay why why
+shouldn't I just drink some
+
+coffee? Because after some point caffeine you know that's basically the caffine molecule is actually
+blocking into the adenosine receptors right okay >> so what happens it keeps adenosine to block into
+its receptors because if it would block then it would start
+
+a very um if if I need to get better in sports for example, I want to push at the evening uh gym
+session whatever. So the idea was initially create um something that I can take to
+
+get more in the zone if I am working and obviously tenine was one of the safe bets everyone doing it
+tanine is one of the best things especially if you drink coffee or any anything that has caffeine
+
+inside it just in general very good for you right cdpoline is another ingredient it's also great for
+you it also good as a dopamine precursor and also it has erodin inside and also it obviously because
+uh of the
+
+choline ingredient it's just supplementing acetylcoline in your brain so your memory focus is
+associated with that. So >> JGPT said that if you're not vegan then you shouldn't worry about that.
+
+>> I don't know if that's the case. I'm just saying stuff.
+
+>> I'm nowhere there to just argue with with the super in Italy and >> I don't dare to go there.
+
+I'm just a human after all. So, Dove Punk would be proud. But anyway, so the idea was all right, so
+these guys can help, but it doesn't really give me uh that kind of kick. I didn't want to
+
+put any stimulants into it. It does not have any stimulants, so it's safe to >> to consume it even
+these hours except if you are super um sensitive to any DH. Um >> yeah,inine is good for sleep
+actually.
+
+>> It's good for sleep. M >> it gives you into the right mood for focus and relaxation and the gaba
+part is really effective. Can I can I ask a question about athanine because so I just brought like a
+lot of athanine and
+
+it turns out they they are powder and not not capsules >> and I'm doing that for sleep right >> so
+the problem is that before sleep I'm not drinking stuff and stuff like that I just >> I just I I
+just take a bunch of capsules
+
+>> yeah So that's why I brought my cups making machine to make cups.
+
+>> Yeah. Yeah. So, okay. But there is a problem because it's always I think it's it goes to like 300
+or 500 mgram and I cannot make smaller than that.
+
+>> And sometimes I I make mistakes >> and you just All right. You take things and you are sure it
+won't act well.
+
+I can I can bring you some ingredients you can try and let's see.
+
+Um so tin is as far as I know one of the safest and greatest uh things you can take. Uh even though
+the the biggest here with this with these uh tablets and it's actually NADH.
+
+>> So uh you know that NAD plus and NADH are just two versions of NAD which are like trying to uh
+convert into each other in the blood naturally. again said that this is not a great great uh great
+
+an ad booster because it doesn't doesn't stop some something doesn't work with it but I I think you
+you said something else that you went went to a to the mile to to stabilize it to make sure it
+absorbs.
+
+>> Yeah. In general, NAD is one of the most instabil molecule you can take. So that's why if you see
+it on any product always have big reflex there like and make sure that you understand how did
+
+they stabilize it because in get acid it's over and it's very expensive molecule >> in what >> in a
+gut >> gut acid it's over. So >> it's expensive but it doesn't do anything bad.
+
+>> Yeah. Not really.
+
+>> Yeah. So I see I see. So the idea is that >> maybe that's not the idea but now I'm starting to
+understand and test my understanding. So the idea is that this survives the gut acid therefore NADH
+
+goes further and therefore this >> Wait, wait, wait. You're talking about this one?
+
+>> This one has NADH as well.
+
+>> No, it doesn't.
+
+>> No, it has the other form. It's very important. Maybe it's it's new. So like At least I can tell
+you something new.
+
+So Grace, um maybe not telling, but NAD+ and NADH are two different things, two different versions.
+They convert into each other naturally, and you want different ratios in different parts of your
+body. So for example, if you have a
+
+lot of NADH in your >> liver, you are not really happy with it.
+
+It's just actually not the right place for it to be. It's actually can be toxic. So it's not not
+something you want too much NADH, for example, in liver. But uh if you can um some some
+
+someone told me I I'm don't remember who but it was a really great analogy between NAD+ and NADH. So
+NAD+ is like the currency the the coins the the money and you want more of those inside the
+
+Once you have it, you want to make sure they are safe, but they are not that uh durable.
+
+>> So what happens is with this thing, we we as you just said made some extra miles to stabilize it
+because NADH on its own is very sensitive and just simple things like for humidity, for oxidation
+like in water or in your
+
+saliva. So um basically everything can kill it. uh sunlight everything but it's also expensive but
+it's also great once you can stabilize it. So the idea is if you can put for example antioxidants
+around it in the the right form the
+
+right amount if you can put uh for example EDTA which is a compound that helps uh keeping or
+protecting it from your uh from given ion ions in your saliva that are actually would attack it. But
+if it's present until a certain
+
+time, it can just act as a calator and it can it can just calate those ions and it it wins time for
+the NADH to actually just get absorbed and once it's through and once once it's in your bloodstream
+
+it immediately acts as a ATP source. So it gives you basically free energy except it's not free it's
+it's kind of expensive compound but it gives you immediate energy boost. So once you can make sure
+you are kind of just like
+
+protecting it until it gets into the right place then you are doing something great um and it can
+immediately act as a kick in your brain. So you can you're not feeling stimulation but you are just
+
+feeling like if if caffeine is like a um a kick it's more like a fresh morning.
+
+So you feel like all right I am back. I just woke up in after a good sleep and I just feel like I'm
+I'm more ready. I I'm not feeling like I want to run. I just
+
+feel like I'm more >> Can you drink caffeine with it?
+
+>> Yes. Yes. And the idea is because taline is there to to also balance cafe out.
+
+You can take both. I'm doing it actually. And and for me >> what does it mean to balance coffee out?
+
+>> What's one thing you strongly believe to be the case but very few people agree with you on?
+
+>> Oh exciting. That's a good question.
+
+regarding supplements or anything >> anything >> anything that I think is the case but very few
+people agree will h wonderful question so I think I think in general uh we have what's happening
+regarding information where where humanity goes
+
+and I don't think that most of must realize uh this first we needed information that was the that
+was the gold. So as I said masters were giving to apprent apprentices the information and that was
+uh the biggest thing that
+
+you could get. Then later uh we got because of globalization internet technology information
+basically is well at least >> free and it's free now.
+
+>> Exactly. And that's great at some point but on the other other side you don't know which is the
+grand tools which what should I choose so great filters became the new value and and then you know
+
+So information was really something then it it got on the internet it became free everyone know how
+to create chips but can you still execute on it like do you have the right power technology
+manufacturing whatever thing or just
+
+application wise can you even code it I know how you understand that the given framework and you
+know coding but can you make it done because just knowing how to code and actually get [ __ ] done
+is very different right so building a
+
+product and and finishing all the thing is very different so even though everyone knows about coding
+these days uh those companies who could actually deliver and ship products became the ones who are
+capable of executing on
+
+things not just coding maybe creating a supplement everyone knows about supplements but did you
+actually deliver it and is it there so it's a question this is the value of execution but what I see
+in uh general this is changing
+
+again because with AI exec execution became cheap so it can execute on anything you can wipe code
+everything I can question the quality yet of those as an AI architect and as a software engineer in
+general, but execution
+
+became very cheap. So it's just there you if you know the right mental framework to drive the
+attention of the AI, you can get serious products delivered and shipped in in in just friction of
+time. So execution is no
+
+longer that worthy than it was until a few months before now. So right now the question is I believe
+like okay good programmer maximizes code not written absolutely that's that's actually thing that's
+art right so it's it's like how
+
+be worth writing >> and what what do you think >> I I well it's an ongoing process >> um ongoing
+process of value creation um but um No. So the the point is that this is the question this is the
+best
+
+question I I keep asking for myself uh right now in this stage of my career.
+
+>> Yeah. So I think um the next and it's totally align with what I started to say with what is the
+value. I think the value even more right now is impact. So uh I think if it's code, if it's a
+
+supplement, if it's whatever thing you're focusing on, it uh will be measured more by impact. I just
+created for fun. uh just when coming here to the network school there was um a place on the the form
+which says like
+
+teach us something and just for just for fun I created a model about um based on this like okay I'm
+I'm talking about execution became cheap but then what's next and this model is basically having
+four parts four quadrants all right and
+
+>> are you curious about this so these four quadrants would be >> the first is actually uh filters
+uh that we let's say no let's say patterns. So we and this this uh this um model is trying to show
+you what's important for
+
+an impact or let's say >> you mean design patterns >> maybe as well I I I strongly believe
+everything is built up about design patterns everything even biochemistry psychology everything >>
+yeah I I was making a programming joke sorry I was taking
+
+is far from perfect. It's more like just a for um for discussions like this. But for me it made
+sense when I just did put it together and and the idea was uh clarifying like after execution was
+the
+
+next and probably it's impact and I mean you had all these all the time just the waiting was
+different and for me I was like okay how can I get how can I make sure to get closest to the impact
+what
+
+are the factors I had to clarify because obviously I have to get smarter questions okay but around
+what and it was like okay how do I create anything well first I understand it so I have to
+
+be aware of the patterns whatever it is in psychology supplementation programming I have to
+understand the the patterns making that field move then okay why would I care about something
+because it's aligned with my values or
+
+someone's values or some value that I I want to approach so that that again makes sense all right
+it's all good but if it's not the right timing then this whole thing is [ __ ] so I I can do all
+
+sorts of things if I'm not doing it the right timing um then it's just a good idea probably or not
+even a good idea I'm not sure but and then if I have the right timing because I see the word is
+
+there if I don't have the resources the people the money the placement the whatever thingy then I
+cannot get momentum to to make that happen I and um basically these were the the ideas and then I
+realized that each of these pairs
+
+about what about me? Um I I can tell things about I I value in myself that I'm also working on and
+not done. So I think this way it it's something just also and that's why the the the patterns
+
+and the the values will create filters.
+
+If I understand the patterns there and I choose what is important to me, what not, it will end up in
+filters. Then I will choose like okay I value uh good quality of ingredients that are not
+
+hurting my body. Then you you blacklisted all the vitamin B providers uh just because of that. It's
+maybe not the most profound core value of yours but but actually it's something that you
+intentionally value. Maybe you value
+
+honest looking people when when you have a great conversation and you just feel this is something I
+this is what I feel is great. So that's a different kind of value in my eyes. Maybe it's not perfect
+
+that the reason I'm just telling this because you made much more learning on this field. So if you
+could just correct me on this or having some or tailor my attention that would be very beneficial
+would be really appreciate that how you
+
+think about those things I just mentioned as an example.
+
+Exactly. So uh I I don't know too much about um the initial customer feedbacks yet because I just I
+just have the family, the friends and like a small group who's um already taking it not from this
+form. So
+
+>> anyway, you can buy it on the website um in EU. It's shipping everywhere in the EU. So that's
+great. Um I think >> soon or we'll see. But there there is a high chance that I would like to bring
+
+it to the US as well and also some parts of Asia because some parts of Asia are super developed in
+in longevity and super curious about those and um and that would be great to address those
+
+markets as well. There are some players but I honestly I couldn't really find anything um this full
+spectrum thing at all and that's that's very exciting to me as an opportunity. I wish that we can
+execute on it very well. we have a a few
+
+ideas how to how to bring it there. Um but um this is just gradually getting there. So that's that's
+one thing. The other thing is what I see um as an opportunity which is very exciting to me
+
+is the the pet product is the trend is definitely there and pet longevity is going to be a huge
+market and that's going to be a huge thing. all the trend forecasts and analysts are all confirming
+this and at the same time I
+
+couldn't really find any uh product comparable to this. So there is one the loyal garar loyal.com I
+guess they are definitely on something and they are based on rapomy and stuff and then good studies
+good research whatever I'm not
+
+sure but I checked that that's the only serious thing I could find on the on the internet so far uh
+there are few uh few who tried but I just don't think their products are so refined no offense but I
+
+I I just couldn't really find anything in in Europe at least so I think um this could uh
+interesting. I'm I'm wondering when the longevity space for pets will just get on the level that
+they they will get
+
+um so much um mainstream adoption as well because if you just think about it and the reason I'm
+talking about this whole thing in general is is not especially about the product but more like where
+longevity is going. it was
+
+the biohackers and those few people's tool set and now it's getting a mainstream adoption and I
+think if for example pet owners will get the chance to help their uh loved ones to get like a I
+don't know some percent let's say
+
+30% longer life uh that that will definitely make a boom and I think that will be good for longevity
+in general and because it will get it more um well known and also for human but also will
+
+be a interesting uh open will opening mainstream research even more that's I so that's why I'm
+thinking holistically about this whole thing like where these products can actually have an impact
+how can it change the life of the users how
+
+can change the the whole scope and how can we contribute into that to have more communication better
+researches more ideas get the frontier stuff into the hands of the everyday people and let them give
+a chance to at least uh use
+
+them if they want to and get access to it it's very important to me so that's one of the reasons I'm
+I'm doing Adam, good luck on taking on Novos as the first competitor.

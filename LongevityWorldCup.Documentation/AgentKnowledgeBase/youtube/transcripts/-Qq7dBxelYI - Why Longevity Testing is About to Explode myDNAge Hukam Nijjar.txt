@@ -1,0 +1,829 @@
+# Why Longevity Testing is About to Explode | myDNAge | Hukam Nijjar
+
+Video: https://www.youtube.com/watch?v=-Qq7dBxelYI
+Source transcript: generated from local raw transcript artifacts; raw transcripts are not committed here.
+Filter: LWC, longevity-as-sport, Rejuvenation Olympics, biological-age, biomarkers, healthspan, and longevity protocol topics only.
+Retained: 329/528 units; 5940/8807 words.
+Matched topics: Longevity World Cup, Rejuvenation Olympics, aging, aging clock, biohacking, biological age, biomarkers, epigenetics, exercise, longevity, longevity athlete, medicine, myDNAge, nutrition, pace of aging, rejuvenation, sleep
+
+## Focused Transcript
+
+I've been interviewing longevity athletes for a very long time at this point, and I've been trying
+to figure out what these super humans are doing to try to reverse their biological age to be healthy
+and what are the common things.
+
+But there are very few commonalities that I can notice, but the strongest one that I can notice is
+that they like to test, they like to test themselves, they like to do, they like to get every kind
+of
+
+biomarkers about their own bodies and make their intervention based on them that, and even though
+their interventions are, are, are, are all over the place.
+
+Some people don't care about sleep.
+
+Some people barely even exercise.
+
+There are no commonalities in interventions, but there is a commonality in wanting to test.
+
+and something interesting is happening since the coronavirus phenomenon, which is the coronavirus
+have created huge demand, a boom in the industry of home testing.
+
+and there is a revolution is happening here because now you don't have to go in, well, You still
+have to, but eventually as technology is progressing, you won't have to go into the laboratory take
+a lot of blood drawn.
+
+A lot of people are afraid of needles, you know, like that's the main thing why they are not getting
+their blood drawn.
+
+But, home testing is booming because they can just, just not have to deal with the, bureaucratic
+part of the healthcare system and it's more convenient.
+
+that's why I'm creating this new series, which is about the sausage is made in the home testing
+industry.
+
+And my first guest here is Hakam, who I...
+
+believed to be from PangeaLabs and I prepared from that because I was looking at his online profile.
+
+But then I was, I just, two minutes ago I realized, we actually have corresponded through my DNA
+age.
+
+So yeah, so what's going on there?
+
+Yeah, so uh I actually, so I work uh with MyDNAGE.
+
+uh That's kind of the product that I manage here.
+
+uh But we work under a laboratory called Pangea Lab that uh has multiple companies uh working within
+it.
+
+It's all under our parent uh company's guidance, CIMA research.
+
+So here at Pangea Lab, not only do we do MyDNAGE, but we offer an array of uh lab and at-home tests
+that we're developing for the D to C markets.
+
+Okay, so there is Pangea Labs, which is a larger company and the subsidiary of it is myDNAge.
+
+Yeah, we work as like sister companies because of Pangea Lab.
+
+Yeah, because our parent company is Zymo Research and then underneath we have myDNAge and Pangea
+Lab.
+
+But we work in the same building and use, you know, oh similar lab equipment for our offerings such
+as uh some of our other ones are bladder care and precision biome.
+
+uh Both are at home application tests where the Like you said, the patient does not need to go into
+a laboratory to collect the sample.
+
+They collect their samples at home and then they send it into our lab and we process and result
+here.
+
+basically, Zymo Research, they've been around for about 30 years and they've done a lot of research
+with some of the top organizations here in the US and some of the, biggest universities as well.
+
+so throughout, you know, our time, we've developed some of these tests, such as MyDNH, where we
+bought the license from Dr.
+
+Steve Horvath, who kind of was a pioneer within this industry.
+
+about a decade back and then with that license we took it and created the MyDNH offering which is
+the biological age test.
+
+We were the first to back uh in late 2010s 2017-2018 and since then the industry has just kind of
+exploded with biological age test offerings but on top of that our parent company has developed the
+tests such as bladder care, is a bladder cancer sensitivity test.
+
+And then some of our other offerings like precision biomes that looks at your gut health and
+whatnot.
+
+And then we have a few other companies that offer different tests as well.
+
+But it's all under the guidance of Simon Research that has helped develop these tests along the way.
+
+But over the first few decades of its existence, it just kind of slowly grew.
+
+then obviously with COVID-19 pandemic, we were able to take advantage of that.
+
+I think in Southern California, we were in the first labs that were able to offer the COVID-19 um
+tests here.
+
+there's just been a lot of growth within the last decade for Zymo for things such as myDNAge test,
+COVID-19, and its other offerings that we've launched since then.
+
+As far as myDNAge test, from what I'm aware we work closely with researchers at UCLA and some of
+these other medical of universities in the area.
+
+And they were connected and then...
+
+uh I believe our CEO, Dr.
+
+Jala, had connected with Dr.
+
+Steve Horvath and then the conversations kind of led from there, which eventually led to us getting
+that exclusive license Dr.
+
+Steve Horvath's aging clock, the 353 CPG sites that he had researched that related to biological
+age.
+
+And then from there, it happened very quickly, from my understanding is we got the license and then
+we were able to launch a test pretty fast.
+
+um after that and become one of first tests to the market for biological age testing.
+
+one of the most prominent longevity athlete and actually he's leading the longevity World Cup
+leaderboard.
+
+Michael Lustgarten has just yesterday.
+
+I had a conversation with him about that.
+
+Hey, uh I think we cannot get Horvath age anywhere anymore because he was getting it from true
+diagnostic back in the days.
+
+So what is it called?
+
+Let me see.
+
+The MyDNAage report, right?
+
+As a user, I go onto your mydnage.com website and blood biological age test.
+
+So that's the Horvath right.
+
+Yeah, so the blood and the urine both use the Horvath clock uh Yeah, Just to kind of give you a
+basic understanding our blood kit is our main offering that's oh what a lot of our consumers test
+with Because our blood and urine although they both use the Horvath clock.
+
+They kind of show different results Within once you like test with us.
+
+So our blood tests because the sample that we get is blood and it's able to travel throughout your
+body, it'll give you a very good understanding of your biological age of your entire body, whereas
+the urinary tract shows the biological age health of your urinary tract, just
+
+where the urine travels through.
+
+It's good, both have their own uniqueness and we have patients or customers that use the test for
+different So if a consumer of ours has known to have flatter stones or issues within their urinary
+tract, they'll take our urine tests just to kind of test along that line.
+
+And then for people that have more general issues or want to know a little bit more about their
+entire body, we'll just use their blood tests.
+
+And what about saliva?
+
+I see you do not do that, yeah, why not?
+
+yeah, so with saliva, we've done studies along all types of both blood, urine, saliva, skin testing
+for biological age as well.
+
+And we came to the conclusion when we first created this test that blood and urine are the most
+consistent with biological age.
+
+regardless of the time of day you're collecting or after eating meals or.
+
+you whatever it is, you can collect a blood sample and you can collect a urine sample and that
+biological age will be the same no matter the time of day or the time of the week.
+
+Whereas saliva, it can be a little bit more inconsistent within your results.
+
+You can collect a saliva sample in the morning right when you wake up and then collect it in the
+evening after you've eaten and you'll get two different results, you know, that are...
+
+necessarily even close to each other.
+
+it ah just over the years has provided a little bit more inconsistency, which we here at MyDNAGE
+want to make sure that we are giving very accurate results.
+
+Basically because our consumers will come back and you know, we don't want to scare them and be
+like, yeah, your age is seven years older, but that's only because they're collecting a saliva test.
+
+So we stuck with the blood and urine and we're confident in our abilities to make accurate results
+on those samples.
+
+why would I choose blood or you're over urine or urine over blood?
+
+Is it just, am I afraid to prick my finger or not?
+
+Yeah, we at myDNAge typically will suggest our blood tests for our consumers just because it gives a
+very general understanding and our results.
+
+We're able to add indexes into the results of blood tests.
+
+offer things like our epimetabolic and um genetic SNP.
+
+indexes, which we can do that analyzing the blood, which we aren't able to do on the urine test.
+
+So with our blood test, you're able to get a little bit more data from the offering.
+
+But for urine, if you're looking for a more specialty service that is focused looking at your
+urinary health, if you've had bladder stones or any sort of urinary tract issues.
+
+then we would suggest it in that case.
+
+Otherwise, usually the blood test is more helpful for our consumers.
+
+then I buy, let's say the blood test, right.
+
+then what happens?
+
+So it's a one-time course.
+
+So do I have to subscribe to something or what's going on here?
+
+you don't need to subscribe.
+
+You know our list price on our website is $299 US dollars.
+
+And you know, what that basically comes with is we'll send you an at-home blood test kit do you ship
+globally?
+
+We ship in US, Canada, Europe, and Australia.
+
+um And then for areas outside of that, usually we work with like clinics or other companies to offer
+our tests in certain parts of Asia, but it's on very case-by-case basis.
+
+uh-huh, uh-huh, all right, all right.
+
+since we're talking about issues, what about user mistakes?
+
+Like what kind of mistakes do user do?
+
+Only funny ones.
+
+we've done all types of people, funny because uh a lot of times we have like our general biological
+age testing market tends to be, you know, 30, 40 plus and then even as people get even into their
+older like 50 60 70s uh will test a lot and
+
+you deal with the people that aren't as technologically savvy.
+
+for myself, I'm still a little bit younger.
+
+grew up with technology, so it's never been an issue for me.
+
+And then we take that DNA and then we throw it onto what's called a next-gen sequencer.
+
+So that's basically where we take the DNA and we read it, every single CPG site on the DNA, and we
+take the CPG sites that we are looking at analyze it.
+
+So our next-gen sequencing, we read each DNA or the DNA strand about a thousand times over uh so
+that we can get a very accurate read on it, and then we analyze it, come up with a
+
+biological age and get your genetic...
+
+SNPs in the epimenopalic index as well so that you're able to get these very accurate results.
+
+long does it take?
+
+Like really, how long does it physically take to get the results in terms of hours, I guess, maybe
+days, but also how long does it take for the person to actually get the results?
+
+But aside from that, pretty on point.
+
+We're processing samples every day and getting it as fast as possible out to our customers.
+
+we're always trying to work on getting it even faster too.
+
+think like, you know, in the industry as well, like that's one of the biggest things that you kind
+of deal with within biological age testing, especially the companies that use the next gen
+sequencing and DNA methylation, oh because it's such a time consuming process.
+
+I think when you look at other tests within biological or within medical testing, you're able to get
+results within 24 to 48 hours.
+
+But this one's just a little bit more time intensive, um but the accuracy at least is guaranteed
+when you do something like that.
+
+for now, I hope it's gonna improve in the future, right?
+
+Like, better machines are created and faster, more How many people are doing the work on the samples
+there?
+
+It's about seven to 12 people if I...
+
+had to imagine exactly.
+
+And what do you do?
+
+So here at MyDNAge, I do marketing and business development.
+
+things like taking on media inquiries or customer inquiries, clinic inquiries.
+
+A big part of my job is handling the clinic needs of our company because we have our direct to
+consumer leg, is about.
+
+which is just customers buying directly off our website.
+
+And then we also have a clinic partnership program that we run as well where, know, clinics all
+around the world, they use our tests within their clinics with their patients, and then they run uh
+kind of health coaching.
+
+So our test is the metric that they use to test their patient's biological age, and then we assist
+them through.
+
+kind of any questions that they have and that's a lot of where come in.
+
+I come in as a product manager basically and make sure that they're able to answer all the questions
+that they have for their patients.
+
+And all together at myDNAge, what's the number of people who are working there?
+
+I would say I would include, um, Pangea in it because there is a little bit more cross
+functionality.
+
+yeah, so probably between like 50 and 60, uh people, um, you know, included through, through both,
+that I would think have any sort of kind of handling of my DNAs and including our, you know, um,
+mid-level managers staff and the C-suite as well.
+
+um I believe it's pretty evenly distributed between all the companies within this space.
+
+So true diagnostic, Elysium and some of these other companies that offer that work within the space
+that we do um is all pretty similar.
+
+um You know, within the space there isn't like a dominant um testing company that owns all the
+market share because the space is still within, it's still pretty new uh arena for testing, for
+medical testing, biological age tests.
+
+We're still uh in the process of educating consumers of how to test, what to test, why to test.
+
+And so, the growth for...
+
+this space is still relatively uh large, right?
+
+doctor's office and having to deal with insurance and whatnot.
+
+uh I'm going to ask you now.
+
+There you are at Pangea or my DNA, Capital and, and can you draw me a picture of the home testing
+industry from your point of view?
+
+So from your point of view, like what do you see?
+
+Yeah, so I'll say from the kind of like where we're at in the US, right?
+
+Because I know like internationally with Europe and other countries, they have different kind of
+industries as far as medical testing and how they work with uh like insurance coverages and in some
+countries have, you know, universal healthcare.
+
+But from the US as right now, what you need to do a medical test that's diagnostic.
+
+Right, my DNA isn't a diagnostic test, but there's things that are in our lab like bladder kit tests
+that you need a physician's requisition to do a test such as that.
+
+So that's where there's a few kind of barriers uh within the at-home medical testing right now that
+we're uh kind of trying to address and get over within the next five to 10 years.
+
+Hopefully there are.
+
+changes within insurance and whatnot.
+
+uh So as far as like where the industry is at right now, uh it is, I think there is a heavy interest
+from consumers to not have to go into doctors offices.
+
+And you hear this all the time, you know, having to go to your general physician and then having to
+get referred to a specialist and then getting the test.
+
+And sometimes you get referred to the wrong specialist.
+
+your insurance doesn't cover.
+
+So there's all these types of barriers to getting a medical test done.
+
+um So people just don't want to have to do that.
+
+from our end, you know, getting some of this stuff across the line to remove these barriers so that
+people can just take the tests that they need at home, make the costs cheap.
+
+and then also work with maybe some companies like Telehealth and doctors that are in office right
+now to provide these results pretty fast and efficiently so that in the future you can get medical
+testing done same day within two or three days, get your
+
+results the same week and have these issues addressed very fast and also be able to um provide
+interventions in an efficient manner.
+
+because right now our system isn't as efficient.
+
+So hopefully in the next decade or two decades this industry can get to a point where we're making
+healthcare as a whole just more efficient as well.
+
+You know, I can imagine how the traditional healthcare industry is looking at you guys that these
+guys have to be regulated because they don't have standards as we do.
+
+But you know, that's the funny thing because this is the thing that creates the vicious cycle for
+them.
+
+No one wants to deal with them anymore.
+
+And even though you guys are not providing such accurate results as they do, at least you provide a
+better customer service overall speaking.
+
+Yeah, it's definitely something that you think about, like working at a company like this where kind
+of consider disruptors within the industry and for traditional, you know, healthcare companies that
+are already within the usual oh kind of insurance models and
+
+They look at our companies like we're some type of enemy, although we are just trying to provide, a
+solution to consumers that's better than what we have now.
+
+That's when you get into kind of the industry that wants things to stay exactly how they are because
+some of these more well-established companies, they want to keep their profits.
+
+That's a good question.
+
+You know, it's funny because like, you know, we're aware of our competitors, right?
+
+So like True Diagnostic, Elysium are two of the ones that we kind of look at as well because I think
+our three companies are all using the same type of tests.
+
+We look at, you know, tests that use DNA methylation.
+
+So there are some other biological H-tests You do biological age testing, they don't use DNA
+methylation.
+
+So it's a different type of science and uh something that we don't necessarily compare ourselves
+against.
+
+for the most part though, know, Elysium and True Diagnostic were, very aware of, but we kind of stay
+in our own lane as well because within the biological age test industry, a lot of our tests,
+although we're considered biological age, our
+
+So like where I said the Dr.
+
+Steve Horvath test, right, we have the exclusive license to his 353 CPG sites and to back up, right?
+
+So a strain of DNA has thousands of CPG sites.
+
+Steve Horvath, when in his study identified that there was 353 CPG sites um that are related to
+aging.
+
+So depending on what's called epigenetics.
+
+So you have your genetics, your genetic code, how you look, kind of some of your uh things that are
+stagnant.
+
+There's something called epigenetics that you can see noticeable changes on your CPG sites that are
+changed.
+
+due to your diet, your exercise, your sleep, stress, and um environment, right?
+
+um So depending on those five pillars, it'll change the CPG sites, and that's what we look at to
+generate biological age.
+
+So with Dr.
+
+C4BAS 353 sites, we hold that exclusive license, and on top of that, we've added our own CPG sites
+that we look at as well.
+
+we've kind of developed this very accurate test for companies like True Diagnostic and uh Elysium.
+
+They do biological age testing with DNA methylation, but they look at different CPG have different
+applications with their uh processing.
+
+So things like doing their sequencer, we run our sequencer along the DNA about a thousand times,
+whereas like I'm not entirely sure how they do theirs, but I know it's not like 1000.
+
+They look at maybe like 100,000 CPG sites like 10 times or a hundred times, right?
+
+So it's the comparison that I make is if you are looking into like a telescope, our telescope is a
+lot more magnified on a smaller area, which will give you very like, you know, accurate reading of
+each little dot on the, in that area.
+
+Whereas like if you're using another test, it may look at a bigger area, but just not as accurately.
+
+So not to say that their tests aren't great as well, but you know, it's a little bit different
+within each test.
+
+So what you're looking for for each test can be completely different.
+
+so although there are competitors within the space, it's kind of hard to compare at times as well.
+
+what do you think is overrated in the home testing industry?
+
+Like are you talking about like overall like home tests in general or just that has to do with
+biological age?
+
+on which one do you have a better answer for too.
+
+That's a good question.
+
+I don't know if I've ever thought about like things being like overrated within the home tests
+industry it's still very young in its you know it's still in its infancy like the home testing
+industry even though there have been like home tests such as your diabetes
+
+What about underrated?
+
+What do you think?
+
+m I mean, certainly.
+
+underrated is the fact that you can't like, dealing with the insurance industry or the US medical
+industry now, right?
+
+Like, you know, certainly throughout like my adulthood, had to go to the doctor's office and dealt
+with having to be bounced around from physician to specialist, you know, and getting the right
+person.
+
+the underrated value of at home testing is the fact that like, you can get the tests a lot quicker
+and people don't understand like the value of just being able to sit at home, get a medical test.
+
+If you haven't had to deal with it before, you don't realize the value of just being able to, you
+know, kind of get the test yourself and then not have to deal with em all the doctors and the
+doctor's offices that you have to schedule the time that you have to take
+
+off of work to go to em an appointment as well.
+
+So what about the number of, huh, we totally forget this, but this is very important.
+
+when the test has been evaluated and everything is done, ah then I get the results.
+
+So what am I getting?
+
+What things am I getting there?
+
+Yeah, so for the biological, for myDNAge's biological age test rate, um you're going to get
+obviously your biological age.
+
+So when you look at your report, it'll start with your biological age and show you kind of like say,
+you know, for example, if you're 30 and then your biological age comes back 33, that's the Horvath,
+yeah, that's the Horvath clock.
+
+um And so that's kind of the main data point that everyone wants to know is you know, what's the
+overall health score of your entire lifestyle.
+
+And then from there, our test shows what's called the Epimetabolic Index.
+
+So that basically measures the risk for like things like metabolic diseases, like diabetes.
+
+And how we do that is we have a scale of zero to 6.3 and If your score is between 0 and 6.3, that
+shows generally a normal uh metabolic risk factor.
+
+But if it goes above that 6.3, what it's indicating is that you may or may not have a metabolic
+disease.
+
+But even if you don't, your metabolic score shows that of someone that's similar that has a
+metabolic disease such as diabetes.
+
+So some people take that, they look at it and they see like, my score on the metabolic score was
+8.49.
+
+And they look at their diet and they may not have the best diet.
+
+They may be eating like Chick-fil-A or some food all the time.
+
+And so then they're able to see that.
+
+And then they're like, okay, let me make some changes to my diet and come back and test within six
+to eight months.
+
+and they come back a few months later and now their score is below that number.
+
+So, you know, they're able to make changes not only to their biological age score, but to their
+metabolic scores so that they're able to kind of like manage their health a little bit better.
+
+oh And then on top of that, we provide things like the genetic SNPs, which is our...
+
+Basically, just their stagnant scores.
+
+So once you do the test the first time, it's going to be the same across.
+
+In terms of just in a single number, how many data points are you telling to the user?
+
+Data points, so if I counted that one out, three, four, five, six, seven, seven, I believe, seven or
+eight.
+
+Which, you know, when our test first started back, you know, when it was just a biological age score
+and then like, think the comparison indexes.
+
+And then in 2021, we went through a report redesign.
+
+And so we went from offering, I believe, two or three data points to then uh seven or eight.
+
+And then obviously we're continuing to develop.
+
+at some point in the future, hope we hope to go from seven or eight to 10 to 15.
+
+So it's not a test that we are finalized with.
+
+It's obviously as we kind of continue to grow, the data will just continue and move forward.
+
+So we're able to offer more to our consumers at the same price point.
+
+00:44:30,609 --> 00:44:27,669 did, okay.
+
+So it's 2.99, right?
+
+Uh, the blood test.
+
+How did you came to this pricing decision?
+
+home tests are a few hundred dollars.
+
+I mean, typically, mean, from my experience within in marketing to that's how, you know, pricing
+works is you look at what everyone else is doing.
+
+And it's worked with us.
+
+We're still, I believe we're still like the lowest priced biological age test on the market.
+
+I don't have the updated numbers, so I could be wrong.
+
+But we're within that range on the low end.
+
+I know through diagnostic had maybe it was 2.99 as well, but they stopped selling that package.
+
+You might know that better.
+
+So I can, if I like, it depends on time, the time of year is certainly a factor as well, because a
+lot of people at the end, a lot of people, so like, you know, with people in
+
+their New Year, new me kind of programs.
+
+Yeah, like at the beginning of the year, they want to, they want to improve the diet, improve their
+health overall.
+
+um So we see.
+
+a huge influx of tests come in, in like December and January, and to the point where we actually
+used to do a New Year, Me competition with our consumers where, you know, they would buy two tests
+from us in November, December, and even January.
+
+They would test at the beginning of the year, and then they would test in the summer, like June to
+August period.
+
+And then we would actually hand out prizes to the people that were able to lower their biological
+age the most throughout that period.
+
+Okay, okay, this is interesting for me because as you might know or not know, I'm running the, this
+year I launched the Longevity World Cup and I've been trying to think about, because every season I
+change what biological age test is used and one season takes a
+
+But I'm trying to thinking like, okay, so when should the season start and end, right?
+
+kind of consumer behaviors are some of the things that must be adjusted to.
+
+um don't know if I'm giving up trade secrets or whatnot saying that, but certainly, I mean, from my
+experience, I've seen a little bit more activity uh at the end of the year, beginning January time,
+because people are are into kind of the health consciousness
+
+period around that time.
+
+Yeah, I mean, is it trade secret or not?
+
+I came to the same conclusion with Che-GPT, you know.
+
+Yeah, everyone wants a new year, new life, you know.
+
+uh Well, yeah, by the way, what do you think about longevity as a sport?
+
+Longevity as a sport is...
+
+the rejuvenation Olympics, stuff like that?
+
+I mean, I think it's really interesting.
+
+I competition always breeds motivation for people.
+
+So treating longevity as a sport will make people more motivated to be serious about it, especially
+if you're doing it personally, right?
+
+Because for lot of people, know, their personal goals uh get killed due to lack of motivation.
+
+So adding in something like this as a competition.
+
+will push people to actually stay um competitive with their goals.
+
+And me as a person myself, I'm very competitive.
+
+I play sports regularly as well.
+
+um And it definitely helps um to keep yourself mentally active within a sport if you're treating
+something like longevity like that.
+
+um You know, as an overall kind of comparison, think longevity for every person is very unique.
+
+uh So there isn't like one set of rules that like works for everyone, right?
+
+So the goalpost can be like, I think everyone just has to be open to moving the goalpost a little
+bit uh when it comes to each person.
+
+But overall as a sport, could be very like, it's a very interesting idea because uh you're gonna see
+people improve even for like our uh New Year New Me program that we used to do.
+
+We saw like a lot of success with it.
+
+Like most of the people within in the program um actually did have younger biological age.
+
+So as an overall idea, I think it's beneficial for everyone uh and it will keep their motivations
+very high to staying accountable to those goals.
+
+how would you call the people who are doing longevity as a sport?
+
+So for example, footballers are called footballers, right?
+
+like, we see, like, we know that like within the space, like biohackers are very like, um, popular
+as a popular term within this space.
+
+So I would say like, you know, if people that are in the longevity space, they're treating as a
+sport, they're technically, I think biohackered, they're considered biohackers in this space, uh, in
+this spot, right?
+
+I just came up, I asked this because I just came up with term time lifters, but I can't really
+figure out if it's cringy or genius, so.
+
+Maybe time travelers, you know?
+
+soccer teams uh in Europe as well.
+
+ah It'd be cool to just kind of like do something like that with marketing if we had the budget here
+uh as well.
+
+Oh, nice, nice.
+
+I have an idea on the longevity world cup that companies could be able to sponsor athletes there,
+but I'm not sure I'm going to get there to implement it in a year or two, but it's there.
+
+The idea is there.
+
+By the way, for those of you freaks who think making things faster here is not Not that, not that,
+uh, what's interesting or revolutionary.
+
+And just think about McDonald's, right?
+
+The very thing that McDonald's did better than every other restaurant in the world is that it was
+faster.
+
+It created a fast, fast food.
+
+industry now is just based on what they were able to do, you know, and now it's just copycat how
+they were able to do it.
+
+Yeah, yeah, but don't go to McDonald's because you're going to get a bad, bad Horvath cloak, guys.
+
+yeah it was funny is who's the movie there was that documentary Super Size Me that just gave me an
+idea I was like you know for people that do those documentaries if we were able to test before and
+after because I'm sure you would see even within 30 days the biological
+
+differences between someone not only with their weight but like with their biological age you know
+it'd be spiked like crazy yeah, yeah.
+
+I think there are couple of people starting to do those experiments.
+
+In fact, I just had someone, Marius from the found, he's creating the Fountain of Youth YouTube
+channel who was doing the Dunedin Pace experiment.
+
+it didn't, didn't came out the way that he was hoping to.
+
+hoping it to happen.
+
+But he was doing this experiment, right?
+
+And made a video about it at least.
+
+Do you know the contrarian question from Peter Thiel?
+
+Have you heard about that?
+
+I've heard of yeah Peter Thiel.
+
+Yeah yeah, okay, so what's one thing that you strongly believe to be the case but very few people
+agree with you on?
+
+Well, this may be not like very few people believe, um but it's kind of like, you know, even within
+the biological age space, right?
+
+Like I said, it's still very new.
+
+So people are still early adopters to the space.
+
+But I think the science is...
+
+some of the best science that we have within the medical testing industry.
+
+uh It's still kind of getting brought along, but people kind of still doubt if biological age is
+actually something that works or whatnot.
+
+But I believe that within this space, biological age could be the future of how we generate our
+health.
+
+I think my hope is that 20, 30 years from now, right?
+
+as soon as you turn 18, start taking the biological, as your yearly kind of panel testing, you
+instead of going to the doctor, you just take biological age and you do it on a yearly basis.
+
+So you're able to track yourself over 40 to 50 years.
+
+you know, depending on what our medical industry and insurance industry is like then, it can just be
+used as like, you know, your yearly testing.
+
+then over time you're able to catch some of the medical issues a lot.
+
+quicker and whatnot.
+
+I think eventually it'll become something of that nature.
+
+You know, this has never happened before.
+
+You just transferred my follow up question, which is usually the last question, which is that you
+should articulate your value proposition and, you just did.
+
+So guys, go to myDNAge.com and get the Horvath test, which is apparently is on the market.
+
+So Thank you very much.
