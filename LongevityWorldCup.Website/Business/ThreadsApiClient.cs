@@ -13,6 +13,7 @@ public class ThreadsApiClient
     private static readonly TimeSpan ProactiveRefreshWindow = TimeSpan.FromDays(14);
     private static readonly TimeSpan UnknownExpiryRefreshRetryInterval = TimeSpan.FromHours(20);
     private static readonly int[] ContainerReadyPollDelaysMs = [1000, 2000, 3000, 5000, 5000, 10000, 10000, 15000];
+    private static readonly int[] PublishRetryDelaysMs = [1000, 3000, 7000];
 
     private readonly HttpClient _http;
     private readonly Config _config;
@@ -271,12 +272,33 @@ public class ThreadsApiClient
             return (false, null, false);
         }
 
-        var publish = await PublishContainerAsync(creationId, token);
-        if (publish.Success && !string.IsNullOrWhiteSpace(publish.Id))
-            return (true, publish.Id, false);
+        for (var attempt = 0; attempt <= PublishRetryDelaysMs.Length; attempt++)
+        {
+            var publish = await PublishContainerAsync(creationId, token);
+            if (publish.Success && !string.IsNullOrWhiteSpace(publish.Id))
+                return (true, publish.Id, false);
 
-        if (publish.ShouldRefreshToken)
-            return (false, null, true);
+            if (publish.ShouldRefreshToken)
+                return (false, null, true);
+
+            if (publish.IsTransientFailure && attempt < PublishRetryDelaysMs.Length)
+            {
+                var delayMs = PublishRetryDelaysMs[attempt];
+                _log.LogWarning(
+                    "Threads publish transient failure for creationId {CreationId}: {StatusCode} {Body}. Retrying in {DelayMs}ms.",
+                    creationId,
+                    publish.StatusCode,
+                    publish.ErrorBody,
+                    delayMs);
+                await Task.Delay(delayMs);
+                continue;
+            }
+
+            if (publish.StatusCode.HasValue)
+                _log.LogError("Threads publish failed for creationId {CreationId}: {StatusCode} {Body}", creationId, publish.StatusCode, publish.ErrorBody);
+
+            return (false, null, false);
+        }
 
         return (false, null, false);
     }
@@ -324,7 +346,7 @@ public class ThreadsApiClient
         return (false, false);
     }
 
-    private async Task<(bool Success, string? Id, bool ShouldRefreshToken, string? ErrorBody)> PublishContainerAsync(string creationId, string token)
+    private async Task<(bool Success, string? Id, bool ShouldRefreshToken, bool IsTransientFailure, HttpStatusCode? StatusCode, string? ErrorBody)> PublishContainerAsync(string creationId, string token)
     {
         using var req = new HttpRequestMessage(HttpMethod.Post, PublishThreadEndpoint);
         req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
@@ -338,24 +360,29 @@ public class ThreadsApiClient
 
         if (!res.IsSuccessStatusCode)
         {
-            _log.LogError("Threads publish failed for creationId {CreationId}: {StatusCode} {Body}", creationId, res.StatusCode, json);
-            return (false, null, ShouldRefreshToken(res.StatusCode, json), json);
+            return (
+                false,
+                null,
+                ShouldRefreshToken(res.StatusCode, json),
+                IsTransientThreadsError(res.StatusCode, json),
+                res.StatusCode,
+                json);
         }
 
         try
         {
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("id", out var idEl))
-                return (true, idEl.GetString(), false, null);
+                return (true, idEl.GetString(), false, false, null, null);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Threads publish response parse failed: {Json}", json);
-            return (false, null, false, json);
+            return (false, null, false, false, null, json);
         }
 
         _log.LogWarning("Threads publish returned no id.");
-        return (false, null, false, json);
+        return (false, null, false, false, null, json);
     }
 
     private async Task<(bool IsFinished, bool IsError, bool ShouldRefreshToken, string? Status, string? ErrorMessage)> GetContainerStatusAsync(string creationId, string token)
@@ -489,6 +516,36 @@ public class ThreadsApiClient
         return responseBody.Contains("Invalid OAuth access token", StringComparison.OrdinalIgnoreCase) ||
                responseBody.Contains("Error validating access token", StringComparison.OrdinalIgnoreCase) ||
                responseBody.Contains("Session has expired", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static bool IsTransientThreadsError(HttpStatusCode statusCode, string? responseBody)
+    {
+        if (!string.IsNullOrWhiteSpace(responseBody))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(responseBody);
+                if (doc.RootElement.TryGetProperty("error", out var error))
+                {
+                    if (error.TryGetProperty("is_transient", out var isTransient) &&
+                        isTransient.ValueKind == JsonValueKind.True)
+                        return true;
+
+                    if (error.TryGetProperty("code", out var code) &&
+                        code.TryGetInt32(out var codeValue) &&
+                        codeValue == 2)
+                        return true;
+                }
+            }
+            catch (JsonException)
+            {
+            }
+        }
+
+        var numericStatusCode = (int)statusCode;
+        return statusCode == HttpStatusCode.RequestTimeout ||
+               numericStatusCode == 429 ||
+               numericStatusCode >= 500;
     }
 
     private bool ShouldRefreshProactively(DateTimeOffset nowUtc)
