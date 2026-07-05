@@ -1,0 +1,41 @@
+{
+  "Name": "Bree Maddox",
+  "DisplayName": null,
+  "MediaContact": "Bree@breemaddoxconsulting.com",
+  "DateOfBirth": {
+    "Year": 1979,
+    "Month": 12,
+    "Day": 31
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-06-26",
+      "AlbGL": 44,
+      "CreatUmolL": 71,
+      "GluMmolL": 4.7,
+      "CrpMgL": 0.24,
+      "LymPc": 24,
+      "McvFL": 93,
+      "RdwPc": 12,
+      "AlpUL": 37,
+      "Wbc1000cellsuL": 4.6,
+      "NeutrophilPc": 67,
+      "MonocytePc": 6.5,
+      "Rbc10e12L": 4.3,
+      "MchPg": 31.4,
+      "UreaMmolL": 6.5,
+      "CystatinCMgL": 0.49,
+      "Hba1cMmolMol": 23,
+      "CholesterolMmolL": 3.9,
+      "ApoA1GL": 1.3,
+      "AltUL": 27,
+      "GgtUL": 13,
+      "ShbgNmolL": 47,
+      "VitaminDNmolL": 133
+    }
+  ],
+  "Division": "Open",
+  "Flag": "Australia",
+  "Why": "Living and loving every minute of life with my kids.",
+  "PersonalLink": null
+}
