@@ -10,10 +10,14 @@ namespace LongevityWorldCup.Website.Controllers;
 [ApiController]
 [Route("api/custom-event-preview")]
 [RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
-public sealed class CustomEventPreviewController(CustomEventImageService images, AthleteDataService athletes) : ControllerBase
+public sealed class CustomEventPreviewController(
+    CustomEventImageService images,
+    AthleteDataService athletes,
+    CustomEventLinkPreviewService links) : ControllerBase
 {
     private readonly CustomEventImageService _images = images;
     private readonly AthleteDataService _athletes = athletes;
+    private readonly CustomEventLinkPreviewService _links = links;
 
     public sealed record ImagePreviewRequest(string? Title, string? Content, string? Platform);
 
@@ -38,6 +42,20 @@ public sealed class CustomEventPreviewController(CustomEventImageService images,
 
         Response.Headers[HeaderNames.CacheControl] = "no-store,max-age=0";
         return File(stream, "image/png");
+    }
+
+    [HttpGet("link")]
+    public async Task<IActionResult> GetLinkPreview([FromQuery] string? url, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return BadRequest("URL is required.");
+
+        var preview = await _links.FetchAsync(url, ct);
+        if (preview is null)
+            return StatusCode(StatusCodes.Status502BadGateway, "Link preview metadata could not be loaded.");
+
+        Response.Headers[HeaderNames.CacheControl] = "private,max-age=3600";
+        return Ok(preview);
     }
 
     private static SocialPlatform ParsePlatform(string? value)

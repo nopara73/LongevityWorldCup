@@ -32,6 +32,15 @@ public sealed class CustomEventDirectQueueWordingTests
     }
 
     [Fact]
+    public void Designer_UsesServerPreviewEndpointForExternalLinkMetadata()
+    {
+        var html = File.ReadAllText(FindRepoFile("LongevityWorldCup.Website", "wwwroot", "internal", "custom-event-designer.html"));
+
+        Assert.Contains("/api/custom-event-preview/link?url=", html);
+        Assert.DoesNotContain("https://api.microlink.io/?url=", html);
+    }
+
+    [Fact]
     public void Api_ResponseExposesQueuedTargets()
     {
         var source = File.ReadAllText(FindRepoFile("LongevityWorldCup.Website", "Controllers", "CustomEventsController.cs"));
