@@ -181,6 +181,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<XImageService>();
             builder.Services.AddSingleton<AthleteCountMilestoneMemeService>();
             builder.Services.AddSingleton<CustomEventImageService>();
+            builder.Services.AddSingleton<CustomEventLinkPreviewService>();
             builder.Services.AddSingleton<PageOgImageService>();
             builder.Services.AddSingleton<AthleteOgImageService>();
             builder.Services.AddSingleton<LeagueOgImageService>();

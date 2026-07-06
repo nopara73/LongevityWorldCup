@@ -1362,20 +1362,19 @@
                 return await fetchSameOriginOgPreview(url);
             }
 
-            const endpoint = `https://api.microlink.io/?url=${encodeURIComponent(url)}&audio=false&video=false&screenshot=false&force=true`;
+            const endpoint = `/api/custom-event-preview/link?url=${encodeURIComponent(url)}`;
             const response = await fetch(endpoint, { headers: { accept: "application/json" } });
             if (!response.ok) {
                 throw new Error(`OG fetch failed: ${response.status}`);
             }
 
             const json = await response.json();
-            const data = json?.data || {};
             return {
                 url,
-                domain: data.publisher || data.author || getUrlDomain(url),
-                title: data.title || getUrlDomain(url),
-                description: data.description || "",
-                image: data.image?.url || data.logo?.url || ""
+                domain: json?.domain || getUrlDomain(url),
+                title: json?.title || getUrlDomain(url),
+                description: json?.description || "",
+                image: json?.image || ""
             };
         }
 
