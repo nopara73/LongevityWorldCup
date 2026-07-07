@@ -1,0 +1,28 @@
+{
+  "Name": "Zoltano",
+  "DisplayName": null,
+  "MediaContact": "zoltanvajo@gmail.com",
+  "DateOfBirth": {
+    "Year": 1967,
+    "Month": 2,
+    "Day": 11
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-06-03",
+      "AlbGL": 42,
+      "CreatUmolL": 79,
+      "GluMmolL": 4.7,
+      "CrpMgL": 0.2,
+      "LymPc": 34.1,
+      "McvFL": 95,
+      "RdwPc": 13.6,
+      "AlpUL": 91,
+      "Wbc1000cellsuL": 7.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "Want to make a difference for me and others",
+  "PersonalLink": null
+}
