@@ -1,0 +1,28 @@
+{
+  "Name": "Árpád Véghelyi",
+  "DisplayName": null,
+  "MediaContact": "arpad.veghelyi@gmail.com",
+  "DateOfBirth": {
+    "Year": 1967,
+    "Month": 8,
+    "Day": 21
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-06-08",
+      "AlbGL": 44,
+      "CreatUmolL": 108,
+      "GluMmolL": 4.5,
+      "CrpMgL": 0.7,
+      "LymPc": 32.5,
+      "McvFL": 98,
+      "RdwPc": 12.6,
+      "AlpUL": 60,
+      "Wbc1000cellsuL": 5.1
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Magyarország",
+  "Why": "Healty sport and safety life in to end...",
+  "PersonalLink": "https://uszisuli.hu"
+}
