@@ -1,0 +1,28 @@
+{
+  "Name": "Alena",
+  "DisplayName": null,
+  "MediaContact": "sungod967@gmail.com",
+  "DateOfBirth": {
+    "Year": 1994,
+    "Month": 7,
+    "Day": 10
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-07-07",
+      "AlbGL": 42.9,
+      "CreatUmolL": 61,
+      "GluMmolL": 4.94,
+      "CrpMgL": 0.3,
+      "LymPc": 39.2,
+      "McvFL": 92,
+      "RdwPc": 12.2,
+      "AlpUL": 39,
+      "Wbc1000cellsuL": 5.81
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "France",
+  "Why": "I don't like the idea of being old and I like the idea of competition",
+  "PersonalLink": null
+}
