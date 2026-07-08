@@ -2,6 +2,7 @@
     const flagAliases = new Map([
         ['america', 'United States'],
         ['brasil', 'Brazil'],
+        ['magyarorszag', 'Hungary'],
         ['nld', 'Netherlands'],
         ['nz', 'New Zealand'],
         ['nzd', 'New Zealand'],
