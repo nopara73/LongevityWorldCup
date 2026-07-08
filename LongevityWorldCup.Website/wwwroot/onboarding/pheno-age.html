@@ -187,6 +187,7 @@
 
         .biomarker-card-content .input-group {
             flex-direction: column;
+            position: relative;
         }
 
             .biomarker-card-content .input-group input,
@@ -196,6 +197,53 @@
                 max-width: 100%;
                 min-width: 0 !important;
             }
+
+            .biomarker-card-content .input-group input.bioage-input-has-comparison {
+                padding-right: 7.8rem;
+            }
+
+        .bioage-input-comparison-chip {
+            position: absolute;
+            top: 0.58rem;
+            right: 0.55rem;
+            max-width: min(42%, 7rem);
+            padding: 0.16rem 0.42rem;
+            border: 1px solid rgba(100, 116, 139, 0.22);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.88);
+            color: #64748b;
+            font-size: 0.73rem;
+            font-weight: 600;
+            line-height: 1.25;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+            .bioage-input-comparison-chip.is-improved {
+                border-color: rgba(47, 125, 90, 0.24);
+                background: rgba(240, 253, 244, 0.9);
+                color: #2f7d5a;
+            }
+
+            .bioage-input-comparison-chip.is-regressed {
+                border-color: rgba(155, 74, 74, 0.22);
+                background: rgba(254, 242, 242, 0.9);
+                color: #9b4a4a;
+            }
+
+        @media (max-width: 420px) {
+            .biomarker-card-content .input-group input.bioage-input-has-comparison {
+                padding-right: 6.6rem;
+            }
+
+            .bioage-input-comparison-chip {
+                max-width: 5.9rem;
+                font-size: 0.68rem;
+            }
+        }
 
         /* Give all selects proper right padding and a consistent arrow */
         .bioageform select,
@@ -1609,6 +1657,125 @@
             bioageFlow.setSubmittedBiomarkerPlaceholders(placeholders);
         }
 
+        function getBiomarkerUnitState(inputId) {
+            const unitEl = document.getElementById(inputId + 'Unit');
+            const unitValue = bioageFlow.toFiniteBiomarkerNumber(unitEl?.value);
+            const unitText = unitEl ? unitEl.options[unitEl.selectedIndex]?.text.trim() : '';
+            return unitEl && unitValue !== null ? { unitEl, unitValue, unitText } : null;
+        }
+
+        function getCurrentGenericCanonical(inputId) {
+            const raw = bioageFlow.toFiniteBiomarkerNumber(document.getElementById(inputId)?.value);
+            const unit = getBiomarkerUnitState(inputId);
+            return raw === null || !unit ? null : raw / unit.unitValue;
+        }
+
+        const phenoBiomarkerScore = {
+            wbc: value => Math.max(value, 3.5) * 0.0554,
+            lymphocyte: value => Math.min(value, 60) * -0.012,
+            mcv: value => value * 0.0268,
+            rcdw: value => Math.max(value, 11.4) * 0.3306,
+            albumin: value => Math.min(value, 54) * -0.0336,
+            ap: value => value * 0.0019,
+            creatinine: value => Math.max(value, 44) * 0.0095,
+            glucose: value => Math.max(value, 4.44) * 0.1953,
+            crp: value => value > 0 ? Math.log(value / 10) * 0.0954 : NaN
+        };
+
+        function bindPhenoGenericComparison(inputId, fieldNames) {
+            const latest = bioageFlow.getLatestBiomarkerValue(athlete, fieldNames);
+            const score = phenoBiomarkerScore[inputId];
+            if (!latest || typeof score !== 'function') return;
+
+            bioageFlow.bindBiomarkerComparison(inputId, () => {
+                const currentDisplay = bioageFlow.toFiniteBiomarkerNumber(document.getElementById(inputId)?.value);
+                const unit = getBiomarkerUnitState(inputId);
+                if (currentDisplay === null || !unit) return null;
+
+                const currentCanonical = currentDisplay / unit.unitValue;
+                const previousDisplay = latest.value * unit.unitValue;
+                return {
+                    currentDisplayValue: currentDisplay,
+                    previousDisplayValue: previousDisplay,
+                    currentScore: score(currentCanonical),
+                    previousScore: score(latest.value)
+                };
+            });
+        }
+
+        function bindPhenoLymphocyteComparison() {
+            const latest = bioageFlow.getLatestBiomarkerValue(athlete, 'LymPc');
+            if (!latest) return;
+
+            bioageFlow.bindBiomarkerComparison('lymphocyte', () => {
+                const currentDisplay = bioageFlow.toFiniteBiomarkerNumber(document.getElementById('lymphocyte')?.value);
+                const unit = getBiomarkerUnitState('lymphocyte');
+                if (currentDisplay === null || !unit) return null;
+
+                let currentPercentage = currentDisplay;
+                if (unit.unitText !== '%') {
+                    const wbcCurrent = getCurrentGenericCanonical('wbc');
+                    if (wbcCurrent === null || wbcCurrent <= 0) return null;
+                    currentPercentage = (currentDisplay / unit.unitValue / wbcCurrent) * 100;
+                }
+
+                const previousWbc = bioageFlow.readBiomarkerValue(latest.entry, 'Wbc1000cellsuL');
+                const previousDisplay = unit.unitText === '%'
+                    ? latest.value
+                    : previousWbc === null
+                        ? null
+                        : previousWbc * latest.value / 100 * unit.unitValue;
+                return {
+                    currentDisplayValue: currentDisplay,
+                    previousDisplayValue: previousDisplay,
+                    currentScore: phenoBiomarkerScore.lymphocyte(currentPercentage),
+                    previousScore: phenoBiomarkerScore.lymphocyte(latest.value)
+                };
+            });
+        }
+
+        function bindPhenoCrpComparison() {
+            const latest = bioageFlow.getLatestBiomarkerValue(athlete, 'CrpMgL');
+            if (!latest) return;
+
+            bioageFlow.bindBiomarkerComparison('crp', () => {
+                const currentDisplay = bioageFlow.toFiniteBiomarkerNumber(document.getElementById('crp')?.value);
+                const unit = getBiomarkerUnitState('crp');
+                if (currentDisplay === null || !unit) return null;
+
+                const currentMgL = currentDisplay / unit.unitValue * 10;
+                const previousDisplay = latest.value * unit.unitValue / 10;
+                return {
+                    currentDisplayValue: currentDisplay,
+                    previousDisplayValue: previousDisplay,
+                    currentScore: phenoBiomarkerScore.crp(currentMgL),
+                    previousScore: phenoBiomarkerScore.crp(latest.value)
+                };
+            });
+        }
+
+        function setupPhenoSubmittedBiomarkerComparisons() {
+            if (!isUpdate || !hasSelectedAthlete) return;
+
+            bindPhenoGenericComparison('wbc', 'Wbc1000cellsuL');
+            bindPhenoLymphocyteComparison();
+            bindPhenoGenericComparison('mcv', 'McvFL');
+            bindPhenoGenericComparison('rcdw', 'RdwPc');
+            bindPhenoGenericComparison('albumin', 'AlbGL');
+            bindPhenoGenericComparison('ap', 'AlpUL');
+            bindPhenoGenericComparison('creatinine', 'CreatUmolL');
+            bindPhenoGenericComparison('glucose', 'GluMmolL');
+            bindPhenoCrpComparison();
+
+            const wbc = document.getElementById('wbc');
+            if (wbc && wbc.dataset.bioageComparisonDependentsBound !== 'true') {
+                wbc.dataset.bioageComparisonDependentsBound = 'true';
+                const refreshDifferentials = () => bioageFlow.updateBiomarkerComparison('lymphocyte');
+                wbc.addEventListener('input', refreshDifferentials);
+                document.getElementById('wbcUnit')?.addEventListener('change', refreshDifferentials);
+            }
+        }
+
         //–– seed from stored data
         const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
@@ -2381,6 +2548,7 @@
 
             updateModeFormInitializerUnique();
             applyPhenoSubmittedBiomarkerPlaceholders();
+            setupPhenoSubmittedBiomarkerComparisons();
             bioageFlow.syncBiomarkerExamplePlaceholders();
 
             if (isUpdate && hasSelectedAthlete) {
@@ -2484,6 +2652,7 @@
         window.addEventListener('pageshow', () => {
             updateModeFormInitializerUnique();
             applyPhenoSubmittedBiomarkerPlaceholders();
+            setupPhenoSubmittedBiomarkerComparisons();
             bioageFlow.syncBiomarkerExamplePlaceholders();
         });
 

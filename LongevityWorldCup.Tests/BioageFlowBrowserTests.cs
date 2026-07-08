@@ -165,6 +165,102 @@ public sealed class BioageFlowBrowserTests
         Assert.Empty(errors);
     }
 
+    [Theory]
+    [InlineData("/pheno-age?update=1", "#glucose", "#glucoseUnit", "18.016", "90", "↓ 3.68 lower", "is-improved")]
+    [InlineData("/bortz-age?update=1", "#glucose", "#glucoseUnit", "18.016", "90", "↓ 3.68 lower", "is-improved")]
+    [InlineData("/bortz-age?update=1", "#creatinine", "#creatinineUnit", "0.0113", "0.8", "↓ 0.1 lower", "is-neutral")]
+    public async Task UpdateBioageFlow_ShowsSubtleComparisonChipForEditedSubmittedValues(
+        string path,
+        string inputSelector,
+        string unitSelector,
+        string expectedUnitValue,
+        string inputValue,
+        string expectedChipText,
+        string expectedStateClass)
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US"
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        await context.AddInitScriptAsync(
+            """
+            window.sessionStorage.setItem('selectedAthlete', JSON.stringify({
+                Name: 'Browser Test Athlete',
+                DisplayName: 'Browser Test Athlete',
+                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
+                Biomarkers: [
+                    {
+                        Date: '2026-02-02',
+                        AlbGL: 45,
+                        CreatUmolL: 80,
+                        GluMmolL: 5.2,
+                        CrpMgL: 0.8,
+                        Wbc1000cellsuL: 5.5,
+                        LymPc: 32,
+                        McvFL: 90,
+                        RdwPc: 13,
+                        AlpUL: 70,
+                        NeutrophilPc: 55,
+                        MonocytePc: 7,
+                        Rbc10e12L: 4.8,
+                        MchPg: 30,
+                        UreaMmolL: 5.2,
+                        CystatinCMgL: 0.9,
+                        Hba1cMmolMol: 35,
+                        CholesterolMmolL: 4.8,
+                        ApoA1GL: 1.5,
+                        AltUL: 22,
+                        GgtUL: 24,
+                        ShbgNmolL: 45,
+                        VitaminDNmolL: 75
+                    }
+                ]
+            }));
+            window.sessionStorage.setItem('pendingPaymentOffer', JSON.stringify({
+                source: 'join-game',
+                offerType: 'pro',
+                currency: 'USD',
+                amountUsd: 100
+            }));
+            """);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
+
+        Assert.Equal(expectedUnitValue, await page.Locator(unitSelector).InputValueAsync());
+
+        await ExpandBiomarkerCardAsync(page, inputSelector);
+        await page.Locator(inputSelector).FillAsync(inputValue);
+
+        var chipSelector = $".bioage-input-comparison-chip[data-bioage-comparison-for=\"{inputSelector.TrimStart('#')}\"]";
+        var chip = page.Locator(chipSelector);
+        await chip.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+
+        Assert.Equal(expectedChipText, await chip.InnerTextAsync());
+        var className = await chip.GetAttributeAsync("class") ?? "";
+        Assert.Contains(expectedStateClass, className);
+        Assert.Empty(errors);
+    }
+
     private static async Task<string> ExpandBiomarkerCardAsync(IPage page, string inputSelector)
     {
         return await page.Locator(inputSelector).EvaluateAsync<string>(
