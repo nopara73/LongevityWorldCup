@@ -19,7 +19,8 @@ public static class FlagRouteCatalog
 
     public static bool TryResolve(string rawSlug, IEnumerable<string?> flags, out FlagRouteInfo route)
     {
-        var normalizedSlug = NormalizeRouteSlug(rawSlug);
+        var decodedSlug = Uri.UnescapeDataString((rawSlug ?? string.Empty).Trim());
+        var normalizedSlug = NormalizeRouteSlug(FlagCanonicalizer.GetCanonicalName(decodedSlug));
         if (string.IsNullOrWhiteSpace(normalizedSlug))
         {
             route = default!;
@@ -39,7 +40,7 @@ public static class FlagRouteCatalog
 
     private static FlagRouteInfo? TryCreate(string? flag)
     {
-        var name = (flag ?? string.Empty).Trim();
+        var name = FlagCanonicalizer.GetCanonicalName(flag);
         if (string.IsNullOrWhiteSpace(name))
         {
             return null;
@@ -53,7 +54,7 @@ public static class FlagRouteCatalog
 
     private static string NormalizeRouteSlug(string value)
     {
-        value = Uri.UnescapeDataString((value ?? string.Empty).Trim());
+        value = (value ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(value))
         {
             return string.Empty;

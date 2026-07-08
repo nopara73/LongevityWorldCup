@@ -115,6 +115,19 @@ public sealed class SharePreviewMetadataTests
     }
 
     [Fact]
+    public async Task FlagRouteAlias_UsesCanonicalFlagMetadata()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/flag/magyarorszag");
+
+        Assert.Contains("rel=\"canonical\" href=\"https://longevityworldcup.com/flag/hungary\"", html);
+        Assert.Contains("Current Longevity World Cup athletes from Hungary.", html);
+        Assert.Contains("property=\"og:title\" content=\"Hungary Leaderboard | Longevity World Cup\"", html);
+    }
+
+    [Fact]
     public async Task SharePreviewTitles_DoNotDuplicateBrandSuffix()
     {
         using var factory = CreateFactory();
