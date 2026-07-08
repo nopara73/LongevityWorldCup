@@ -82,6 +82,89 @@ public sealed class BioageFlowBrowserTests
         Assert.Empty(errors);
     }
 
+    [Theory]
+    [InlineData("/pheno-age?update=1", "#glucose", "#glucoseUnit", "18.016", "93.68", "1", "5.2")]
+    [InlineData("/bortz-age?update=1", "#hba1c", "#hba1cUnit", "0.0915", "5.35", "1", "35")]
+    public async Task UpdateBioageFlow_UsesLastSubmittedResultsAsBiomarkerWatermarks(
+        string path,
+        string inputSelector,
+        string unitSelector,
+        string initialUnitValue,
+        string initialPlaceholder,
+        string changedUnitValue,
+        string changedPlaceholder)
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US"
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        await context.AddInitScriptAsync(
+            """
+            window.sessionStorage.setItem('selectedAthlete', JSON.stringify({
+                Name: 'Browser Test Athlete',
+                DisplayName: 'Browser Test Athlete',
+                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
+                Biomarkers: [
+                    {
+                        Date: '2025-01-01',
+                        GluMmolL: 4.8,
+                        Hba1cMmolMol: 33
+                    },
+                    {
+                        Date: '2026-02-02',
+                        AlbGL: 45,
+                        CreatUmolL: 80,
+                        GluMmolL: 5.2,
+                        CrpMgL: 0.8,
+                        Wbc1000cellsuL: 5.5,
+                        LymPc: 32,
+                        McvFL: 90,
+                        RdwPc: 13,
+                        AlpUL: 70,
+                        Hba1cMmolMol: 35
+                    }
+                ]
+            }));
+            window.sessionStorage.setItem('pendingPaymentOffer', JSON.stringify({
+                source: 'join-game',
+                offerType: 'pro',
+                currency: 'USD',
+                amountUsd: 100
+            }));
+            """);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
+
+        Assert.Equal(initialUnitValue, await page.Locator(unitSelector).InputValueAsync());
+        Assert.Equal(initialPlaceholder, await page.Locator(inputSelector).GetAttributeAsync("placeholder"));
+
+        await page.Locator(unitSelector).SelectOptionAsync(changedUnitValue);
+
+        Assert.Equal(changedUnitValue, await page.Locator(unitSelector).InputValueAsync());
+        Assert.Equal(changedPlaceholder, await page.Locator(inputSelector).GetAttributeAsync("placeholder"));
+        Assert.Empty(errors);
+    }
+
     private static async Task<string> ExpandBiomarkerCardAsync(IPage page, string inputSelector)
     {
         return await page.Locator(inputSelector).EvaluateAsync<string>(

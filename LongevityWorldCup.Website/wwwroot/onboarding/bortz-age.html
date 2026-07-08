@@ -1826,6 +1826,86 @@
             return false;
         }
 
+        function addSubmittedBiomarkerPlaceholder(placeholders, inputId, fieldNames, displayValueForUnit) {
+            const latest = bioageFlow.getLatestBiomarkerValue(athlete, fieldNames);
+            if (!latest) return null;
+
+            const unitPlaceholders = bioageFlow.buildUnitSpecificBiomarkerPlaceholders(
+                inputId,
+                latest.value,
+                displayValueForUnit);
+            if (unitPlaceholders) placeholders[inputId] = unitPlaceholders;
+
+            return latest;
+        }
+
+        function addSubmittedDifferentialPlaceholder(placeholders, inputId, fieldNames) {
+            const latest = bioageFlow.getLatestBiomarkerValue(athlete, fieldNames);
+            if (!latest) return;
+
+            const wbcValue = bioageFlow.readBiomarkerValue(latest.entry, 'Wbc1000cellsuL');
+            const unitPlaceholders = bioageFlow.buildUnitSpecificBiomarkerPlaceholders(
+                inputId,
+                latest.value,
+                (percentage, option, unitText) => {
+                    if (unitText === '%') return percentage;
+
+                    const unitValue = bioageFlow.toFiniteBiomarkerNumber(option.value);
+                    return wbcValue === null || unitValue === null
+                        ? null
+                        : wbcValue * percentage / 100 * unitValue;
+                });
+            if (unitPlaceholders) placeholders[inputId] = unitPlaceholders;
+        }
+
+        function hba1cSubmittedPlaceholderValue(mmolMolValue, option, unitText) {
+            if (unitText.indexOf('%') !== -1) {
+                return mmolMolValue / 10.929 + 2.15;
+            }
+
+            const a1cPct = mmolMolValue / 10.929 + 2.15;
+            const eagMgDl = a1cPct * 28.7 - 46.7;
+            if (unitText.indexOf('eAG') !== -1 && unitText.indexOf('mmol/L') !== -1) {
+                return eagMgDl / 18.018;
+            }
+            if (unitText.indexOf('eAG') !== -1 && unitText.indexOf('mg/dL') !== -1) {
+                return eagMgDl;
+            }
+
+            const unitValue = bioageFlow.toFiniteBiomarkerNumber(option.value);
+            return unitValue === null ? null : mmolMolValue * unitValue;
+        }
+
+        function applyBortzSubmittedBiomarkerPlaceholders() {
+            if (!isUpdate || !hasSelectedAthlete) return;
+
+            const placeholders = {};
+            addSubmittedBiomarkerPlaceholder(placeholders, 'wbc', 'Wbc1000cellsuL');
+            addSubmittedDifferentialPlaceholder(placeholders, 'lymphocyte_percentage', 'LymPc');
+            addSubmittedDifferentialPlaceholder(placeholders, 'neutrophil_percentage', 'NeutrophilPc');
+            addSubmittedDifferentialPlaceholder(placeholders, 'monocyte_percentage', 'MonocytePc');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'rbc', ['Rbc10e12L', 'Rbc']);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'mcv', 'McvFL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'mch', ['MchPg', 'Mch']);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'rdw', 'RdwPc');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'albumin', 'AlbGL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'alt', ['AltUL', 'Alt']);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'alp', 'AlpUL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'ggt', ['GgtUL', 'Ggt']);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'urea', ['UreaMmolL', 'Urea']);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'creatinine', 'CreatUmolL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'cystatin_c', ['CystatinCMgL', 'CystatinC']);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'glucose', 'GluMmolL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'hba1c', ['Hba1cMmolMol', 'Hba1c'], hba1cSubmittedPlaceholderValue);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'cholesterol', ['CholesterolMmolL', 'Cholesterol']);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'apoa1', ['ApoA1GL', 'ApoA1']);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'crp', 'CrpMgL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'shbg', ['ShbgNmolL', 'Shbg']);
+            addSubmittedBiomarkerPlaceholder(placeholders, 'vitamin_d', ['VitaminDNmolL', 'VitaminD']);
+
+            bioageFlow.setSubmittedBiomarkerPlaceholders(placeholders);
+        }
+
         //–– seed from stored data
         const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
@@ -2801,6 +2881,7 @@
             }
 
             updateModeFormInitializerUnique();
+            applyBortzSubmittedBiomarkerPlaceholders();
             bioageFlow.syncBiomarkerExamplePlaceholders();
 
             if (isUpdate && hasSelectedAthlete) {
@@ -2941,6 +3022,7 @@
 
         window.addEventListener('pageshow', () => {
             updateModeFormInitializerUnique();
+            applyBortzSubmittedBiomarkerPlaceholders();
             bioageFlow.syncBiomarkerExamplePlaceholders();
         });
 
