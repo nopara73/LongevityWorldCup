@@ -207,6 +207,117 @@
         });
     }
 
+    const biomarkerComparisonBindings = new Map();
+
+    function formatBiomarkerComparisonDelta(value) {
+        const number = toFiniteBiomarkerNumber(value);
+        if (number === null) return null;
+
+        const abs = Math.abs(number);
+        if (abs < 0.005) return '0';
+        return abs < 10
+            ? Number(abs.toFixed(2)).toString()
+            : Number(abs.toFixed(1)).toString();
+    }
+
+    function ensureBiomarkerComparisonChip(input) {
+        let chip = input.parentElement?.querySelector(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
+        if (chip) return chip;
+
+        chip = document.createElement('span');
+        chip.className = 'bioage-input-comparison-chip';
+        chip.dataset.bioageComparisonFor = input.id;
+        chip.hidden = true;
+        input.parentElement?.appendChild(chip);
+        return chip;
+    }
+
+    function hideBiomarkerComparison(input) {
+        input.classList.remove('bioage-input-has-comparison');
+        const chip = input.parentElement?.querySelector(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
+        if (chip) {
+            chip.hidden = true;
+            chip.textContent = '';
+            chip.className = 'bioage-input-comparison-chip';
+            chip.removeAttribute('title');
+            chip.removeAttribute('aria-label');
+        }
+    }
+
+    function updateBiomarkerComparison(inputId) {
+        const input = document.getElementById(inputId);
+        const binding = biomarkerComparisonBindings.get(inputId);
+        if (!input || !binding || typeof binding.getState !== 'function') return;
+
+        let state = null;
+        try {
+            state = binding.getState(input);
+        } catch (_) {
+            state = null;
+        }
+
+        const currentDisplay = toFiniteBiomarkerNumber(state?.currentDisplayValue);
+        const previousDisplay = toFiniteBiomarkerNumber(state?.previousDisplayValue);
+        if (currentDisplay === null || previousDisplay === null) {
+            hideBiomarkerComparison(input);
+            return;
+        }
+
+        const displayDelta = currentDisplay - previousDisplay;
+        const deltaMagnitude = formatBiomarkerComparisonDelta(displayDelta);
+        if (deltaMagnitude === null) {
+            hideBiomarkerComparison(input);
+            return;
+        }
+
+        const isSameDisplay = Math.abs(displayDelta) < 0.005;
+        let stateClass = 'is-neutral';
+        if (!state?.neutral) {
+            const currentScore = toFiniteBiomarkerNumber(state?.currentScore);
+            const previousScore = toFiniteBiomarkerNumber(state?.previousScore);
+            if (currentScore === null || previousScore === null) {
+                hideBiomarkerComparison(input);
+                return;
+            }
+
+            const scoreDelta = currentScore - previousScore;
+            if (Math.abs(scoreDelta) >= 0.000001) {
+                stateClass = scoreDelta < 0 ? 'is-improved' : 'is-regressed';
+            }
+        }
+
+        const text = isSameDisplay
+            ? 'same as last'
+            : `${displayDelta < 0 ? '↓' : '↑'} ${deltaMagnitude} ${displayDelta < 0 ? 'lower' : 'higher'}`;
+        const chip = ensureBiomarkerComparisonChip(input);
+        chip.className = `bioage-input-comparison-chip ${stateClass}`;
+        chip.textContent = text;
+        chip.hidden = false;
+        chip.title = `Last ${formatBiomarkerPlaceholderValue(previousDisplay)}`;
+        chip.setAttribute('aria-label', `${text}; last ${formatBiomarkerPlaceholderValue(previousDisplay)}`);
+        input.classList.add('bioage-input-has-comparison');
+    }
+
+    function bindBiomarkerComparison(inputId, getState) {
+        const input = document.getElementById(inputId);
+        if (!input || typeof getState !== 'function') return;
+
+        biomarkerComparisonBindings.set(inputId, { getState });
+        ensureBiomarkerComparisonChip(input);
+
+        if (input.dataset.bioageComparisonBound !== 'true') {
+            input.dataset.bioageComparisonBound = 'true';
+            input.addEventListener('input', () => updateBiomarkerComparison(inputId));
+
+            const unitSelect = document.getElementById(`${inputId}Unit`);
+            if (unitSelect) {
+                unitSelect.addEventListener('change', () => updateBiomarkerComparison(inputId));
+            }
+        }
+
+        updateBiomarkerComparison(inputId);
+    }
+
     function getBiomarkerInputForUnitSelect(select) {
         if (!select || !select.id || !select.id.endsWith('Unit')) return null;
 
@@ -346,6 +457,7 @@
     }
 
     window.LwcBioageFlow = {
+        bindBiomarkerComparison,
         clearStoredBiomarkerHandoff,
         buildUnitSpecificBiomarkerPlaceholders,
         getLatestBiomarkerEntry,
@@ -371,6 +483,7 @@
         setSessionItem,
         syncBiomarkerExamplePlaceholders,
         toFiniteBiomarkerNumber,
+        updateBiomarkerComparison,
         updateBiomarkerExamplePlaceholder,
         updateCalculateButton
     };
