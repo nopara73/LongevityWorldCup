@@ -166,9 +166,10 @@ public sealed class BioageFlowBrowserTests
     }
 
     [Theory]
-    [InlineData("/pheno-age?update=1", "#glucose", "#glucoseUnit", "18.016", "90", "↓ 3.68 lower", "is-improved")]
-    [InlineData("/bortz-age?update=1", "#glucose", "#glucoseUnit", "18.016", "90", "↓ 3.68 lower", "is-improved")]
-    [InlineData("/bortz-age?update=1", "#creatinine", "#creatinineUnit", "0.0113", "0.8", "↓ 0.1 lower", "is-neutral")]
+    [InlineData("/pheno-age?update=1", "#glucose", "#glucoseUnit", "18.016", "90", "3.68 lower", "is-improved")]
+    [InlineData("/bortz-age?update=1", "#glucose", "#glucoseUnit", "18.016", "90", "3.68 lower", "is-improved")]
+    [InlineData("/bortz-age?update=1", "#wbc", "#wbcUnit", "1", "5.9", "0.4 higher", "is-regressed")]
+    [InlineData("/bortz-age?update=1", "#creatinine", "#creatinineUnit", "0.0113", "0.8", "0.1 lower", "is-neutral")]
     public async Task UpdateBioageFlow_ShowsSubtleComparisonChipForEditedSubmittedValues(
         string path,
         string inputSelector,
