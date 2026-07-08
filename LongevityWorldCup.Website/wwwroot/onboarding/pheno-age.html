@@ -1553,6 +1553,62 @@
             return false;
         }
 
+        function addSubmittedBiomarkerPlaceholder(placeholders, inputId, fieldNames, displayValueForUnit) {
+            const latest = bioageFlow.getLatestBiomarkerValue(athlete, fieldNames);
+            if (!latest) return null;
+
+            const unitPlaceholders = bioageFlow.buildUnitSpecificBiomarkerPlaceholders(
+                inputId,
+                latest.value,
+                displayValueForUnit);
+            if (unitPlaceholders) placeholders[inputId] = unitPlaceholders;
+
+            return latest;
+        }
+
+        function addSubmittedDifferentialPlaceholder(placeholders, inputId, fieldNames) {
+            const latest = bioageFlow.getLatestBiomarkerValue(athlete, fieldNames);
+            if (!latest) return;
+
+            const wbcValue = bioageFlow.readBiomarkerValue(latest.entry, 'Wbc1000cellsuL');
+            const unitPlaceholders = bioageFlow.buildUnitSpecificBiomarkerPlaceholders(
+                inputId,
+                latest.value,
+                (percentage, option, unitText) => {
+                    if (unitText === '%') return percentage;
+
+                    const unitValue = bioageFlow.toFiniteBiomarkerNumber(option.value);
+                    return wbcValue === null || unitValue === null
+                        ? null
+                        : wbcValue * percentage / 100 * unitValue;
+                });
+            if (unitPlaceholders) placeholders[inputId] = unitPlaceholders;
+        }
+
+        function applyPhenoSubmittedBiomarkerPlaceholders() {
+            if (!isUpdate || !hasSelectedAthlete) return;
+
+            const placeholders = {};
+            addSubmittedBiomarkerPlaceholder(placeholders, 'wbc', 'Wbc1000cellsuL');
+            addSubmittedDifferentialPlaceholder(placeholders, 'lymphocyte', 'LymPc');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'mcv', 'McvFL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'rcdw', 'RdwPc');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'albumin', 'AlbGL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'ap', 'AlpUL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'creatinine', 'CreatUmolL');
+            addSubmittedBiomarkerPlaceholder(placeholders, 'glucose', 'GluMmolL');
+            addSubmittedBiomarkerPlaceholder(
+                placeholders,
+                'crp',
+                'CrpMgL',
+                (value, option) => {
+                    const unitValue = bioageFlow.toFiniteBiomarkerNumber(option.value);
+                    return unitValue === null ? null : value * unitValue / 10;
+                });
+
+            bioageFlow.setSubmittedBiomarkerPlaceholders(placeholders);
+        }
+
         //–– seed from stored data
         const stored = readStoredBiomarkerData();
         if (stored?.Biomarkers?.[0]) {
@@ -2324,6 +2380,7 @@
             }
 
             updateModeFormInitializerUnique();
+            applyPhenoSubmittedBiomarkerPlaceholders();
             bioageFlow.syncBiomarkerExamplePlaceholders();
 
             if (isUpdate && hasSelectedAthlete) {
@@ -2426,6 +2483,7 @@
 
         window.addEventListener('pageshow', () => {
             updateModeFormInitializerUnique();
+            applyPhenoSubmittedBiomarkerPlaceholders();
             bioageFlow.syncBiomarkerExamplePlaceholders();
         });
 

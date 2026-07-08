@@ -62,6 +62,151 @@
         return String(value || '').replace(/\s+/g, ' ').trim();
     }
 
+    function toFiniteBiomarkerNumber(value) {
+        if (value === null || value === undefined || typeof value === 'boolean') return null;
+        if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) return null;
+            const number = Number(trimmed);
+            return Number.isFinite(number) ? number : null;
+        }
+        return null;
+    }
+
+    function hasFiniteBiomarkerValue(value) {
+        return toFiniteBiomarkerNumber(value) !== null;
+    }
+
+    function formatBiomarkerPlaceholderValue(value) {
+        const number = toFiniteBiomarkerNumber(value);
+        if (number === null) return null;
+
+        return Number(number.toFixed(2)).toString();
+    }
+
+    function readBiomarkerValue(entry, fieldNames) {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+
+        const fields = Array.isArray(fieldNames) ? fieldNames : [fieldNames];
+        for (const field of fields) {
+            const value = toFiniteBiomarkerNumber(entry[field]);
+            if (value !== null) return value;
+        }
+
+        return null;
+    }
+
+    function getLatestBiomarkerEntry(athlete, fieldNames) {
+        if (!athlete || !Array.isArray(athlete.Biomarkers)) return null;
+
+        let latestEntry = null;
+        let latestTime = Number.NEGATIVE_INFINITY;
+        let latestIndex = -1;
+
+        athlete.Biomarkers.forEach((entry, index) => {
+            if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return;
+            if (fieldNames !== undefined && readBiomarkerValue(entry, fieldNames) === null) return;
+
+            const parsedTime = Date.parse(entry.Date);
+            const entryTime = Number.isFinite(parsedTime) ? parsedTime : Number.NEGATIVE_INFINITY;
+            if (!latestEntry || entryTime > latestTime || (entryTime === latestTime && index > latestIndex)) {
+                latestEntry = entry;
+                latestTime = entryTime;
+                latestIndex = index;
+            }
+        });
+
+        return latestEntry;
+    }
+
+    function getLatestBiomarkerValue(athlete, fieldNames) {
+        const entry = getLatestBiomarkerEntry(athlete, fieldNames);
+        const value = readBiomarkerValue(entry, fieldNames);
+        return value === null ? null : { entry, value };
+    }
+
+    function buildUnitSpecificBiomarkerPlaceholders(inputId, canonicalValue, displayValueForUnit) {
+        const canonicalNumber = toFiniteBiomarkerNumber(canonicalValue);
+        const select = document.getElementById(`${inputId}Unit`);
+        if (canonicalNumber === null || !select) return null;
+
+        const placeholders = {};
+        Array.from(select.options || []).forEach(option => {
+            const unitText = normalizeUnitText(option.textContent);
+            if (!unitText) return;
+
+            const optionValue = toFiniteBiomarkerNumber(option.value);
+            const displayValue = typeof displayValueForUnit === 'function'
+                ? displayValueForUnit(canonicalNumber, option, unitText)
+                : optionValue === null
+                    ? null
+                    : canonicalNumber * optionValue;
+            const formatted = formatBiomarkerPlaceholderValue(displayValue);
+            if (formatted !== null) {
+                placeholders[unitText] = formatted;
+            }
+        });
+
+        return Object.keys(placeholders).length ? placeholders : null;
+    }
+
+    function readSubmittedPlaceholder(input, unitText) {
+        if (!input?.dataset?.bioageSubmittedPlaceholders) return null;
+
+        try {
+            const placeholders = JSON.parse(input.dataset.bioageSubmittedPlaceholders);
+            const value = placeholders?.[unitText];
+            return typeof value === 'string' && value !== '' ? value : null;
+        } catch (_) {
+            delete input.dataset.bioageSubmittedPlaceholders;
+            return null;
+        }
+    }
+
+    function cleanSubmittedPlaceholderMap(placeholdersByUnit) {
+        if (!placeholdersByUnit || typeof placeholdersByUnit !== 'object' || Array.isArray(placeholdersByUnit)) return null;
+
+        const cleaned = {};
+        Object.entries(placeholdersByUnit).forEach(([unitText, value]) => {
+            const normalizedUnitText = normalizeUnitText(unitText);
+            const formatted = typeof value === 'string' && value.trim()
+                ? value.trim()
+                : formatBiomarkerPlaceholderValue(value);
+
+            if (normalizedUnitText && formatted !== null) {
+                cleaned[normalizedUnitText] = formatted;
+            }
+        });
+
+        return Object.keys(cleaned).length ? cleaned : null;
+    }
+
+    function setSubmittedBiomarkerPlaceholders(placeholdersByInputId) {
+        const assignedIds = new Set();
+        Object.entries(placeholdersByInputId || {}).forEach(([inputId, placeholdersByUnit]) => {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            const cleaned = cleanSubmittedPlaceholderMap(placeholdersByUnit);
+            if (cleaned) {
+                input.dataset.bioageSubmittedPlaceholders = JSON.stringify(cleaned);
+                assignedIds.add(inputId);
+            } else {
+                delete input.dataset.bioageSubmittedPlaceholders;
+            }
+
+            updateBiomarkerExamplePlaceholder(input);
+        });
+
+        document.querySelectorAll('input[data-bioage-submitted-placeholders]').forEach(input => {
+            if (assignedIds.has(input.id)) return;
+
+            delete input.dataset.bioageSubmittedPlaceholders;
+            updateBiomarkerExamplePlaceholder(input);
+        });
+    }
+
     function getBiomarkerInputForUnitSelect(select) {
         if (!select || !select.id || !select.id.endsWith('Unit')) return null;
 
@@ -82,7 +227,8 @@
         const examplesByUnit = biomarkerExamplePlaceholders[input.id];
         const selectedOption = select.options[select.selectedIndex];
         const unitText = normalizeUnitText(selectedOption?.textContent);
-        const example = examplesByUnit?.[unitText];
+        const submittedExample = readSubmittedPlaceholder(input, unitText);
+        const example = submittedExample ?? examplesByUnit?.[unitText];
 
         if (example) {
             input.placeholder = example;
@@ -201,14 +347,19 @@
 
     window.LwcBioageFlow = {
         clearStoredBiomarkerHandoff,
+        buildUnitSpecificBiomarkerPlaceholders,
+        getLatestBiomarkerEntry,
+        getLatestBiomarkerValue,
         getBackDestination,
         getBrowserStorageItem,
         getLocalItem,
         getSessionItem,
+        hasFiniteBiomarkerValue,
         hideUpdateModeStepNavigation,
         isUpdateMode,
         isValidSelectedAthlete,
         navigateBack,
+        readBiomarkerValue,
         readSelectedAthlete,
         redirectMissingSelectedAthlete,
         removeBrowserStorageItem,
@@ -216,8 +367,10 @@
         removeSessionItem,
         setBrowserStorageItem,
         setLocalItem,
+        setSubmittedBiomarkerPlaceholders,
         setSessionItem,
         syncBiomarkerExamplePlaceholders,
+        toFiniteBiomarkerNumber,
         updateBiomarkerExamplePlaceholder,
         updateCalculateButton
     };
