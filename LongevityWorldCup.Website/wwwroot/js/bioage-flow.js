@@ -244,6 +244,24 @@
         }
     }
 
+    function setBiomarkerComparisonChipContent(chip, text, direction) {
+        chip.replaceChildren();
+        if (!direction) {
+            chip.textContent = text;
+            return;
+        }
+
+        const icon = document.createElement('i');
+        icon.className = `fas fa-arrow-${direction}`;
+        icon.setAttribute('aria-hidden', 'true');
+
+        const label = document.createElement('span');
+        label.className = 'bioage-input-comparison-chip__text';
+        label.textContent = text;
+
+        chip.append(icon, label);
+    }
+
     function updateBiomarkerComparison(inputId) {
         const input = document.getElementById(inputId);
         const binding = biomarkerComparisonBindings.get(inputId);
@@ -288,10 +306,11 @@
 
         const text = isSameDisplay
             ? 'same as last'
-            : `${displayDelta < 0 ? '↓' : '↑'} ${deltaMagnitude} ${displayDelta < 0 ? 'lower' : 'higher'}`;
+            : `${deltaMagnitude} ${displayDelta < 0 ? 'lower' : 'higher'}`;
+        const direction = isSameDisplay ? null : (displayDelta < 0 ? 'down' : 'up');
         const chip = ensureBiomarkerComparisonChip(input);
         chip.className = `bioage-input-comparison-chip ${stateClass}`;
-        chip.textContent = text;
+        setBiomarkerComparisonChipContent(chip, text, direction);
         chip.hidden = false;
         chip.title = `Last ${formatBiomarkerPlaceholderValue(previousDisplay)}`;
         chip.setAttribute('aria-label', `${text}; last ${formatBiomarkerPlaceholderValue(previousDisplay)}`);

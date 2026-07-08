@@ -206,6 +206,9 @@
             position: absolute;
             top: 0.58rem;
             right: 0.55rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.22rem;
             max-width: min(42%, 7rem);
             padding: 0.16rem 0.42rem;
             border: 1px solid rgba(100, 116, 139, 0.22);
@@ -214,13 +217,31 @@
             color: #64748b;
             font-size: 0.73rem;
             font-weight: 600;
-            line-height: 1.25;
+            line-height: 1.2;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             pointer-events: none;
             z-index: 1;
         }
+
+            .bioage-input-comparison-chip[hidden] {
+                display: none;
+            }
+
+            .bioage-input-comparison-chip i {
+                flex: 0 0 auto;
+                width: 0.68rem;
+                font-size: 0.68rem;
+                line-height: 1;
+                text-align: center;
+            }
+
+            .bioage-input-comparison-chip__text {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
             .bioage-input-comparison-chip.is-improved {
                 border-color: rgba(47, 125, 90, 0.24);

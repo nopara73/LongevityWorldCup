@@ -206,6 +206,9 @@
             position: absolute;
             top: 0.58rem;
             right: 0.55rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.22rem;
             max-width: min(42%, 7rem);
             padding: 0.16rem 0.42rem;
             border: 1px solid rgba(100, 116, 139, 0.22);
@@ -214,13 +217,31 @@
             color: #64748b;
             font-size: 0.73rem;
             font-weight: 600;
-            line-height: 1.25;
+            line-height: 1.2;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             pointer-events: none;
             z-index: 1;
         }
+
+            .bioage-input-comparison-chip[hidden] {
+                display: none;
+            }
+
+            .bioage-input-comparison-chip i {
+                flex: 0 0 auto;
+                width: 0.68rem;
+                font-size: 0.68rem;
+                line-height: 1;
+                text-align: center;
+            }
+
+            .bioage-input-comparison-chip__text {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
             .bioage-input-comparison-chip.is-improved {
                 border-color: rgba(47, 125, 90, 0.24);
@@ -1967,7 +1988,7 @@
             return raw === null || !unit ? null : raw / unit.unitValue;
         }
 
-        const bortzNeutralComparisonFields = new Set(['wbc', 'urea', 'cholesterol', 'creatinine', 'alt', 'shbg', 'mch']);
+        const bortzNeutralComparisonFields = new Set(['urea', 'cholesterol', 'creatinine', 'alt', 'shbg', 'mch']);
         const bortzFeatureIndexByInput = {
             albumin: 1,
             alp: 2,
@@ -2005,6 +2026,30 @@
             else if (feature.capMode === 'ceiling') x = Math.min(x, feature.cap);
 
             return (x - feature.mean) * feature.baaCoeff * 10;
+        }
+
+        function getPhenoWbcScore(value) {
+            return Math.max(value, 3.5) * 0.0554;
+        }
+
+        function bindBortzWbcComparison() {
+            const latest = bioageFlow.getLatestBiomarkerValue(athlete, 'Wbc1000cellsuL');
+            if (!latest) return;
+
+            bioageFlow.bindBiomarkerComparison('wbc', () => {
+                const currentDisplay = bioageFlow.toFiniteBiomarkerNumber(document.getElementById('wbc')?.value);
+                const unit = getBiomarkerUnitState('wbc');
+                if (currentDisplay === null || !unit) return null;
+
+                const currentCanonical = currentDisplay / unit.unitValue;
+                const previousDisplay = latest.value * unit.unitValue;
+                return {
+                    currentDisplayValue: currentDisplay,
+                    previousDisplayValue: previousDisplay,
+                    currentScore: getPhenoWbcScore(currentCanonical),
+                    previousScore: getPhenoWbcScore(latest.value)
+                };
+            });
         }
 
         function bindBortzGenericComparison(inputId, fieldNames) {
@@ -2108,7 +2153,7 @@
         function setupBortzSubmittedBiomarkerComparisons() {
             if (!isUpdate || !hasSelectedAthlete) return;
 
-            bindBortzGenericComparison('wbc', 'Wbc1000cellsuL');
+            bindBortzWbcComparison();
             bindBortzDifferentialComparison('lymphocyte_percentage', 'LymPc', percentage => percentage);
             bindBortzDifferentialComparison('neutrophil_percentage', 'NeutrophilPc', (percentage, wbc) => wbc * percentage / 100);
             bindBortzDifferentialComparison('monocyte_percentage', 'MonocytePc', (percentage, wbc) => wbc * percentage / 100);
