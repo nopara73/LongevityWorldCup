@@ -260,30 +260,31 @@ namespace LongevityWorldCup.Website.Middleware
 
         private static string LocalizeHungarianHeader(string html)
         {
-            return html
+            html = html
                 .Replace(
                     "<div class=\"bannertext\">Longevity World&nbsp;Cup</div>",
                     "<div class=\"bannertext\">Hosszúéletesítési<br>Világbajnokság</div>")
                 .Replace(
                     "<span class=\"site-sticky-header-title\">Longevity World&nbsp;Cup</span>",
-                    "<span class=\"site-sticky-header-title\">Helstáb Kihívás</span>")
+                    "<span class=\"site-sticky-header-title\">Hosszúéletesítési Világbajnokság</span>")
                 .Replace(
                     "Longevity World Cup logo, a phoenix symbolizing a new life",
                     "Hosszúéletesítési Világbajnokság logó, újjászületést jelképező főnix")
-                .Replace("longevity leaderboards", "hosszúélet-ranglisták")
-                .Replace("onclick=\"window.location.href='/play'\"", "onclick=\"window.location.href='#jelentkezes'\"")
-                .Replace("aria-label=\"Play the game\"", "aria-label=\"Jelentkezés a Helstáb Kihívásra\"")
-                .Replace(
-                    "<strong>PLAY</strong>\r\n        <span class=\"join-game-middle\" style=\"font-size: 1rem;\">THE</span>\r\n        <strong class=\"join-game-end\">GAME</strong>",
-                    "<strong>JELENTKEZÉS</strong>")
-                .Replace(
-                    "<strong>PLAY</strong>\n        <span class=\"join-game-middle\" style=\"font-size: 1rem;\">THE</span>\n        <strong class=\"join-game-end\">GAME</strong>",
-                    "<strong>JELENTKEZÉS</strong>")
-                .Replace("<span class=\"join-game-middle\" style=\"font-size: 1rem;\">THE</span>", "")
-                .Replace("<strong class=\"join-game-end\">GAME</strong>", "")
-                .Replace("<strong>PLAY</strong>", "<strong>JELENTKEZÉS</strong>")
                 .Replace(">Alert<", ">Figyelmeztetés<")
                 .Replace(">Loading<", ">Betöltés<");
+
+            html = Regex.Replace(
+                html,
+                @"\s*<span class=""tagline"">\s*longevity leaderboards\s*</span>",
+                string.Empty,
+                RegexOptions.IgnoreCase);
+            html = Regex.Replace(
+                html,
+                @"\s*<button onclick=""window\.location\.href='/play'"" class=""join-game(?: scrolled-button)?""[^>]*>.*?</button>",
+                string.Empty,
+                RegexOptions.Singleline);
+
+            return html;
         }
 
         private static string LocalizeHungarianFooter(string html)
