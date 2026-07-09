@@ -18,6 +18,7 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("trafficOverview", html);
         Assert.Contains("<span>Timeframe</span>", html);
         Assert.Contains("<option value=\"90d\">90D</option>", html);
+        Assert.Contains("<option value=\"alltime\">All-time</option>", html);
         Assert.Contains("Decision Brief", html);
         Assert.Contains("Recommended Investigations", html);
         Assert.Contains("Segment Comparison", html);

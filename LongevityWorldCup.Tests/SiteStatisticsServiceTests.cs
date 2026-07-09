@@ -182,6 +182,33 @@ public sealed class SiteStatisticsServiceTests
     }
 
     [Fact]
+    public async Task GetDashboardAsync_AllTimeRangeIncludesHistoricalEventsWithoutPreviousWindow()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d" });
+        InsertDashboardEvent(database, DateTimeOffset.UtcNow.AddDays(-120), "S-OLD", "site_page_viewed", "site", route: "/old");
+        InsertDashboardEvent(database, DateTimeOffset.UtcNow.AddDays(-1), "S-RECENT", "site_page_viewed", "site", route: "/recent");
+
+        var recent = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "30d", Limit = 10 });
+        var allTime = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "alltime", Limit = 10 });
+
+        Assert.Single(recent.Events);
+        Assert.Equal(1, recent.TrafficSummary.Totals.Events);
+        Assert.Equal(2, allTime.Events.Count);
+        Assert.Equal(2, allTime.TrafficSummary.Totals.Events);
+        Assert.Empty(allTime.PreviousEvents);
+        Assert.Equal(0, allTime.TrafficSummary.PreviousTotals.Events);
+        Assert.Contains(allTime.TrafficSummary.TopPages, page => page.Route == "/old");
+        Assert.Equal("alltime", allTime.Filters.Range);
+        Assert.Equal(allTime.Filters.PreviousFromUtc, allTime.Filters.PreviousToUtc);
+    }
+
+    [Fact]
     public async Task GetDashboardAsync_TrafficSummarySeparatesCleanAndNoisyTraffic()
     {
         var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");

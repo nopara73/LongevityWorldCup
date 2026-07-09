@@ -61,6 +61,7 @@ public sealed class SiteStatisticsService : IHostedService
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(1);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan DefaultDashboardRange = TimeSpan.FromDays(30);
+    private static readonly DateTimeOffset AllTimeDashboardStartUtc = DateTimeOffset.UnixEpoch;
     private static readonly HashSet<string> InternalReferrerDomains = new(StringComparer.OrdinalIgnoreCase)
     {
         "longevityworldcup.com",
@@ -191,7 +192,7 @@ public sealed class SiteStatisticsService : IHostedService
 
         var now = DateTimeOffset.UtcNow;
         var from = ResolveFrom(query.Range, now);
-        var previousFrom = from - (now - from);
+        var previousFrom = IsAllTimeRange(query.Range) ? from : from - (now - from);
         var limit = Math.Clamp(query.Limit ?? DefaultDashboardLimit, 1, MaxDashboardLimit);
 
         return await _database.RunAsync(sqlite =>
@@ -1484,8 +1485,13 @@ public sealed class SiteStatisticsService : IHostedService
             "7d" => now.AddDays(-7),
             "90d" => now.AddDays(-90),
             "season" => new DateTimeOffset(now.Year, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            "alltime" or "all-time" => AllTimeDashboardStartUtc,
             "30d" or _ => now.Subtract(DefaultDashboardRange)
         };
+
+    private static bool IsAllTimeRange(string? range)
+        => string.Equals(range?.Trim(), "alltime", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(range?.Trim(), "all-time", StringComparison.OrdinalIgnoreCase);
 
     private static string NormalizeFilter(string? value)
         => string.IsNullOrWhiteSpace(value) || string.Equals(value, "all", StringComparison.OrdinalIgnoreCase)
