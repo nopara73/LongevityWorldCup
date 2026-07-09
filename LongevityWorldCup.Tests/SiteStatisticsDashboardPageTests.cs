@@ -98,6 +98,9 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("window.history[method] = function ()", tracker);
         Assert.Contains("function isIgnoredClientErrorMessage(message)", tracker);
         Assert.Contains("ResizeObserver loop completed with undelivered notifications", tracker);
+        Assert.Contains("function hasApplicationReviewContext()", tracker);
+        Assert.Contains("isReviewSource(params.get(\"from\"))", tracker);
+        Assert.Contains("isReviewSource(sessionStorage.getItem(\"came-from\"))", tracker);
         Assert.Contains("function isEmailReferrer(host)", tracker);
         const string emailSourceLine = "if (isEmailReferrer(host)) return \"email\";";
         const string searchSourceLine = "if (/google|bing|duckduckgo|yahoo|brave|search/i.test(host)) return \"search\";";
@@ -188,6 +191,38 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("stacked-bar", dashboard);
         Assert.Contains("\"Auto\"", dashboard);
         Assert.Contains("\"Late\"", dashboard);
+    }
+
+    [Fact]
+    public void SiteStatisticsTracker_DoesNotFlagValidApplicationEntryPagesAsMissingHandoff()
+    {
+        var repoRoot = FindRepoRoot();
+        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
+        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+
+        var pageViewTrackingStart = tracker.IndexOf("function setupPageViews()", StringComparison.Ordinal);
+        Assert.True(pageViewTrackingStart >= 0);
+
+        var applyBlockStart = tracker.IndexOf("if (path.includes(\"convergence\") || path === \"/apply\")", pageViewTrackingStart, StringComparison.Ordinal);
+        var proofsBlockStart = tracker.IndexOf("if (path.includes(\"proof-upload\") || path === \"/proofs\")", pageViewTrackingStart, StringComparison.Ordinal);
+        Assert.True(applyBlockStart >= 0);
+        Assert.True(proofsBlockStart > applyBlockStart);
+
+        var applyBlock = tracker[applyBlockStart..proofsBlockStart];
+        Assert.Contains("track(\"proof_flow_opened\"", applyBlock);
+        Assert.DoesNotContain("proof_flow_missing_handoff", applyBlock);
+
+        var calculatorBlockStart = tracker.IndexOf("if (flowFromPath() === \"pheno\"", proofsBlockStart, StringComparison.Ordinal);
+        Assert.True(calculatorBlockStart > proofsBlockStart);
+
+        var proofsBlock = tracker[proofsBlockStart..calculatorBlockStart];
+        Assert.Contains("proof_flow_missing_handoff", proofsBlock);
+
+        Assert.Contains("function isBenignMissingContextEvent(e)", dashboard);
+        Assert.Contains("route === \"/apply\"", dashboard);
+        Assert.Contains("route.includes(\"from=proof-upload\")", dashboard);
+        Assert.DoesNotContain("route.includes(\"from=redacted\")", dashboard);
+        Assert.Contains("!isBenignMissingContextEvent(e)", dashboard);
     }
 
     [Fact]
