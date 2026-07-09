@@ -5,7 +5,7 @@
 .helstab-page {
     width: 100vw;
     max-width: none;
-    margin: -1.35rem calc(50% - 50vw) 0;
+    margin: 0 calc(50% - 50vw) 0;
     padding: 0;
     color: #18212f;
     overflow-x: clip;
@@ -29,7 +29,7 @@
     isolation: isolate;
     background:
         linear-gradient(90deg, rgba(3, 7, 18, 0.88), rgba(3, 7, 18, 0.48) 46%, rgba(3, 7, 18, 0.12)),
-        var(--helstab-hero-image) center 35% / cover no-repeat;
+        var(--helstab-hero-image) center 15% / cover no-repeat;
 }
 
 .helstab-hero::after {
@@ -491,7 +491,7 @@
 
 @media (max-width: 640px) {
     .helstab-page {
-        margin-top: -1.2rem;
+        margin-top: 0;
     }
 
     .helstab-hero {
