@@ -187,7 +187,7 @@
 }
 
 .helstab-band {
-    padding: 4rem 1rem;
+    padding: 3.25rem 1rem;
 }
 
 .helstab-inner {
@@ -269,7 +269,7 @@
 }
 
 .helstab-signal {
-    min-height: 12rem;
+    min-height: 8.8rem;
     display: grid;
     align-content: start;
     gap: 0.65rem;
@@ -305,7 +305,7 @@
 }
 
 .helstab-step {
-    min-height: 11rem;
+    min-height: 8.4rem;
     display: grid;
     align-content: start;
     gap: 0.7rem;
@@ -330,18 +330,11 @@
 }
 
 .helstab-profile-layout {
-    grid-template-columns: minmax(18rem, 0.78fr) minmax(0, 1.22fr);
+    grid-template-columns: minmax(0, 1fr);
 }
 
-.helstab-profile-image {
-    width: min(100%, 420px);
-    aspect-ratio: 1;
-    justify-self: center;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 8px;
-    object-fit: cover;
-    object-position: center 35%;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+.profile-band .helstab-section-copy {
+    max-width: 760px;
 }
 
 .helstab-signup-layout {
@@ -561,9 +554,6 @@
         min-height: 0;
     }
 
-    .helstab-profile-image {
-        width: min(100%, 340px);
-    }
 }
 
 @media (max-width: 360px) {
