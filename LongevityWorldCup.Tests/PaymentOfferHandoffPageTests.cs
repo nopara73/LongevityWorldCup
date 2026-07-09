@@ -85,6 +85,7 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("min-width: 44px;", html);
         Assert.Contains("height: 44px;", html);
         Assert.Contains(".pro-discount-box .pro-discount-breakdown .pro-discount-badge-slot:empty", html);
+        Assert.Contains(".pro-discount-box .pro-discount-breakdown.pro-discount-breakdown--with-badges .pro-discount-badge-slot:empty", html);
         Assert.Contains(".pro-discount-box .pro-discount-breakdown .pro-discount-text", html);
         Assert.Contains("overflow-wrap: anywhere;", html);
     }

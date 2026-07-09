@@ -702,6 +702,9 @@ function createGoProDiscountSummary(result) {
 
     const breakdownLine = document.createElement("p");
     breakdownLine.className = "pro-discount-breakdown";
+    if (Array.isArray(result.components) && result.components.some(component => component && component.isBadge)) {
+        breakdownLine.classList.add("pro-discount-breakdown--with-badges");
+    }
     if (typeof window.proDiscounts.createBreakdownHtml === "function") {
         breakdownLine.innerHTML = window.proDiscounts.createBreakdownHtml(result);
     } else {
@@ -728,6 +731,12 @@ function renderDashboardActions(athlete, options) {
 
         const isDemoPro = Boolean(options.demoPro);
         const isPro = isDemoPro || (window.isAthletePro ? window.isAthletePro(athlete) : false);
+        const challengeButton = createDashboardButton(
+            "<span class=\"dashboard-action-label flow-action__label\">Longevitymaxxing</span><i class=\"fas fa-calendar-check\" aria-hidden=\"true\"></i>",
+            "option-button grey flow-action flow-action--secondary",
+            "/longevitymaxxing",
+            () => clearPendingPaymentOffer()
+        );
 
         if (isPro) {
             const phenoButton = createDashboardButton(
@@ -742,7 +751,7 @@ function renderDashboardActions(athlete, options) {
                 "/bortz-age?update=1",
                 () => clearPendingPaymentOffer()
             );
-            dynamicActions.append(phenoButton, bortzButton);
+            dynamicActions.append(challengeButton, phenoButton, bortzButton);
             return;
         }
 
@@ -782,7 +791,7 @@ function renderDashboardActions(athlete, options) {
             }
         );
 
-        dynamicActions.append(submitButton, goProButton);
+        dynamicActions.append(challengeButton, submitButton, goProButton);
         const goProDiscountSummary = goProDiscountResult ? createGoProDiscountSummary(goProDiscountResult) : null;
         if (goProDiscountSummary) {
             dynamicActions.append(goProDiscountSummary);
