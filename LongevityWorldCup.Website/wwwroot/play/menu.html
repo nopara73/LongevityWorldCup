@@ -324,6 +324,22 @@
             color: #14532d;
         }
 
+        .play-join-challenge-note {
+            width: min(100%, 760px);
+            margin: 1rem auto 0;
+            color: #526d7a;
+            font-size: 0.95rem;
+            line-height: 1.35;
+            text-align: center;
+        }
+
+        .play-join-challenge-note a {
+            color: #0f6d7a;
+            font-weight: 700;
+            text-decoration: underline;
+            text-underline-offset: 0.16em;
+        }
+
         .play-join-back {
             margin-top: 1.35rem;
         }
@@ -514,6 +530,10 @@
 
         .pro-discount-box .pro-discount-breakdown .pro-discount-badge-slot:empty {
             display: none;
+        }
+
+        .pro-discount-box .pro-discount-breakdown.pro-discount-breakdown--with-badges .pro-discount-badge-slot:empty {
+            display: inline-flex;
         }
 
         .pro-discount-box .pro-discount-breakdown .pro-discount-text {
@@ -876,7 +896,12 @@
                         </div>
                     </div>
                 </article>
+
             </div>
+
+            <p class="play-join-challenge-note">
+                Not ready for a blood test yet? <a id="joinStartChallengeLink" href="/longevitymaxxing">Try our longevitymaxxing lifestyle challenge instead</a>
+            </p>
 
             <div class="options-container play-join-back flow-action-stack">
                 <button id="joinTrackBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
@@ -1271,6 +1296,7 @@
                 if (amateurPrice) amateurPrice.textContent = 'free';
                 if (proEntryPrice) proEntryPrice.innerHTML = '<span class="pro-new-price">free</span>';
                 if (breakdown) breakdown.textContent = '';
+                if (breakdown) breakdown.classList.remove('pro-discount-breakdown--with-badges');
                 if (note) note.style.display = 'none';
                 return true;
             }
@@ -1284,6 +1310,10 @@
                 const breakdown = document.getElementById('joinProDiscountBreakdown');
                 const proEntryPrice = document.getElementById('joinProEntryPrice');
                 if (!note || !breakdown || !proEntryPrice) return;
+                breakdown.classList.toggle(
+                    'pro-discount-breakdown--with-badges',
+                    Array.isArray(result.components) && result.components.some(component => component && component.isBadge)
+                );
 
                 proEntryPrice.innerHTML = typeof window.proDiscounts.createPriceHtml === 'function'
                     ? window.proDiscounts.createPriceHtml(result)
@@ -1291,6 +1321,7 @@
 
                 if (!Array.isArray(result.components) || result.components.length === 0) {
                     breakdown.textContent = '';
+                    breakdown.classList.remove('pro-discount-breakdown--with-badges');
                     note.style.display = 'none';
                     return;
                 }

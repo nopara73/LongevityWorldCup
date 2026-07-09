@@ -42,6 +42,7 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
         Assert.True(await page.GetByRole(AriaRole.Button, new() { Name = "Start amateur" }).IsVisibleAsync());
         Assert.True(await page.GetByRole(AriaRole.Button, new() { Name = "Go pro" }).IsVisibleAsync());
+        Assert.True(await page.GetByRole(AriaRole.Link, new() { Name = "Try our longevitymaxxing lifestyle challenge instead" }).IsVisibleAsync());
 
         await page.GoBackAsync();
         await page.WaitForURLAsync("**/play");
@@ -135,6 +136,7 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Browser Test Athlete", await page.Locator("#athleteDashboardTitle").InnerTextAsync());
         await ExpectAthletePictureFallbackAsync(page, "#athleteDashboardPicture");
+        Assert.True(await page.GetByRole(AriaRole.Button, new() { Name = "Longevitymaxxing" }).IsVisibleAsync());
 
         await page.GoBackAsync();
         await page.WaitForURLAsync("**/select-athlete");
