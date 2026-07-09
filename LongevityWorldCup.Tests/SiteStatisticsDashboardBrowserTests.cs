@@ -36,6 +36,12 @@ public sealed class SiteStatisticsDashboardBrowserTests
                 errors.Add(message.Text);
         };
         page.PageError += (_, error) => errors.Add(error);
+        var dashboardRequests = new List<string>();
+        page.Request += (_, request) =>
+        {
+            if (request.Url.Contains("/api/site-statistics/dashboard", StringComparison.Ordinal))
+                dashboardRequests.Add(request.Url);
+        };
 
         await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Traffic Overview" }).WaitForAsync();
@@ -46,12 +52,15 @@ public sealed class SiteStatisticsDashboardBrowserTests
         await page.Locator("#trafficOverview").GetByText("Top-session share").WaitForAsync();
         await page.Locator("#trafficOverview").GetByText("Repeated-refresh sessions").WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Daily traffic" }).WaitForAsync();
+        await page.Locator("#trafficOverview .traffic-chart .traffic-bar.sessions").First.WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Top pages" }).WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Sources" }).WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Referrers" }).WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Devices" }).WaitForAsync();
+        Assert.Contains(dashboardRequests, url => url.Contains("limit=100", StringComparison.Ordinal));
         await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Onboarding Diagnostics" }).ClickAsync();
         await page.WaitForSelectorAsync("#decisionBrief .decision-card");
+        Assert.Contains(dashboardRequests, url => url.Contains("limit=5000", StringComparison.Ordinal));
         await page.WaitForSelectorAsync("#outcomeStrip .metric-tile");
         await page.Locator("#decisionBrief").GetByText("Calculator completions are not reaching proof flow").WaitForAsync();
         await page.GetByText("Calculator completion sources").WaitForAsync();
