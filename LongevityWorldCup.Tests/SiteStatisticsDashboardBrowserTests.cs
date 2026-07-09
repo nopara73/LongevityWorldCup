@@ -51,7 +51,7 @@ public sealed class SiteStatisticsDashboardBrowserTests
         await page.Locator("#trafficOverview").GetByText("Noisy sessions").WaitForAsync();
         await page.Locator("#trafficOverview").GetByText("Top-session share").WaitForAsync();
         await page.Locator("#trafficOverview").GetByText("Repeated-refresh sessions").WaitForAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "Website success over time" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Conversions over time" }).WaitForAsync();
         await page.Locator("#trafficOverview .success-trend-panel .traffic-legend i.success-rate").WaitForAsync();
         await page.Locator("#trafficOverview .success-trend-svg").WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Daily traffic" }).WaitForAsync();
