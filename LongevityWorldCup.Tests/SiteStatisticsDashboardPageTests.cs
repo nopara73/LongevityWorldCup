@@ -30,6 +30,18 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.DoesNotContain("{{ASSET_POPPINS_REGULAR}}", html);
     }
 
+    [Fact]
+    public void SiteStatisticsDashboard_SelectOptionsHaveReadableNativePopupColors()
+    {
+        var repoRoot = FindRepoRoot();
+        var css = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "css", "site-statistics.css"));
+
+        Assert.Contains("select option", css);
+        Assert.Contains("color: #11161d;", css);
+        Assert.Contains("background: #ffffff;", css);
+        Assert.Contains("select option:checked", css);
+    }
+
     [Theory]
     [InlineData("/join")]
     [InlineData("/pheno-age")]
