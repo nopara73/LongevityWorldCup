@@ -359,6 +359,7 @@
     function setupJoinGameTracking() {
         const amateur = document.getElementById("joinStartAmateurBtn") || document.querySelector("[onclick*='startAmateurApplication']");
         const pro = document.getElementById("joinGoProButton") || document.querySelector("[onclick*='startProApplication']");
+        const challenge = document.getElementById("joinStartChallengeLink");
         listen(amateur, "click", () => {
             track("onboarding_clock_selected", {
                 flow: "pheno",
@@ -375,6 +376,15 @@
                 step: "pro",
                 outcome: "selected",
                 metadata: { track: "pro" }
+            });
+        }, { passive: true });
+        listen(challenge, "click", () => {
+            track("onboarding_challenge_selected", {
+                flow: "challenge",
+                component: "join_game",
+                step: "challenge",
+                outcome: "selected",
+                metadata: { track: "challenge" }
             });
         }, { passive: true });
 

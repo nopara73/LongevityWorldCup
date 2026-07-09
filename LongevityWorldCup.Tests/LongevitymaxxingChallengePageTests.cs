@@ -415,7 +415,7 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
-    public async Task Homepage_AdvertisesLongevitymaxxingChallengeWhileSignupIsOpen()
+    public async Task Homepage_DoesNotAdvertiseLongevitymaxxingChallengeWhileSignupIsOpen()
     {
         using var factory = CreateFactory(new Config
         {
@@ -429,17 +429,17 @@ public sealed class LongevitymaxxingChallengePageTests
 
         var html = await client.GetStringAsync("/");
 
-        Assert.Contains("id=\"longevitymaxxingPromo\"", html);
-        Assert.Contains("Don't feel ready for the Longevity World Cup yet? Try longevitymaxxing first.", html);
-        Assert.Contains("Start longevitymaxxing", html);
-        Assert.Contains("href=\"/longevitymaxxing\"", html);
+        Assert.DoesNotContain("id=\"longevitymaxxingPromo\"", html);
+        Assert.DoesNotContain("Don't feel ready for the Longevity World Cup yet? Try longevitymaxxing first.", html);
+        Assert.DoesNotContain("Start longevitymaxxing", html);
+        Assert.DoesNotContain("href=\"/longevitymaxxing\"", html);
         Assert.DoesNotContain("Separate Lifestyle challenge", html);
         Assert.DoesNotContain("does not affect Ultimate League rankings", html);
         Assert.DoesNotContain("/api/longevitymaxxing/state", html);
     }
 
     [Fact]
-    public async Task Homepage_AdvertisesLongevitymaxxingChallengeWhileActiveSignupIsOpen()
+    public async Task Homepage_DoesNotAdvertiseLongevitymaxxingChallengeWhileActiveSignupIsOpen()
     {
         var now = DateTimeOffset.UtcNow;
         using var factory = CreateFactory(new Config
@@ -454,13 +454,13 @@ public sealed class LongevitymaxxingChallengePageTests
 
         var html = await client.GetStringAsync("/");
 
-        Assert.Contains("id=\"longevitymaxxingPromo\"", html);
-        Assert.Contains("Start longevitymaxxing", html);
+        Assert.DoesNotContain("id=\"longevitymaxxingPromo\"", html);
+        Assert.DoesNotContain("Start longevitymaxxing", html);
         Assert.DoesNotContain("Separate Lifestyle challenge", html);
     }
 
     [Fact]
-    public async Task Homepage_AdvertisesLongevitymaxxingChallengeBeforeStartAfterConfiguredSignupClose()
+    public async Task Homepage_DoesNotAdvertiseLongevitymaxxingChallengeBeforeStartAfterConfiguredSignupClose()
     {
         var now = DateTimeOffset.UtcNow;
         using var factory = CreateFactory(new Config
@@ -476,15 +476,15 @@ public sealed class LongevitymaxxingChallengePageTests
         var html = await client.GetStringAsync("/");
         var json = await client.GetStringAsync("/api/longevitymaxxing/state");
 
-        Assert.Contains("id=\"longevitymaxxingPromo\"", html);
-        Assert.Contains("Start longevitymaxxing", html);
+        Assert.DoesNotContain("id=\"longevitymaxxingPromo\"", html);
+        Assert.DoesNotContain("Start longevitymaxxing", html);
         Assert.DoesNotContain("Separate Lifestyle challenge", html);
         Assert.Contains("\"phase\":\"signup\"", json);
         Assert.Contains("\"signupOpen\":true", json);
     }
 
     [Fact]
-    public async Task Homepage_AdvertisesLongevitymaxxingChallengeAfterOriginalSignupClose()
+    public async Task Homepage_DoesNotAdvertiseLongevitymaxxingChallengeAfterOriginalSignupClose()
     {
         using var factory = CreateFactory(new Config
         {
@@ -498,9 +498,9 @@ public sealed class LongevitymaxxingChallengePageTests
 
         var html = await client.GetStringAsync("/");
 
-        Assert.Contains("id=\"longevitymaxxingPromo\"", html);
-        Assert.Contains("Don't feel ready for the Longevity World Cup yet? Try longevitymaxxing first.", html);
-        Assert.Contains("Start longevitymaxxing", html);
+        Assert.DoesNotContain("id=\"longevitymaxxingPromo\"", html);
+        Assert.DoesNotContain("Don't feel ready for the Longevity World Cup yet? Try longevitymaxxing first.", html);
+        Assert.DoesNotContain("Start longevitymaxxing", html);
         Assert.DoesNotContain("Separate Lifestyle challenge", html);
         Assert.DoesNotContain("does not affect Ultimate League rankings", html);
     }
