@@ -45,12 +45,15 @@ public sealed class SiteStatisticsDashboardBrowserTests
 
         await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Traffic Overview" }).WaitForAsync();
-        await page.Locator("#trafficOverview").GetByText("Visitor sessions").WaitForAsync();
+        await page.Locator("#trafficOverview").GetByText("Visitor sessions", new() { Exact = true }).WaitForAsync();
         await page.GetByLabel("Traffic totals").GetByText("Page views", new() { Exact = true }).WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Clean vs raw traffic" }).WaitForAsync();
         await page.Locator("#trafficOverview").GetByText("Noisy sessions").WaitForAsync();
         await page.Locator("#trafficOverview").GetByText("Top-session share").WaitForAsync();
         await page.Locator("#trafficOverview").GetByText("Repeated-refresh sessions").WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Website success over time" }).WaitForAsync();
+        await page.Locator("#trafficOverview .success-trend-panel .traffic-legend i.success-rate").WaitForAsync();
+        await page.Locator("#trafficOverview .success-trend-svg").WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Daily traffic" }).WaitForAsync();
         await page.Locator("#trafficOverview .traffic-chart .traffic-bar.sessions").First.WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Top pages" }).WaitForAsync();
@@ -58,6 +61,14 @@ public sealed class SiteStatisticsDashboardBrowserTests
         await page.GetByRole(AriaRole.Heading, new() { Name = "Referrers" }).WaitForAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = "Devices" }).WaitForAsync();
         Assert.Contains(dashboardRequests, url => url.Contains("limit=100", StringComparison.Ordinal));
+        var range30Response = page.WaitForResponseAsync(response =>
+            response.Url.Contains("/api/site-statistics/dashboard", StringComparison.Ordinal) &&
+            response.Url.Contains("range=30d", StringComparison.Ordinal) &&
+            response.Ok);
+        await page.Locator("#statsRange").SelectOptionAsync("30d");
+        await range30Response;
+        await page.Locator("#trafficOverview .success-trend-svg").WaitForAsync();
+        Assert.Contains(dashboardRequests, url => url.Contains("range=30d", StringComparison.Ordinal));
         await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Onboarding Diagnostics" }).ClickAsync();
         await page.WaitForSelectorAsync("#decisionBrief .decision-card");
         Assert.Contains(dashboardRequests, url => url.Contains("limit=5000", StringComparison.Ordinal));

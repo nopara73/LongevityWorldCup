@@ -340,6 +340,92 @@ select:focus,
     overflow-wrap: anywhere;
 }
 
+.success-trend-panel {
+    overflow: hidden;
+}
+
+.success-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.success-summary-card {
+    min-height: 72px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.045);
+    padding: 10px;
+    display: grid;
+    gap: 5px;
+    align-content: space-between;
+}
+
+.success-summary-card span {
+    color: var(--dim);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.success-summary-card strong {
+    font-size: 22px;
+    line-height: 1;
+    overflow-wrap: anywhere;
+}
+
+.success-summary-card em {
+    color: var(--muted);
+    font-size: 10px;
+    font-style: normal;
+    overflow-wrap: anywhere;
+}
+
+.success-trend-wrap {
+    overflow-x: auto;
+    padding-bottom: 3px;
+}
+
+.success-trend-svg {
+    min-width: 100%;
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background:
+        linear-gradient(180deg, rgba(103, 211, 147, 0.07), rgba(255, 255, 255, 0.025)),
+        rgba(255, 255, 255, 0.025);
+}
+
+.success-grid-line {
+    stroke: rgba(255, 255, 255, 0.09);
+    stroke-width: 1;
+}
+
+.success-axis-label,
+.success-day-label {
+    fill: var(--dim);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.success-action-bar {
+    fill: rgba(255, 207, 93, 0.58);
+}
+
+.success-rate-line {
+    fill: none;
+    stroke: var(--green);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.success-rate-dot {
+    fill: var(--green);
+    stroke: var(--panel);
+    stroke-width: 2;
+}
+
 .traffic-chart {
     min-height: 250px;
     display: grid;
@@ -395,6 +481,14 @@ select:focus,
 .traffic-bar.page-views,
 .traffic-legend i.page-views {
     background: var(--pink);
+}
+
+.traffic-legend i.success-rate {
+    background: var(--green);
+}
+
+.traffic-legend i.success-actions {
+    background: var(--amber);
 }
 
 .traffic-legend {
@@ -1563,6 +1657,10 @@ select:focus,
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .success-summary {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .traffic-grid {
         grid-template-columns: 1fr;
     }
@@ -1616,6 +1714,15 @@ select:focus,
 
     .traffic-quality-grid {
         grid-template-columns: 1fr;
+    }
+
+    .success-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .success-summary-card {
+        min-height: 58px;
+        padding: 8px;
     }
 
     .traffic-breakdown-row {

@@ -16,6 +16,8 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("/css/site-statistics.css?v=", html);
         Assert.Contains("/js/site-statistics.js?v=", html);
         Assert.Contains("trafficOverview", html);
+        Assert.Contains("<span>Timeframe</span>", html);
+        Assert.Contains("<option value=\"90d\">90D</option>", html);
         Assert.Contains("Decision Brief", html);
         Assert.Contains("Recommended Investigations", html);
         Assert.Contains("Segment Comparison", html);
@@ -192,6 +194,11 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("payload.trafficSummary", dashboard);
         Assert.Contains("Visitor sessions", dashboard);
         Assert.Contains("Page views", dashboard);
+        Assert.Contains("Website success over time", dashboard);
+        Assert.Contains("Success actions", dashboard);
+        Assert.Contains("Successful sessions", dashboard);
+        Assert.Contains("Session success rate", dashboard);
+        Assert.Contains("successTrendChart", dashboard);
         Assert.Contains("Daily traffic", dashboard);
         Assert.Contains("Top pages", dashboard);
         Assert.Contains("Sources", dashboard);

@@ -24,6 +24,7 @@ public sealed class SiteStatisticsService : IHostedService
     private const int MaxQueuedEvents = 2000;
     private const int FlushBatchSize = 250;
     private const string PageViewEventNamesSql = "'site_page_viewed','onboarding_entry_viewed','onboarding_page_viewed','challenge_page_viewed'";
+    private const string SuccessActionEventNamesSql = "'calculator_result_generated','application_submit_succeeded','application_submit_accepted','challenge_signup_succeeded'";
     private const string EffectiveSourceSql =
         """
         CASE
@@ -397,7 +398,9 @@ public sealed class SiteStatisticsService : IHostedService
             SELECT substr(e.OccurredAtUtc, 1, 10) AS Day,
                    COUNT(DISTINCT e.SessionHash) AS Sessions,
                    COALESCE(SUM(CASE WHEN e.EventName IN ({{PageViewEventNamesSql}}) THEN 1 ELSE 0 END), 0) AS PageViews,
-                   COUNT(*) AS Events
+                   COUNT(*) AS Events,
+                   COUNT(DISTINCT CASE WHEN e.EventName IN ({{SuccessActionEventNamesSql}}) THEN e.SessionHash END) AS SuccessSessions,
+                   COALESCE(SUM(CASE WHEN e.EventName IN ({{SuccessActionEventNamesSql}}) THEN 1 ELSE 0 END), 0) AS SuccessActions
             FROM SiteStatisticEvents e
             LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
             WHERE e.OccurredAtUtc >= @from
@@ -418,7 +421,9 @@ public sealed class SiteStatisticsService : IHostedService
                 Day: ReadString(reader, 0),
                 Sessions: reader.GetInt64(1),
                 PageViews: reader.GetInt64(2),
-                Events: reader.GetInt64(3)));
+                Events: reader.GetInt64(3),
+                SuccessSessions: reader.GetInt64(4),
+                SuccessActions: reader.GetInt64(5)));
         }
 
         return points;
@@ -1477,6 +1482,7 @@ public sealed class SiteStatisticsService : IHostedService
         {
             "today" => new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero),
             "7d" => now.AddDays(-7),
+            "90d" => now.AddDays(-90),
             "season" => new DateTimeOffset(now.Year, 1, 1, 0, 0, 0, TimeSpan.Zero),
             "30d" or _ => now.Subtract(DefaultDashboardRange)
         };
@@ -1681,7 +1687,9 @@ public sealed record SiteStatisticsTrafficDailyPoint(
     string Day,
     long Sessions,
     long PageViews,
-    long Events);
+    long Events,
+    long SuccessSessions,
+    long SuccessActions);
 
 public sealed record SiteStatisticsTrafficPage(
     string Route,
