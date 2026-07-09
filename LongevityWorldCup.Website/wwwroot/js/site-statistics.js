@@ -757,10 +757,10 @@
             });
         }
 
-        const missingReview = active.filter(e => e.eventName === "application_review_context_missing");
+        const missingReview = active.filter(e => e.eventName === "application_review_context_missing" && !isBenignMissingContextEvent(e));
         if (missingReview.length > 0) {
             const affected = uniqueSessions(missingReview);
-            const previousAffected = uniqueSessions(previous.filter(e => e.eventName === "application_review_context_missing"));
+            const previousAffected = uniqueSessions(previous.filter(e => e.eventName === "application_review_context_missing" && !isBenignMissingContextEvent(e)));
             const trend = trendPhrase(affected, previousAffected || null, true);
             insights.push({
                 title: "Application review opens without stored context",
@@ -812,7 +812,7 @@
     }
 
     function addInvestigation(items, events, names, title, reason, sessionFilter) {
-        const filtered = events.filter(e => names.includes(e.eventName) && (!sessionFilter || sessionFilter.includes(e.sessionHash)));
+        const filtered = events.filter(e => names.includes(e.eventName) && !isBenignMissingContextEvent(e) && (!sessionFilter || sessionFilter.includes(e.sessionHash)));
         if (!filtered.length || items.some(item => item.title === title)) return;
         items.push({ title, reason, sessions: uniqueSessions(filtered), events: filtered });
     }
@@ -1326,9 +1326,22 @@
             errorCode === "ResizeObserver loop limit exceeded";
     }
 
+    function isBenignMissingContextEvent(e) {
+        if (!e) return false;
+        const route = String(e.route || "").toLowerCase();
+        if (e.eventName === "proof_flow_missing_handoff") {
+            return route === "/apply" || route.startsWith("/apply?") || route.includes("convergence");
+        }
+        if (e.eventName === "application_review_context_missing") {
+            return route.includes("from=proof-upload") || route.includes("from=edit-profile") || route.includes("from=redacted");
+        }
+        return false;
+    }
+
     function frictionEvents(events) {
         return events.filter(e =>
             !isIgnoredClientError(e) &&
+            !isBenignMissingContextEvent(e) &&
             (/failed|failure|missing|rejected|unavailable|invalid|error|blocked/.test(e.eventName) ||
                 /failed|missing|error|blocked/.test(e.outcome || "") ||
                 !!e.errorCode));
