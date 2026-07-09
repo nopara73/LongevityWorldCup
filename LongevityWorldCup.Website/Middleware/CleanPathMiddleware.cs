@@ -39,6 +39,10 @@ namespace LongevityWorldCup.Website.Middleware
                         context.Request.Path = "/longevitymaxxing/longevitymaxxing.html";
                         break;
 
+                    case "/helstab-kihivas":
+                        context.Request.Path = "/helstab-kihivas/helstab-kihivas.html";
+                        break;
+
                     case "/media":
                         context.Request.Path = "/misc-pages/media.html";
                         break;

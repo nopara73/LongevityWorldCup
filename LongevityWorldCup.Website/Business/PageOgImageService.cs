@@ -77,6 +77,13 @@ public sealed class PageOgImageService
                 "Start longevitymaxxing today",
                 "78DA3B",
                 ["Daily check-ins", "Join anytime", "No finish line"]),
+            ["helstab-kihivas"] = new(
+                "helstab-kihivas",
+                "Helstáb Kihívás",
+                "Magyar hosszúéletesítésmaxolás",
+                "14 nap, napi négy kérdés, közös ranglista, Martin Helstábbal.",
+                "00BCD4",
+                ["14 nap", "10 000 Ft", "Magyar közösség"]),
             ["view-bortz"] = new(
                 "view-bortz",
                 "Pro clock view",

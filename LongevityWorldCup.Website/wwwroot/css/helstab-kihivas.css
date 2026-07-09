@@ -1,0 +1,589 @@
+.helstab-body {
+    background: #f4f1ea;
+}
+
+.helstab-page {
+    width: 100vw;
+    max-width: none;
+    margin: -1.35rem calc(50% - 50vw) 0;
+    padding: 0;
+    color: #18212f;
+    overflow-x: clip;
+}
+
+.helstab-page h1,
+.helstab-page h2,
+.helstab-page p,
+.helstab-page dl {
+    letter-spacing: 0;
+}
+
+.helstab-hero {
+    --hero-safe-max: 1180px;
+    position: relative;
+    min-height: 440px;
+    height: 66svh;
+    max-height: 650px;
+    display: flex;
+    align-items: flex-end;
+    isolation: isolate;
+    background:
+        linear-gradient(90deg, rgba(3, 7, 18, 0.88), rgba(3, 7, 18, 0.48) 46%, rgba(3, 7, 18, 0.12)),
+        var(--helstab-hero-image) center 35% / cover no-repeat;
+}
+
+.helstab-hero::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 42%;
+    z-index: -1;
+    background: linear-gradient(0deg, rgba(3, 7, 18, 0.76), rgba(3, 7, 18, 0));
+}
+
+.helstab-hero-shade {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+        linear-gradient(135deg, rgba(0, 188, 212, 0.22), transparent 34%),
+        linear-gradient(315deg, rgba(255, 64, 129, 0.16), transparent 42%);
+}
+
+.helstab-hero-content {
+    width: min(var(--hero-safe-max), calc(100% - 2rem));
+    margin: 0 auto;
+    padding: 0 0 2.2rem;
+    color: #ffffff;
+}
+
+.helstab-kicker,
+.helstab-section-kicker {
+    margin: 0 0 0.75rem;
+    color: #00bcd4;
+    font-size: 0.82rem;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.helstab-hero h1 {
+    max-width: 780px;
+    margin: 0;
+    padding: 0;
+    color: #ffffff;
+    text-align: left;
+    font-size: 4.75rem;
+    line-height: 0.95;
+    text-shadow: 0 4px 22px rgba(0, 0, 0, 0.52);
+    overflow-wrap: anywhere;
+}
+
+.helstab-lead {
+    max-width: 650px;
+    margin: 1rem 0 0;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 1.2rem;
+    line-height: 1.5;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.46);
+}
+
+.helstab-actions,
+.helstab-profile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+    margin-top: 1.2rem;
+}
+
+.helstab-button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.76rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    box-sizing: border-box;
+    color: #0f172a;
+    font: inherit;
+    font-weight: 900;
+    line-height: 1.1;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background-color 140ms ease;
+}
+
+.helstab-button.primary {
+    background: #78da3b;
+    border-color: #78da3b;
+    box-shadow: 0 8px 22px rgba(120, 218, 59, 0.28);
+}
+
+.helstab-button.secondary {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.42);
+    color: #ffffff;
+    backdrop-filter: blur(8px);
+}
+
+.helstab-button.secondary.dark {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.14);
+    color: #0f172a;
+    backdrop-filter: none;
+}
+
+.helstab-button.full {
+    width: 100%;
+}
+
+.helstab-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+}
+
+.helstab-button:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.34);
+    outline-offset: 3px;
+}
+
+.helstab-hero-facts {
+    max-width: 760px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin: 1.35rem 0 0;
+}
+
+.helstab-hero-facts div {
+    min-height: 4.75rem;
+    display: grid;
+    align-content: center;
+    gap: 0.25rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    border-radius: 8px;
+    background: rgba(3, 7, 18, 0.48);
+    backdrop-filter: blur(10px);
+}
+
+.helstab-hero-facts dt {
+    color: rgba(255, 255, 255, 0.66);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.helstab-hero-facts dd {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1.15;
+}
+
+.helstab-band {
+    padding: 4rem 1rem;
+}
+
+.helstab-inner {
+    width: min(1160px, 100%);
+    margin: 0 auto;
+}
+
+.intro-band {
+    background: #ffffff;
+}
+
+.mechanics-band {
+    background: #eef6f7;
+}
+
+.profile-band {
+    background: #101820;
+    color: #ffffff;
+}
+
+.signup-band {
+    background: linear-gradient(135deg, #ffffff, #f3f7ee);
+}
+
+.helstab-intro-grid,
+.helstab-profile-layout,
+.helstab-signup-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: 1.25rem;
+    align-items: center;
+}
+
+.helstab-section-copy h2,
+.helstab-signup-copy h2 {
+    margin: 0;
+    padding: 0;
+    color: inherit;
+    text-align: left;
+    font-size: 2.35rem;
+    line-height: 1.08;
+    text-shadow: none;
+    overflow-wrap: anywhere;
+}
+
+.helstab-section-copy p,
+.helstab-signup-copy p {
+    margin: 1rem 0 0;
+    color: #475569;
+    font-size: 1.04rem;
+    line-height: 1.58;
+}
+
+.profile-band .helstab-section-copy p {
+    color: rgba(255, 255, 255, 0.74);
+}
+
+.helstab-section-copy.compact {
+    max-width: 720px;
+    margin-bottom: 1.25rem;
+}
+
+.helstab-signal-grid,
+.helstab-step-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.helstab-signal-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.helstab-signal,
+.helstab-step,
+.helstab-demo-form {
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.helstab-signal {
+    min-height: 12rem;
+    display: grid;
+    align-content: start;
+    gap: 0.65rem;
+    padding: 1rem;
+}
+
+.helstab-signal i {
+    width: 2.4rem;
+    height: 2.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: #101820;
+    color: #00bcd4;
+}
+
+.helstab-signal strong,
+.helstab-step strong {
+    color: #101820;
+    font-size: 1rem;
+    line-height: 1.25;
+}
+
+.helstab-signal span,
+.helstab-step p {
+    color: #526173;
+    line-height: 1.45;
+}
+
+.helstab-step-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.helstab-step {
+    min-height: 11rem;
+    display: grid;
+    align-content: start;
+    gap: 0.7rem;
+    padding: 1rem;
+}
+
+.helstab-step span,
+.helstab-form-head span {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #ff4081;
+    color: #ffffff;
+    font-weight: 900;
+}
+
+.helstab-step p {
+    margin: 0;
+}
+
+.helstab-profile-layout {
+    grid-template-columns: minmax(18rem, 0.78fr) minmax(0, 1.22fr);
+}
+
+.helstab-profile-image {
+    width: min(100%, 420px);
+    aspect-ratio: 1;
+    justify-self: center;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    object-fit: cover;
+    object-position: center 35%;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+}
+
+.helstab-signup-layout {
+    align-items: start;
+}
+
+.helstab-signup-copy {
+    position: sticky;
+    top: 1rem;
+}
+
+.helstab-demo-form {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.10);
+}
+
+.helstab-form-head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: #101820;
+    font-weight: 900;
+}
+
+.helstab-field {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.helstab-field label {
+    color: #526173;
+    font-size: 0.86rem;
+    font-weight: 800;
+}
+
+.helstab-field input,
+.helstab-field select {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+    border: 1px solid rgba(15, 23, 42, 0.16);
+    border-radius: 8px;
+    padding: 0.7rem 0.75rem;
+    background: #ffffff;
+    color: #101820;
+    font: inherit;
+}
+
+.helstab-field input:focus,
+.helstab-field select:focus {
+    border-color: #00bcd4;
+    outline: 3px solid rgba(0, 188, 212, 0.18);
+}
+
+.helstab-payment-preview {
+    display: grid;
+    gap: 0.65rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.helstab-price-line,
+.helstab-pay-row {
+    min-height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.75rem;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.helstab-price-line strong {
+    color: #101820;
+    font-size: 1.35rem;
+}
+
+.helstab-pay-row {
+    justify-content: flex-start;
+}
+
+.helstab-pay-row i {
+    width: 1.5rem;
+    color: #00a2b8;
+    text-align: center;
+}
+
+.helstab-pay-row span {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 800;
+}
+
+.helstab-pay-row b {
+    flex: 0 0 auto;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #334155;
+    font-size: 0.74rem;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.helstab-payment-preview p,
+.helstab-demo-status {
+    margin: 0;
+    padding: 0.7rem 0.75rem;
+    border-radius: 8px;
+    color: #475569;
+    background: #fff7ed;
+    line-height: 1.45;
+}
+
+.helstab-demo-status {
+    border: 1px solid rgba(0, 188, 212, 0.28);
+    background: #ecfeff;
+    color: #155e75;
+    font-weight: 800;
+}
+
+@media (max-width: 980px) {
+    .helstab-hero {
+        height: 62svh;
+        background:
+            linear-gradient(90deg, rgba(3, 7, 18, 0.88), rgba(3, 7, 18, 0.50)),
+            var(--helstab-hero-image) center top / cover no-repeat;
+    }
+
+    .helstab-hero h1 {
+        max-width: 660px;
+        font-size: 3.25rem;
+    }
+
+    .helstab-intro-grid,
+    .helstab-profile-layout,
+    .helstab-signup-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .helstab-signup-copy {
+        position: static;
+    }
+
+    .helstab-step-grid,
+    .helstab-signal-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .helstab-page {
+        margin-top: -1.2rem;
+    }
+
+    .helstab-hero {
+        min-height: 500px;
+        height: 62svh;
+        align-items: flex-end;
+        background:
+            linear-gradient(180deg, rgba(3, 7, 18, 0.20), rgba(3, 7, 18, 0.88) 64%),
+            var(--helstab-hero-image) center top / cover no-repeat;
+    }
+
+    .helstab-hero-content {
+        width: calc(100% - 1.25rem);
+        padding-bottom: 1rem;
+    }
+
+    .helstab-hero h1 {
+        font-size: 2.35rem;
+        line-height: 1.02;
+    }
+
+    .helstab-lead {
+        font-size: 1rem;
+    }
+
+    .helstab-actions,
+    .helstab-profile-actions {
+        align-items: stretch;
+    }
+
+    .helstab-button {
+        flex: 1 1 100%;
+    }
+
+    .helstab-hero-facts {
+        grid-template-columns: 1fr;
+        gap: 0.4rem;
+    }
+
+    .helstab-hero-facts div {
+        min-height: 3.7rem;
+    }
+
+    .helstab-band {
+        padding: 2.7rem 0.75rem;
+    }
+
+    .helstab-section-copy h2,
+    .helstab-signup-copy h2 {
+        font-size: 1.85rem;
+    }
+
+    .helstab-step-grid,
+    .helstab-signal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .helstab-signal,
+    .helstab-step {
+        min-height: 0;
+    }
+
+    .helstab-profile-image {
+        width: min(100%, 340px);
+    }
+}
+
+@media (max-width: 360px) {
+    .helstab-hero h1 {
+        font-size: 2rem;
+    }
+
+    .helstab-price-line,
+    .helstab-pay-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .helstab-button {
+        transition: none;
+    }
+
+    .helstab-button:hover {
+        transform: none;
+    }
+}
