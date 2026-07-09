@@ -204,8 +204,26 @@
 
     var radarChartInstance = null;
     var radarResizeObserver = null;
+    var radarResizeFrame = 0;
+
+    function scheduleRadarResize() {
+        if (radarResizeFrame) return;
+        var requestFrame = window.requestAnimationFrame || function (callback) { return window.setTimeout(callback, 0); };
+        radarResizeFrame = requestFrame(function () {
+            radarResizeFrame = 0;
+            if (radarChartInstance) radarChartInstance.resize();
+        });
+    }
+
+    function cancelRadarResize() {
+        if (!radarResizeFrame) return;
+        if (window.cancelAnimationFrame) window.cancelAnimationFrame(radarResizeFrame);
+        else window.clearTimeout(radarResizeFrame);
+        radarResizeFrame = 0;
+    }
 
     function destroyRadarChart() {
+        cancelRadarResize();
         if (radarResizeObserver) {
             var wrapper = document.getElementById('ageRadarWrapper');
             if (wrapper) radarResizeObserver.disconnect();
@@ -419,10 +437,10 @@
         });
         radarChartInstance._radarTooltipContributors = contributors;
         if (radarResizeObserver && wrapper) radarResizeObserver.disconnect();
-        radarResizeObserver = new ResizeObserver(function () {
-            if (radarChartInstance) radarChartInstance.resize();
-        });
-        radarResizeObserver.observe(wrapper);
+        if ('ResizeObserver' in window) {
+            radarResizeObserver = new ResizeObserver(scheduleRadarResize);
+            radarResizeObserver.observe(wrapper);
+        }
 
         function selectClock(bortz) {
             var payload = bortz ? currentClockState.bortz : currentClockState.pheno;

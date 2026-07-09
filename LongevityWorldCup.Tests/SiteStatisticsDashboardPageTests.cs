@@ -81,6 +81,8 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("function setupSpaRouteTracking()", tracker);
         Assert.Contains("trackJoinPanelViewForCurrentRoute", tracker);
         Assert.Contains("window.history[method] = function ()", tracker);
+        Assert.Contains("function isIgnoredClientErrorMessage(message)", tracker);
+        Assert.Contains("ResizeObserver loop completed with undelivered notifications", tracker);
         Assert.Contains("function isEmailReferrer(host)", tracker);
         const string emailSourceLine = "if (isEmailReferrer(host)) return \"email\";";
         const string searchSourceLine = "if (/google|bing|duckduckgo|yahoo|brave|search/i.test(host)) return \"search\";";
@@ -133,6 +135,7 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("lmxCommitmentPanel", tracker);
         Assert.Contains("setupPublicContentTracking", tracker);
         Assert.Contains("trackPublicPageViews", tracker);
+        Assert.Contains("function isIgnoredClientError(e)", dashboard);
     }
 
     [Fact]
