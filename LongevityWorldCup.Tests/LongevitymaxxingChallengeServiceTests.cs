@@ -251,6 +251,55 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task SignupWithoutCommitmentKeepsPledgeOptionalAfterConfirmation()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var now = DateTimeOffset.Parse("2026-06-07T12:00:00Z");
+
+        await fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
+            "no-pledge@example.com",
+            "No Pledge Nell",
+            "UTC",
+            null), now);
+        var access = await fixture.Service.ConfirmAsync(
+            ReadQueryToken(fixture.Email.Confirmations.Last().Url, "confirm"),
+            now.AddMinutes(1));
+
+        Assert.Equal("deferred", access.State.Commitment.Status);
+        Assert.False(access.State.Commitment.BlocksParticipant);
+        Assert.True(access.State.Commitment.CanEditAmount);
+        Assert.Null(access.State.Participant.CommitmentAmountUsd);
+
+        var checkedIn = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access.AccessToken, 1, 2, 2, 2, 2, null),
+            DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
+        Assert.Equal("deferred", checkedIn.Commitment.Status);
+        Assert.Null(checkedIn.Participant.CommitmentAmountUsd);
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access.AccessToken, 2, 2, 2, 2, 2, null),
+            DateTimeOffset.Parse("2026-06-10T08:05:00Z"));
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access.AccessToken, 3, 2, 2, 2, 2, null),
+            DateTimeOffset.Parse("2026-06-11T08:05:00Z"));
+        var firstPledgeRelevantState = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access.AccessToken, 4, 2, 2, 2, 2, null),
+            DateTimeOffset.Parse("2026-06-12T08:05:00Z"));
+        Assert.Equal(3, firstPledgeRelevantState.TrendGuidance.PriorScoredDays);
+        Assert.Equal("deferred", firstPledgeRelevantState.Commitment.Status);
+        Assert.False(firstPledgeRelevantState.Commitment.BlocksParticipant);
+
+        var configured = fixture.Service.EditParticipant(new LongevitymaxxingParticipantEditRequest(
+            access.AccessToken,
+            "UTC",
+            30m),
+            DateTimeOffset.Parse("2026-06-12T08:10:00Z"));
+
+        Assert.Equal("clear", configured.Commitment.Status);
+        Assert.Equal(30m, configured.Participant.CommitmentAmountUsd);
+    }
+
+    [Fact]
     public async Task SignupReservesAthleteNamesForSelectedAthleteProfiles()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -1693,15 +1742,9 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task SignupAndProfileRequireValidCommitmentAmountAfterOriginalCatchUp()
+    public async Task NoPledgeParticipantsCanContinuePastOriginalDuration()
     {
         using var fixture = TestChallengeFixture.Create();
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
-            "missing-commitment@example.com",
-            "Missing Commitment",
-            "UTC",
-            null)));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Service.SignupAsync(new LongevitymaxxingSignupRequest(
             "small-commitment@example.com",
@@ -1714,7 +1757,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var deferred = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
         Assert.Equal("deferred", deferred.Commitment.Status);
         Assert.False(deferred.Commitment.BlocksParticipant);
-        Assert.False(deferred.Commitment.CanEditAmount);
+        Assert.True(deferred.Commitment.CanEditAmount);
         Assert.False(deferred.Commitment.CanPay);
 
         var checkedIn = fixture.Service.SubmitCheckIn(
@@ -1739,15 +1782,13 @@ public sealed class LongevitymaxxingChallengeServiceTests
             DateTimeOffset.Parse("2026-06-22T08:05:00Z"));
         Assert.Equal("deferred", day14.Commitment.Status);
 
-        var blocked = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-23T08:05:00Z"));
-        Assert.Equal("needs-amount", blocked.Commitment.Status);
-        Assert.True(blocked.Commitment.BlocksParticipant);
-        Assert.True(blocked.Commitment.CanEditAmount);
-        Assert.False(blocked.Commitment.CanPay);
-        Assert.Contains("Configure an amount that'd hurt before continuing past Day 14.", blocked.Commitment.Message);
+        var continuing = fixture.Service.GetParticipantState(access, DateTimeOffset.Parse("2026-06-23T08:05:00Z"));
+        Assert.Equal("deferred", continuing.Commitment.Status);
+        Assert.False(continuing.Commitment.BlocksParticipant);
+
         var day15 = fixture.Service.SubmitCheckIn(
             new LongevitymaxxingCheckInRequest(access, 15, 2, 2, 2, 2, null),
-            DateTimeOffset.Parse("2026-06-23T08:05:00Z"));
+            DateTimeOffset.Parse("2026-06-23T08:15:00Z"));
         Assert.True(day15.Public.Leaderboard.Single().Cells.Single(cell => cell.ChallengeDay == 15).CheckedIn);
         Assert.Null(day15.Participant.CommitmentAmountUsd);
 
@@ -1755,7 +1796,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             access,
             "UTC",
             12.345m),
-            DateTimeOffset.Parse("2026-06-23T08:10:00Z"));
+            DateTimeOffset.Parse("2026-06-23T08:20:00Z"));
 
         Assert.Equal("clear", configured.Commitment.Status);
         Assert.Equal(12.35m, configured.Participant.CommitmentAmountUsd);
@@ -2100,7 +2141,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task CommitmentBlocksProfilePictureUploadsUntilResolved()
+    public async Task CommitmentDueBlocksProfilePictureUploadsUntilResolved()
     {
         using var fixture = TestChallengeFixture.Create();
         var access = await CreateCommitmentDueParticipantAsync(fixture, "blocked-upload@example.com", "Blocked Bea");
@@ -2115,12 +2156,14 @@ public sealed class LongevitymaxxingChallengeServiceTests
         using var setupStream = CreatePngStream();
         var setupFile = CreatePngFormFile(setupStream);
 
-        var setupError = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            fixture.Service.UploadParticipantProfilePictureAsync(
-                setupAccess,
-                setupFile,
-                nowUtc: DateTimeOffset.Parse("2026-06-23T08:05:00Z")));
-        Assert.Contains("Configure your commitment amount", setupError.Message);
+        var setupState = await fixture.Service.UploadParticipantProfilePictureAsync(
+            setupAccess,
+            setupFile,
+            nowUtc: DateTimeOffset.Parse("2026-06-23T08:05:00Z"));
+
+        Assert.Equal("deferred", setupState.Commitment.Status);
+        Assert.False(setupState.Commitment.BlocksParticipant);
+        Assert.NotNull(setupState.Participant.ProfileImageUrl);
     }
 
     [Fact]
