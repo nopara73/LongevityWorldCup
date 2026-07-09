@@ -84,6 +84,7 @@ public sealed class SiteStatisticsDashboardBrowserTests
         Assert.Contains("AUTO", onboardingDetailText);
         Assert.Contains("baseline pending", visibleText);
         Assert.Contains("S-", visibleText);
+        Assert.DoesNotContain("ResizeObserver loop completed", visibleText);
         Assert.DoesNotContain("raw-browser-session", visibleText);
         Assert.DoesNotContain("private-token", visibleText);
         Assert.DoesNotContain("athlete@example.test", visibleText);
@@ -190,6 +191,15 @@ public sealed class SiteStatisticsDashboardBrowserTests
             {
                 ["checkInKind"] = JsonSerializer.SerializeToElement("practice")
             });
+        await PostEventAsync(
+            client,
+            "client_error_observed",
+            "site",
+            "resize-observer-noise",
+            "/athlete/siim-land",
+            "client",
+            "failed",
+            errorCode: "ResizeObserver loop completed with undelivered notifications.");
     }
 
     private static async Task SeedNoisyJoinEventsAsync(HttpClient client)
@@ -214,7 +224,8 @@ public sealed class SiteStatisticsDashboardBrowserTests
         string route,
         string component,
         string outcome,
-        Dictionary<string, JsonElement>? metadata = null)
+        Dictionary<string, JsonElement>? metadata = null,
+        string? errorCode = null)
     {
         using var response = await client.PostAsync(
             "/api/site-statistics/event",
@@ -226,6 +237,7 @@ public sealed class SiteStatisticsDashboardBrowserTests
                 Route = route,
                 Component = component,
                 Outcome = outcome,
+                ErrorCode = errorCode,
                 DeviceClass = "desktop",
                 BrowserFamily = "Chromium",
                 Source = "direct",
