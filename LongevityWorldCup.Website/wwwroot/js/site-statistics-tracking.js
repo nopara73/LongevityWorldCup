@@ -64,6 +64,22 @@
         return "site";
     }
 
+    function isReviewSource(value) {
+        return value === "proof-upload" || value === "edit-profile";
+    }
+
+    function hasApplicationReviewContext() {
+        return !!safe(() => {
+            const params = new URLSearchParams(window.location.search);
+            return sessionStorage.getItem("pendingPaymentInvoice") ||
+                localStorage.getItem("pendingPaymentInvoicePersistent") ||
+                isReviewSource(params.get("from")) ||
+                isReviewSource(sessionStorage.getItem("came-from")) ||
+                sessionStorage.getItem("contactEmail") ||
+                localStorage.getItem("contactEmail");
+        });
+    }
+
     function deviceClass() {
         const ua = navigator.userAgent || "";
         if (/ipad|tablet/i.test(ua)) return "tablet";
@@ -391,7 +407,7 @@
 
         if (path.includes("application-review") || path === "/review") {
             track("application_review_opened", { component: "application_review", outcome: "opened" });
-            const hasContext = !!safe(() => sessionStorage.getItem("pendingPaymentInvoice") || localStorage.getItem("pendingPaymentInvoicePersistent"));
+            const hasContext = hasApplicationReviewContext();
             track(hasContext ? "application_review_context_found" : "application_review_context_missing", {
                 component: "application_review",
                 outcome: hasContext ? "found" : "missing"
@@ -399,7 +415,12 @@
             return;
         }
 
-        if (path.includes("convergence") || path === "/apply" || path.includes("proof-upload") || path === "/proofs") {
+        if (path.includes("convergence") || path === "/apply") {
+            track("proof_flow_opened", { component: "application", outcome: "opened" });
+            return;
+        }
+
+        if (path.includes("proof-upload") || path === "/proofs") {
             track("proof_flow_opened", { component: "application", outcome: "opened" });
             const hasBiomarkerData = !!safe(() => sessionStorage.getItem("biomarkerData"));
             track(hasBiomarkerData ? "biomarker_handoff_found" : "proof_flow_missing_handoff", {
