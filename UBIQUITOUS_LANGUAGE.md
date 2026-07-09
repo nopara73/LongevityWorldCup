@@ -16,7 +16,7 @@
 - **Social post** is generated copy for X, Threads, Facebook, Slack, or future integrations.
 - **Resting** means a Challenge participant is currently inactive for leaderboard grouping; saved check-ins and notes remain visible, and eligible catch-up check-ins can clear missed-day resting.
 - **Pledge buffer** is Challenge-only commitment slack: the pledge triggers only when a check-in is more than two raw habit points below the raw score needed to meet the recent average. It does not change leaderboard scoring or general slip scoring.
-- Legacy Challenge participants without a pledge may finish eligible original-duration catch-up check-ins. A pledge is required before Day 15+ continuation check-ins.
+- Challenge pledge is optional and is not collected on signup. Participants can set a pledge from the participant menu whenever profile editing is available. If no pledge is set, the check-in flow may prompt for one only when commitment enforcement is about to become relevant; no pledge means the participant continues normally and no Challenge commitment payment can trigger.
 
 ## Naming
 

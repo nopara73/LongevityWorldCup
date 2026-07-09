@@ -542,7 +542,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("const publicContentHidden = checkInOnly;", javascript);
         Assert.Contains("hero.classList.toggle(\"checkin-only\", publicContentHidden);", javascript);
         Assert.Contains("toggle(\"lmxBoardSection\", !publicContentHidden);", javascript);
-        Assert.Contains("toggle(\"lmxCommitmentPanel\", hasParticipant && commitmentBlocked);", javascript);
+        Assert.Contains("toggle(\"lmxCommitmentPanel\", hasParticipant && shouldShowCommitmentPanel(participantState, activeParticipantTab));", javascript);
         Assert.Contains("toggle(\"lmxParticipantTools\", hasParticipant && !commitmentBlocked && activeParticipantTab === \"home\");", javascript);
         Assert.Contains("toggle(\"lmxParticipantCalls\", hasParticipant && !commitmentBlocked && activeParticipantTab === \"home\");", javascript);
         Assert.Contains("toggle(\"lmxParticipantKicker\", !!kicker);", javascript);
@@ -593,7 +593,13 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("participantState.trendGuidance?.text", javascript);
         Assert.Contains("function renderCommitmentPanel", javascript);
         Assert.Contains("function payCommitment", javascript);
+        Assert.Contains("function shouldShowCommitmentPanel", javascript);
+        Assert.Contains("function shouldShowCheckInPledgePrompt", javascript);
+        Assert.Contains("Number(state.trendGuidance?.priorScoredDays || 0) >= 3", javascript);
         Assert.Contains("commitmentAmountUsd: parseCommitmentAmount", javascript);
+        Assert.Contains("commitmentAmountUsd: parseOptionalCommitmentAmount(\"lmxEditCommitmentAmount\")", javascript);
+        Assert.Contains("function parseOptionalCommitmentAmount", javascript);
+        Assert.DoesNotContain("lmxSignupCommitmentAmount", javascript);
         Assert.DoesNotContain("displayName: getIdentityDisplayName(\"edit\")", javascript);
         Assert.DoesNotContain("athleteLink: getIdentityAthletePayload(\"edit\")", javascript);
         Assert.Contains("renderCheckIns(orderedDays, containerId, recentRemarks);", javascript);
@@ -602,10 +608,13 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("setAttribute(\"aria-invalid\", \"true\")", javascript);
         Assert.Contains("Payment confirmed. You're unlocked.", javascript);
         Assert.Contains("Redeem yourself", javascript);
-        Assert.Contains(": \"Make a pledge to continue\";", javascript);
+        Assert.Contains(": \"Make a pledge\";", javascript);
+        Assert.DoesNotContain("Make a pledge to continue", javascript);
         Assert.Contains("<strong>Set a real stake</strong>", javascript);
         Assert.Contains("Fall below your recent average and either pay it or stop. Choose an amount that would hurt.", javascript);
         Assert.Contains("Make a pledge", javascript);
+        Assert.Contains("Fall below your recent average and either pay it or stop longevitymaxxing. You can keep checking in without a pledge.", javascript);
+        Assert.Contains("id=\"lmxPledgeCommitmentAmount\"", javascript);
         Assert.Contains("Check again", javascript);
         Assert.Contains("Waiting for payment confirmation...", javascript);
         Assert.Contains("Still waiting. This can take a minute.", javascript);
@@ -633,7 +642,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("<span aria-hidden=\"true\">$</span>", javascript);
         Assert.Contains("placeholder=\"300\"", javascript);
         var html = await client.GetStringAsync("/longevitymaxxing");
-        Assert.Contains("id=\"lmxSignupCommitmentAmount\"", html);
+        Assert.DoesNotContain("id=\"lmxSignupCommitmentAmount\"", html);
+        Assert.Contains("id=\"lmxEditCommitmentAmount\"", html);
         Assert.Contains("<span aria-hidden=\"true\">$</span>", html);
         Assert.Contains("placeholder=\"300\"", html);
         Assert.DoesNotContain("placeholder=\"$300\"", html);
@@ -791,7 +801,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function chooseTimeZone", javascript);
         Assert.Contains("function timeZoneCountryLabel", javascript);
         Assert.Contains("new Intl.DisplayNames([\"en\"], { type: \"region\" })", javascript);
-        Assert.Contains("const TIME_ZONE_MATCH_LIMIT = 10;", javascript);
+        Assert.DoesNotContain("TIME_ZONE_MATCH_LIMIT", javascript);
+        Assert.DoesNotContain(".slice(0, TIME_ZONE_MATCH_LIMIT)", javascript);
         Assert.Contains("fillTimeZones(document.getElementById(\"lmxSignupTimeZone\"));", javascript);
         Assert.Contains("fillTimeZones(document.getElementById(\"lmxEditTimeZone\"));", javascript);
         Assert.Contains("initTimeZonePickers();", javascript);

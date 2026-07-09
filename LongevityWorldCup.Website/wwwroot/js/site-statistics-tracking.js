@@ -703,22 +703,11 @@
                 trackOnce("challenge-username-completed", "challenge_username_completed", { component: "signup", outcome: "completed" });
                 return;
             }
-            if (target.id === "lmxSignupCommitmentAmount") {
-                trackOnce("challenge-pledge-touched", "challenge_pledge_touched", { component: "signup", step: "pledge", outcome: "touched" });
-                if (target.value) {
-                    track("challenge_pledge_completed", {
-                        component: "signup",
-                        step: "pledge",
-                        outcome: "completed",
-                        metadata: { pledgeBucket: amountBucket(target.value) }
-                    });
-                }
-            }
         }, { passive: true });
 
         listen(signupForm, "invalid", event => {
             const key = safeFieldKey(event.target);
-            track(key === "lmxSignupCommitmentAmount" ? "challenge_pledge_validation_failed" : "challenge_email_validation_failed", {
+            track(key === "lmxSignupEmail" ? "challenge_email_validation_failed" : "challenge_signup_validation_failed", {
                 component: "signup",
                 step: key,
                 outcome: "failed",
@@ -740,6 +729,32 @@
                 });
             }, { passive: true });
         });
+
+        listen(document, "input", event => {
+            const target = event.target;
+            if (!target || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxBlockedCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
+            const component = target.id === "lmxEditCommitmentAmount" ? "profile" : "commitment";
+            trackOnce(`challenge-pledge-touched-${component}`, "challenge_pledge_touched", { component, step: "pledge", outcome: "touched" });
+            if (target.value) {
+                track("challenge_pledge_completed", {
+                    component,
+                    step: "pledge",
+                    outcome: "completed",
+                    metadata: { pledgeBucket: amountBucket(target.value) }
+                });
+            }
+        }, { passive: true });
+
+        listen(document, "invalid", event => {
+            const target = event.target;
+            if (!target || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxBlockedCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
+            track("challenge_pledge_validation_failed", {
+                component: target.id === "lmxEditCommitmentAmount" ? "profile" : "commitment",
+                step: safeFieldKey(target),
+                outcome: "failed",
+                errorCode: "browser_validation"
+            });
+        }, true);
 
         listen(document.getElementById("lmxSignupAthlete"), "input", () => {
             trackOnce("challenge-athlete-search-started", "challenge_athlete_search_started", { component: "signup", step: "athlete_search", outcome: "started" });

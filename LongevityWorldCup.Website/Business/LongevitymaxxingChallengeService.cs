@@ -166,14 +166,13 @@ public sealed class LongevitymaxxingChallengeService
         try
         {
             var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-            var settings = BuildSettings(now);
 
             var email = NormalizeEmail(request.Email);
             var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
             var athleteSlug = TryNormalizeAthleteSlug(request.AthleteLink);
             var athleteProfile = ResolveAthleteProfile(athleteSlug);
             var displayName = ResolveSignupDisplayName(request.DisplayName, athleteSlug, athleteProfile);
-            var commitmentAmountUsd = NormalizeCommitmentAmount(request.CommitmentAmountUsd);
+            var requestedCommitmentAmountUsd = NormalizeOptionalCommitmentAmount(request.CommitmentAmountUsd);
 
             var confirmationToken = CreateToken();
             var accessToken = CreateToken();
@@ -203,7 +202,7 @@ public sealed class LongevitymaxxingChallengeService
                     Add(insert, "@access", accessToken);
                     Add(insert, "@confirm", confirmationToken);
                     Add(insert, "@stop", stopToken);
-                    Add(insert, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
+                    Add(insert, "@commitmentAmount", FormatOptionalDecimal(requestedCommitmentAmountUsd));
                     Add(insert, "@created", now.ToString("o"));
                     Add(insert, "@updated", now.ToString("o"));
                     insert.ExecuteNonQuery();
@@ -218,6 +217,7 @@ public sealed class LongevitymaxxingChallengeService
                     if (HasActivePaymentObligation(sqlite, existing.Id))
                         return;
 
+                    var commitmentAmountUsd = requestedCommitmentAmountUsd ?? existing.CommitmentAmountUsd;
                     EnsureParticipantIdentityAvailable(sqlite, displayName, athleteSlug, existing.Id);
                     using var update = sqlite.CreateCommand();
                     update.CommandText =
@@ -233,7 +233,7 @@ public sealed class LongevitymaxxingChallengeService
                     Add(update, "@name", displayName);
                     Add(update, "@tz", timeZoneId);
                     Add(update, "@athlete", athleteSlug);
-                    Add(update, "@commitmentAmount", FormatDecimal(commitmentAmountUsd));
+                    Add(update, "@commitmentAmount", FormatOptionalDecimal(commitmentAmountUsd));
                     Add(update, "@updated", now.ToString("o"));
                     Add(update, "@id", participantId);
                     update.ExecuteNonQuery();
@@ -385,18 +385,14 @@ public sealed class LongevitymaxxingChallengeService
     public LongevitymaxxingParticipantState EditParticipant(LongevitymaxxingParticipantEditRequest request, DateTimeOffset? nowUtc = null)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        var settings = BuildSettings(now);
         var participant = RequireParticipantByAccessToken(request.AccessToken);
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
-        var commitmentAmountUsd = request.CommitmentAmountUsd is null && !IsCommitmentSetupRequired(settings, participant, now)
+        var commitmentAmountUsd = request.CommitmentAmountUsd is null
             ? participant.CommitmentAmountUsd
             : NormalizeCommitmentAmount(request.CommitmentAmountUsd);
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before editing your profile.");
         EnsureParticipantIdentityUnchanged(participant, request);
-        var commitmentAmountParameter = commitmentAmountUsd.HasValue
-            ? FormatDecimal(commitmentAmountUsd.GetValueOrDefault())
-            : null;
 
         _db.Run(sqlite =>
         {
@@ -410,7 +406,7 @@ public sealed class LongevitymaxxingChallengeService
                 WHERE Id = @id;
                 """;
             Add(update, "@tz", timeZoneId);
-            Add(update, "@commitmentAmount", commitmentAmountParameter);
+            Add(update, "@commitmentAmount", FormatOptionalDecimal(commitmentAmountUsd));
             Add(update, "@updated", now.ToString("o"));
             Add(update, "@id", participant.Id);
             update.ExecuteNonQuery();
@@ -1969,33 +1965,9 @@ public sealed class LongevitymaxxingChallengeService
 
         if (participant.CommitmentAmountUsd is null)
         {
-            var hasOriginalDurationCatchUp = eligibleDays.Any(day =>
-                day.ChallengeDay <= settings.DurationDays &&
-                day.Existing is null);
-            var hasPendingContinuationCheckIn = eligibleDays.Any(day =>
-                day.ChallengeDay > settings.DurationDays &&
-                day.Existing is null);
-            if (!IsCommitmentSetupRequired(settings, participant, now) && !hasPendingContinuationCheckIn)
-            {
-                return new LongevitymaxxingCommitmentState(
-                    "deferred",
-                    false,
-                    false,
-                    false,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null);
-            }
-
             return new LongevitymaxxingCommitmentState(
-                "needs-amount",
-                !hasOriginalDurationCatchUp,
+                "deferred",
+                false,
                 true,
                 false,
                 null,
@@ -2006,7 +1978,7 @@ public sealed class LongevitymaxxingChallengeService
                 null,
                 null,
                 null,
-                "Configure an amount that'd hurt before continuing past Day 14.");
+                null);
         }
 
         return new LongevitymaxxingCommitmentState(
@@ -2037,6 +2009,16 @@ public sealed class LongevitymaxxingChallengeService
         var prior = GetPreviousScoredCheckIns(settings, participant, byDay, referenceDay)
             .Take(CommitmentAverageWindowDays)
             .ToList();
+        if (participant.CommitmentAmountUsd is null)
+        {
+            return new LongevitymaxxingCommitmentTrendGuidance(
+                false,
+                prior.Count,
+                null,
+                null,
+                "");
+        }
+
         if (prior.Count < CommitmentEnforcementPreviousScoredDays)
         {
             var remaining = CommitmentEnforcementPreviousScoredDays - prior.Count;
@@ -2487,9 +2469,6 @@ public sealed class LongevitymaxxingChallengeService
 
     private void EnsureParticipantNotCommitmentBlocked(ParticipantRecord participant, DateTimeOffset? nowUtc = null)
     {
-        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
-        if (participant.CommitmentAmountUsd is null && IsCommitmentSetupRequired(BuildSettings(now), participant, now))
-            throw new InvalidOperationException("Configure your commitment amount before continuing.");
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before continuing.");
     }
@@ -2751,9 +2730,6 @@ public sealed class LongevitymaxxingChallengeService
         var localDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, ResolveTimeZone(participant.TimeZoneId)).DateTime);
         return localDate > settings.EndDate.AddDays(1);
     }
-
-    private static bool IsCommitmentAmountRequiredForCheckIn(ChallengeSettings settings, int challengeDay)
-        => challengeDay > settings.DurationDays;
 
     private static bool CountsForScore(
         ChallengeSettings settings,
@@ -3678,6 +3654,9 @@ public sealed class LongevitymaxxingChallengeService
         return rounded;
     }
 
+    private static decimal? NormalizeOptionalCommitmentAmount(decimal? amount)
+        => amount is null ? null : NormalizeCommitmentAmount(amount);
+
     private static string NormalizeToken(string token)
     {
         var normalized = (token ?? "").Trim();
@@ -4051,6 +4030,9 @@ public sealed class LongevitymaxxingChallengeService
 
     private static string FormatDecimal(decimal value)
         => value.ToString("0.####", CultureInfo.InvariantCulture);
+
+    private static string? FormatOptionalDecimal(decimal? value)
+        => value.HasValue ? FormatDecimal(value.Value) : null;
 
     private static decimal? ParseDecimal(string? value)
         => decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)

@@ -14,7 +14,6 @@
     const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const LEADERBOARD_SCORING_WINDOW_DAYS = 14;
     const COMMITMENT_PAYMENT_POLL_DELAYS_MS = [2500, 5000, 8000, 12000];
-    const TIME_ZONE_MATCH_LIMIT = 10;
     const QUESTIONS = [
         { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you set yourself up for good sleep last night?" },
         { key: "exercise", icon: "fa-dumbbell", title: "Exercise", text: "Did you challenge or intentionally rest your body yesterday?" },
@@ -228,7 +227,6 @@
         const inactiveToggle = document.getElementById("lmxInactiveToggle");
         wireEmailValidityReset(signupEmailInput);
         wireEmailValidityReset(resendEmailInput);
-        wireCommitmentAmountValidation("lmxSignupCommitmentAmount");
         wireCommitmentAmountValidation("lmxEditCommitmentAmount");
 
         signupForm.addEventListener("submit", async event => {
@@ -242,15 +240,13 @@
                     email: signupEmail,
                     displayName: getIdentityDisplayName("signup"),
                     timeZoneId: document.getElementById("lmxSignupTimeZone").value,
-                    athleteLink: getIdentityAthletePayload("signup"),
-                    commitmentAmountUsd: parseCommitmentAmount("lmxSignupCommitmentAmount")
+                    athleteLink: getIdentityAthletePayload("signup")
                 };
                 const result = await postJson(`${API}/signup`, payload);
                 setStatus("lmxSignupStatus", result.message || "Check your email.", false);
                 signupForm.reset();
                 clearAthleteSelector("lmxSignupAthlete");
                 setIdentityMode("signup", "participant");
-                setCommitmentInputValue("lmxSignupCommitmentAmount", null);
                 setDefaultTimezone(document.getElementById("lmxSignupTimeZone"));
                 signupSubmitted = true;
                 renderAll();
@@ -300,11 +296,10 @@
             event.preventDefault();
             if (!accessToken) return;
             await withButton(editForm.querySelector("button[type='submit']"), async () => {
-                const showCommitment = shouldShowCommitmentAmountField(participantState);
                 const result = await postJson(`${API}/edit`, {
                     accessToken,
                     timeZoneId: document.getElementById("lmxEditTimeZone").value,
-                    commitmentAmountUsd: showCommitment ? parseCommitmentAmount("lmxEditCommitmentAmount") : null
+                    commitmentAmountUsd: parseOptionalCommitmentAmount("lmxEditCommitmentAmount")
                 });
                 participantState = result;
                 publicState = result.public;
@@ -897,7 +892,7 @@
         toggle("lmxMetrics", hasParticipant && dashboardMode && !participantGateOnly);
         toggle("lmxBoardSection", !publicContentHidden);
         toggle("lmxParticipantTabs", hasParticipant && !commitmentBlocked);
-        toggle("lmxCommitmentPanel", hasParticipant && commitmentBlocked);
+        toggle("lmxCommitmentPanel", hasParticipant && shouldShowCommitmentPanel(participantState, activeParticipantTab));
         toggle("lmxCheckinPanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "checkin");
         toggle("lmxEditForm", hasParticipant && !commitmentBlocked && activeParticipantTab === "profile");
         toggle("lmxHomePanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
@@ -941,7 +936,7 @@
         setText("lmxParticipantKicker", kicker);
         toggle("lmxParticipantKicker", !!kicker);
         setText("lmxParticipantTitle", title);
-        renderCommitmentPanel(state);
+        renderCommitmentPanel(state, activeTab);
         renderParticipantNotice();
 
         renderProfileIdentity(participant);
@@ -952,7 +947,7 @@
         if (commitmentInput) {
             const showCommitment = shouldShowCommitmentAmountField(state);
             commitmentInput.disabled = !showCommitment || state.commitment?.canEditAmount === false;
-            commitmentInput.required = showCommitment;
+            commitmentInput.required = hasConfiguredCommitmentAmount(state);
         }
         renderProfilePictureControls(participant);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
@@ -966,7 +961,7 @@
         if (hasCommitmentBlock(participantState)) {
             return participantState.commitment?.status === "due"
                 ? `Commitment due, ${name}`
-                : "Make a pledge to continue";
+                : "Make a pledge";
         }
         if (activeTab === "profile") return `Profile, ${name}`;
         if (activeTab === "home") {
@@ -1156,11 +1151,42 @@
         return tab !== "checkin" && getPendingCheckInDays(state).length > 0;
     }
 
-    function renderCommitmentPanel(state) {
+    function renderCommitmentPanel(state, activeTab) {
         const panel = document.getElementById("lmxCommitmentPanel");
         if (!panel) return;
 
         const commitment = state.commitment || {};
+        if (shouldShowCheckInPledgePrompt(state, activeTab)) {
+            panel.innerHTML = `
+                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card setup">
+                    <div class="lmx-commitment-main">
+                        <i class="fas fa-pen-nib" aria-hidden="true"></i>
+                        <div>
+                            <strong>Set a real stake</strong>
+                            <span id="lmxPledgeCommitmentHelp">Fall below your recent average and either pay it or stop longevitymaxxing. You can keep checking in without a pledge.</span>
+                        </div>
+                    </div>
+                    <div class="lmx-field">
+                        <label for="lmxPledgeCommitmentAmount">Pledge</label>
+                        <div class="lmx-money-input">
+                            <span aria-hidden="true">$</span>
+                            <input id="lmxPledgeCommitmentAmount" type="text" inputmode="decimal" required placeholder="300" aria-describedby="lmxPledgeCommitmentHelp">
+                        </div>
+                    </div>
+                    <button class="lmx-button secondary" type="submit">
+                        <i class="fas fa-pen-nib" aria-hidden="true"></i>
+                        Make a pledge
+                    </button>
+                    <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
+                </form>`;
+            panel.querySelector("form")?.addEventListener("submit", event => {
+                event.preventDefault();
+                saveCommitmentAmountFromPanel("lmxPledgeCommitmentAmount", panel.querySelector("button[type='submit']"), "Pledge saved.");
+            });
+            wireCommitmentAmountValidation("lmxPledgeCommitmentAmount");
+            return;
+        }
+
         if (!commitment.blocksParticipant) {
             panel.innerHTML = "";
             return;
@@ -1191,7 +1217,7 @@
                 </form>`;
             panel.querySelector("form")?.addEventListener("submit", event => {
                 event.preventDefault();
-                saveCommitmentAmountFromBlockedPanel(panel.querySelector("button[type='submit']"));
+                saveCommitmentAmountFromPanel("lmxBlockedCommitmentAmount", panel.querySelector("button[type='submit']"), "Commitment amount saved. You can continue.");
             });
             wireCommitmentAmountValidation("lmxBlockedCommitmentAmount");
             return;
@@ -1260,8 +1286,24 @@
         return !!(state && state.commitment && state.commitment.blocksParticipant);
     }
 
+    function shouldShowCommitmentPanel(state, activeTab) {
+        return !!(state && state.commitment && (state.commitment.blocksParticipant || shouldShowCheckInPledgePrompt(state, activeTab)));
+    }
+
+    function shouldShowCheckInPledgePrompt(state, activeTab) {
+        if (activeTab !== "checkin") return false;
+        if (state?.commitment?.status !== "deferred") return false;
+        const pendingScoredDays = getPendingCheckInDays(state).filter(day => day.countsForScore !== false);
+        if (!pendingScoredDays.length) return false;
+        return Number(state.trendGuidance?.priorScoredDays || 0) >= 3;
+    }
+
     function shouldShowCommitmentAmountField(state) {
-        return !!(state && state.commitment && state.commitment.status !== "deferred");
+        return !!(state && state.commitment);
+    }
+
+    function hasConfiguredCommitmentAmount(state) {
+        return Number(state?.participant?.commitmentAmountUsd ?? state?.commitment?.amountUsd ?? 0) >= 1;
     }
 
     function getCommitmentEditableDays(state) {
@@ -1270,7 +1312,7 @@
             .filter(day => day.existing && (!triggerDay || day.challengeDay === triggerDay));
     }
 
-    async function saveCommitmentAmountFromBlockedPanel(button) {
+    async function saveCommitmentAmountFromPanel(inputId, button, successMessage) {
         if (!accessToken || !participantState) return;
         await withButton(button, async () => {
             const participant = participantState.participant || {};
@@ -1279,12 +1321,12 @@
                 displayName: participant.displayName || "",
                 timeZoneId: participant.timeZoneId || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
                 athleteLink: participant.athleteSlug || participant.athleteUrl || null,
-                commitmentAmountUsd: parseCommitmentAmount("lmxBlockedCommitmentAmount")
+                commitmentAmountUsd: parseCommitmentAmount(inputId)
             });
             participantState = result;
             publicState = result.public;
             if (!hasCommitmentBlock(result)) {
-                participantNotice = { message: "Commitment amount saved. You can continue.", isError: false };
+                participantNotice = { message: successMessage, isError: false };
                 participantActiveTab = null;
                 participantTabManual = false;
             }
@@ -2501,6 +2543,18 @@
 
         clearCommitmentAmountValidity(input);
         return Math.round(value * 100) / 100;
+    }
+
+    function parseOptionalCommitmentAmount(inputId) {
+        const input = document.getElementById(inputId);
+        if (input) sanitizeCommitmentAmountInput(input);
+        const raw = String(input?.value || "").trim();
+        if (!raw) {
+            clearCommitmentAmountValidity(input);
+            return null;
+        }
+
+        return parseCommitmentAmount(inputId);
     }
 
     function wireCommitmentAmountValidation(inputId) {
@@ -3817,8 +3871,7 @@
         const matches = zones
             .map(zone => ({ zone, score: timeZoneMatchScore(zone, terms, selected) }))
             .filter(item => item.score > 0)
-            .sort((a, b) => b.score - a.score || a.zone.localeCompare(b.zone))
-            .slice(0, TIME_ZONE_MATCH_LIMIT);
+            .sort((a, b) => b.score - a.score || a.zone.localeCompare(b.zone));
 
         list.innerHTML = matches.length
             ? matches.map((item, index) => timeZoneOptionHtml(item.zone, selected, index === 0)).join("")
