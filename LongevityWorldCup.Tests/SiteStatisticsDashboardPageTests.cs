@@ -242,10 +242,11 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("payload.trafficSummary", dashboard);
         Assert.Contains("Visitor sessions", dashboard);
         Assert.Contains("Page views", dashboard);
-        Assert.Contains("Website success over time", dashboard);
-        Assert.Contains("Success actions", dashboard);
-        Assert.Contains("Successful sessions", dashboard);
-        Assert.Contains("Session success rate", dashboard);
+        Assert.Contains("Conversions over time", dashboard);
+        Assert.Contains("Conversion actions", dashboard);
+        Assert.Contains("Converting sessions", dashboard);
+        Assert.Contains("Session conversion rate", dashboard);
+        Assert.DoesNotContain("Website success over time", dashboard);
         Assert.Contains("successTrendChart", dashboard);
         Assert.Contains("Daily traffic", dashboard);
         Assert.Contains("Top pages", dashboard);

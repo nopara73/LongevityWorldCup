@@ -385,13 +385,13 @@
         return `
             <section class="stats-panel success-trend-panel">
                 <div class="panel-heading">
-                    <h2>Website success over time</h2>
+                    <h2>Conversions over time</h2>
                     <span class="panel-meta">${esc(selectedRangeLabel())}</span>
                 </div>
-                <div class="success-summary" aria-label="Website success summary">
-                    ${successTrendCard("Success actions", stats.actions, "calculator results / applications / challenge signups")}
-                    ${successTrendCard("Successful sessions", stats.sessions, `${percentNumber(stats.rate)} of visitor sessions`)}
-                    ${successTrendCard("Best day", stats.bestDayLabel, stats.bestDayRate)}
+                <div class="success-summary" aria-label="Conversion summary">
+                    ${successTrendCard("Conversion actions", stats.actions, "calculator results / submitted applications / challenge signups")}
+                    ${successTrendCard("Converting sessions", stats.sessions, `${percentNumber(stats.rate)} of visitor sessions`)}
+                    ${successTrendCard("Best conversion day", stats.bestDayLabel, stats.bestDayRate)}
                 </div>
                 ${successTrendChart(points)}
             </section>
@@ -426,7 +426,7 @@
     }
 
     function successTrendChart(points) {
-        if (!points.length) return empty("No success data for the active timeframe.");
+        if (!points.length) return empty("No conversion data for the active timeframe.");
 
         const width = Math.max(720, points.length * 58);
         const height = 260;
@@ -451,7 +451,7 @@
 
         return `
             <div class="success-trend-wrap">
-                <svg class="success-trend-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Website success over time">
+                <svg class="success-trend-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Conversions over time">
                     ${gridLines}
                     <text class="success-axis-label" x="${left - 8}" y="${top + 4}" text-anchor="end">${esc(percentNumber(maxRate))}</text>
                     <text class="success-axis-label" x="${left - 8}" y="${top + plotHeight}" text-anchor="end">0%</text>
@@ -464,7 +464,7 @@
                         const showLabel = index === 0 || index === points.length - 1 || index % labelsEvery === 0;
                         return `
                             <g>
-                                <title>${esc(`${point.day}: ${formatNumber(point.successActions)} success actions, ${formatNumber(point.successSessions)} successful sessions, ${percentNumber(rate)} session success rate`)}</title>
+                                <title>${esc(`${point.day}: ${formatNumber(point.successActions)} conversion actions, ${formatNumber(point.successSessions)} converting sessions, ${percentNumber(rate)} session conversion rate`)}</title>
                                 <rect class="success-action-bar" x="${(cx - barWidth / 2).toFixed(1)}" y="${barY.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${barHeight.toFixed(1)}" rx="4"></rect>
                                 ${showLabel ? `<text class="success-day-label" x="${cx.toFixed(1)}" y="${height - 16}" text-anchor="middle">${esc(formatDay(point.day))}</text>` : ""}
                             </g>
@@ -476,9 +476,9 @@
                     `).join("")}
                 </svg>
             </div>
-            <div class="traffic-legend" aria-label="Website success legend">
-                <span><i class="success-rate"></i>Session success rate</span>
-                <span><i class="success-actions"></i>Success actions</span>
+            <div class="traffic-legend" aria-label="Conversion legend">
+                <span><i class="success-rate"></i>Session conversion rate</span>
+                <span><i class="success-actions"></i>Conversion actions</span>
             </div>
         `;
     }
