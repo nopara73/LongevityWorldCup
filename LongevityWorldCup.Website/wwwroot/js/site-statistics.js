@@ -1333,7 +1333,7 @@
             return route === "/apply" || route.startsWith("/apply?") || route.includes("convergence");
         }
         if (e.eventName === "application_review_context_missing") {
-            return route.includes("from=proof-upload") || route.includes("from=edit-profile") || route.includes("from=redacted");
+            return route.includes("from=proof-upload") || route.includes("from=edit-profile");
         }
         return false;
     }

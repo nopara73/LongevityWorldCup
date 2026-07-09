@@ -206,6 +206,7 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("function isBenignMissingContextEvent(e)", dashboard);
         Assert.Contains("route === \"/apply\"", dashboard);
         Assert.Contains("route.includes(\"from=proof-upload\")", dashboard);
+        Assert.DoesNotContain("route.includes(\"from=redacted\")", dashboard);
         Assert.Contains("!isBenignMissingContextEvent(e)", dashboard);
     }
 
