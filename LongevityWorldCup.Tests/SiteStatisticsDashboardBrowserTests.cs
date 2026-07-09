@@ -38,6 +38,19 @@ public sealed class SiteStatisticsDashboardBrowserTests
         page.PageError += (_, error) => errors.Add(error);
 
         await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Traffic Overview" }).WaitForAsync();
+        await page.Locator("#trafficOverview").GetByText("Visitor sessions").WaitForAsync();
+        await page.GetByLabel("Traffic totals").GetByText("Page views", new() { Exact = true }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Clean vs raw traffic" }).WaitForAsync();
+        await page.Locator("#trafficOverview").GetByText("Noisy sessions").WaitForAsync();
+        await page.Locator("#trafficOverview").GetByText("Top-session share").WaitForAsync();
+        await page.Locator("#trafficOverview").GetByText("Repeated-refresh sessions").WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Daily traffic" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Top pages" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Sources" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Referrers" }).WaitForAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Devices" }).WaitForAsync();
+        await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Onboarding Diagnostics" }).ClickAsync();
         await page.WaitForSelectorAsync("#decisionBrief .decision-card");
         await page.WaitForSelectorAsync("#outcomeStrip .metric-tile");
         await page.Locator("#decisionBrief").GetByText("Calculator completions are not reaching proof flow").WaitForAsync();
@@ -46,7 +59,7 @@ public sealed class SiteStatisticsDashboardBrowserTests
         await page.GetByText("Segment Comparison").WaitForAsync();
         await page.GetByText("Trend Watch").WaitForAsync();
         var onboardingDetailText = await page.Locator("#detailSections").InnerTextAsync();
-        await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Challenge" }).ClickAsync();
+        await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Challenge Diagnostics" }).ClickAsync();
         await page.Locator("#primaryFunnel").GetByRole(AriaRole.Button, new() { Name = "Signup accepted" }).ClickAsync();
         await page.Locator("#sessionTimeline .timeline-row").First.WaitForAsync();
 
@@ -55,6 +68,7 @@ public sealed class SiteStatisticsDashboardBrowserTests
         Assert.Contains("Decision Brief", visibleText);
         Assert.Contains("Noisy sessions", visibleText);
         Assert.Contains("Page views", visibleText);
+        Assert.DoesNotContain("Unique visitors", visibleText);
         Assert.Contains("Challenge signups", visibleText);
         Assert.Contains("Signup accepted", visibleText);
         Assert.Contains("prefilled / initial", onboardingDetailText);
@@ -97,6 +111,7 @@ public sealed class SiteStatisticsDashboardBrowserTests
         page.PageError += (_, error) => errors.Add(error);
 
         await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Onboarding Diagnostics" }).ClickAsync();
         await page.Locator("#decisionBrief").GetByText("Join track selection bottleneck").WaitForAsync();
         await page.Locator("#eventSamples").GetByText("burst x30").WaitForAsync();
         var pageViewsValue = await page.Locator("#outcomeStrip").EvaluateAsync<string>(

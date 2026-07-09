@@ -15,6 +15,7 @@ public sealed class SiteStatisticsDashboardPageTests
 
         Assert.Contains("/css/site-statistics.css?v=", html);
         Assert.Contains("/js/site-statistics.js?v=", html);
+        Assert.Contains("trafficOverview", html);
         Assert.Contains("Decision Brief", html);
         Assert.Contains("Recommended Investigations", html);
         Assert.Contains("Segment Comparison", html);
@@ -169,6 +170,44 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("stacked-bar", dashboard);
         Assert.Contains("\"Auto\"", dashboard);
         Assert.Contains("\"Late\"", dashboard);
+    }
+
+    [Fact]
+    public void SiteStatisticsDashboard_SurfacesTrafficOverview()
+    {
+        var repoRoot = FindRepoRoot();
+        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+
+        Assert.Contains("\"Traffic Overview\"", dashboard);
+        Assert.Contains("\"Onboarding Diagnostics\"", dashboard);
+        Assert.Contains("\"Challenge Diagnostics\"", dashboard);
+        Assert.Contains("\"Source Quality\"", dashboard);
+        Assert.Contains("\"Reliability Diagnostics\"", dashboard);
+        Assert.Contains("\"Review Queue Diagnostics\"", dashboard);
+        Assert.Contains("\"Public Event Diagnostics\"", dashboard);
+        Assert.DoesNotContain("\"Overview\"", dashboard);
+        Assert.Contains("payload.trafficSummary", dashboard);
+        Assert.Contains("Visitor sessions", dashboard);
+        Assert.Contains("Page views", dashboard);
+        Assert.Contains("Daily traffic", dashboard);
+        Assert.Contains("Top pages", dashboard);
+        Assert.Contains("Sources", dashboard);
+        Assert.Contains("Referrers", dashboard);
+        Assert.Contains("Devices", dashboard);
+        Assert.Contains("Interactions", dashboard);
+        Assert.Contains("Ranked pages", dashboard);
+        Assert.Contains("Clean vs raw traffic", dashboard);
+        Assert.Contains("Clean sessions", dashboard);
+        Assert.Contains("Noisy sessions", dashboard);
+        Assert.Contains("Top-session share", dashboard);
+        Assert.Contains("Noisy page-view share", dashboard);
+        Assert.Contains("Repeated-refresh sessions", dashboard);
+        Assert.Contains("function pageViewMixLabel(quality)", dashboard);
+        Assert.DoesNotContain("Unique visitors", dashboard);
+        Assert.Contains("function dailyTrafficChart(points)", dashboard);
+        Assert.Contains("function trafficPageTable(rows)", dashboard);
+        Assert.Contains("function normalizeTrafficSummary(summary)", dashboard);
+        Assert.Contains("function normalizeTrafficQuality(quality)", dashboard);
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

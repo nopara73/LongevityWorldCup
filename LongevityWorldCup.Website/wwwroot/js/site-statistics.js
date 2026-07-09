@@ -1,15 +1,39 @@
 (function () {
     "use strict";
 
-    const tabs = ["Onboarding", "Challenge", "Overview", "Traffic", "Reliability", "Review Queue", "Events"];
+    const trafficOverviewTab = "Traffic Overview";
+    const onboardingDiagnosticsTab = "Onboarding Diagnostics";
+    const challengeDiagnosticsTab = "Challenge Diagnostics";
+    const sourceQualityTab = "Source Quality";
+    const reliabilityDiagnosticsTab = "Reliability Diagnostics";
+    const reviewDiagnosticsTab = "Review Queue Diagnostics";
+    const publicEventsDiagnosticsTab = "Public Event Diagnostics";
+    const tabs = [
+        trafficOverviewTab,
+        onboardingDiagnosticsTab,
+        challengeDiagnosticsTab,
+        sourceQualityTab,
+        reliabilityDiagnosticsTab,
+        reviewDiagnosticsTab,
+        publicEventsDiagnosticsTab
+    ];
+    const legacyTabs = {
+        "Onboarding": onboardingDiagnosticsTab,
+        "Challenge": challengeDiagnosticsTab,
+        "Traffic": sourceQualityTab,
+        "Reliability": reliabilityDiagnosticsTab,
+        "Review Queue": reviewDiagnosticsTab,
+        "Events": publicEventsDiagnosticsTab
+    };
     const state = {
-        tab: "Onboarding",
+        tab: trafficOverviewTab,
         flow: "all",
         selectedFlow: "pheno",
         events: [],
         defaultEvents: [],
         previousEvents: [],
         previousDefaultEvents: [],
+        trafficSummary: emptyTrafficSummary(),
         decisionActions: [],
         selectedEventName: null,
         selectedSession: null,
@@ -146,7 +170,7 @@
             el("statsFlow").value = "all";
             el("statsDevice").value = "all";
             el("statsSource").value = "all";
-            state.tab = "Onboarding";
+            state.tab = trafficOverviewTab;
             state.flow = "all";
             state.selectedFlow = "pheno";
             state.selectedEventName = null;
@@ -161,7 +185,9 @@
 
     function readUrlState() {
         const params = new URLSearchParams(window.location.search);
-        if (params.get("tab") && tabs.includes(params.get("tab"))) state.tab = params.get("tab");
+        const requestedTab = params.get("tab");
+        if (requestedTab && legacyTabs[requestedTab]) state.tab = legacyTabs[requestedTab];
+        else if (requestedTab && tabs.includes(requestedTab)) state.tab = requestedTab;
         if (params.get("selectedFlow")) state.selectedFlow = params.get("selectedFlow");
         for (const [id, key] of [["statsRange", "range"], ["statsFlow", "flow"], ["statsDevice", "device"], ["statsSource", "source"]]) {
             if (params.get(key)) el(id).value = params.get(key);
@@ -200,15 +226,18 @@
             const payload = await response.json();
             state.events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
             state.previousEvents = Array.isArray(payload.previousEvents) ? payload.previousEvents.map(normalizeEvent) : [];
+            state.trafficSummary = normalizeTrafficSummary(payload.trafficSummary);
             state.defaultEvents = collapseRepeatedPageViewBursts(state.events);
             state.previousDefaultEvents = collapseRepeatedPageViewBursts(state.previousEvents);
-            setStatus(`${uniqueSessions(state.defaultEvents)} active sessions (${state.defaultEvents.length} default events from ${state.events.length} raw redacted events) and ${uniqueSessions(state.previousDefaultEvents)} comparison sessions loaded. Generated ${formatTime(payload.generatedAtUtc)}.`);
+            const totals = state.trafficSummary.totals;
+            setStatus(`${formatNumber(totals.sessions)} visitor sessions and ${formatNumber(totals.pageViews)} page views loaded. ${state.events.length} recent diagnostic rows available. Generated ${formatTime(payload.generatedAtUtc)}.`);
             renderAll();
         } catch (error) {
             state.events = [];
             state.defaultEvents = [];
             state.previousEvents = [];
             state.previousDefaultEvents = [];
+            state.trafficSummary = emptyTrafficSummary();
             setStatus(`Dashboard data could not be loaded: ${error.message || "unknown error"}.`, true);
             renderAll();
         }
@@ -216,6 +245,8 @@
 
     function renderAll() {
         renderTabs();
+        renderPageMode();
+        renderTrafficOverview();
         renderDataQuality();
         renderDecisionLayer();
         renderOutcomeStrip();
@@ -224,6 +255,171 @@
         renderDetailSections();
         renderDrilldown();
         updateUrl();
+    }
+
+    function renderPageMode() {
+        const traffic = state.tab === trafficOverviewTab;
+        el("trafficOverview").hidden = !traffic;
+        for (const id of ["dataQualityStrip", "decisionGrid", "decisionSupportGrid", "outcomeStrip", "drilldownPanel", "statsMainGrid", "detailSections"]) {
+            el(id).hidden = traffic;
+        }
+    }
+
+    function renderTrafficOverview() {
+        const host = el("trafficOverview");
+        if (state.tab !== trafficOverviewTab) {
+            host.innerHTML = "";
+            return;
+        }
+
+        const summary = state.trafficSummary || emptyTrafficSummary();
+        const totals = summary.totals || emptyTrafficTotals();
+        const previous = summary.previousTotals || emptyTrafficTotals();
+        const clean = summary.cleanTotals || emptyTrafficTotals();
+        const quality = summary.quality || emptyTrafficQuality();
+        host.innerHTML = `
+            <section class="traffic-metrics" aria-label="Traffic totals">
+                ${trafficMetric("Visitor sessions", totals.sessions, previous.sessions, `${formatNumber(clean.sessions)} clean / ${formatNumber(quality.noisySessions)} noisy`)}
+                ${trafficMetric("Clean sessions", clean.sessions, null, `${percentNumber(ratio(clean.sessions, totals.sessions))} of raw`)}
+                ${trafficMetric("Page views", totals.pageViews, previous.pageViews)}
+                ${trafficMetric("Clean page views", clean.pageViews, null, `${percentNumber(ratio(clean.pageViews, totals.pageViews))} of raw`)}
+                ${trafficMetric("Interactions", totals.events, previous.events)}
+                ${trafficMetric("Ranked pages", (summary.topPages || []).length, null, "top page list")}
+            </section>
+            ${trafficQualityPanel(summary)}
+            <section class="stats-panel traffic-chart-panel">
+                <div class="panel-heading">
+                    <h2>Daily traffic</h2>
+                    <span class="panel-meta">${formatNumber((summary.daily || []).length)} days</span>
+                </div>
+                ${dailyTrafficChart(summary.daily || [])}
+            </section>
+            <section class="traffic-grid" aria-label="Traffic breakdowns">
+                ${trafficPanel("Top pages", trafficPageTable(summary.topPages || []))}
+                ${trafficPanel("Sources", trafficBreakdownTable(summary.sources || []))}
+                ${trafficPanel("Referrers", trafficBreakdownTable(summary.referrers || []))}
+                ${trafficPanel("Devices", trafficBreakdownTable(summary.devices || []))}
+                ${trafficPanel("Browsers", trafficBreakdownTable(summary.browsers || []))}
+            </section>
+        `;
+    }
+
+    function trafficQualityPanel(summary) {
+        const totals = summary.totals || emptyTrafficTotals();
+        const clean = summary.cleanTotals || emptyTrafficTotals();
+        const quality = summary.quality || emptyTrafficQuality();
+        const noisyLevel = quality.noisySessions ? "warn" : "good";
+        const topLevel = quality.topSessionShare >= 0.5 ? "bad" : quality.topSessionShare >= 0.25 ? "warn" : "good";
+        const viewLevel = quality.noisyPageViewShare >= 0.5 ? "bad" : quality.noisyPageViewShare >= 0.25 ? "warn" : "good";
+        const repeatedLevel = quality.repeatedPageViewSessions ? "warn" : "good";
+        return `
+            <section class="stats-panel traffic-quality-panel">
+                <div class="panel-heading">
+                    <h2>Clean vs raw traffic</h2>
+                    <span class="panel-meta">${esc(pageViewMixLabel(quality))}</span>
+                </div>
+                <div class="traffic-quality-grid">
+                    ${trafficQualityCard("Raw sessions", totals.sessions, `${formatNumber(totals.pageViews)} raw page views`, "")}
+                    ${trafficQualityCard("Clean sessions", clean.sessions, `${percentNumber(ratio(clean.sessions, totals.sessions))} of raw sessions`, clean.sessions === totals.sessions ? "good" : "warn")}
+                    ${trafficQualityCard("Noisy sessions", quality.noisySessions, `${formatNumber(quality.rawSessions)} raw sessions`, noisyLevel)}
+                    ${trafficQualityCard("Top-session share", percentNumber(quality.topSessionShare), `${formatNumber(quality.topSessionEvents)} interactions in one session`, topLevel)}
+                    ${trafficQualityCard("Noisy page-view share", percentNumber(quality.noisyPageViewShare), `${formatNumber(quality.noisyPageViews)} noisy page views`, viewLevel)}
+                    ${trafficQualityCard("Repeated-refresh sessions", quality.repeatedPageViewSessions, `${formatNumber(quality.pageViewDominantSessions)} page-view-heavy`, repeatedLevel)}
+                </div>
+            </section>
+        `;
+    }
+
+    function trafficQualityCard(label, value, detail, level) {
+        return `
+            <div class="traffic-quality-card ${escAttr(level)}">
+                <span>${esc(label)}</span>
+                <strong>${esc(String(value))}</strong>
+                <em>${esc(detail)}</em>
+            </div>
+        `;
+    }
+
+    function pageViewMixLabel(quality) {
+        if ((quality.noisyPageViewShare || 0) >= 0.5) return "page views dominated by noisy sessions";
+        if ((quality.noisyPageViewShare || 0) >= 0.25) return "page views pressured by noisy sessions";
+        if ((quality.repeatedPageViewSessions || 0) > 0) return "repeated refreshes detected";
+        return "page views mostly clean";
+    }
+
+    function trafficMetric(label, value, previous, detail) {
+        const current = Number(value) || 0;
+        const previousValue = previous === null || previous === undefined ? null : Number(previous) || 0;
+        const delta = previousValue === null
+            ? detail || ""
+            : `${signedNumber(current - previousValue)} vs previous`;
+        const level = previousValue === null || current === previousValue
+            ? ""
+            : current > previousValue ? "good" : "warn";
+        return `
+            <div class="traffic-metric ${escAttr(level)}">
+                <span>${esc(label)}</span>
+                <strong>${esc(formatNumber(current))}</strong>
+                <em>${esc(delta)}</em>
+            </div>
+        `;
+    }
+
+    function dailyTrafficChart(points) {
+        if (!points.length) return empty("No daily traffic for the active filters.");
+
+        const maxValue = Math.max(1, ...points.flatMap(point => [point.sessions, point.pageViews]));
+        return `
+            <div class="traffic-chart">
+                ${points.map(point => `
+                    <div class="traffic-day">
+                        <div class="traffic-bars" aria-label="${escAttr(`${point.day}: ${point.sessions} sessions, ${point.pageViews} page views`)}">
+                            <span class="traffic-bar sessions" style="height:${trafficBarHeight(point.sessions, maxValue)}%"></span>
+                            <span class="traffic-bar page-views" style="height:${trafficBarHeight(point.pageViews, maxValue)}%"></span>
+                        </div>
+                        <strong>${esc(formatDay(point.day))}</strong>
+                        <span>${esc(formatNumber(point.sessions))} sessions</span>
+                        <span>${esc(formatNumber(point.pageViews))} views</span>
+                    </div>
+                `).join("")}
+            </div>
+            <div class="traffic-legend" aria-label="Daily traffic legend">
+                <span><i class="sessions"></i>Sessions</span>
+                <span><i class="page-views"></i>Page views</span>
+            </div>
+        `;
+    }
+
+    function trafficBarHeight(value, maxValue) {
+        return Math.max(4, Math.round(((Number(value) || 0) / Math.max(1, maxValue)) * 100));
+    }
+
+    function trafficPanel(title, content) {
+        return `<section class="stats-panel traffic-panel"><div class="panel-heading"><h2>${esc(title)}</h2></div>${content}</section>`;
+    }
+
+    function trafficPageTable(rows) {
+        if (!rows.length) return empty("No page-view traffic for the active filters.");
+        return table(
+            ["Page", "Sessions", "Page views"],
+            rows.map(row => [row.route || "unknown", formatNumber(row.sessions), formatNumber(row.pageViews)]));
+    }
+
+    function trafficBreakdownTable(rows) {
+        if (!rows.length) return empty("No traffic for the active filters.");
+        const maxSessions = Math.max(1, ...rows.map(row => Number(row.sessions) || 0));
+        return `
+            <div class="traffic-breakdown">
+                ${rows.map(row => `
+                    <div class="traffic-breakdown-row">
+                        <strong>${esc(row.label || "unknown")}</strong>
+                        <span class="traffic-breakdown-bar"><span style="width:${barWidth(row.sessions, maxSessions)}%"></span></span>
+                        <span>${esc(formatNumber(row.sessions))} sessions</span>
+                        <span>${esc(formatNumber(row.pageViews))} views</span>
+                    </div>
+                `).join("")}
+            </div>
+        `;
     }
 
     function renderDataQuality() {
@@ -401,7 +597,7 @@
     }
 
     function joinTrackSelectionInsights(active, previous) {
-        if (state.tab === "Challenge") return [];
+        if (state.tab === challengeDiagnosticsTab) return [];
         const entrySessions = sessionsForNames(active, ["onboarding_entry_viewed"]);
         const selectedSessions = sessionsForNames(active, ["onboarding_clock_selected"]);
         const base = entrySessions.size;
@@ -436,7 +632,7 @@
     }
 
     function funnelBottleneckInsights(active, previous) {
-        const flows = state.tab === "Challenge" ? ["challenge"] : ["pheno", "bortz", "application", "challenge"];
+        const flows = state.tab === challengeDiagnosticsTab ? ["challenge"] : ["pheno", "bortz", "application", "challenge"];
         const insights = [];
         flows.forEach(flow => {
             const defs = funnelDefs[flow] || [];
@@ -730,8 +926,8 @@
             button.textContent = tab;
             button.addEventListener("click", () => {
                 state.tab = tab;
-                if (tab === "Challenge") state.selectedFlow = "challenge";
-                if (tab === "Onboarding" && state.selectedFlow === "challenge") state.selectedFlow = "pheno";
+                if (tab === challengeDiagnosticsTab) state.selectedFlow = "challenge";
+                if (tab === onboardingDiagnosticsTab && state.selectedFlow === "challenge") state.selectedFlow = "pheno";
                 state.selectedEventName = null;
                 state.selectedLabel = `${tab} / all events`;
                 renderAll();
@@ -780,31 +976,31 @@
     }
 
     function renderPrimaryPanel() {
-        const selected = state.tab === "Challenge" ? "challenge" : state.selectedFlow;
-        const title = state.tab === "Challenge"
+        const selected = state.tab === challengeDiagnosticsTab ? "challenge" : state.selectedFlow;
+        const title = state.tab === challengeDiagnosticsTab
             ? "Challenge Activation Funnel"
-            : state.tab === "Traffic"
-                ? "Source Quality"
-                : state.tab === "Reliability"
+            : state.tab === sourceQualityTab
+                ? "Source Quality Funnel"
+                : state.tab === reliabilityDiagnosticsTab
                     ? "Reliability Funnel"
-                    : state.tab === "Review Queue"
+                    : state.tab === reviewDiagnosticsTab
                         ? "Review Handoff Funnel"
-                        : state.tab === "Events"
+                        : state.tab === publicEventsDiagnosticsTab
                             ? "Public Event Funnel"
                             : "Onboarding Funnel";
         el("primaryTitle").textContent = title;
         el("primaryMeta").textContent = `${uniqueSessions(scopedEvents())} sessions / ${scopedEvents().length} events`;
         renderFlowSelectors();
 
-        const defs = state.tab === "Challenge"
+        const defs = state.tab === challengeDiagnosticsTab
             ? funnelDefs.challenge
-            : state.tab === "Traffic"
+            : state.tab === sourceQualityTab
                 ? sourceFunnelDefs()
-                : state.tab === "Reliability"
+                : state.tab === reliabilityDiagnosticsTab
                     ? reliabilityFunnelDefs()
-                    : state.tab === "Review Queue"
+                    : state.tab === reviewDiagnosticsTab
                         ? funnelDefs.application.slice(10)
-                        : state.tab === "Events"
+                        : state.tab === publicEventsDiagnosticsTab
                             ? eventsFunnelDefs()
                             : funnelDefs[selected] || funnelDefs.pheno;
         renderFunnel(defs, scopedEvents());
@@ -813,7 +1009,7 @@
     function renderFlowSelectors() {
         const host = el("flowSelectors");
         host.innerHTML = "";
-        if (state.tab !== "Onboarding") return;
+        if (state.tab !== onboardingDiagnosticsTab) return;
         ["pheno", "bortz", "application"].forEach(flow => {
             const events = defaultEvents().filter(e => e.flow === flow || (flow === "application" && e.flow === "application"));
             const started = uniqueSessionsFor(events, flow === "application" ? ["proof_flow_opened"] : ["calculator_started"]);
@@ -913,7 +1109,7 @@
     function renderDetailSections() {
         const host = el("detailSections");
         const events = scopedEvents();
-        if (state.tab === "Challenge") {
+        if (state.tab === challengeDiagnosticsTab) {
             host.innerHTML = [
                 detailPanel("Challenge activation", challengeActivationTable(events)),
                 detailPanel("Check-in detail", groupedTable(events, ["challenge_practice_checkin_started", "challenge_practice_checkin_submitted", "challenge_scored_checkin_started", "challenge_scored_checkin_submitted", "challenge_scored_checkin_failed"])),
@@ -921,7 +1117,7 @@
             ].join("");
             return;
         }
-        if (state.tab === "Traffic") {
+        if (state.tab === sourceQualityTab) {
             host.innerHTML = [
                 detailPanel("Acquisition quality", sourceQualityTable(events)),
                 detailPanel("Campaigns", campaignTable(events)),
@@ -930,7 +1126,7 @@
             ].join("");
             return;
         }
-        if (state.tab === "Reliability") {
+        if (state.tab === reliabilityDiagnosticsTab) {
             host.innerHTML = [
                 detailPanel("Error codes", splitTable(frictionEvents(events), e => e.errorCode || e.eventName)),
                 detailPanel("Affected components", splitTable(frictionEvents(events), e => e.component || "unknown")),
@@ -938,7 +1134,7 @@
             ].join("");
             return;
         }
-        if (state.tab === "Review Queue") {
+        if (state.tab === reviewDiagnosticsTab) {
             host.innerHTML = [
                 detailPanel("Review states", groupedTable(events, ["application_review_opened", "application_review_context_found", "application_review_context_missing", "payment_status_checked", "payment_status_failed"])),
                 detailPanel("Payment handoff", groupedTable(events, ["payment_offer_stored", "payment_unavailable", "checkout_redirect_started", "payment_status_checked"])),
@@ -946,7 +1142,7 @@
             ].join("");
             return;
         }
-        if (state.tab === "Events") {
+        if (state.tab === publicEventsDiagnosticsTab) {
             host.innerHTML = [
                 detailPanel("Public events", groupedTable(events, ["event_viewed", "event_link_clicked", "homepage_highlight_viewed", "homepage_highlight_clicked"])),
                 detailPanel("Profile traffic", groupedTable(events, ["athlete_profile_viewed", "league_viewed"])),
@@ -1044,7 +1240,7 @@
     }
 
     function decisionScopeEvents(events) {
-        if (state.tab === "Onboarding") {
+        if (state.tab === onboardingDiagnosticsTab) {
             return events.filter(e => ["onboarding", "pheno", "bortz", "application", "challenge"].includes(e.flow || ""));
         }
         return scopeEventsFor(events, state.tab, state.selectedFlow);
@@ -1060,19 +1256,19 @@
 
     function scopeEventsFor(events, tab, selectedFlow) {
         events = events.slice();
-        if (tab === "Onboarding") {
+        if (tab === onboardingDiagnosticsTab) {
             if (selectedFlow === "application") return events.filter(e => e.flow === "application");
             return events.filter(e => e.flow === selectedFlow || e.flow === "onboarding");
         }
-        if (tab === "Challenge") return events.filter(e => e.flow === "challenge");
-        if (tab === "Reliability") return frictionEvents(events);
-        if (tab === "Review Queue") return events.filter(e => e.flow === "application" || /application|payment|review/.test(e.eventName));
-        if (tab === "Events") return events.filter(e => /event|highlight|athlete_profile|league/.test(e.eventName));
+        if (tab === challengeDiagnosticsTab) return events.filter(e => e.flow === "challenge");
+        if (tab === reliabilityDiagnosticsTab) return frictionEvents(events);
+        if (tab === reviewDiagnosticsTab) return events.filter(e => e.flow === "application" || /application|payment|review/.test(e.eventName));
+        if (tab === publicEventsDiagnosticsTab) return events.filter(e => /event|highlight|athlete_profile|league/.test(e.eventName));
         return events;
     }
 
     function decisionLensLabel() {
-        return state.tab === "Onboarding" ? "onboarding + activation" : state.tab;
+        return state.tab === onboardingDiagnosticsTab ? "onboarding + activation" : state.tab;
     }
 
     function scopedEvents() {
@@ -1103,7 +1299,7 @@
         state.selectedLabel = label || eventName || "all events";
         renderOutcomeStrip();
         renderFriction();
-        renderFunnel(state.tab === "Challenge" ? funnelDefs.challenge : (funnelDefs[state.selectedFlow] || funnelDefs.pheno), scopedEvents());
+        renderFunnel(state.tab === challengeDiagnosticsTab ? funnelDefs.challenge : (funnelDefs[state.selectedFlow] || funnelDefs.pheno), scopedEvents());
         renderDrilldown();
         updateUrl();
     }
@@ -1719,6 +1915,106 @@
         });
     }
 
+    function normalizeTrafficSummary(summary) {
+        summary = summary && typeof summary === "object" ? summary : {};
+        return {
+            totals: normalizeTrafficTotals(summary.totals),
+            previousTotals: normalizeTrafficTotals(summary.previousTotals),
+            cleanTotals: normalizeTrafficTotals(summary.cleanTotals),
+            quality: normalizeTrafficQuality(summary.quality),
+            daily: normalizeTrafficRows(summary.daily, row => ({
+                day: row.day || "",
+                sessions: numberValue(row.sessions),
+                pageViews: numberValue(row.pageViews),
+                events: numberValue(row.events)
+            })),
+            topPages: normalizeTrafficRows(summary.topPages, row => ({
+                route: row.route || "unknown",
+                sessions: numberValue(row.sessions),
+                pageViews: numberValue(row.pageViews)
+            })),
+            sources: normalizeTrafficRows(summary.sources, normalizeTrafficBreakdown),
+            referrers: normalizeTrafficRows(summary.referrers, normalizeTrafficBreakdown),
+            devices: normalizeTrafficRows(summary.devices, normalizeTrafficBreakdown),
+            browsers: normalizeTrafficRows(summary.browsers, normalizeTrafficBreakdown)
+        };
+    }
+
+    function normalizeTrafficTotals(totals) {
+        totals = totals && typeof totals === "object" ? totals : {};
+        return {
+            sessions: numberValue(totals.sessions),
+            pageViews: numberValue(totals.pageViews),
+            events: numberValue(totals.events)
+        };
+    }
+
+    function normalizeTrafficRows(rows, mapper) {
+        return Array.isArray(rows) ? rows.map(row => mapper(row || {})) : [];
+    }
+
+    function normalizeTrafficBreakdown(row) {
+        return {
+            label: row.label || "unknown",
+            sessions: numberValue(row.sessions),
+            pageViews: numberValue(row.pageViews),
+            events: numberValue(row.events)
+        };
+    }
+
+    function normalizeTrafficQuality(quality) {
+        quality = quality && typeof quality === "object" ? quality : {};
+        return {
+            rawSessions: numberValue(quality.rawSessions),
+            cleanSessions: numberValue(quality.cleanSessions),
+            noisySessions: numberValue(quality.noisySessions),
+            topSessionEvents: numberValue(quality.topSessionEvents),
+            topSessionShare: numberValue(quality.topSessionShare),
+            repeatedPageViewSessions: numberValue(quality.repeatedPageViewSessions),
+            pageViewDominantSessions: numberValue(quality.pageViewDominantSessions),
+            noisyPageViews: numberValue(quality.noisyPageViews),
+            noisyPageViewShare: numberValue(quality.noisyPageViewShare)
+        };
+    }
+
+    function emptyTrafficSummary() {
+        return {
+            totals: emptyTrafficTotals(),
+            previousTotals: emptyTrafficTotals(),
+            cleanTotals: emptyTrafficTotals(),
+            quality: emptyTrafficQuality(),
+            daily: [],
+            topPages: [],
+            sources: [],
+            referrers: [],
+            devices: [],
+            browsers: []
+        };
+    }
+
+    function emptyTrafficTotals() {
+        return { sessions: 0, pageViews: 0, events: 0 };
+    }
+
+    function emptyTrafficQuality() {
+        return {
+            rawSessions: 0,
+            cleanSessions: 0,
+            noisySessions: 0,
+            topSessionEvents: 0,
+            topSessionShare: 0,
+            repeatedPageViewSessions: 0,
+            pageViewDominantSessions: 0,
+            noisyPageViews: 0,
+            noisyPageViewShare: 0
+        };
+    }
+
+    function numberValue(value) {
+        value = Number(value);
+        return Number.isFinite(value) ? value : 0;
+    }
+
     function effectiveSource(source, referrerDomain) {
         if (isInternalReferrer(referrerDomain)) return "internal";
         return source || "direct";
@@ -1796,6 +2092,27 @@
     function percent(value, total) {
         if (!total) return "0%";
         return `${Math.round((value / total) * 100)}%`;
+    }
+
+    function ratio(value, total) {
+        total = Number(total) || 0;
+        return total ? (Number(value) || 0) / total : 0;
+    }
+
+    function formatNumber(value) {
+        return numberValue(value).toLocaleString();
+    }
+
+    function signedNumber(value) {
+        value = Number(value) || 0;
+        if (value === 0) return "0";
+        return `${value > 0 ? "+" : "-"}${formatNumber(Math.abs(value))}`;
+    }
+
+    function formatDay(value) {
+        const date = new Date(`${value}T00:00:00Z`);
+        if (Number.isNaN(date.getTime())) return value || "-";
+        return date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
     }
 
     function uniqueSessions(items) {

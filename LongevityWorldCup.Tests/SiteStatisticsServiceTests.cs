@@ -1,6 +1,7 @@
 using System.Text.Json;
 using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Net;
 using System.Net.Http.Json;
@@ -104,6 +105,128 @@ public sealed class SiteStatisticsServiceTests
         Assert.DoesNotContain("secret-token", json);
         Assert.DoesNotContain("applicant@example.test", json);
         Assert.Contains("paymentState", json);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_TrafficSummaryAggregatesBeyondRawEventLimit()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        var current = DateTimeOffset.UtcNow.AddMinutes(-5);
+        InsertDashboardEvents(
+            database,
+            current,
+            count: 5005,
+            eventName: "site_page_viewed",
+            flow: "site",
+            route: "/",
+            source: "direct",
+            device: "desktop",
+            browser: "Chrome",
+            sessionPrefix: "S-BULK-DIRECT");
+        InsertDashboardEvents(
+            database,
+            current,
+            count: 1,
+            eventName: "site_page_viewed",
+            flow: "site",
+            route: "/leaderboard",
+            source: "search",
+            referrerDomain: "www.google.com",
+            device: "mobile",
+            browser: "Firefox",
+            sessionPrefix: "S-BULK-SEARCH");
+        InsertDashboardEvent(
+            database,
+            DateTimeOffset.UtcNow.AddDays(-8),
+            "S-PREVIOUS-TRAFFIC",
+            "site_page_viewed",
+            "site",
+            route: "/previous");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Limit = 1 });
+
+        Assert.Single(dashboard.Events);
+        Assert.Equal(5006, dashboard.TrafficSummary.Totals.Events);
+        Assert.Equal(5006, dashboard.TrafficSummary.Totals.PageViews);
+        Assert.Equal(5006, dashboard.TrafficSummary.Totals.Sessions);
+        Assert.Equal(1, dashboard.TrafficSummary.PreviousTotals.Events);
+        Assert.Equal(1, dashboard.TrafficSummary.PreviousTotals.PageViews);
+        Assert.Equal(1, dashboard.TrafficSummary.PreviousTotals.Sessions);
+        Assert.Equal(5006, dashboard.TrafficSummary.Daily.Sum(point => point.Events));
+        Assert.Contains(dashboard.TrafficSummary.TopPages, page => page.Route == "/" && page.PageViews == 5005 && page.Sessions == 5005);
+        Assert.Contains(dashboard.TrafficSummary.Sources, row => row.Label == "direct" && row.Events == 5005 && row.PageViews == 5005);
+        Assert.Contains(dashboard.TrafficSummary.Sources, row => row.Label == "search" && row.Events == 1 && row.PageViews == 1);
+        Assert.Contains(dashboard.TrafficSummary.Referrers, row => row.Label == "www.google.com" && row.Events == 1);
+        Assert.Contains(dashboard.TrafficSummary.Devices, row => row.Label == "desktop" && row.Events == 5005);
+        Assert.Contains(dashboard.TrafficSummary.Devices, row => row.Label == "mobile" && row.Events == 1);
+        Assert.Contains(dashboard.TrafficSummary.Browsers, row => row.Label == "Chrome" && row.Events == 5005);
+        Assert.Contains(dashboard.TrafficSummary.Browsers, row => row.Label == "Firefox" && row.Events == 1);
+
+        var searchOnly = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Source = "search", Limit = 1 });
+
+        Assert.Single(searchOnly.Events);
+        Assert.Equal(1, searchOnly.TrafficSummary.Totals.Events);
+        Assert.Equal(1, searchOnly.TrafficSummary.Totals.PageViews);
+        var page = Assert.Single(searchOnly.TrafficSummary.TopPages);
+        Assert.Equal("/leaderboard", page.Route);
+        var source = Assert.Single(searchOnly.TrafficSummary.Sources);
+        Assert.Equal("search", source.Label);
+        var referrer = Assert.Single(searchOnly.TrafficSummary.Referrers);
+        Assert.Equal("www.google.com", referrer.Label);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_TrafficSummarySeparatesCleanAndNoisyTraffic()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        var current = DateTimeOffset.UtcNow.AddMinutes(-5);
+        InsertDashboardEvents(
+            database,
+            current,
+            count: 2,
+            eventName: "site_page_viewed",
+            flow: "site",
+            route: "/",
+            sessionPrefix: "S-CLEAN");
+        InsertDashboardEvents(
+            database,
+            current,
+            count: 30,
+            eventName: "site_page_viewed",
+            flow: "site",
+            route: "/join",
+            sessionPrefix: "S-NOISY",
+            sharedSessionId: "S-NOISY-REFRESH");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+
+        Assert.Equal(3, dashboard.TrafficSummary.Totals.Sessions);
+        Assert.Equal(32, dashboard.TrafficSummary.Totals.PageViews);
+        Assert.Equal(32, dashboard.TrafficSummary.Totals.Events);
+        Assert.Equal(2, dashboard.TrafficSummary.CleanTotals.Sessions);
+        Assert.Equal(2, dashboard.TrafficSummary.CleanTotals.PageViews);
+        Assert.Equal(2, dashboard.TrafficSummary.CleanTotals.Events);
+        Assert.Equal(3, dashboard.TrafficSummary.Quality.RawSessions);
+        Assert.Equal(2, dashboard.TrafficSummary.Quality.CleanSessions);
+        Assert.Equal(1, dashboard.TrafficSummary.Quality.NoisySessions);
+        Assert.Equal(30, dashboard.TrafficSummary.Quality.TopSessionEvents);
+        Assert.Equal(30d / 32d, dashboard.TrafficSummary.Quality.TopSessionShare, precision: 6);
+        Assert.Equal(1, dashboard.TrafficSummary.Quality.RepeatedPageViewSessions);
+        Assert.Equal(1, dashboard.TrafficSummary.Quality.PageViewDominantSessions);
+        Assert.Equal(30, dashboard.TrafficSummary.Quality.NoisyPageViews);
+        Assert.Equal(30d / 32d, dashboard.TrafficSummary.Quality.NoisyPageViewShare, precision: 6);
     }
 
     [Fact]
@@ -623,6 +746,71 @@ public sealed class SiteStatisticsServiceTests
             cmd.Parameters.AddWithValue("@source", source);
             cmd.Parameters.AddWithValue("@referrer", referrerDomain ?? (object)DBNull.Value);
             cmd.ExecuteNonQuery();
+        });
+    }
+
+    private static void InsertDashboardEvents(
+        DatabaseManager database,
+        DateTimeOffset occurredAtUtc,
+        int count,
+        string eventName,
+        string flow,
+        string route,
+        string source = "direct",
+        string? referrerDomain = null,
+        string device = "desktop",
+        string browser = "Chrome",
+        string sessionPrefix = "S-BULK",
+        string? sharedSessionId = null)
+    {
+        database.Run(sqlite =>
+        {
+            using var tx = sqlite.BeginTransaction();
+            using var cmd = sqlite.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText =
+                """
+                INSERT INTO SiteStatisticEvents
+                (Id, OccurredAtUtc, SessionHash, EventName, Flow, Route, Component, Step, Outcome,
+                 ErrorCode, DurationMs, DeviceClass, BrowserFamily, ReferrerDomain, Source, MetadataJson)
+                VALUES
+                (@id, @occurred, @session, @eventName, @flow, @route, @component, @step, @outcome,
+                 NULL, NULL, @device, @browser, @referrer, @source, NULL);
+                """;
+            var id = cmd.Parameters.Add("@id", SqliteType.Text);
+            var occurred = cmd.Parameters.Add("@occurred", SqliteType.Text);
+            var session = cmd.Parameters.Add("@session", SqliteType.Text);
+            var eventNameParam = cmd.Parameters.Add("@eventName", SqliteType.Text);
+            var flowParam = cmd.Parameters.Add("@flow", SqliteType.Text);
+            var routeParam = cmd.Parameters.Add("@route", SqliteType.Text);
+            var component = cmd.Parameters.Add("@component", SqliteType.Text);
+            var step = cmd.Parameters.Add("@step", SqliteType.Text);
+            var outcome = cmd.Parameters.Add("@outcome", SqliteType.Text);
+            var deviceParam = cmd.Parameters.Add("@device", SqliteType.Text);
+            var browserParam = cmd.Parameters.Add("@browser", SqliteType.Text);
+            var referrer = cmd.Parameters.Add("@referrer", SqliteType.Text);
+            var sourceParam = cmd.Parameters.Add("@source", SqliteType.Text);
+
+            eventNameParam.Value = eventName;
+            flowParam.Value = flow;
+            routeParam.Value = route;
+            component.Value = "site";
+            step.Value = "view";
+            outcome.Value = "viewed";
+            deviceParam.Value = device;
+            browserParam.Value = browser;
+            referrer.Value = referrerDomain ?? (object)DBNull.Value;
+            sourceParam.Value = source;
+
+            for (var i = 0; i < count; i++)
+            {
+                id.Value = Guid.NewGuid().ToString("N");
+                occurred.Value = occurredAtUtc.AddMilliseconds(i).ToString("O");
+                session.Value = sharedSessionId ?? $"{sessionPrefix}-{i}";
+                cmd.ExecuteNonQuery();
+            }
+
+            tx.Commit();
         });
     }
 
