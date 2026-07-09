@@ -23,6 +23,40 @@ public sealed class SiteStatisticsService : IHostedService
     private const int MaxDashboardLimit = 5000;
     private const int MaxQueuedEvents = 2000;
     private const int FlushBatchSize = 250;
+    private const string PageViewEventNamesSql = "'site_page_viewed','onboarding_entry_viewed','onboarding_page_viewed','challenge_page_viewed'";
+    private const string EffectiveSourceSql =
+        """
+        CASE
+            WHEN lower(coalesce(s.FirstReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
+            WHEN lower(coalesce(s.FirstReferrerDomain, '')) = 'com.google.android.gm'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE 'mail.%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%.mail.%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%gmail%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%outlook%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%hotmail%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%protonmail%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%proton.me%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%fastmail%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%icloud%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%mail.yahoo%'
+              OR lower(coalesce(s.FirstReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
+            WHEN s.FirstSource IS NOT NULL THEN s.FirstSource
+            WHEN lower(coalesce(e.ReferrerDomain, '')) IN ('longevityworldcup.com', 'www.longevityworldcup.com') THEN 'internal'
+            WHEN lower(coalesce(e.ReferrerDomain, '')) = 'com.google.android.gm'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE 'mail.%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%.mail.%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%gmail%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%outlook%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%hotmail%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%protonmail%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%proton.me%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%fastmail%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%icloud%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%mail.yahoo%'
+              OR lower(coalesce(e.ReferrerDomain, '')) LIKE '%yahoomail%' THEN 'email'
+            ELSE coalesce(e.Source, 'direct')
+        END
+        """;
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(1);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan DefaultDashboardRange = TimeSpan.FromDays(30);
@@ -163,6 +197,7 @@ public sealed class SiteStatisticsService : IHostedService
         {
             var events = ReadDashboardEvents(sqlite, from, now, query, limit);
             var previousEvents = ReadDashboardEvents(sqlite, previousFrom, from, query, limit);
+            var trafficSummary = ReadTrafficSummary(sqlite, from, now, previousFrom, from, query);
 
             var filters = new SiteStatisticsDashboardFilters(
                 Range: string.IsNullOrWhiteSpace(query.Range) ? "30d" : query.Range!,
@@ -178,6 +213,7 @@ public sealed class SiteStatisticsService : IHostedService
             return Task.FromResult(new SiteStatisticsDashboardResponse(
                 GeneratedAtUtc: now.ToString("O", CultureInfo.InvariantCulture),
                 Filters: filters,
+                TrafficSummary: trafficSummary,
                 Events: events,
                 PreviousEvents: previousEvents));
         }, ct).ConfigureAwait(false);
@@ -291,6 +327,297 @@ public sealed class SiteStatisticsService : IHostedService
         }
 
         return events;
+    }
+
+    private static SiteStatisticsTrafficSummary ReadTrafficSummary(
+        SqliteConnection sqlite,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        DateTimeOffset previousFrom,
+        DateTimeOffset previousTo,
+        SiteStatisticsDashboardQuery query)
+    {
+        var sessionStats = ReadTrafficSessionStats(sqlite, from, to, query);
+
+        return new SiteStatisticsTrafficSummary(
+            Totals: ReadTrafficTotals(sqlite, from, to, query),
+            PreviousTotals: ReadTrafficTotals(sqlite, previousFrom, previousTo, query),
+            CleanTotals: BuildCleanTrafficTotals(sessionStats),
+            Quality: BuildTrafficQuality(sessionStats),
+            Daily: ReadDailyTraffic(sqlite, from, to, query),
+            TopPages: ReadTopPages(sqlite, from, to, query),
+            Sources: ReadTrafficBreakdown(sqlite, from, to, query, EffectiveSourceSql),
+            Referrers: ReadTrafficBreakdown(
+                sqlite,
+                from,
+                to,
+                query,
+                "coalesce(nullif(s.FirstReferrerDomain, ''), nullif(e.ReferrerDomain, ''), 'direct')"),
+            Devices: ReadTrafficBreakdown(sqlite, from, to, query, "coalesce(nullif(e.DeviceClass, ''), 'unknown')"),
+            Browsers: ReadTrafficBreakdown(sqlite, from, to, query, "coalesce(nullif(e.BrowserFamily, ''), 'unknown')"));
+    }
+
+    private static SiteStatisticsTrafficTotals ReadTrafficTotals(
+        SqliteConnection sqlite,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        SiteStatisticsDashboardQuery query)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            $$"""
+            SELECT COUNT(DISTINCT e.SessionHash) AS Sessions,
+                   COALESCE(SUM(CASE WHEN e.EventName IN ({{PageViewEventNamesSql}}) THEN 1 ELSE 0 END), 0) AS PageViews,
+                   COUNT(*) AS Events
+            FROM SiteStatisticEvents e
+            LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
+            WHERE e.OccurredAtUtc >= @from
+              AND e.OccurredAtUtc < @to
+              AND (@flow = '' OR e.Flow = @flow)
+              AND (@device = '' OR e.DeviceClass = @device)
+              AND (@source = '' OR ({{EffectiveSourceSql}}) = @source);
+            """;
+        AddTrafficFilterParameters(cmd, from, to, query);
+
+        using var reader = cmd.ExecuteReader();
+        return reader.Read()
+            ? new SiteStatisticsTrafficTotals(reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2))
+            : new SiteStatisticsTrafficTotals(0, 0, 0);
+    }
+
+    private static IReadOnlyList<SiteStatisticsTrafficDailyPoint> ReadDailyTraffic(
+        SqliteConnection sqlite,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        SiteStatisticsDashboardQuery query)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            $$"""
+            SELECT substr(e.OccurredAtUtc, 1, 10) AS Day,
+                   COUNT(DISTINCT e.SessionHash) AS Sessions,
+                   COALESCE(SUM(CASE WHEN e.EventName IN ({{PageViewEventNamesSql}}) THEN 1 ELSE 0 END), 0) AS PageViews,
+                   COUNT(*) AS Events
+            FROM SiteStatisticEvents e
+            LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
+            WHERE e.OccurredAtUtc >= @from
+              AND e.OccurredAtUtc < @to
+              AND (@flow = '' OR e.Flow = @flow)
+              AND (@device = '' OR e.DeviceClass = @device)
+              AND (@source = '' OR ({{EffectiveSourceSql}}) = @source)
+            GROUP BY Day
+            ORDER BY Day ASC;
+            """;
+        AddTrafficFilterParameters(cmd, from, to, query);
+
+        var points = new List<SiteStatisticsTrafficDailyPoint>();
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            points.Add(new SiteStatisticsTrafficDailyPoint(
+                Day: ReadString(reader, 0),
+                Sessions: reader.GetInt64(1),
+                PageViews: reader.GetInt64(2),
+                Events: reader.GetInt64(3)));
+        }
+
+        return points;
+    }
+
+    private static IReadOnlyList<SiteStatisticsTrafficPage> ReadTopPages(
+        SqliteConnection sqlite,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        SiteStatisticsDashboardQuery query)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            $$"""
+            SELECT e.Route,
+                   e.SessionHash,
+                   COUNT(*) AS PageViews
+            FROM SiteStatisticEvents e
+            LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
+            WHERE e.OccurredAtUtc >= @from
+              AND e.OccurredAtUtc < @to
+              AND e.EventName IN ({{PageViewEventNamesSql}})
+              AND (@flow = '' OR e.Flow = @flow)
+              AND (@device = '' OR e.DeviceClass = @device)
+              AND (@source = '' OR ({{EffectiveSourceSql}}) = @source)
+            GROUP BY e.Route, e.SessionHash;
+            """;
+        AddTrafficFilterParameters(cmd, from, to, query);
+
+        var pages = new Dictionary<string, MutableTrafficPage>(StringComparer.OrdinalIgnoreCase);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            var route = BuildRouteProjection(ReadNullableString(reader, 0)).Route ?? "unknown";
+            if (!pages.TryGetValue(route, out var page))
+            {
+                page = new MutableTrafficPage();
+                pages[route] = page;
+            }
+
+            page.Sessions.Add(ReadString(reader, 1));
+            page.PageViews += reader.GetInt64(2);
+        }
+
+        return pages
+            .Select(kvp => new SiteStatisticsTrafficPage(kvp.Key, kvp.Value.Sessions.Count, kvp.Value.PageViews))
+            .OrderByDescending(page => page.PageViews)
+            .ThenByDescending(page => page.Sessions)
+            .ThenBy(page => page.Route, StringComparer.OrdinalIgnoreCase)
+            .Take(15)
+            .ToList();
+    }
+
+    private static IReadOnlyList<SiteStatisticsTrafficBreakdown> ReadTrafficBreakdown(
+        SqliteConnection sqlite,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        SiteStatisticsDashboardQuery query,
+        string labelSql)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            $$"""
+            SELECT {{labelSql}} AS Label,
+                   COUNT(DISTINCT e.SessionHash) AS Sessions,
+                   COALESCE(SUM(CASE WHEN e.EventName IN ({{PageViewEventNamesSql}}) THEN 1 ELSE 0 END), 0) AS PageViews,
+                   COUNT(*) AS Events
+            FROM SiteStatisticEvents e
+            LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
+            WHERE e.OccurredAtUtc >= @from
+              AND e.OccurredAtUtc < @to
+              AND (@flow = '' OR e.Flow = @flow)
+              AND (@device = '' OR e.DeviceClass = @device)
+              AND (@source = '' OR ({{EffectiveSourceSql}}) = @source)
+            GROUP BY Label
+            ORDER BY Sessions DESC, PageViews DESC, Events DESC, Label ASC
+            LIMIT 12;
+            """;
+        AddTrafficFilterParameters(cmd, from, to, query);
+
+        var rows = new List<SiteStatisticsTrafficBreakdown>();
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            rows.Add(new SiteStatisticsTrafficBreakdown(
+                Label: ReadString(reader, 0),
+                Sessions: reader.GetInt64(1),
+                PageViews: reader.GetInt64(2),
+                Events: reader.GetInt64(3)));
+        }
+
+        return rows;
+    }
+
+    private static IReadOnlyList<TrafficSessionAggregate> ReadTrafficSessionStats(
+        SqliteConnection sqlite,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        SiteStatisticsDashboardQuery query)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            $$"""
+            WITH filtered AS (
+                SELECT e.SessionHash,
+                       e.EventName,
+                       coalesce(nullif(e.Route, ''), 'unknown') AS Route
+                FROM SiteStatisticEvents e
+                LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
+                WHERE e.OccurredAtUtc >= @from
+                  AND e.OccurredAtUtc < @to
+                  AND (@flow = '' OR e.Flow = @flow)
+                  AND (@device = '' OR e.DeviceClass = @device)
+                  AND (@source = '' OR ({{EffectiveSourceSql}}) = @source)
+            ),
+            session_totals AS (
+                SELECT SessionHash,
+                       COUNT(*) AS Events,
+                       COALESCE(SUM(CASE WHEN EventName IN ({{PageViewEventNamesSql}}) THEN 1 ELSE 0 END), 0) AS PageViews
+                FROM filtered
+                GROUP BY SessionHash
+            ),
+            route_pageviews AS (
+                SELECT SessionHash,
+                       Route,
+                       COUNT(*) AS PageViews
+                FROM filtered
+                WHERE EventName IN ({{PageViewEventNamesSql}})
+                GROUP BY SessionHash, Route
+            ),
+            session_routes AS (
+                SELECT SessionHash,
+                       COALESCE(MAX(PageViews), 0) AS LargestRepeatedPageViews
+                FROM route_pageviews
+                GROUP BY SessionHash
+            )
+            SELECT t.SessionHash,
+                   t.Events,
+                   t.PageViews,
+                   COALESCE(r.LargestRepeatedPageViews, 0) AS LargestRepeatedPageViews
+            FROM session_totals t
+            LEFT JOIN session_routes r ON r.SessionHash = t.SessionHash;
+            """;
+        AddTrafficFilterParameters(cmd, from, to, query);
+
+        var rows = new List<TrafficSessionAggregate>();
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            rows.Add(new TrafficSessionAggregate(
+                SessionHash: ReadString(reader, 0),
+                Events: reader.GetInt64(1),
+                PageViews: reader.GetInt64(2),
+                LargestRepeatedPageViews: reader.GetInt64(3)));
+        }
+
+        return rows;
+    }
+
+    private static SiteStatisticsTrafficTotals BuildCleanTrafficTotals(IReadOnlyList<TrafficSessionAggregate> sessionStats)
+    {
+        var clean = sessionStats.Where(static row => !IsNoisyTrafficSession(row)).ToList();
+        return new SiteStatisticsTrafficTotals(
+            Sessions: clean.Count,
+            PageViews: clean.Sum(static row => row.PageViews),
+            Events: clean.Sum(static row => row.Events));
+    }
+
+    private static SiteStatisticsTrafficQuality BuildTrafficQuality(IReadOnlyList<TrafficSessionAggregate> sessionStats)
+    {
+        var totalEvents = sessionStats.Sum(static row => row.Events);
+        var totalPageViews = sessionStats.Sum(static row => row.PageViews);
+        var topSessionEvents = sessionStats.Count == 0 ? 0 : sessionStats.Max(static row => row.Events);
+        var noisy = sessionStats.Where(static row => IsNoisyTrafficSession(row)).ToList();
+        var repeatedPageViewSessions = sessionStats.Count(static row => row.LargestRepeatedPageViews >= 20);
+        var pageViewDominantSessions = sessionStats.Count(static row =>
+            row.PageViews >= 20 && row.Events > 0 && row.PageViews / (double)row.Events >= 0.6);
+        var noisyPageViews = noisy.Sum(static row => row.PageViews);
+
+        return new SiteStatisticsTrafficQuality(
+            RawSessions: sessionStats.Count,
+            CleanSessions: Math.Max(0, sessionStats.Count - noisy.Count),
+            NoisySessions: noisy.Count,
+            TopSessionEvents: topSessionEvents,
+            TopSessionShare: totalEvents == 0 ? 0 : topSessionEvents / (double)totalEvents,
+            RepeatedPageViewSessions: repeatedPageViewSessions,
+            PageViewDominantSessions: pageViewDominantSessions,
+            NoisyPageViews: noisyPageViews,
+            NoisyPageViewShare: totalPageViews == 0 ? 0 : noisyPageViews / (double)totalPageViews);
+    }
+
+    private static bool IsNoisyTrafficSession(TrafficSessionAggregate row)
+    {
+        if (row.Events < 20)
+            return false;
+
+        return row.LargestRepeatedPageViews >= 20 ||
+               (row.Events >= 40 && row.Events > 0 && row.LargestRepeatedPageViews / (double)row.Events >= 0.6) ||
+               (row.PageViews >= 20 && row.Events > 0 && row.PageViews / (double)row.Events >= 0.6);
     }
 
     private async Task RecordEventAsync(SiteStatisticsEventRequest request, HttpContext? context, string? actorId, CancellationToken ct)
@@ -1172,6 +1499,31 @@ public sealed class SiteStatisticsService : IHostedService
 
     private static void Add(SqliteCommand cmd, string name, object? value)
         => cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
+
+    private static void AddTrafficFilterParameters(
+        SqliteCommand cmd,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        SiteStatisticsDashboardQuery query)
+    {
+        Add(cmd, "@from", from.ToString("O", CultureInfo.InvariantCulture));
+        Add(cmd, "@to", to.ToString("O", CultureInfo.InvariantCulture));
+        Add(cmd, "@flow", NormalizeFilter(query.Flow));
+        Add(cmd, "@device", NormalizeFilter(query.Device));
+        Add(cmd, "@source", NormalizeFilter(query.Source));
+    }
+
+    private sealed class MutableTrafficPage
+    {
+        public HashSet<string> Sessions { get; } = new(StringComparer.Ordinal);
+        public long PageViews { get; set; }
+    }
+
+    private sealed record TrafficSessionAggregate(
+        string SessionHash,
+        long Events,
+        long PageViews,
+        long LargestRepeatedPageViews);
 }
 
 internal sealed record SessionFirstTouch(
@@ -1255,6 +1607,7 @@ public sealed class SiteStatisticsDashboardQuery
 public sealed record SiteStatisticsDashboardResponse(
     string GeneratedAtUtc,
     SiteStatisticsDashboardFilters Filters,
+    SiteStatisticsTrafficSummary TrafficSummary,
     IReadOnlyList<SiteStatisticsDashboardEvent> Events,
     IReadOnlyList<SiteStatisticsDashboardEvent> PreviousEvents);
 
@@ -1295,3 +1648,48 @@ public sealed record SiteStatisticsDashboardEvent(
     string? FirstUtmTerm,
     string? FirstUtmContent,
     IReadOnlyDictionary<string, string> Metadata);
+
+public sealed record SiteStatisticsTrafficSummary(
+    SiteStatisticsTrafficTotals Totals,
+    SiteStatisticsTrafficTotals PreviousTotals,
+    SiteStatisticsTrafficTotals CleanTotals,
+    SiteStatisticsTrafficQuality Quality,
+    IReadOnlyList<SiteStatisticsTrafficDailyPoint> Daily,
+    IReadOnlyList<SiteStatisticsTrafficPage> TopPages,
+    IReadOnlyList<SiteStatisticsTrafficBreakdown> Sources,
+    IReadOnlyList<SiteStatisticsTrafficBreakdown> Referrers,
+    IReadOnlyList<SiteStatisticsTrafficBreakdown> Devices,
+    IReadOnlyList<SiteStatisticsTrafficBreakdown> Browsers);
+
+public sealed record SiteStatisticsTrafficTotals(
+    long Sessions,
+    long PageViews,
+    long Events);
+
+public sealed record SiteStatisticsTrafficQuality(
+    long RawSessions,
+    long CleanSessions,
+    long NoisySessions,
+    long TopSessionEvents,
+    double TopSessionShare,
+    long RepeatedPageViewSessions,
+    long PageViewDominantSessions,
+    long NoisyPageViews,
+    double NoisyPageViewShare);
+
+public sealed record SiteStatisticsTrafficDailyPoint(
+    string Day,
+    long Sessions,
+    long PageViews,
+    long Events);
+
+public sealed record SiteStatisticsTrafficPage(
+    string Route,
+    long Sessions,
+    long PageViews);
+
+public sealed record SiteStatisticsTrafficBreakdown(
+    string Label,
+    long Sessions,
+    long PageViews,
+    long Events);

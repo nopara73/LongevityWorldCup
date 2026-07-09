@@ -78,9 +78,11 @@
 
         <section id="statsStatus" class="stats-status" role="status" aria-live="polite">Loading redacted analytics...</section>
 
-        <section id="dataQualityStrip" class="data-quality-strip" aria-label="Data quality"></section>
+        <section id="trafficOverview" class="traffic-overview" aria-label="Traffic overview"></section>
 
-        <section class="decision-grid" aria-label="Decision brief">
+        <section id="dataQualityStrip" class="data-quality-strip" aria-label="Data quality" hidden></section>
+
+        <section id="decisionGrid" class="decision-grid" aria-label="Decision brief" hidden>
             <div class="stats-panel decision-brief-panel">
                 <div class="panel-heading">
                     <h2>Decision Brief</h2>
@@ -98,7 +100,7 @@
             </div>
         </section>
 
-        <section class="decision-support-grid" aria-label="Decision diagnostics">
+        <section id="decisionSupportGrid" class="decision-support-grid" aria-label="Decision diagnostics" hidden>
             <div class="stats-panel segment-panel">
                 <div class="panel-heading">
                     <h2>Segment Comparison</h2>
@@ -116,9 +118,9 @@
             </div>
         </section>
 
-        <section id="outcomeStrip" class="outcome-strip" aria-label="Outcome metrics"></section>
+        <section id="outcomeStrip" class="outcome-strip" aria-label="Outcome metrics" hidden></section>
 
-        <section class="stats-panel drilldown-panel">
+        <section id="drilldownPanel" class="stats-panel drilldown-panel" hidden>
             <div class="panel-heading">
                 <h2 id="drilldownTitle">Drilldown</h2>
                 <div class="drilldown-actions">
@@ -134,7 +136,7 @@
             </div>
         </section>
 
-        <section class="stats-main-grid">
+        <section id="statsMainGrid" class="stats-main-grid" hidden>
             <div class="stats-panel primary-panel">
                 <div class="panel-heading">
                     <h2 id="primaryTitle">Onboarding Funnel</h2>
@@ -153,7 +155,7 @@
             </div>
         </section>
 
-        <section id="detailSections" class="detail-sections"></section>
+        <section id="detailSections" class="detail-sections" hidden></section>
     </main>
 </body>
 </html>
