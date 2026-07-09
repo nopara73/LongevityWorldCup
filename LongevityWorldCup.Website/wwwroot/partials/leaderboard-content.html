@@ -506,34 +506,6 @@
     }
     .ranking-explanation.is-visible{ display:block; }
     .ranking-explanation strong{ color:var(--primary-color); }
-    .longevitymaxxing-promo{
-        display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:0 0 1rem; padding:.9rem 1rem;
-        border:1px solid rgba(15,23,42,.08); border-radius:8px;
-        background:rgba(255,255,255,.88);
-        box-shadow:0 8px 20px rgba(15,23,42,.08); box-sizing:border-box;
-    }
-    .longevitymaxxing-promo p{
-        margin:0; color:#2f3f49; font-size:.98rem; line-height:1.4;
-    }
-    .longevitymaxxing-promo p strong{
-        color:#0f172a; font-weight:850;
-    }
-    .longevitymaxxing-promo-action{
-        display:inline-flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap;
-        padding:.68rem 1.05rem; border:1px solid rgba(15,23,42,.08); border-radius:8px;
-        background:#0797a9; color:#fff; font-weight:800; text-decoration:none;
-        box-shadow:0 7px 16px rgba(0,151,169,.22), inset 0 1px 0 rgba(255,255,255,.22);
-        transition:background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
-    }
-    .longevitymaxxing-promo-action:hover,
-    .longevitymaxxing-promo-action:focus-visible{
-        color:#fff; border-color:rgba(15,23,42,.14); background:#067f8f; outline:none;
-        box-shadow:0 9px 18px rgba(0,127,143,.24), inset 0 1px 0 rgba(255,255,255,.18);
-        transform:translateY(-1px);
-    }
-    .longevitymaxxing-promo-action:focus-visible{
-        box-shadow:0 0 0 3px rgba(255,64,129,.20), 0 9px 18px rgba(0,127,143,.24);
-    }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
@@ -1758,12 +1730,6 @@
             margin-left:auto;
             margin-right:auto;
         }
-        .longevitymaxxing-promo{
-            flex-direction:column; align-items:stretch; gap:.75rem; margin:1.15rem 0 1.25rem; padding:.95rem;
-        }
-        .longevitymaxxing-promo-action{
-            width:100%; box-sizing:border-box;
-        }
         body.sidebar-drawer-open{
             overflow:hidden;
         }
@@ -2369,21 +2335,6 @@
             margin-bottom:.55rem;
         }
 
-        .longevitymaxxing-promo{
-            flex-direction:row;
-            align-items:center;
-            margin:0 0 .6rem;
-            padding:.75rem .85rem;
-        }
-
-        .longevitymaxxing-promo p{
-            font-size:.92rem;
-        }
-
-        .longevitymaxxing-promo-action{
-            width:auto;
-        }
-
         .leaderboard-view-switcher{
             width:auto;
             min-width:0;
@@ -2545,11 +2496,6 @@
                 <div class="podium-skeleton-line skeleton-shimmer"></div>
             </div>
         </div>
-
-        <section class="longevitymaxxing-promo" id="longevitymaxxingPromo" aria-label="Longevitymaxxing">
-            <p>Don't feel ready for the Longevity World Cup yet? Try longevitymaxxing first.</p>
-            <a class="longevitymaxxing-promo-action" href="/longevitymaxxing">Start longevitymaxxing</a>
-        </section>
 
         <div class="leaderboard-toolbar">
             <div class="leaderboard-view-switcher" role="radiogroup" aria-labelledby="leaderboardViewLabel">

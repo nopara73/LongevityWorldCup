@@ -88,9 +88,12 @@ public sealed class SiteStatisticsDashboardPageTests
 
         Assert.Contains("id=\"joinStartAmateurBtn\"", menu);
         Assert.Contains("id=\"joinGoProButton\"", menu);
+        Assert.Contains("id=\"joinStartChallengeLink\"", menu);
         Assert.Contains("play-join-biomarkers", menu);
         Assert.Contains("joinStartAmateurBtn", tracker);
         Assert.Contains("joinGoProButton", tracker);
+        Assert.Contains("joinStartChallengeLink", tracker);
+        Assert.Contains("onboarding_challenge_selected", tracker);
         Assert.Contains(".play-join-biomarkers details", tracker);
         Assert.Contains(".play-join-card--pro", tracker);
         Assert.Contains("function setupSpaRouteTracking()", tracker);

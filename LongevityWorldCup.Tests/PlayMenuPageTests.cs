@@ -75,6 +75,17 @@ public sealed class PlayMenuPageTests
         Assert.Contains("if (path === '/join') return 'join';", html);
         Assert.Contains("newBtn.addEventListener('click', () => showPlayPanel('join', { historyMode: 'push' }));", html);
         Assert.Contains("document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);", html);
+        Assert.Contains("class=\"play-join-challenge-note\"", html);
+        Assert.Contains("id=\"joinStartChallengeLink\" href=\"/longevitymaxxing\"", html);
+        Assert.Contains("Not ready for a blood test yet?", html);
+        Assert.Contains("Try our longevitymaxxing lifestyle challenge instead", html);
+        Assert.Contains("<h1 class=\"play-join-title\">Choose your track</h1>", html);
+        Assert.Contains("To calculate your biological age, get a <strong>blood test</strong>.", html);
+        Assert.DoesNotContain("play-join-card--challenge", html);
+        Assert.DoesNotContain("play-join-secondary-actions", html);
+        Assert.DoesNotContain("<span class=\"track-name\">Longevitymaxxing</span>", html);
+        Assert.DoesNotContain("id=\"joinStartChallengeButton\"", html);
+        Assert.DoesNotContain("Start challenge</span>", html);
         Assert.DoesNotContain("onclick=\"window.location.href='/join'\"", html);
         Assert.Contains("flow.setPendingPaymentOffer({", html);
         Assert.Contains("source: 'join-game'", html);
@@ -100,6 +111,11 @@ public sealed class PlayMenuPageTests
         Assert.Contains("removeLocalItem(\"contactEmail\");", flow);
         Assert.Contains("\"/pheno-age?update=1\"", flow);
         Assert.Contains("\"/bortz-age?update=1\"", flow);
+        Assert.Contains("\"/longevitymaxxing\"", flow);
+        Assert.Contains("dynamicActions.append(challengeButton, submitButton, goProButton);", flow);
+        Assert.Contains("dynamicActions.append(challengeButton, phenoButton, bortzButton);", flow);
+        Assert.Contains("Longevitymaxxing</span>", flow);
+        Assert.DoesNotContain("Longevitymaxxing Challenge</span>", flow);
     }
 
     [Fact]
@@ -245,12 +261,15 @@ public sealed class PlayMenuPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
+        var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
 
         Assert.Contains(".pro-discount-badge-slot {\n            width: 44px;", html);
         Assert.Contains("min-width: 44px;", html);
         Assert.Contains("height: 44px;", html);
         Assert.Contains(".pro-discount-badge-slot:empty", html);
+        Assert.Contains(".pro-discount-breakdown.pro-discount-breakdown--with-badges .pro-discount-badge-slot:empty", html);
         Assert.Contains(".pro-discount-text", html);
         Assert.Contains("overflow-wrap: anywhere;", html);
+        Assert.Contains("pro-discount-breakdown--with-badges", flow);
     }
 }
