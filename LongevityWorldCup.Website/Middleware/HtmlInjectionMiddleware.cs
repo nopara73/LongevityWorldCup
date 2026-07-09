@@ -28,6 +28,7 @@ namespace LongevityWorldCup.Website.Middleware
             "/",
             "/leaderboard",
             "/longevitymaxxing",
+            "/helstab-kihivas",
             "/events",
             "/media",
             "/about",
@@ -104,6 +105,12 @@ namespace LongevityWorldCup.Website.Middleware
                     leaderboardContent = ApplyLeaderboardRows(leaderboardContent, context);
                     leaderboardContent = ApplyLongevitymaxxingPromo(leaderboardContent);
 
+                    if (ShouldUseHungarianChrome(context))
+                    {
+                        header = LocalizeHungarianHeader(header);
+                        footer = LocalizeHungarianFooter(footer);
+                    }
+
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
                         .Replace("<!--HEAD-->", head)
@@ -120,10 +127,12 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
                         .Replace("{{ASSET_LONGEVITYMAXXING_CSS}}", _assetVersionProvider.AppendVersion("/css/longevitymaxxing.css"))
                         .Replace("{{ASSET_LONGEVITYMAXXING_JS}}", _assetVersionProvider.AppendVersion("/js/longevitymaxxing.js"))
+                        .Replace("{{ASSET_HELSTAB_KIHIVAS_CSS}}", _assetVersionProvider.AppendVersion("/css/helstab-kihivas.css"))
                         .Replace("{{ASSET_SITE_STATISTICS_CSS}}", _assetVersionProvider.AppendVersion("/css/site-statistics.css"))
                         .Replace("{{ASSET_SITE_STATISTICS_JS}}", _assetVersionProvider.AppendVersion("/js/site-statistics.js"))
                         .Replace("{{ASSET_SITE_STATISTICS_TRACKING_JS}}", _assetVersionProvider.AppendVersion("/js/site-statistics-tracking.js"))
                         .Replace("{{ASSET_CUSTOM_EVENT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/custom_event.png"))
+                        .Replace("{{ASSET_MARTIN_HELSTAB_PROFILE_IMAGE}}", _assetVersionProvider.AppendVersion("/athletes/martin_helstab/martin_helstab.webp"))
                         .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
                         .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"))
                         .Replace("{{REQUEST_COUNTRY_CODE}}", GetRequestCountryCode(context));
@@ -241,6 +250,65 @@ namespace LongevityWorldCup.Website.Middleware
             return countryCode.Length == 2 && countryCode.All(static c => c is >= 'A' and <= 'Z')
                 ? countryCode
                 : string.Empty;
+        }
+
+        private static bool ShouldUseHungarianChrome(HttpContext context)
+            => IsHungarianPage(GetRequestCanonicalPath(context));
+
+        private static bool IsHungarianPage(string canonicalPath)
+            => string.Equals(canonicalPath, "/helstab-kihivas", StringComparison.OrdinalIgnoreCase);
+
+        private static string LocalizeHungarianHeader(string html)
+        {
+            return html
+                .Replace(
+                    "<div class=\"bannertext\">Longevity World&nbsp;Cup</div>",
+                    "<div class=\"bannertext\">Hosszúéletesítési<br>Világbajnokság</div>")
+                .Replace(
+                    "<span class=\"site-sticky-header-title\">Longevity World&nbsp;Cup</span>",
+                    "<span class=\"site-sticky-header-title\">Helstáb Kihívás</span>")
+                .Replace(
+                    "Longevity World Cup logo, a phoenix symbolizing a new life",
+                    "Hosszúéletesítési Világbajnokság logó, újjászületést jelképező főnix")
+                .Replace("longevity leaderboards", "hosszúélet-ranglisták")
+                .Replace("onclick=\"window.location.href='/play'\"", "onclick=\"window.location.href='#jelentkezes'\"")
+                .Replace("aria-label=\"Play the game\"", "aria-label=\"Jelentkezés a Helstáb Kihívásra\"")
+                .Replace(
+                    "<strong>PLAY</strong>\r\n        <span class=\"join-game-middle\" style=\"font-size: 1rem;\">THE</span>\r\n        <strong class=\"join-game-end\">GAME</strong>",
+                    "<strong>JELENTKEZÉS</strong>")
+                .Replace(
+                    "<strong>PLAY</strong>\n        <span class=\"join-game-middle\" style=\"font-size: 1rem;\">THE</span>\n        <strong class=\"join-game-end\">GAME</strong>",
+                    "<strong>JELENTKEZÉS</strong>")
+                .Replace("<span class=\"join-game-middle\" style=\"font-size: 1rem;\">THE</span>", "")
+                .Replace("<strong class=\"join-game-end\">GAME</strong>", "")
+                .Replace("<strong>PLAY</strong>", "<strong>JELENTKEZÉS</strong>")
+                .Replace(">Alert<", ">Figyelmeztetés<")
+                .Replace(">Loading<", ">Betöltés<");
+        }
+
+        private static string LocalizeHungarianFooter(string html)
+        {
+            return html
+                .Replace("Shop Longevity World Cup merchandise", "Hosszúéletesítési Világbajnokság bolt")
+                .Replace("Visit Longevity World&nbsp;Cup GitHub repository", "Hosszúéletesítési Világbajnokság GitHub tároló")
+                .Replace("Read the history of Longevity as a Sport", "A hosszúélet mint sport története")
+                .Replace("Review the ruleset for Longevity World&nbsp;Cup", "A Hosszúéletesítési Világbajnokság szabályai")
+                .Replace("Contact Longevity World&nbsp;Cup via email", "Kapcsolat a Hosszúéletesítési Világbajnoksággal emailben")
+                .Replace("Listen to Immortal Combat podcast on YouTube", "Immortal Combat podcast a YouTube-on")
+                .Replace("Follow Longevity World Cup on X", "Hosszúéletesítési Világbajnokság az X-en")
+                .Replace("Join the Longevity World Cup subreddit", "Hosszúéletesítési Világbajnokság subreddit")
+                .Replace("Follow the Longevity World Cup on TikTok", "Hosszúéletesítési Világbajnokság a TikTokon")
+                .Replace("Follow Longevity World Cup on Threads", "Hosszúéletesítési Világbajnokság a Threadsen")
+                .Replace("Visit Longevity World Cup on YouTube", "Hosszúéletesítési Világbajnokság a YouTube-on")
+                .Replace("Follow the Longevity World Cup on Instagram", "Hosszúéletesítési Világbajnokság az Instagramon")
+                .Replace("</i> Merch", "</i> Bolt")
+                .Replace("</i> History", "</i> Történet")
+                .Replace("</i> Ruleset", "</i> Szabályok")
+                .Replace("</i> Contact", "</i> Kapcsolat")
+                .Replace(">Merch<", ">Bolt<")
+                .Replace(">History<", ">Történet<")
+                .Replace(">Ruleset<", ">Szabályok<")
+                .Replace(">Contact<", ">Kapcsolat<");
         }
 
         private static string ResolveWebRootPath(IWebHostEnvironment environment)
@@ -524,6 +592,16 @@ $@"<script type=""module"">
                     "Longevitymaxxing Challenge",
                     noCardDescription,
                     BuildPageOgImageUrl("longevitymaxxing", defaultOgImage)
+                ),
+                "/helstab-kihivas" => new SeoMeta(
+                    canonicalPath,
+                    "Helstáb Kihívás: 14 napos magyar hosszúéletesítésmaxolás napi négy kérdéssel, közös ranglistával és demó jelentkezési-fizetési felülettel.",
+                    "index, follow",
+                    canonicalUrl,
+                    "Helstáb Kihívás | Hosszúéletesítési Világbajnokság",
+                    "Helstáb Kihívás",
+                    noCardDescription,
+                    BuildPageOgImageUrl("helstab-kihivas", defaultOgImage)
                 ),
                 "/events" => new SeoMeta(
                     canonicalPath,
@@ -1145,7 +1223,7 @@ $@"<script type=""module"">
                 ["name"] = seo.PageTitle,
                 ["description"] = seo.Description,
                 ["dateModified"] = dateModified,
-                ["inLanguage"] = "en",
+                ["inLanguage"] = IsHungarianPage(seo.CanonicalPath) ? "hu" : "en",
                 ["isPartOf"] = new Dictionary<string, object>
                 {
                     ["@id"] = $"{SiteBaseUrl}/#website"
@@ -1322,6 +1400,7 @@ $@"<script type=""module"">
             {
                 "/leaderboard" => "Leaderboard",
                 "/longevitymaxxing" => "Longevitymaxxing Challenge",
+                "/helstab-kihivas" => "Helstáb Kihívás",
                 "/events" => "Events",
                 "/media" => "Media",
                 "/about" => "About",
