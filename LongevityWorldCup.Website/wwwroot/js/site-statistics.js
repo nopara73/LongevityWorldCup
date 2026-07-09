@@ -8,6 +8,8 @@
     const reliabilityDiagnosticsTab = "Reliability Diagnostics";
     const reviewDiagnosticsTab = "Review Queue Diagnostics";
     const publicEventsDiagnosticsTab = "Public Event Diagnostics";
+    const trafficOverviewEventLimit = 100;
+    const diagnosticEventLimit = 5000;
     const tabs = [
         trafficOverviewTab,
         onboardingDiagnosticsTab,
@@ -34,6 +36,7 @@
         previousEvents: [],
         previousDefaultEvents: [],
         trafficSummary: emptyTrafficSummary(),
+        loadedEventLimit: 0,
         decisionActions: [],
         selectedEventName: null,
         selectedSession: null,
@@ -217,7 +220,7 @@
             flow: el("statsFlow").value,
             device: el("statsDevice").value,
             source: el("statsSource").value,
-            limit: "5000"
+            limit: String(dashboardEventLimit())
         });
 
         try {
@@ -227,6 +230,7 @@
             state.events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
             state.previousEvents = Array.isArray(payload.previousEvents) ? payload.previousEvents.map(normalizeEvent) : [];
             state.trafficSummary = normalizeTrafficSummary(payload.trafficSummary);
+            state.loadedEventLimit = Number(payload.filters && payload.filters.limit) || dashboardEventLimit();
             state.defaultEvents = collapseRepeatedPageViewBursts(state.events);
             state.previousDefaultEvents = collapseRepeatedPageViewBursts(state.previousEvents);
             const totals = state.trafficSummary.totals;
@@ -238,9 +242,18 @@
             state.previousEvents = [];
             state.previousDefaultEvents = [];
             state.trafficSummary = emptyTrafficSummary();
+            state.loadedEventLimit = 0;
             setStatus(`Dashboard data could not be loaded: ${error.message || "unknown error"}.`, true);
             renderAll();
         }
+    }
+
+    function dashboardEventLimit() {
+        return state.tab === trafficOverviewTab ? trafficOverviewEventLimit : diagnosticEventLimit;
+    }
+
+    function needsDiagnosticEventReload() {
+        return state.tab !== trafficOverviewTab && state.loadedEventLimit < diagnosticEventLimit;
     }
 
     function renderAll() {
@@ -930,7 +943,8 @@
                 if (tab === onboardingDiagnosticsTab && state.selectedFlow === "challenge") state.selectedFlow = "pheno";
                 state.selectedEventName = null;
                 state.selectedLabel = `${tab} / all events`;
-                renderAll();
+                if (needsDiagnosticEventReload()) loadDashboard();
+                else renderAll();
             });
             host.appendChild(button);
         });
