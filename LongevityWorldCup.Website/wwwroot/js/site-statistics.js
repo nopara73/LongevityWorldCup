@@ -299,6 +299,7 @@
                 ${trafficMetric("Interactions", totals.events, previous.events)}
                 ${trafficMetric("Ranked pages", (summary.topPages || []).length, null, "top page list")}
             </section>
+            ${successTrendPanel(summary)}
             ${trafficQualityPanel(summary)}
             <section class="stats-panel traffic-chart-panel">
                 <div class="panel-heading">
@@ -376,6 +377,120 @@
                 <em>${esc(delta)}</em>
             </div>
         `;
+    }
+
+    function successTrendPanel(summary) {
+        const points = summary.daily || [];
+        const stats = successTrendStats(points);
+        return `
+            <section class="stats-panel success-trend-panel">
+                <div class="panel-heading">
+                    <h2>Website success over time</h2>
+                    <span class="panel-meta">${esc(selectedRangeLabel())}</span>
+                </div>
+                <div class="success-summary" aria-label="Website success summary">
+                    ${successTrendCard("Success actions", stats.actions, "calculator results / applications / challenge signups")}
+                    ${successTrendCard("Successful sessions", stats.sessions, `${percentNumber(stats.rate)} of visitor sessions`)}
+                    ${successTrendCard("Best day", stats.bestDayLabel, stats.bestDayRate)}
+                </div>
+                ${successTrendChart(points)}
+            </section>
+        `;
+    }
+
+    function successTrendCard(label, value, detail) {
+        return `
+            <div class="success-summary-card">
+                <span>${esc(label)}</span>
+                <strong>${esc(String(value))}</strong>
+                <em>${esc(detail)}</em>
+            </div>
+        `;
+    }
+
+    function successTrendStats(points) {
+        const actions = points.reduce((sum, point) => sum + (Number(point.successActions) || 0), 0);
+        const sessions = points.reduce((sum, point) => sum + (Number(point.successSessions) || 0), 0);
+        const visitorSessions = points.reduce((sum, point) => sum + (Number(point.sessions) || 0), 0);
+        const best = points.reduce((winner, point) => {
+            const currentRate = successRate(point);
+            return !winner || currentRate > winner.rate ? { point, rate: currentRate } : winner;
+        }, null);
+        return {
+            actions: formatNumber(actions),
+            sessions: formatNumber(sessions),
+            rate: ratio(sessions, visitorSessions),
+            bestDayLabel: best ? formatDay(best.point.day) : "-",
+            bestDayRate: best ? percentNumber(best.rate) : "0%"
+        };
+    }
+
+    function successTrendChart(points) {
+        if (!points.length) return empty("No success data for the active timeframe.");
+
+        const width = Math.max(720, points.length * 58);
+        const height = 260;
+        const left = 46;
+        const right = 18;
+        const top = 20;
+        const bottom = 50;
+        const plotWidth = width - left - right;
+        const plotHeight = height - top - bottom;
+        const maxRate = Math.max(0.05, ...points.map(successRate));
+        const maxActions = Math.max(1, ...points.map(point => Number(point.successActions) || 0));
+        const labelsEvery = Math.max(1, Math.ceil(points.length / 9));
+        const barWidth = Math.max(6, Math.min(26, (plotWidth / Math.max(1, points.length)) * 0.36));
+        const x = index => left + (points.length === 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth);
+        const yRate = value => top + (1 - ((Number(value) || 0) / maxRate)) * plotHeight;
+        const yActions = value => top + (1 - ((Number(value) || 0) / maxActions)) * plotHeight;
+        const rateLine = points.map((point, index) => `${x(index).toFixed(1)},${yRate(successRate(point)).toFixed(1)}`).join(" ");
+        const gridLines = [0, 0.25, 0.5, 0.75, 1].map(step => {
+            const y = top + step * plotHeight;
+            return `<line class="success-grid-line" x1="${left}" y1="${y.toFixed(1)}" x2="${width - right}" y2="${y.toFixed(1)}"></line>`;
+        }).join("");
+
+        return `
+            <div class="success-trend-wrap">
+                <svg class="success-trend-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Website success over time">
+                    ${gridLines}
+                    <text class="success-axis-label" x="${left - 8}" y="${top + 4}" text-anchor="end">${esc(percentNumber(maxRate))}</text>
+                    <text class="success-axis-label" x="${left - 8}" y="${top + plotHeight}" text-anchor="end">0%</text>
+                    ${points.map((point, index) => {
+                        const cx = x(index);
+                        const actions = Number(point.successActions) || 0;
+                        const rate = successRate(point);
+                        const barHeight = Math.max(actions ? 4 : 0, top + plotHeight - yActions(actions));
+                        const barY = top + plotHeight - barHeight;
+                        const showLabel = index === 0 || index === points.length - 1 || index % labelsEvery === 0;
+                        return `
+                            <g>
+                                <title>${esc(`${point.day}: ${formatNumber(point.successActions)} success actions, ${formatNumber(point.successSessions)} successful sessions, ${percentNumber(rate)} session success rate`)}</title>
+                                <rect class="success-action-bar" x="${(cx - barWidth / 2).toFixed(1)}" y="${barY.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${barHeight.toFixed(1)}" rx="4"></rect>
+                                ${showLabel ? `<text class="success-day-label" x="${cx.toFixed(1)}" y="${height - 16}" text-anchor="middle">${esc(formatDay(point.day))}</text>` : ""}
+                            </g>
+                        `;
+                    }).join("")}
+                    <polyline class="success-rate-line" points="${rateLine}"></polyline>
+                    ${points.map((point, index) => `
+                        <circle class="success-rate-dot" cx="${x(index).toFixed(1)}" cy="${yRate(successRate(point)).toFixed(1)}" r="3.4"></circle>
+                    `).join("")}
+                </svg>
+            </div>
+            <div class="traffic-legend" aria-label="Website success legend">
+                <span><i class="success-rate"></i>Session success rate</span>
+                <span><i class="success-actions"></i>Success actions</span>
+            </div>
+        `;
+    }
+
+    function successRate(point) {
+        return ratio(point && point.successSessions, point && point.sessions);
+    }
+
+    function selectedRangeLabel() {
+        const range = el("statsRange");
+        const option = range.options[range.selectedIndex];
+        return option ? option.text : "selected timeframe";
     }
 
     function dailyTrafficChart(points) {
@@ -1949,7 +2064,9 @@
                 day: row.day || "",
                 sessions: numberValue(row.sessions),
                 pageViews: numberValue(row.pageViews),
-                events: numberValue(row.events)
+                events: numberValue(row.events),
+                successSessions: numberValue(row.successSessions),
+                successActions: numberValue(row.successActions)
             })),
             topPages: normalizeTrafficRows(summary.topPages, row => ({
                 route: row.route || "unknown",

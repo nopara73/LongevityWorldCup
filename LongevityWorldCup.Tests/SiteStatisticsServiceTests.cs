@@ -230,6 +230,32 @@ public sealed class SiteStatisticsServiceTests
     }
 
     [Fact]
+    public async Task GetDashboardAsync_DailyTrafficAggregatesSuccessActions()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        await using var cleanup = new TempDatabaseCleanup(dbPath);
+        using var database = new DatabaseManager(dbPath: dbPath);
+        var service = new SiteStatisticsService(database, NullLogger<SiteStatisticsService>.Instance);
+
+        await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+        var current = DateTimeOffset.UtcNow.AddMinutes(-5);
+        InsertDashboardEvent(database, current, "S-SUCCESS-CALC", "calculator_result_generated", "pheno");
+        InsertDashboardEvent(database, current, "S-SUCCESS-APPLICATION", "application_submit_succeeded", "application");
+        InsertDashboardEvent(database, current, "S-SUCCESS-CHALLENGE", "challenge_signup_succeeded", "challenge");
+        InsertDashboardEvent(database, current, "S-FAILED", "application_submit_failed", "application");
+        InsertDashboardEvent(database, current, "S-VIEW", "site_page_viewed", "site", route: "/");
+
+        var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Limit = 1 });
+        var point = Assert.Single(dashboard.TrafficSummary.Daily);
+
+        Assert.Equal(5, point.Events);
+        Assert.Equal(5, point.Sessions);
+        Assert.Equal(3, point.SuccessActions);
+        Assert.Equal(3, point.SuccessSessions);
+    }
+
+    [Fact]
     public async Task GetDashboardAsync_ReturnsPreviousEquivalentPeriodForTrendDetection()
     {
         var dbPath = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", $"{Guid.NewGuid():N}.db");
