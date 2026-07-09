@@ -1318,11 +1318,20 @@
         updateUrl();
     }
 
+    function isIgnoredClientError(e) {
+        if (!e || e.eventName !== "client_error_observed") return false;
+        const errorCode = String(e.errorCode || "").trim();
+        return errorCode === "ResizeObserver loop completed with undelivered notifications." ||
+            errorCode === "ResizeObserver loop completed with undelivered notifications" ||
+            errorCode === "ResizeObserver loop limit exceeded";
+    }
+
     function frictionEvents(events) {
         return events.filter(e =>
-            /failed|failure|missing|rejected|unavailable|invalid|error|blocked/.test(e.eventName) ||
-            /failed|missing|error|blocked/.test(e.outcome || "") ||
-            !!e.errorCode);
+            !isIgnoredClientError(e) &&
+            (/failed|failure|missing|rejected|unavailable|invalid|error|blocked/.test(e.eventName) ||
+                /failed|missing|error|blocked/.test(e.outcome || "") ||
+                !!e.errorCode));
     }
 
     function dataQualityStats(events, previous) {

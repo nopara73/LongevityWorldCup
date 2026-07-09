@@ -179,6 +179,13 @@
         track(eventName, options);
     }
 
+    function isIgnoredClientErrorMessage(message) {
+        message = String(message || "").trim();
+        return message === "ResizeObserver loop completed with undelivered notifications." ||
+            message === "ResizeObserver loop completed with undelivered notifications" ||
+            message === "ResizeObserver loop limit exceeded";
+    }
+
     function isSameOriginFetch(input) {
         const raw = safe(() => input && input.url ? input.url : input) || "";
         const parsed = safe(() => new URL(String(raw), window.location.href));
@@ -954,10 +961,12 @@
         safe(setupPublicContentTracking);
     });
     listen(window, "error", event => {
+        const message = event && event.message ? String(event.message) : "";
+        if (isIgnoredClientErrorMessage(message)) return;
         track("client_error_observed", {
             component: "client",
             outcome: "failed",
-            errorCode: event && event.message ? String(event.message).slice(0, 80) : "error"
+            errorCode: message ? message.slice(0, 80) : "error"
         });
     });
 })();

@@ -491,10 +491,24 @@
         function ready(fn){if(document.readyState!=='loading')fn();else document.addEventListener('DOMContentLoaded',fn)}
         ready(function(){
             var root=document.getElementById('events-embed-root');
-            function post(){if(window.parent&&window.parent!==window){var h=Math.ceil(root.getBoundingClientRect().height);window.parent.postMessage({type:'events-embed-height',h:h},'*')}}
-            var ro=new ResizeObserver(post);if(root)ro.observe(root);
-            var mo=new MutationObserver(function(){requestAnimationFrame(post)});if(root)mo.observe(root,{childList:true,subtree:true});
-            window.addEventListener('load',post);
+            var lastHeight=-1;
+            var postFrame=0;
+            function post(){
+                postFrame=0;
+                if(!root||!window.parent||window.parent===window)return;
+                var h=Math.ceil(root.getBoundingClientRect().height);
+                if(h===lastHeight)return;
+                lastHeight=h;
+                window.parent.postMessage({type:'events-embed-height',h:h},'*');
+            }
+            function schedulePost(){
+                if(postFrame)return;
+                var requestFrame=window.requestAnimationFrame||function(callback){return window.setTimeout(callback,0)};
+                postFrame=requestFrame(post);
+            }
+            var ro=root&&'ResizeObserver'in window?new ResizeObserver(schedulePost):null;if(ro)ro.observe(root);
+            var mo=new MutationObserver(schedulePost);if(root)mo.observe(root,{childList:true,subtree:true});
+            window.addEventListener('load',schedulePost);
             var q=new URLSearchParams(window.location.search);
             var rawRows=(q.get('rows')||'5').trim();
             var rows=/^(all|full|0)$/i.test(rawRows)?null:parseInt(rawRows,10);
@@ -504,7 +518,7 @@
             var ln=q.get('linkNames');
             var linkNames=ln==null?true:!(ln==='false'||ln==='0');
             function safeLoad(){
-                if(typeof window.loadEventsTable==='function'){window.loadEventsTable(rows,viewAll,athlete,linkNames);post();return true}
+                if(typeof window.loadEventsTable==='function'){window.loadEventsTable(rows,viewAll,athlete,linkNames);schedulePost();return true}
                 return false
             }
             if(!safeLoad()){

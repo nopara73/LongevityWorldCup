@@ -4989,6 +4989,22 @@
         return freshFrame;
     }
 
+    function scheduleBiomarkerChartResize() {
+        if (window.biomarkerChartResizeFrame) return;
+        const requestFrame = window.requestAnimationFrame || function(callback) { return window.setTimeout(callback, 0); };
+        window.biomarkerChartResizeFrame = requestFrame(function() {
+            window.biomarkerChartResizeFrame = 0;
+            if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
+        });
+    }
+
+    function cancelBiomarkerChartResize() {
+        if (!window.biomarkerChartResizeFrame) return;
+        if (window.cancelAnimationFrame) window.cancelAnimationFrame(window.biomarkerChartResizeFrame);
+        else window.clearTimeout(window.biomarkerChartResizeFrame);
+        window.biomarkerChartResizeFrame = 0;
+    }
+
     function resetModalForLoading(athleteSlug) {
         ensureAthleteModalDeferredSections();
         closeAthleteShareMenu();
@@ -5036,6 +5052,7 @@
             window.biomarkerChartInstance.destroy();
             window.biomarkerChartInstance = null;
         }
+        cancelBiomarkerChartResize();
         if (typeof window.destroyAgeRadarChart === 'function') {
             window.destroyAgeRadarChart();
         }
@@ -5296,6 +5313,7 @@
             window.biomarkerChartResizeObserver.disconnect();
             window.biomarkerChartResizeObserver = null;
         }
+        cancelBiomarkerChartResize();
         if (typeof window.destroyAgeRadarChart === 'function') {
             window.destroyAgeRadarChart();
         }
@@ -6971,16 +6989,16 @@
                         // Force Chart.js to re-measure after layout; hover triggers this internally, so do it explicitly (second rAF + ResizeObserver fallback).
                         requestAnimationFrame(function() {
                             if (requestId !== currentAthleteModalRequestId) return;
-                            if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
+                            scheduleBiomarkerChartResize();
                         });
 
                         var chartContainer = document.getElementById('athlete-biomarkers');
                         if (chartContainer && window.biomarkerChartInstance) {
                             if (window.biomarkerChartResizeObserver) window.biomarkerChartResizeObserver.disconnect();
-                            window.biomarkerChartResizeObserver = new ResizeObserver(function() {
-                                if (window.biomarkerChartInstance) window.biomarkerChartInstance.resize();
-                            });
-                            window.biomarkerChartResizeObserver.observe(chartContainer);
+                            if ('ResizeObserver' in window) {
+                                window.biomarkerChartResizeObserver = new ResizeObserver(scheduleBiomarkerChartResize);
+                                window.biomarkerChartResizeObserver.observe(chartContainer);
+                            }
                         }
                     });
                 });
