@@ -806,7 +806,7 @@
         if (commitmentPanel && typeof MutationObserver === "function") {
             const trackCommitmentBlock = () => {
                 if (commitmentPanel.classList.contains("lmx-hidden")) return;
-                const card = commitmentPanel.querySelector(".lmx-commitment-card");
+                const card = commitmentPanel.querySelector(".lmx-commitment-card[data-commitment-block='true']");
                 if (!card) return;
                 trackOnce("challenge-commitment-block-seen", "challenge_commitment_block_seen", {
                     component: "commitment",

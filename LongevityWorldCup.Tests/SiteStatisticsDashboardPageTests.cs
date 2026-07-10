@@ -154,6 +154,8 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("proof_file_rejected", proofHelpers);
         Assert.Contains("#lmxSignupAthlete-autocomplete-list .lmx-athlete-option", tracker);
         Assert.Contains("lmxCommitmentPanel", tracker);
+        Assert.Contains("querySelector(\".lmx-commitment-card[data-commitment-block='true']\")", tracker);
+        Assert.DoesNotContain("querySelector(\".lmx-commitment-card\")", tracker);
         Assert.Contains("setupPublicContentTracking", tracker);
         Assert.Contains("trackPublicPageViews", tracker);
         Assert.Contains("function isIgnoredClientError(e)", dashboard);
