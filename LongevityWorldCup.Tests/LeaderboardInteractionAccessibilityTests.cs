@@ -45,6 +45,15 @@ public sealed class LeaderboardInteractionAccessibilityTests
         Assert.DoesNotContain("<span id=\"closeAthleteDetailsModal\"", html);
     }
 
+    [Fact]
+    public void PodiumPrizePanels_AreNativeDonationLinks()
+    {
+        var html = File.ReadAllText(GetLeaderboardPartialPath());
+
+        Assert.Contains("<a class=\"podium-item-lower\" href=\"#donation-section\" aria-label=\"Donate to the prize pool\">", html);
+        Assert.DoesNotContain("function subscribeLowerPodiumClick()", html);
+    }
+
     private static string GetLeaderboardPartialPath([CallerFilePath] string sourceFilePath = "")
     {
         var testsDirectory = Path.GetDirectoryName(sourceFilePath)
