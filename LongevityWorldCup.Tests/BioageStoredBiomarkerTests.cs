@@ -1,10 +1,68 @@
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
 public sealed class BioageStoredBiomarkerTests
 {
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BioageInputs_HavePersistentAccessibleNames(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+        var expectedLabels = fileName == "pheno-age.html"
+            ? new Dictionary<string, string>
+            {
+                ["blood-draw-date"] = "Blood draw date",
+                ["wbc"] = "White blood cell count (WBC)",
+                ["lymphocyte"] = "Lymphocytes",
+                ["mcv"] = "Mean corpuscular volume (MCV)",
+                ["rcdw"] = "Red cell distribution width (RDW, RDW-CV)",
+                ["albumin"] = "Albumin",
+                ["ap"] = "Alkaline phosphatase (ALP)",
+                ["creatinine"] = "Creatinine",
+                ["glucose"] = "Glucose",
+                ["crp-negative"] = "Set CRP as below the detection limit",
+                ["crp"] = "C-reactive protein (CRP)"
+            }
+            : new Dictionary<string, string>
+            {
+                ["blood-draw-date"] = "Blood draw date",
+                ["wbc"] = "White blood cell count (WBC)",
+                ["lymphocyte_percentage"] = "Lymphocytes",
+                ["neutrophil_percentage"] = "Neutrophils",
+                ["monocyte_percentage"] = "Monocytes",
+                ["rbc"] = "Red blood cell count (RBC)",
+                ["mcv"] = "Mean corpuscular volume (MCV)",
+                ["mch"] = "Mean corpuscular hemoglobin (MCH)",
+                ["rdw"] = "Red cell distribution width (RDW, RDW-CV)",
+                ["albumin"] = "Albumin",
+                ["alt"] = "Alanine aminotransferase (ALT, ALAT)",
+                ["alp"] = "Alkaline phosphatase (ALP)",
+                ["ggt"] = "Gamma-glutamyl transferase (GGT)",
+                ["urea"] = "Urea or blood urea nitrogen (BUN)",
+                ["creatinine"] = "Creatinine",
+                ["cystatin_c"] = "Cystatin C",
+                ["glucose"] = "Glucose",
+                ["hba1c"] = "Hemoglobin A1c (HbA1c)",
+                ["cholesterol"] = "Total cholesterol",
+                ["apoa1"] = "Apolipoprotein A1 (ApoA1)",
+                ["crp-negative"] = "Set CRP as below the detection limit",
+                ["crp"] = "C-reactive protein (CRP)",
+                ["shbg"] = "Sex hormone-binding globulin (SHBG)",
+                ["vitamin_d"] = "Vitamin D (25-OH)"
+            };
+
+        foreach (var (id, label) in expectedLabels)
+        {
+            Assert.Matches(
+                $"<input(?=[^>]*\\bid=\\\"{Regex.Escape(id)}\\\")(?=[^>]*\\baria-label=\\\"{Regex.Escape(label)}\\\")[^>]*>",
+                html);
+        }
+    }
+
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
