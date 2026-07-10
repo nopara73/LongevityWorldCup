@@ -1383,7 +1383,12 @@
                     : String(label);
                 const url=(allowBadgeClicks && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
                 const familyClass=typeof window.getBadgeFamilyClass==='function'?window.getBadgeFamilyClass(b):'badge-family-utility';
-                if(url) return `<a class="badge-class ${familyClass} badge-clickable" href="${esc(url)}" aria-label="Open league" title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></a>`;
+                if(url){
+                    const isPodcast=String(label||'').trim().toLowerCase()==='podcast';
+                    const targetAttrs=isPodcast?' target="_blank" rel="noopener"':'';
+                    const accessibleLabel=isPodcast?'Open podcast':'Open league';
+                    return `<a class="badge-class ${familyClass} badge-clickable" href="${esc(url)}"${targetAttrs} aria-label="${accessibleLabel}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></a>`;
+                }
                 return `<span class="badge-class ${familyClass}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></span>`;
             }catch(e){
                 return `<span class="badge-chip"><strong>${esc(String(label))}</strong></span>`;
