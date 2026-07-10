@@ -614,6 +614,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Fall below your recent average and either pay it or stop. Choose an amount that would hurt.", javascript);
         Assert.Contains("Make a pledge", javascript);
         Assert.Contains("Fall below your recent average and either pay it or stop longevitymaxxing. You can keep checking in without a pledge.", javascript);
+        Assert.Contains("data-commitment-prompt=\"optional\"", javascript);
+        Assert.Contains("data-commitment-block=\"true\"", javascript);
         Assert.Contains("id=\"lmxPledgeCommitmentAmount\"", javascript);
         Assert.Contains("Check again", javascript);
         Assert.Contains("Waiting for payment confirmation...", javascript);

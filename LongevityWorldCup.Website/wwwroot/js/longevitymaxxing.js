@@ -1158,7 +1158,7 @@
         const commitment = state.commitment || {};
         if (shouldShowCheckInPledgePrompt(state, activeTab)) {
             panel.innerHTML = `
-                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card setup">
+                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card setup" data-commitment-prompt="optional">
                     <div class="lmx-commitment-main">
                         <i class="fas fa-pen-nib" aria-hidden="true"></i>
                         <div>
@@ -1194,7 +1194,7 @@
 
         if (commitment.status === "needs-amount") {
             panel.innerHTML = `
-                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card setup">
+                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card setup" data-commitment-block="true">
                     <div class="lmx-commitment-main">
                         <i class="fas fa-lock" aria-hidden="true"></i>
                         <div>
@@ -1231,7 +1231,7 @@
         const showCheckAgain = hasInvoice && !replacesInvoice;
         const editableDays = getCommitmentEditableDays(state);
         panel.innerHTML = `
-            <div class="lmx-commitment-card due">
+            <div class="lmx-commitment-card due" data-commitment-block="true">
                 <div class="lmx-commitment-main">
                     <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
                     <div>
