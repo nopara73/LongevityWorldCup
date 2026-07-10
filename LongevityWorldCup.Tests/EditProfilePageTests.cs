@@ -20,6 +20,18 @@ public sealed class EditProfilePageTests
     }
 
     [Fact]
+    public async Task EditProfileOptions_UseTheConfiguredEntranceAnimation()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("id=\"editOptionsGroup\" data-aos=\"fade\"", html);
+        Assert.DoesNotContain("cdata-aos", html);
+    }
+
+    [Fact]
     public async Task EditProfile_BackButtonReturnsToDashboardWithoutHistoryFallback()
     {
         using var factory = new TestWebApplicationFactory();
