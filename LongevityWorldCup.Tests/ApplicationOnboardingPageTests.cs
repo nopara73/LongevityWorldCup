@@ -7,6 +7,19 @@ namespace LongevityWorldCup.Tests;
 public sealed class ApplicationOnboardingPageTests
 {
     [Fact]
+    public async Task ApplicationContactEmail_UsesARealInputLabel()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("<legend>Contact email</legend>", html);
+        Assert.Contains("<label for=\"accountEmail\" class=\"visually-hidden\">Email address</label>", html);
+        Assert.DoesNotContain("<legend for=\"accountEmail\">", html);
+    }
+
+    [Fact]
     public async Task ApplicationRetry_ReenablesEmailFieldAfterSubmissionFailure()
     {
         using var factory = new TestWebApplicationFactory();
