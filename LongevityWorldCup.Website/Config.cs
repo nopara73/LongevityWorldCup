@@ -12,6 +12,9 @@ namespace LongevityWorldCup.Website
         private const string RuntimeConfigFileName = "runtime-config.json";
         private string? _configFilePath;
         private string? _runtimeConfigFilePath;
+        private readonly SemaphoreSlim _xTokenRefreshLock = new(1, 1);
+
+        internal SemaphoreSlim XTokenRefreshLock => _xTokenRefreshLock;
 
         public string? EmailFrom { get; set; }
         public string? EmailTo { get; set; }
