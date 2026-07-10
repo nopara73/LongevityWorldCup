@@ -15,7 +15,10 @@ public sealed class BadgeNavigationAccessibilityTests
         Assert.Contains("aria-label=\"Open personal page\"", badges);
         Assert.DoesNotContain("onclick=\"window.location.href='${url}';\"", badges);
 
-        Assert.Contains("<a class=\"badge-class ${familyClass} badge-clickable\" href=\"${esc(url)}\" aria-label=\"Open league\"", eventBoard);
+        Assert.Contains("const isPodcast=String(label||'').trim().toLowerCase()==='podcast';", eventBoard);
+        Assert.Contains("const targetAttrs=isPodcast?' target=\"_blank\" rel=\"noopener\"':'';", eventBoard);
+        Assert.Contains("const accessibleLabel=isPodcast?'Open podcast':'Open league';", eventBoard);
+        Assert.Contains("href=\"${esc(url)}\"${targetAttrs} aria-label=\"${accessibleLabel}\"", eventBoard);
         Assert.DoesNotContain("role=\"button\" tabindex=\"0\" onclick=\"window.location.href='${url}'\"", eventBoard);
     }
 
