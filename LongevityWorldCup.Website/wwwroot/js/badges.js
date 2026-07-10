@@ -13,11 +13,6 @@
 */
 
 /* =========================
-   Shared UI helpers
-   ========================= */
-const spanA11y = 'role="button" tabindex="0" aria-label="Open league"';
-
-/* =========================
    Legacy visuals (backgrounds)
    ========================= */
 const LEGACY_BG = {
@@ -713,14 +708,12 @@ function buildServerBadgeHtml(b, athlete) {
         };
     }
 
-    const clickableAttrs = url
-        ? `class="${className} badge-clickable" ${spanA11y} onclick="window.location.href='${url}';"`
-        : `class="${className}"`;
-
     return {
         order,
         searchText: tooltip,
-        html: `<span ${clickableAttrs} title="${tooltip}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}"></i></span>`
+        html: url
+            ? `<a class="${className} badge-clickable" href="${escapeAttr(url)}" aria-label="Open league" title="${tooltip}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}"></i></a>`
+            : `<span class="${className}" title="${tooltip}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}"></i></span>`
     };
 }
 
@@ -744,7 +737,7 @@ window.setBadges = function (athlete, athleteCell) {
         items.push({
             order: 0,
             searchText: 'Personal page',
-            html: `<a class="badge-class badge-family-utility badge-clickable" ${spanA11y} href="${href}" target="_blank" rel="noopener"
+            html: `<a class="badge-class badge-family-utility badge-clickable" href="${escapeAttr(href)}" target="_blank" rel="noopener" aria-label="Open personal page"
                title="Personal page" style="${LEGACY_BG.personal}">
                <i class="fa fa-link"></i>
              </a>`
@@ -851,5 +844,4 @@ window.makeTooltipFromServerBadge = makeTooltipFromServerBadge;
 window.pickClickUrl = pickClickUrl;
 window.getBadgeFamilyClass = getBadgeFamilyClass;
 window.styleWithBadgeVars = styleWithBadgeVars;
-
 
