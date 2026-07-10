@@ -713,6 +713,11 @@
                 background: #f1f5f9;
             }
 
+            .biomarker-card-header:focus-visible {
+                outline: 3px solid rgba(0, 188, 212, 0.45);
+                outline-offset: -3px;
+            }
+
             .biomarker-card.active .biomarker-card-header {
                 background: #f8feff;
                 color: #1f2937;
@@ -3633,7 +3638,11 @@
 
         // Wire up all biomarker‐card headers
         document.querySelectorAll('.biomarker-card-header').forEach(header => {
-            header.addEventListener('click', function handler() {
+            header.setAttribute('role', 'button');
+            header.setAttribute('tabindex', '0');
+            header.querySelector('.toggle-icon')?.setAttribute('aria-hidden', 'true');
+
+            const toggleCard = function () {
                 const card = header.parentNode;
                 const content = card.querySelector('.biomarker-card-content');
                 const icon = header.querySelector('.toggle-icon');
@@ -3648,6 +3657,8 @@
                         content.style.paddingBottom = '0.75rem';
                         header.style.pointerEvents = 'none';
                         header.style.cursor = 'default';
+                        header.setAttribute('aria-disabled', 'true');
+                        header.setAttribute('tabindex', '-1');
                         icon.style.display = 'none';
                     }
                     return;
@@ -3668,6 +3679,13 @@
                     content.style.paddingTop = '0';
                     content.style.paddingBottom = '0';
                 }
+            };
+
+            header.addEventListener('click', toggleCard);
+            header.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                toggleCard();
             });
         });
 
@@ -3709,6 +3727,8 @@
                     if (header) {
                         header.style.pointerEvents = 'none';
                         header.style.cursor = 'default';
+                        header.setAttribute('aria-disabled', 'true');
+                        header.setAttribute('tabindex', '-1');
                     }
                 } else {
                     // In update mode: show a minus icon

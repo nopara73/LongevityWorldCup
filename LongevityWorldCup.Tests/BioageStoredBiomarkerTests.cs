@@ -9,6 +9,23 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
+    public void BiomarkerCards_AreKeyboardOperableAndShowFocus(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("header.setAttribute('role', 'button');", html);
+        Assert.Contains("header.setAttribute('tabindex', '0');", html);
+        Assert.Contains("header.querySelector('.toggle-icon')?.setAttribute('aria-hidden', 'true');", html);
+        Assert.Contains("header.addEventListener('keydown', event => {", html);
+        Assert.Contains("if (event.key !== 'Enter' && event.key !== ' ') return;", html);
+        Assert.Contains(".biomarker-card-header:focus-visible", html);
+        Assert.Contains("header.setAttribute('aria-disabled', 'true');", html);
+        Assert.Contains("header.setAttribute('tabindex', '-1');", html);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
     public void BioageInputs_HavePersistentAccessibleNames(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
