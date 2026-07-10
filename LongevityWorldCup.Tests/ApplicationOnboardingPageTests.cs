@@ -74,6 +74,19 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
+    public async Task ApplicationSubmissionId_IsReusedForAnImmediateRetry()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await client.GetStringAsync("/js/misc.js");
+
+        Assert.Contains("window.__pendingApplicationSubmissionId", javascript);
+        Assert.Contains("return window.__pendingApplicationSubmissionId;", javascript);
+        Assert.Contains("window.__pendingApplicationSubmissionId = submissionId;", javascript);
+    }
+
+    [Fact]
     public async Task ApplicationSubmissionReport_IsTimeBoundedBecauseItIsBestEffort()
     {
         using var factory = new TestWebApplicationFactory();

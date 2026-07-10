@@ -808,8 +808,8 @@ public sealed class ApplicationControllerValidationTests
     {
         var source = ReadApplicationControllerSource();
         var failureStart = source.IndexOf("Application submission was saved but BTCPay invoice creation failed.", StringComparison.Ordinal);
-        var acceptedReturn = source.IndexOf("return Ok(new", failureStart, StringComparison.Ordinal);
-        var failureEnd = source.IndexOf("await TryRecordDiscountSignupAsync(", acceptedReturn + 1, StringComparison.Ordinal);
+        var acceptedReturn = source.IndexOf("return Ok(paymentUnavailableResponse);", failureStart, StringComparison.Ordinal);
+        var failureEnd = acceptedReturn + "return Ok(paymentUnavailableResponse);".Length;
 
         Assert.True(failureStart >= 0);
         Assert.True(acceptedReturn > failureStart);
@@ -822,8 +822,9 @@ public sealed class ApplicationControllerValidationTests
         Assert.Contains("checkoutLink: null", failureBody);
         Assert.Contains("await TrySendSubmissionConfirmationEmailAsync(", failureBody);
         Assert.Contains("paymentUnavailable: true", failureBody);
-        Assert.Contains("return Ok(new", failureBody);
-        Assert.Contains("paymentUnavailable = true", failureBody);
+        Assert.Contains("PaymentUnavailable: true", failureBody);
+        Assert.Contains("submissionLease.Complete(paymentUnavailableResponse);", failureBody);
+        Assert.Contains("return Ok(paymentUnavailableResponse);", failureBody);
         Assert.DoesNotContain("return StatusCode(500, $\"Application sent, but failed to create BTCPay invoice:", failureBody);
     }
 
@@ -846,8 +847,9 @@ public sealed class ApplicationControllerValidationTests
         Assert.Contains("Application submission email failed after archive was saved.", emailBody);
         Assert.Contains("Application submission email failed and archive could not be saved.", emailBody);
         Assert.Contains("return await StatusCodeWithStatsAsync(500, \"application_archive_failed\", \"Internal server error: application could not be saved.\").ConfigureAwait(false);", emailBody);
-        Assert.Contains("return Ok(new", freeSubmissionBody);
-        Assert.Contains("paymentRequired = false", freeSubmissionBody);
+        Assert.Contains("return Ok(freeSubmissionResponse);", freeSubmissionBody);
+        Assert.Contains("PaymentRequired: false", freeSubmissionBody);
+        Assert.Contains("submissionLease.Complete(freeSubmissionResponse);", freeSubmissionBody);
         Assert.Contains("AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}", freeSubmissionBody);
     }
 
@@ -956,7 +958,8 @@ public sealed class ApplicationControllerValidationTests
     {
         return new ApplicationController(
             factory.Services.GetRequiredService<IWebHostEnvironment>(),
-            NullLogger<HomeController>.Instance,
+            NullLogger<ApplicationController>.Instance,
+            factory.Services.GetRequiredService<ApplicationSubmissionRetryStore>(),
             statistics: statistics)
         {
             ControllerContext = new ControllerContext
