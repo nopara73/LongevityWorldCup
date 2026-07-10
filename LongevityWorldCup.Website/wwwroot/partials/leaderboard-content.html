@@ -835,6 +835,9 @@
     .athlete-name:hover{
         color:var(--secondary-color); background-color:rgba(255,64,129,.08); box-shadow:inset 0 0 0 1px rgba(255,64,129,.12);
     }
+    .athlete-name:focus-visible{
+        color:var(--secondary-color); background-color:rgba(255,64,129,.08); outline:3px solid rgba(0,188,212,.38); outline-offset:2px;
+    }
     .podium .athlete-name{ font-size:1.1rem; padding-bottom:.2rem; }
 
     .media-contact{
@@ -4772,12 +4775,26 @@
     addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
 
     // Function to attach click event listener to all athlete-name elements
-    function attachAthleteNameClickListeners() {
-        const athleteNameElements = document.querySelectorAll('.athlete-name');
+    function activateAthleteName(event) {
+        event.stopPropagation();
+        handleAthleteNameClick(event);
+    }
 
+    function handleAthleteNameKeydown(event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        activateAthleteName(event);
+    }
+
+    function attachAthleteNameClickListeners() {
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
-            athleteNameElement.removeEventListener('click', handleAthleteNameClick); // Remove existing listeners to prevent duplicates
-            athleteNameElement.addEventListener('click', handleAthleteNameClick);
+            athleteNameElement.setAttribute('role', 'button');
+            athleteNameElement.setAttribute('tabindex', '0');
+            athleteNameElement.setAttribute('aria-label', athleteNameElement.title || `View stats of ${athleteNameElement.textContent.trim()}`);
+            athleteNameElement.removeEventListener('click', activateAthleteName);
+            athleteNameElement.removeEventListener('keydown', handleAthleteNameKeydown);
+            athleteNameElement.addEventListener('click', activateAthleteName);
+            athleteNameElement.addEventListener('keydown', handleAthleteNameKeydown);
         });
     }
 
