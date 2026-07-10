@@ -1467,8 +1467,6 @@
     .proof-item:hover{ transform: scale(1.05); }
     .proof-item img{ display:block; width:auto; max-width:100%; height:auto; max-height:72vh; object-fit:contain; margin:0 auto; background:#fff; }
     .proof-item img:focus-visible,
-    .portrait:focus-visible,
-    .podium-portrait:focus-visible,
     #modalProfilePic:focus-visible{ outline:3px solid rgba(0,188,212,.58); outline-offset:-3px; }
     .proofs-empty{ margin:.5rem 0 0; color:#666; text-align:center; font-size:.95rem; }
     #detailsModal .biomarkers-section,
@@ -4396,7 +4394,10 @@
                                     animatePodiumContent();
                                     autoshrinkPodiumNames();
 
-                                    addClickListenerToImages('.portrait, #modalProfilePic', function () {
+                                    addClickListenerToImages('.portrait', function () {
+                                        openEnlargedView(this);
+                                    });
+                                    addClickListenerToImages('#modalProfilePic', function () {
                                         openEnlargedView(this);
                                     }, img => `Enlarge ${img.alt || 'image'}`);
 
@@ -4515,7 +4516,7 @@
                     addClickListenerToImages('#modalProfilePic', function () {
                         openEnlargedView(this);
                     }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
-                    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick, img => `View details for ${(img.alt || 'athlete').replace(/ portrait$/i, '')}`);
+                    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
 
                     row.style.cursor = 'pointer';
                     row.addEventListener('click', function (e) {
@@ -4762,7 +4763,7 @@
     addClickListenerToImages('#modalProfilePic', function () {
         openEnlargedView(this);
     }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
-    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick, img => `View details for ${(img.alt || 'athlete').replace(/ portrait$/i, '')}`);
+    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
 
     // Function to attach click event listener to all athlete-name elements
     function activateAthleteName(event) {
@@ -4778,9 +4779,12 @@
 
     function attachAthleteNameClickListeners() {
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
+            const athleteName = athleteNameElement.textContent.trim();
+            if (!athleteName) return;
+
             athleteNameElement.setAttribute('role', 'button');
             athleteNameElement.setAttribute('tabindex', '0');
-            athleteNameElement.setAttribute('aria-label', athleteNameElement.title || `View stats of ${athleteNameElement.textContent.trim()}`);
+            athleteNameElement.setAttribute('aria-label', athleteNameElement.title || `View stats of ${athleteName}`);
             athleteNameElement.removeEventListener('click', activateAthleteName);
             athleteNameElement.removeEventListener('keydown', handleAthleteNameKeydown);
             athleteNameElement.addEventListener('click', activateAthleteName);
@@ -8176,15 +8180,17 @@
     function addClickListenerToImages(selector, callback, accessibleLabel) {
         document.querySelectorAll(selector).forEach(img => {
             if (!img.dataset.listenerAdded) {
-                img.setAttribute('role', 'button');
-                img.setAttribute('tabindex', '0');
-                img.setAttribute('aria-label', accessibleLabel(img));
+                if (typeof accessibleLabel === 'function') {
+                    img.setAttribute('role', 'button');
+                    img.setAttribute('tabindex', '0');
+                    img.setAttribute('aria-label', accessibleLabel(img));
+                    img.addEventListener('keydown', event => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        callback.call(img, event);
+                    });
+                }
                 img.addEventListener('click', callback);
-                img.addEventListener('keydown', event => {
-                    if (event.key !== 'Enter' && event.key !== ' ') return;
-                    event.preventDefault();
-                    callback.call(img, event);
-                });
                 img.dataset.listenerAdded = true; // Mark this element as having a listener added
             }
         });
