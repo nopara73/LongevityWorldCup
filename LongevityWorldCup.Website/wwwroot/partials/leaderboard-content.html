@@ -1466,6 +1466,10 @@
     .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .3s ease; background:#fff; box-shadow:0 1px 8px rgba(0,0,0,.08); }
     .proof-item:hover{ transform: scale(1.05); }
     .proof-item img{ display:block; width:auto; max-width:100%; height:auto; max-height:72vh; object-fit:contain; margin:0 auto; background:#fff; }
+    .proof-item img:focus-visible,
+    .portrait:focus-visible,
+    .podium-portrait:focus-visible,
+    #modalProfilePic:focus-visible{ outline:3px solid rgba(0,188,212,.58); outline-offset:-3px; }
     .proofs-empty{ margin:.5rem 0 0; color:#666; text-align:center; font-size:.95rem; }
     #detailsModal .biomarkers-section,
     #detailsModal .proofs-section,
@@ -1634,6 +1638,7 @@
         transition:color .3s, background-color .3s, transform .2s; padding:0; z-index:1;
     }
     .enlarged-portrait .close-btn:hover{ color:var(--light-text-color); background:rgba(0,0,0,.9); transform:scale(1.1); }
+    .enlarged-portrait .close-btn:focus-visible{ color:var(--light-text-color); background:rgba(0,0,0,.9); outline:3px solid rgba(0,188,212,.68); outline-offset:3px; }
     .enlarged-portrait img{
         width:auto;
         height:auto;
@@ -2862,9 +2867,9 @@
 </template>
 
 <template id="enlargedPortraitTemplate">
-    <div class="enlarged-portrait">
+    <div class="enlarged-portrait" role="dialog" aria-modal="true" aria-label="Enlarged image">
         <img src="" alt="" loading="lazy">
-        <span class="close-btn">&times;</span>
+        <button type="button" class="close-btn" aria-label="Close enlarged image">&times;</button>
     </div>
 </template>
 
@@ -4394,7 +4399,7 @@
 
                                     addClickListenerToImages('.portrait, #modalProfilePic', function () {
                                         openEnlargedView(this);
-                                    });
+                                    }, img => `Enlarge ${img.alt || 'image'}`);
 
                                     if (hasActiveLeaderboardState()) {
                                         performFilter();
@@ -4510,8 +4515,8 @@
                     attachAthleteNameClickListeners();
                     addClickListenerToImages('#modalProfilePic', function () {
                         openEnlargedView(this);
-                    });
-                    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
+                    }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
+                    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick, img => `View details for ${(img.alt || 'athlete').replace(/ portrait$/i, '')}`);
 
                     row.style.cursor = 'pointer';
                     row.addEventListener('click', function (e) {
@@ -4771,8 +4776,8 @@
     // Usage
     addClickListenerToImages('#modalProfilePic', function () {
         openEnlargedView(this);
-    });
-    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
+    }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
+    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick, img => `View details for ${(img.alt || 'athlete').replace(/ portrait$/i, '')}`);
 
     // Function to attach click event listener to all athlete-name elements
     function activateAthleteName(event) {
@@ -4802,6 +4807,7 @@
         // Retrieve and clone the template content
         const template = document.getElementById("enlargedPortraitTemplate");
         const clone = template.content.firstElementChild.cloneNode(true);
+        clone.returnFocusTo = document.activeElement;
 
         // Set the image source and alt attributes based on the clicked image
         const img = clone.querySelector("img");
@@ -4812,12 +4818,14 @@
         document.body.appendChild(clone);
         lockBodyScroll();
         history.pushState({ modal: 'enlarged' }, "");
+        const closeButton = clone.querySelector('.close-btn');
+        closeButton.focus();
 
         // Trigger a transition to show the element
         setTimeout(() => clone.classList.add('show'), 10);
 
         // Add event listener for the close button
-        clone.querySelector('.close-btn').addEventListener('click', () => {
+        closeButton.addEventListener('click', () => {
             closeEnlargedView(clone);
         });
 
@@ -4830,12 +4838,16 @@
     }
 
     function closeEnlargedView(enlargedElem) {
+        const returnFocusTo = enlargedElem.returnFocusTo;
         enlargedElem.classList.remove('show');
         setTimeout(() => {
             document.body.removeChild(enlargedElem);
             // If no modal is open, restore body scroll
             if (modal.style.display !== "block") {
                 restoreBodyScroll();
+            }
+            if (returnFocusTo && typeof returnFocusTo.focus === 'function') {
+                returnFocusTo.focus();
             }
         }, 300);
     }
@@ -7844,12 +7856,21 @@
             const img = document.createElement('img');
             img.src = proofUrl;
             img.alt = `Proof image ${index + 1}`;
+            img.setAttribute('role', 'button');
+            img.setAttribute('tabindex', '0');
+            img.setAttribute('aria-label', `Enlarge proof image ${index + 1}`);
             img.loading = 'lazy';
             proofItem.appendChild(img);
             proofsGallery.appendChild(proofItem);
 
-            img.addEventListener('click', function () {
+            const openProofImage = function () {
                 openEnlargedView(this);
+            };
+            img.addEventListener('click', openProofImage);
+            img.addEventListener('keydown', function (event) {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                openProofImage.call(this);
             });
         });
     }
@@ -8167,10 +8188,18 @@
     function resetPageTitle() {
         document.title = originalDocumentTitle;
     }
-    function addClickListenerToImages(selector, callback) {
+    function addClickListenerToImages(selector, callback, accessibleLabel) {
         document.querySelectorAll(selector).forEach(img => {
             if (!img.dataset.listenerAdded) {
+                img.setAttribute('role', 'button');
+                img.setAttribute('tabindex', '0');
+                img.setAttribute('aria-label', accessibleLabel(img));
                 img.addEventListener('click', callback);
+                img.addEventListener('keydown', event => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    callback.call(img, event);
+                });
                 img.dataset.listenerAdded = true; // Mark this element as having a listener added
             }
         });
