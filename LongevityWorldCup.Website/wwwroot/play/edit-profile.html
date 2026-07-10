@@ -431,7 +431,7 @@
                 <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" loading="lazy">
             </picture>
         </div>
-        <div id="editOptionsGroup" cdata-aos="fade" data-aos-duration="700" data-aos-delay="350">
+        <div id="editOptionsGroup" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
             <div id="changeProfilePicWrapper" class="options-container flow-action-stack flow-action-stack--flush">
                 <button type="button" id="takeProfileSelfieButton" class="option-button grey flow-action flow-action--secondary">
                     <span class="flow-action__label">Take selfie</span><i class="fa fa-camera" aria-hidden="true"></i>
@@ -447,12 +447,14 @@
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                <label for="divisionDisplaySelect" class="visually-hidden">Division</label>
                 <select id="divisionDisplaySelect"></select>
                 <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division">
                     <i class="fa fa-undo"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                <label for="flagDisplayInput" class="visually-hidden">Flag</label>
                 <input type="text"
                        id="flagDisplayInput"
                        name="flagDisplay"
@@ -469,6 +471,7 @@
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                <label for="personalLinkInput" class="visually-hidden">Personal link</label>
                 <input type="text"
                        id="personalLinkInput"
                        name="personalLink"
@@ -482,6 +485,7 @@
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                <label for="mediaContactInput" class="visually-hidden">Media contact</label>
                 <input type="text"
                        id="mediaContactInput"
                        name="mediaContact"
@@ -497,6 +501,7 @@
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
+                <label for="whyDisplayInput" class="visually-hidden">Your why</label>
                 <textarea id="whyDisplayInput"
                           name="whyDisplay"
                           rows="3"
@@ -510,7 +515,7 @@
             </div>
         </div>
         <div class="options-container edit-profile-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button id="submitButton" type="submit" disabled class="option-button green flow-action"></button>
+            <button id="submitButton" type="submit" disabled class="option-button green flow-action"><span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
             <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
                 <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
             </button>

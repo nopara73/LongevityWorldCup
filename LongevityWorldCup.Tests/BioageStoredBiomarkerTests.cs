@@ -1,10 +1,85 @@
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
 public sealed class BioageStoredBiomarkerTests
 {
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BiomarkerCards_AreKeyboardOperableAndShowFocus(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("header.setAttribute('role', 'button');", html);
+        Assert.Contains("header.setAttribute('tabindex', '0');", html);
+        Assert.Contains("header.querySelector('.toggle-icon')?.setAttribute('aria-hidden', 'true');", html);
+        Assert.Contains("header.addEventListener('keydown', event => {", html);
+        Assert.Contains("if (event.key !== 'Enter' && event.key !== ' ') return;", html);
+        Assert.Contains(".biomarker-card-header:focus-visible", html);
+        Assert.Contains("header.setAttribute('aria-disabled', 'true');", html);
+        Assert.Contains("header.setAttribute('tabindex', '-1');", html);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BioageInputs_HavePersistentAccessibleNames(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+        var expectedLabels = fileName == "pheno-age.html"
+            ? new Dictionary<string, string>
+            {
+                ["blood-draw-date"] = "Blood draw date",
+                ["wbc"] = "White blood cell count (WBC)",
+                ["lymphocyte"] = "Lymphocytes",
+                ["mcv"] = "Mean corpuscular volume (MCV)",
+                ["rcdw"] = "Red cell distribution width (RDW, RDW-CV)",
+                ["albumin"] = "Albumin",
+                ["ap"] = "Alkaline phosphatase (ALP)",
+                ["creatinine"] = "Creatinine",
+                ["glucose"] = "Glucose",
+                ["crp-negative"] = "Set CRP as below the detection limit",
+                ["crp"] = "C-reactive protein (CRP)"
+            }
+            : new Dictionary<string, string>
+            {
+                ["blood-draw-date"] = "Blood draw date",
+                ["wbc"] = "White blood cell count (WBC)",
+                ["lymphocyte_percentage"] = "Lymphocytes",
+                ["neutrophil_percentage"] = "Neutrophils",
+                ["monocyte_percentage"] = "Monocytes",
+                ["rbc"] = "Red blood cell count (RBC)",
+                ["mcv"] = "Mean corpuscular volume (MCV)",
+                ["mch"] = "Mean corpuscular hemoglobin (MCH)",
+                ["rdw"] = "Red cell distribution width (RDW, RDW-CV)",
+                ["albumin"] = "Albumin",
+                ["alt"] = "Alanine aminotransferase (ALT, ALAT)",
+                ["alp"] = "Alkaline phosphatase (ALP)",
+                ["ggt"] = "Gamma-glutamyl transferase (GGT)",
+                ["urea"] = "Urea or blood urea nitrogen (BUN)",
+                ["creatinine"] = "Creatinine",
+                ["cystatin_c"] = "Cystatin C",
+                ["glucose"] = "Glucose",
+                ["hba1c"] = "Hemoglobin A1c (HbA1c)",
+                ["cholesterol"] = "Total cholesterol",
+                ["apoa1"] = "Apolipoprotein A1 (ApoA1)",
+                ["crp-negative"] = "Set CRP as below the detection limit",
+                ["crp"] = "C-reactive protein (CRP)",
+                ["shbg"] = "Sex hormone-binding globulin (SHBG)",
+                ["vitamin_d"] = "Vitamin D (25-OH)"
+            };
+
+        foreach (var (id, label) in expectedLabels)
+        {
+            Assert.Matches(
+                $"<input(?=[^>]*\\bid=\\\"{Regex.Escape(id)}\\\")(?=[^>]*\\baria-label=\\\"{Regex.Escape(label)}\\\")[^>]*>",
+                html);
+        }
+    }
+
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
@@ -319,6 +394,19 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("document.getElementById('mainInstructions').textContent = 'Submit your latest test results. All fields are required and must be from the same day.';", html);
         Assert.DoesNotContain("yearsTextElement.innerHTML =", html);
         Assert.DoesNotContain("document.getElementById('mainInstructions').innerHTML = 'Submit your latest test results. All fields are required and must be from the same day.';", html);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
+    public void BioageWizardDots_AreExposedWithTheirAccessibleNames(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("<div class=\"lwc-wizard-nav\">", html);
+        Assert.Contains("role=\"button\" tabindex=\"0\" aria-label=\"Go to Step 1\"", html);
+        Assert.Contains("role=\"button\" tabindex=\"0\" aria-label=\"Go to Step 2\"", html);
+        Assert.DoesNotContain("<div class=\"lwc-wizard-nav\" aria-hidden=\"true\">", html);
     }
 
     [Theory]
