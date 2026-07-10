@@ -14,6 +14,7 @@ public sealed class LeaderboardInteractionAccessibilityTests
         Assert.Contains("athleteNameElement.setAttribute('role', 'button');", html);
         Assert.Contains("athleteNameElement.setAttribute('tabindex', '0');", html);
         Assert.Contains("athleteNameElement.setAttribute('aria-label'", html);
+        Assert.Contains("if (!athleteName) return;", html);
         Assert.Contains("athleteNameElement.addEventListener('keydown', handleAthleteNameKeydown);", html);
         Assert.Contains("if (event.key !== 'Enter' && event.key !== ' ') return;", html);
         Assert.Contains("event.stopPropagation();", html);
@@ -31,6 +32,10 @@ public sealed class LeaderboardInteractionAccessibilityTests
         Assert.Contains("img.setAttribute('role', 'button');", html);
         Assert.Contains("img.setAttribute('tabindex', '0');", html);
         Assert.Contains("img.addEventListener('keydown', event => {", html);
+        Assert.Contains("if (typeof accessibleLabel === 'function')", html);
+        Assert.Contains("addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);", html);
+        Assert.DoesNotContain(".portrait:focus-visible", html);
+        Assert.DoesNotContain(".podium-portrait:focus-visible", html);
         Assert.Contains(".proof-item img:focus-visible", html);
         Assert.Contains(".enlarged-portrait .close-btn:focus-visible", html);
     }
