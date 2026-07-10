@@ -5,6 +5,21 @@ namespace LongevityWorldCup.Tests;
 public sealed class EditProfilePageTests
 {
     [Fact]
+    public async Task EditProfileFields_HavePersistentLabels()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("<label for=\"divisionDisplaySelect\" class=\"visually-hidden\">Division</label>", html);
+        Assert.Contains("<label for=\"flagDisplayInput\" class=\"visually-hidden\">Flag</label>", html);
+        Assert.Contains("<label for=\"personalLinkInput\" class=\"visually-hidden\">Personal link</label>", html);
+        Assert.Contains("<label for=\"mediaContactInput\" class=\"visually-hidden\">Media contact</label>", html);
+        Assert.Contains("<label for=\"whyDisplayInput\" class=\"visually-hidden\">Your why</label>", html);
+    }
+
+    [Fact]
     public async Task EditProfile_BackButtonReturnsToDashboardWithoutHistoryFallback()
     {
         using var factory = new TestWebApplicationFactory();
