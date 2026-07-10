@@ -499,11 +499,20 @@ window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS = {
 };
 
 window.createApplicationSubmissionId = function () {
-    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-        return window.crypto.randomUUID();
+    if (typeof window.__pendingApplicationSubmissionId === 'string'
+        && window.__pendingApplicationSubmissionId.length > 0) {
+        return window.__pendingApplicationSubmissionId;
     }
 
-    return 'submission-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+    let submissionId;
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        submissionId = window.crypto.randomUUID();
+    } else {
+        submissionId = 'submission-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+    }
+
+    window.__pendingApplicationSubmissionId = submissionId;
+    return submissionId;
 };
 
 window.APPLICATION_SUBMISSION_TIMEOUT_MS = 65000;

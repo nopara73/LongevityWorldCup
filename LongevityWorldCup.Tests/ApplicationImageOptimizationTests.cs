@@ -1,7 +1,9 @@
 using LongevityWorldCup.Website.Controllers;
+using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Caching.Memory;
 using System.Net;
 using System.Reflection;
 using Xunit;
@@ -15,7 +17,7 @@ public class ApplicationImageOptimizationTests
     {
         const string corruptTinyPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9pQ9JxwAAAAASUVORK5CYII=";
         var bytes = Convert.FromBase64String(corruptTinyPng);
-        var controller = new ApplicationController(new TestWebHostEnvironment(), NullLogger<HomeController>.Instance);
+        var controller = CreateController();
         var method = typeof(ApplicationController).GetMethod("OptimizeProfileImage", BindingFlags.Instance | BindingFlags.NonPublic);
 
         Assert.NotNull(method);
@@ -32,7 +34,7 @@ public class ApplicationImageOptimizationTests
     public void OversizedProfileOptimizationFailureDoesNotFallBackToOriginalBytes()
     {
         var bytes = new byte[(4 * 1024 * 1024) + 1];
-        var controller = new ApplicationController(new TestWebHostEnvironment(), NullLogger<HomeController>.Instance);
+        var controller = CreateController();
         var method = typeof(ApplicationController).GetMethod("OptimizeProfileImage", BindingFlags.Instance | BindingFlags.NonPublic);
 
         Assert.NotNull(method);
@@ -47,7 +49,7 @@ public class ApplicationImageOptimizationTests
     public void OversizedProofOptimizationFailureDoesNotFallBackToOriginalBytes()
     {
         var bytes = new byte[(2 * 1024 * 1024) + 1];
-        var controller = new ApplicationController(new TestWebHostEnvironment(), NullLogger<HomeController>.Instance);
+        var controller = CreateController();
         var method = typeof(ApplicationController).GetMethod("OptimizeProofImage", BindingFlags.Instance | BindingFlags.NonPublic);
 
         Assert.NotNull(method);
@@ -104,6 +106,15 @@ public class ApplicationImageOptimizationTests
         Assert.Equal("BTCPay API returned HTTP 400.", result);
         Assert.DoesNotContain("secret", result, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("@", result, StringComparison.Ordinal);
+    }
+
+    private static ApplicationController CreateController()
+    {
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        return new ApplicationController(
+            new TestWebHostEnvironment(),
+            NullLogger<ApplicationController>.Instance,
+            new ApplicationSubmissionRetryStore(cache));
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

@@ -189,6 +189,7 @@ namespace LongevityWorldCup.Website
             builder.Services.AddSingleton<SitemapService>();
             builder.Services.AddSingleton<SiteStatisticsService>();
             builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteStatisticsService>());
+            builder.Services.AddSingleton<ApplicationSubmissionRetryStore>();
 
             var appConfig = Config.LoadAsync().GetAwaiter().GetResult();
             builder.Services.AddSingleton(appConfig);

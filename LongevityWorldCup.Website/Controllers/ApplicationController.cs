@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -22,13 +23,15 @@ namespace LongevityWorldCup.Website.Controllers
     [RequestTimeout(PublicRequestTimeoutPolicies.PublicWork)]
     public partial class ApplicationController(
         IWebHostEnvironment environment,
-        ILogger<HomeController> logger,
+        ILogger<ApplicationController> logger,
+        ApplicationSubmissionRetryStore applicationSubmissionRetries,
         DiscountSignupReportService? discountSignupReports = null,
         IBtcpayInvoiceClient? btcpayInvoices = null,
         SiteStatisticsService? statistics = null) : ControllerBase
     {
         private readonly IWebHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
-        private readonly ILogger<HomeController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly ILogger<ApplicationController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly ApplicationSubmissionRetryStore _applicationSubmissionRetries = applicationSubmissionRetries ?? throw new ArgumentNullException(nameof(applicationSubmissionRetries));
         private readonly DiscountSignupReportService? _discountSignupReports = discountSignupReports;
         private readonly IBtcpayInvoiceClient? _btcpayInvoices = btcpayInvoices;
         private readonly SiteStatisticsService? _statistics = statistics;
@@ -226,6 +229,9 @@ namespace LongevityWorldCup.Website.Controllers
                 return await BadRequestWithStatsAsync("missing_applicant_data", "Applicant data is null.").ConfigureAwait(false);
             }
 
+            var submissionId = NormalizeSubmissionId(applicantData.SubmissionId);
+            applicantData.SubmissionId = submissionId;
+
             if (string.IsNullOrWhiteSpace(applicantData.Name))
             {
                 return await BadRequestWithStatsAsync("missing_name", "Applicant name is required.").ConfigureAwait(false);
@@ -372,6 +378,33 @@ namespace LongevityWorldCup.Website.Controllers
                 return await BadRequestWithStatsAsync("incomplete_biomarker_results", biomarkerResultError).ConfigureAwait(false);
             }
 
+            var requestFingerprint = CreateApplicationSubmissionFingerprint(applicantData);
+            await using var submissionLease = await _applicationSubmissionRetries
+                .AcquireAsync(submissionId, requestFingerprint, ct)
+                .ConfigureAwait(false);
+
+            if (submissionLease.HasFingerprintConflict)
+            {
+                _logger.LogWarning(
+                    "Application submission ID was reused with a different payload. SubmissionId={SubmissionId}",
+                    submissionId);
+                return Conflict("This application submission ID was already used for different data. Please reload and try again.");
+            }
+
+            if (submissionLease.CachedResponse is not null)
+            {
+                _logger.LogInformation(
+                    "Application submission retry returned the cached successful response. SubmissionId={SubmissionId}",
+                    submissionId);
+                return Ok(submissionLease.CachedResponse);
+            }
+
+            // Once the complete request body has been accepted, finish the bounded server-side
+            // work even if a mobile browser drops its response connection. An identical retry
+            // waits on the submission lease and receives the cached successful response.
+            using var processingTimeout = new CancellationTokenSource(PublicRequestTimeoutPolicies.PublicWorkTimeout);
+            ct = processingTimeout.Token;
+
             // Load SMTP configuration
             Config config;
             try
@@ -384,8 +417,6 @@ namespace LongevityWorldCup.Website.Controllers
                 return await StatusCodeWithStatsAsync(500, "config_load_failed", $"Failed to load configuration: {ex.Message}").ConfigureAwait(false);
             }
 
-            var submissionId = NormalizeSubmissionId(applicantData.SubmissionId);
-            applicantData.SubmissionId = submissionId;
             var proofLengths = GetDataUrlLengths(applicantData.ProofPics);
             var profilePicLength = GetDataUrlLength(applicantData.ProfilePic);
 
@@ -696,6 +727,13 @@ namespace LongevityWorldCup.Website.Controllers
                         checkoutLink: null,
                         ct);
 
+                    var freeSubmissionResponse = new ApplicationSubmissionResponse(
+                        Success: true,
+                        PaymentRequired: false,
+                        CheckoutLink: null,
+                        InvoiceId: null);
+                    submissionLease.Complete(freeSubmissionResponse);
+
                     _logger.LogInformation(
                         "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
                         submissionId,
@@ -720,13 +758,7 @@ namespace LongevityWorldCup.Website.Controllers
                         },
                         ct: ct).ConfigureAwait(false);
 
-                    return Ok(new
-                    {
-                        success = true,
-                        paymentRequired = false,
-                        checkoutLink = (string?)null,
-                        invoiceId = (string?)null
-                    });
+                    return Ok(freeSubmissionResponse);
                 }
 
                 var invoiceResult = await CreateBtcpayInvoiceAsync(
@@ -770,6 +802,14 @@ namespace LongevityWorldCup.Website.Controllers
                         paymentUnavailable: true,
                         ct: ct);
 
+                    var paymentUnavailableResponse = new ApplicationSubmissionResponse(
+                        Success: true,
+                        PaymentRequired: true,
+                        CheckoutLink: null,
+                        InvoiceId: null,
+                        PaymentUnavailable: true);
+                    submissionLease.Complete(paymentUnavailableResponse);
+
                     await TrackApplicationPaymentEventAsync(
                         eventName: "payment_unavailable",
                         outcome: "failed",
@@ -794,14 +834,7 @@ namespace LongevityWorldCup.Website.Controllers
                         },
                         ct: ct).ConfigureAwait(false);
 
-                    return Ok(new
-                    {
-                        success = true,
-                        paymentRequired = true,
-                        paymentUnavailable = true,
-                        checkoutLink = (string?)null,
-                        invoiceId = (string?)null
-                    });
+                    return Ok(paymentUnavailableResponse);
                 }
 
                 await TryRecordDiscountSignupAsync(
@@ -825,6 +858,13 @@ namespace LongevityWorldCup.Website.Controllers
                     isEditSubmissionOnly,
                     checkoutLink: invoiceResult.CheckoutLink,
                     ct: ct);
+
+                var paidSubmissionResponse = new ApplicationSubmissionResponse(
+                    Success: true,
+                    PaymentRequired: true,
+                    CheckoutLink: invoiceResult.CheckoutLink,
+                    InvoiceId: invoiceResult.InvoiceId);
+                submissionLease.Complete(paidSubmissionResponse);
 
                 _logger.LogInformation(
                     "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
@@ -860,13 +900,7 @@ namespace LongevityWorldCup.Website.Controllers
                     },
                     ct: ct).ConfigureAwait(false);
 
-                return Ok(new
-                {
-                    success = true,
-                    paymentRequired = true,
-                    checkoutLink = invoiceResult.CheckoutLink,
-                    invoiceId = invoiceResult.InvoiceId
-                });
+                return Ok(paidSubmissionResponse);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -2275,6 +2309,12 @@ namespace LongevityWorldCup.Website.Controllers
             return string.IsNullOrWhiteSpace(trimmed)
                 ? Guid.NewGuid().ToString("N")
                 : trimmed.Length <= 80 ? trimmed : trimmed[..80];
+        }
+
+        private static string CreateApplicationSubmissionFingerprint(ApplicantData applicantData)
+        {
+            var json = JsonSerializer.SerializeToUtf8Bytes(applicantData, CachedJsonSerializerOptions);
+            return Convert.ToHexString(SHA256.HashData(json));
         }
 
         private static string GetSubmissionKind(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
