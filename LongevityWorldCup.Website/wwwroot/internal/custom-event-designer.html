@@ -909,13 +909,13 @@
                     <button id="copySecretHashBtn" class="secondary" type="button" disabled>Copy Hash</button>
                     <div id="secretHashState" class="post-status" aria-live="polite"></div>
                 </div>
-                <textarea id="secretHashOutput" class="token" readonly hidden></textarea>
+                <textarea id="secretHashOutput" class="token" aria-label="Generated configuration hash" readonly hidden></textarea>
                 <div class="payload-actions">
                     <button id="postEventBtn" type="button">Queue Event</button>
                     <button id="copyCleanupCommandBtn" class="secondary" type="button" disabled hidden>Copy Cleanup SQL</button>
                     <div id="directPostStatus" class="post-status" aria-live="polite"></div>
                 </div>
-                <textarea id="cleanupCommandOutput" class="token" readonly hidden></textarea>
+                <textarea id="cleanupCommandOutput" class="token" aria-label="Generated cleanup SQL" readonly hidden></textarea>
                 <div id="postValidationHint" class="validation-hint" hidden>Title and at least one destination are required before queueing.</div>
             </div>
 
@@ -932,7 +932,7 @@
 
             <details class="payload-box">
                 <summary>Manual server command fallback</summary>
-                <textarea id="commandOutput" class="token" readonly></textarea>
+                <textarea id="commandOutput" class="token" aria-label="Generated server command" readonly></textarea>
                 <div class="payload-actions">
                     <button id="copyCommandBtn" class="secondary" type="button">Copy Command</button>
                     <div id="copyState" style="font-size:12px;color:var(--muted);"></div>

@@ -662,9 +662,12 @@
         top:50%;
         transform:translateY(-50%);
     }
-    .custom-event-expander:hover,
+    .custom-event-expander:hover{
+        background:rgba(0,188,212,.08) !important;
+    }
     .custom-event-expander:focus-visible{
         background:rgba(0,188,212,.08) !important;
+        box-shadow:0 0 0 3px rgba(0,188,212,.28) !important;
     }
 
     .custom-event-expander::before{
@@ -1380,8 +1383,13 @@
                     : String(label);
                 const url=(allowBadgeClicks && typeof window.pickClickUrl==='function')?window.pickClickUrl(b, athlete||null):'';
                 const familyClass=typeof window.getBadgeFamilyClass==='function'?window.getBadgeFamilyClass(b):'badge-family-utility';
-                const attrs=url?`class="badge-class ${familyClass} badge-clickable" role="button" tabindex="0" onclick="window.location.href='${url}'"`:`class="badge-class ${familyClass}"`;
-                return `<span ${attrs} title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></span>`;
+                if(url){
+                    const isPodcast=String(label||'').trim().toLowerCase()==='podcast';
+                    const targetAttrs=isPodcast?' target="_blank" rel="noopener"':'';
+                    const accessibleLabel=isPodcast?'Open podcast':'Open league';
+                    return `<a class="badge-class ${familyClass} badge-clickable" href="${esc(url)}"${targetAttrs} aria-label="${accessibleLabel}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></a>`;
+                }
+                return `<span class="badge-class ${familyClass}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></span>`;
             }catch(e){
                 return `<span class="badge-chip"><strong>${esc(String(label))}</strong></span>`;
             }

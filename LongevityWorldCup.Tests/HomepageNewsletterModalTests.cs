@@ -6,6 +6,19 @@ namespace LongevityWorldCup.Tests;
 public sealed class HomepageNewsletterModalTests
 {
     [Fact]
+    public void NewsletterEmailInput_HasPersistentAccessibleLabelAndAutocomplete()
+    {
+        var indexHtml = File.ReadAllText(Path.Combine(
+            FindRepoRoot(),
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "index.html"));
+
+        Assert.Contains("<label for=\"emailInput\" class=\"visually-hidden\">Email address</label>", indexHtml);
+        Assert.Contains("id=\"emailInput\" class=\"shared-email-input\" placeholder=\"athlete@example.com\" autocomplete=\"email\"", indexHtml);
+    }
+
+    [Fact]
     public void NewsletterSuccessDialog_AllowsLongEmailToWrap()
     {
         var indexHtml = File.ReadAllText(Path.Combine(

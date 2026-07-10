@@ -14,6 +14,7 @@ public sealed class CharacterSelectionPageTests
 
         Assert.Contains("id=\"athleteSelectionPanel\"", html);
         Assert.Contains("id=\"athleteSelectionPicture\" class=\"athlete-picture-frame\"", html);
+        Assert.Contains("<label for=\"playAthleteInput\" class=\"visually-hidden\">Athlete name</label>", html);
         Assert.Contains("id=\"playAthleteInput\"", html);
         Assert.Contains("id=\"playConfirmAthleteBtn\"", html);
         Assert.Contains("function navigateToStartPanel()", html);

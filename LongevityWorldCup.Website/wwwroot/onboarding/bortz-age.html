@@ -713,6 +713,11 @@
                 background: #f1f5f9;
             }
 
+            .biomarker-card-header:focus-visible {
+                outline: 3px solid rgba(0, 188, 212, 0.45);
+                outline-offset: -3px;
+            }
+
             .biomarker-card.active .biomarker-card-header {
                 background: #f8feff;
                 color: #1f2937;
@@ -969,7 +974,7 @@
                 </a>
             </section>
             <form id="bortzAgeForm" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
-                <div class="lwc-wizard-nav" aria-hidden="true">
+                <div class="lwc-wizard-nav">
                     <div class="lwc-dot lwc-dot--on" id="lwcDot1" role="button" tabindex="0" aria-label="Go to Step 1"></div>
                     <div class="lwc-dot" id="lwcDot2" role="button" tabindex="0" aria-label="Go to Step 2"></div>
                 </div>
@@ -1019,7 +1024,7 @@
                         <legend>Blood draw date:</legend>
                         <p class="privacy-note">When did you get your blood test done?</p>
                         <div class="input-group lwc-date-flex">
-                            <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
+                            <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" aria-label="Blood draw date" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
                         </div>
                     </fieldset>
                     <div class="lwc-step-actions flow-action-stack">
@@ -1048,7 +1053,7 @@
                             </div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="wbc" name="wbc" step="any" required aria-required="true" aria-label="White blood cell count (WBC)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="wbcUnit" class="visually-hidden">Select unit for White Blood Cell Count</label>
                                     <select id="wbcUnit" name="wbcUnit" aria-label="WBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">10⁹/L</option>
@@ -1062,7 +1067,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Lymphocytes <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="lymphocyte_percentage" name="lymphocyte_percentage" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="lymphocyte_percentage" name="lymphocyte_percentage" step="any" required aria-required="true" aria-label="Lymphocytes" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="lymphocyte_percentageUnit" class="visually-hidden">Select unit for Lymphocytes</label>
                                     <select id="lymphocyte_percentageUnit" aria-label="Lymphocyte unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
@@ -1077,7 +1082,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Neutrophils <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="neutrophil_percentage" name="neutrophil_percentage" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="neutrophil_percentage" name="neutrophil_percentage" step="any" required aria-required="true" aria-label="Neutrophils" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="neutrophil_percentageUnit" class="visually-hidden">Neutrophils unit</label>
                                     <select id="neutrophil_percentageUnit" aria-label="Neutrophils unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
@@ -1092,7 +1097,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Monocytes <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="monocyte_percentage" name="monocyte_percentage" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="monocyte_percentage" name="monocyte_percentage" step="any" required aria-required="true" aria-label="Monocytes" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="monocyte_percentageUnit" class="visually-hidden">Monocytes unit</label>
                                     <select id="monocyte_percentageUnit" aria-label="Monocytes unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
@@ -1107,7 +1112,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Red blood cell count (RBC) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="rbc" name="rbc" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="rbc" name="rbc" step="any" required aria-required="true" aria-label="Red blood cell count (RBC)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="rbcUnit" class="visually-hidden">RBC unit</label>
                                     <select id="rbcUnit" aria-label="RBC unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">10¹²/L</option>
@@ -1121,7 +1126,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Mean corpuscular volume (MCV) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="mcv" name="mcv" step="any" required aria-required="true" aria-label="Mean corpuscular volume (MCV)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="mcvUnit" class="visually-hidden">MCV unit</label>
                                     <select id="mcvUnit" aria-label="MCV unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">fL</option>
@@ -1134,7 +1139,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Mean corpuscular hemoglobin (MCH) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="mch" name="mch" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="mch" name="mch" step="any" required aria-required="true" aria-label="Mean corpuscular hemoglobin (MCH)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="mchUnit" class="visually-hidden">MCH unit</label>
                                     <select id="mchUnit" aria-label="MCH unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">pg</option>
@@ -1147,7 +1152,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Red cell distribution width (RDW, RDW-CV) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="rdw" name="rdw" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="rdw" name="rdw" step="any" required aria-required="true" aria-label="Red cell distribution width (RDW, RDW-CV)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="rdwUnit" class="visually-hidden">RDW unit</label>
                                     <select id="rdwUnit" aria-label="RDW unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">%</option>
@@ -1163,7 +1168,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Albumin <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="albumin" name="albumin" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="albumin" name="albumin" step="any" required aria-required="true" aria-label="Albumin" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="albuminUnit" class="visually-hidden">Albumin unit</label>
                                     <select id="albuminUnit" aria-label="Albumin unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">g/L</option>
@@ -1177,7 +1182,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Alanine aminotransferase (ALT, ALAT) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="alt" name="alt" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="alt" name="alt" step="any" required aria-required="true" aria-label="Alanine aminotransferase (ALT, ALAT)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="altUnit" class="visually-hidden">ALT unit</label>
                                     <select id="altUnit" aria-label="ALT unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">U/L</option>
@@ -1191,7 +1196,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Alkaline phosphatase (ALP) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="alp" name="alp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="alp" name="alp" step="any" required aria-required="true" aria-label="Alkaline phosphatase (ALP)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="alpUnit" class="visually-hidden">ALP unit</label>
                                     <select id="alpUnit" aria-label="ALP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">U/L</option>
@@ -1205,7 +1210,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Gamma-glutamyl transferase (GGT) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="ggt" name="ggt" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="ggt" name="ggt" step="any" required aria-required="true" aria-label="Gamma-glutamyl transferase (GGT)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="ggtUnit" class="visually-hidden">GGT unit</label>
                                     <select id="ggtUnit" aria-label="GGT unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">U/L</option>
@@ -1222,7 +1227,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Urea/BUN <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="urea" name="urea" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="urea" name="urea" step="any" required aria-required="true" aria-label="Urea or blood urea nitrogen (BUN)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="ureaUnit" class="visually-hidden">Urea/BUN unit</label>
                                     <select id="ureaUnit" aria-label="Urea/BUN unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">Urea (mmol/L)</option>
@@ -1237,7 +1242,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Creatinine <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="creatinine" name="creatinine" step="any" required aria-required="true" aria-label="Creatinine" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="creatinineUnit" class="visually-hidden">Creatinine unit</label>
                                     <select id="creatinineUnit" aria-label="Creatinine unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">µmol/L</option>
@@ -1251,7 +1256,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Cystatin C <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="cystatin_c" name="cystatin_c" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="cystatin_c" name="cystatin_c" step="any" required aria-required="true" aria-label="Cystatin C" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="cystatin_cUnit" class="visually-hidden">Cystatin C unit</label>
                                     <select id="cystatin_cUnit" aria-label="Cystatin C unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mg/L</option>
@@ -1268,7 +1273,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Glucose <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="glucose" name="glucose" step="any" required aria-required="true" aria-label="Glucose" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="glucoseUnit" class="visually-hidden">Glucose unit</label>
                                     <select id="glucoseUnit" aria-label="Glucose unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mmol/L</option>
@@ -1282,7 +1287,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Hemoglobin A1c (HbA1c) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="hba1c" name="hba1c" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="hba1c" name="hba1c" step="any" required aria-required="true" aria-label="Hemoglobin A1c (HbA1c)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="hba1cUnit" class="visually-hidden">HbA1c unit</label>
                                     <select id="hba1cUnit" aria-label="HbA1c unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mmol/mol (IFCC)</option>
@@ -1298,7 +1303,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Total cholesterol <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="cholesterol" name="cholesterol" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="cholesterol" name="cholesterol" step="any" required aria-required="true" aria-label="Total cholesterol" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="cholesterolUnit" class="visually-hidden">Cholesterol unit</label>
                                     <select id="cholesterolUnit" aria-label="Cholesterol unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">mmol/L</option>
@@ -1312,7 +1317,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Apolipoprotein A1 (ApoA1) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="apoa1" name="apoa1" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="apoa1" name="apoa1" step="any" required aria-required="true" aria-label="Apolipoprotein A1 (ApoA1)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="apoa1Unit" class="visually-hidden">ApoA1 unit</label>
                                     <select id="apoa1Unit" aria-label="ApoA1 unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">g/L</option>
@@ -1333,13 +1338,13 @@
                                         <span class="bioageform-toggle-text">Set if negative:</span>
                                         <div class="negative-toggle">
                                             <label for="crp-negative" class="toggle-label">
-                                                <input type="checkbox" id="crp-negative" onchange="toggleCRPInput()">
+                                                <input type="checkbox" id="crp-negative" aria-label="Set CRP as below the detection limit" onchange="toggleCRPInput()">
                                                 <span class="slider"></span>
                                             </label>
                                         </div>
                                     </div>
                                     <div class="input-group">
-                                        <input type="number" id="crp" name="crp" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                        <input type="number" id="crp" name="crp" step="any" required aria-required="true" aria-label="C-reactive protein (CRP)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <label for="crpUnit" class="visually-hidden">CRP unit</label>
                                         <select id="crpUnit" aria-label="CRP unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                             <option value="1">mg/L</option>
@@ -1357,7 +1362,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Sex hormone-binding globulin (SHBG) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="shbg" name="shbg" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="shbg" name="shbg" step="any" required aria-required="true" aria-label="Sex hormone-binding globulin (SHBG)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="shbgUnit" class="visually-hidden">SHBG unit</label>
                                     <select id="shbgUnit" aria-label="SHBG unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">nmol/L</option>
@@ -1371,7 +1376,7 @@
                             <div class="biomarker-card-header" aria-expanded="false">Vitamin D (25-OH) <span class="toggle-icon">+</span></div>
                             <div class="biomarker-card-content">
                                 <div class="input-group">
-                                    <input type="number" id="vitamin_d" name="vitamin_d" step="any" required aria-required="true" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
+                                    <input type="number" id="vitamin_d" name="vitamin_d" step="any" required aria-required="true" aria-label="Vitamin D (25-OH)" inputmode="decimal" onchange="calculateResultIfResultAlreadyCalculated()">
                                     <label for="vitamin_dUnit" class="visually-hidden">Vitamin D unit</label>
                                     <select id="vitamin_dUnit" aria-label="Vitamin D unit" onchange="calculateResultIfResultAlreadyCalculated()">
                                         <option value="1">nmol/L</option>
@@ -3633,7 +3638,11 @@
 
         // Wire up all biomarker‐card headers
         document.querySelectorAll('.biomarker-card-header').forEach(header => {
-            header.addEventListener('click', function handler() {
+            header.setAttribute('role', 'button');
+            header.setAttribute('tabindex', '0');
+            header.querySelector('.toggle-icon')?.setAttribute('aria-hidden', 'true');
+
+            const toggleCard = function () {
                 const card = header.parentNode;
                 const content = card.querySelector('.biomarker-card-content');
                 const icon = header.querySelector('.toggle-icon');
@@ -3648,6 +3657,8 @@
                         content.style.paddingBottom = '0.75rem';
                         header.style.pointerEvents = 'none';
                         header.style.cursor = 'default';
+                        header.setAttribute('aria-disabled', 'true');
+                        header.setAttribute('tabindex', '-1');
                         icon.style.display = 'none';
                     }
                     return;
@@ -3668,6 +3679,13 @@
                     content.style.paddingTop = '0';
                     content.style.paddingBottom = '0';
                 }
+            };
+
+            header.addEventListener('click', toggleCard);
+            header.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                toggleCard();
             });
         });
 
@@ -3709,6 +3727,8 @@
                     if (header) {
                         header.style.pointerEvents = 'none';
                         header.style.cursor = 'default';
+                        header.setAttribute('aria-disabled', 'true');
+                        header.setAttribute('tabindex', '-1');
                     }
                 } else {
                     // In update mode: show a minus icon

@@ -272,10 +272,6 @@
                 text-decoration: underline;
             }
 
-            .homepage-faq-more .homepage-faq-icon-link {
-                text-decoration: none;
-            }
-
             /* Input field style */
             .section-container input[type="email"] {
                 padding: 0.6rem 1rem;
@@ -1889,8 +1885,7 @@
                 </div>
             </div>
             <p style="margin-top: 1.5rem; font-size: 1rem; color: var(--dark-text-color);">
-                <a href="/history" style="color: var(--primary-color); text-decoration: none;"><i class="fas fa-book-open"></i> </a>
-                <a href="/history" style="color: var(--primary-color); text-decoration: underline;">History of longevity as a sport</a>
+                <a href="/history" style="color: var(--primary-color); text-decoration: underline;"><i class="fas fa-book-open" aria-hidden="true"></i> History of longevity as a sport</a>
             </p>
         </div>
 
@@ -1915,8 +1910,7 @@
                 </div>
             </div>
             <p class="homepage-faq-more">
-                <a href="/ruleset#faq" class="homepage-faq-icon-link" aria-hidden="true" tabindex="-1"><i class="fas fa-circle-question"></i> </a>
-                <a href="/ruleset#faq">Extended FAQ</a>
+                <a href="/ruleset#faq"><i class="fas fa-circle-question" aria-hidden="true"></i> Extended FAQ</a>
             </p>
         </section>
 
@@ -1967,7 +1961,8 @@
             </p>
 
             <form id="newsletter-form">
-                <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" required>
+                <label for="emailInput" class="visually-hidden">Email address</label>
+                <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" autocomplete="email" required>
                 <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-label="Subscribe to the Longevity World&nbsp;Cup newsletter">
                     <i class="fas fa-paper-plane"></i> Subscribe
                 </button>
@@ -2214,6 +2209,7 @@
                     const isActive = slideIndex === activeIndex;
                     slide.classList.toggle('is-active', isActive);
                     slide.setAttribute('aria-hidden', String(!isActive));
+                    slide.tabIndex = isActive ? 0 : -1;
                 });
 
                 dots.forEach((dot, dotIndex) => {
