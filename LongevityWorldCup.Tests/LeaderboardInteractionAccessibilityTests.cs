@@ -35,6 +35,16 @@ public sealed class LeaderboardInteractionAccessibilityTests
         Assert.Contains(".enlarged-portrait .close-btn:focus-visible", html);
     }
 
+    [Fact]
+    public void AthleteDetailsModal_UsesNativeCloseButtons()
+    {
+        var html = File.ReadAllText(GetLeaderboardPartialPath());
+
+        Assert.Contains("<button type=\"button\" id=\"closeAthleteDetailsModal\" class=\"close\" aria-label=\"Close athlete details\">", html);
+        Assert.Contains("<button class=\"sticky-close-btn\" id=\"stickyCloseBtn\" aria-label=\"Close athlete details\">", html);
+        Assert.DoesNotContain("<span id=\"closeAthleteDetailsModal\"", html);
+    }
+
     private static string GetLeaderboardPartialPath([CallerFilePath] string sourceFilePath = "")
     {
         var testsDirectory = Path.GetDirectoryName(sourceFilePath)
