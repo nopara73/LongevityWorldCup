@@ -18,7 +18,7 @@ public sealed class RulesetImageAccessibilityTests
         Assert.Contains("alt=\"Prize money timeline from Bitcoin donations through allocation, funding, costs, wallet setup, and January payouts\"", html);
         Assert.Contains("alt=\"Registration process: visit the website, then follow the instructions\"", html);
         Assert.Contains("alt=\"Biomarkers used in pheno age calculation and their common laboratory names\"", html);
-        Assert.Contains("alt=\"Tie-break order: pheno age, chronological age, then alphabetical order\"", html);
+        Assert.Contains("alt=\"Ranking flow: compare pheno age, then break ties by older chronological age and, if still tied, username alphabetically\"", html);
         Assert.Contains("alt=\"Profile picture compliance balances editing freedom with use of a personal image\"", html);
     }
 }

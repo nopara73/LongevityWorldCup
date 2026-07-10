@@ -106,7 +106,7 @@ Each season closes in mid-January, giving your lab enough time to process a test
 #### What if there's a tie?
 Ties break by older chronological age, then username alphabetically.
 
-![Tie-break order: pheno age, chronological age, then alphabetical order](https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e)
+![Ranking flow: compare pheno age, then break ties by older chronological age and, if still tied, username alphabetically](https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e)
 
 #### How is my score calculated if I submit multiple results?
 If you submit multiple test results, the **best** result is used for your season standing for the relevant clock. This encourages incremental updates and fair comparisons between strategic and transparent participants.
