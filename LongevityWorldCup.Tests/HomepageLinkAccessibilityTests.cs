@@ -27,4 +27,16 @@ public sealed class HomepageLinkAccessibilityTests
         Assert.Contains("<a href=\"/ruleset#faq\"><i class=\"fas fa-circle-question\" aria-hidden=\"true\"></i> Extended FAQ</a>", html);
         Assert.DoesNotContain("homepage-faq-icon-link", html);
     }
+
+    [Fact]
+    public async Task MerchCarousel_OnlyTabsToTheVisibleSlide()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+
+        Assert.Contains("slide.setAttribute('aria-hidden', String(!isActive));", html);
+        Assert.Contains("slide.tabIndex = isActive ? 0 : -1;", html);
+    }
 }
