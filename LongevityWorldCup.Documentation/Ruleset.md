@@ -6,7 +6,7 @@ The Longevity World Cup is a competition between longevity athletes. The goal is
 - Seasonal clocks typically start and end around mid-January, and **only accept results from the given calendar year** (January 1 to December 31). At **season close**, final rankings lock for that season.
 - Some clocks may run as **all-time competitions** instead of seasonal competitions. **The all-time competition currently uses [pheno age](https://pmc.ncbi.nlm.nih.gov/articles/PMC5940111/pdf/aging-10-101414.pdf)**.
 
-![image](https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582)
+![Season duration defines the competition cycle, while test validity defines test acceptance](https://github.com/user-attachments/assets/337ab8a6-935b-4986-8e63-28aa6f494582)
 
 ## Tracks
 The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. These use different clocks and rules.
@@ -22,14 +22,14 @@ The Longevity World Cup has multiple tracks: **Amateur** and **Professional**. T
   - **Partial or non-same-day submissions are not allowed for a given clock**. Required biomarkers must come from the same blood draw or report date.
 - The competition also uses **leagues** (for example generation-based or other category-based rankings). You can rank globally and still compete within your generation league.
 
-![image](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
+![Multiple submissions may improve ranking at higher cost, while one strategic submission is cheaper but may miss the optimum](https://github.com/user-attachments/assets/968fc0b2-3389-40a3-93e9-4a415f565b11)
 ## Prizes and payouts
 - Prize money is awarded to the top three athletes in the Ultimate League.
 - Bitcoin donations fund the prize money pool.
 - 10% of donations covers operating costs, and 90% funds the prize money pool.
 - Payouts are made in Bitcoin in mid-January. If you need a Bitcoin wallet, we'll help you set one up. We recommend [Green Wallet](https://blockstream.com/green/) for mobile or [Wasabi Wallet](https://wasabiwallet.io/) for desktop. Fun fact: Wasabi Wallet and the Longevity World Cup share the same creator.
 
-![image](https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2)
+![Prize money timeline from Bitcoin donations through allocation, funding, costs, wallet setup, and January payouts](https://github.com/user-attachments/assets/9a41f400-92a1-496d-8553-b727186580b2)
 
 ## FAQ
 
@@ -40,7 +40,7 @@ Anyone interested in longevity and capable of submitting valid test results can 
 #### How do I register for the competition?
 Apply through the [Longevity World Cup website](https://www.longevityworldcup.com/).
 
-![image](https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207)
+![Registration process: visit the website, then follow the instructions](https://github.com/user-attachments/assets/38c545e9-13e5-4ba2-b2e0-d52bbf149207)
 
 Need help with your application? Watch [this seven-minute video tutorial](https://www.youtube.com/watch?v=0mCIbqgfqq8) or [this one-minute video tutorial](https://www.youtube.com/shorts/yhMFZMPAoKQ).
 
@@ -88,7 +88,7 @@ Yes. Email `hi@longevityworldcup.com`.
 - Mean Corpuscular Hemoglobin (MCH)
 - Apolipoprotein A1 (ApoA1)
 
-![image](https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3)
+![Biomarkers used in pheno age calculation and their common laboratory names](https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3)
 
 #### Can I use any laboratory for my tests?
 Yes, as long as the lab provides the biomarkers required for that clock.
@@ -106,7 +106,7 @@ Each season closes in mid-January, giving your lab enough time to process a test
 #### What if there's a tie?
 Ties break by older chronological age, then username alphabetically.
 
-![image](https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e)
+![Tie-break order: pheno age, chronological age, then alphabetical order](https://github.com/user-attachments/assets/a13ec2f2-346e-4024-aba5-dd32e807a34e)
 
 #### How is my score calculated if I submit multiple results?
 If you submit multiple test results, the **best** result is used for your season standing for the relevant clock. This encourages incremental updates and fair comparisons between strategic and transparent participants.
@@ -128,7 +128,7 @@ You can't.
 #### How much can I edit my profile picture?
 Your profile picture must show you facing the camera, but you can edit it freely, including as a drawing or AI-generated version. Choose a picture that represents you well and works for age estimation from a photo.
 
-![image](https://github.com/user-attachments/assets/613afebb-4ec7-4b0d-a961-8a09e26391ab)
+![Profile picture compliance balances editing freedom with use of a personal image](https://github.com/user-attachments/assets/613afebb-4ec7-4b0d-a961-8a09e26391ab)
 
 #### I'm already an athlete. How can I make changes?
 Through the [Athlete Dashboard](https://www.longevityworldcup.com/select-athlete) or by sending us an email to `hi@longevityworldcup.com`.
