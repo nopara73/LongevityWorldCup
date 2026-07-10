@@ -324,6 +324,19 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
+    public void BioageWizardDots_AreExposedWithTheirAccessibleNames(string fileName)
+    {
+        var html = File.ReadAllText(GetPagePath(fileName));
+
+        Assert.Contains("<div class=\"lwc-wizard-nav\">", html);
+        Assert.Contains("role=\"button\" tabindex=\"0\" aria-label=\"Go to Step 1\"", html);
+        Assert.Contains("role=\"button\" tabindex=\"0\" aria-label=\"Go to Step 2\"", html);
+        Assert.DoesNotContain("<div class=\"lwc-wizard-nav\" aria-hidden=\"true\">", html);
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html")]
+    [InlineData("bortz-age.html")]
     public void BioageUpdatePages_HideWizardNavigationAndForceBiomarkerStep(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
