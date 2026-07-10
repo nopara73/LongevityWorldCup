@@ -7,18 +7,18 @@ namespace LongevityWorldCup.Tests;
 public sealed class ApplicationOnboardingPageTests
 {
     [Fact]
-    public async Task ProfilePictureIllustration_IsKeyboardAccessibleWhenClickable()
+    public async Task ProfilePictureUpload_UsesNativeButtonsWithoutADuplicateImageTabStop()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
 
-        Assert.Contains("illustrationImage.setAttribute('role', 'button');", html);
-        Assert.Contains("illustrationImage.setAttribute('tabindex', '0');", html);
-        Assert.Contains("illustrationImage.setAttribute('aria-label', 'Choose a profile picture');", html);
-        Assert.Contains("illustrationImage.addEventListener('keydown'", html);
-        Assert.Contains(".clickable:focus-visible", html);
+        Assert.Contains("<button type=\"button\" id=\"takeProfileSelfieButton\"", html);
+        Assert.Contains("<button type=\"button\" id=\"uploadButton\"", html);
+        Assert.DoesNotContain("illustrationImage.setAttribute('role', 'button');", html);
+        Assert.DoesNotContain("illustrationImage.setAttribute('tabindex', '0');", html);
+        Assert.DoesNotContain("illustrationImage.addEventListener('keydown'", html);
     }
 
     [Fact]
