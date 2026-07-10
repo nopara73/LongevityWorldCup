@@ -54,6 +54,22 @@ namespace LongevityWorldCup.Website.Middleware
                     "Crowd Age Leaderboard | Longevity World Cup",
                     "Crowd Age rankings from accepted guesses.")
             };
+        private static readonly IReadOnlyDictionary<string, string> NonIndexablePageTitles =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["/privacy"] = "Privacy Policy | Longevity World Cup",
+                ["/pheno-age"] = "Pheno Age Calculator | Longevity World Cup",
+                ["/bortz-age"] = "Bortz Age Calculator | Longevity World Cup",
+                ["/play"] = "Game Menu | Longevity World Cup",
+                ["/join"] = "Join Longevity World Cup",
+                ["/apply"] = "Athlete Application | Longevity World Cup",
+                ["/review"] = "Application Review | Longevity World Cup",
+                ["/proofs"] = "Proof Upload | Longevity World Cup",
+                ["/select-athlete"] = "Athlete Selection | Longevity World Cup",
+                ["/dashboard"] = "Athlete Dashboard | Longevity World Cup",
+                ["/edit-profile"] = "Edit Profile | Longevity World Cup",
+                ["/unsubscribe"] = "Unsubscribe | Longevity World Cup"
+            };
 
         public async Task Invoke(HttpContext context)
         {
@@ -659,8 +675,8 @@ $@"<script type=""module"">
                     "Longevity World Cup member page.",
                     "noindex, nofollow",
                     canonicalUrl,
-                    "Longevity World Cup",
-                    "Longevity World Cup",
+                    GetNonIndexablePageTitle(canonicalPath),
+                    GetNonIndexablePageTitle(canonicalPath),
                     noCardDescription,
                     defaultOgImage
                 ),
@@ -675,6 +691,13 @@ $@"<script type=""module"">
                     defaultOgImage
                 )
             };
+        }
+
+        private static string GetNonIndexablePageTitle(string canonicalPath)
+        {
+            return NonIndexablePageTitles.TryGetValue(canonicalPath, out var title)
+                ? title
+                : "Longevity World Cup";
         }
 
         private static string GetRequestCanonicalPath(HttpContext context)
