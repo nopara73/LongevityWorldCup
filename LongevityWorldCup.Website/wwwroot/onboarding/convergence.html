@@ -141,6 +141,11 @@
             cursor: pointer;
         }
 
+        .clickable:focus-visible {
+            outline: 3px solid var(--primary-color);
+            outline-offset: 4px;
+        }
+
         .convergence-upload-guidance {
             width: min(100%, 408px);
             margin: 0.75rem auto 1.2rem;
@@ -1355,6 +1360,9 @@
 
             // Remove 'clickable' class initially
             illustrationImage.classList.remove('clickable');
+            illustrationImage.removeAttribute('role');
+            illustrationImage.removeAttribute('tabindex');
+            illustrationImage.removeAttribute('aria-label');
 
             switch (stage) {
                 case 1:
@@ -1465,6 +1473,9 @@
                     document.getElementById('profileUploadSection').style.display = '';
 
                     illustrationImage.classList.add('clickable');
+                    illustrationImage.setAttribute('role', 'button');
+                    illustrationImage.setAttribute('tabindex', '0');
+                    illustrationImage.setAttribute('aria-label', 'Choose a profile picture');
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
                     updateSubProgress(4);
 
@@ -2035,6 +2046,11 @@
             const illustrationImage = document.getElementById('illustrationImage');
             if (illustrationImage && !illustrationImage.hasAttribute('data-listener')) {
                 illustrationImage.addEventListener('click', function () {
+                    document.getElementById('profilePicInput').click();
+                });
+                illustrationImage.addEventListener('keydown', function (event) {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
                     document.getElementById('profilePicInput').click();
                 });
                 illustrationImage.setAttribute('data-listener', 'true');
