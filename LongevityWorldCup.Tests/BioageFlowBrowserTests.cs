@@ -59,12 +59,15 @@ public sealed class BioageFlowBrowserTests
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
+        await page.WaitForTimeoutAsync(700);
 
         Assert.Equal("/" + path.TrimStart('/'), new Uri(page.Url).PathAndQuery);
         Assert.Equal("Browser Test Athlete", await page.Locator("#mainPageTitleH2").InnerTextAsync());
         Assert.Null(await page.EvaluateAsync<string?>("() => sessionStorage.getItem('pendingPaymentOffer')"));
         Assert.False(await page.Locator(".lwc-wizard-nav").IsVisibleAsync());
-        Assert.False(await page.Locator("#lwcToStep1Btn").IsVisibleAsync());
+        Assert.InRange(await page.EvaluateAsync<double>("() => window.scrollY"), 0, 1);
+        Assert.InRange(await page.Locator("header").EvaluateAsync<double>("header => header.getBoundingClientRect().top"), -1, 1);
+        Assert.True(await page.Locator("#lwcToStep1Btn").IsVisibleAsync());
         Assert.False(await page.Locator("#dobFieldset").IsVisibleAsync());
         Assert.Equal(initialUnitValue, await page.Locator(unitSelector).InputValueAsync());
         Assert.Equal(initialPlaceholder, await page.Locator(inputSelector).GetAttributeAsync("placeholder"));
@@ -75,7 +78,7 @@ public sealed class BioageFlowBrowserTests
         Assert.Equal(changedUnitValue, await page.Locator(unitSelector).InputValueAsync());
         Assert.Equal(changedPlaceholder, await page.Locator(inputSelector).GetAttributeAsync("placeholder"));
 
-        await page.Locator("button[onclick=\"navigateBackFromBioage()\"]").ClickAsync();
+        await page.Locator("#lwcToStep1Btn").ClickAsync();
         await page.WaitForURLAsync("**/dashboard");
 
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);

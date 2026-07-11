@@ -64,6 +64,88 @@
         margin: 1.35rem auto;
         padding: 0.9rem;
     }
+
+    body.flow-action-dock-active .bioageform #lwc-step-1.lwc-step--active > fieldset {
+        padding: 0.85rem 0.9rem;
+    }
+
+    body.flow-action-dock-active .bioageform #lwc-step-1.lwc-step--active label {
+        margin-top: 0.5rem;
+        line-height: 1.2;
+    }
+
+    body.flow-action-dock-active .bioageform #lwc-step-1.lwc-step--active fieldset > label:first-of-type {
+        margin-top: 0.35rem;
+    }
+
+    body.flow-action-dock-active .bioageform #lwc-step-1.lwc-step--active .privacy-note {
+        margin-top: 0.25rem;
+        font-size: 0.78rem;
+        line-height: 1.22;
+    }
+
+    body.flow-action-dock-active .bioageform #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) {
+        margin-top: calc(var(--flow-action-dock-height, 7rem) + 3.25rem);
+    }
+}
+
+@media (min-width: 400px) and (max-width: 600px) and (min-height: 900px) {
+    body.flow-action-dock-active .bioageform #dobFieldset {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: 0.45rem;
+        row-gap: 0.3rem;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset legend {
+        grid-column: 1 / -1;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset label[for="dob-year"] {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-year {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-month-label {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-month {
+        grid-column: 2;
+        grid-row: 3;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-day-label {
+        grid-column: 3;
+        grid-row: 2;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-day {
+        grid-column: 3;
+        grid-row: 3;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #privacyNote {
+        grid-column: 1 / -1;
+        grid-row: 4;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset select {
+        padding-left: 0.45rem;
+        padding-right: 1.45rem;
+        background-position: right 0.45rem center;
+        font-size: 0.875rem;
+    }
+
+    body.flow-action-dock-active .bioageform #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) {
+        margin-top: 0.85rem;
+    }
 }
 
 @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
@@ -73,11 +155,103 @@
     }
 }
 
+@media (min-width: 960px) and (min-height: 640px) {
+    #phenoAgeForm,
+    #bortzAgeForm {
+        width: min(100%, 760px);
+        margin: 1.25rem auto;
+        padding: 0.9rem;
+    }
+}
+
 .bioageform .lwc-step {
     width: 100%;
     max-width: 100%;
     min-width: 0;
     box-sizing: border-box;
+}
+
+@media (min-width: 960px) and (min-height: 640px) {
+    .bioageform #lwc-step-1.lwc-step--active {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.55fr);
+        align-items: start;
+        gap: 1rem;
+    }
+
+    .bioageform #lwc-step-1 > fieldset {
+        margin-top: 0;
+        padding: 0.72rem 0.9rem;
+    }
+
+    .bioageform #lwc-step-1 > fieldset:nth-of-type(2) {
+        align-self: start;
+    }
+
+    .bioageform #dobFieldset {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: 0.65rem;
+        row-gap: 0.35rem;
+    }
+
+    .bioageform #dobFieldset legend {
+        grid-column: 1 / -1;
+    }
+
+    .bioageform #dobFieldset label[for="dob-year"] {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .bioageform #dobFieldset #dob-year {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    .bioageform #dobFieldset #dob-month-label {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .bioageform #dobFieldset #dob-month {
+        grid-column: 2;
+        grid-row: 3;
+    }
+
+    .bioageform #dobFieldset #dob-day-label {
+        grid-column: 3;
+        grid-row: 2;
+    }
+
+    .bioageform #dobFieldset #dob-day {
+        grid-column: 3;
+        grid-row: 3;
+    }
+
+    .bioageform #dobFieldset #privacyNote {
+        grid-column: 1 / -1;
+        grid-row: 4;
+    }
+
+    .bioageform #lwc-step-1 label {
+        margin-top: 0.45rem;
+    }
+
+    .bioageform #lwc-step-1 fieldset > label:first-of-type {
+        margin-top: 0.35rem;
+    }
+
+    .bioageform #lwc-step-1 .privacy-note {
+        margin-top: 0.25rem;
+        font-size: 0.9rem;
+        line-height: 1.22;
+    }
+
+    .bioageform #lwc-step-1 > .lwc-step-actions {
+        grid-column: 1 / -1;
+        margin-top: 0.2rem;
+    }
 }
 
 /* Fieldset Styles */
@@ -196,7 +370,7 @@
 .bioage-rank-label {
     font-size: 0.72rem;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0;
     text-transform: uppercase;
     color: #64748b;
 }

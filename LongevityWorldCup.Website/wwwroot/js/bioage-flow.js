@@ -391,6 +391,15 @@
         window.navigateToFlowDestination(getBackDestination(isUpdate));
     }
 
+    function resetUpdateModeScroll() {
+        const reset = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        reset();
+        window.requestAnimationFrame(() => {
+            reset();
+            window.LwcFlowActionDock?.refresh?.();
+        });
+    }
+
     function isValidSelectedAthlete(value) {
         return value
             && typeof value === 'object'
@@ -453,7 +462,7 @@
     }
 
     function updateCalculateButton() {
-        const calculateButton = document.querySelector('form button[type="submit"]');
+        const calculateButton = document.querySelector('.bioage-calculate-button');
         const nextButton = document.getElementById('continueButton');
         if (!calculateButton || !nextButton) return;
 
@@ -464,15 +473,186 @@
             calculateButton.classList.remove('grey', 'flow-action--secondary');
             calculateButton.classList.add('green');
         }
+
+        syncBioageResultActions();
+    }
+
+    function syncBioageResultActions() {
+        const nextButton = document.getElementById('continueButton');
+        const resultActions = nextButton?.closest('.flow-action-stack');
+        if (!nextButton || !resultActions || !document.body) return;
+
+        const hasResult = nextButton.classList.contains('show');
+        document.body.classList.toggle('bioage-result-ready', hasResult);
+        resultActions.hidden = !hasResult;
+        window.LwcFlowActionDock?.refreshNow?.();
+
+        if (hasResult) {
+            scheduleBioageResultReveal(getShownBioageResultElement());
+        } else {
+            clearScheduledBioageResultReveals();
+        }
+
+        lastBioageResultActionsVisible = hasResult;
+    }
+
+    let lastBioageResultShown = false;
+    let lastBioageResultActionsVisible = false;
+    let resultRevealFrame = 0;
+
+    function getShownBioageResultElement() {
+        return document.querySelector('#phenoAgeResult.show, #bortzAgeResult.show');
+    }
+
+    function isRenderedElement(element) {
+        if (!element) return false;
+
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+        return rect.width > 0
+            && rect.height > 0
+            && style.display !== 'none'
+            && style.visibility !== 'hidden';
+    }
+
+    function getCssPixelValue(element, propertyName) {
+        const value = parseFloat(window.getComputedStyle(element).getPropertyValue(propertyName));
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    function getVisualViewportBounds() {
+        const visualViewport = window.visualViewport;
+        const top = Number.isFinite(visualViewport?.offsetTop) ? visualViewport.offsetTop : 0;
+        const height = Number.isFinite(visualViewport?.height)
+            ? visualViewport.height
+            : window.innerHeight;
+
+        return {
+            top,
+            bottom: top + height,
+            height
+        };
+    }
+
+    function getBioageResultViewportBounds() {
+        const rootStyle = window.getComputedStyle(document.documentElement);
+        const scrollPaddingTop = parseFloat(rootStyle.scrollPaddingTop);
+        const reservedTop = Number.isFinite(scrollPaddingTop) ? scrollPaddingTop : 52;
+        const dockHeight = getCssPixelValue(document.documentElement, '--flow-action-dock-height');
+        const reservedBottom = dockHeight + 16;
+        const viewport = getVisualViewportBounds();
+        const top = viewport.top + reservedTop;
+        const bottom = viewport.bottom - reservedBottom;
+
+        return {
+            top,
+            bottom,
+            height: Math.max(0, bottom - top)
+        };
+    }
+
+    function isBioageResultComfortablyVisible(resultElement) {
+        const rect = resultElement.getBoundingClientRect();
+        const viewportBounds = getBioageResultViewportBounds();
+
+        return rect.top >= viewportBounds.top
+            && rect.bottom <= viewportBounds.bottom;
+    }
+
+    function getBioageResultRevealScrollTop(resultElement) {
+        const rect = resultElement.getBoundingClientRect();
+        const viewportBounds = getBioageResultViewportBounds();
+        const targetTop = rect.height >= viewportBounds.height
+            ? viewportBounds.top
+            : viewportBounds.top + ((viewportBounds.height - rect.height) / 2);
+
+        return Math.max(0, window.scrollY + rect.top - targetTop);
+    }
+
+    function revealBioageResult(resultElement, revealOptions = {}) {
+        if (!resultElement) return;
+
+        window.LwcFlowActionDock?.refreshNow?.();
+
+        if (isBioageResultComfortablyVisible(resultElement)) return;
+
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        window.scrollTo({
+            top: getBioageResultRevealScrollTop(resultElement),
+            behavior: prefersReducedMotion || revealOptions.instant ? 'auto' : 'smooth',
+        });
+
+        window.setTimeout(() => window.LwcFlowActionDock?.refresh?.(), prefersReducedMotion ? 0 : 360);
+    }
+
+    function clearScheduledBioageResultReveals() {
+        if (resultRevealFrame) {
+            window.cancelAnimationFrame(resultRevealFrame);
+            resultRevealFrame = 0;
+        }
+
+    }
+
+    function scheduleBioageResultReveal(resultElement) {
+        if (!resultElement) return;
+        clearScheduledBioageResultReveals();
+
+        const revealIfCurrent = (instant = false) => {
+            if (!isRenderedElement(resultElement)) return;
+            if (getShownBioageResultElement() !== resultElement) return;
+
+            revealBioageResult(resultElement, { instant });
+        };
+
+        resultRevealFrame = window.requestAnimationFrame(() => {
+            resultRevealFrame = window.requestAnimationFrame(() => {
+                resultRevealFrame = 0;
+                revealIfCurrent(false);
+            });
+        });
+    }
+
+    function syncBioageResultVisibility() {
+        const resultElement = getShownBioageResultElement();
+        const hasShownResult = !!resultElement;
+
+        if (hasShownResult && !lastBioageResultShown) {
+            scheduleBioageResultReveal(resultElement);
+        }
+
+        if (!hasShownResult) {
+            clearScheduledBioageResultReveals();
+        }
+
+        lastBioageResultShown = hasShownResult;
+    }
+
+    function bindBioageResultActions() {
+        const nextButton = document.getElementById('continueButton');
+        if (!nextButton) return;
+
+        syncBioageResultActions();
+        syncBioageResultVisibility();
+
+        const observer = new MutationObserver(syncBioageResultActions);
+        observer.observe(nextButton, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+
+        const resultObserver = new MutationObserver(syncBioageResultVisibility);
+        document.querySelectorAll('#phenoAgeResult, #bortzAgeResult').forEach(resultElement => {
+            resultObserver.observe(resultElement, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        });
+
     }
 
     function hideUpdateModeStepNavigation() {
         const wizardNav = document.querySelector('.lwc-wizard-nav');
         if (wizardNav) wizardNav.hidden = true;
-
-        const stepBackButton = document.getElementById('lwcToStep1Btn');
-        const stepBackActions = stepBackButton?.closest('.lwc-step-actions');
-        if (stepBackActions) stepBackActions.hidden = true;
     }
 
     window.LwcBioageFlow = {
@@ -496,14 +676,24 @@
         removeBrowserStorageItem,
         removeLocalItem,
         removeSessionItem,
+        resetUpdateModeScroll,
+        revealBioageResult,
         setBrowserStorageItem,
         setLocalItem,
         setSubmittedBiomarkerPlaceholders,
         setSessionItem,
+        syncBioageResultActions,
+        syncBioageResultVisibility,
         syncBiomarkerExamplePlaceholders,
         toFiniteBiomarkerNumber,
         updateBiomarkerComparison,
         updateBiomarkerExamplePlaceholder,
         updateCalculateButton
     };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindBioageResultActions, { once: true });
+    } else {
+        bindBioageResultActions();
+    }
 })();

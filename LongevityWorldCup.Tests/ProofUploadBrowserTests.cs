@@ -93,6 +93,25 @@ public sealed class ProofUploadBrowserTests
         Assert.Contains("Albumin", await page.Locator("#biomarker-checklist").InnerTextAsync());
         Assert.Contains("Glucose", await page.Locator("#biomarker-checklist").InnerTextAsync());
         Assert.True(await page.Locator("#nextButton").IsEnabledAsync());
+
+        var uploadButton = page.Locator("#uploadProofButton");
+        var cameraButton = page.Locator("#takeProofPhotoButton");
+        await AssertSecondaryProofActionAsync(uploadButton);
+        await AssertSecondaryProofActionAsync(cameraButton);
+
+        await page.EvaluateAsync(
+            """
+            () => {
+                const nextButton = document.getElementById('nextButton');
+                const uploadButton = document.getElementById('uploadProofButton');
+                const cameraButton = document.getElementById('takeProofPhotoButton');
+                nextButton.disabled = true;
+                window.updateProofUploadButtons(nextButton, uploadButton, cameraButton);
+            }
+            """);
+
+        await AssertPrimaryProofActionAsync(uploadButton);
+        await AssertPrimaryProofActionAsync(cameraButton);
         Assert.Empty(errors);
     }
 
@@ -249,6 +268,20 @@ public sealed class ProofUploadBrowserTests
         await page.WaitForFunctionAsync("() => !document.getElementById('nextButton')?.disabled");
         await page.Locator("#nextButton").ClickAsync();
         await page.GetByRole(AriaRole.Heading, new() { Name = expectedHeading }).WaitForAsync();
+    }
+
+    private static async Task AssertPrimaryProofActionAsync(ILocator button)
+    {
+        Assert.True(await button.EvaluateAsync<bool>("element => element.classList.contains('green')"));
+        Assert.False(await button.EvaluateAsync<bool>("element => element.classList.contains('grey')"));
+        Assert.False(await button.EvaluateAsync<bool>("element => element.classList.contains('flow-action--secondary')"));
+    }
+
+    private static async Task AssertSecondaryProofActionAsync(ILocator button)
+    {
+        Assert.False(await button.EvaluateAsync<bool>("element => element.classList.contains('green')"));
+        Assert.True(await button.EvaluateAsync<bool>("element => element.classList.contains('grey')"));
+        Assert.True(await button.EvaluateAsync<bool>("element => element.classList.contains('flow-action--secondary')"));
     }
 
     private static async Task<Task<JsonElement>> RoutePageDependenciesAndCaptureApplicationPostAsync(IBrowserContext context)

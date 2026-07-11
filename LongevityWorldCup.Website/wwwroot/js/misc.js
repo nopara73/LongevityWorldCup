@@ -1,3 +1,50 @@
+(() => {
+    if (window.__lwcPlayFlowScrollInitialized) return;
+    window.__lwcPlayFlowScrollInitialized = true;
+
+    function isPlayFlowRoute() {
+        return !!document.body?.classList.contains('play-flow-route');
+    }
+
+    function setManualFlowScrollRestoration() {
+        if (!isPlayFlowRoute()) return;
+
+        try {
+            if (window.history) {
+                window.history.scrollRestoration = 'manual';
+            }
+        } catch (_) {
+        }
+    }
+
+    function resetPlayFlowScroll() {
+        if (!isPlayFlowRoute()) return;
+        if (window.location.hash) return;
+
+        setManualFlowScrollRestoration();
+
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        window.requestAnimationFrame(() => {
+            window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            window.LwcFlowActionDock?.refresh?.();
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', resetPlayFlowScroll, { once: true });
+    } else {
+        resetPlayFlowScroll();
+    }
+
+    window.addEventListener('pageshow', event => {
+        if (event.persisted) {
+            resetPlayFlowScroll();
+        } else {
+            setManualFlowScrollRestoration();
+        }
+    });
+})();
+
 window.getIcon = function (link) {
     // Normalize the link to lowercase for case-insensitive matching
     const normalizedLink = link.toLowerCase().trim();

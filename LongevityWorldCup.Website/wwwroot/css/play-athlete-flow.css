@@ -7,7 +7,7 @@
     overflow: hidden;
     border: 4px solid var(--dark-text-color);
     border-radius: 8px;
-    background: #d4d4d4;
+    background: #b9b9b9;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     box-sizing: border-box;
     line-height: 0;
@@ -41,8 +41,8 @@
 
 .athlete-picture-frame > img.athlete-picture-placeholder,
 .athlete-picture-frame picture img.athlete-picture-placeholder {
-    object-fit: cover;
-    transform: scale(1.035);
+    object-fit: contain;
+    transform: none;
 }
 
 .athlete-picture-frame > img.athlete-picture-next {

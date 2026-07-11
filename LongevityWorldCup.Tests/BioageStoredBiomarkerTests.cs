@@ -412,7 +412,7 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
-    public void BioageUpdatePages_HideWizardNavigationAndForceBiomarkerStep(string fileName)
+    public void BioageUpdatePages_HideWizardNavigationForceBiomarkerStepAndKeepPageBack(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
         var flow = File.ReadAllText(GetBioageFlowPath());
@@ -422,10 +422,21 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("function hideUpdateModeStepNavigation()", flow);
         Assert.Contains("const wizardNav = document.querySelector('.lwc-wizard-nav');", flow);
         Assert.Contains("if (wizardNav) wizardNav.hidden = true;", flow);
-        Assert.Contains("const stepBackButton = document.getElementById('lwcToStep1Btn');", flow);
-        Assert.Contains("const stepBackActions = stepBackButton?.closest('.lwc-step-actions');", flow);
-        Assert.Contains("if (stepBackActions) stepBackActions.hidden = true;", flow);
-        Assert.Contains("if (isUpdate && hasSelectedAthlete) {\n                hideUpdateModeStepNavigation();\n                lwcSetStep(2);\n                setSessionItem('lwcStep', '2');\n            } else {", html);
+        Assert.Contains("function resetUpdateModeScroll()", flow);
+        Assert.DoesNotContain("stepBackActions.hidden = true;", flow);
+        Assert.Contains("if (isUpdate) {\n                        navigateBackFromBioage();", html);
+        var updateBranch = html.IndexOf("if (isUpdate && hasSelectedAthlete)", StringComparison.Ordinal);
+        var hideNav = html.IndexOf("hideUpdateModeStepNavigation();", updateBranch, StringComparison.Ordinal);
+        var forceStep2 = html.IndexOf("lwcSetStep(2, { focus: false });", hideNav, StringComparison.Ordinal);
+        var storeStep2 = html.IndexOf("setSessionItem('lwcStep', '2');", forceStep2, StringComparison.Ordinal);
+        var resetScroll = html.IndexOf("bioageFlow.resetUpdateModeScroll();", storeStep2, StringComparison.Ordinal);
+        var onboardingBranch = html.IndexOf("} else {", resetScroll, StringComparison.Ordinal);
+        Assert.True(updateBranch >= 0);
+        Assert.True(hideNav > updateBranch);
+        Assert.True(forceStep2 > hideNav);
+        Assert.True(storeStep2 > forceStep2);
+        Assert.True(resetScroll > storeStep2);
+        Assert.True(onboardingBranch > resetScroll);
         Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
     }
 

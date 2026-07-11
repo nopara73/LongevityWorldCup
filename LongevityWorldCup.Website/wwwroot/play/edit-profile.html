@@ -27,6 +27,9 @@
         .edit-profile-title {
             margin: 0 0 1.25rem;
             text-align: center;
+            font-size: 2.25rem;
+            line-height: 1.08;
+            letter-spacing: 0;
         }
 
         .edit-profile-visual {
@@ -239,15 +242,46 @@
             }
         }
 
-        /* shrink any icon-only button down to its icon */
         .option-button.icon-only {
+            flex: 0 0 44px;
             width: 44px;
             height: 44px;
+            min-width: 44px;
+            min-height: 44px;
             max-width: none;
             padding: 0;
             margin: 0;
-            border-radius: 999px;
-            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(96, 125, 139, 0.22);
+            border-radius: 50%;
+            background: rgba(248, 250, 252, 0.96);
+            color: #4f6573;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.10);
+        }
+
+        .option-button.icon-only:hover {
+            background: #fff;
+            color: #273d4a;
+            transform: none;
+            box-shadow: 0 3px 9px rgba(15, 23, 42, 0.14);
+        }
+
+        .option-button.icon-only i {
+            display: none;
+            margin: 0;
+            color: inherit;
+            line-height: 1;
+        }
+
+        .option-button.icon-only::before {
+            content: "\21BA";
+            color: inherit;
+            font-size: 1.08rem;
+            font-weight: 800;
+            line-height: 1;
         }
 
         #editOptionsGroup {
@@ -307,12 +341,6 @@
             align-self: center;
         }
 
-        .icon-only {
-            flex: 0 0 44px;
-            width: 44px;
-            height: 44px;
-        }
-
         .edit-profile-actions {
             width: min(100%, 408px);
             min-width: 0;
@@ -350,6 +378,10 @@
                 margin-bottom: 1.25rem;
             }
 
+            .edit-profile-visual .illustration {
+                width: min(100%, clamp(184px, 50vw, 240px));
+            }
+
             #changeProfileCropperModal {
                 width: calc(100vw - 1.5rem);
                 max-height: calc(100dvh - 1rem);
@@ -362,6 +394,102 @@
 
         }
 
+        @media (min-width: 601px) and (max-width: 932px) {
+            .edit-profile-title {
+                font-size: 2.15rem;
+                line-height: 1.08;
+            }
+        }
+
+        @media (min-width: 720px) and (max-width: 959px), (min-width: 960px) and (max-height: 780px) {
+            .edit-profile-main {
+                display: grid;
+                row-gap: 0.85rem;
+                align-items: start;
+                justify-content: center;
+            }
+
+            .edit-profile-title {
+                grid-column: 1 / -1;
+            }
+
+            .edit-profile-visual {
+                grid-column: 1;
+                grid-row: 2;
+                margin: 0;
+            }
+
+            #editOptionsGroup {
+                grid-column: 2;
+                grid-row: 2;
+                align-items: stretch;
+                align-self: start;
+                max-width: 408px;
+            }
+
+            #changeProfilePicWrapper,
+            .options-container.inline-option-group {
+                width: 100%;
+            }
+
+            .edit-profile-actions {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (min-width: 720px) and (max-width: 959px) {
+            .edit-profile-main {
+                max-width: 720px;
+                grid-template-columns: minmax(200px, 240px) minmax(0, 408px);
+                column-gap: 1.15rem;
+            }
+
+            .edit-profile-visual .illustration {
+                width: min(100%, 240px);
+            }
+
+            #editOptionsGroup {
+                gap: 0.6rem;
+            }
+        }
+
+        @media (min-width: 960px) and (max-height: 780px) {
+            .edit-profile-main {
+                max-width: 920px;
+                padding-top: 1.45rem;
+                grid-template-columns: minmax(220px, 260px) minmax(0, 408px);
+                column-gap: 1.35rem;
+            }
+
+            .edit-profile-title {
+                margin-bottom: 0.9rem;
+                font-size: 2.15rem;
+            }
+
+            .edit-profile-visual .illustration {
+                width: min(100%, 220px);
+            }
+
+            #editOptionsGroup {
+                gap: 0.55rem;
+            }
+        }
+
+        @media (min-width: 960px) and (max-height: 720px) {
+            .edit-profile-main {
+                padding-top: 1.15rem;
+            }
+
+            .edit-profile-title {
+                margin-bottom: 0.7rem;
+                font-size: 2rem;
+            }
+
+            .edit-profile-visual .illustration {
+                width: min(100%, 210px);
+            }
+        }
+
         @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
             .edit-profile-main {
                 padding: 0.6rem 1rem 1.25rem;
@@ -369,7 +497,7 @@
 
             .edit-profile-title {
                 margin-bottom: 0.45rem;
-                font-size: clamp(1.55rem, 8vh, 2rem);
+                font-size: 1.8rem;
                 line-height: 1.05;
             }
 
@@ -420,7 +548,7 @@
         }
     </style>
 </head>
-<body>
+<body class="play-flow-route">
     <!--HEADER-->
     <main class="edit-profile-main">
         <h1 id="character-title" class="edit-profile-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
@@ -442,15 +570,15 @@
                 </button>
                 <input type="file" id="profilePicInputModal" accept="image/*,.heic,.heif" style="display: none;">
                 <input type="file" id="profileCameraInputModal" accept="image/*,.heic,.heif" capture="user" style="display: none;">
-                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture">
-                    <i class="fa fa-undo"></i>
+                <button id="restoreProfilePicButton" class="option-button icon-only" style="display:none" title="Restore profile picture" aria-label="Restore profile picture">
+                    <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
                 <label for="divisionDisplaySelect" class="visually-hidden">Division</label>
                 <select id="divisionDisplaySelect"></select>
-                <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division">
-                    <i class="fa fa-undo"></i>
+                <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division" aria-label="Restore division">
+                    <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
@@ -466,8 +594,8 @@
                        autocapitalize="none"
                        spellcheck="false"
                        placeholder="Type or select a flag…">
-                <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag">
-                    <i class="fa fa-undo"></i>
+                <button id="restoreFlagBtn" class="option-button icon-only" style="display:none" title="Restore flag" aria-label="Restore flag">
+                    <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
@@ -480,8 +608,8 @@
                        autocapitalize="none"
                        spellcheck="false"
                        placeholder="yourwebsite.com">
-                <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link">
-                    <i class="fa fa-undo"></i>
+                <button id="restorePersonalLinkBtn" class="option-button icon-only" style="display:none" title="Restore personal link" aria-label="Restore personal link">
+                    <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
@@ -496,8 +624,8 @@
                        autocapitalize="none"
                        spellcheck="false"
                        placeholder="media@example.com or @handle">
-                <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact">
-                    <i class="fa fa-undo"></i>
+                <button id="restoreMediaContactBtn" class="option-button icon-only" style="display:none" title="Restore media contact" aria-label="Restore media contact">
+                    <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
@@ -509,12 +637,12 @@
                           aria-required="true"
                           placeholder="What drives you?"></textarea>
 
-                <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why">
-                    <i class="fa fa-undo"></i>
+                <button id="restoreWhyDisplayBtn" class="option-button icon-only" style="display:none" title="Restore your why" aria-label="Restore your why">
+                    <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
-        <div class="options-container edit-profile-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+        <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
             <button id="submitButton" type="submit" disabled class="option-button green flow-action"><span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
             <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
                 <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
@@ -684,11 +812,6 @@
         setSubmitChangeRequestButton();
 
         document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(() => {
-                const viewTarget = document.querySelector('h1');
-                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
-
             const athleteDisplayName = getAthleteDisplayName();
             document.getElementById('character-title').textContent = athleteDisplayName;
             const athleteImage = document.createElement('img');
@@ -724,8 +847,11 @@
 
                 if (athlete.Division !== originalAthlete.Division) {
                     restoreDivisionBtn.style.display = 'inline-flex';
-                    updateSubmitButtonState();
+                } else {
+                    restoreDivisionBtn.style.display = 'none';
                 }
+
+                updateSubmitButtonState();
             }
 
             // Populate the dropdown
@@ -747,7 +873,7 @@
                     // actually different → show restore & enable submit
                     restoreDivisionBtn.style.display = 'inline-flex';
                 }
-                updateSubmitButtonState();
+                updateSubmitButtonState(divisionSelect);
             });
 
             // —— FLAG INPUT & AUTOCOMPLETE LOGIC ——
@@ -789,7 +915,7 @@
                     restoreFlagBtn.style.display = 'none';
                 }
 
-                updateSubmitButtonState();
+                updateSubmitButtonState(flagInput);
 
                 // Hide autocomplete if input exactly matches one of the flags
                 if (availableFlags.includes(flagInput.value.trim())) {
@@ -863,7 +989,7 @@
                 } else {
                     restoreFlagBtn.style.display = 'none';
                 }
-                updateSubmitButtonState();
+                updateSubmitButtonState(flagInput);
 
                 closeFlagLists();
             }
@@ -993,6 +1119,7 @@
             }
 
             const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');
+            athlete.MediaContact = normalizeMediaContact(athlete.MediaContact);
             mediaContactInput.value = athlete.MediaContact;
             if (normalizeEditText(athlete.MediaContact) !== normalizeEditText(originalAthlete.MediaContact)) {
                 restoreMediaContactBtn.style.display = 'inline-flex';
@@ -1007,7 +1134,7 @@
                 } else {
                     restorePersonalLinkBtn.style.display = 'none';
                 }
-                updateSubmitButtonState();
+                updateSubmitButtonState(personalLinkInput);
             });
             mediaContactInput.addEventListener('input', () => {
                 athlete.MediaContact = mediaContactInput.value.trim();
@@ -1016,7 +1143,7 @@
                 } else {
                     restoreMediaContactBtn.style.display = 'none';
                 }
-                updateSubmitButtonState();
+                updateSubmitButtonState(mediaContactInput);
             });
             whyDisplayInput.addEventListener('input', () => {
                 athlete.Why = whyDisplayInput.value.trim();
@@ -1025,7 +1152,7 @@
                 } else {
                     restoreWhyDisplayBtn.style.display = 'none';
                 }
-                updateSubmitButtonState();
+                updateSubmitButtonState(whyDisplayInput);
             });
 
             let skipFlagValidation = false;
@@ -1063,7 +1190,7 @@
                     this.value = normalized;
                 }
                 validatePersonalLink(this.value);
-                updateSubmitButtonState();
+                updateSubmitButtonState(this);
             });
 
             mediaContactInput.addEventListener('blur', function () {
@@ -1073,7 +1200,7 @@
                 }
                 this.value = normalizeMediaContact(this.value);
                 validateMediaContact(this.value);
-                updateSubmitButtonState();
+                updateSubmitButtonState(this);
             });
 
             let skipWhyValidation = false;
@@ -1128,8 +1255,9 @@
         function restorePersonalLinkToOriginal() {
             const personalLinkInput = document.getElementById('personalLinkInput');
             const restorePersonalLinkBtn = document.getElementById('restorePersonalLinkBtn');
-            personalLinkInput.value = originalAthlete.PersonalLink;
-            athlete.PersonalLink = originalAthlete.PersonalLink;
+            const originalPersonalLink = normalizeOptionalUrl(originalAthlete.PersonalLink);
+            personalLinkInput.value = originalPersonalLink;
+            athlete.PersonalLink = originalPersonalLink;
             restorePersonalLinkBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -1137,16 +1265,18 @@
         function restoreMediaContactToOriginal() {
             const mediaContactInput = document.getElementById('mediaContactInput');
             const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');
-            mediaContactInput.value = originalAthlete.MediaContact;
-            athlete.MediaContact = originalAthlete.MediaContact;
+            const originalMediaContact = normalizeMediaContact(originalAthlete.MediaContact);
+            mediaContactInput.value = originalMediaContact;
+            athlete.MediaContact = originalMediaContact;
             restoreMediaContactBtn.style.display = 'none';
             updateSubmitButtonState();
         }
         function restoreWhyDisplayToOriginal() {
             const whyDisplayInput = document.getElementById('whyDisplayInput');
             const restoreWhyDisplayBtn = document.getElementById('restoreWhyDisplayBtn');
-            whyDisplayInput.value = originalAthlete.Why;
-            athlete.Why = originalAthlete.Why;
+            const originalWhy = normalizeEditText(originalAthlete.Why);
+            whyDisplayInput.value = originalWhy;
+            athlete.Why = originalWhy;
             restoreWhyDisplayBtn.style.display = 'none';
             updateSubmitButtonState();
         }
@@ -1280,7 +1410,7 @@
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
 
                 // enable the “Submit Change Request” button now that there’s a new image
-                updateSubmitButtonState();
+                updateSubmitButtonState(changeProfileBtn);
                 try { activeCropper.destroy(); } catch (_) { }
                 window.changeProfileCropper = null;
                 document.getElementById('modalOverlay').style.display = 'none';
@@ -1311,7 +1441,28 @@
             profileCameraInput.value = '';
         });
 
-        function updateSubmitButtonState() {
+        function keepEditedControlClearOfDock(control) {
+            if (!control || !control.isConnected) return;
+
+            requestAnimationFrame(() => {
+                const row = control.closest('.inline-option-group, .flow-action-stack') || control;
+                let followingVisibleSiblingCount = 0;
+                if (row.classList.contains('inline-option-group')) {
+                    if (row.contains(personalLinkInput)) {
+                        followingVisibleSiblingCount = 2;
+                    } else if (!row.contains(whyDisplayInput)) {
+                        followingVisibleSiblingCount = 1;
+                    }
+                }
+
+                window.LwcFlowActionDock?.ensureClear?.(row, {
+                    followingVisibleSiblingCount,
+                    margin: 16
+                });
+            });
+        }
+
+        function updateSubmitButtonState(sourceElement) {
             const submitButton = document.getElementById('submitButton');
             const currentPicSrc = document.querySelector('.illustration').getAttribute('src');
             const currentDivision = document.getElementById('divisionDisplaySelect').value;
@@ -1343,6 +1494,11 @@
                 removeSessionItem('tempAthlete');
             }
 
+            if (sourceElement && anyChanged) {
+                keepEditedControlClearOfDock(sourceElement);
+            } else {
+                window.LwcFlowActionDock?.refresh?.();
+            }
         }
 
         function validateFlagDisplay(value) {

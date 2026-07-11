@@ -368,6 +368,20 @@ function formatDiscountLine(percent, reason) {
     return `${percent}% discount for ${raw}`;
 }
 
+function formatCompactDiscountLine(component) {
+    const percent = component?.percent ?? 0;
+    if (component?.kind === "leaderboard") return `${percent}% leaderboard`;
+    if (component?.kind === "personalLink") return `${percent}% personal page`;
+    if (component?.kind === "perfectGuess") return `${percent}% perfect guess`;
+    if (component?.kind === "discountCode") {
+        return component.code ? `${percent}% code ${component.code}` : `${percent}% discount code`;
+    }
+    if (component?.kind === "serverBadge") {
+        return `${percent}% ${readBadgeLabel(component.badge) || "badge"}`;
+    }
+    return `${percent}% discount`;
+}
+
 function describeDiscountReason(component) {
     if (!component) return "eligible achievements";
 
@@ -593,7 +607,8 @@ function createBreakdownHtml(result) {
     return ordered.map(c => {
         const badgeChipHtml = createDiscountBadgeChipHtml(c);
         const badgeSlotHtml = `<span class="pro-discount-badge-slot">${badgeChipHtml}</span>`;
-        const textHtml = `<span class="pro-discount-text">${escapeHtml(formatDiscountLine(c.percent, describeDiscountReason(c)))}</span>`;
+        const compactText = escapeHtml(formatCompactDiscountLine(c));
+        const textHtml = `<span class="pro-discount-text" data-compact-text="${compactText}">${escapeHtml(formatDiscountLine(c.percent, describeDiscountReason(c)))}</span>`;
         return `<span class="pro-discount-line">${badgeSlotHtml}${textHtml}</span>`;
     }).join("");
 }
