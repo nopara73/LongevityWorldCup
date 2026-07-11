@@ -1,6 +1,7 @@
 (function () {
     const storageErrorMessage = 'Browser storage is unavailable. Enable storage and try again.';
     const PLAY_START_INTRO_MS = 1900;
+    const PLAY_PANEL_PREPARATION_TIMEOUT_MS = 8000;
     let flow = null;
     let athleteSelection = null;
     let activePlayPanelName = null;
@@ -55,9 +56,27 @@
             : Promise.resolve();
     }
 
+    function waitForPlayPanelPreparation(promise) {
+        let timeoutId = 0;
+        const deadline = new Promise(resolve => {
+            timeoutId = window.setTimeout(resolve, PLAY_PANEL_PREPARATION_TIMEOUT_MS);
+        });
+
+        return Promise.race([Promise.resolve(promise).catch(() => {}), deadline])
+            .finally(() => window.clearTimeout(timeoutId));
+    }
+
+    function beginPlayPanelPreparation() {
+        finishPlayStartIntro();
+        document.documentElement.classList.remove('play-route-ready');
+        document.body.classList.remove('play-start-active');
+        document.body.classList.add('play-route-hydrating');
+        document.body.setAttribute('aria-busy', 'true');
+        window.LwcFlowActionDock?.refreshNow?.();
+    }
+
     function showSelectionPanelAfterPreviewReady(panelName, preparationRunId) {
-        getAthleteSelectionPreviewReady()
-            .catch(() => {})
+        waitForPlayPanelPreparation(getAthleteSelectionPreviewReady())
             .then(() => {
                 if (preparationRunId === playPanelPreparationRunId
                     && getPlayPanelNameForPath() === panelName) {
@@ -179,6 +198,7 @@
         document.documentElement.classList.remove('play-panel-transitioning');
         document.documentElement.classList.add('play-route-ready');
         document.body.classList.remove('play-route-hydrating');
+        document.body.removeAttribute('aria-busy');
         window.LwcFlowActionDock?.refreshNow?.();
     }
 
@@ -271,14 +291,16 @@
         if (panelName === 'selection') {
             const hydratedStoredAthlete = athleteSelection.hydrateStoredAthleteSelection();
             if (!hydratedStoredAthlete && athleteSelection.hasPendingSavedSelection()) {
-                athleteSelection.loadAthletes({ savedSelectionTransition: false })
-                    .catch(() => {})
+                beginPlayPanelPreparation();
+                waitForPlayPanelPreparation(
+                    athleteSelection.loadAthletes({ savedSelectionTransition: false }))
                     .then(() => showSelectionPanelAfterPreviewReady(panelName, preparationRunId));
                 return;
             }
 
             athleteSelection.loadAthletes().catch(() => {});
             if (hydratedStoredAthlete) {
+                beginPlayPanelPreparation();
                 showSelectionPanelAfterPreviewReady(panelName, preparationRunId);
                 return;
             }
@@ -288,6 +310,7 @@
         }
 
         if (panelName === 'dashboard') {
+            beginPlayPanelPreparation();
             const athlete = resolved.dashboardAthlete;
             const pictureReady = flow.renderAthleteDashboardHeader(athlete, {
                 titleElement: document.getElementById('athleteDashboardTitle'),
@@ -297,7 +320,7 @@
                 dynamicActionsElement: document.getElementById('athleteDashboardDynamicActions'),
                 discountElement: document.getElementById('athleteDashboardDiscounts')
             });
-            Promise.allSettled([pictureReady, actionsReady]).then(() => {
+            waitForPlayPanelPreparation(Promise.allSettled([pictureReady, actionsReady])).then(() => {
                 if (preparationRunId === playPanelPreparationRunId
                     && getPlayPanelNameForPath() === panelName) {
                     showPanelByName(panelName);

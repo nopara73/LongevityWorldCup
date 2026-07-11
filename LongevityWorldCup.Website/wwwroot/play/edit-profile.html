@@ -643,7 +643,7 @@
             </div>
         </div>
         <div class="options-container edit-profile-actions flow-action-stack flow-action-stack--hide-disabled-primary" data-flow-dock="auto" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
-            <button id="submitButton" type="submit" disabled class="option-button green flow-action"></button>
+            <button id="submitButton" type="submit" disabled class="option-button green flow-action"><span class="flow-action__label">Submit change request</span><i class="fa fa-rocket" aria-hidden="true"></i></button>
             <button type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="window.navigateToFlowDestination('/dashboard')">
                 <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
             </button>
@@ -1410,7 +1410,7 @@
                 document.getElementById('restoreProfilePicButton').style.display = 'inline-flex';
 
                 // enable the “Submit Change Request” button now that there’s a new image
-                updateSubmitButtonState();
+                updateSubmitButtonState(changeProfileBtn);
                 try { activeCropper.destroy(); } catch (_) { }
                 window.changeProfileCropper = null;
                 document.getElementById('modalOverlay').style.display = 'none';

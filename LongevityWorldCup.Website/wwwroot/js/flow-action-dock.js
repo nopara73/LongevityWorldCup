@@ -17,6 +17,20 @@
     let transitionsReady = false;
     let generatedFormId = 0;
 
+    function getVisualViewportBounds() {
+        const visualViewport = window.visualViewport;
+        const top = Number.isFinite(visualViewport?.offsetTop) ? visualViewport.offsetTop : 0;
+        const height = Number.isFinite(visualViewport?.height)
+            ? visualViewport.height
+            : window.innerHeight;
+
+        return {
+            top,
+            bottom: top + height,
+            height
+        };
+    }
+
     function hasLayoutBox(element) {
         if (!element || !element.isConnected || element.hidden) return false;
         const style = window.getComputedStyle(element);
@@ -185,20 +199,19 @@
         if (mode !== 'overflow' && mobileMedia.matches) return true;
 
         const rect = getMeasurementRect(element, state);
-        const viewportHeight = window.visualViewport?.height
-            || window.innerHeight
-            || document.documentElement.clientHeight;
+        const viewport = getVisualViewportBounds();
         const gap = Number(element.getAttribute('data-flow-dock-gap') || 12);
         const releaseGap = Number(element.getAttribute('data-flow-dock-release-gap') || 48);
 
         if (state.docked) {
             const releaseHeight = Math.max(rect.height, state.inlineHeight || 0);
             const releaseBottom = rect.top + releaseHeight;
-            return releaseBottom > viewportHeight - gap - releaseGap || rect.top < gap + releaseGap;
+            return releaseBottom > viewport.bottom - gap - releaseGap
+                || rect.top < viewport.top + gap + releaseGap;
         }
 
         state.inlineHeight = rect.height || state.inlineHeight || 0;
-        return rect.bottom > viewportHeight - gap || rect.top < gap;
+        return rect.bottom > viewport.bottom - gap || rect.top < viewport.top + gap;
     }
 
     function refresh() {
@@ -278,7 +291,8 @@
 
         const margin = Number.isFinite(options.margin) ? options.margin : 16;
         const rect = getClearanceRect(element, options);
-        const bottomLimit = window.innerHeight - dockHeight - margin;
+        const viewport = getVisualViewportBounds();
+        const bottomLimit = viewport.bottom - dockHeight - margin;
         if (rect.bottom <= bottomLimit) return;
 
         window.scrollBy({

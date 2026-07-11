@@ -243,27 +243,54 @@ function setDefaultAthleteImageSource(image) {
 }
 
 function watchAthleteImageLoad(image, onLoaded) {
+    let hasCompleted = false;
+    let fallbackRequested = false;
+
     function cleanupImageLoadListeners() {
         image.removeEventListener("load", handleImageLoad);
         image.removeEventListener("error", handleImageError);
     }
 
-    function handleImageLoad() {
-        if (shouldUseDefaultForLoadedAthleteImage(image) && setDefaultAthleteImageSource(image)) {
-            return;
-        }
-
+    function completeImageLoad() {
+        if (hasCompleted) return;
+        hasCompleted = true;
         cleanupImageLoadListeners();
         onLoaded();
     }
 
-    function handleImageError() {
-        if (setDefaultAthleteImageSource(image)) {
+    function scheduleCompletedImageInspection() {
+        const inspectCompletedImage = () => {
+            if (!hasCompleted && image.complete) {
+                handleImageLoad();
+            }
+        };
+
+        Promise.resolve().then(inspectCompletedImage);
+        if (typeof image.decode === "function") {
+            image.decode().catch(() => {}).then(inspectCompletedImage);
+        }
+    }
+
+    function handleImageLoad() {
+        if (!fallbackRequested
+            && shouldUseDefaultForLoadedAthleteImage(image)
+            && setDefaultAthleteImageSource(image)) {
+            fallbackRequested = true;
+            scheduleCompletedImageInspection();
             return;
         }
 
-        cleanupImageLoadListeners();
-        onLoaded();
+        completeImageLoad();
+    }
+
+    function handleImageError() {
+        if (!fallbackRequested && setDefaultAthleteImageSource(image)) {
+            fallbackRequested = true;
+            scheduleCompletedImageInspection();
+            return;
+        }
+
+        completeImageLoad();
     }
 
     image.addEventListener("load", handleImageLoad);

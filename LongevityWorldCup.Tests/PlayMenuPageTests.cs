@@ -208,7 +208,11 @@ public sealed class PlayMenuPageTests
         Assert.Contains("function transitionAthletePicture(frame, image, src)", flow);
         Assert.Contains("image.addEventListener(\"load\", handleImageLoad);", flow);
         Assert.Contains("image.addEventListener(\"error\", handleImageError);", flow);
-        Assert.Contains("if (shouldUseDefaultForLoadedAthleteImage(image) && setDefaultAthleteImageSource(image))", flow);
+        Assert.Contains("if (!fallbackRequested", flow);
+        Assert.Contains("&& shouldUseDefaultForLoadedAthleteImage(image)", flow);
+        Assert.Contains("scheduleCompletedImageInspection();", flow);
+        Assert.Contains("if (!hasCompleted && image.complete)", flow);
+        Assert.Contains("image.decode().catch(() => {}).then(inspectCompletedImage);", flow);
         Assert.Contains("const inspectLoadedImage = watchAthleteImageLoad(image, finishImageSwap);", flow);
         Assert.Contains("frame.appendChild(image);", flow);
         Assert.Contains("currentMedia.classList.add(\"is-exiting\");", flow);
@@ -247,6 +251,13 @@ public sealed class PlayMenuPageTests
         Assert.Contains("flow.createAthleteSelectionController({", playMenu);
         Assert.Contains("function showSelectionPanelAfterPreviewReady(panelName, preparationRunId)", playMenu);
         Assert.Contains("getAthleteSelectionPreviewReady()", playMenu);
+        Assert.Contains("function beginPlayPanelPreparation()", playMenu);
+        Assert.Contains("const PLAY_PANEL_PREPARATION_TIMEOUT_MS = 8000;", playMenu);
+        Assert.Contains("function waitForPlayPanelPreparation(promise)", playMenu);
+        Assert.Contains("Promise.race([Promise.resolve(promise).catch(() => {}), deadline])", playMenu);
+        Assert.Contains("document.body.classList.add('play-route-hydrating');", playMenu);
+        Assert.Contains("document.body.setAttribute('aria-busy', 'true');", playMenu);
+        Assert.Contains("document.body.removeAttribute('aria-busy');", playMenu);
         Assert.Contains("const dashboardAthlete = athleteSelection.getCurrentAthlete()", playMenu);
         Assert.Contains("|| flow.getStoredSelectedAthlete();", playMenu);
         Assert.Contains("hasPendingSavedSelection: () => Boolean(getSavedSelectedAthleteName()) && !currentAthlete", await client.GetStringAsync("/js/play-athlete-flow.js"));

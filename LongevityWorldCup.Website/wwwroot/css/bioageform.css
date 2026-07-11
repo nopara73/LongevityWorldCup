@@ -79,13 +79,72 @@
     }
 
     body.flow-action-dock-active .bioageform #lwc-step-1.lwc-step--active .privacy-note {
-        margin-top: 0.35rem;
+        margin-top: 0.25rem;
         font-size: 0.78rem;
         line-height: 1.22;
     }
 
     body.flow-action-dock-active .bioageform #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) {
         margin-top: calc(var(--flow-action-dock-height, 7rem) + 3.25rem);
+    }
+}
+
+@media (min-width: 400px) and (max-width: 600px) and (min-height: 900px) {
+    body.flow-action-dock-active .bioageform #dobFieldset {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        column-gap: 0.45rem;
+        row-gap: 0.3rem;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset legend {
+        grid-column: 1 / -1;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset label[for="dob-year"] {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-year {
+        grid-column: 1;
+        grid-row: 3;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-month-label {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-month {
+        grid-column: 2;
+        grid-row: 3;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-day-label {
+        grid-column: 3;
+        grid-row: 2;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #dob-day {
+        grid-column: 3;
+        grid-row: 3;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset #privacyNote {
+        grid-column: 1 / -1;
+        grid-row: 4;
+    }
+
+    body.flow-action-dock-active .bioageform #dobFieldset select {
+        padding-left: 0.45rem;
+        padding-right: 1.45rem;
+        background-position: right 0.45rem center;
+        font-size: 0.875rem;
+    }
+
+    body.flow-action-dock-active .bioageform #lwc-step-1.lwc-step--active > fieldset:nth-of-type(2) {
+        margin-top: 0.85rem;
     }
 }
 
