@@ -7318,50 +7318,56 @@
             fullAthleteData.DateOfBirth.Day
         );
 
-        const completeData = biomarkerData.filter(isCompleteBiomarkerSet);
-        if (completeData.length === 0) {
+        const chartData = biomarkerData.filter(entry => entry && entry.Date && Object.entries(entry).some(([key, value]) =>
+            key !== 'Date' && value != null && value !== '' && Number.isFinite(Number(value))
+        ));
+        if (chartData.length === 0) {
             if (window.biomarkerChartInstance) {
                 window.biomarkerChartInstance.destroy();
             }
             return;
         }
 
-        const labels = completeData.map(entry => entry.Date);
+        const labels = chartData.map(entry => entry.Date);
         const phenoAges = [];
         const bortzAges = [];
         const biomarkersRaw = initializeBiomarkersRaw();
 
-        completeData.forEach((entry, entryIndex) => {
+        chartData.forEach(entry => {
             const entryDate = new Date(entry.Date);
             const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
 
             // Push in same order as bortz-age.html (WBC, Lymphocytes, Neutrophils, …)
-            biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL);
-            biomarkersRaw['Lymphocytes (%)'].push(entry.LymPc);
+            biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL != null ? entry.Wbc1000cellsuL : null);
+            biomarkersRaw['Lymphocytes (%)'].push(entry.LymPc != null ? entry.LymPc : null);
             biomarkersRaw['Neutrophils (%)'].push(entry.NeutrophilPc != null ? entry.NeutrophilPc : null);
             biomarkersRaw['Monocytes (%)'].push(entry.MonocytePc != null ? entry.MonocytePc : null);
             biomarkersRaw['RBC (10¹²/L)'].push(entry.Rbc10e12L != null ? entry.Rbc10e12L : null);
-            biomarkersRaw['MCV (fL)'].push(entry.McvFL);
+            biomarkersRaw['MCV (fL)'].push(entry.McvFL != null ? entry.McvFL : null);
             biomarkersRaw['MCH (pg)'].push(entry.MchPg != null ? entry.MchPg : null);
-            biomarkersRaw['RDW (%)'].push(entry.RdwPc);
-            biomarkersRaw['Albumin (g/L)'].push(entry.AlbGL);
+            biomarkersRaw['RDW (%)'].push(entry.RdwPc != null ? entry.RdwPc : null);
+            biomarkersRaw['Albumin (g/L)'].push(entry.AlbGL != null ? entry.AlbGL : null);
             biomarkersRaw['ALT (U/L)'].push(entry.AltUL != null ? entry.AltUL : null);
-            biomarkersRaw['ALP (U/L)'].push(entry.AlpUL);
+            biomarkersRaw['ALP (U/L)'].push(entry.AlpUL != null ? entry.AlpUL : null);
             biomarkersRaw['GGT (U/L)'].push(entry.GgtUL != null ? entry.GgtUL : null);
             biomarkersRaw['Urea (mmol/L)'].push(entry.UreaMmolL != null ? entry.UreaMmolL : null);
-            biomarkersRaw['Creatinine (µmol/L)'].push(entry.CreatUmolL);
+            biomarkersRaw['Creatinine (µmol/L)'].push(entry.CreatUmolL != null ? entry.CreatUmolL : null);
             biomarkersRaw['Cystatin C (mg/L)'].push(entry.CystatinCMgL != null ? entry.CystatinCMgL : null);
-            biomarkersRaw['Glucose (mmol/L)'].push(entry.GluMmolL);
+            biomarkersRaw['Glucose (mmol/L)'].push(entry.GluMmolL != null ? entry.GluMmolL : null);
             biomarkersRaw['HbA1c (mmol/mol)'].push(entry.Hba1cMmolMol != null ? entry.Hba1cMmolMol : null);
             biomarkersRaw['Cholesterol (mmol/L)'].push(entry.CholesterolMmolL != null ? entry.CholesterolMmolL : null);
             biomarkersRaw['ApoA1 (g/L)'].push(entry.ApoA1GL != null ? entry.ApoA1GL : null);
-            biomarkersRaw['CRP (mg/L)'].push(entry.CrpMgL);
+            biomarkersRaw['CRP (mg/L)'].push(entry.CrpMgL != null ? entry.CrpMgL : null);
             biomarkersRaw['SHBG (nmol/L)'].push(entry.ShbgNmolL != null ? entry.ShbgNmolL : null);
             biomarkersRaw['Vitamin D (nmol/L)'].push(entry.VitaminDNmolL != null ? entry.VitaminDNmolL : null);
 
-            const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
-            const phenoAge = window.PhenoAge.calculatePhenoAge(biomarkerValues);
-            phenoAges.push(phenoAge.toFixed(1));
+            let phenoAge = null;
+            if (isCompleteBiomarkerSet(entry)) {
+                const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
+                const computed = window.PhenoAge.calculatePhenoAge(biomarkerValues);
+                if (Number.isFinite(computed)) phenoAge = computed.toFixed(1);
+            }
+            phenoAges.push(phenoAge);
 
             // Bortz Age (when full Bortz set available)
             let bortzAge = null;
