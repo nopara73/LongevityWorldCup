@@ -1,55 +1,49 @@
-window.TryGetDivisionIcon = function (division) {
-    const divisionIcons = {
-        "men's": "💪",
-        "women's": "👠",
-        "open": "🦾"
-    };
-
-    // Return the icon if it exists, or an empty string if not
-    return divisionIcons[division.toLowerCase()] || '';
-}
-
-window.TryGetLeagueTrackIcon = function (leagueTrack) {
-    const leagueTrackIcons = {
-        "amateur": "🎓",
-        "professional": "🏆"
-    };
-    return leagueTrackIcons[(leagueTrack || '').toLowerCase()] || '';
+const divisionIcons = {
+    "men's": "💪",
+    "women's": "👠",
+    open: "🦾"
 };
-
+const leagueTrackIcons = {
+    amateur: "🎓",
+    professional: "🏆"
+};
+const generationIcons = {
+    "silent generation": "📻",
+    "baby boomers": "📺",
+    "gen x": "🖥️",
+    millennials: "💻",
+    "gen z": "📱",
+    "gen alpha": "🚀"
+};
+const divisionFontAwesomeIcons = {
+    "men's": "fa-mars",
+    "women's": "fa-venus",
+    open: "fa-robot"
+};
+const generationFontAwesomeIcons = {
+    "silent generation": "fa-radio",
+    "baby boomers": "fa-tv",
+    "gen x": "fa-desktop",
+    millennials: "fa-laptop",
+    "gen z": "fa-mobile-screen-button",
+    "gen alpha": "fa-rocket"
+};
+function lookupIcon(icons, value) {
+    return icons[value.toLowerCase()] ?? "";
+}
+window.TryGetDivisionIcon = function (division) {
+    return lookupIcon(divisionIcons, division);
+};
+window.TryGetLeagueTrackIcon = function (leagueTrack) {
+    return lookupIcon(leagueTrackIcons, leagueTrack || "");
+};
 window.TryGetGenerationIcon = function (generation) {
-    const generationIcons = {
-        "silent generation": "📻",
-        "baby boomers": "📺",
-        "gen x": "🖥️",
-        "millennials": "💻",
-        "gen z": "📱",
-        "gen alpha": "🚀"
-    };
-
-    // Return the icon if it exists, or an empty string if not
-    return generationIcons[generation.toLowerCase()] || '';
-}
-
+    return lookupIcon(generationIcons, generation);
+};
 window.TryGetDivisionFaIcon = function (division) {
-    const divisionIcons = {
-        "men's": "fa-mars",       // 💪
-        "women's": "fa-venus", // 👠
-        "open": "fa-robot"            // 🦾
-    };
-
-    return divisionIcons[division.toLowerCase()] || '';
-}
-
+    return lookupIcon(divisionFontAwesomeIcons, division);
+};
 window.TryGetGenerationFaIcon = function (generation) {
-    const generationIcons = {
-        "silent generation": "fa-radio",       // 📻
-        "baby boomers": "fa-tv",               // 📺
-        "gen x": "fa-desktop",                 // 🖥️
-        "millennials": "fa-laptop",            // 💻
-        "gen z": "fa-mobile-screen-button",    // 📱
-        "gen alpha": "fa-rocket"               // 🚀
-    };
-
-    return generationIcons[generation.toLowerCase()] || '';
-}
+    return lookupIcon(generationFontAwesomeIcons, generation);
+};
+export {};

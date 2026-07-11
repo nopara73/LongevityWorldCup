@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -52,9 +53,9 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
 
-        Assert.Contains("function ensurePdfJsReady()", javascript);
+        Assert.Contains("function ensurePdfJsReady(): Promise<PdfJsLibrary>", javascript);
         Assert.Contains("const pdfLib = await ensurePdfJsReady();", javascript);
         Assert.Contains("const loadingTask = pdfLib.getDocument({ data: arrayBuffer });", javascript);
         Assert.Contains("const maxProofImages = 35;", javascript);
@@ -68,9 +69,9 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
-        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input, retryButton)", StringComparison.Ordinal);
-        var readerStart = javascript.IndexOf("const readDataURL = file =>", handlerStart, StringComparison.Ordinal);
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (", StringComparison.Ordinal);
+        var readerStart = javascript.IndexOf("const readDataURL: (file: File) => Promise<string>", handlerStart, StringComparison.Ordinal);
         var imageCapStart = javascript.IndexOf("if (proofPics.length >= maxProofImages)", readerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
@@ -84,7 +85,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("if (proofPics.length >= maxProofImages)", javascript);
         Assert.Contains("let hitImageLimit = false;", javascript);
         Assert.Contains("hitImageLimit = true;", javascript);
-        Assert.Contains("const showProofUploadNotice = message =>", javascript);
+        Assert.Contains("const showProofUploadNotice: (message: string) => void = message =>", javascript);
         Assert.Contains("showProofUploadNotice('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');", javascript);
         Assert.DoesNotContain("customAlert('You can upload a maximum of 35 images.')", javascript);
     }
@@ -95,7 +96,7 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
 
         var catchIndex = javascript.IndexOf("} catch (error) {", StringComparison.Ordinal);
         var finallyIndex = javascript.IndexOf("} finally {", StringComparison.Ordinal);
@@ -118,8 +119,8 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
-        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input, retryButton)", StringComparison.Ordinal);
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (", StringComparison.Ordinal);
         var finallyIndex = javascript.IndexOf("} finally {", handlerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
@@ -132,9 +133,9 @@ public sealed class ProofUploadPageTests
         Assert.Contains("if (isProofUploadProcessing) return;", javascript);
         Assert.Contains("if (isProofUploadProcessing)", handlerBody);
         Assert.Contains("if (input) input.value = \"\";", handlerBody);
-        Assert.Contains("const focusProofRetryButton = retryButton =>", javascript);
-        Assert.Contains("await handleProofFiles(event.target.files, proofPicInput, uploadProofButton);", javascript);
-        Assert.Contains("await handleProofFiles(event.target.files, cameraInput, cameraButton || uploadProofButton);", javascript);
+        Assert.Contains("const focusProofRetryButton: (retryButton: HTMLButtonElement | null | undefined) => void = retryButton =>", javascript);
+        Assert.Contains("await handleProofFiles(proofPicInput.files, proofPicInput, uploadProofButton);", javascript);
+        Assert.Contains("await handleProofFiles(cameraInput.files, cameraInput, cameraButton || uploadProofButton);", javascript);
         Assert.Contains("isProofUploadProcessing = true;", handlerBody);
         Assert.Contains("uploadProofButton.disabled = true;", handlerBody);
         Assert.Contains("proofPicInput.disabled = true;", handlerBody);
@@ -155,9 +156,9 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
 
-        Assert.Contains("const optimizeProofImageOrFallback = async raw =>", javascript);
+        Assert.Contains("const optimizeProofImageOrFallback: (raw: string) => Promise<string> = async raw =>", javascript);
         Assert.Contains("return dataUrl || raw;", javascript);
         Assert.Contains("} catch (_) {", javascript);
         Assert.Contains("return raw;", javascript);
@@ -172,8 +173,8 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
-        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input, retryButton)", StringComparison.Ordinal);
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (", StringComparison.Ordinal);
         var loadingStart = javascript.IndexOf("showLoading();", handlerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
@@ -181,7 +182,7 @@ public sealed class ProofUploadPageTests
 
         var beforeLoading = javascript[handlerStart..loadingStart];
 
-        Assert.Contains("function isSupportedProofFile(file)", javascript);
+        Assert.Contains("function isSupportedProofFile(file: File | null | undefined): file is File", javascript);
         Assert.Contains("type === 'application/pdf'", javascript);
         Assert.Contains("type.startsWith('image/')", javascript);
         Assert.Contains("extension === 'jpg'", javascript);
@@ -190,7 +191,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("extension === 'webp'", javascript);
         Assert.Contains("extension === 'heic'", javascript);
         Assert.Contains("extension === 'heif'", javascript);
-        Assert.Contains("r.onabort = rej;", javascript);
+        Assert.Contains("r.onabort = () => rej(new Error('Proof file read was aborted.'));", javascript);
         Assert.Contains("const selectedFiles = Array.from(files || []);", beforeLoading);
         Assert.Contains("const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));", beforeLoading);
         Assert.Contains("const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));", beforeLoading);
@@ -208,10 +209,10 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
-        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (files, input, retryButton)", StringComparison.Ordinal);
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
+        var handlerStart = javascript.IndexOf("const handleProofFiles = async function (", StringComparison.Ordinal);
         var loopStart = javascript.IndexOf("for (const file of supportedFiles)", handlerStart, StringComparison.Ordinal);
-        var catchStart = javascript.IndexOf("} catch (error)", loopStart, StringComparison.Ordinal);
+        var catchStart = javascript.IndexOf("} catch (error) {", loopStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
         Assert.True(loopStart > handlerStart);
@@ -232,7 +233,7 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
         var loopStart = javascript.IndexOf("for (const file of supportedFiles)", StringComparison.Ordinal);
         var unsupportedAlertStart = javascript.IndexOf("if (unsupportedFiles.length > 0)", loopStart, StringComparison.Ordinal);
 
@@ -260,7 +261,7 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
 
         Assert.Contains("showing each submitted biomarker, the collection date, and the lab or report source", javascript);
         Assert.Contains("These images will be <strong>public</strong>", javascript);
@@ -272,7 +273,7 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
 
         Assert.Contains("const hasProofs = proofPics.length > 0;", javascript);
         Assert.Contains("nextButton.disabled = !hasProofs;", javascript);
@@ -307,11 +308,11 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
-        var helperStart = javascript.IndexOf("function getProofSessionItem(key)", StringComparison.Ordinal);
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
+        var helperStart = javascript.IndexOf("function getProofSessionItem(key: string): string | null", StringComparison.Ordinal);
         var helperEnd = javascript.IndexOf("window.getProofChecklistLabelsFromSession = function ()", helperStart, StringComparison.Ordinal);
         var checklistStart = helperEnd;
-        var checklistEnd = javascript.IndexOf("function getProofFileExtension(file)", checklistStart, StringComparison.Ordinal);
+        var checklistEnd = javascript.IndexOf("function getProofFileExtension(file: File | null | undefined): string", checklistStart, StringComparison.Ordinal);
 
         Assert.True(helperStart >= 0);
         Assert.True(helperEnd > helperStart);
@@ -334,9 +335,9 @@ public sealed class ProofUploadPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/proof-helpers.js");
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
 
-        Assert.Contains("function hasFiniteBiomarkerValue(value)", javascript);
+        Assert.Contains("function hasFiniteBiomarkerValue(value: unknown): boolean", javascript);
         Assert.Contains("if (value === null || value === undefined || typeof value === 'boolean') return false;", javascript);
         Assert.Contains("if (typeof value === 'number') return Number.isFinite(value);", javascript);
         Assert.Contains("var trimmed = value.trim();", javascript);
@@ -642,5 +643,30 @@ public sealed class ProofUploadPageTests
         Assert.DoesNotContain("localStorage.setItem(", successBody);
         Assert.DoesNotContain("sessionStorage.removeItem(", successBody);
         Assert.DoesNotContain("localStorage.removeItem(", successBody);
+    }
+
+    private static async Task<string> GetProofHelpersTypeScriptAsync(
+        HttpClient client,
+        [CallerFilePath] string sourceFilePath = "")
+    {
+        _ = await client.GetStringAsync("/js/proof-helpers.js");
+
+        var current = new DirectoryInfo(Path.GetDirectoryName(sourceFilePath) ?? AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            var sourcePath = Path.Combine(
+                current.FullName,
+                "LongevityWorldCup.Website",
+                "Frontend",
+                "proof-helpers.ts");
+            if (File.Exists(sourcePath))
+            {
+                return await File.ReadAllTextAsync(sourcePath);
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException($"Could not find proof-helpers.ts from {sourceFilePath}.");
     }
 }

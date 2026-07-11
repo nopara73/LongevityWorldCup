@@ -1,149 +1,121 @@
-// Create a namespace
-window.PhenoAge = window.PhenoAge || {};
-
-// Attach biomarkers to the namespace
+// Pheno Age calculator and domain contributions.
 // https://github.com/nopara73/LongevityWorldCup/issues/136
-window.PhenoAge.biomarkers = [
-    { id: 'age', name: 'Age', coeff: 0.0804 }, // Age has no known lower cap
-    { id: 'albumin', name: 'Albumin', coeff: -0.0336, cap: 54 }, // Ceiling cap
-    { id: 'creatinine', name: 'Creatinine', coeff: 0.0095, cap: 44 },
-    { id: 'glucose', name: 'Glucose', coeff: 0.1953, cap: 4.44 },
-    { id: 'crp', name: 'C-reactive protein', coeff: 0.0954 }, // CRP has no known lower cap
-    { id: 'wbc', name: 'White blood cell count', coeff: 0.0554, cap: 3.5 },
-    { id: 'lymphocyte', name: 'Lymphocytes', coeff: -0.012, cap: 60 },
-    { id: 'mcv', name: 'Mean corpuscular volume', coeff: 0.0268 }, // No lower cap
-    { id: 'rcdw', name: 'Red cell distribution width', coeff: 0.3306, cap: 11.4 },
-    { id: 'ap', name: 'Alkaline phosphatase', coeff: 0.0019 } // No lower cap
+const biomarkers = [
+    { id: "age", name: "Age", coeff: 0.0804 }, // Age has no known lower cap
+    { id: "albumin", name: "Albumin", coeff: -0.0336, cap: 54 }, // Ceiling cap
+    { id: "creatinine", name: "Creatinine", coeff: 0.0095, cap: 44 },
+    { id: "glucose", name: "Glucose", coeff: 0.1953, cap: 4.44 },
+    { id: "crp", name: "C-reactive protein", coeff: 0.0954 }, // CRP has no known lower cap
+    { id: "wbc", name: "White blood cell count", coeff: 0.0554, cap: 3.5 },
+    { id: "lymphocyte", name: "Lymphocytes", coeff: -0.012, cap: 60 },
+    { id: "mcv", name: "Mean corpuscular volume", coeff: 0.0268 }, // No lower cap
+    { id: "rcdw", name: "Red cell distribution width", coeff: 0.3306, cap: 11.4 },
+    { id: "ap", name: "Alkaline phosphatase", coeff: 0.0019 } // No lower cap
 ];
-
-// Helper function to parse input values
-window.PhenoAge.parseInput = function (value) {
-    return value === '' ? NaN : Number(value);
-};
-
-// Liver: Albumin (index 1) and Alkaline phosphatase (index 9)
-window.PhenoAge.calculateLiverScore = function (markerValues) {
-    const albumin = markerValues[1];
-    const albuminCap = window.PhenoAge.biomarkers[1].cap;
-    const ap = markerValues[9];
-    const coeffAlbumin = window.PhenoAge.biomarkers[1].coeff;
-    const coeffAP = window.PhenoAge.biomarkers[9].coeff;
-    const cappedAlbumin = Math.min(albumin, albuminCap);
-    return cappedAlbumin * coeffAlbumin + ap * coeffAP;
-};
-
-// Kidney: Creatinine (index 2) with a positive coefficient so use Math.max to ensure at least the cap value.
-window.PhenoAge.calculateKidneyScore = function (markerValues) {
-    const creatinine = markerValues[2];
-    const cap = window.PhenoAge.biomarkers[2].cap;
-    const coeff = window.PhenoAge.biomarkers[2].coeff;
-    const cappedCreatinine = Math.max(creatinine, cap);
-    return cappedCreatinine * coeff;
-};
-
-// Metabolic: Glucose (index 3) with a positive coefficient so use Math.max for capping.
-window.PhenoAge.calculateMetabolicScore = function (markerValues) {
-    const glucose = markerValues[3];
-    const cap = window.PhenoAge.biomarkers[3].cap;
-    const coeff = window.PhenoAge.biomarkers[3].coeff;
-    const cappedGlucose = Math.max(glucose, cap);
-    return cappedGlucose * coeff;
-};
-
-// Inflammation: C-reactive protein (index 4) has no capping.
-window.PhenoAge.calculateInflammationScore = function (markerValues) {
-    const crp = markerValues[4];
-    const coeff = window.PhenoAge.biomarkers[4].coeff;
-    return crp * coeff;
-};
-
-// Immune: includes White blood cell count (index 5), Lymphocyte percent (index 6),
-// Mean corpuscular volume (index 7) and Red cell distribution width (index 8)
-// Note: For WBC and RDW (positive coefficients) we use Math.max; for lymphocytes (negative coefficient) we use Math.min;
-// MCV is used directly.
-window.PhenoAge.calculateImmuneScore = function (markerValues) {
-    // White blood cell count (index 5)
-    const wbc = markerValues[5];
-    const wbcCap = window.PhenoAge.biomarkers[5].cap;
-    const wbcCoeff = window.PhenoAge.biomarkers[5].coeff;
-    const immuneWBC = Math.max(wbc, wbcCap) * wbcCoeff;
-
-    // Lymphocyte percent (index 6)
-    const lymphocyte = markerValues[6];
-    const lymphCap = window.PhenoAge.biomarkers[6].cap;
-    const lymphCoeff = window.PhenoAge.biomarkers[6].coeff;
-    const immuneLymphocyte = Math.min(lymphocyte, lymphCap) * lymphCoeff;
-
-    // Mean corpuscular volume (index 7) – no capping
-    const mcv = markerValues[7];
-    const mcvCoeff = window.PhenoAge.biomarkers[7].coeff;
-    const immuneMCV = mcv * mcvCoeff;
-
-    // Red cell distribution width (index 8)
-    const rcdw = markerValues[8];
-    const rcdwCap = window.PhenoAge.biomarkers[8].cap;
-    const rcdwCoeff = window.PhenoAge.biomarkers[8].coeff;
-    const immuneRCDW = Math.max(rcdw, rcdwCap) * rcdwCoeff;
-
-    return immuneWBC + immuneLymphocyte + immuneMCV + immuneRCDW;
-};
-
-// ----- Main PhenoAge Calculation ----- //
-
-// Note: The 'coefficients' parameter has been removed because each biomarker now
-// uses its coefficient directly from the window.PhenoAge.biomarkers array.
-window.PhenoAge.calculatePhenoAge = function (markerValues) {
-    // The first element is Age (index 0)
-    const ageScore = markerValues[0] * window.PhenoAge.biomarkers[0].coeff;
-
-    // Combine contributions from the five parts
-    const totalScore = ageScore +
-        window.PhenoAge.calculateLiverScore(markerValues) +
-        window.PhenoAge.calculateKidneyScore(markerValues) +
-        window.PhenoAge.calculateMetabolicScore(markerValues) +
-        window.PhenoAge.calculateInflammationScore(markerValues) +
-        window.PhenoAge.calculateImmuneScore(markerValues);
-
-    // Include the constant term
+function parseInput(value) {
+    return value === "" ? Number.NaN : Number(value);
+}
+function markerValue(markerValues, index) {
+    return markerValues[index] ?? Number.NaN;
+}
+function currentPhenoAgeApi() {
+    return window.PhenoAge ?? api;
+}
+function biomarkerAt(index) {
+    const biomarker = currentPhenoAgeApi().biomarkers[index];
+    if (!biomarker)
+        throw new RangeError(`Missing pheno age biomarker at index ${index}.`);
+    return biomarker;
+}
+// Liver: Albumin (index 1) and alkaline phosphatase (index 9).
+function calculateLiverScore(markerValues) {
+    const albumin = markerValue(markerValues, 1);
+    const ap = markerValue(markerValues, 9);
+    const albuminDefinition = biomarkerAt(1);
+    const alkalinePhosphataseDefinition = biomarkerAt(9);
+    const cappedAlbumin = Math.min(albumin, albuminDefinition.cap ?? Number.NaN);
+    return cappedAlbumin * albuminDefinition.coeff + ap * alkalinePhosphataseDefinition.coeff;
+}
+// Kidney: the positive creatinine coefficient makes its cap a floor.
+function calculateKidneyScore(markerValues) {
+    const definition = biomarkerAt(2);
+    const cappedCreatinine = Math.max(markerValue(markerValues, 2), definition.cap ?? Number.NaN);
+    return cappedCreatinine * definition.coeff;
+}
+// Metabolic: the positive glucose coefficient makes its cap a floor.
+function calculateMetabolicScore(markerValues) {
+    const definition = biomarkerAt(3);
+    const cappedGlucose = Math.max(markerValue(markerValues, 3), definition.cap ?? Number.NaN);
+    return cappedGlucose * definition.coeff;
+}
+// Inflammation: C-reactive protein (index 4) has no cap.
+function calculateInflammationScore(markerValues) {
+    return markerValue(markerValues, 4) * biomarkerAt(4).coeff;
+}
+// Immune: WBC, lymphocytes, MCV, and RDW.
+function calculateImmuneScore(markerValues) {
+    const wbc = biomarkerAt(5);
+    const lymphocyte = biomarkerAt(6);
+    const mcv = biomarkerAt(7);
+    const rcdw = biomarkerAt(8);
+    const immuneWbc = Math.max(markerValue(markerValues, 5), wbc.cap ?? Number.NaN) * wbc.coeff;
+    const immuneLymphocyte = Math.min(markerValue(markerValues, 6), lymphocyte.cap ?? Number.NaN)
+        * lymphocyte.coeff;
+    const immuneMcv = markerValue(markerValues, 7) * mcv.coeff;
+    const immuneRcdw = Math.max(markerValue(markerValues, 8), rcdw.cap ?? Number.NaN) * rcdw.coeff;
+    return immuneWbc + immuneLymphocyte + immuneMcv + immuneRcdw;
+}
+function calculatePhenoAge(markerValues) {
+    const activeApi = currentPhenoAgeApi();
+    const ageScore = markerValue(markerValues, 0) * biomarkerAt(0).coeff;
+    const totalScore = ageScore
+        + activeApi.calculateLiverScore(markerValues)
+        + activeApi.calculateKidneyScore(markerValues)
+        + activeApi.calculateMetabolicScore(markerValues)
+        + activeApi.calculateInflammationScore(markerValues)
+        + activeApi.calculateImmuneScore(markerValues);
     const b0 = -19.9067;
     const gamma = 0.0076927;
     const rollingTotal = totalScore + b0;
-
-    // Use 120 months (10 years) as defined originally
     const tmonths = 120;
-    const mortalityScore = 1 - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * tmonths) - 1) / gamma);
-
-    const phenoAge = 141.50225 + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
+    const mortalityScore = 1
+        - Math.exp(-Math.exp(rollingTotal) * (Math.exp(gamma * tmonths) - 1) / gamma);
+    const phenoAge = 141.50225
+        + Math.log(-0.00553 * Math.log(1 - mortalityScore)) / 0.090165;
     return Math.max(0, phenoAge);
-};
-
-// ----- Domain Contribution Functions ----- //
-
-// Since the final transformation is linear in the rolling total,
-// the multiplier (scaling factor) is 1/0.090165 (approximately 11.088).
+}
+// The final transformation is linear in the rolling total.
 const scalingFactor = 1 / 0.090165;
-
-// Contribution from Liver biomarkers to PhenoAge (in years)
-window.PhenoAge.calculateLiverPhenoAgeContributor = function (markerValues) {
-    return window.PhenoAge.calculateLiverScore(markerValues) * scalingFactor;
+function calculateLiverPhenoAgeContributor(markerValues) {
+    return currentPhenoAgeApi().calculateLiverScore(markerValues) * scalingFactor;
+}
+function calculateKidneyPhenoAgeContributor(markerValues) {
+    return currentPhenoAgeApi().calculateKidneyScore(markerValues) * scalingFactor;
+}
+function calculateMetabolicPhenoAgeContributor(markerValues) {
+    return currentPhenoAgeApi().calculateMetabolicScore(markerValues) * scalingFactor;
+}
+function calculateInflammationPhenoAgeContributor(markerValues) {
+    return currentPhenoAgeApi().calculateInflammationScore(markerValues) * scalingFactor;
+}
+function calculateImmunePhenoAgeContributor(markerValues) {
+    return currentPhenoAgeApi().calculateImmuneScore(markerValues) * scalingFactor;
+}
+const api = {
+    biomarkers,
+    parseInput,
+    calculateLiverScore,
+    calculateKidneyScore,
+    calculateMetabolicScore,
+    calculateInflammationScore,
+    calculateImmuneScore,
+    calculatePhenoAge,
+    calculateLiverPhenoAgeContributor,
+    calculateKidneyPhenoAgeContributor,
+    calculateMetabolicPhenoAgeContributor,
+    calculateInflammationPhenoAgeContributor,
+    calculateImmunePhenoAgeContributor
 };
-
-// Contribution from Kidney biomarkers to PhenoAge (in years)
-window.PhenoAge.calculateKidneyPhenoAgeContributor = function (markerValues) {
-    return window.PhenoAge.calculateKidneyScore(markerValues) * scalingFactor;
-};
-
-// Contribution from Metabolic biomarkers to PhenoAge (in years)
-window.PhenoAge.calculateMetabolicPhenoAgeContributor = function (markerValues) {
-    return window.PhenoAge.calculateMetabolicScore(markerValues) * scalingFactor;
-};
-
-// Contribution from Inflammation biomarkers to PhenoAge (in years)
-window.PhenoAge.calculateInflammationPhenoAgeContributor = function (markerValues) {
-    return window.PhenoAge.calculateInflammationScore(markerValues) * scalingFactor;
-};
-
-// Contribution from Immune biomarkers to PhenoAge (in years)
-window.PhenoAge.calculateImmunePhenoAgeContributor = function (markerValues) {
-    return window.PhenoAge.calculateImmuneScore(markerValues) * scalingFactor;
-};
+// Preserve the original namespace object when a page has initialized it early.
+window.PhenoAge = Object.assign(window.PhenoAge || {}, api);
+export {};

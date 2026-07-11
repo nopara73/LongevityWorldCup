@@ -1,0 +1,659 @@
+interface ProofUploadSetupOptions {
+    cameraButton?: HTMLButtonElement | null;
+    cameraInput?: HTMLInputElement | null;
+}
+
+interface ProofUploadStats {
+    track: (eventName: string, payload: {
+        component: string;
+        outcome: string;
+        errorCode: string;
+        metadata: {
+            fileCountBucket: string;
+            fileTypeBucket: string;
+            fileSizeBucket: string;
+        };
+    }) => void;
+    countBucket?: (count: number) => string;
+    fileTypeBucket?: (file: File | null) => string;
+    fileSizeBucket?: (file: File | null) => string;
+}
+
+interface PdfViewport {
+    width: number;
+    height: number;
+}
+
+interface PdfPage {
+    getViewport: (options: { scale: number }) => PdfViewport;
+    render: (options: { canvasContext: CanvasRenderingContext2D; viewport: PdfViewport }) => { promise: Promise<void> };
+}
+
+interface PdfDocument {
+    numPages: number;
+    getPage: (pageNumber: number) => Promise<PdfPage>;
+}
+
+interface PdfJsLibrary {
+    getDocument: (options: { data: ArrayBuffer }) => { promise: Promise<PdfDocument> };
+    GlobalWorkerOptions?: { workerSrc: string };
+}
+
+interface ProofHelpersWindowApi {
+    getMainProofInstructionsInnerHTML: () => string;
+    getSubProofInstructionsInnerHTML: () => string;
+    isAthletePro: (athlete: unknown) => boolean;
+    getProofChecklistLabelsFromSession: () => string[];
+    setupProofUploadHTML: (
+        nextButton: HTMLButtonElement,
+        uploadProofButton: HTMLButtonElement,
+        proofPicInput: HTMLInputElement,
+        proofImageContainer: HTMLElement,
+        proofPics: string[],
+        biomarkerChecklistContainer: HTMLElement | null,
+        biomarkers: readonly string[],
+        options?: ProofUploadSetupOptions
+    ) => void;
+    updateProofUploadButtons: (
+        nextButton: HTMLButtonElement,
+        uploadProofButton: HTMLButtonElement,
+        cameraButton?: HTMLButtonElement | null
+    ) => void;
+}
+
+declare global {
+    interface Window extends ProofHelpersWindowApi {
+        LwcSiteStats?: ProofUploadStats;
+        pdfjsLib?: PdfJsLibrary;
+        __lwcPdfJsReady?: Promise<PdfJsLibrary> | null;
+        customAlert: (message: string) => Promise<unknown>;
+        showLoading: () => void;
+        hideLoading: () => void;
+    }
+}
+
+function isProofObject(value: unknown): value is object {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+window.getMainProofInstructionsInnerHTML = function (): string {
+    return "Upload <strong>proofs</strong> showing each submitted biomarker, the collection date, and the lab or report source (e.g., screenshots of PDF results or photos of physical documents)";
+}
+
+window.getSubProofInstructionsInnerHTML = function (): string {
+    return "These images will be <strong>public</strong>, so you're encouraged to censor any irrelevant information.";
+}
+
+// Canonical display order: matches bortz-age.html UI (card order in DOM). Pheno-age-only users see the same order for their 9 biomarkers.
+var PROOF_CHECKLIST_ORDER = [
+    'Wbc1000cellsuL', 'LymPc', 'NeutrophilPc', 'MonocytePc', 'Rbc10e12L', 'McvFL', 'MchPg', 'RdwPc',
+    'AlbGL', 'AltUL', 'AlpUL', 'GgtUL', 'UreaMmolL', 'CreatUmolL', 'CystatinCMgL', 'GluMmolL',
+    'Hba1cMmolMol', 'CholesterolMmolL', 'ApoA1GL', 'CrpMgL', 'ShbgNmolL', 'VitaminDNmolL'
+] as const;
+
+type ProofBiomarkerKey = typeof PROOF_CHECKLIST_ORDER[number];
+
+// Labels match bortz-age.html card headers.
+var PROOF_CHECKLIST_PROPERTY_TO_LABEL: Readonly<Record<ProofBiomarkerKey, string>> = {
+    Wbc1000cellsuL: 'White blood cell count (WBC)',
+    LymPc: 'Lymphocytes',
+    NeutrophilPc: 'Neutrophils',
+    MonocytePc: 'Monocytes',
+    Rbc10e12L: 'Red blood cell count (RBC)',
+    McvFL: 'Mean corpuscular volume (MCV)',
+    MchPg: 'Mean corpuscular hemoglobin (MCH)',
+    RdwPc: 'Red cell distribution width (RDW)',
+    AlbGL: 'Albumin',
+    AltUL: 'Alanine aminotransferase (ALT)',
+    AlpUL: 'Alkaline phosphatase (ALP)',
+    GgtUL: 'GGT',
+    UreaMmolL: 'Urea',
+    CreatUmolL: 'Creatinine',
+    CystatinCMgL: 'Cystatin C',
+    GluMmolL: 'Glucose',
+    Hba1cMmolMol: 'Hemoglobin A1c (HbA1c)',
+    CholesterolMmolL: 'Total cholesterol',
+    ApoA1GL: 'Apolipoprotein A1 (ApoA1)',
+    CrpMgL: 'C-reactive protein (CRP)',
+    ShbgNmolL: 'Sex hormone-binding globulin (SHBG)',
+    VitaminDNmolL: 'Vitamin D (25-OH)'
+};
+
+var PROOF_CONTEXT_CHECKLIST_LABELS = ['Collection date', 'Lab/report source'];
+
+// Bortz-only biomarkers (not required for PhenoAge).
+var BORTZ_ONLY_BIOMARKER_KEYS: readonly ProofBiomarkerKey[] = [
+    'NeutrophilPc', 'MonocytePc', 'Rbc10e12L', 'MchPg', 'UreaMmolL',
+    'CystatinCMgL', 'Hba1cMmolMol', 'CholesterolMmolL', 'ApoA1GL',
+    'AltUL', 'GgtUL', 'ShbgNmolL', 'VitaminDNmolL'
+];
+
+/**
+ * Determine if an athlete is Pro (has any Bortz-only biomarker in latest entry).
+ * @param {object} athlete
+ * @returns {boolean}
+ */
+window.isAthletePro = function (athlete: unknown): boolean {
+    if (!isProofObject(athlete)) return false;
+    const biomarkers = Reflect.get(athlete, 'Biomarkers');
+    if (!Array.isArray(biomarkers) || biomarkers.length === 0) return false;
+
+    var sorted = biomarkers.slice().sort(function (a: unknown, b: unknown) {
+        var aDateValue = isProofObject(a) ? Reflect.get(a, 'Date') : null;
+        var bDateValue = isProofObject(b) ? Reflect.get(b, 'Date') : null;
+        var aDate = aDateValue ? new Date(String(aDateValue)).getTime() : NaN;
+        var bDate = bDateValue ? new Date(String(bDateValue)).getTime() : NaN;
+        if (isNaN(aDate) && isNaN(bDate)) return 0;
+        if (isNaN(aDate)) return 1;
+        if (isNaN(bDate)) return -1;
+        return bDate - aDate;
+    });
+
+    var latest: unknown = sorted[0] || biomarkers[0] || {};
+    for (var i = 0; i < BORTZ_ONLY_BIOMARKER_KEYS.length; i++) {
+        var key = BORTZ_ONLY_BIOMARKER_KEYS[i];
+        if (key === undefined) continue;
+        var val = isProofObject(latest) ? Reflect.get(latest, key) : undefined;
+        if (hasFiniteBiomarkerValue(val)) return true;
+    }
+    return false;
+};
+
+function hasFiniteBiomarkerValue(value: unknown): boolean {
+    if (value === null || value === undefined || typeof value === 'boolean') return false;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value === 'string') {
+        var trimmed = value.trim();
+        return trimmed !== '' && Number.isFinite(Number(trimmed));
+    }
+    return false;
+}
+
+function getProofSessionItem(key: string): string | null {
+    try {
+        return window.sessionStorage.getItem(key);
+    } catch (_) {
+        return null;
+    }
+}
+
+/**
+ * Build Proof Tracker checklist labels from sessionStorage.biomarkerData.
+ * Only includes biomarkers present in the latest entry (valid number).
+ * Order follows bortz-age.html UI (card order in DOM).
+ * @returns {string[]} Array of display labels in canonical order.
+ */
+window.getProofChecklistLabelsFromSession = function (): string[] {
+    try {
+        var raw = getProofSessionItem('biomarkerData');
+        if (!raw) return [];
+        var data: unknown = JSON.parse(raw);
+        var biomarkers = isProofObject(data) ? Reflect.get(data, 'Biomarkers') : null;
+        var latest: unknown = Array.isArray(biomarkers) ? biomarkers[0] || {} : {};
+        var labels: string[] = [];
+        for (var i = 0; i < PROOF_CHECKLIST_ORDER.length; i++) {
+            var prop = PROOF_CHECKLIST_ORDER[i];
+            if (prop === undefined) continue;
+            var val = isProofObject(latest) ? Reflect.get(latest, prop) : undefined;
+            if (hasFiniteBiomarkerValue(val)) {
+                var label = PROOF_CHECKLIST_PROPERTY_TO_LABEL[prop];
+                if (label) labels.push(label);
+            }
+        }
+        return labels.length > 0 ? PROOF_CONTEXT_CHECKLIST_LABELS.concat(labels) : labels;
+    } catch (e) {
+        return [];
+    }
+};
+
+function getProofFileExtension(file: File | null | undefined): string {
+    const name = file && typeof file.name === 'string' ? file.name.toLowerCase() : '';
+    const dotIndex = name.lastIndexOf('.');
+    return dotIndex >= 0 ? name.slice(dotIndex + 1) : '';
+}
+
+function isProofPdfFile(file: File | null | undefined): boolean {
+    const type = file && typeof file.type === 'string' ? file.type.toLowerCase() : '';
+    return type === 'application/pdf' || getProofFileExtension(file) === 'pdf';
+}
+
+function isSupportedProofFile(file: File | null | undefined): file is File {
+    if (!file) return false;
+
+    const type = typeof file.type === 'string' ? file.type.toLowerCase() : '';
+    const extension = getProofFileExtension(file);
+    return type === 'application/pdf'
+        || type.startsWith('image/')
+        || extension === 'pdf'
+        || extension === 'jpg'
+        || extension === 'jpeg'
+        || extension === 'png'
+        || extension === 'webp'
+        || extension === 'heic'
+        || extension === 'heif';
+}
+
+function trackProofFileRejected(
+    errorCode: string,
+    files: Iterable<File> | ArrayLike<File> | null | undefined
+): void {
+    const stats = window.LwcSiteStats;
+    if (!stats || typeof stats.track !== 'function') return;
+
+    const rejectedFiles = Array.from(files || []);
+    const first = rejectedFiles[0] || null;
+    stats.track('proof_file_rejected', {
+        component: 'proof_upload',
+        outcome: 'rejected',
+        errorCode: errorCode || 'client_rejected',
+        metadata: {
+            fileCountBucket: typeof stats.countBucket === 'function' ? stats.countBucket(rejectedFiles.length) : String(rejectedFiles.length),
+            fileTypeBucket: typeof stats.fileTypeBucket === 'function' ? stats.fileTypeBucket(first) : 'unknown',
+            fileSizeBucket: typeof stats.fileSizeBucket === 'function' ? stats.fileSizeBucket(first) : 'unknown'
+        }
+    });
+}
+
+window.setupProofUploadHTML = function (
+    nextButton: HTMLButtonElement,
+    uploadProofButton: HTMLButtonElement,
+    proofPicInput: HTMLInputElement,
+    proofImageContainer: HTMLElement,
+    proofPics: string[],
+    biomarkerChecklistContainer: HTMLElement | null,
+    biomarkers: readonly string[],
+    options?: ProofUploadSetupOptions
+): void {
+    nextButton.disabled = true;
+    const cameraButton = options && options.cameraButton;
+    const cameraInput = options && options.cameraInput;
+    let isProofUploadProcessing = false;
+    const proofOptimizationOptions = {
+        maxSize: 2560,
+        quality: 0.88,
+        targetMaxBytes: 1.5 * 1024 * 1024
+    };
+    const maxProofImages = 35;
+
+    ensurePdfJsReady().catch(() => {});
+
+    // Attach event listener to the Upload Proof button
+    if (uploadProofButton && !uploadProofButton.hasAttribute('data-listener')) {
+        uploadProofButton.addEventListener('click', function () {
+            if (isProofUploadProcessing) return;
+            proofPicInput.click();
+        });
+        uploadProofButton.setAttribute('data-listener', 'true');
+    }
+
+    if (cameraButton && cameraInput && !cameraButton.hasAttribute('data-listener')) {
+        cameraButton.addEventListener('click', function () {
+            if (isProofUploadProcessing) return;
+            cameraInput.click();
+        });
+        cameraButton.setAttribute('data-listener', 'true');
+    }
+
+    const focusProofRetryButton: (retryButton: HTMLButtonElement | null | undefined) => void = retryButton => {
+        if (retryButton && typeof retryButton.focus === 'function') {
+            retryButton.focus();
+        }
+    };
+
+    const showProofUploadNotice: (message: string) => void = message => {
+        if (!proofImageContainer) return;
+
+        let notice = proofImageContainer.querySelector<HTMLElement>('.proof-upload-notice');
+        if (!notice) {
+            notice = document.createElement('p');
+            notice.className = 'proof-upload-notice smaller-text';
+            proofImageContainer.appendChild(notice);
+        }
+        notice.textContent = message;
+    };
+
+    const handleProofFiles = async function (
+        files: FileList | readonly File[] | null | undefined,
+        input: HTMLInputElement | null,
+        retryButton: HTMLButtonElement | null | undefined
+    ): Promise<void> {
+        if (isProofUploadProcessing) {
+            if (input) input.value = "";
+            return;
+        }
+
+        const selectedFiles = Array.from(files || []);
+        if (selectedFiles.length === 0) {
+            if (input) input.value = "";
+            return;
+        }
+
+        const unsupportedFiles = selectedFiles.filter(file => !isSupportedProofFile(file));
+        const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));
+        if (supportedFiles.length === 0) {
+            if (input) input.value = "";
+            trackProofFileRejected('unsupported_file_type', unsupportedFiles);
+            window.customAlert('Proof files must be images or PDFs.')
+                .then(() => focusProofRetryButton(retryButton));
+            return;
+        }
+
+        isProofUploadProcessing = true;
+        uploadProofButton.disabled = true;
+        proofPicInput.disabled = true;
+        if (cameraButton) cameraButton.disabled = true;
+        if (cameraInput) cameraInput.disabled = true;
+        nextButton.disabled = true;
+        window.showLoading();
+        try {
+            // helper to read a File as dataURL
+            const readDataURL: (file: File) => Promise<string> = file => new Promise((res, rej) => {
+                const r = new FileReader();
+                r.onload = () => {
+                    if (typeof r.result === 'string') {
+                        res(r.result);
+                    } else {
+                        rej(new Error('Proof file could not be read as a data URL.'));
+                    }
+                };
+                r.onerror = () => rej(r.error ?? new Error('Proof file could not be read.'));
+                r.onabort = () => rej(new Error('Proof file read was aborted.'));
+                r.readAsDataURL(file);
+            });
+
+            const optimizeProofImageOrFallback: (raw: string) => Promise<string> = async raw => {
+                try {
+                    const { dataUrl } = await window.optimizeImageClient(raw, proofOptimizationOptions);
+                    return dataUrl || raw;
+                } catch (_) {
+                    return raw;
+                }
+            };
+
+            let failedFiles = 0;
+            const failedFileSamples: File[] = [];
+            let hitImageLimit = false;
+            // process one by one to preserve order
+            for (const file of supportedFiles) {
+                const proofCountBeforeFile = proofPics.length;
+                try {
+                    if (isProofPdfFile(file)) {
+                        const pdfLib = await ensurePdfJsReady();
+                        // read file as arrayBuffer
+                        const arrayBuffer = await file.arrayBuffer();
+                        // load PDF
+                        const loadingTask = pdfLib.getDocument({ data: arrayBuffer });
+                        const pdfDoc = await loadingTask.promise;
+                        // render each page
+                        for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                            if (proofPics.length >= maxProofImages) {
+                                hitImageLimit = true;
+                                break;
+                            }
+                            const page = await pdfDoc.getPage(pageNum);
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            const canvas = document.createElement('canvas');
+                            canvas.width = viewport.width;
+                            canvas.height = viewport.height;
+                            const context = canvas.getContext('2d');
+                            if (!context) throw new Error('Canvas context unavailable.');
+                            await page.render({ canvasContext: context, viewport }).promise;
+                            const rawPage = canvas.toDataURL();
+                            const optimizedPage = await optimizeProofImageOrFallback(rawPage);
+                            if (optimizedPage) {
+                                proofPics.push(optimizedPage);
+                            }
+                        }
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        nextButton.disabled = true;
+                        continue;
+                    }
+
+                    if (proofPics.length >= maxProofImages) {
+                        hitImageLimit = true;
+                        break;
+                    }
+                    const raw = await readDataURL(file);
+                    const dataUrl = await optimizeProofImageOrFallback(raw);
+                    if (dataUrl) {
+                        proofPics.push(dataUrl);
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        nextButton.disabled = true;
+                    } else {
+                        failedFiles++;
+                        failedFileSamples.push(file);
+                    }
+                } catch (_) {
+                    failedFiles++;
+                    failedFileSamples.push(file);
+                    if (proofPics.length > proofCountBeforeFile) {
+                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                        nextButton.disabled = true;
+                    }
+                }
+            }
+            if (unsupportedFiles.length > 0) {
+                trackProofFileRejected('unsupported_file_type', unsupportedFiles);
+                window.customAlert('Some proof files were skipped because proof files must be images or PDFs.')
+                    .then(() => focusProofRetryButton(retryButton));
+            }
+            if (failedFiles > 0) {
+                trackProofFileRejected('client_processing_failed', failedFileSamples);
+                window.customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')
+                    .then(() => focusProofRetryButton(retryButton));
+            }
+            if (hitImageLimit) {
+                updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                showProofUploadNotice('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');
+            }
+        } catch (error) {
+            trackProofFileRejected('proof_upload_failed', selectedFiles);
+            window.customAlert('Proof upload failed. Please try again with an image or PDF file.')
+                .then(() => focusProofRetryButton(retryButton));
+        } finally {
+            // Reset the file input's value to allow re-uploading the same file if needed.
+            if (input) input.value = "";
+            window.hideLoading();
+            isProofUploadProcessing = false;
+            uploadProofButton.disabled = false;
+            proofPicInput.disabled = false;
+            if (cameraButton) cameraButton.disabled = false;
+            if (cameraInput) cameraInput.disabled = false;
+            checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+        }
+    };
+
+    // Handle proof uploads (without cropping)
+    if (proofPicInput && !proofPicInput.hasAttribute('data-listener')) {
+        proofPicInput.addEventListener('change', async function () {
+            await handleProofFiles(proofPicInput.files, proofPicInput, uploadProofButton);
+        });
+        proofPicInput.setAttribute('data-listener', 'true');
+    }
+
+    if (cameraInput && !cameraInput.hasAttribute('data-listener')) {
+        cameraInput.addEventListener('change', async function () {
+            await handleProofFiles(cameraInput.files, cameraInput, cameraButton || uploadProofButton);
+        });
+        cameraInput.setAttribute('data-listener', 'true');
+    }
+
+    proofImageContainer.style.display = 'block';
+
+    // Display any existing proof images
+    updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+
+    generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nextButton, proofPics, uploadProofButton, cameraButton);
+
+    // Check if proof images already exist
+    checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+}
+
+function ensurePdfJsReady(): Promise<PdfJsLibrary> {
+    if (window.pdfjsLib && typeof window.pdfjsLib.getDocument === 'function') {
+        setPdfWorker(window.pdfjsLib);
+        return Promise.resolve(window.pdfjsLib);
+    }
+
+    if (window.__lwcPdfJsReady) return window.__lwcPdfJsReady;
+
+    const readiness = new Promise<PdfJsLibrary>((resolve, reject) => {
+        const pdfScript = document.createElement('script');
+        pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.min.js';
+        pdfScript.async = true;
+        pdfScript.dataset.lwcPdfjs = 'true';
+        pdfScript.onload = () => {
+            const pdfLibrary = window.pdfjsLib;
+            if (!pdfLibrary || typeof pdfLibrary.getDocument !== 'function') {
+                window.__lwcPdfJsReady = null;
+                reject(new Error('PDF renderer failed to load.'));
+                return;
+            }
+
+            setPdfWorker(pdfLibrary);
+            resolve(pdfLibrary);
+        };
+        pdfScript.onerror = () => {
+            window.__lwcPdfJsReady = null;
+            reject(new Error('PDF renderer failed to load.'));
+        };
+        document.head.appendChild(pdfScript);
+    });
+    window.__lwcPdfJsReady = readiness;
+
+    return readiness;
+}
+
+function setPdfWorker(pdfLib: PdfJsLibrary): void {
+    if (!pdfLib || !pdfLib.GlobalWorkerOptions) return;
+    pdfLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.8.162/pdf.worker.min.js';
+}
+
+function updateProofImageContainer(
+    container: HTMLElement,
+    nextButton: HTMLButtonElement,
+    proofPics: string[],
+    uploadProofButton: HTMLButtonElement,
+    cameraButton: HTMLButtonElement | null | undefined,
+    biomarkerChecklistContainer: HTMLElement | null
+): void {
+    container.innerHTML = '';
+    // Use the global `proofPics` variable directly
+    if (proofPics.length > 0) {
+        container.innerHTML = '<p><strong>Proof uploaded successfully.</strong></p>';
+        for (let i = 0; i < proofPics.length; i++) {
+            let imgContainer = document.createElement('div');
+            imgContainer.style.cssText = 'position: relative; display: inline-block; margin: 0.5rem;';
+
+            let img = document.createElement('img');
+            const proofImage = proofPics[i];
+            if (proofImage === undefined) continue;
+            img.src = proofImage;
+            img.alt = 'Proof image ' + (i + 1);
+            img.style.cssText = 'max-width: 100%; border: 2px solid var(--dark-text-color); border-radius: 8px;';
+
+            let removeButton = document.createElement('button');
+            removeButton.textContent = 'Remove';
+            removeButton.style.cssText = 'position: absolute; top: 5px; right: 5px; background-color: rgba(255, 0, 0, 0.7); color: var(--light-text-color); border: none; border-radius: 3px; cursor: pointer;';
+            removeButton.addEventListener('click', function () {
+                proofPics.splice(i, 1);
+                updateProofImageContainer(container, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                // Check proof images
+                checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+            });
+
+            imgContainer.appendChild(img);
+            imgContainer.appendChild(removeButton);
+            container.appendChild(imgContainer);
+        }
+    }
+}
+
+function checkProofImages(
+    nextButton: HTMLButtonElement,
+    proofPics: readonly string[],
+    uploadProofButton: HTMLButtonElement,
+    cameraButton: HTMLButtonElement | null | undefined,
+    _biomarkerChecklistContainer: HTMLElement | null
+): void {
+    const hasProofs = proofPics.length > 0;
+    document.body?.classList.toggle('proof-upload-has-proofs', hasProofs);
+    nextButton.disabled = !hasProofs;
+    window.updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
+}
+
+window.updateProofUploadButtons = function (
+    nextButton: HTMLButtonElement,
+    uploadProofButton: HTMLButtonElement,
+    cameraButton?: HTMLButtonElement | null
+): void {
+    if (!nextButton || !uploadProofButton) return;
+
+    const uploadIsRequired = nextButton.disabled;
+    [uploadProofButton, cameraButton].forEach(button => {
+        if (!button) return;
+        button.classList.toggle('green', uploadIsRequired);
+        button.classList.toggle('grey', !uploadIsRequired);
+        button.classList.toggle('flow-action--secondary', !uploadIsRequired);
+    });
+}
+
+function generateBiomarkerChecklist(
+    biomarkerChecklistContainer: HTMLElement | null,
+    biomarkers: readonly string[],
+    nextButton: HTMLButtonElement,
+    proofPics: readonly string[],
+    uploadProofButton: HTMLButtonElement,
+    cameraButton: HTMLButtonElement | null | undefined
+): void {
+    if (!biomarkerChecklistContainer) return;
+
+    // Clear any existing content
+    biomarkerChecklistContainer.innerHTML = '';
+
+    // Title
+    const title = document.createElement('h4');
+    title.textContent = 'Proof tracker';
+    title.style.marginBottom = '4px';
+    biomarkerChecklistContainer.appendChild(title);
+
+    const instructions = document.createElement('p');
+    instructions.textContent = "Check each item only when an uploaded proof shows its marker name and submitted value:";
+    instructions.style.marginTop = '1px';
+    instructions.style.marginBottom = '4px';
+    instructions.classList.add('smaller-text');
+    biomarkerChecklistContainer.appendChild(instructions);
+
+    biomarkers.forEach((name: string) => {
+        // wrapper div
+        const itemDiv = document.createElement('div');
+
+        // label.biomerker-item
+        const label = document.createElement('label');
+        label.className = 'biomarker-item';
+
+        // input[type=checkbox]
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.className = 'biomarker-checkbox';
+        // generate an ID like "biomarker-Albumin" or "biomarker-CReactiveProtein"
+        input.id = 'biomarker-' + name.replace(/[^a-z0-9]/gi, '');
+        input.addEventListener('change', function () {
+            checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+        });
+
+        // span with the visible name
+        const span = document.createElement('span');
+        span.textContent = name;
+
+        label.appendChild(input);
+        label.appendChild(span);
+        itemDiv.appendChild(label);
+        biomarkerChecklistContainer.appendChild(itemDiv);
+    });
+};
+
+export {};

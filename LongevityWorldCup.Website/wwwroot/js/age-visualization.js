@@ -2,10 +2,8 @@
  * Age Visualization Module
  * Radar chart of domain percentiles (pheno age or Bortz) with age reduction in the center.
  */
-
 (function () {
     'use strict';
-
     // Pheno Age: 5 domains (Immune first for radar; aligned with Best domain badges)
     var PHENO_DOMAINS = [
         { key: 'immune', label: 'Immune', contributor: 'calculateImmunePhenoAgeContributor' },
@@ -33,7 +31,6 @@
         metabolic: [3],
         inflammation: [4]
     };
-
     // Bortz: 6 domains used for athlete profile radar and Best domain badges (aligned with BadgeDataService.cs).
     // Feature indices in window.BortzAge.features: 0=age, 1=albumin, 2=alp, 3=urea, 4=cholesterol, 5=creatinine, 6=cystatin_c, 7=hba1c, 8=crp, 9=ggt, 10=rbc, 11=mcv, 12=rdw, 13=monocyte, 14=neutrophil, 15=lymphocyte, 16=alt, 17=shbg, 18=vitamin_d, 19=glucose, 20=mch, 21=apoa1
     // Excluded from contribution only (controversial direction): urea, cholesterol, creatinine, alt, shbg, mch
@@ -53,26 +50,34 @@
         8: 'mg/L', 9: 'U/L', 10: '10¹²/L', 11: 'fL', 12: '%', 13: '10⁹/L', 14: '10⁹/L', 15: '%',
         16: 'U/L', 17: 'nmol/L', 18: 'nmol/L', 19: 'mmol/L', 20: 'pg', 21: 'g/L'
     };
-
     function applyBortzCap(value, f) {
-        if (!f.capMode) return value;
-        if (f.capMode === 'floor') return Math.max(value, f.cap);
-        if (f.capMode === 'ceiling') return Math.min(value, f.cap);
+        if (!f.capMode || f.cap === undefined)
+            return value;
+        if (f.capMode === 'floor')
+            return Math.max(value, f.cap);
+        if (f.capMode === 'ceiling')
+            return Math.min(value, f.cap);
         return value;
     }
-
     /** Bortz domain contribution (sum of (x-mean)*coeff for indices in that domain, excluding controversial biomarkers). Lower = better. */
     function getBortzDomainContribution(values, featureIndices) {
-        if (!window.BortzAge || !window.BortzAge.features || !values || values.length !== window.BortzAge.features.length)
+        var bortzAge = window.BortzAge;
+        if (!bortzAge || !values || values.length !== bortzAge.features.length)
             return NaN;
         var sum = 0;
         for (var i = 0; i < featureIndices.length; i++) {
             var idx = featureIndices[i];
-            if (BORTZ_CONTRIBUTION_EXCLUDED[idx]) continue;
-            var f = window.BortzAge.features[idx];
+            if (idx === undefined)
+                continue;
+            if (BORTZ_CONTRIBUTION_EXCLUDED[idx])
+                continue;
+            var f = bortzAge.features[idx];
             var x = values[idx];
+            if (!f || x === undefined)
+                return NaN;
             if (f.isLog) {
-                if (x <= 0) return NaN;
+                if (x <= 0)
+                    return NaN;
                 x = Math.log(x);
             }
             x = applyBortzCap(x, f);
@@ -80,71 +85,78 @@
         }
         return sum * 10;
     }
-
     function formatTooltipValue(val) {
-        if (val !== val || val === undefined) return '—';
-        if (Number.isInteger(val)) return String(val);
+        if (val !== val || val === undefined)
+            return '—';
+        if (Number.isInteger(val))
+            return String(val);
         return Number(val).toFixed(2).replace(/\.?0+$/, '');
     }
-
     /** Capitalize biomarker id for tooltip (e.g. "glucose" -> "Glucose", "vitamin_d" -> "Vitamin D"). */
     function formatBortzLabel(id) {
-        if (!id) return '—';
+        if (!id)
+            return '—';
         return id.split('_').map(function (part) { return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase(); }).join(' ');
     }
-
     /** For a list of athletes with scores (lower = better), compute percentile for the current athlete. 0–100, higher = better. */
     function scoreToPercentile(currentScore, allScores) {
-        if (allScores.length === 0 || currentScore === undefined || currentScore !== currentScore) return null;
+        if (allScores.length === 0 || currentScore === undefined || currentScore !== currentScore)
+            return null;
         var sorted = allScores.slice().filter(function (s) { return s === s; }).sort(function (a, b) { return a - b; });
         var n = sorted.length;
-        if (n === 0) return null;
+        if (n === 0)
+            return null;
         var rank = 1;
         for (var i = 0; i < sorted.length; i++) {
-            if (sorted[i] < currentScore) rank++;
-            else break;
+            var score = sorted[i];
+            if (score !== undefined && score < currentScore)
+                rank++;
+            else
+                break;
         }
         return Math.round((n - rank + 1) / n * 100);
     }
-
     /** Returns up to 100 athletes closest by chronological age (absolute difference). */
     function getClosestAthletesByAge(currentChronoAge, athletes, chronoKey) {
-        if (!Number.isFinite(currentChronoAge) || !Array.isArray(athletes)) return [];
-
+        if (!Number.isFinite(currentChronoAge) || !Array.isArray(athletes))
+            return [];
         return athletes
             .filter(function (a) {
-                return a && Number.isFinite(a[chronoKey]);
-            })
+            return typeof a[chronoKey] === 'number' && Number.isFinite(a[chronoKey]);
+        })
             .sort(function (a, b) {
-                return Math.abs(a[chronoKey] - currentChronoAge) - Math.abs(b[chronoKey] - currentChronoAge);
-            })
+            var aAge = a[chronoKey];
+            var bAge = b[chronoKey];
+            return Math.abs((aAge ?? currentChronoAge) - currentChronoAge)
+                - Math.abs((bAge ?? currentChronoAge) - currentChronoAge);
+        })
             .slice(0, 100);
     }
-
-
     function getPhenoRadarData(athleteData, athleteResults, currentChronoAge) {
         var labels = [];
         var values = [];
         var tooltipContributors = [];
-        var athletesWithPheno = getClosestAthletesByAge(
-            currentChronoAge,
-            (athleteResults || []).filter(function (a) { return a.bestBiomarkerValues && a.bestBiomarkerValues.length; }),
-            'chronoAtLowestPhenoAge'
-        );
-        if (athletesWithPheno.length === 0 || !athleteData || !athleteData.bestBiomarkerValues) return null;
-
+        var athletesWithPheno = getClosestAthletesByAge(currentChronoAge, (athleteResults || []).filter(function (a) { return a.bestBiomarkerValues && a.bestBiomarkerValues.length; }), 'chronoAtLowestPhenoAge');
+        if (athletesWithPheno.length === 0 || !athleteData || !athleteData.bestBiomarkerValues)
+            return null;
         var mv = athleteData.bestBiomarkerValues;
         for (var d = 0; d < PHENO_DOMAINS.length; d++) {
             var dom = PHENO_DOMAINS[d];
+            if (!dom)
+                continue;
             labels.push(dom.label);
-            var contributorFn = window.PhenoAge && window.PhenoAge[dom.contributor];
+            var phenoAge = window.PhenoAge;
+            var contributorFn = phenoAge && phenoAge[dom.contributor];
             if (typeof contributorFn !== 'function') {
                 values.push(50);
                 tooltipContributors.push([]);
                 continue;
             }
-            var myScore = contributorFn(mv);
-            var allScores = athletesWithPheno.map(function (a) { return contributorFn(a.bestBiomarkerValues); });
+            const contributor = contributorFn;
+            var myScore = contributor(mv);
+            var allScores = athletesWithPheno.map(function (a) {
+                return a.bestBiomarkerValues ? contributor(a.bestBiomarkerValues) : NaN;
+            });
             var pct = scoreToPercentile(myScore, allScores);
             values.push(pct !== null ? pct : 50);
             var indices = PHENO_DOMAIN_BIOMARKER_INDICES[dom.key];
@@ -152,10 +164,12 @@
             if (indices) {
                 for (var i = 0; i < indices.length; i++) {
                     var idx = indices[i];
+                    if (idx === undefined)
+                        continue;
                     var disp = PHENO_BIOMARKER_DISPLAY[idx];
                     var v = mv[idx];
                     if (disp) {
-                        var displayVal = disp.fromStored ? disp.fromStored(v) : v;
+                        var displayVal = disp.fromStored && v !== undefined ? disp.fromStored(v) : v;
                         parts.push(disp.short + ': ' + formatTooltipValue(displayVal) + ' ' + disp.unit);
                     }
                 }
@@ -164,32 +178,34 @@
         }
         return { labels: labels, values: values, tooltipContributors: tooltipContributors };
     }
-
     function getBortzRadarData(athleteData, athleteResults, currentChronoAge) {
         var labels = BORTZ_DOMAIN_LABELS.slice();
         var values = [];
         var tooltipContributors = [];
-        var athletesWithBortz = getClosestAthletesByAge(
-            currentChronoAge,
-            (athleteResults || []).filter(function (a) { return a.bestBortzValues && a.bestBortzValues.length; }),
-            'chronoAtLowestBortzAge'
-        );
-        if (athletesWithBortz.length === 0 || !athleteData || !athleteData.bestBortzValues) return null;
-
+        var athletesWithBortz = getClosestAthletesByAge(currentChronoAge, (athleteResults || []).filter(function (a) { return a.bestBortzValues && a.bestBortzValues.length; }), 'chronoAtLowestBortzAge');
+        if (athletesWithBortz.length === 0 || !athleteData || !athleteData.bestBortzValues)
+            return null;
         var bv = athleteData.bestBortzValues;
-        var features = window.BortzAge && window.BortzAge.features;
+        var features = window.BortzAge?.features;
         for (var i = 0; i < BORTZ_DOMAIN_LABELS.length; i++) {
             var name = BORTZ_DOMAIN_LABELS[i];
+            if (!name)
+                continue;
             var indices = BORTZ_DOMAIN_INDICES[name];
             var myScore = getBortzDomainContribution(bv, indices);
-            var allScores = athletesWithBortz.map(function (a) { return getBortzDomainContribution(a.bestBortzValues, indices); });
+            var allScores = athletesWithBortz.map(function (a) {
+                return a.bestBortzValues ? getBortzDomainContribution(a.bestBortzValues, indices) : NaN;
+            });
             var pct = scoreToPercentile(myScore, allScores);
             values.push(pct !== null ? pct : 50);
             var parts = [];
             if (indices && features) {
                 for (var j = 0; j < indices.length; j++) {
                     var idx = indices[j];
-                    if (BORTZ_CONTRIBUTION_EXCLUDED[idx]) continue;
+                    if (idx === undefined)
+                        continue;
+                    if (BORTZ_CONTRIBUTION_EXCLUDED[idx])
+                        continue;
                     var f = features[idx];
                     var v = bv[idx];
                     var shortName = f && f.id ? (f.id === 'alp' ? 'ALP' : f.id === 'crp' ? 'CRP' : f.id === 'hba1c' ? 'HbA1c' : f.id === 'ggt' ? 'GGT' : f.id === 'rbc' ? 'RBC' : f.id === 'mcv' ? 'MCV' : f.id === 'mch' ? 'MCH' : f.id === 'rdw' ? 'RDW' : f.id === 'alt' ? 'ALT' : f.id === 'apoa1' ? 'ApoA1' : f.id === 'monocyte_percentage' ? 'Monocytes' : f.id === 'neutrophil_percentage' ? 'Neutrophils' : f.id === 'lymphocyte_percentage' ? 'Lymphocytes' : f.id === 'cystatin_c' ? 'Cystatin C' : f.id === 'vitamin_d' ? 'Vitamin D' : f.id === 'shbg' ? 'SHBG' : formatBortzLabel(f.id)) : '—';
@@ -201,32 +217,34 @@
         }
         return { labels: labels, values: values, tooltipContributors: tooltipContributors };
     }
-
     var radarChartInstance = null;
     var radarResizeObserver = null;
     var radarResizeFrame = 0;
-
     function scheduleRadarResize() {
-        if (radarResizeFrame) return;
+        if (radarResizeFrame)
+            return;
         var requestFrame = window.requestAnimationFrame || function (callback) { return window.setTimeout(callback, 0); };
         radarResizeFrame = requestFrame(function () {
             radarResizeFrame = 0;
-            if (radarChartInstance) radarChartInstance.resize();
+            if (radarChartInstance)
+                radarChartInstance.resize();
         });
     }
-
     function cancelRadarResize() {
-        if (!radarResizeFrame) return;
-        if (window.cancelAnimationFrame) window.cancelAnimationFrame(radarResizeFrame);
-        else window.clearTimeout(radarResizeFrame);
+        if (!radarResizeFrame)
+            return;
+        if (window.cancelAnimationFrame)
+            window.cancelAnimationFrame(radarResizeFrame);
+        else
+            window.clearTimeout(radarResizeFrame);
         radarResizeFrame = 0;
     }
-
     function destroyRadarChart() {
         cancelRadarResize();
         if (radarResizeObserver) {
             var wrapper = document.getElementById('ageRadarWrapper');
-            if (wrapper) radarResizeObserver.disconnect();
+            if (wrapper)
+                radarResizeObserver.disconnect();
             radarResizeObserver = null;
         }
         if (radarChartInstance) {
@@ -234,13 +252,11 @@
             radarChartInstance = null;
         }
     }
-
     function updateCenterAndFallback(bioAge, chronoAge, useBortz) {
         var diff = bioAge - chronoAge;
         var diffText = (diff > 0 ? '+' : '') + diff.toFixed(1) + ' years';
         var label = diff < 0 ? 'age reduction' : 'age acceleration';
         var bioText = 'biological age: ' + (Number.isFinite(bioAge) ? bioAge.toFixed(1) : '—');
-
         var centerVal = document.getElementById('ageRadarCenterValue');
         var centerLbl = document.getElementById('ageRadarCenterLabel');
         var centerBio = document.getElementById('ageRadarCenterBio');
@@ -248,38 +264,47 @@
         var fallbackVal = document.getElementById('ageRadarFallbackValue');
         var fallbackLbl = document.getElementById('ageRadarFallbackLabel');
         var fallbackBio = document.getElementById('ageRadarFallbackBio');
-        if (centerVal) centerVal.textContent = diffText;
-        if (centerLbl) centerLbl.textContent = label;
-        if (centerBio) centerBio.textContent = bioText;
+        if (centerVal)
+            centerVal.textContent = diffText;
+        if (centerLbl)
+            centerLbl.textContent = label;
+        if (centerBio)
+            centerBio.textContent = bioText;
         if (centerEl) {
             centerEl.classList.remove('positive', 'negative');
-            if (diff < 0) centerEl.classList.add('positive');
-            else if (diff > 0) centerEl.classList.add('negative');
+            if (diff < 0)
+                centerEl.classList.add('positive');
+            else if (diff > 0)
+                centerEl.classList.add('negative');
             centerEl.setAttribute('data-diff-sign', diff < 0 ? 'negative' : diff > 0 ? 'positive' : '');
         }
-        if (fallbackVal) fallbackVal.textContent = diffText;
-        if (fallbackLbl) fallbackLbl.textContent = label;
-        if (fallbackBio) fallbackBio.textContent = bioText;
+        if (fallbackVal)
+            fallbackVal.textContent = diffText;
+        if (fallbackLbl)
+            fallbackLbl.textContent = label;
+        if (fallbackBio)
+            fallbackBio.textContent = bioText;
     }
-
     function applyRadarData(data) {
-        if (!radarChartInstance || !data) return;
+        if (!radarChartInstance || !data)
+            return;
         radarChartInstance.data.labels = data.labels;
-        radarChartInstance.data.datasets[0].data = data.values;
-        if (data.tooltipContributors) radarChartInstance._radarTooltipContributors = data.tooltipContributors;
+        var dataset = radarChartInstance.data.datasets[0];
+        if (dataset)
+            dataset.data = data.values;
+        if (data.tooltipContributors)
+            radarChartInstance._radarTooltipContributors = data.tooltipContributors;
         radarChartInstance.update('active');
     }
-
     var currentClockState = { hasPheno: false, hasBortz: false, pheno: null, bortz: null };
-
     function generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults) {
         var wrapper = document.getElementById('ageRadarWrapper');
         var fallback = document.getElementById('ageRadarFallback');
-        var canvas = document.getElementById('ageRadarChart');
+        var canvasElement = document.getElementById('ageRadarChart');
+        var canvas = canvasElement instanceof HTMLCanvasElement ? canvasElement : null;
         var switchEl = document.getElementById('ageClockSwitch');
         var tabPheno = document.getElementById('ageTabPheno');
         var tabBortz = document.getElementById('ageTabBortz');
-
         if (!wrapper || !fallback) {
             destroyRadarChart();
             var legacy = document.getElementById('targetShootingVisualization') || document.querySelector('#ageVisualization #targetShootingVisualization');
@@ -288,11 +313,12 @@
             }
             return;
         }
-
-        var hasPheno = athleteData && athleteData.bestBiomarkerValues && athleteData.bestBiomarkerValues.length && (athleteResults || []).some(function (a) { return a.bestBiomarkerValues && a.bestBiomarkerValues.length; });
-        var hasBortz = athleteData && athleteData.bestBortzValues && athleteData.bestBortzValues.length && (athleteResults || []).some(function (a) { return a.bestBortzValues && a.bestBortzValues.length; });
+        var results = Array.isArray(athleteResults) ? athleteResults : [];
+        var hasPheno = Boolean(athleteData?.bestBiomarkerValues?.length
+            && results.some(function (a) { return Boolean(a.bestBiomarkerValues?.length); }));
+        var hasBortz = Boolean(athleteData?.bestBortzValues?.length
+            && results.some(function (a) { return Boolean(a.bestBortzValues?.length); }));
         var bothClocks = hasPheno && hasBortz;
-
         if (switchEl) {
             if (bothClocks) {
                 switchEl.classList.add('visible');
@@ -304,51 +330,61 @@
                     tabPheno.setAttribute('aria-selected', 'false');
                     tabPheno.tabIndex = -1;
                 }
-            } else {
+            }
+            else {
                 switchEl.classList.remove('visible');
             }
         }
-
-        var phenoData = hasPheno ? getPhenoRadarData(athleteData, athleteResults, athleteData.chronoAtLowestPhenoAge) : null;
-        var bortzData = hasBortz ? getBortzRadarData(athleteData, athleteResults, athleteData.chronoAtLowestBortzAge) : null;
-        var phenoBio = athleteData && Number.isFinite(athleteData.lowestPhenoAge) ? athleteData.lowestPhenoAge : null;
-        var phenoChrono = athleteData && Number.isFinite(athleteData.chronoAtLowestPhenoAge) ? athleteData.chronoAtLowestPhenoAge : null;
-        var bortzBio = athleteData && Number.isFinite(athleteData.lowestBortzAge) ? athleteData.lowestBortzAge : null;
-        var bortzChrono = athleteData && Number.isFinite(athleteData.chronoAtLowestBortzAge) ? athleteData.chronoAtLowestBortzAge : null;
-
+        var phenoData = hasPheno ? getPhenoRadarData(athleteData, results, athleteData?.chronoAtLowestPhenoAge ?? NaN) : null;
+        var bortzData = hasBortz ? getBortzRadarData(athleteData, results, athleteData?.chronoAtLowestBortzAge ?? NaN) : null;
+        var phenoBio = typeof athleteData?.lowestPhenoAge === 'number' && Number.isFinite(athleteData.lowestPhenoAge) ? athleteData.lowestPhenoAge : null;
+        var phenoChrono = typeof athleteData?.chronoAtLowestPhenoAge === 'number' && Number.isFinite(athleteData.chronoAtLowestPhenoAge) ? athleteData.chronoAtLowestPhenoAge : null;
+        var bortzBio = typeof athleteData?.lowestBortzAge === 'number' && Number.isFinite(athleteData.lowestBortzAge) ? athleteData.lowestBortzAge : null;
+        var bortzChrono = typeof athleteData?.chronoAtLowestBortzAge === 'number' && Number.isFinite(athleteData.chronoAtLowestBortzAge) ? athleteData.chronoAtLowestBortzAge : null;
         currentClockState = {
             hasPheno: hasPheno,
             hasBortz: hasBortz,
             pheno: (phenoData && phenoBio != null && phenoChrono != null) ? { data: phenoData, bio: phenoBio, chrono: phenoChrono } : null,
             bortz: (bortzData && bortzBio != null && bortzChrono != null) ? { data: bortzData, bio: bortzBio, chrono: bortzChrono } : null
         };
-
         var useBortz = hasBortz && !hasPheno ? true : (bothClocks ? true : !!hasBortz);
         var data = useBortz ? (bortzData || phenoData) : (phenoData || bortzData);
         var showBio = useBortz ? bortzBio : phenoBio;
         var showChrono = useBortz ? bortzChrono : phenoChrono;
-        if (showBio == null) showBio = bioAge;
-        if (showChrono == null) showChrono = chronoAge;
+        if (showBio == null)
+            showBio = bioAge;
+        if (showChrono == null)
+            showChrono = chronoAge;
         updateCenterAndFallback(showBio, showChrono, useBortz);
-
         var centerEl = document.getElementById('ageRadarCenter');
-        if (!data || !window.Chart || !canvas) {
+        var ChartConstructor = window.Chart;
+        if (!data || !ChartConstructor || !canvas) {
             destroyRadarChart();
             wrapper.style.display = 'none';
-            if (centerEl) centerEl.style.display = 'none';
+            if (centerEl)
+                centerEl.style.display = 'none';
             fallback.style.display = 'flex';
             fallback.style.flexDirection = 'column';
             fallback.style.alignItems = 'center';
             fallback.style.justifyContent = 'center';
             return;
         }
-
         wrapper.style.display = 'block';
-        if (centerEl) centerEl.style.display = 'flex';
+        if (centerEl)
+            centerEl.style.display = 'flex';
         fallback.style.display = 'none';
-
         destroyRadarChart();
         var ctx = canvas.getContext('2d');
+        if (!ctx) {
+            wrapper.style.display = 'none';
+            if (centerEl)
+                centerEl.style.display = 'none';
+            fallback.style.display = 'flex';
+            fallback.style.flexDirection = 'column';
+            fallback.style.alignItems = 'center';
+            fallback.style.justifyContent = 'center';
+            return;
+        }
         var fontFamily = window.getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif';
         var modal = document.getElementById('detailsModal');
         var modalStyles = modal ? window.getComputedStyle(modal) : null;
@@ -359,27 +395,26 @@
         var radarPoint = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
         var radarPointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
         var contributors = data.tooltipContributors || [];
-
-        radarChartInstance = new window.Chart(ctx, {
+        radarChartInstance = new ChartConstructor(ctx, {
             type: 'radar',
             data: {
                 labels: data.labels,
                 datasets: [{
-                    label: 'Percentile (higher = better)',
-                    data: data.values,
-                    backgroundColor: radarFill,
-                    borderColor: radarStroke,
-                    borderWidth: 2.5,
-                    pointBackgroundColor: radarPoint,
-                    pointBorderColor: 'rgba(18,20,20,.95)',
-                    pointBorderWidth: 2,
-                    pointHoverBackgroundColor: radarPoint,
-                    pointHoverBorderColor: 'rgba(18,20,20,.95)',
-                    pointHoverBorderWidth: 2,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    pointHitRadius: radarPointHitRadius
-                }]
+                        label: 'Percentile (higher = better)',
+                        data: data.values,
+                        backgroundColor: radarFill,
+                        borderColor: radarStroke,
+                        borderWidth: 2.5,
+                        pointBackgroundColor: radarPoint,
+                        pointBorderColor: 'rgba(18,20,20,.95)',
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: radarPoint,
+                        pointHoverBorderColor: 'rgba(18,20,20,.95)',
+                        pointHoverBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointHitRadius: radarPointHitRadius
+                    }]
             },
             options: {
                 responsive: true,
@@ -395,18 +430,25 @@
                         bodyFont: { size: 12 },
                         callbacks: {
                             title: function (tooltipItems) {
-                                if (!tooltipItems.length) return '';
-                                return tooltipItems[0].raw + 'th percentile';
+                                var firstItem = tooltipItems[0];
+                                if (!firstItem)
+                                    return '';
+                                return String(firstItem.raw) + 'th percentile';
                             },
                             label: function () { return null; },
                             afterBody: function (tooltipItems) {
-                                if (!tooltipItems.length) return [];
+                                var firstItem = tooltipItems[0];
+                                if (!firstItem)
+                                    return [];
                                 var chart = radarChartInstance;
-                                if (!chart) return [];
+                                if (!chart)
+                                    return [];
                                 var contrib = chart._radarTooltipContributors;
-                                var idx = tooltipItems[0].dataIndex;
-                                if (!contrib || !contrib[idx] || !contrib[idx].length) return [];
-                                return [''].concat(contrib[idx]);
+                                var idx = firstItem.dataIndex;
+                                var contributorLines = contrib?.[idx];
+                                if (!contributorLines?.length)
+                                    return [];
+                                return [''].concat(contributorLines);
                             }
                         }
                     }
@@ -436,15 +478,16 @@
             }
         });
         radarChartInstance._radarTooltipContributors = contributors;
-        if (radarResizeObserver && wrapper) radarResizeObserver.disconnect();
+        if (radarResizeObserver && wrapper)
+            radarResizeObserver.disconnect();
         if ('ResizeObserver' in window) {
             radarResizeObserver = new ResizeObserver(scheduleRadarResize);
             radarResizeObserver.observe(wrapper);
         }
-
         function selectClock(bortz) {
             var payload = bortz ? currentClockState.bortz : currentClockState.pheno;
-            if (!payload) return;
+            if (!payload)
+                return;
             applyRadarData(payload.data);
             updateCenterAndFallback(payload.bio, payload.chrono, bortz);
             if (tabPheno) {
@@ -456,7 +499,6 @@
                 tabBortz.tabIndex = bortz ? 0 : -1;
             }
         }
-
         if (bothClocks && tabPheno && tabBortz) {
             tabPheno.onclick = function () { selectClock(false); };
             tabBortz.onclick = function () { selectClock(true); };
@@ -464,10 +506,12 @@
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     selectClock(!isPheno);
-                } else if (e.key === 'ArrowLeft') {
+                }
+                else if (e.key === 'ArrowLeft') {
                     e.preventDefault();
                     selectClock(true);
-                } else if (e.key === 'ArrowRight') {
+                }
+                else if (e.key === 'ArrowRight') {
                     e.preventDefault();
                     selectClock(false);
                 }
@@ -476,7 +520,6 @@
             tabBortz.onkeydown = function (e) { handleKey(e, false); };
         }
     }
-
     function generateAgeVisualizationInternal(visualizationContainer, bioAge, chronoAge) {
         var maxAge = 100;
         var bioPct = Math.min((bioAge / maxAge) * 100, 100);
@@ -484,9 +527,11 @@
         var gradient;
         if (bioAge === chronoAge) {
             gradient = 'radial-gradient(circle, rgba(246,244,237,.72) 100%, rgba(246,244,237,.72) 100%)';
-        } else if (bioAge < chronoAge) {
+        }
+        else if (bioAge < chronoAge) {
             gradient = 'radial-gradient(circle, rgba(246,244,237,.78) ' + bioPct + '%, rgba(181,226,226,.45) ' + chronoPct + '%, rgba(255,255,255,.18) 100%)';
-        } else {
+        }
+        else {
             gradient = 'radial-gradient(circle, rgba(246,244,237,.78) ' + chronoPct + '%, rgba(213,224,221,.42) ' + bioPct + '%, rgba(255,255,255,.18) 100%)';
         }
         visualizationContainer.style.background = gradient;
@@ -494,11 +539,11 @@
         visualizationContainer.style.position = 'relative';
         visualizationContainer.style.border = '2px solid rgba(246,244,237,.5)';
         visualizationContainer.innerHTML = '';
-        var diff = (bioAge - chronoAge).toFixed(1);
-        var text = (diff > 0 ? '+' : '') + diff + ' yrs';
+        var difference = bioAge - chronoAge;
+        var diff = difference.toFixed(1);
+        var text = (difference > 0 ? '+' : '') + diff + ' yrs';
         visualizationContainer.innerHTML = '<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--light-text-color);font-weight:bold;">' + text + '</span>';
     }
-
     /** Badge label -> Bortz domain key (same as athlete profile radar). Used so Best domain badge tooltips show the same biomarkers as the profile. */
     var BEST_DOMAIN_LABEL_TO_KEY = {
         'Best domain – liver': 'Liver',
@@ -508,18 +553,22 @@
         'Best domain – inflammation': 'Inflammation',
         'Best domain – vitamin D': 'Vitamin D'
     };
-
     /** Returns the biomarker part of a Best domain tooltip, e.g. "(albumin 45 g/L, ALP 82 U/L, GGT 3.2 U/L)". Uses same indices and exclusions as athlete profile radar. */
     function getBestDomainBiomarkerTooltip(badgeLabel, bestBortzValues) {
-        if (!bestBortzValues || bestBortzValues.length < 22) return null;
+        if (!bestBortzValues || bestBortzValues.length < 22)
+            return null;
         var key = BEST_DOMAIN_LABEL_TO_KEY[badgeLabel];
-        if (!key || !BORTZ_DOMAIN_INDICES[key]) return null;
+        if (!key || !BORTZ_DOMAIN_INDICES[key])
+            return null;
         var indices = BORTZ_DOMAIN_INDICES[key];
-        var features = window.BortzAge && window.BortzAge.features;
+        var features = window.BortzAge?.features;
         var parts = [];
         for (var j = 0; j < indices.length; j++) {
             var idx = indices[j];
-            if (BORTZ_CONTRIBUTION_EXCLUDED[idx]) continue;
+            if (idx === undefined)
+                continue;
+            if (BORTZ_CONTRIBUTION_EXCLUDED[idx])
+                continue;
             var f = features && features[idx];
             var v = bestBortzValues[idx];
             var shortName = f && f.id ? (f.id === 'alp' ? 'ALP' : f.id === 'crp' ? 'CRP' : f.id === 'hba1c' ? 'HbA1c' : f.id === 'ggt' ? 'GGT' : f.id === 'rbc' ? 'RBC' : f.id === 'mcv' ? 'MCV' : f.id === 'mch' ? 'MCH' : f.id === 'rdw' ? 'RDW' : f.id === 'alt' ? 'ALT' : f.id === 'apoa1' ? 'ApoA1' : f.id === 'monocyte_percentage' ? 'Monocytes' : f.id === 'neutrophil_percentage' ? 'Neutrophils' : f.id === 'lymphocyte_percentage' ? 'Lymphocytes' : f.id === 'cystatin_c' ? 'Cystatin C' : f.id === 'vitamin_d' ? 'Vitamin D' : f.id === 'shbg' ? 'SHBG' : formatBortzLabel(f.id)) : '—';
@@ -528,9 +577,9 @@
         }
         return parts.length ? '(' + parts.join(', ') + ')' : null;
     }
-
     window.generateAgeVisualization = generateAgeVisualization;
     window.generateAgeVisualizationInternal = generateAgeVisualizationInternal;
     window.destroyAgeRadarChart = destroyRadarChart;
     window.getBestDomainBiomarkerTooltip = getBestDomainBiomarkerTooltip;
 })();
+export {};

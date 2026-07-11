@@ -1,46 +1,40 @@
+"use strict";
 (function () {
     let mentionResolver = null;
-
     function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, function (ch) {
-            return {
+            const replacements = {
                 "&": "&amp;",
                 "<": "&lt;",
                 ">": "&gt;",
                 "\"": "&quot;",
                 "'": "&#39;"
-            }[ch];
+            };
+            return replacements[ch] ?? ch;
         });
     }
-
     function normalizeNewlines(value) {
         return String(value || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     }
-
     function splitText(text) {
         var normalized = normalizeNewlines(text);
         var idx = normalized.indexOf("\n\n");
         if (idx >= 0) {
             return { title: normalized.slice(0, idx).trimEnd(), content: normalized.slice(idx + 2) };
         }
-
         return { title: normalized.trimEnd(), content: "" };
     }
-
     function isSafeHttpUrl(value) {
         return /^https?:\/\/.+/i.test(String(value || "").trim());
     }
-
     function containsHyperlink(text) {
         return containsHyperlinkCore(String(text || ""));
     }
-
     function getSingleHyperlink(text) {
         var links = [];
         collectHyperlinks(String(text || ""), links);
-        return links.length === 1 ? links[0] : "";
+        return links.length === 1 ? links[0] ?? "" : "";
     }
-
     function containsHyperlinkCore(text) {
         var s = String(text || "");
         var i = 0;
@@ -49,43 +43,39 @@
             if (open < 0) {
                 return false;
             }
-
             var close = s.indexOf("](", open + 1);
             if (close < 0) {
                 return false;
             }
-
             var label = s.slice(open + 1, close);
             var parenStart = close + 2;
             var depth = 1;
             var j = parenStart;
             while (j < s.length && depth > 0) {
-                var ch = s[j];
-                if (ch === "(") depth++;
-                else if (ch === ")") depth--;
+                var ch = s.charAt(j);
+                if (ch === "(")
+                    depth++;
+                else if (ch === ")")
+                    depth--;
                 j++;
             }
-
             if (depth !== 0) {
                 return false;
             }
-
             var inner = s.slice(parenStart, j - 1);
             var key = label.trim().toLowerCase();
             if (key === "bold" || key === "strong") {
                 if (containsHyperlinkCore(inner)) {
                     return true;
                 }
-            } else if (isSafeHttpUrl(inner)) {
+            }
+            else if (isSafeHttpUrl(inner)) {
                 return true;
             }
-
             i = j;
         }
-
         return false;
     }
-
     function collectHyperlinks(text, links) {
         var s = String(text || "");
         var i = 0;
@@ -94,42 +84,39 @@
             if (open < 0) {
                 return;
             }
-
             var close = s.indexOf("](", open + 1);
             if (close < 0) {
                 return;
             }
-
             var label = s.slice(open + 1, close);
             var parenStart = close + 2;
             var depth = 1;
             var j = parenStart;
             while (j < s.length && depth > 0) {
-                var ch = s[j];
-                if (ch === "(") depth++;
-                else if (ch === ")") depth--;
+                var ch = s.charAt(j);
+                if (ch === "(")
+                    depth++;
+                else if (ch === ")")
+                    depth--;
                 j++;
             }
-
             if (depth !== 0) {
                 return;
             }
-
             var inner = s.slice(parenStart, j - 1);
             var key = label.trim().toLowerCase();
             if (key === "bold" || key === "strong") {
                 collectHyperlinks(inner, links);
-            } else if (isSafeHttpUrl(inner)) {
+            }
+            else if (isSafeHttpUrl(inner)) {
                 links.push(inner.trim());
                 if (links.length > 1) {
                     return;
                 }
             }
-
             i = j;
         }
     }
-
     function humanizeSlug(value) {
         return String(value || "")
             .replace(/[_-]+/g, " ")
@@ -139,18 +126,15 @@
             .map(function (part) { return part.charAt(0).toUpperCase() + part.slice(1); })
             .join(" ");
     }
-
     function resolveMentionText(slug, overrideResolver) {
         var normalized = String(slug || "").trim();
         if (!normalized) {
             return "";
         }
-
         var resolver = typeof overrideResolver === "function" ? overrideResolver : mentionResolver;
         var resolved = resolver ? resolver(normalized) : "";
         return resolved ? String(resolved) : (humanizeSlug(normalized) || normalized);
     }
-
     function walk(text, handlers) {
         var s = String(text || "");
         var out = "";
@@ -161,50 +145,49 @@
                 out += handlers.text(s.slice(i));
                 break;
             }
-
             out += handlers.text(s.slice(i, open));
             var close = s.indexOf("](", open + 1);
             if (close < 0) {
                 out += handlers.text(s.slice(open));
                 break;
             }
-
             var label = s.slice(open + 1, close);
             var parenStart = close + 2;
             var depth = 1;
             var j = parenStart;
             while (j < s.length && depth > 0) {
-                var ch = s[j];
-                if (ch === "(") depth++;
-                else if (ch === ")") depth--;
+                var ch = s.charAt(j);
+                if (ch === "(")
+                    depth++;
+                else if (ch === ")")
+                    depth--;
                 j++;
             }
-
             if (depth !== 0) {
                 out += handlers.text(s.slice(open));
                 break;
             }
-
             var inner = s.slice(parenStart, j - 1);
             var key = label.trim().toLowerCase();
             if (key === "bold") {
                 out += handlers.bold(inner);
-            } else if (key === "strong") {
+            }
+            else if (key === "strong") {
                 out += handlers.strong(inner);
-            } else if (key === "mention") {
+            }
+            else if (key === "mention") {
                 out += handlers.mention(inner);
-            } else if (isSafeHttpUrl(inner)) {
+            }
+            else if (isSafeHttpUrl(inner)) {
                 out += handlers.link(label, inner);
-            } else {
+            }
+            else {
                 out += handlers.text(s.slice(open, j));
             }
-
             i = j;
         }
-
         return out;
     }
-
     function renderMarkup(text, options) {
         var opts = options || {};
         return walk(text, {
@@ -229,13 +212,11 @@
             }
         });
     }
-
     function renderMarkupWithBreaks(text, options) {
         return normalizeNewlines(text || "").split("\n").map(function (line) {
             return renderMarkup(line, options);
         }).join("<br>");
     }
-
     function renderWebpageMarkup(text, options) {
         var opts = options || {};
         return renderMarkup(text, {
@@ -246,22 +227,18 @@
                 var href = typeof opts.mentionHrefResolver === "function"
                     ? opts.mentionHrefResolver(String(slug || "").trim())
                     : "";
-
                 if (!href) {
                     return escapeHtml(displayText);
                 }
-
                 return '<a href="' + escapeHtml(String(href)) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(displayText) + '</a>';
             }
         });
     }
-
     function renderWebpageMarkupWithBreaks(text, options) {
         return normalizeNewlines(text || "").split("\n").map(function (line) {
             return renderWebpageMarkup(line, options);
         }).join("<br>");
     }
-
     function renderImageMarkup(text, options) {
         var opts = options || {};
         return walk(text, {
@@ -280,13 +257,11 @@
             }
         });
     }
-
     function renderImageMarkupWithBreaks(text, options) {
         return normalizeNewlines(text || "").split("\n").map(function (line) {
             return renderImageMarkup(line, options);
         }).join("<br>");
     }
-
     function toPlainText(text, options) {
         var opts = options || {};
         var keepHyperlinkLabels = opts.keepHyperlinkLabels !== false;
@@ -298,11 +273,9 @@
             link: function (label) { return keepHyperlinkLabels ? label : ""; }
         });
     }
-
     function setMentionResolver(resolver) {
         mentionResolver = typeof resolver === "function" ? resolver : null;
     }
-
     window.CustomEventMarkup = {
         normalizeNewlines: normalizeNewlines,
         splitText: splitText,
