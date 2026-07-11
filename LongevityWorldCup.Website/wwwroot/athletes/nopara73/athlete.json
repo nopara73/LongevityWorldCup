@@ -8,6 +8,18 @@
   },
   "Biomarkers": [
     {
+      "Date": "2023-08-27",
+      "AlbGL": 42.3,
+      "CreatUmolL": 82.3,
+      "GluMmolL": 4.44,
+      "CrpMgL": 7.7,
+      "LymPc": 46.4,
+      "McvFL": 87.3,
+      "RdwPc": 12.4,
+      "AlpUL": 54,
+      "Wbc1000cellsuL": 6.1
+    },
+    {
       "Date": "2025-03-06",
       "AlbGL": 40.99999999999999,
       "CreatUmolL": 88.49557522123894,
@@ -92,6 +104,31 @@
       "GgtUL": 26,
       "ShbgNmolL": 27.8,
       "VitaminDNmolL": 89.7
+    },
+    {
+      "Date": "2026-07-06",
+      "AlbGL": 43,
+      "CreatUmolL": 98,
+      "GluMmolL": 4.7,
+      "CrpMgL": 3.75,
+      "LymPc": 31.6,
+      "McvFL": 92,
+      "RdwPc": 12.7,
+      "AlpUL": 61,
+      "Wbc1000cellsuL": 5.9,
+      "NeutrophilPc": 58.4,
+      "MonocytePc": 8.5,
+      "Rbc10e12L": 5.1,
+      "MchPg": 31,
+      "UreaMmolL": 5.2,
+      "CystatinCMgL": 0.84,
+      "Hba1cMmolMol": 35,
+      "CholesterolMmolL": 5.1,
+      "ApoA1GL": 1.36,
+      "AltUL": 26,
+      "GgtUL": 22,
+      "ShbgNmolL": 31.2,
+      "VitaminDNmolL": 86.7
     }
   ],
   "Division": "Men's",
