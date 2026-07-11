@@ -1096,6 +1096,84 @@ public sealed class EventDataService : IDisposable
         }
     }
 
+    public int ReconcileBiologicalAgeImprovementEventDates(
+        IEnumerable<(string AthleteSlug, string Clock, double NewAge, DateTime ResultDateUtc)> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        var resultDates = items
+            .Select(item => (
+                Slug: NormalizeAthleteSlugForEventCleanup(item.AthleteSlug),
+                Clock: NormalizeImprovementClock(item.Clock),
+                NewAge: item.NewAge,
+                NewAgeText: item.NewAge.ToString("0.##", CultureInfo.InvariantCulture),
+                ResultDateUtc: EnsureUtc(item.ResultDateUtc).Date))
+            .Where(item => !string.IsNullOrWhiteSpace(item.Slug) && item.Clock is not null && double.IsFinite(item.NewAge))
+            .GroupBy(item => $"{item.Slug}|{item.Clock}|{item.NewAgeText}", StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Last().ResultDateUtc, StringComparer.OrdinalIgnoreCase);
+
+        if (resultDates.Count == 0)
+            return 0;
+
+        var updated = _db.Run(sqlite =>
+        {
+            var corrections = new List<(string Id, DateTime ResultDateUtc)>();
+            using (var select = sqlite.CreateCommand())
+            {
+                select.CommandText = "SELECT Id, Text, OccurredAt FROM Events WHERE Type=@type;";
+                select.Parameters.AddWithValue("@type", (int)EventType.BiologicalAgeImproved);
+
+                using var reader = select.ExecuteReader();
+                while (reader.Read())
+                {
+                    var text = reader.GetString(1);
+                    if (!EventHelpers.TryExtractSlug(text, out var slug) ||
+                        !EventHelpers.TryExtractBiologicalAgeImprovement(text, out var clock, out _, out var newAge))
+                        continue;
+
+                    var key =
+                        $"{NormalizeAthleteSlugForEventCleanup(slug)}|{NormalizeImprovementClock(clock)}|" +
+                        newAge.ToString("0.##", CultureInfo.InvariantCulture);
+                    if (!resultDates.TryGetValue(key, out var resultDateUtc))
+                        continue;
+
+                    var occurredAtUtc = EnsureUtc(DateTime.Parse(reader.GetString(2), null, DateTimeStyles.RoundtripKind));
+                    if (occurredAtUtc.Date != resultDateUtc.Date)
+                        corrections.Add((reader.GetString(0), resultDateUtc));
+                }
+            }
+
+            if (corrections.Count == 0)
+                return 0;
+
+            using var tx = sqlite.BeginTransaction();
+            using var update = sqlite.CreateCommand();
+            update.Transaction = tx;
+            update.CommandText = "UPDATE Events SET OccurredAt=@occurredAt WHERE Id=@id;";
+            var pOccurredAt = update.Parameters.Add("@occurredAt", SqliteType.Text);
+            var pId = update.Parameters.Add("@id", SqliteType.Text);
+
+            var count = 0;
+            foreach (var (id, resultDateUtc) in corrections)
+            {
+                pOccurredAt.Value = EnsureUtc(resultDateUtc).ToString("o");
+                pId.Value = id;
+                count += update.ExecuteNonQuery();
+            }
+
+            tx.Commit();
+            return count;
+        });
+
+        if (updated > 0)
+        {
+            _log.LogInformation("Corrected {EventCount} biological-age improvement Event date(s) to their result dates.", updated);
+            ReloadIntoCache();
+        }
+
+        return updated;
+    }
+
     public void CreateCrowdAgeTop10ChangeEvents(
         IEnumerable<(string AthleteSlug, DateTime OccurredAtUtc, int Place, int? PreviousPlace, string? PreviousSlug, double CrowdAge, int CrowdCount)> items,
         bool skipIfExists = true,
@@ -1914,19 +1992,22 @@ public sealed class EventDataService : IDisposable
             return 0;
         }
 
-        var removed = _db.Run(sqlite =>
+        var (removed, restored) = _db.Run(sqlite =>
         {
             var staleIds = new List<string>();
+            var restorableIds = new List<string>();
 
             using (var select = sqlite.CreateCommand())
             {
-                select.CommandText = "SELECT Id, Type, Text FROM Events WHERE VisibleOnWebsite <> 0;";
+                select.CommandText =
+                    "SELECT Id, Type, Text, VisibleOnWebsite, XSkipReason, ThreadsSkipReason, FacebookSkipReason FROM Events;";
                 using var reader = select.ExecuteReader();
                 while (reader.Read())
                 {
                     var id = reader.GetString(0);
                     var typeInt = reader.GetInt32(1);
                     var text = reader.GetString(2);
+                    var isVisible = reader.GetInt32(3) != 0;
                     var type = Enum.IsDefined(typeof(EventType), typeInt) ? (EventType)typeInt : EventType.General;
 
                     if (!IsAthleteCentricEventType(type))
@@ -1936,13 +2017,24 @@ public sealed class EventDataService : IDisposable
                     if (referencedSlugs.Count == 0)
                         continue;
 
-                    if (referencedSlugs.Any(slug => !normalizedActiveSlugs.Contains(slug)))
+                    var hasMissingReference = referencedSlugs.Any(slug => !normalizedActiveSlugs.Contains(slug));
+                    if (isVisible && hasMissingReference)
+                    {
                         staleIds.Add(id);
+                        continue;
+                    }
+
+                    var wasHiddenForMissingAthlete =
+                        (!reader.IsDBNull(4) && string.Equals(reader.GetString(4), "MissingAthlete", StringComparison.Ordinal)) ||
+                        (!reader.IsDBNull(5) && string.Equals(reader.GetString(5), "MissingAthlete", StringComparison.Ordinal)) ||
+                        (!reader.IsDBNull(6) && string.Equals(reader.GetString(6), "MissingAthlete", StringComparison.Ordinal));
+                    if (!isVisible && !hasMissingReference && wasHiddenForMissingAthlete)
+                        restorableIds.Add(id);
                 }
             }
 
-            if (staleIds.Count == 0)
-                return 0;
+            if (staleIds.Count == 0 && restorableIds.Count == 0)
+                return (0, 0);
 
             using var tx = sqlite.BeginTransaction();
             using var hide = sqlite.CreateCommand();
@@ -1969,13 +2061,27 @@ public sealed class EventDataService : IDisposable
                 count += hide.ExecuteNonQuery();
             }
 
+            using var restore = sqlite.CreateCommand();
+            restore.Transaction = tx;
+            restore.CommandText = "UPDATE Events SET VisibleOnWebsite = 1 WHERE Id = @id AND VisibleOnWebsite = 0;";
+            var restoreId = restore.Parameters.Add("@id", SqliteType.Text);
+            var restoredCount = 0;
+            foreach (var id in restorableIds)
+            {
+                restoreId.Value = id;
+                restoredCount += restore.ExecuteNonQuery();
+            }
+
             tx.Commit();
-            return count;
+            return (count, restoredCount);
         });
 
-        if (removed > 0)
+        if (removed > 0 || restored > 0)
         {
-            _log.LogInformation("Hid {EventCount} athlete Event(s) referencing athletes missing from the leaderboard.", removed);
+            _log.LogInformation(
+                "Reconciled athlete Event visibility: hid {HiddenEventCount} with missing references and restored {RestoredEventCount} whose athletes returned.",
+                removed,
+                restored);
             ReloadIntoCache();
         }
 
