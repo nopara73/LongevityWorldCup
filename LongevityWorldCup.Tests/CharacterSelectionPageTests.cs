@@ -11,15 +11,16 @@ public sealed class CharacterSelectionPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/select-athlete");
+        var playMenu = await client.GetStringAsync("/js/play-menu.js");
 
         Assert.Contains("id=\"athleteSelectionPanel\"", html);
         Assert.Contains("id=\"athleteSelectionPicture\" class=\"athlete-picture-frame\"", html);
         Assert.Contains("<label for=\"playAthleteInput\" class=\"visually-hidden\">Athlete name</label>", html);
         Assert.Contains("id=\"playAthleteInput\"", html);
         Assert.Contains("id=\"playConfirmAthleteBtn\"", html);
-        Assert.Contains("function navigateToStartPanel()", html);
-        Assert.Contains("flow.persistSelectedAthlete(currentAthlete)", html);
-        Assert.Contains("showPlayPanel('dashboard', { historyMode: 'push' });", html);
+        Assert.Contains("function navigateToStartPanel()", playMenu);
+        Assert.Contains("flow.persistSelectedAthlete(currentAthlete)", playMenu);
+        Assert.Contains("showPlayPanel('dashboard', { historyMode: 'push' });", playMenu);
         Assert.DoesNotContain("character-selection-main", html);
         Assert.DoesNotContain("id=\"confirmBtn\"", html);
         Assert.DoesNotContain("window.location.href = '/dashboard';", html);
@@ -37,13 +38,15 @@ public sealed class CharacterSelectionPageTests
 
         Assert.Contains("/js/play-athlete-flow.js", html);
         Assert.Contains("/css/play-athlete-flow.css", html);
-        Assert.Contains("flow.createAthleteSelectionController({", html);
-        Assert.Contains("errorElement: document.getElementById('playAthleteError')", html);
-        Assert.Contains("}).bind();", html);
+        Assert.Contains("/js/play-menu.js", html);
+        var playMenu = await client.GetStringAsync("/js/play-menu.js");
+        Assert.Contains("flow.createAthleteSelectionController({", playMenu);
+        Assert.Contains("errorElement: document.getElementById('playAthleteError')", playMenu);
+        Assert.Contains("}).bind();", playMenu);
         Assert.Contains("function getStoredSelectedAthlete()", flow);
         Assert.Contains("function hydrateStoredAthleteSelection()", flow);
         Assert.Contains("renderSelectedAthletePreview(storedAthlete, { transition: false });", flow);
-        Assert.Contains("function loadAthletes()", flow);
+        Assert.Contains("function loadAthletes(loadOptions = {})", flow);
         Assert.Contains("let athleteLoadPromise = null;", flow);
         Assert.Contains("fetch(athleteApiPath)", flow);
         Assert.Contains("console.error(\"Error fetching athletes:\", error);", flow);
@@ -124,13 +127,13 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("resetAthletePreview({ titleElement, frameElement, defaultTitle });", flow);
         Assert.Contains("function resetAthletePreview({ titleElement, frameElement, defaultTitle })", flow);
         Assert.Contains("titleElement.textContent = defaultTitle;", flow);
-        Assert.Contains("webpSource.srcset = DEFAULT_HEADSHOT_WEBP;", flow);
-        Assert.Contains("jpegSource.srcset = DEFAULT_HEADSHOT_JPEG;", flow);
+        Assert.Contains("webpSource.srcset = getDefaultHeadshotWebp();", flow);
+        Assert.Contains("jpegSource.srcset = getDefaultHeadshotJpeg();", flow);
         Assert.Contains("image.alt = \"Headshot\";", flow);
         Assert.Contains("image.className = \"illustration athlete-picture-placeholder\";", flow);
         Assert.Contains("function createDefaultAthleteImage()", flow);
         Assert.Contains("image.className = \"illustration athlete-picture-placeholder athlete-picture-next\";", flow);
-        Assert.Contains("transitionAthletePicture(frameElement, createDefaultAthleteImage(), DEFAULT_HEADSHOT_JPEG);", flow);
+        Assert.Contains("transitionAthletePicture(frameElement, createDefaultAthleteImage(), getDefaultHeadshotJpeg());", flow);
     }
 
     [Fact]
@@ -148,8 +151,8 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("border: 4px solid var(--dark-text-color);", css);
         Assert.Contains("box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);", css);
         Assert.Contains("object-fit: contain;", css);
-        Assert.Contains("object-fit: cover;", css);
-        Assert.Contains("transform: scale(1.035);", css);
+        Assert.DoesNotContain("object-fit: cover;", css);
+        Assert.DoesNotContain("transform: scale(1.42);", css);
         Assert.Contains("border: 0;", css);
         Assert.Contains("class=\"illustration athlete-picture-placeholder\"", html);
         Assert.Contains("const ATHLETE_PICTURE_TRANSITION_MS = 180;", flow);
@@ -157,7 +160,9 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("function transitionAthletePicture(frame, image, src)", flow);
         Assert.Contains("function shouldUseDefaultForLoadedAthleteImage(image)", flow);
         Assert.Contains("function setDefaultAthleteImageSource(image)", flow);
-        Assert.Contains("function watchAthleteImageLoad(image, onLoaded, shouldIgnore = () => false)", flow);
+        Assert.Contains("function watchAthleteImageLoad(image, onLoaded)", flow);
+        Assert.Contains("function waitForAthletePictureFrameReady(frame)", flow);
+        Assert.Contains("const pictureReadyPromises = new WeakMap();", flow);
         Assert.Contains("function getAthletePictureImageSrc(athlete)", flow);
         Assert.Contains("athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb", flow);
         Assert.Contains("let hasFinished = false;", flow);

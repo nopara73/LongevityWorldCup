@@ -52,10 +52,10 @@
     .tagline {
         display: block;
         margin-top: 0.65rem;
-        font-size: clamp(1rem, 1.5vw, 1.1rem);
+        font-size: 1.05rem;
         font-weight: 400;
         color: #e2e8f0;
-        letter-spacing: 0.04em;
+        letter-spacing: 0;
     }
 
     body {
@@ -106,11 +106,11 @@
     .bannertext {
         text-align: center; /* Optional */
         box-sizing: border-box;
-        font-size: clamp(1.95rem, 4.4vw, 2.45rem);
+        font-size: 2.25rem;
         line-height: 1.08;
         font-weight: 700;
         text-transform: capitalize;
-        letter-spacing: 0.05em;
+        letter-spacing: 0;
         position: relative;
         text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.35);
         max-width: 100%;
@@ -121,7 +121,7 @@
         text-align: center; /* Optional */
         font-size: 2.7rem;
         font-weight: 700;
-        letter-spacing: 2px;
+        letter-spacing: 0;
         position: relative;
         text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.3);
         padding: 0 1rem;
@@ -146,7 +146,7 @@
     .join-game {
         margin-top: 1rem;
         padding: 0.75rem 1.65rem;
-        font-size: clamp(1.08rem, 1.7vw, 1.25rem);
+        font-size: 1.15rem;
         line-height: 1;
         background: var(--main-action-color);
         color: var(--light-text-color);
@@ -613,7 +613,7 @@
     .site-sticky-header-title {
         font-size: 1.1rem;
         font-weight: 700;
-        letter-spacing: 2px;
+        letter-spacing: 0;
         text-transform: capitalize;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     }
@@ -807,12 +807,12 @@
             longevity leaderboards
         </span>
     </a>
-    <button onclick="window.location.href='/play'" class="join-game" aria-label="Play the game">
+    <button onclick="window.location.assign('/play')" class="join-game" aria-label="Play the game">
         <strong>PLAY</strong>
         <span class="join-game-middle" style="font-size: 1rem;">THE</span>
         <strong class="join-game-end">GAME</strong>
     </button>
-    <button onclick="window.location.href='/play'" class="join-game scrolled-button" aria-label="Play the game" style="display: none;">
+    <button onclick="window.location.assign('/play')" class="join-game scrolled-button" aria-label="Play the game" style="display: none;">
         <strong>PLAY</strong>
     </button>
     <div id="custom-alert" role="alertdialog" aria-modal="true" aria-labelledby="custom-alert-title" aria-describedby="custom-alert-message" hidden>

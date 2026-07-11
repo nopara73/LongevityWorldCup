@@ -163,6 +163,11 @@
         background: rgba(255, 255, 255, 0.08);
     }
 
+    html.sticky-progress-visible #mainProgressBar {
+        opacity: 0;
+        pointer-events: none;
+    }
+
 </style>
 <div id="mainProgressBar" class="progress-container">
     <div class="progress-bar" data-aos="fade" data-aos-duration="700" data-aos-delay="350" aria-hidden="true">
@@ -198,13 +203,27 @@
     var MAIN_PROGRESS_STAGE_LABELS = ['Test', 'Calculate', 'Submit'];
 
     (function () {
-        document.addEventListener('DOMContentLoaded', function () {
+        var isStickyProgressInitialized = false;
+
+        function initializeStickyProgress() {
+            if (isStickyProgressInitialized) return;
+
             var stickyProgressContentGap = 12;
 
             setTimeout(function () {
+                if (document.body && document.body.classList.contains('play-flow-route')) return;
+
                 // Scroll to the content under the progress bar so it sits just below the sticky header + progress bar (no overscroll)
                 var stickyHeader = document.getElementById('site-sticky-header');
                 var stickyProgress = document.getElementById('site-sticky-progress');
+                var mainProgressBar = document.getElementById('mainProgressBar');
+                var mainProgressStyle = mainProgressBar && window.getComputedStyle(mainProgressBar);
+                var isMainProgressVisible = mainProgressBar
+                    && mainProgressStyle.display !== 'none'
+                    && mainProgressStyle.visibility !== 'hidden'
+                    && mainProgressBar.offsetHeight > 0;
+                if (!isMainProgressVisible) return;
+
                 var contentStart = stickyProgress && stickyProgress.nextElementSibling;
                 if (contentStart && contentStart.tagName === 'SCRIPT') contentStart = contentStart.nextElementSibling;
                 if (contentStart) {
@@ -218,16 +237,17 @@
             }, 500);
 
             // Sticky progress: show only when it would completely cover the in-page progress bar (not the main site header)
-            var mainProgressBar = document.getElementById('mainProgressBar');
-            var stickyHeader = document.getElementById('site-sticky-header');
-            var stickyProgress = document.getElementById('site-sticky-progress');
-            if (!stickyProgress) return;
+            if (!document.getElementById('site-sticky-progress')) return;
+            isStickyProgressInitialized = true;
 
-            var lastScroll = 0;
-            var ticking = false;
             var progressBarStickyHeight = 44; /* #site-sticky-progress when visible */
 
             function updateStickyVisibility() {
+                var mainProgressBar = document.getElementById('mainProgressBar');
+                var stickyHeader = document.getElementById('site-sticky-header');
+                var stickyProgress = document.getElementById('site-sticky-progress');
+                if (!stickyProgress) return;
+
                 var scrollY = window.scrollY || window.pageYOffset;
                 var lwcHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
                 var combinedStickyBottom = lwcHeight + progressBarStickyHeight;
@@ -253,21 +273,22 @@
                     document.documentElement.style.scrollPaddingTop = '';
                     stickyProgress.style.top = '';
                 }
-                lastScroll = scrollY;
             }
 
+            window.LwcStickyProgress = {
+                refresh: updateStickyVisibility
+            };
+
             window.addEventListener('scroll', function () {
-                lastScroll = window.scrollY || window.pageYOffset;
-                if (!ticking) {
-                    requestAnimationFrame(function () {
-                        updateStickyVisibility();
-                        ticking = false;
-                    });
-                    ticking = true;
-                }
+                updateStickyVisibility();
             });
             updateStickyVisibility();
-        });
+        }
+
+        initializeStickyProgress();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeStickyProgress, { once: true });
+        }
     })();
 
     // Hides the entire progress‐bar container
@@ -278,8 +299,10 @@
         if (stickyProgress) {
             stickyProgress.classList.remove('visible');
             stickyProgress.setAttribute('aria-hidden', 'true');
+            stickyProgress.style.top = '';
         }
         document.documentElement.classList.remove('sticky-progress-visible');
+        document.documentElement.style.scrollPaddingTop = '';
     }
 
     // Function to update main progress bar and sticky row based on the current stage

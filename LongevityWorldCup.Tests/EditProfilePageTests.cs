@@ -223,7 +223,7 @@ public sealed class EditProfilePageTests
 
         var loadBody = html[loadStart..loadEnd];
         var cropBody = html[cropStart..cancelStart];
-        var cancelBody = html[cancelStart..html.IndexOf("function updateSubmitButtonState()", cancelStart, StringComparison.Ordinal)];
+        var cancelBody = html[cancelStart..html.IndexOf("function keepEditedControlClearOfDock(control)", cancelStart, StringComparison.Ordinal)];
 
         Assert.Contains("if (window.changeProfileCropper)", loadBody);
         Assert.Contains("window.changeProfileCropper.destroy();", loadBody);
@@ -388,7 +388,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("if (isOptionalUrl(normalized))", blurBody);
         Assert.Contains("this.value = normalized;", blurBody);
         Assert.Contains("this.value = normalizeMediaContact(this.value);", blurBody);
-        Assert.Contains("updateSubmitButtonState();", blurBody);
+        Assert.Contains("updateSubmitButtonState(this);", blurBody);
         Assert.Contains("function normalizeMediaContact(value)", html);
         Assert.Contains("return normalizeContactEmail(value) || normalizeEditText(value);", html);
         Assert.Contains("athlete.MediaContact = normalizeMediaContact(mediaContactInput.value);", beforeApplicantData);
@@ -408,7 +408,7 @@ public sealed class EditProfilePageTests
         var mediaContactSetupStart = html.IndexOf("const restoreMediaContactBtn = document.getElementById('restoreMediaContactBtn');", personalLinkSetupStart, StringComparison.Ordinal);
         var listenerStart = html.IndexOf("personalLinkInput.addEventListener('input', () =>", StringComparison.Ordinal);
         var listenerEnd = html.IndexOf("mediaContactInput.addEventListener('input', () =>", listenerStart, StringComparison.Ordinal);
-        var stateStart = html.IndexOf("function updateSubmitButtonState()", StringComparison.Ordinal);
+        var stateStart = html.IndexOf("function updateSubmitButtonState(sourceElement)", StringComparison.Ordinal);
         var stateEnd = html.IndexOf("function validateFlagDisplay(value)", stateStart, StringComparison.Ordinal);
 
         Assert.True(personalLinkSetupStart >= 0);
@@ -451,7 +451,7 @@ public sealed class EditProfilePageTests
         var personalLinkListenerStart = html.IndexOf("personalLinkInput.addEventListener('input', () =>", mediaSetupStart, StringComparison.Ordinal);
         var mediaListenerStart = html.IndexOf("mediaContactInput.addEventListener('input', () =>", personalLinkListenerStart, StringComparison.Ordinal);
         var whyListenerEnd = html.IndexOf("let skipFlagValidation = false;", mediaListenerStart, StringComparison.Ordinal);
-        var stateStart = html.IndexOf("function updateSubmitButtonState()", StringComparison.Ordinal);
+        var stateStart = html.IndexOf("function updateSubmitButtonState(sourceElement)", StringComparison.Ordinal);
         var stateEnd = html.IndexOf("function validateFlagDisplay(value)", stateStart, StringComparison.Ordinal);
 
         Assert.True(flagSetupStart >= 0);
@@ -648,7 +648,7 @@ public sealed class EditProfilePageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
-        var stateStart = html.IndexOf("function updateSubmitButtonState()", StringComparison.Ordinal);
+        var stateStart = html.IndexOf("function updateSubmitButtonState(sourceElement)", StringComparison.Ordinal);
         var stateEnd = html.IndexOf("function validateFlagDisplay(value)", stateStart, StringComparison.Ordinal);
 
         Assert.True(stateStart >= 0);

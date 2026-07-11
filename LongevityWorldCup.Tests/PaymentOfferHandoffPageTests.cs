@@ -10,8 +10,8 @@ public sealed class PaymentOfferHandoffPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/join");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+        var playMenu = await client.GetStringAsync("/js/play-menu.js");
         var offerStart = flow.IndexOf("function setPendingPaymentOffer(offer, retryButton)", StringComparison.Ordinal);
         var serializeStart = flow.IndexOf("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", offerStart, StringComparison.Ordinal);
 
@@ -44,12 +44,12 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("Payment details could not be saved. Enable browser storage and try again.", flow);
         Assert.Contains("function setSessionItem(key, value)", flow);
         Assert.Contains("if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer))", flow);
-        Assert.Contains("function startAmateurApplication(retryButton)", html);
-        Assert.Contains("const stored = flow.setPendingPaymentOffer({", html);
-        Assert.Contains("}, retryButton);", html);
-        Assert.Contains("if (!stored) return;", html);
-        Assert.Contains("function startProApplication(retryButton)", html);
-        Assert.Contains("if (!flow.setPendingPaymentOffer(paymentOffer, retryButton)) return;", html);
+        Assert.Contains("function startAmateurApplication(retryButton)", playMenu);
+        Assert.Contains("const stored = flow.setPendingPaymentOffer({", playMenu);
+        Assert.Contains("}, retryButton);", playMenu);
+        Assert.Contains("if (!stored) return;", playMenu);
+        Assert.Contains("function startProApplication(retryButton)", playMenu);
+        Assert.Contains("if (!flow.setPendingPaymentOffer(paymentOffer, retryButton)) return;", playMenu);
         Assert.Contains("function preserveAppliedDiscountMetadata(offer, result)", flow);
         Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", flow);
         Assert.Contains("return window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
@@ -64,13 +64,13 @@ public sealed class PaymentOfferHandoffPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/join");
+        var playMenu = await client.GetStringAsync("/js/play-menu.js");
 
-        Assert.Contains("return Promise.resolve(window.modulesReady || undefined)", html);
-        Assert.Contains(".catch(() => {})", html);
-        Assert.Contains("renderJoinPricing();", html);
-        Assert.Contains("if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== 'function') return;", html);
-        Assert.DoesNotContain("const ready = window.modulesReady || Promise.resolve();", html);
+        Assert.Contains("return Promise.resolve(window.modulesReady || undefined)", playMenu);
+        Assert.Contains(".catch(() => {})", playMenu);
+        Assert.Contains("renderJoinPricing();", playMenu);
+        Assert.Contains("if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== 'function') return;", playMenu);
+        Assert.DoesNotContain("const ready = window.modulesReady || Promise.resolve();", playMenu);
     }
 
     [Fact]
@@ -79,15 +79,15 @@ public sealed class PaymentOfferHandoffPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/join");
+        var css = await client.GetStringAsync("/css/play-menu.css");
 
-        Assert.Contains(".pro-discount-box .pro-discount-breakdown .pro-discount-badge-slot {\n            width: 44px;", html);
-        Assert.Contains("min-width: 44px;", html);
-        Assert.Contains("height: 44px;", html);
-        Assert.Contains(".pro-discount-box .pro-discount-breakdown .pro-discount-badge-slot:empty", html);
-        Assert.Contains(".pro-discount-box .pro-discount-breakdown.pro-discount-breakdown--with-badges .pro-discount-badge-slot:empty", html);
-        Assert.Contains(".pro-discount-box .pro-discount-breakdown .pro-discount-text", html);
-        Assert.Contains("overflow-wrap: anywhere;", html);
+        Assert.Contains(".pro-discount-badge-slot {\n    width: 44px;", css);
+        Assert.Contains("min-width: 44px;", css);
+        Assert.Contains("height: 44px;", css);
+        Assert.Contains(".pro-discount-badge-slot:empty", css);
+        Assert.Contains(".pro-discount-breakdown.pro-discount-breakdown--with-badges .pro-discount-badge-slot:empty", css);
+        Assert.Contains(".pro-discount-text", css);
+        Assert.Contains("overflow-wrap: anywhere;", css);
     }
 
     [Fact]
@@ -96,8 +96,8 @@ public sealed class PaymentOfferHandoffPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var html = await client.GetStringAsync("/dashboard");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+        var playMenu = await client.GetStringAsync("/js/play-menu.js");
         var offerStart = flow.IndexOf("function setPendingPaymentOffer(offer, retryButton)", StringComparison.Ordinal);
         var serializeStart = flow.IndexOf("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", offerStart, StringComparison.Ordinal);
 
@@ -106,7 +106,7 @@ public sealed class PaymentOfferHandoffPageTests
 
         var offerAdjustmentBody = flow[offerStart..serializeStart];
 
-        Assert.Contains("flow.renderDashboardActions(athlete, {", html);
+        Assert.Contains("flow.renderDashboardActions(athlete, {", playMenu);
         Assert.Contains("function setPendingPaymentOffer(offer, retryButton)", flow);
         Assert.Contains("return true;", flow);
         Assert.Contains("function serializePendingPaymentOffer(offer)", flow);

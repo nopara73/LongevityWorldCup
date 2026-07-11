@@ -20,10 +20,11 @@ public sealed class SelectedAthleteBootstrapPageTests
         if (path == "/dashboard")
         {
             var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+            var playMenu = await client.GetStringAsync("/js/play-menu.js");
             var recoveryStart = flow.IndexOf("function getStoredSelectedAthlete()", StringComparison.Ordinal);
             var recoveryEnd = flow.IndexOf("function isValidSelectedAthlete(value)", recoveryStart, StringComparison.Ordinal);
 
-            Assert.Contains("flow.getStoredSelectedAthlete();", html);
+            Assert.Contains("|| flow.getStoredSelectedAthlete();", playMenu);
             Assert.True(recoveryStart >= 0);
             Assert.True(recoveryEnd > recoveryStart);
 
@@ -79,6 +80,7 @@ public sealed class SelectedAthleteBootstrapPageTests
 
         var html = await client.GetStringAsync(path);
         var isBioagePage = path is "/onboarding/pheno-age.html" or "/onboarding/bortz-age.html";
+        var dashboardScript = path == "/dashboard" ? await client.GetStringAsync("/js/play-menu.js") : null;
         var validationSource = path == "/dashboard"
             ? await client.GetStringAsync("/js/play-athlete-flow.js")
             : isBioagePage
@@ -87,7 +89,7 @@ public sealed class SelectedAthleteBootstrapPageTests
 
         if (path == "/dashboard")
         {
-            Assert.Contains("flow.getStoredSelectedAthlete();", html);
+            Assert.Contains("|| flow.getStoredSelectedAthlete();", dashboardScript);
         }
         else if (isBioagePage)
         {
@@ -111,6 +113,7 @@ public sealed class SelectedAthleteBootstrapPageTests
 
         var html = await client.GetStringAsync(path);
         var isBioagePage = path is "/onboarding/pheno-age.html" or "/onboarding/bortz-age.html";
+        var dashboardScript = path == "/dashboard" ? await client.GetStringAsync("/js/play-menu.js") : null;
         var validationSource = path == "/dashboard"
             ? await client.GetStringAsync("/js/play-athlete-flow.js")
             : isBioagePage
@@ -119,7 +122,7 @@ public sealed class SelectedAthleteBootstrapPageTests
 
         if (path == "/dashboard")
         {
-            Assert.Contains("flow.getStoredSelectedAthlete();", html);
+            Assert.Contains("|| flow.getStoredSelectedAthlete();", dashboardScript);
         }
         else if (isBioagePage)
         {

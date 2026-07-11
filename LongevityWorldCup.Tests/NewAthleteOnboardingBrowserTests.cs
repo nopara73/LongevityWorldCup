@@ -21,7 +21,7 @@ public sealed class NewAthleteOnboardingBrowserTests
             Assert.Equal("/pheno-age", new Uri(page.Url).AbsolutePath);
             await AssertPendingPaymentOfferAsync(page, "amateur", 10);
 
-            await page.Locator("button[onclick=\"navigateBackFromBioage()\"]").ClickAsync();
+            await page.Locator("#bioageStepOneBackButton").ClickAsync();
             await page.WaitForURLAsync("**/join");
 
             Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
@@ -72,7 +72,7 @@ public sealed class NewAthleteOnboardingBrowserTests
             Assert.Equal("/bortz-age", new Uri(page.Url).AbsolutePath);
             await AssertPendingPaymentOfferAsync(page, "pro", 100);
 
-            await page.Locator("button[onclick=\"navigateBackFromBioage()\"]").ClickAsync();
+            await page.Locator("#bioageStepOneBackButton").ClickAsync();
             await page.WaitForURLAsync("**/join");
 
             Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
@@ -288,7 +288,7 @@ public sealed class NewAthleteOnboardingBrowserTests
                 ["crpUnit"] = "10"
             });
 
-        await page.Locator("#phenoAgeForm button[type=\"submit\"]").ClickAsync();
+        await page.Locator("#calculateBioageButton").ClickAsync();
         await page.WaitForSelectorAsync("#phenoAgeResult.show");
         await page.WaitForSelectorAsync("#continueButton.show");
     }
@@ -346,7 +346,7 @@ public sealed class NewAthleteOnboardingBrowserTests
                 ["vitamin_dUnit"] = "1"
             });
 
-        await page.Locator("#bortzAgeForm button[type=\"submit\"]").ClickAsync();
+        await page.Locator("#calculateBioageButton").ClickAsync();
         await page.WaitForSelectorAsync("#bortzAgeResult.show");
         await page.WaitForSelectorAsync("#continueButton.show");
     }
