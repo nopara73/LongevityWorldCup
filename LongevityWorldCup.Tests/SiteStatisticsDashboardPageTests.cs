@@ -94,6 +94,8 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("joinGoProButton", tracker);
         Assert.Contains("joinStartChallengeLink", tracker);
         Assert.Contains("onboarding_challenge_selected", tracker);
+        Assert.Contains("crypto.getRandomValues(new Uint8Array(16))", tracker);
+        Assert.DoesNotContain("Math.random()", tracker);
         Assert.Contains(".play-join-biomarkers details", tracker);
         Assert.Contains(".play-join-card--pro", tracker);
         Assert.Contains("function setupSpaRouteTracking()", tracker);

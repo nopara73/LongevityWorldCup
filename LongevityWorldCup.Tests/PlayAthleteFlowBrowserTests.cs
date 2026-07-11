@@ -411,6 +411,8 @@ public sealed class PlayAthleteFlowBrowserTests
 
         var page = await context.NewPageAsync();
         await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => typeof window.playAthleteFlow?.replaceAthletePictureImmediately === 'function'");
 
         var result = await page.EvaluateAsync<string>(
             """

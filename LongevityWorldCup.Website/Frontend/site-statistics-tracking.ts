@@ -101,10 +101,22 @@ interface LwcSiteStatisticsApi {
         });
     }
 
+    function createSessionId(): string {
+        const uuid = safe(() => crypto.randomUUID());
+        if (uuid) return uuid;
+
+        const randomBytes = safe(() => crypto.getRandomValues(new Uint8Array(16)));
+        if (randomBytes) {
+            return Array.from(randomBytes, value => value.toString(16).padStart(2, "0")).join("");
+        }
+
+        return `${Date.now().toString(36)}-${Math.round(now() * 1000).toString(36)}`;
+    }
+
     function getSessionId(): string {
         const existing = safe(() => sessionStorage.getItem(sessionKey));
         if (existing) return existing;
-        const id = safe(() => crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        const id = createSessionId();
         safe(() => sessionStorage.setItem(sessionKey, id));
         return id;
     }
