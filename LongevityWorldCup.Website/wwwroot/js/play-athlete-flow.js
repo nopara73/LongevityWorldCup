@@ -1,10 +1,19 @@
-const DEFAULT_HEADSHOT_WEBP = "../assets/content-images/headshot.webp";
-const DEFAULT_HEADSHOT_JPEG = "../assets/content-images/headshot.jpg";
+const DEFAULT_HEADSHOT_WEBP_FALLBACK = "/assets/content-images/headshot.webp";
+const DEFAULT_HEADSHOT_JPEG_FALLBACK = "/assets/content-images/headshot.jpg";
 const ATHLETE_PICTURE_TRANSITION_MS = 180;
 const MIN_USABLE_ATHLETE_PICTURE_SIDE = 16;
 const PENDING_PAYMENT_OFFER_KEY = "pendingPaymentOffer";
 
 const pictureTransitionTokens = new WeakMap();
+const pictureReadyPromises = new WeakMap();
+
+function getDefaultHeadshotWebp() {
+    return document.body?.dataset.defaultHeadshotWebp || DEFAULT_HEADSHOT_WEBP_FALLBACK;
+}
+
+function getDefaultHeadshotJpeg() {
+    return document.body?.dataset.defaultHeadshotJpeg || DEFAULT_HEADSHOT_JPEG_FALLBACK;
+}
 
 function getBrowserStorageItem(storageName, key) {
     try {
@@ -77,7 +86,7 @@ function getAthleteSearchText(athlete) {
 function getAthletePictureImageSrc(athlete) {
     return athlete && (athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb)
         ? athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb
-        : DEFAULT_HEADSHOT_JPEG;
+        : getDefaultHeadshotJpeg();
 }
 
 function getStoredSelectedAthlete() {
@@ -95,6 +104,11 @@ function getStoredSelectedAthlete() {
     removeSessionItem("selectedAthlete");
     removeSessionItem("tempAthlete");
     return null;
+}
+
+function getSavedSelectedAthleteName() {
+    const selectedAthleteName = getLocalItem("selectedAthleteName");
+    return typeof selectedAthleteName === "string" ? selectedAthleteName.trim() : "";
 }
 
 function isValidSelectedAthlete(value) {
@@ -164,15 +178,15 @@ function persistSelectedAthlete(athlete) {
 function createDefaultAthletePicture() {
     const picture = document.createElement("picture");
     const webpSource = document.createElement("source");
-    webpSource.srcset = DEFAULT_HEADSHOT_WEBP;
+    webpSource.srcset = getDefaultHeadshotWebp();
     webpSource.type = "image/webp";
 
     const jpegSource = document.createElement("source");
-    jpegSource.srcset = DEFAULT_HEADSHOT_JPEG;
+    jpegSource.srcset = getDefaultHeadshotJpeg();
     jpegSource.type = "image/jpeg";
 
     const image = document.createElement("img");
-    image.src = DEFAULT_HEADSHOT_JPEG;
+    image.src = getDefaultHeadshotJpeg();
     image.alt = "Headshot";
     image.className = "illustration athlete-picture-placeholder";
     image.loading = "lazy";
@@ -183,7 +197,7 @@ function createDefaultAthletePicture() {
 
 function createDefaultAthleteImage() {
     const image = document.createElement("img");
-    image.src = DEFAULT_HEADSHOT_JPEG;
+    image.src = getDefaultHeadshotJpeg();
     image.alt = "Headshot";
     image.className = "illustration athlete-picture-placeholder athlete-picture-next";
     image.loading = "eager";
@@ -206,7 +220,7 @@ function isDefaultHeadshotSrc(src) {
     try {
         return new URL(src, window.location.href).pathname.endsWith("/assets/content-images/headshot.jpg");
     } catch (_) {
-        return src.endsWith(DEFAULT_HEADSHOT_JPEG) || src.endsWith("/assets/content-images/headshot.jpg");
+        return src.endsWith(DEFAULT_HEADSHOT_JPEG_FALLBACK) || src.endsWith("/assets/content-images/headshot.jpg");
     }
 }
 
@@ -224,22 +238,17 @@ function setDefaultAthleteImageSource(image) {
     }
 
     image.classList.add("athlete-picture-placeholder");
-    image.src = DEFAULT_HEADSHOT_JPEG;
+    image.src = getDefaultHeadshotJpeg();
     return true;
 }
 
-function watchAthleteImageLoad(image, onLoaded, shouldIgnore = () => false) {
+function watchAthleteImageLoad(image, onLoaded) {
     function cleanupImageLoadListeners() {
         image.removeEventListener("load", handleImageLoad);
         image.removeEventListener("error", handleImageError);
     }
 
     function handleImageLoad() {
-        if (shouldIgnore()) {
-            cleanupImageLoadListeners();
-            return;
-        }
-
         if (shouldUseDefaultForLoadedAthleteImage(image) && setDefaultAthleteImageSource(image)) {
             return;
         }
@@ -249,21 +258,59 @@ function watchAthleteImageLoad(image, onLoaded, shouldIgnore = () => false) {
     }
 
     function handleImageError() {
-        if (shouldIgnore()) {
-            cleanupImageLoadListeners();
-            return;
-        }
-
         if (setDefaultAthleteImageSource(image)) {
             return;
         }
 
         cleanupImageLoadListeners();
+        onLoaded();
     }
 
     image.addEventListener("load", handleImageLoad);
     image.addEventListener("error", handleImageError);
     return handleImageLoad;
+}
+
+function waitForNextPaint(value) {
+    return new Promise(resolve => {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => resolve(value));
+        });
+    });
+}
+
+function waitForImageElementReady(image) {
+    if (!image) return Promise.resolve();
+
+    const loaded = image.complete
+        ? Promise.resolve()
+        : new Promise(resolve => {
+            function done() {
+                image.removeEventListener("load", done);
+                image.removeEventListener("error", done);
+                resolve();
+            }
+
+            image.addEventListener("load", done);
+            image.addEventListener("error", done);
+        });
+
+    return loaded
+        .then(() => {
+            if (typeof image.decode === "function" && image.complete && image.naturalWidth > 0) {
+                return image.decode().catch(() => {});
+            }
+        })
+        .then(() => waitForNextPaint(image));
+}
+
+function waitForAthletePictureFrameReady(frame) {
+    if (!frame) return Promise.resolve();
+
+    const readyPromise = pictureReadyPromises.get(frame);
+    if (readyPromise) return readyPromise;
+
+    return waitForImageElementReady(frame.querySelector("img"));
 }
 
 function nextPictureTransitionToken(frame) {
@@ -274,66 +321,113 @@ function nextPictureTransitionToken(frame) {
 
 function transitionAthletePicture(frame, image, src) {
     const transitionToken = nextPictureTransitionToken(frame);
+    let resolveReady;
+    const readyPromise = new Promise(resolve => { resolveReady = resolve; });
+    pictureReadyPromises.set(frame, readyPromise);
     let hasFinished = false;
+
+    function finishReady() {
+        waitForNextPaint(image).then(() => resolveReady(image));
+    }
 
     function finishImageSwap() {
         if (hasFinished) return;
-        if (transitionToken !== pictureTransitionTokens.get(frame)) return;
-        hasFinished = true;
-
-        const currentMedia = Array.from(frame.children).find(child => child !== image);
-        if (!currentMedia) {
-            image.classList.remove("athlete-picture-next", "is-visible");
-            frame.replaceChildren(image);
+        if (transitionToken !== pictureTransitionTokens.get(frame)) {
+            resolveReady();
             return;
         }
+        hasFinished = true;
 
-        frame.appendChild(image);
-        requestAnimationFrame(() => {
-            if (transitionToken !== pictureTransitionTokens.get(frame)) return;
+        waitForImageElementReady(image).then(() => {
+            if (transitionToken !== pictureTransitionTokens.get(frame)) {
+                resolveReady();
+                return;
+            }
 
-            image.classList.add("is-visible");
-            currentMedia.classList.add("is-exiting");
-            window.setTimeout(() => {
-                if (transitionToken !== pictureTransitionTokens.get(frame)) return;
-
+            const currentMedia = Array.from(frame.children).find(child => child !== image);
+            if (!currentMedia) {
                 image.classList.remove("athlete-picture-next", "is-visible");
                 frame.replaceChildren(image);
-            }, ATHLETE_PICTURE_TRANSITION_MS);
+                finishReady();
+                return;
+            }
+
+            frame.appendChild(image);
+            requestAnimationFrame(() => {
+                if (transitionToken !== pictureTransitionTokens.get(frame)) {
+                    resolveReady();
+                    return;
+                }
+
+                image.classList.add("is-visible");
+                currentMedia.classList.add("is-exiting");
+                window.setTimeout(() => {
+                    if (transitionToken !== pictureTransitionTokens.get(frame)) {
+                        resolveReady();
+                        return;
+                    }
+
+                    image.classList.remove("athlete-picture-next", "is-visible");
+                    frame.replaceChildren(image);
+                    finishReady();
+                }, ATHLETE_PICTURE_TRANSITION_MS);
+            });
         });
     }
 
-    const inspectLoadedImage = watchAthleteImageLoad(
-        image,
-        finishImageSwap,
-        () => transitionToken !== pictureTransitionTokens.get(frame)
-    );
-    image.src = src || DEFAULT_HEADSHOT_JPEG;
+    const inspectLoadedImage = watchAthleteImageLoad(image, finishImageSwap);
+    image.src = src || getDefaultHeadshotJpeg();
 
-    if (image.complete && image.naturalWidth > 0) {
+    if (image.complete) {
         inspectLoadedImage();
     }
+
+    return readyPromise;
 }
 
 function replaceAthletePictureImmediately(frame, image, src) {
-    nextPictureTransitionToken(frame);
+    const transitionToken = nextPictureTransitionToken(frame);
+    let resolveReady;
+    const readyPromise = new Promise(resolve => { resolveReady = resolve; });
+    pictureReadyPromises.set(frame, readyPromise);
+    let hasFinished = false;
     image.classList.remove("athlete-picture-next", "is-visible");
-    const inspectLoadedImage = watchAthleteImageLoad(image, () => {});
-    image.src = src || DEFAULT_HEADSHOT_JPEG;
-    frame.replaceChildren(image);
-    if (image.complete && image.naturalWidth > 0) {
+    function finishImageSwap() {
+        if (hasFinished) return;
+        if (transitionToken !== pictureTransitionTokens.get(frame)) {
+            resolveReady();
+            return;
+        }
+        hasFinished = true;
+
+        waitForImageElementReady(image).then(() => {
+            if (transitionToken !== pictureTransitionTokens.get(frame)) {
+                resolveReady();
+                return;
+            }
+
+            frame.replaceChildren(image);
+            waitForNextPaint(image).then(() => resolveReady(image));
+        });
+    }
+
+    const inspectLoadedImage = watchAthleteImageLoad(image, finishImageSwap);
+    image.src = src || getDefaultHeadshotJpeg();
+    if (image.complete) {
         inspectLoadedImage();
     }
+
+    return readyPromise;
 }
 
 function renderAthletePicture(frame, athlete, altText) {
-    const image = createAthletePictureImage(altText, "lazy");
-    replaceAthletePictureImmediately(frame, image, getAthletePictureImageSrc(athlete));
+    const image = createAthletePictureImage(altText, "eager");
+    return replaceAthletePictureImmediately(frame, image, getAthletePictureImageSrc(athlete));
 }
 
 function resetAthletePreview({ titleElement, frameElement, defaultTitle }) {
     titleElement.textContent = defaultTitle;
-    transitionAthletePicture(frameElement, createDefaultAthleteImage(), DEFAULT_HEADSHOT_JPEG);
+    transitionAthletePicture(frameElement, createDefaultAthleteImage(), getDefaultHeadshotJpeg());
 }
 
 function appendHighlightedText(container, text, query) {
@@ -405,14 +499,13 @@ function createAthleteSelectionController(options) {
         input.value = displayName;
         titleElement.textContent = displayName;
         const image = createAthletePictureImage(`${displayName} headshot`);
-        if (selectionOptions.transition === false) {
-            replaceAthletePictureImmediately(frameElement, image, getAthletePictureImageSrc(athlete));
-        } else {
-            transitionAthletePicture(frameElement, image, getAthletePictureImageSrc(athlete));
-        }
+        const pictureReady = selectionOptions.transition === false
+            ? replaceAthletePictureImmediately(frameElement, image, getAthletePictureImageSrc(athlete))
+            : transitionAthletePicture(frameElement, image, getAthletePictureImageSrc(athlete));
 
         confirmButton.disabled = false;
         currentAthlete = athlete;
+        return pictureReady;
     }
 
     function selectAthlete(athlete, selectionOptions = {}) {
@@ -474,7 +567,7 @@ function createAthleteSelectionController(options) {
         return count > 0;
     }
 
-    function loadAthletes() {
+    function loadAthletes(loadOptions = {}) {
         if (athleteAutocompleteReady) return Promise.resolve(athletes);
         if (athleteLoadPromise) return athleteLoadPromise;
         errorElement.textContent = "";
@@ -487,11 +580,11 @@ function createAthleteSelectionController(options) {
 
                 athletes = data;
                 athleteAutocompleteReady = true;
-                const saved = getLocalItem("selectedAthleteName");
+                const saved = getSavedSelectedAthleteName();
                 if (saved && !currentAthlete && !hasUserEditedInput) {
                     const match = athletes.find(athlete => isAthleteInputValue(athlete, saved));
                     if (match) {
-                        selectAthlete(match, { transition: true });
+                        selectAthlete(match, { transition: loadOptions.savedSelectionTransition !== false });
                     }
                 }
 
@@ -589,7 +682,9 @@ function createAthleteSelectionController(options) {
         retryAthleteLoad,
         renderAthleteMatches,
         hydrateStoredAthleteSelection,
+        hasPendingSavedSelection: () => Boolean(getSavedSelectedAthleteName()) && !currentAthlete,
         getCurrentAthlete: () => currentAthlete,
+        getPreviewReady: () => waitForAthletePictureFrameReady(frameElement),
         setCurrentAthlete,
         selectAthlete,
         closeAllLists
@@ -718,16 +813,29 @@ function createGoProDiscountSummary(result) {
 function renderAthleteDashboardHeader(athlete, { titleElement, frameElement }) {
     const athleteDisplayName = getAthleteDisplayName(athlete);
     titleElement.textContent = athleteDisplayName;
-    renderAthletePicture(frameElement, athlete, `${athleteDisplayName} headshot`);
+    return renderAthletePicture(frameElement, athlete, `${athleteDisplayName} headshot`);
+}
+
+function refreshFlowActionDock() {
+    const dock = window.LwcFlowActionDock;
+    if (typeof dock?.refreshNow === "function") {
+        dock.refreshNow();
+        return;
+    }
+
+    dock?.refresh?.();
 }
 
 function renderDashboardActions(athlete, options) {
     const dynamicActions = options.dynamicActionsElement;
+    const discountElement = options.discountElement;
     dynamicActions.replaceChildren();
+    discountElement?.replaceChildren();
     const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});
 
     return ready.catch(() => {}).then(() => {
         dynamicActions.replaceChildren();
+        discountElement?.replaceChildren();
 
         const isDemoPro = Boolean(options.demoPro);
         const isPro = isDemoPro || (window.isAthletePro ? window.isAthletePro(athlete) : false);
@@ -740,18 +848,19 @@ function renderDashboardActions(athlete, options) {
 
         if (isPro) {
             const phenoButton = createDashboardButton(
-                "<span class=\"dashboard-action-label flow-action__label\">Submit new Pheno&nbsp;Age</span><i class=\"fas fa-rocket\" aria-hidden=\"true\"></i>",
+                "<span class=\"dashboard-action-label flow-action__label\">Update Pheno&nbsp;Age</span><i class=\"fas fa-rocket\" aria-hidden=\"true\"></i>",
                 "option-button grey flow-action flow-action--secondary",
                 "/pheno-age?update=1",
                 () => clearPendingPaymentOffer()
             );
             const bortzButton = createDashboardButton(
-                "<span class=\"dashboard-action-label flow-action__label\">Submit new Pheno&nbsp;Age&nbsp;+&nbsp;Bortz&nbsp;Age</span><i class=\"fas fa-rocket\" aria-hidden=\"true\"></i>",
+                "<span class=\"dashboard-action-label flow-action__label\">Update Bortz&nbsp;Age</span><i class=\"fas fa-rocket\" aria-hidden=\"true\"></i>",
                 "option-button grey flow-action flow-action--secondary",
                 "/bortz-age?update=1",
                 () => clearPendingPaymentOffer()
             );
             dynamicActions.append(challengeButton, phenoButton, bortzButton);
+            refreshFlowActionDock();
             return;
         }
 
@@ -793,9 +902,10 @@ function renderDashboardActions(athlete, options) {
 
         dynamicActions.append(challengeButton, submitButton, goProButton);
         const goProDiscountSummary = goProDiscountResult ? createGoProDiscountSummary(goProDiscountResult) : null;
-        if (goProDiscountSummary) {
-            dynamicActions.append(goProDiscountSummary);
+        if (goProDiscountSummary && discountElement) {
+            discountElement.append(goProDiscountSummary);
         }
+        refreshFlowActionDock();
     });
 }
 
@@ -817,6 +927,7 @@ window.playAthleteFlow = {
     getAthleteSearchText,
     getAthletePictureImageSrc,
     getStoredSelectedAthlete,
+    getSavedSelectedAthleteName,
     isValidSelectedAthlete,
     readRequiredSelectedAthlete,
     clearStaleTempAthlete,
@@ -826,6 +937,7 @@ window.playAthleteFlow = {
     createAthletePictureImage,
     transitionAthletePicture,
     replaceAthletePictureImmediately,
+    waitForAthletePictureFrameReady,
     renderAthletePicture,
     createAthleteSelectionController,
     serializePendingPaymentOffer,

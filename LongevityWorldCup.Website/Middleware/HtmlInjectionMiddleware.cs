@@ -152,7 +152,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
                         .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"))
                         .Replace("{{REQUEST_COUNTRY_CODE}}", GetRequestCountryCode(context));
-                    bodyContent = ApplySharedAssetPlaceholders(bodyContent);
+                    bodyContent = ApplySharedCssPlaceholders(ApplySharedAssetPlaceholders(bodyContent));
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
 
                     if (ShouldRemoveJoinGameButtons(path))
@@ -340,6 +340,8 @@ namespace LongevityWorldCup.Website.Middleware
         {
             return html
                 .Replace("{{ASSET_FAVICON_128}}", _assetVersionProvider.AppendVersion("/assets/favicon-128x128.png"))
+                .Replace("{{ASSET_FAVICON_512}}", _assetVersionProvider.AppendVersion("/assets/favicon-512x512.png"))
+                .Replace("{{ASSET_FAVICON_DARK_512}}", _assetVersionProvider.AppendVersion("/assets/favicon-dark-512x512.png"))
                 .Replace("{{ASSET_ROBOTO_LIGHT}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Light.woff2"))
                 .Replace("{{ASSET_ROBOTO_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Regular.woff2"))
                 .Replace("{{ASSET_ROBOTO_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Roboto-Bold.woff2"))
@@ -349,6 +351,9 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_MERCH_CAP}}", _assetVersionProvider.AppendVersion("/assets/content-images/merch/cap.webp"))
                 .Replace("{{ASSET_DONATION_QR}}", _assetVersionProvider.AppendVersion("/assets/Donation25QR.png"))
                 .Replace("{{ASSET_HD_LOGO_THUMB_SM}}", _assetVersionProvider.AppendVersion("/assets/HdLogo_thumb_sm.png"))
+                .Replace("{{ASSET_HEADSHOT_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.webp"))
+                .Replace("{{ASSET_HEADSHOT_JPEG}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.jpg"))
+                .Replace("{{ASSET_JUST_TRACK_IT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/content-images/JustTrackIt.jpg"))
                 .Replace("{{ASSET_TROLLFACE}}", _assetVersionProvider.AppendVersion("/assets/content-images/trollface.png"));
         }
 
@@ -357,6 +362,7 @@ namespace LongevityWorldCup.Website.Middleware
             return html
                 .Replace("{{ASSET_MOBILE_ROUGHNESS_CSS}}", _assetVersionProvider.AppendVersion("/css/mobile-roughness.css"))
                 .Replace("{{ASSET_FLOW_CONTROLS_CSS}}", _assetVersionProvider.AppendVersion("/css/flow-controls.css"))
+                .Replace("{{ASSET_PLAY_MENU_CSS}}", _assetVersionProvider.AppendVersion("/css/play-menu.css"))
                 .Replace("{{ASSET_PLAY_ATHLETE_FLOW_CSS}}", _assetVersionProvider.AppendVersion("/css/play-athlete-flow.css"));
         }
 
@@ -478,8 +484,10 @@ $@"<script type=""module"">
                         "/js/bortz-age.js",
                         "/js/badges.js",
                         "/js/proof-helpers.js",
-                        "/js/pro-discounts.js"
-                    ]),
+                        "/js/pro-discounts.js",
+                        "/js/play-menu.js"
+                    ],
+                    BlockingScriptPaths: ["/js/flow-action-dock.js"]),
                 "/play/edit-profile.html" => new HeadAssetConfig(
                     IncludeValidator: true,
                     ModulePaths:
@@ -487,14 +495,16 @@ $@"<script type=""module"">
                         "/js/misc.js",
                         "/js/flags.js",
                         "/js/leagueIcons.js"
-                    ]),
+                    ],
+                    BlockingScriptPaths: ["/js/flow-action-dock.js"]),
                 "/play/proof-upload.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
                         "/js/proof-helpers.js"
-                    ]),
+                    ],
+                    BlockingScriptPaths: ["/js/flow-action-dock.js"]),
                 "/onboarding/pheno-age.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
@@ -503,7 +513,7 @@ $@"<script type=""module"">
                         "/js/pheno-age.js",
                         "/js/bioage-rank-preview.js"
                     ],
-                    BlockingScriptPaths: ["/js/bioage-flow.js"]),
+                    BlockingScriptPaths: ["/js/flow-action-dock.js", "/js/bioage-flow.js"]),
                 "/onboarding/bortz-age.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
@@ -514,7 +524,7 @@ $@"<script type=""module"">
                         "/js/bioage-rank-preview.js",
                         "/js/pro-discounts.js"
                     ],
-                    BlockingScriptPaths: ["/js/bioage-flow.js"]),
+                    BlockingScriptPaths: ["/js/flow-action-dock.js", "/js/bioage-flow.js"]),
                 "/onboarding/convergence.html" => new HeadAssetConfig(
                     IncludeValidator: true,
                     ModulePaths:
@@ -523,14 +533,20 @@ $@"<script type=""module"">
                         "/js/flags.js",
                         "/js/leagueIcons.js",
                         "/js/proof-helpers.js"
-                    ]),
+                    ],
+                    BlockingScriptPaths: ["/js/flow-action-dock.js"]),
+                "/onboarding/application-review.html" => new HeadAssetConfig(
+                    IncludeValidator: false,
+                    ModulePaths: [],
+                    BlockingScriptPaths: ["/js/flow-action-dock.js"]),
                 "/onboarding/join-game.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:
                     [
                         "/js/misc.js",
                         "/js/pro-discounts.js"
-                    ]),
+                    ],
+                    BlockingScriptPaths: ["/js/flow-action-dock.js"]),
                 "/longevitymaxxing" or "/longevitymaxxing/longevitymaxxing.html" => new HeadAssetConfig(
                     IncludeValidator: false,
                     ModulePaths:

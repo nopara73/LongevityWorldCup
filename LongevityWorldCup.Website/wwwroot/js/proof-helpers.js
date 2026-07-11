@@ -454,15 +454,20 @@ function updateProofImageContainer(container, nextButton, proofPics, uploadProof
 
 function checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer) {
     const hasProofs = proofPics.length > 0;
+    document.body?.classList.toggle('proof-upload-has-proofs', hasProofs);
     nextButton.disabled = !hasProofs;
     updateProofUploadButtons(nextButton, uploadProofButton, cameraButton);
 }
 
 window.updateProofUploadButtons = function (nextButton, uploadProofButton, cameraButton) {
     if (!nextButton || !uploadProofButton) return;
-    // second argument to toggle is a boolean: add if true, remove if false
-    uploadProofButton.classList.toggle('green', nextButton.disabled);
-    if (cameraButton) cameraButton.classList.toggle('green', nextButton.disabled);
+
+    const uploadIsRequired = nextButton.disabled;
+    [uploadProofButton, cameraButton].filter(Boolean).forEach(button => {
+        button.classList.toggle('green', uploadIsRequired);
+        button.classList.toggle('grey', !uploadIsRequired);
+        button.classList.toggle('flow-action--secondary', !uploadIsRequired);
+    });
 }
 
 function generateBiomarkerChecklist(biomarkerChecklistContainer, biomarkers, nextButton, proofPics, uploadProofButton, cameraButton) {
