@@ -79,6 +79,69 @@ public sealed class EventDataServiceCleanupTests
     }
 
     [Fact]
+    public void CleanupEventsForMissingAthletes_RestoresEventsHiddenForAthletesWhoReturned()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var events = factory.Services.GetRequiredService<EventDataService>();
+        var db = factory.Services.GetRequiredService<DatabaseManager>();
+
+        db.Run(sqlite =>
+        {
+            using var clear = sqlite.CreateCommand();
+            clear.CommandText = "DELETE FROM Events;";
+            clear.ExecuteNonQuery();
+
+            InsertEvent(sqlite, "restorable-rank", EventType.NewRank, "slug[alice] rank[10] prev[bob]");
+            InsertEvent(sqlite, "intentionally-hidden", EventType.NewRank, "slug[alice] rank[9] prev[bob]");
+
+            using var hide = sqlite.CreateCommand();
+            hide.CommandText =
+                "UPDATE Events SET VisibleOnWebsite=0, XSkipReason=CASE WHEN Id='restorable-rank' THEN 'MissingAthlete' ELSE NULL END;";
+            hide.ExecuteNonQuery();
+        });
+
+        var hidden = events.CleanupEventsForMissingAthletes(new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "alice", "bob", "charlie", "dana", "eve", "frank", "grace", "heidi", "ivan", "judy"
+        });
+
+        Assert.Equal(0, hidden);
+        var visibleIds = events.GetEvents(visibleOnWebsite: true).Select(e => e.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("restorable-rank", visibleIds);
+        Assert.DoesNotContain("intentionally-hidden", visibleIds);
+    }
+
+    [Fact]
+    public void ReconcileBiologicalAgeImprovementEventDates_MovesExistingUploadTimeEventToResultDate()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var events = factory.Services.GetRequiredService<EventDataService>();
+        var db = factory.Services.GetRequiredService<DatabaseManager>();
+
+        db.Run(sqlite =>
+        {
+            using var clear = sqlite.CreateCommand();
+            clear.CommandText = "DELETE FROM Events;";
+            clear.ExecuteNonQuery();
+            InsertEvent(
+                sqlite,
+                "backfilled-best",
+                EventType.BiologicalAgeImproved,
+                "slug[nopara73] clock[pheno] from[26.69] to[22.28]",
+                new DateTime(2026, 7, 11, 8, 0, 0, DateTimeKind.Utc));
+        });
+
+        var updated = events.ReconcileBiologicalAgeImprovementEventDates(new[]
+        {
+            ("nopara73", "pheno", 22.2846889937892, new DateTime(2023, 8, 27, 0, 0, 0, DateTimeKind.Utc))
+        });
+
+        Assert.Equal(1, updated);
+        var occurredAtUtc = events.GetEvents().Single(e => e.Id == "backfilled-best").OccurredAtUtc;
+        Assert.Equal(new DateTime(2023, 8, 27, 0, 0, 0, DateTimeKind.Utc), occurredAtUtc);
+    }
+
+    [Fact]
     public void CleanupAmateurAgeReductionGraduationLinks_RemovesOnlyCurrentProPreviousLinks()
     {
         using var factory = new TestWebApplicationFactory();

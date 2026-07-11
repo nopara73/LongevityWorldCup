@@ -99,6 +99,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private const string HadBortzColumn = "HadBortz";
     private const string LastLowestPhenoAgeColumn = "LastLowestPhenoAge";
     private const string LastLowestBortzAgeColumn = "LastLowestBortzAge";
+    private const string LastLowestPhenoAgeDateColumn = "LastLowestPhenoAgeDate";
+    private const string LastLowestBortzAgeDateColumn = "LastLowestBortzAgeDate";
     private const string CrowdAgeTop10PlacementColumn = "CrowdAgeTop10Placement";
     private const string PhenoImprovementTop10PlacementColumn = "PhenoImprovementTop10Placement";
     private const string BortzImprovementTop10PlacementColumn = "BortzImprovementTop10Placement";
@@ -141,6 +143,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 var hasHadBortz = false;
                 var hasLastLowestPhenoAge = false;
                 var hasLastLowestBortzAge = false;
+                var hasLastLowestPhenoAgeDate = false;
+                var hasLastLowestBortzAgeDate = false;
                 var hasCrowdAgeTop10Placement = false;
                 var hasPhenoImprovementTop10Placement = false;
                 var hasBortzImprovementTop10Placement = false;
@@ -163,6 +167,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                             hasLastLowestPhenoAge = true;
                         if (string.Equals(colName, LastLowestBortzAgeColumn, StringComparison.OrdinalIgnoreCase))
                             hasLastLowestBortzAge = true;
+                        if (string.Equals(colName, LastLowestPhenoAgeDateColumn, StringComparison.OrdinalIgnoreCase))
+                            hasLastLowestPhenoAgeDate = true;
+                        if (string.Equals(colName, LastLowestBortzAgeDateColumn, StringComparison.OrdinalIgnoreCase))
+                            hasLastLowestBortzAgeDate = true;
                         if (string.Equals(colName, CrowdAgeTop10PlacementColumn, StringComparison.OrdinalIgnoreCase))
                             hasCrowdAgeTop10Placement = true;
                         if (string.Equals(colName, PhenoImprovementTop10PlacementColumn, StringComparison.OrdinalIgnoreCase))
@@ -210,6 +218,16 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 if (!hasLastLowestBortzAge)
                 {
                     TryAddAthletesColumn(sqlite, $"{LastLowestBortzAgeColumn} REAL NULL");
+                }
+
+                if (!hasLastLowestPhenoAgeDate)
+                {
+                    TryAddAthletesColumn(sqlite, $"{LastLowestPhenoAgeDateColumn} TEXT NULL");
+                }
+
+                if (!hasLastLowestBortzAgeDate)
+                {
+                    TryAddAthletesColumn(sqlite, $"{LastLowestBortzAgeDateColumn} TEXT NULL");
                 }
 
                 if (!hasCrowdAgeTop10Placement)
@@ -2352,8 +2370,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         var newcomers = newcomerSlugs?.ToHashSet(StringComparer.OrdinalIgnoreCase)
                         ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var current = BuildBestBioAgeMap();
-        var nowUtc = DateTime.UtcNow;
         var improvements = new List<(string AthleteSlug, DateTime OccurredAtUtc, string Clock, double PreviousAge, double NewAge)>();
+        var eventDateCorrections = new List<(string AthleteSlug, string Clock, double NewAge, DateTime ResultDateUtc)>();
 
         _db.Run(sqlite =>
         {
@@ -2361,9 +2379,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
             using var select = sqlite.CreateCommand();
             select.Transaction = tx;
-            select.CommandText = $"SELECT Key, {LastLowestPhenoAgeColumn}, {LastLowestBortzAgeColumn} FROM Athletes";
+            select.CommandText =
+                $"SELECT Key, {LastLowestPhenoAgeColumn}, {LastLowestBortzAgeColumn}, " +
+                $"{LastLowestPhenoAgeDateColumn}, {LastLowestBortzAgeDateColumn} FROM Athletes";
 
-            var stored = new List<(string Slug, double? LastPheno, double? LastBortz)>();
+            var stored = new List<(string Slug, double? LastPheno, double? LastBortz, DateTime? LastPhenoDateUtc, DateTime? LastBortzDateUtc)>();
             using (var r = select.ExecuteReader())
             {
                 while (r.Read())
@@ -2371,36 +2391,54 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     var slug = r.GetString(0);
                     var lastPheno = r.IsDBNull(1) ? (double?)null : r.GetDouble(1);
                     var lastBortz = r.IsDBNull(2) ? (double?)null : r.GetDouble(2);
-                    stored.Add((slug, lastPheno, lastBortz));
+                    var lastPhenoDateUtc = r.IsDBNull(3) ? null : ParseStoredResultDate(r.GetString(3));
+                    var lastBortzDateUtc = r.IsDBNull(4) ? null : ParseStoredResultDate(r.GetString(4));
+                    stored.Add((slug, lastPheno, lastBortz, lastPhenoDateUtc, lastBortzDateUtc));
                 }
             }
 
             using var update = sqlite.CreateCommand();
             update.Transaction = tx;
             update.CommandText =
-                $"UPDATE Athletes SET {LastLowestPhenoAgeColumn}=@pheno, {LastLowestBortzAgeColumn}=@bortz WHERE Key=@slug";
+                $"UPDATE Athletes SET {LastLowestPhenoAgeColumn}=@pheno, {LastLowestBortzAgeColumn}=@bortz, " +
+                $"{LastLowestPhenoAgeDateColumn}=@phenoDate, {LastLowestBortzAgeDateColumn}=@bortzDate WHERE Key=@slug";
             var pPheno = update.Parameters.Add("@pheno", SqliteType.Real);
             var pBortz = update.Parameters.Add("@bortz", SqliteType.Real);
+            var pPhenoDate = update.Parameters.Add("@phenoDate", SqliteType.Text);
+            var pBortzDate = update.Parameters.Add("@bortzDate", SqliteType.Text);
             var pSlug = update.Parameters.Add("@slug", SqliteType.Text);
 
-            foreach (var (slug, lastPheno, lastBortz) in stored)
+            foreach (var (slug, lastPheno, lastBortz, lastPhenoDateUtc, lastBortzDateUtc) in stored)
             {
                 current.TryGetValue(slug, out var currentAges);
                 var currentPheno = currentAges.Pheno;
                 var currentBortz = currentAges.Bortz;
+                var currentPhenoDateUtc = currentAges.PhenoDateUtc;
+                var currentBortzDateUtc = currentAges.BortzDateUtc;
                 var canEmit = changed.Contains(slug) && !newcomers.Contains(slug);
 
-                if (canEmit && IsImproved(lastPheno, currentPheno))
-                    improvements.Add((slug, nowUtc, "pheno", lastPheno!.Value, currentPheno!.Value));
+                if (!lastPhenoDateUtc.HasValue && currentPheno.HasValue && currentPhenoDateUtc.HasValue)
+                    eventDateCorrections.Add((slug, "pheno", currentPheno.Value, currentPhenoDateUtc.Value));
 
-                if (canEmit && IsImproved(lastBortz, currentBortz))
-                    improvements.Add((slug, nowUtc, "bortz", lastBortz!.Value, currentBortz!.Value));
+                if (!lastBortzDateUtc.HasValue && currentBortz.HasValue && currentBortzDateUtc.HasValue)
+                    eventDateCorrections.Add((slug, "bortz", currentBortz.Value, currentBortzDateUtc.Value));
 
-                if (SameNullableDouble(lastPheno, currentPheno) && SameNullableDouble(lastBortz, currentBortz))
+                if (ShouldEmitBiologicalAgeImprovement(canEmit, lastPheno, lastPhenoDateUtc, currentPheno, currentPhenoDateUtc))
+                    improvements.Add((slug, currentPhenoDateUtc!.Value, "pheno", lastPheno!.Value, currentPheno!.Value));
+
+                if (ShouldEmitBiologicalAgeImprovement(canEmit, lastBortz, lastBortzDateUtc, currentBortz, currentBortzDateUtc))
+                    improvements.Add((slug, currentBortzDateUtc!.Value, "bortz", lastBortz!.Value, currentBortz!.Value));
+
+                if (SameNullableDouble(lastPheno, currentPheno) &&
+                    SameNullableDouble(lastBortz, currentBortz) &&
+                    SameNullableDate(lastPhenoDateUtc, currentPhenoDateUtc) &&
+                    SameNullableDate(lastBortzDateUtc, currentBortzDateUtc))
                     continue;
 
                 pPheno.Value = currentPheno.HasValue ? currentPheno.Value : DBNull.Value;
                 pBortz.Value = currentBortz.HasValue ? currentBortz.Value : DBNull.Value;
+                pPhenoDate.Value = currentPhenoDateUtc.HasValue ? currentPhenoDateUtc.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : DBNull.Value;
+                pBortzDate.Value = currentBortzDateUtc.HasValue ? currentBortzDateUtc.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : DBNull.Value;
                 pSlug.Value = slug;
                 update.ExecuteNonQuery();
             }
@@ -2408,14 +2446,17 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             tx.Commit();
         });
 
+        if (eventDateCorrections.Count > 0)
+            _eventDataService.ReconcileBiologicalAgeImprovementEventDates(eventDateCorrections);
+
         return improvements;
     }
 
-    private Dictionary<string, (double? Pheno, double? Bortz)> BuildBestBioAgeMap()
+    private Dictionary<string, (double? Pheno, DateTime? PhenoDateUtc, double? Bortz, DateTime? BortzDateUtc)> BuildBestBioAgeMap()
     {
         var snapshot = GetAthletesSnapshot();
         var statsMap = PhenoStatsCalculator.BuildAll(snapshot, DateTime.UtcNow.Date);
-        var map = new Dictionary<string, (double? Pheno, double? Bortz)>(StringComparer.OrdinalIgnoreCase);
+        var map = new Dictionary<string, (double? Pheno, DateTime? PhenoDateUtc, double? Bortz, DateTime? BortzDateUtc)>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var result in statsMap.Values)
         {
@@ -2425,7 +2466,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             var bortz = result.BortzSubmissionCount > 0 && result.LowestBortzAge.HasValue && double.IsFinite(result.LowestBortzAge.Value)
                 ? result.LowestBortzAge
                 : null;
-            map[result.Slug] = (pheno, bortz);
+            map[result.Slug] = (
+                pheno,
+                pheno.HasValue ? result.LowestPhenoAgeDateUtc : null,
+                bortz,
+                bortz.HasValue ? result.LowestBortzAgeDateUtc : null);
         }
 
         return map;
@@ -2439,6 +2484,28 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                double.IsFinite(current.Value) &&
                current.Value < previous.Value;
     }
+
+    internal static bool ShouldEmitBiologicalAgeImprovement(
+        bool canEmit,
+        double? previousAge,
+        DateTime? previousBestDateUtc,
+        double? currentAge,
+        DateTime? currentBestDateUtc)
+    {
+        return canEmit &&
+               IsImproved(previousAge, currentAge) &&
+               previousBestDateUtc.HasValue &&
+               currentBestDateUtc.HasValue &&
+               currentBestDateUtc.Value.Date >= previousBestDateUtc.Value.Date;
+    }
+
+    private static DateTime? ParseStoredResultDate(string value) =>
+        DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var parsed)
+            ? DateTime.SpecifyKind(parsed.Date, DateTimeKind.Utc)
+            : null;
+
+    private static bool SameNullableDate(DateTime? left, DateTime? right) =>
+        left?.Date == right?.Date;
 
     private static bool SameNullableDouble(double? left, double? right)
     {

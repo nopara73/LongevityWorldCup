@@ -16,9 +16,6 @@ public class XApiClient
     private readonly ILogger<XApiClient> _log;
     private readonly IWebHostEnvironment _env;
     private readonly XDevPreviewService _preview;
-    private readonly object _tokenLock = new();
-    private readonly SemaphoreSlim _refreshLock = new(1, 1);
-    private string? _accessToken;
 
     public sealed record XApiFailure(
         bool Retryable,
@@ -39,7 +36,6 @@ public class XApiClient
         _env = env;
         _log = log;
         _preview = preview;
-        _accessToken = config.XAccessToken;
     }
 
     public bool IsConfigured => _env.IsDevelopment() || !string.IsNullOrWhiteSpace(GetAccessToken());
@@ -200,7 +196,7 @@ public class XApiClient
 
             if (res.StatusCode == HttpStatusCode.Unauthorized)
             {
-                var refreshed = await TryRefreshTokenAsync();
+                var refreshed = await TryRefreshTokenAsync(token);
                 if (refreshed)
                 {
                     token = GetAccessToken();
@@ -247,29 +243,32 @@ public class XApiClient
 
     private string? GetAccessToken()
     {
-        lock (_tokenLock)
-        {
-            if (!string.IsNullOrWhiteSpace(_accessToken)) return _accessToken;
-            _accessToken = _config.XAccessToken;
-            return _accessToken;
-        }
+        return _config.XAccessToken;
     }
 
-    private async Task<bool> TryRefreshTokenAsync()
+    private async Task<bool> TryRefreshTokenAsync(string? rejectedAccessToken)
     {
-        var refreshToken = _config.XRefreshToken;
-        var clientId = _config.XApiKey;
-        var clientSecret = _config.XApiSecret;
-
-        if (string.IsNullOrWhiteSpace(refreshToken) || string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
-        {
-            _log.LogWarning("X refresh token or API credentials not configured. Cannot refresh.");
-            return false;
-        }
-
-        await _refreshLock.WaitAsync();
+        await _config.XTokenRefreshLock.WaitAsync();
         try
         {
+            var currentAccessToken = GetAccessToken();
+            if (!string.IsNullOrWhiteSpace(currentAccessToken) &&
+                !string.Equals(currentAccessToken, rejectedAccessToken, StringComparison.Ordinal))
+            {
+                _log.LogInformation("X access token was refreshed by another client.");
+                return true;
+            }
+
+            var refreshToken = _config.XRefreshToken;
+            var clientId = _config.XApiKey;
+            var clientSecret = _config.XApiSecret;
+
+            if (string.IsNullOrWhiteSpace(refreshToken) || string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+            {
+                _log.LogWarning("X refresh token or API credentials not configured. Cannot refresh.");
+                return false;
+            }
+
             var body = new List<KeyValuePair<string, string>>
             {
                 new("grant_type", "refresh_token"),
@@ -314,13 +313,9 @@ public class XApiClient
                 return false;
             }
 
-            lock (_tokenLock)
-            {
-                _accessToken = newAccess;
-                _config.XAccessToken = newAccess;
-                if (!string.IsNullOrWhiteSpace(newRefresh))
-                    _config.XRefreshToken = newRefresh;
-            }
+            _config.XAccessToken = newAccess;
+            if (!string.IsNullOrWhiteSpace(newRefresh))
+                _config.XRefreshToken = newRefresh;
 
             try
             {
@@ -336,7 +331,7 @@ public class XApiClient
         }
         finally
         {
-            _refreshLock.Release();
+            _config.XTokenRefreshLock.Release();
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Tools;
 using Xunit;
 
@@ -37,6 +38,7 @@ public class PhenoStatsCalculatorTests
 
         Assert.True(result.PhenoAgeImprovementFromWorst < 0);
         Assert.Equal(expected, result.PhenoAgeImprovementFromWorst!.Value, precision: 10);
+        Assert.Equal(new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), result.LowestPhenoAgeDateUtc);
     }
 
     [Fact]
@@ -79,6 +81,38 @@ public class PhenoStatsCalculatorTests
 
         Assert.True(result.BortzAgeImprovementFromWorst < 0);
         Assert.Equal(expected, result.BortzAgeImprovementFromWorst!.Value, precision: 10);
+        Assert.Equal(
+            athlete["Biomarkers"]!.AsArray()
+                .OfType<JsonObject>()
+                .Select((entry, index) => (Date: DateTime.Parse(entry["Date"]!.GetValue<string>()).Date, Age: bortzAges[index]))
+                .MinBy(item => item.Age).Date,
+            result.LowestBortzAgeDateUtc!.Value.Date);
+    }
+
+    [Fact]
+    public void ShouldEmitBiologicalAgeImprovement_RejectsBackfilledPersonalBest()
+    {
+        var emit = AthleteDataService.ShouldEmitBiologicalAgeImprovement(
+            canEmit: true,
+            previousAge: 26.69,
+            previousBestDateUtc: new DateTime(2025, 3, 3, 0, 0, 0, DateTimeKind.Utc),
+            currentAge: 22.28,
+            currentBestDateUtc: new DateTime(2023, 8, 27, 0, 0, 0, DateTimeKind.Utc));
+
+        Assert.False(emit);
+    }
+
+    [Fact]
+    public void ShouldEmitBiologicalAgeImprovement_AllowsChronologicallyNewPersonalBest()
+    {
+        var emit = AthleteDataService.ShouldEmitBiologicalAgeImprovement(
+            canEmit: true,
+            previousAge: 41.8,
+            previousBestDateUtc: new DateTime(2025, 3, 3, 0, 0, 0, DateTimeKind.Utc),
+            currentAge: 39.2,
+            currentBestDateUtc: new DateTime(2026, 6, 25, 0, 0, 0, DateTimeKind.Utc));
+
+        Assert.True(emit);
     }
 
     private static JsonObject Biomarkers(
