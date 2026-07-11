@@ -8,6 +8,10 @@ This file is for project-specific routing and "do not break this" rules. Keep de
 - Before domain, leaderboard, ranking, athlete onboarding, biological age calculator, badge, Event, social posting, or competition-copy changes, read `UBIQUITOUS_LANGUAGE.md`.
 - Before production changes over SSH, read `LongevityWorldCup.Documentation/ServerDeployment.md`.
 
+## Bug Fixes
+
+Do not optimize for the smallest diff. Fix the underlying invariant, inspect its other implementations, and refactor within that conceptual scope when the structure caused or conceals bugs.
+
 ## Browser Smoke Checks
 
 This is a .NET solution, not a Node app. Use the repo-owned `Microsoft.Playwright` setup in `LongevityWorldCup.Tests` for repeatable browser checks.

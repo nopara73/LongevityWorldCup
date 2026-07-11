@@ -22,6 +22,10 @@
 
 Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age reduction in prose. Keep `PhenoAge`, `BortzAge`, and `CrowdAge` for code, serialized fields, external names, or quoted legacy data. Do not collapse clock, calculator, and result.
 
+## Events
+
+- Biological-age improvement Events represent chronologically new personal bests, use the result date as the Event date, and are not created when an older backfilled result predates the athlete's previous personal best.
+
 ## Longevitymaxxing Challenge
 
 - Public community-call social announcements are social-only Custom Events queued about one hour before each selected call; they may include the public video call URL, but never participant access or stop links.

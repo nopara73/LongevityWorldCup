@@ -13,6 +13,8 @@ public static class PhenoStatsCalculator
         public double? ChronoAge { get; init; }
         public double? LowestPhenoAge { get; init; }
         public double? LowestBortzAge { get; init; }
+        public DateTime? LowestPhenoAgeDateUtc { get; init; }
+        public DateTime? LowestBortzAgeDateUtc { get; init; }
         public double? AgeReduction { get; init; }
         public double? BortzAgeReduction { get; init; }
         public double? PhenoPaceOfAging { get; init; }
@@ -69,8 +71,10 @@ public static class PhenoStatsCalculator
         int submissionCount = 0;
         int bortzSubmissionCount = 0;
         double lowestPheno = double.PositiveInfinity;
+        DateTime? lowestPhenoDateUtc = null;
         double chronoAtLowest = double.NaN;
         double lowestBortz = double.PositiveInfinity;
+        DateTime? lowestBortzDateUtc = null;
         double chronoAtLowestBortz = double.NaN;
         double? firstPheno = null;
         double? lastPheno = null;
@@ -109,6 +113,7 @@ public static class PhenoStatsCalculator
                         if (bortzAge < lowestBortz)
                         {
                             lowestBortz = bortzAge;
+                            lowestBortzDateUtc = entryDate;
                             chronoAtLowestBortz = ageAtEntry;
                             bestBortzValues = bortzInput;
                         }
@@ -139,6 +144,7 @@ public static class PhenoStatsCalculator
                         if (ph < lowestPheno)
                         {
                             lowestPheno = ph;
+                            lowestPhenoDateUtc = entryDate;
                             chronoAtLowest = ageAtEntry;
                         }
 
@@ -254,6 +260,8 @@ public static class PhenoStatsCalculator
             ChronoAge = chrono,
             LowestPhenoAge = double.IsInfinity(lowestPheno) ? null : lowestPheno,
             LowestBortzAge = double.IsInfinity(lowestBortz) ? null : lowestBortz,
+            LowestPhenoAgeDateUtc = lowestPhenoDateUtc,
+            LowestBortzAgeDateUtc = lowestBortzDateUtc,
             AgeReduction = ageReduction,
             BortzAgeReduction = bortzAgeReduction,
             PhenoPaceOfAging = phenoPaceOfAging,

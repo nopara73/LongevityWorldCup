@@ -509,6 +509,7 @@
         border:1px solid rgba(0,0,0,.48)!important;
         border-radius:999px;
         line-height:1;
+        color:var(--badge-fg,#fff)!important;
         box-shadow:0 1px 2px rgba(0,0,0,.22);
         margin-inline:var(--badge-inline-gap);
         margin-block:1px;
@@ -522,7 +523,7 @@
     .events-board .badge-class.badge-overflow-count{
         background:linear-gradient(135deg,#f8fbfc,#dfe9ec)!important;
         border:1px solid rgba(0,188,212,.42)!important;
-        color:var(--primary-color);
+        color:var(--primary-color)!important;
         font-size:.72rem;
         font-weight:800;
         letter-spacing:.01em;
@@ -532,7 +533,7 @@
     .events-board .badge-class.badge-overflow-count::after{display:none}
     .events-board a.badge-class.badge-overflow-count:hover,
     .events-board a.badge-class.badge-overflow-count:focus{
-        color:var(--primary-color);
+        color:var(--primary-color)!important;
         text-decoration:none;
     }
     .events-board .badge-class i{position:absolute;inset:0;display:block;width:auto;height:auto;font-size:calc(var(--badge-icon-size) * .9);line-height:1;text-align:center;text-shadow:none;-webkit-font-smoothing:antialiased}
