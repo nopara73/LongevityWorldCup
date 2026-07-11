@@ -8,11 +8,11 @@ public sealed class FlagJavascriptTests
     [Fact]
     public void SharedFlagScript_CanonicalizesMagyarorszagToHungary()
     {
-        var scriptPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "wwwroot", "js", "flags.js"));
+        var scriptPath = FindRepoFile(Path.Combine("LongevityWorldCup.Website", "Frontend", "flags.ts"));
         var script = File.ReadAllText(scriptPath);
 
-        Assert.Contains("['magyarorszag', 'Hungary']", script);
-        Assert.Contains("['hungary', 'hu']", script);
+        Assert.Contains("[\"magyarorszag\", \"Hungary\"]", script);
+        Assert.Contains("[\"hungary\", \"hu\"]", script);
     }
 
     private static string FindRepoFile(string relativePath, [CallerFilePath] string sourceFilePath = "")

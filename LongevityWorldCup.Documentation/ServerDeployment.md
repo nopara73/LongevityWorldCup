@@ -34,7 +34,7 @@ fi
 
 git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
 
-dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output"
+dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output" -p:BuildFrontend=false
 
 sudo systemctl stop longevityworldcup.service
 service_stopped=1
@@ -79,6 +79,8 @@ sudo systemctl status longevityworldcup.service
 ```
 
 Publish from the temporary source, not from `~/LongevityWorldCup`. The website build regenerates documentation HTML during publish, and publishing from the checkout can dirty tracked files and break the next pull or deploy.
+
+The production host intentionally does not need Node.js. TypeScript is compiled during normal development and CI builds, and the generated `wwwroot/js` files are committed. The automatic deploy runner rebuilds and verifies those assets before opening the SSH session; production publish then passes `BuildFrontend=false` and consumes the verified JavaScript. Before using the manual SSH flow above, confirm that CI verified the commit and its generated assets.
 
 The temporary source is copied with `rsync -a` from tracked Git files instead of `git archive` so unchanged athlete media keeps its original modification time. Startup uses those timestamps to decide whether profile thumbnails are stale; resetting every athlete image timestamp can force hundreds of thumbnail regenerations before Kestrel starts listening.
 

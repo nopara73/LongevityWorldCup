@@ -415,14 +415,14 @@ public sealed class BioageStoredBiomarkerTests
     public void BioageUpdatePages_HideWizardNavigationForceBiomarkerStepAndKeepPageBack(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
-        var flow = File.ReadAllText(GetBioageFlowPath());
+        var flow = File.ReadAllText(GetBioageFlowTypeScriptPath());
 
         Assert.Contains("function hideUpdateModeStepNavigation()", html);
         Assert.Contains("bioageFlow.hideUpdateModeStepNavigation();", html);
-        Assert.Contains("function hideUpdateModeStepNavigation()", flow);
-        Assert.Contains("const wizardNav = document.querySelector('.lwc-wizard-nav');", flow);
+        Assert.Contains("function hideUpdateModeStepNavigation(): void", flow);
+        Assert.Contains("const wizardNav = document.querySelector<HTMLElement>('.lwc-wizard-nav');", flow);
         Assert.Contains("if (wizardNav) wizardNav.hidden = true;", flow);
-        Assert.Contains("function resetUpdateModeScroll()", flow);
+        Assert.Contains("function resetUpdateModeScroll(): void", flow);
         Assert.DoesNotContain("stepBackActions.hidden = true;", flow);
         Assert.Contains("if (isUpdate) {\n                        navigateBackFromBioage();", html);
         var updateBranch = html.IndexOf("if (isUpdate && hasSelectedAthlete)", StringComparison.Ordinal);
@@ -751,6 +751,12 @@ public sealed class BioageStoredBiomarkerTests
     {
         var repoRoot = FindRepoRoot();
         return Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "bioage-flow.js");
+    }
+
+    private static string GetBioageFlowTypeScriptPath()
+    {
+        var repoRoot = FindRepoRoot();
+        return Path.Combine(repoRoot, "LongevityWorldCup.Website", "Frontend", "bioage-flow.ts");
     }
 
     private static string GetStoreFailureBody(string html, string storeFunctionMarker)

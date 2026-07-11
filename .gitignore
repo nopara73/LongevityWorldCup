@@ -5,6 +5,8 @@
 # Ignore build output
 bin/
 obj/
+node_modules/
+*.tsbuildinfo
 
 # Ignore NuGet-generated files
 project.assets.json

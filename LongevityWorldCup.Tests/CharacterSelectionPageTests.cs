@@ -40,11 +40,17 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("/css/play-athlete-flow.css", html);
         Assert.Contains("/js/play-menu.js", html);
         var playMenu = await client.GetStringAsync("/js/play-menu.js");
+        var playMenuSource = ReadFrontendSource("play-menu.ts");
+        var flowSource = ReadFrontendSource("play-athlete-flow.ts");
         Assert.Contains("flow.createAthleteSelectionController({", playMenu);
-        Assert.Contains("errorElement: document.getElementById('playAthleteError')", playMenu);
+        Assert.Contains("const athleteError = document.getElementById('playAthleteError');", playMenuSource);
+        Assert.Contains("errorElement: athleteError,", playMenuSource);
         Assert.Contains("}).bind();", playMenu);
         Assert.Contains("function getStoredSelectedAthlete()", flow);
         Assert.Contains("function hydrateStoredAthleteSelection()", flow);
+        Assert.Contains("if (!Array.isArray(data))", flowSource);
+        Assert.Contains("athletes = data.filter(isValidSelectedAthlete);", flowSource);
+        Assert.DoesNotContain("data.every(isValidSelectedAthlete)", flowSource);
         Assert.Contains("renderSelectedAthletePreview(storedAthlete, { transition: false });", flow);
         Assert.Contains("function loadAthletes(loadOptions = {})", flow);
         Assert.Contains("let athleteLoadPromise = null;", flow);
@@ -61,6 +67,7 @@ public sealed class CharacterSelectionPageTests
         using var client = factory.CreateClient();
 
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+        var flowSource = ReadFrontendSource("play-athlete-flow.ts");
 
         Assert.Contains("function getAthleteDisplayName(athlete)", flow);
         Assert.Contains("function getAthleteCanonicalName(athlete)", flow);
@@ -69,7 +76,7 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("return athlete && typeof athlete.Name === \"string\" ? athlete.Name : \"\";", flow);
         Assert.Contains("return athlete && typeof athlete.Name === \"string\" ? athlete.Name.trim() : \"\";", flow);
         Assert.Contains("if (terms.every(term => searchText.includes(term)))", flow);
-        Assert.Contains("if (!getAthleteCanonicalName(athlete)) return;", flow);
+        Assert.Contains("if (!getAthleteCanonicalName(athlete)) return;", flowSource);
         Assert.Contains("appendHighlightedText(item, displayName, first);", flow);
         Assert.Contains("item.dataset.value = athlete.Name;", flow);
         Assert.Contains("input.value = displayName;", flow);
@@ -84,6 +91,7 @@ public sealed class CharacterSelectionPageTests
         using var client = factory.CreateClient();
 
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+        var flowSource = ReadFrontendSource("play-athlete-flow.ts");
         var helperStart = flow.IndexOf("function findExactAthleteMatch(value)", StringComparison.Ordinal);
         var keydownStart = flow.IndexOf("input.addEventListener(\"keydown\"", helperStart, StringComparison.Ordinal);
         var keydownEnd = flow.IndexOf("document.addEventListener(\"click\"", keydownStart, StringComparison.Ordinal);
@@ -96,7 +104,7 @@ public sealed class CharacterSelectionPageTests
 
         Assert.Contains("const query = (value || \"\").trim().toLowerCase();", flow);
         Assert.Contains("const canonicalName = getAthleteCanonicalName(athlete);", flow);
-        Assert.Contains("if (!query || !canonicalName) return false;", flow);
+        Assert.Contains("if (!query || !canonicalName) return false;", flowSource);
         Assert.Contains("return canonicalName.toLowerCase() === query", flow);
         Assert.Contains("|| getAthleteDisplayName(athlete).toLowerCase() === query", flow);
         Assert.Contains("return athletes.find(athlete => isAthleteInputValue(athlete, value)) || null;", flow);
@@ -105,7 +113,7 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("selectAthlete(exactMatch);", keydownBody);
         Assert.Contains("closeAllLists();", keydownBody);
         Assert.Contains("if (currentFocus > -1 && list)", keydownBody);
-        Assert.Contains("list[currentFocus].dispatchEvent(new MouseEvent(\"mousedown\"));", keydownBody);
+        Assert.Contains("list[currentFocus]?.dispatchEvent(new MouseEvent(\"mousedown\"));", flowSource);
         Assert.Contains("return;", keydownBody);
     }
 
@@ -116,12 +124,13 @@ public sealed class CharacterSelectionPageTests
         using var client = factory.CreateClient();
 
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+        var flowSource = ReadFrontendSource("play-athlete-flow.ts");
 
         Assert.Contains("function clearCurrentAthleteSelectionIfInputChanged(value)", flow);
         Assert.Contains("let hasUserEditedInput = false;", flow);
         Assert.Contains("hasUserEditedInput = true;", flow);
         Assert.Contains("if (saved && !currentAthlete && !hasUserEditedInput)", flow);
-        Assert.Contains("if (!currentAthlete || isAthleteInputValue(currentAthlete, value)) return;", flow);
+        Assert.Contains("if (!currentAthlete || isAthleteInputValue(currentAthlete, value)) return;", flowSource);
         Assert.Contains("currentAthlete = null;", flow);
         Assert.Contains("confirmButton.disabled = true;", flow);
         Assert.Contains("resetAthletePreview({ titleElement, frameElement, defaultTitle });", flow);
@@ -173,5 +182,16 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("currentMedia.classList.add(\"is-exiting\");", flow);
         Assert.Contains("frame.replaceChildren(image);", flow);
         Assert.DoesNotContain("document.querySelector('picture').replaceChildren(image);", html);
+    }
+
+    private static string ReadFrontendSource(
+        string fileName,
+        [System.Runtime.CompilerServices.CallerFilePath] string testFilePath = "")
+    {
+        var testsDirectory = Path.GetDirectoryName(testFilePath)
+            ?? throw new InvalidOperationException("Could not locate the test source directory.");
+        var repoRoot = Directory.GetParent(testsDirectory)?.FullName
+            ?? throw new InvalidOperationException("Could not locate the repository root.");
+        return File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "Frontend", fileName));
     }
 }

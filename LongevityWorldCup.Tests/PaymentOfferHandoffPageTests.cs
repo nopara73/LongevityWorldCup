@@ -5,14 +5,11 @@ namespace LongevityWorldCup.Tests;
 public sealed class PaymentOfferHandoffPageTests
 {
     [Fact]
-    public async Task JoinPaymentOffer_HaltsNavigationWhenStorageFails()
+    public void JoinPaymentOffer_HaltsNavigationWhenStorageFails()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
-
-        var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
-        var playMenu = await client.GetStringAsync("/js/play-menu.js");
-        var offerStart = flow.IndexOf("function setPendingPaymentOffer(offer, retryButton)", StringComparison.Ordinal);
+        var flow = ReadFrontendSource("play-athlete-flow.ts");
+        var playMenu = ReadFrontendSource("play-menu.ts");
+        var offerStart = flow.IndexOf("function setPendingPaymentOffer(", StringComparison.Ordinal);
         var serializeStart = flow.IndexOf("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", offerStart, StringComparison.Ordinal);
 
         Assert.True(offerStart >= 0);
@@ -20,11 +17,13 @@ public sealed class PaymentOfferHandoffPageTests
 
         var offerAdjustmentBody = flow[offerStart..serializeStart];
 
-        Assert.Contains("function setPendingPaymentOffer(offer, retryButton)", flow);
+        Assert.Contains("function setPendingPaymentOffer(offer: unknown, retryButton?: HTMLButtonElement | null): boolean", flow);
         Assert.Contains("return true;", flow);
-        Assert.Contains("function serializePendingPaymentOffer(offer)", flow);
+        Assert.Contains("function serializePendingPaymentOffer(offer: unknown): string | null", flow);
         Assert.Contains("if (!isUsablePaymentOffer(offer)) return null;", flow);
-        Assert.Contains("function isUsablePaymentOffer(paymentOffer)", flow);
+        Assert.Contains("function isUsablePaymentOffer(paymentOffer: unknown): paymentOffer is PendingPaymentOffer", flow);
+        Assert.Contains("!(\"source\" in paymentOffer)", flow);
+        Assert.Contains("!(\"amountUsd\" in paymentOffer)", flow);
         Assert.Contains("typeof paymentOffer.source === \"string\"", flow);
         Assert.Contains("typeof paymentOffer.offerType === \"string\"", flow);
         Assert.Contains("typeof paymentOffer.currency === \"string\"", flow);
@@ -32,7 +31,7 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("Number.isFinite(paymentOffer.amountUsd)", flow);
         Assert.Contains("paymentOffer.amountUsd >= 0", flow);
         Assert.Contains("const serializedOffer = JSON.stringify(offer);", flow);
-        Assert.Contains("let effectiveOffer = offer;", offerAdjustmentBody);
+        Assert.Contains("let effectiveOffer: unknown = offer;", offerAdjustmentBody);
         Assert.Contains("try {", offerAdjustmentBody);
         Assert.Contains("window.applyPaymentAdjustmentsToPaymentOffer", offerAdjustmentBody);
         Assert.Contains("window.applyFreePassToPaymentOffer", offerAdjustmentBody);
@@ -40,31 +39,30 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("notifyPaymentStorageFailure(retryButton);", offerAdjustmentBody);
         Assert.Contains("return false;", offerAdjustmentBody);
         Assert.Contains("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", flow);
-        Assert.Contains("function notifyPaymentStorageFailure(retryButton)", flow);
+        Assert.Contains("function notifyPaymentStorageFailure(", flow);
         Assert.Contains("Payment details could not be saved. Enable browser storage and try again.", flow);
-        Assert.Contains("function setSessionItem(key, value)", flow);
+        Assert.Contains("function setSessionItem(key: string, value: string): boolean", flow);
         Assert.Contains("if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer))", flow);
-        Assert.Contains("function startAmateurApplication(retryButton)", playMenu);
+        Assert.Contains("function startAmateurApplication(retryButton: HTMLButtonElement): void", playMenu);
         Assert.Contains("const stored = flow.setPendingPaymentOffer({", playMenu);
         Assert.Contains("}, retryButton);", playMenu);
         Assert.Contains("if (!stored) return;", playMenu);
-        Assert.Contains("function startProApplication(retryButton)", playMenu);
+        Assert.Contains("function startProApplication(retryButton: HTMLButtonElement): void", playMenu);
         Assert.Contains("if (!flow.setPendingPaymentOffer(paymentOffer, retryButton)) return;", playMenu);
-        Assert.Contains("function preserveAppliedDiscountMetadata(offer, result)", flow);
+        Assert.Contains("function preserveAppliedDiscountMetadata(", flow);
         Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", flow);
-        Assert.Contains("return window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
+        Assert.Contains("const adjustedOffer = window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
+        Assert.Contains("return isUsablePaymentOffer(adjustedOffer) ? adjustedOffer : null;", flow);
         Assert.Contains("return null;", flow);
+        Assert.DoesNotContain("return window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
         Assert.DoesNotContain("setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))", flow);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", flow);
     }
 
     [Fact]
-    public async Task JoinPricing_RendersWhenModuleReadinessRejects()
+    public void JoinPricing_RendersWhenModuleReadinessRejects()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
-
-        var playMenu = await client.GetStringAsync("/js/play-menu.js");
+        var playMenu = ReadFrontendSource("play-menu.ts");
 
         Assert.Contains("return Promise.resolve(window.modulesReady || undefined)", playMenu);
         Assert.Contains(".catch(() => {})", playMenu);
@@ -91,14 +89,11 @@ public sealed class PaymentOfferHandoffPageTests
     }
 
     [Fact]
-    public async Task SharedDashboardPaymentOffer_HaltsNavigationWhenStorageFails()
+    public void SharedDashboardPaymentOffer_HaltsNavigationWhenStorageFails()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
-
-        var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
-        var playMenu = await client.GetStringAsync("/js/play-menu.js");
-        var offerStart = flow.IndexOf("function setPendingPaymentOffer(offer, retryButton)", StringComparison.Ordinal);
+        var flow = ReadFrontendSource("play-athlete-flow.ts");
+        var playMenu = ReadFrontendSource("play-menu.ts");
+        var offerStart = flow.IndexOf("function setPendingPaymentOffer(", StringComparison.Ordinal);
         var serializeStart = flow.IndexOf("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", offerStart, StringComparison.Ordinal);
 
         Assert.True(offerStart >= 0);
@@ -107,11 +102,13 @@ public sealed class PaymentOfferHandoffPageTests
         var offerAdjustmentBody = flow[offerStart..serializeStart];
 
         Assert.Contains("flow.renderDashboardActions(athlete, {", playMenu);
-        Assert.Contains("function setPendingPaymentOffer(offer, retryButton)", flow);
+        Assert.Contains("function setPendingPaymentOffer(offer: unknown, retryButton?: HTMLButtonElement | null): boolean", flow);
         Assert.Contains("return true;", flow);
-        Assert.Contains("function serializePendingPaymentOffer(offer)", flow);
+        Assert.Contains("function serializePendingPaymentOffer(offer: unknown): string | null", flow);
         Assert.Contains("if (!isUsablePaymentOffer(offer)) return null;", flow);
-        Assert.Contains("function isUsablePaymentOffer(paymentOffer)", flow);
+        Assert.Contains("function isUsablePaymentOffer(paymentOffer: unknown): paymentOffer is PendingPaymentOffer", flow);
+        Assert.Contains("!(\"source\" in paymentOffer)", flow);
+        Assert.Contains("!(\"amountUsd\" in paymentOffer)", flow);
         Assert.Contains("typeof paymentOffer.source === \"string\"", flow);
         Assert.Contains("typeof paymentOffer.offerType === \"string\"", flow);
         Assert.Contains("typeof paymentOffer.currency === \"string\"", flow);
@@ -119,7 +116,7 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("Number.isFinite(paymentOffer.amountUsd)", flow);
         Assert.Contains("paymentOffer.amountUsd >= 0", flow);
         Assert.Contains("const serializedOffer = JSON.stringify(offer);", flow);
-        Assert.Contains("let effectiveOffer = offer;", offerAdjustmentBody);
+        Assert.Contains("let effectiveOffer: unknown = offer;", offerAdjustmentBody);
         Assert.Contains("try {", offerAdjustmentBody);
         Assert.Contains("window.applyPaymentAdjustmentsToPaymentOffer", offerAdjustmentBody);
         Assert.Contains("window.applyFreePassToPaymentOffer", offerAdjustmentBody);
@@ -127,14 +124,16 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("notifyPaymentStorageFailure(retryButton);", offerAdjustmentBody);
         Assert.Contains("return false;", offerAdjustmentBody);
         Assert.Contains("const serializedOffer = serializePendingPaymentOffer(effectiveOffer);", flow);
-        Assert.Contains("function notifyPaymentStorageFailure(retryButton)", flow);
+        Assert.Contains("function notifyPaymentStorageFailure(", flow);
         Assert.Contains("Payment details could not be saved. Enable browser storage and try again.", flow);
         Assert.Contains("if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer))", flow);
         Assert.Contains("if (typeof beforeNavigate === \"function\" && beforeNavigate(button) === false) return;", flow);
-        Assert.Contains("function preserveAppliedDiscountMetadata(offer, result)", flow);
+        Assert.Contains("function preserveAppliedDiscountMetadata(", flow);
         Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", flow);
-        Assert.Contains("return window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
+        Assert.Contains("const adjustedOffer = window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
+        Assert.Contains("return isUsablePaymentOffer(adjustedOffer) ? adjustedOffer : null;", flow);
         Assert.Contains("return null;", flow);
+        Assert.DoesNotContain("return window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
         Assert.Contains("const paymentOffer = preserveAppliedDiscountMetadata({", flow);
         Assert.Contains("return setPendingPaymentOffer(paymentOffer, button);", flow);
         Assert.DoesNotContain("paymentOffer = window.addActiveDiscountMetadataToPaymentOffer(paymentOffer);", flow);
@@ -143,12 +142,9 @@ public sealed class PaymentOfferHandoffPageTests
     }
 
     [Fact]
-    public async Task SharedDashboardPaymentOfferClear_DoesNotBlockResultNavigation()
+    public void SharedDashboardPaymentOfferClear_DoesNotBlockResultNavigation()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
-
-        var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+        var flow = ReadFrontendSource("play-athlete-flow.ts");
         var clearStart = flow.IndexOf("function clearPendingPaymentOffer()", StringComparison.Ordinal);
         var clearEnd = flow.IndexOf("function createPriceHtmlFallback", clearStart, StringComparison.Ordinal);
 
@@ -160,5 +156,16 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", clearBody);
         Assert.DoesNotContain("sessionStorage.removeItem(PENDING_PAYMENT_OFFER_KEY);", clearBody);
         Assert.Contains("() => clearPendingPaymentOffer()", flow);
+    }
+
+    private static string ReadFrontendSource(
+        string fileName,
+        [System.Runtime.CompilerServices.CallerFilePath] string testFilePath = "")
+    {
+        var testsDirectory = Path.GetDirectoryName(testFilePath)
+            ?? throw new InvalidOperationException("Could not locate the test source directory.");
+        var repoRoot = Directory.GetParent(testsDirectory)?.FullName
+            ?? throw new InvalidOperationException("Could not locate the repository root.");
+        return File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "Frontend", fileName));
     }
 }

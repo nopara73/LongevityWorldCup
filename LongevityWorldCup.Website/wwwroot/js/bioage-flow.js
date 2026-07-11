@@ -1,35 +1,38 @@
+"use strict";
 (function () {
+    function isObject(value) {
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
     function removeBrowserStorageItem(storageName, key) {
         try {
             window[storageName].removeItem(key);
-        } catch (_) {
+        }
+        catch (_) {
         }
     }
-
     function getBrowserStorageItem(storageName, key) {
         try {
             return window[storageName].getItem(key);
-        } catch (_) {
+        }
+        catch (_) {
             return null;
         }
     }
-
     function setBrowserStorageItem(storageName, key, value) {
         try {
             window[storageName].setItem(key, value);
             return true;
-        } catch (_) {
+        }
+        catch (_) {
             return false;
         }
     }
-
     function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
     function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
     function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
     function setLocalItem(key, value) { return setBrowserStorageItem('localStorage', key, value); }
     function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
     function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
-
     const biomarkerExamplePlaceholders = {
         albumin: { 'g/L': '44', 'g/dL': '4.4' },
         alt: { 'U/L': '22', 'µkat/L': '0.37' },
@@ -57,58 +60,58 @@
         vitamin_d: { 'nmol/L': '75', 'ng/mL': '30', 'µg/L': '30' },
         wbc: { '10⁹/L': '5.5', '10³/µL': '5.5' }
     };
-
     function normalizeUnitText(value) {
         return String(value || '').replace(/\s+/g, ' ').trim();
     }
-
     function toFiniteBiomarkerNumber(value) {
-        if (value === null || value === undefined || typeof value === 'boolean') return null;
-        if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+        if (value === null || value === undefined || typeof value === 'boolean')
+            return null;
+        if (typeof value === 'number')
+            return Number.isFinite(value) ? value : null;
         if (typeof value === 'string') {
             const trimmed = value.trim();
-            if (!trimmed) return null;
+            if (!trimmed)
+                return null;
             const number = Number(trimmed);
             return Number.isFinite(number) ? number : null;
         }
         return null;
     }
-
     function hasFiniteBiomarkerValue(value) {
         return toFiniteBiomarkerNumber(value) !== null;
     }
-
     function formatBiomarkerPlaceholderValue(value) {
         const number = toFiniteBiomarkerNumber(value);
-        if (number === null) return null;
-
+        if (number === null)
+            return null;
         return Number(number.toFixed(2)).toString();
     }
-
     function readBiomarkerValue(entry, fieldNames) {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
-
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry))
+            return null;
         const fields = Array.isArray(fieldNames) ? fieldNames : [fieldNames];
         for (const field of fields) {
-            const value = toFiniteBiomarkerNumber(entry[field]);
-            if (value !== null) return value;
+            const value = toFiniteBiomarkerNumber(Reflect.get(entry, field));
+            if (value !== null)
+                return value;
         }
-
         return null;
     }
-
     function getLatestBiomarkerEntry(athlete, fieldNames) {
-        if (!athlete || !Array.isArray(athlete.Biomarkers)) return null;
-
+        if (!isObject(athlete))
+            return null;
+        const biomarkers = Reflect.get(athlete, 'Biomarkers');
+        if (!Array.isArray(biomarkers))
+            return null;
         let latestEntry = null;
         let latestTime = Number.NEGATIVE_INFINITY;
         let latestIndex = -1;
-
-        athlete.Biomarkers.forEach((entry, index) => {
-            if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return;
-            if (fieldNames !== undefined && readBiomarkerValue(entry, fieldNames) === null) return;
-
-            const parsedTime = Date.parse(entry.Date);
+        biomarkers.forEach((entry, index) => {
+            if (!entry || typeof entry !== 'object' || Array.isArray(entry))
+                return;
+            if (fieldNames !== undefined && readBiomarkerValue(entry, fieldNames) === null)
+                return;
+            const parsedTime = Date.parse(String(Reflect.get(entry, 'Date')));
             const entryTime = Number.isFinite(parsedTime) ? parsedTime : Number.NEGATIVE_INFINITY;
             if (!latestEntry || entryTime > latestTime || (entryTime === latestTime && index > latestIndex)) {
                 latestEntry = entry;
@@ -116,26 +119,25 @@
                 latestIndex = index;
             }
         });
-
         return latestEntry;
     }
-
     function getLatestBiomarkerValue(athlete, fieldNames) {
         const entry = getLatestBiomarkerEntry(athlete, fieldNames);
+        if (!entry)
+            return null;
         const value = readBiomarkerValue(entry, fieldNames);
         return value === null ? null : { entry, value };
     }
-
     function buildUnitSpecificBiomarkerPlaceholders(inputId, canonicalValue, displayValueForUnit) {
         const canonicalNumber = toFiniteBiomarkerNumber(canonicalValue);
         const select = document.getElementById(`${inputId}Unit`);
-        if (canonicalNumber === null || !select) return null;
-
-        const placeholders = {};
-        Array.from(select.options || []).forEach(option => {
+        if (canonicalNumber === null || !(select instanceof HTMLSelectElement))
+            return null;
+        const placeholderEntries = [];
+        Array.from(select.options).forEach((option) => {
             const unitText = normalizeUnitText(option.textContent);
-            if (!unitText) return;
-
+            if (!unitText)
+                return;
             const optionValue = toFiniteBiomarkerNumber(option.value);
             const displayValue = typeof displayValueForUnit === 'function'
                 ? displayValueForUnit(canonicalNumber, option, unitText)
@@ -144,86 +146,79 @@
                     : canonicalNumber * optionValue;
             const formatted = formatBiomarkerPlaceholderValue(displayValue);
             if (formatted !== null) {
-                placeholders[unitText] = formatted;
+                placeholderEntries.push([unitText, formatted]);
             }
         });
-
-        return Object.keys(placeholders).length ? placeholders : null;
+        return placeholderEntries.length ? Object.fromEntries(placeholderEntries) : null;
     }
-
     function readSubmittedPlaceholder(input, unitText) {
-        if (!input?.dataset?.bioageSubmittedPlaceholders) return null;
-
+        if (!input?.dataset?.bioageSubmittedPlaceholders)
+            return null;
         try {
             const placeholders = JSON.parse(input.dataset.bioageSubmittedPlaceholders);
-            const value = placeholders?.[unitText];
+            const value = isObject(placeholders) ? Reflect.get(placeholders, unitText) : undefined;
             return typeof value === 'string' && value !== '' ? value : null;
-        } catch (_) {
+        }
+        catch (_) {
             delete input.dataset.bioageSubmittedPlaceholders;
             return null;
         }
     }
-
     function cleanSubmittedPlaceholderMap(placeholdersByUnit) {
-        if (!placeholdersByUnit || typeof placeholdersByUnit !== 'object' || Array.isArray(placeholdersByUnit)) return null;
-
-        const cleaned = {};
+        if (!isObject(placeholdersByUnit))
+            return null;
+        const cleanedEntries = [];
         Object.entries(placeholdersByUnit).forEach(([unitText, value]) => {
             const normalizedUnitText = normalizeUnitText(unitText);
             const formatted = typeof value === 'string' && value.trim()
                 ? value.trim()
                 : formatBiomarkerPlaceholderValue(value);
-
             if (normalizedUnitText && formatted !== null) {
-                cleaned[normalizedUnitText] = formatted;
+                cleanedEntries.push([normalizedUnitText, formatted]);
             }
         });
-
-        return Object.keys(cleaned).length ? cleaned : null;
+        return cleanedEntries.length ? Object.fromEntries(cleanedEntries) : null;
     }
-
     function setSubmittedBiomarkerPlaceholders(placeholdersByInputId) {
         const assignedIds = new Set();
-        Object.entries(placeholdersByInputId || {}).forEach(([inputId, placeholdersByUnit]) => {
+        const placeholderEntries = isObject(placeholdersByInputId) ? Object.entries(placeholdersByInputId) : [];
+        placeholderEntries.forEach(([inputId, placeholdersByUnit]) => {
             const input = document.getElementById(inputId);
-            if (!input) return;
-
+            if (!(input instanceof HTMLInputElement))
+                return;
             const cleaned = cleanSubmittedPlaceholderMap(placeholdersByUnit);
             if (cleaned) {
                 input.dataset.bioageSubmittedPlaceholders = JSON.stringify(cleaned);
                 assignedIds.add(inputId);
-            } else {
+            }
+            else {
                 delete input.dataset.bioageSubmittedPlaceholders;
             }
-
             updateBiomarkerExamplePlaceholder(input);
         });
-
         document.querySelectorAll('input[data-bioage-submitted-placeholders]').forEach(input => {
-            if (assignedIds.has(input.id)) return;
-
+            if (assignedIds.has(input.id))
+                return;
             delete input.dataset.bioageSubmittedPlaceholders;
             updateBiomarkerExamplePlaceholder(input);
         });
     }
-
     const biomarkerComparisonBindings = new Map();
-
     function formatBiomarkerComparisonDelta(value) {
         const number = toFiniteBiomarkerNumber(value);
-        if (number === null) return null;
-
+        if (number === null)
+            return null;
         const abs = Math.abs(number);
-        if (abs < 0.005) return '0';
+        if (abs < 0.005)
+            return '0';
         return abs < 10
             ? Number(abs.toFixed(2)).toString()
             : Number(abs.toFixed(1)).toString();
     }
-
     function ensureBiomarkerComparisonChip(input) {
         let chip = input.parentElement?.querySelector(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
-        if (chip) return chip;
-
+        if (chip)
+            return chip;
         chip = document.createElement('span');
         chip.className = 'bioage-input-comparison-chip';
         chip.dataset.bioageComparisonFor = input.id;
@@ -231,7 +226,6 @@
         input.parentElement?.appendChild(chip);
         return chip;
     }
-
     function hideBiomarkerComparison(input) {
         input.classList.remove('bioage-input-has-comparison');
         const chip = input.parentElement?.querySelector(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
@@ -243,51 +237,44 @@
             chip.removeAttribute('aria-label');
         }
     }
-
     function setBiomarkerComparisonChipContent(chip, text, direction) {
         chip.replaceChildren();
         if (!direction) {
             chip.textContent = text;
             return;
         }
-
         const icon = document.createElement('i');
         icon.className = `fas fa-arrow-${direction}`;
         icon.setAttribute('aria-hidden', 'true');
-
         const label = document.createElement('span');
         label.className = 'bioage-input-comparison-chip__text';
         label.textContent = text;
-
         chip.append(icon, label);
     }
-
     function updateBiomarkerComparison(inputId) {
         const input = document.getElementById(inputId);
         const binding = biomarkerComparisonBindings.get(inputId);
-        if (!input || !binding || typeof binding.getState !== 'function') return;
-
+        if (!(input instanceof HTMLInputElement) || !binding)
+            return;
         let state = null;
         try {
             state = binding.getState(input);
-        } catch (_) {
+        }
+        catch (_) {
             state = null;
         }
-
         const currentDisplay = toFiniteBiomarkerNumber(state?.currentDisplayValue);
         const previousDisplay = toFiniteBiomarkerNumber(state?.previousDisplayValue);
         if (currentDisplay === null || previousDisplay === null) {
             hideBiomarkerComparison(input);
             return;
         }
-
         const displayDelta = currentDisplay - previousDisplay;
         const deltaMagnitude = formatBiomarkerComparisonDelta(displayDelta);
         if (deltaMagnitude === null) {
             hideBiomarkerComparison(input);
             return;
         }
-
         const isSameDisplay = Math.abs(displayDelta) < 0.005;
         let stateClass = 'is-neutral';
         if (!state?.neutral) {
@@ -297,13 +284,11 @@
                 hideBiomarkerComparison(input);
                 return;
             }
-
             const scoreDelta = currentScore - previousScore;
             if (Math.abs(scoreDelta) >= 0.000001) {
                 stateClass = scoreDelta < 0 ? 'is-improved' : 'is-regressed';
             }
         }
-
         const text = isSameDisplay
             ? 'same as last'
             : `${deltaMagnitude} ${displayDelta < 0 ? 'lower' : 'higher'}`;
@@ -316,108 +301,103 @@
         chip.setAttribute('aria-label', `${text}; last ${formatBiomarkerPlaceholderValue(previousDisplay)}`);
         input.classList.add('bioage-input-has-comparison');
     }
-
     function bindBiomarkerComparison(inputId, getState) {
         const input = document.getElementById(inputId);
-        if (!input || typeof getState !== 'function') return;
-
+        if (!(input instanceof HTMLInputElement))
+            return;
         biomarkerComparisonBindings.set(inputId, { getState });
         ensureBiomarkerComparisonChip(input);
-
         if (input.dataset.bioageComparisonBound !== 'true') {
             input.dataset.bioageComparisonBound = 'true';
             input.addEventListener('input', () => updateBiomarkerComparison(inputId));
-
             const unitSelect = document.getElementById(`${inputId}Unit`);
-            if (unitSelect) {
+            if (unitSelect instanceof HTMLSelectElement) {
                 unitSelect.addEventListener('change', () => updateBiomarkerComparison(inputId));
             }
         }
-
         updateBiomarkerComparison(inputId);
     }
-
     function getBiomarkerInputForUnitSelect(select) {
-        if (!select || !select.id || !select.id.endsWith('Unit')) return null;
-
+        if (!select || !select.id || !select.id.endsWith('Unit'))
+            return null;
         const input = document.getElementById(select.id.slice(0, -4));
-        return input && input.matches('input[type="number"]') ? input : null;
+        return input instanceof HTMLInputElement && input.matches('input[type="number"]') ? input : null;
     }
-
     function updateBiomarkerExamplePlaceholder(selectOrInput) {
-        const select = selectOrInput?.matches?.('select')
+        const selectCandidate = selectOrInput?.matches('select')
             ? selectOrInput
             : document.getElementById(`${selectOrInput?.id || ''}Unit`);
-        const input = selectOrInput?.matches?.('input[type="number"]')
+        const select = selectCandidate instanceof HTMLSelectElement ? selectCandidate : null;
+        const inputCandidate = selectOrInput?.matches('input[type="number"]')
             ? selectOrInput
             : getBiomarkerInputForUnitSelect(select);
-
-        if (!select || !input) return;
-
-        const examplesByUnit = biomarkerExamplePlaceholders[input.id];
+        const input = inputCandidate instanceof HTMLInputElement ? inputCandidate : null;
+        if (!select || !input)
+            return;
+        const examplesByUnit = Object.hasOwn(biomarkerExamplePlaceholders, input.id)
+            ? biomarkerExamplePlaceholders[input.id]
+            : undefined;
         const selectedOption = select.options[select.selectedIndex];
         const unitText = normalizeUnitText(selectedOption?.textContent);
         const submittedExample = readSubmittedPlaceholder(input, unitText);
-        const example = submittedExample ?? examplesByUnit?.[unitText];
-
+        const candidateExample = submittedExample ?? (examplesByUnit && Object.hasOwn(examplesByUnit, unitText)
+            ? Reflect.get(examplesByUnit, unitText)
+            : undefined);
+        const example = typeof candidateExample === 'string' ? candidateExample : null;
         if (example) {
             input.placeholder = example;
-        } else {
+        }
+        else {
             input.removeAttribute('placeholder');
         }
     }
-
     function syncBiomarkerExamplePlaceholders(root) {
         const scope = root || document;
         scope.querySelectorAll('.biomarker-card-content .input-group select[id$="Unit"]').forEach(select => {
             updateBiomarkerExamplePlaceholder(select);
-
-            if (select.dataset.bioageExamplePlaceholderBound === 'true') return;
-
+            if (select.dataset.bioageExamplePlaceholderBound === 'true')
+                return;
             select.dataset.bioageExamplePlaceholderBound = 'true';
             select.addEventListener('change', () => updateBiomarkerExamplePlaceholder(select));
         });
     }
-
     function isUpdateMode(search) {
         return new URLSearchParams(search || window.location.search).get('update') === '1';
     }
-
     function getBackDestination(isUpdate) {
         return isUpdate ? '/dashboard' : '/join';
     }
-
     function navigateBack(isUpdate) {
         window.navigateToFlowDestination(getBackDestination(isUpdate));
     }
-
     function resetUpdateModeScroll() {
         const reset = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
         reset();
         window.requestAnimationFrame(() => {
             reset();
-            window.LwcFlowActionDock?.refresh?.();
+            getFlowActionDock()?.refresh?.();
         });
     }
-
-    function isValidSelectedAthlete(value) {
-        return value
-            && typeof value === 'object'
-            && !Array.isArray(value)
-            && typeof value.Name === 'string'
-            && value.Name.trim()
-            && hasSelectedAthleteDateOfBirth(value.DateOfBirth);
+    function getFlowActionDock() {
+        return Reflect.get(window, 'LwcFlowActionDock');
     }
-
+    function isValidSelectedAthlete(value) {
+        if (!isObject(value))
+            return false;
+        const name = Reflect.get(value, 'Name');
+        const dateOfBirth = Reflect.get(value, 'DateOfBirth');
+        return typeof name === 'string'
+            && name.trim().length > 0
+            && hasSelectedAthleteDateOfBirth(dateOfBirth);
+    }
     function hasSelectedAthleteDateOfBirth(value) {
-        if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-
-        const year = toSelectedAthleteDatePart(value.Year, 1, 9999);
-        const month = toSelectedAthleteDatePart(value.Month, 1, 12);
-        const day = toSelectedAthleteDatePart(value.Day, 1, 31);
-
-        if (year === null || month === null || day === null) return false;
-
+        if (!isObject(value))
+            return false;
+        const year = toSelectedAthleteDatePart(Reflect.get(value, 'Year'), 1, 9999);
+        const month = toSelectedAthleteDatePart(Reflect.get(value, 'Month'), 1, 12);
+        const day = toSelectedAthleteDatePart(Reflect.get(value, 'Day'), 1, 31);
+        if (year === null || month === null || day === null)
+            return false;
         const date = new Date(0);
         date.setUTCFullYear(year, month - 1, day);
         date.setUTCHours(0, 0, 0, 0);
@@ -425,88 +405,79 @@
             && date.getUTCMonth() === month - 1
             && date.getUTCDate() === day;
     }
-
     function toSelectedAthleteDatePart(value, min, max) {
-        if (typeof value === 'boolean' || value === null || value === undefined) return null;
-
+        if (typeof value === 'boolean' || value === null || value === undefined)
+            return null;
         const number = typeof value === 'string' && value.trim()
             ? Number(value)
             : value;
-        return Number.isInteger(number) && number >= min && number <= max
+        return typeof number === 'number' && Number.isInteger(number) && number >= min && number <= max
             ? number
             : null;
     }
-
     function readSelectedAthlete(getItem) {
         const readItem = typeof getItem === 'function' ? getItem : getSessionItem;
         try {
             const selectedAthleteJson = readItem('selectedAthlete');
             return selectedAthleteJson ? JSON.parse(selectedAthleteJson) : null;
-        } catch (_) {
+        }
+        catch (_) {
             return null;
         }
     }
-
     function redirectMissingSelectedAthlete(removeItem) {
         const remove = typeof removeItem === 'function' ? removeItem : removeSessionItem;
         remove('selectedAthlete');
         remove('tempAthlete');
         window.location.replace('/select-athlete');
     }
-
     function clearStoredBiomarkerHandoff(removeItem) {
         const remove = typeof removeItem === 'function' ? removeItem : removeSessionItem;
         remove('biomarkerData');
         remove('chronoPhenoDifference');
         remove('chronoBortzDifference');
     }
-
     function updateCalculateButton() {
         const calculateButton = document.querySelector('.bioage-calculate-button');
         const nextButton = document.getElementById('continueButton');
-        if (!calculateButton || !nextButton) return;
-
+        if (!calculateButton || !nextButton)
+            return;
         if (nextButton.classList.contains('show')) {
             calculateButton.classList.remove('green');
             calculateButton.classList.add('grey', 'flow-action--secondary');
-        } else {
+        }
+        else {
             calculateButton.classList.remove('grey', 'flow-action--secondary');
             calculateButton.classList.add('green');
         }
-
         syncBioageResultActions();
     }
-
     function syncBioageResultActions() {
         const nextButton = document.getElementById('continueButton');
         const resultActions = nextButton?.closest('.flow-action-stack');
-        if (!nextButton || !resultActions || !document.body) return;
-
+        if (!nextButton || !resultActions || !document.body)
+            return;
         const hasResult = nextButton.classList.contains('show');
         document.body.classList.toggle('bioage-result-ready', hasResult);
         resultActions.hidden = !hasResult;
-        window.LwcFlowActionDock?.refreshNow?.();
-
+        getFlowActionDock()?.refreshNow?.();
         if (hasResult) {
             scheduleBioageResultReveal(getShownBioageResultElement());
-        } else {
+        }
+        else {
             clearScheduledBioageResultReveals();
         }
-
         lastBioageResultActionsVisible = hasResult;
     }
-
     let lastBioageResultShown = false;
     let lastBioageResultActionsVisible = false;
     let resultRevealFrame = 0;
-
     function getShownBioageResultElement() {
         return document.querySelector('#phenoAgeResult.show, #bortzAgeResult.show');
     }
-
     function isRenderedElement(element) {
-        if (!element) return false;
-
+        if (!element)
+            return false;
         const rect = element.getBoundingClientRect();
         const style = window.getComputedStyle(element);
         return rect.width > 0
@@ -514,26 +485,22 @@
             && style.display !== 'none'
             && style.visibility !== 'hidden';
     }
-
     function getCssPixelValue(element, propertyName) {
         const value = parseFloat(window.getComputedStyle(element).getPropertyValue(propertyName));
         return Number.isFinite(value) ? value : 0;
     }
-
     function getVisualViewportBounds() {
         const visualViewport = window.visualViewport;
-        const top = Number.isFinite(visualViewport?.offsetTop) ? visualViewport.offsetTop : 0;
-        const height = Number.isFinite(visualViewport?.height)
+        const top = visualViewport && Number.isFinite(visualViewport.offsetTop) ? visualViewport.offsetTop : 0;
+        const height = visualViewport && Number.isFinite(visualViewport.height)
             ? visualViewport.height
             : window.innerHeight;
-
         return {
             top,
             bottom: top + height,
             height
         };
     }
-
     function getBioageResultViewportBounds() {
         const rootStyle = window.getComputedStyle(document.documentElement);
         const scrollPaddingTop = parseFloat(rootStyle.scrollPaddingTop);
@@ -543,67 +510,56 @@
         const viewport = getVisualViewportBounds();
         const top = viewport.top + reservedTop;
         const bottom = viewport.bottom - reservedBottom;
-
         return {
             top,
             bottom,
             height: Math.max(0, bottom - top)
         };
     }
-
     function isBioageResultComfortablyVisible(resultElement) {
         const rect = resultElement.getBoundingClientRect();
         const viewportBounds = getBioageResultViewportBounds();
-
         return rect.top >= viewportBounds.top
             && rect.bottom <= viewportBounds.bottom;
     }
-
     function getBioageResultRevealScrollTop(resultElement) {
         const rect = resultElement.getBoundingClientRect();
         const viewportBounds = getBioageResultViewportBounds();
         const targetTop = rect.height >= viewportBounds.height
             ? viewportBounds.top
             : viewportBounds.top + ((viewportBounds.height - rect.height) / 2);
-
         return Math.max(0, window.scrollY + rect.top - targetTop);
     }
-
     function revealBioageResult(resultElement, revealOptions = {}) {
-        if (!resultElement) return;
-
-        window.LwcFlowActionDock?.refreshNow?.();
-
-        if (isBioageResultComfortablyVisible(resultElement)) return;
-
+        if (!resultElement)
+            return;
+        getFlowActionDock()?.refreshNow?.();
+        if (isBioageResultComfortablyVisible(resultElement))
+            return;
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         window.scrollTo({
             top: getBioageResultRevealScrollTop(resultElement),
             behavior: prefersReducedMotion || revealOptions.instant ? 'auto' : 'smooth',
         });
-
-        window.setTimeout(() => window.LwcFlowActionDock?.refresh?.(), prefersReducedMotion ? 0 : 360);
+        window.setTimeout(() => getFlowActionDock()?.refresh?.(), prefersReducedMotion ? 0 : 360);
     }
-
     function clearScheduledBioageResultReveals() {
         if (resultRevealFrame) {
             window.cancelAnimationFrame(resultRevealFrame);
             resultRevealFrame = 0;
         }
-
     }
-
     function scheduleBioageResultReveal(resultElement) {
-        if (!resultElement) return;
+        if (!resultElement)
+            return;
         clearScheduledBioageResultReveals();
-
         const revealIfCurrent = (instant = false) => {
-            if (!isRenderedElement(resultElement)) return;
-            if (getShownBioageResultElement() !== resultElement) return;
-
+            if (!isRenderedElement(resultElement))
+                return;
+            if (getShownBioageResultElement() !== resultElement)
+                return;
             revealBioageResult(resultElement, { instant });
         };
-
         resultRevealFrame = window.requestAnimationFrame(() => {
             resultRevealFrame = window.requestAnimationFrame(() => {
                 resultRevealFrame = 0;
@@ -611,35 +567,28 @@
             });
         });
     }
-
     function syncBioageResultVisibility() {
         const resultElement = getShownBioageResultElement();
         const hasShownResult = !!resultElement;
-
         if (hasShownResult && !lastBioageResultShown) {
             scheduleBioageResultReveal(resultElement);
         }
-
         if (!hasShownResult) {
             clearScheduledBioageResultReveals();
         }
-
         lastBioageResultShown = hasShownResult;
     }
-
     function bindBioageResultActions() {
         const nextButton = document.getElementById('continueButton');
-        if (!nextButton) return;
-
+        if (!nextButton)
+            return;
         syncBioageResultActions();
         syncBioageResultVisibility();
-
         const observer = new MutationObserver(syncBioageResultActions);
         observer.observe(nextButton, {
             attributes: true,
             attributeFilter: ['class']
         });
-
         const resultObserver = new MutationObserver(syncBioageResultVisibility);
         document.querySelectorAll('#phenoAgeResult, #bortzAgeResult').forEach(resultElement => {
             resultObserver.observe(resultElement, {
@@ -647,14 +596,12 @@
                 attributeFilter: ['class']
             });
         });
-
     }
-
     function hideUpdateModeStepNavigation() {
         const wizardNav = document.querySelector('.lwc-wizard-nav');
-        if (wizardNav) wizardNav.hidden = true;
+        if (wizardNav)
+            wizardNav.hidden = true;
     }
-
     window.LwcBioageFlow = {
         bindBiomarkerComparison,
         clearStoredBiomarkerHandoff,
@@ -690,10 +637,10 @@
         updateBiomarkerExamplePlaceholder,
         updateCalculateButton
     };
-
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', bindBioageResultActions, { once: true });
-    } else {
+    }
+    else {
         bindBioageResultActions();
     }
 })();

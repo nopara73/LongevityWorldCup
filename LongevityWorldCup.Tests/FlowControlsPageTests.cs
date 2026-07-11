@@ -305,15 +305,13 @@ public sealed class FlowControlsPageTests
     }
 
     [Fact]
-    public async Task PlayMenuBackButton_UsesExplicitRouteDestination()
+    public void PlayMenuBackButton_UsesExplicitRouteDestination()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        var playMenuSource = ReadFrontendSource("play-menu.ts");
 
-        var playMenu = await client.GetStringAsync("/js/play-menu.js");
-
-        Assert.Contains("document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);", playMenu);
-        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", playMenu);
+        Assert.Contains("const joinTrackBackButton = document.getElementById('joinTrackBackBtn');", playMenuSource);
+        Assert.Contains("joinTrackBackButton.addEventListener('click', navigateToStartPanel);", playMenuSource);
+        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", playMenuSource);
     }
 
     [Theory]
@@ -349,5 +347,16 @@ public sealed class FlowControlsPageTests
         Assert.Contains(stackClass, html);
         Assert.Contains(buttonClass, html);
         Assert.Contains("flow-action__label", html);
+    }
+
+    private static string ReadFrontendSource(
+        string fileName,
+        [System.Runtime.CompilerServices.CallerFilePath] string testFilePath = "")
+    {
+        var testsDirectory = Path.GetDirectoryName(testFilePath)
+            ?? throw new InvalidOperationException("Could not locate the test source directory.");
+        var repoRoot = Directory.GetParent(testsDirectory)?.FullName
+            ?? throw new InvalidOperationException("Could not locate the repository root.");
+        return File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "Frontend", fileName));
     }
 }
