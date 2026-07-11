@@ -169,7 +169,7 @@
     }
 
 </style>
-<div id="mainProgressBar" class="progress-container">
+<div id="mainProgressBar" class="progress-container" aria-hidden="false">
     <div class="progress-bar" data-aos="fade" data-aos-duration="700" data-aos-delay="350" aria-hidden="true">
         <div class="progress-fill" id="progressFill"></div>
     </div>
@@ -190,7 +190,7 @@
 </div>
 
 <!-- Sticky progress row: shown on scroll under LWC bar -->
-<div id="site-sticky-progress" class="site-sticky-progress" aria-label="Current step" aria-hidden="true">
+<div id="site-sticky-progress" class="site-sticky-progress" role="status" aria-live="polite" aria-atomic="true" aria-label="Current step" aria-hidden="true">
     <div class="sticky-progress-dots" aria-hidden="true">
         <span class="sticky-dot" data-stage="1"></span>
         <span class="sticky-dot" data-stage="2"></span>
@@ -201,6 +201,13 @@
 
 <script>
     var MAIN_PROGRESS_STAGE_LABELS = ['Test', 'Calculate', 'Submit'];
+
+    function setMainProgressAccessibility(container, hidden) {
+        if (!container) return;
+
+        container.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+        container.toggleAttribute('inert', hidden);
+    }
 
     (function () {
         var isStickyProgressInitialized = false;
@@ -241,12 +248,23 @@
             isStickyProgressInitialized = true;
 
             var progressBarStickyHeight = 44; /* #site-sticky-progress when visible */
+            var stickyVisibilityFrame = 0;
 
             function updateStickyVisibility() {
                 var mainProgressBar = document.getElementById('mainProgressBar');
                 var stickyHeader = document.getElementById('site-sticky-header');
                 var stickyProgress = document.getElementById('site-sticky-progress');
                 if (!stickyProgress) return;
+
+                if (!mainProgressBar || mainProgressBar.offsetHeight === 0) {
+                    stickyProgress.classList.remove('visible');
+                    stickyProgress.setAttribute('aria-hidden', 'true');
+                    stickyProgress.style.top = '';
+                    setMainProgressAccessibility(mainProgressBar, true);
+                    document.documentElement.classList.remove('sticky-progress-visible');
+                    document.documentElement.style.scrollPaddingTop = '';
+                    return;
+                }
 
                 var scrollY = window.scrollY || window.pageYOffset;
                 var lwcHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
@@ -260,6 +278,7 @@
                 if (scrollY >= threshold) {
                     stickyProgress.classList.add('visible');
                     stickyProgress.setAttribute('aria-hidden', 'false');
+                    setMainProgressAccessibility(mainProgressBar, true);
                     document.documentElement.classList.add('sticky-progress-visible');
                     // Flush under LWC bar: no gap
                     if (stickyHeader) {
@@ -269,19 +288,28 @@
                 } else {
                     stickyProgress.classList.remove('visible');
                     stickyProgress.setAttribute('aria-hidden', 'true');
+                    setMainProgressAccessibility(mainProgressBar, false);
                     document.documentElement.classList.remove('sticky-progress-visible');
                     document.documentElement.style.scrollPaddingTop = '';
                     stickyProgress.style.top = '';
                 }
             }
 
+            function scheduleStickyVisibilityUpdate() {
+                if (stickyVisibilityFrame) return;
+
+                stickyVisibilityFrame = window.requestAnimationFrame(function () {
+                    stickyVisibilityFrame = 0;
+                    updateStickyVisibility();
+                });
+            }
+
             window.LwcStickyProgress = {
                 refresh: updateStickyVisibility
             };
 
-            window.addEventListener('scroll', function () {
-                updateStickyVisibility();
-            });
+            window.addEventListener('scroll', scheduleStickyVisibilityUpdate, { passive: true });
+            window.addEventListener('resize', scheduleStickyVisibilityUpdate);
             updateStickyVisibility();
         }
 
@@ -295,7 +323,10 @@
     function hideMainProgress() {
         var container = document.getElementById('mainProgressBar');
         var stickyProgress = document.getElementById('site-sticky-progress');
-        if (container) container.style.display = 'none';
+        if (container) {
+            container.style.display = 'none';
+            setMainProgressAccessibility(container, true);
+        }
         if (stickyProgress) {
             stickyProgress.classList.remove('visible');
             stickyProgress.setAttribute('aria-hidden', 'true');

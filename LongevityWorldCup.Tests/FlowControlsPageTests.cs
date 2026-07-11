@@ -54,6 +54,49 @@ public sealed class FlowControlsPageTests
         Assert.Contains("if (!isMainProgressVisible) return;", html);
     }
 
+    [Fact]
+    public async Task MainProgress_UsesExclusiveAccessibleRepresentationsAndFrameScheduledObservers()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/pheno-age");
+
+        Assert.Contains("<div id=\"mainProgressBar\" class=\"progress-container\" aria-hidden=\"false\">", html);
+        Assert.Contains("role=\"status\" aria-live=\"polite\" aria-atomic=\"true\" aria-label=\"Current step\" aria-hidden=\"true\"", html);
+        Assert.Contains("function setMainProgressAccessibility(container, hidden)", html);
+        Assert.Contains("container.setAttribute('aria-hidden', hidden ? 'true' : 'false');", html);
+        Assert.Contains("container.toggleAttribute('inert', hidden);", html);
+        Assert.Contains("setMainProgressAccessibility(mainProgressBar, true);", html);
+        Assert.Contains("setMainProgressAccessibility(mainProgressBar, false);", html);
+
+        Assert.Contains("var stickyVisibilityFrame = 0;", html);
+        Assert.Contains("function scheduleStickyVisibilityUpdate()", html);
+        Assert.Contains("if (stickyVisibilityFrame) return;", html);
+        Assert.Contains("stickyVisibilityFrame = window.requestAnimationFrame(function ()", html);
+        Assert.Contains("window.addEventListener('scroll', scheduleStickyVisibilityUpdate, { passive: true });", html);
+        Assert.Contains("window.addEventListener('resize', scheduleStickyVisibilityUpdate);", html);
+    }
+
+    [Fact]
+    public async Task CompactFlowLayouts_PreserveMinimumDirectTargetHeight()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var playMenuCss = (await client.GetStringAsync("/css/play-menu.css")).Replace("\r\n", "\n");
+        var phenoHtml = (await client.GetStringAsync("/pheno-age")).Replace("\r\n", "\n");
+        var bortzHtml = (await client.GetStringAsync("/bortz-age")).Replace("\r\n", "\n");
+
+        Assert.Contains("    .play-join-biomarkers summary {\n        min-height: 44px;\n    }", playMenuCss);
+        Assert.Contains("    .play-dashboard-actions .option-button {\n        min-height: 44px;", playMenuCss);
+        Assert.DoesNotContain("min-height: 38px;", playMenuCss);
+        Assert.DoesNotContain("min-height: 42px;", playMenuCss);
+
+        Assert.Contains("            .lab-access-link {\n                min-height: 44px;", phenoHtml);
+        Assert.Contains("            .lab-access-link {\n                min-height: 44px;", bortzHtml);
+    }
+
     [Theory]
     [InlineData("/play")]
     [InlineData("/join")]

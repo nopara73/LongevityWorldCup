@@ -393,6 +393,92 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.Empty(errors);
     }
 
+    [Fact]
+    public async Task CachedFallbackPicture_CompletesReadinessWithoutASecondLoadEvent()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US"
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+        var result = await page.EvaluateAsync<string>(
+            """
+            async () => {
+                const image = document.createElement('div');
+                let source = '/tiny-athlete.png';
+                let sourceComplete = true;
+                Object.defineProperties(image, {
+                    src: {
+                        configurable: true,
+                        get: () => source,
+                        set: value => {
+                            source = value;
+                            sourceComplete = !String(value).includes('/assets/content-images/headshot.jpg');
+                        }
+                    },
+                    currentSrc: {
+                        configurable: true,
+                        get: () => source
+                    },
+                    naturalWidth: {
+                        configurable: true,
+                        get: () => 1
+                    },
+                    naturalHeight: {
+                        configurable: true,
+                        get: () => 1
+                    },
+                    complete: {
+                        configurable: true,
+                        get: () => sourceComplete
+                    },
+                    decode: {
+                        configurable: true,
+                        value: () => new Promise(resolve => setTimeout(() => {
+                            sourceComplete = true;
+                            resolve();
+                        }, 0))
+                    }
+                });
+
+                const frame = document.createElement('div');
+                const originalRequestAnimationFrame = window.requestAnimationFrame;
+                window.requestAnimationFrame = callback => window.setTimeout(
+                    () => callback(performance.now()),
+                    0);
+                let completed;
+                try {
+                    const readiness = window.playAthleteFlow.replaceAthletePictureImmediately(
+                        frame,
+                        image,
+                        source);
+                    completed = await Promise.race([
+                        readiness.then(() => true),
+                        new Promise(resolve => setTimeout(() => resolve(false), 500))
+                    ]);
+                } finally {
+                    window.requestAnimationFrame = originalRequestAnimationFrame;
+                }
+
+                return `${completed}|${source}|${image.classList.contains('athlete-picture-placeholder')}`;
+            }
+            """);
+
+        Assert.StartsWith("true|/assets/content-images/headshot.jpg?v=", result, StringComparison.Ordinal);
+        Assert.EndsWith("|true", result, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(390, 844)]
     [InlineData(1280, 720)]
@@ -583,6 +669,9 @@ public sealed class PlayAthleteFlowBrowserTests
         await page.WaitForFunctionAsync("() => window.location.pathname === '/select-athlete'");
         await athleteRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
+        Assert.True(await page.Locator("body").EvaluateAsync<bool>(
+            "body => body.classList.contains('play-route-hydrating') && body.getAttribute('aria-busy') === 'true'"));
+        Assert.False(await page.Locator("#newGameBtn").IsVisibleAsync());
 
         await page.GoBackAsync();
         await page.WaitForFunctionAsync("() => window.location.pathname === '/play'");
@@ -594,6 +683,84 @@ public sealed class PlayAthleteFlowBrowserTests
         Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
         await ExpectActivePlayPanelAsync(page, "playStartPanel");
         Assert.True(await page.Locator("#athleteSelectionPanel").IsHiddenAsync());
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task ExistingAthleteSelectionWithHungLookup_LeavesHydrationAtDeadline()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        await context.AddInitScriptAsync(
+            """
+            const nativeSetTimeout = window.setTimeout.bind(window);
+            window.setTimeout = (handler, delay, ...args) => nativeSetTimeout(
+                handler,
+                delay === 8000 ? 120 : delay,
+                ...args);
+            window.localStorage.setItem('selectedAthleteName', 'Never Arrives Athlete');
+            window.localStorage.setItem('hasApplication', 'true');
+            """);
+
+        var athleteRequestReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseAthletesResponse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            athleteRequestReceived.TrySetResult();
+            await releaseAthletesResponse.Task;
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = "[]"
+            });
+        });
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await ExpectActivePlayPanelAsync(page, "playStartPanel");
+        await page.Locator("#continueGameBtn").ClickAsync();
+        await athleteRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await page.WaitForFunctionAsync(
+            """
+            () => window.location.pathname === '/select-athlete'
+                && !document.body.classList.contains('play-route-hydrating')
+                && !document.getElementById('athleteSelectionPanel').hidden
+            """);
+
+        Assert.Null(await page.Locator("body").GetAttributeAsync("aria-busy"));
+        var backButton = page.Locator("#playSelectionBackBtn");
+        Assert.True(await backButton.IsVisibleAsync());
+        Assert.True(await backButton.IsEnabledAsync());
+
+        await backButton.ClickAsync();
+        await page.WaitForFunctionAsync("() => window.location.pathname === '/play'");
+        await ExpectActivePlayPanelAsync(page, "playStartPanel");
+
+        releaseAthletesResponse.SetResult();
+        await page.WaitForTimeoutAsync(250);
+        Assert.Equal("/play", new Uri(page.Url).AbsolutePath);
+        await ExpectActivePlayPanelAsync(page, "playStartPanel");
         Assert.Empty(errors);
     }
 

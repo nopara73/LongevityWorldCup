@@ -32,6 +32,8 @@ body.play-start-active > .play-hub-main {
 
 body.play-start-active header {
     display: none;
+    background: transparent;
+    box-shadow: none;
 }
 
 body.play-start-active .bannertext,
@@ -137,9 +139,12 @@ body.play-route-hydrating .play-hub-main {
 }
 
 html[data-play-entry="selection"]:not(.play-route-ready) .play-hub-panel,
-html[data-play-entry="dashboard"]:not(.play-route-ready) .play-hub-panel,
-body.play-route-hydrating .play-hub-panel {
+html[data-play-entry="dashboard"]:not(.play-route-ready) .play-hub-panel {
     visibility: hidden;
+}
+
+body.play-route-hydrating .play-hub-panel {
+    display: none !important;
 }
 
 html[data-play-entry="selection"]:not(.play-route-ready) .play-hub-main::before,
@@ -1396,7 +1401,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-join-biomarkers summary {
-        min-height: 38px;
+        min-height: 44px;
     }
 
     .play-join-card-actions {
@@ -1562,7 +1567,7 @@ html.play-panel-transitioning .play-hub-panel--entering {
     }
 
     .play-dashboard-actions .option-button {
-        min-height: 42px;
+        min-height: 44px;
         padding-block: 0.55rem;
     }
 

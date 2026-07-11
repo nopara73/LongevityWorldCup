@@ -520,18 +520,34 @@
         return Number.isFinite(value) ? value : 0;
     }
 
+    function getVisualViewportBounds() {
+        const visualViewport = window.visualViewport;
+        const top = Number.isFinite(visualViewport?.offsetTop) ? visualViewport.offsetTop : 0;
+        const height = Number.isFinite(visualViewport?.height)
+            ? visualViewport.height
+            : window.innerHeight;
+
+        return {
+            top,
+            bottom: top + height,
+            height
+        };
+    }
+
     function getBioageResultViewportBounds() {
         const rootStyle = window.getComputedStyle(document.documentElement);
         const scrollPaddingTop = parseFloat(rootStyle.scrollPaddingTop);
         const reservedTop = Number.isFinite(scrollPaddingTop) ? scrollPaddingTop : 52;
         const dockHeight = getCssPixelValue(document.documentElement, '--flow-action-dock-height');
         const reservedBottom = dockHeight + 16;
-        const bottom = window.innerHeight - reservedBottom;
+        const viewport = getVisualViewportBounds();
+        const top = viewport.top + reservedTop;
+        const bottom = viewport.bottom - reservedBottom;
 
         return {
-            top: reservedTop,
+            top,
             bottom,
-            height: Math.max(0, bottom - reservedTop)
+            height: Math.max(0, bottom - top)
         };
     }
 

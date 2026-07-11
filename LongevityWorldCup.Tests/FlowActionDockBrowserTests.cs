@@ -2353,6 +2353,8 @@ public sealed class FlowActionDockBrowserTests
     [Theory]
     [InlineData("/pheno-age", 1280, 720)]
     [InlineData("/bortz-age", 1280, 720)]
+    [InlineData("/pheno-age", 390, 844)]
+    [InlineData("/bortz-age", 390, 844)]
     [InlineData("/pheno-age", 430, 932)]
     [InlineData("/bortz-age", 430, 932)]
     public async Task BioageStepOne_DoesNotHalfCoverDatePanelsWithActions(string path, int viewportWidth, int viewportHeight)
@@ -3025,7 +3027,7 @@ public sealed class FlowActionDockBrowserTests
     }
 
     [Fact]
-    public async Task MobileBioageStickyProgress_HidesInPageProgressBar()
+    public async Task MobileBioageStickyProgress_KeepsOnlyVisibleProgressSemantics()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -3046,22 +3048,54 @@ public sealed class FlowActionDockBrowserTests
 
         await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => window.LwcStickyProgress");
+        await page.WaitForTimeoutAsync(650);
+        await page.EvaluateAsync("window.scrollTo(0, 0)");
+        await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('sticky-progress-visible')");
         await page.Mouse.WheelAsync(0, 360);
         await page.WaitForFunctionAsync("() => document.documentElement.classList.contains('sticky-progress-visible')");
 
-        var progressState = await page.Locator("#mainProgressBar").EvaluateAsync<StickyProgressState>(
+        const string progressStateScript =
             """
             element => {
                 const style = getComputedStyle(element);
+                const sticky = document.getElementById('site-sticky-progress');
                 return {
                     Opacity: style.opacity,
-                    PointerEvents: style.pointerEvents
+                    PointerEvents: style.pointerEvents,
+                    AriaHidden: element.getAttribute('aria-hidden'),
+                    Inert: element.inert,
+                    HasInertAttribute: element.hasAttribute('inert'),
+                    StickyAriaHidden: sticky && sticky.getAttribute('aria-hidden'),
+                    StickyRole: sticky && sticky.getAttribute('role'),
+                    StickyAriaLive: sticky && sticky.getAttribute('aria-live')
                 };
             }
-            """);
+            """;
+
+        var progressState = await page.Locator("#mainProgressBar").EvaluateAsync<StickyProgressState>(
+            progressStateScript);
 
         Assert.Equal("0", progressState.Opacity);
         Assert.Equal("none", progressState.PointerEvents);
+        Assert.Equal("true", progressState.AriaHidden);
+        Assert.True(progressState.Inert);
+        Assert.True(progressState.HasInertAttribute);
+        Assert.Equal("false", progressState.StickyAriaHidden);
+        Assert.Equal("status", progressState.StickyRole);
+        Assert.Equal("polite", progressState.StickyAriaLive);
+
+        await page.EvaluateAsync("window.scrollTo(0, 0)");
+        await page.WaitForFunctionAsync("() => !document.documentElement.classList.contains('sticky-progress-visible')");
+
+        progressState = await page.Locator("#mainProgressBar").EvaluateAsync<StickyProgressState>(
+            progressStateScript);
+
+        Assert.Equal("1", progressState.Opacity);
+        Assert.NotEqual("none", progressState.PointerEvents);
+        Assert.Equal("false", progressState.AriaHidden);
+        Assert.False(progressState.Inert);
+        Assert.False(progressState.HasInertAttribute);
+        Assert.Equal("true", progressState.StickyAriaHidden);
         Assert.Empty(errors);
     }
 
@@ -3842,6 +3876,12 @@ public sealed class FlowActionDockBrowserTests
     {
         public string Opacity { get; set; } = "";
         public string PointerEvents { get; set; } = "";
+        public string AriaHidden { get; set; } = "";
+        public bool Inert { get; set; }
+        public bool HasInertAttribute { get; set; }
+        public string StickyAriaHidden { get; set; } = "";
+        public string StickyRole { get; set; } = "";
+        public string StickyAriaLive { get; set; } = "";
     }
 
     private sealed class DashboardDiscountLayoutState
