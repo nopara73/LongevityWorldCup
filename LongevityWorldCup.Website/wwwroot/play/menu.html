@@ -4,769 +4,40 @@
     <title>Longevity World Cup - Menu</title>
     <!--HEAD-->
     <script src="{{ASSET_SITE_STATISTICS_TRACKING_JS}}" defer></script>
-    <style>
-        /* Hide the join-game button in the header */
-        .join-game {
-            display: none !important;
-        }
-
-        .play-hub-main {
-            max-width: 760px;
-            margin-inline: auto;
-            padding: 0 1rem 3.25rem;
-        }
-
-        .play-menu-hero {
-            text-align: center;
-            padding: clamp(1.4rem, 3vh, 2.25rem) 1rem 0;
-        }
-
-        .img-crop {
-            width: min(100%, 408px);
-            height: clamp(360px, 60vh, 720px);
-            overflow: hidden;
-            display: block;
-            margin: 0 auto;
-            border-radius: 6px;
-            background: transparent;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
-        }
-
-            .img-crop .illustration {
-                box-sizing: border-box;
-                width: 100%;
-                max-width: none;
-                height: auto;
-                display: block;
-                margin: 0;
-                position: relative;
-                top: 50%;
-                transform: translateY(-50%);
-                border: 0;
-                border-radius: 6px;
-                box-shadow: none;
-            }
-
-        .play-menu-actions,
-        .play-join-actions,
-        .play-athlete-actions,
-        .play-dashboard-actions {
-            margin: 1.35rem auto 0;
-        }
-
-        .play-hub-panel[hidden] {
-            display: none !important;
-        }
-
-        .play-hub-panel--entering {
-            opacity: 1;
-            transform: translateY(0);
-            transition: opacity 120ms ease-out, transform 120ms ease-out;
-            will-change: opacity, transform;
-        }
-
-        .play-hub-panel--entering.play-hub-panel--from {
-            opacity: 0;
-            transform: translateY(5px);
-        }
-
-        .play-athlete-panel,
-        .play-dashboard-panel,
-        .play-join-panel {
-            padding: 2.5rem 0 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .play-athlete-title,
-        .play-dashboard-title,
-        .play-join-title {
-            max-width: 100%;
-            margin: 0 0 1rem;
-            text-align: center;
-            line-height: 1.12;
-            overflow-wrap: anywhere;
-        }
-
-        .play-hub-main--wide {
-            max-width: 1100px;
-        }
-
-        .play-join-intro {
-            width: min(100%, 760px);
-            margin: 0 auto 1.25rem;
-            padding: 0.85rem 1rem;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            background: #f8f9fa;
-            font-size: 0.95rem;
-            text-align: center;
-            box-sizing: border-box;
-        }
-
-        .play-join-cards {
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            align-items: start;
-        }
-
-        .play-join-card {
-            position: relative;
-            display: grid;
-            grid-template-rows: auto auto auto;
-            min-height: 0;
-            overflow: hidden;
-            padding: 1.5rem;
-            border-radius: 12px;
-            border: 1px solid #e8e8e8;
-            background: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-            box-sizing: border-box;
-        }
-
-        .play-join-card--pro {
-            grid-template-rows: minmax(0, 0) auto auto auto;
-            border-color: var(--main-action-color, #2e7d32);
-            background: #f0fdf4;
-            box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
-        }
-
-        .play-join-ribbon-slot {
-            grid-row: 1;
-            position: relative;
-            width: 100%;
-            height: 0;
-            min-height: 0;
-            overflow: visible;
-        }
-
-        .play-join-ribbon {
-            position: absolute;
-            top: -1.5rem;
-            right: -1.5rem;
-            overflow: hidden;
-            width: 128px;
-            height: 128px;
-            pointer-events: none;
-        }
-
-        .play-join-ribbon > span {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.35rem;
-            position: absolute;
-            right: -34px;
-            top: 30px;
-            width: 148px;
-            padding: 6px 12px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            white-space: nowrap;
-            color: #5c4a0a;
-            background: linear-gradient(135deg, #f7931a 0%, #ffc107 50%, #f7931a 100%);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-            transform: rotate(45deg);
-        }
-
-        .play-join-card h2 {
-            margin: 0 0 0.35rem;
-            line-height: 1.2;
-            text-align: left;
-            white-space: normal;
-        }
-
-        .play-join-card--pro h2 {
-            grid-row: 2;
-            padding-right: 5.25rem;
-        }
-
-        .play-join-card .track-name {
-            display: inline;
-            font-size: clamp(1.8rem, 4vw, 2.5rem);
-            font-weight: 800;
-            letter-spacing: 0;
-            color: #111827;
-        }
-
-        .play-join-card .track-label {
-            display: inline;
-            margin-left: 0.25rem;
-            font-size: clamp(0.95rem, 2vw, 1.15rem);
-            font-weight: 700;
-            color: #475569;
-        }
-
-        .play-join-tagline {
-            margin: 0.25rem 0 1rem;
-            color: #64748b;
-        }
-
-        .play-join-card--pro .play-join-tagline {
-            grid-row: 3;
-        }
-
-        .play-join-meta {
-            display: grid;
-            grid-template-columns: minmax(7em, auto) 1fr;
-            gap: 0.45rem 1rem;
-            align-items: baseline;
-            margin: 0;
-            padding: 0;
-            color: #555;
-        }
-
-        .play-join-meta dt {
-            font-weight: 700;
-            color: #64748b;
-        }
-
-        .play-join-meta dd {
-            margin: 0;
-            color: #1e293b;
-        }
-
-        .join-pro-entry-cell {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.35rem;
-            min-width: 0;
-        }
-
-        .play-join-card--pro .play-join-details {
-            grid-row: 4;
-            position: relative;
-            z-index: 1;
-        }
-
-        .play-join-card .play-join-actions {
-            margin-top: 1.35rem;
-        }
-
-        .play-join-biomarkers {
-            margin-top: 0.75rem;
-            padding: 0.72rem 0.9rem 0.85rem;
-            border-radius: 10px;
-            border: 1px solid #e2e8f0;
-            border-left: 3px solid #64748b;
-            background: #f8fafc;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-
-        .play-join-card--pro .play-join-biomarkers {
-            border-color: #bbf7d0;
-            border-left-color: var(--main-action-color, #16a34a);
-            background: #ecfdf5;
-        }
-
-        .play-join-biomarkers details {
-            margin: 0;
-        }
-
-        .play-join-biomarkers summary {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            min-height: 44px;
-            cursor: pointer;
-            list-style: none;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #475569;
-        }
-
-        .play-join-card--pro .play-join-biomarkers summary {
-            color: #166534;
-        }
-
-        .play-join-biomarkers summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .play-join-biomarkers summary::after {
-            content: "";
-            flex: 0 0 auto;
-            width: 0.55rem;
-            height: 0.55rem;
-            margin-right: 0.15rem;
-            border-right: 2px solid currentColor;
-            border-bottom: 2px solid currentColor;
-            transform: rotate(45deg);
-            transition: transform 0.18s ease;
-        }
-
-        .play-join-biomarkers details[open] summary {
-            margin-bottom: 0.55rem;
-        }
-
-        .play-join-biomarkers details[open] summary::after {
-            transform: rotate(-135deg);
-        }
-
-        .play-join-biomarkers ul {
-            margin: 0;
-            padding-left: 1.1rem;
-            font-size: 0.82rem;
-            line-height: 1.35;
-            color: #334155;
-        }
-
-        .play-join-card--pro .play-join-biomarkers ul {
-            color: #14532d;
-        }
-
-        .play-join-challenge-note {
-            width: min(100%, 760px);
-            margin: 1rem auto 0;
-            color: #526d7a;
-            font-size: 0.95rem;
-            line-height: 1.35;
-            text-align: center;
-        }
-
-        .play-join-challenge-note a {
-            color: #0f6d7a;
-            font-weight: 700;
-            text-decoration: underline;
-            text-underline-offset: 0.16em;
-        }
-
-        .play-join-back {
-            margin-top: 1.35rem;
-        }
-
-        .play-athlete-visual,
-        .play-dashboard-visual {
-            width: 100%;
-            margin: 0 auto 1.25rem;
-            text-align: center;
-        }
-
-        .play-athlete-visual .illustration,
-        .play-dashboard-visual .illustration {
-            width: min(100%, 408px);
-            margin-bottom: 0;
-            box-sizing: border-box;
-        }
-
-        .play-autocomplete-wrapper {
-            position: relative;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            margin-bottom: 1.2rem;
-            transition: margin-bottom 0.2s ease;
-        }
-
-        @supports selector(:has(*)) {
-            .play-autocomplete-wrapper:has(.autocomplete-items) {
-                margin-bottom: calc(1.2rem + min(12rem, 36vh));
-            }
-        }
-
-        .play-autocomplete-container {
-            position: relative;
-            padding: 0;
-            font-size: 1.2rem;
-            width: min(100%, 408px);
-            max-width: 408px;
-            display: flex;
-            justify-content: center;
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-            .play-autocomplete-container input {
-                width: 100%;
-                min-height: 44px;
-                padding: 0.65rem 1rem;
-                border: 1px solid #cbd5e1;
-                border-radius: 999px;
-                font-size: 1rem;
-                line-height: 1.3;
-                transition: border-color 0.2s ease, box-shadow 0.2s ease;
-                box-sizing: border-box;
-            }
-
-                .play-autocomplete-container input:focus {
-                    outline: none;
-                    border-color: var(--primary-color, #00bcd4);
-                    box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.14);
-                }
-
-        .autocomplete-items {
-            position: absolute;
-            top: calc(100% + 0.45rem);
-            left: 0;
-            right: 0;
-            padding: 0.25rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
-            border-radius: 8px;
-            background: #fff;
-            width: 100%;
-            max-height: min(12rem, 36vh);
-            overflow-y: auto;
-            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
-            box-sizing: border-box;
-            z-index: 9999;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(96, 125, 139, 0.45) transparent;
-        }
-
-            .autocomplete-items div {
-                display: block;
-                min-height: 44px;
-                padding: 0.6rem 0.7rem;
-                border-radius: 6px;
-                box-sizing: border-box;
-                color: #2d3748;
-                cursor: pointer;
-                font-size: 1rem;
-                line-height: 1.25;
-                overflow-wrap: anywhere;
-            }
-
-                .autocomplete-items div + div {
-                    margin-top: 0.15rem;
-                }
-
-                .autocomplete-items div:hover,
-                .autocomplete-active {
-                    background-color: rgba(0, 188, 212, 0.12);
-                    color: #243446;
-                }
-
-                .autocomplete-items div strong {
-                    display: inline;
-                    padding: 0 0.12rem;
-                    border-radius: 4px;
-                    background: rgba(0, 188, 212, 0.16);
-                    color: #0f5965;
-                }
-
-        .error-message {
-            display: none;
-        }
-
-        .error-message:not(:empty) {
-            display: block;
-            margin-top: 0.55rem;
-            padding: 0.55rem 0.7rem;
-            border: 1px solid rgba(220, 38, 38, 0.24);
-            border-radius: 8px;
-            background: rgba(254, 242, 242, 0.94);
-            color: #b91c1c;
-            font-size: 0.9rem;
-            font-weight: 700;
-            line-height: 1.35;
-            box-sizing: border-box;
-        }
-
-        .play-dashboard-actions {
-            margin-top: 0.25rem;
-        }
-
-        #athleteDashboardDynamicActions {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.85rem;
-        }
-
-        .pro-discount-box {
-            width: 100%;
-            max-width: none;
-            margin: -0.1rem 0 0.1rem;
-            padding: 0.85rem 1rem;
-            border: 1px solid rgba(76, 175, 80, 0.22);
-            border-radius: 8px;
-            background: rgba(240, 253, 244, 0.82);
-            color: #24442a;
-            font-size: 0.88rem;
-            line-height: 1.35;
-            text-align: left;
-            box-sizing: border-box;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
-        }
-
-        .pro-discount-box .pro-discount-breakdown {
-            margin: 0;
-            text-align: left;
-            white-space: pre-line;
-        }
-
-        .pro-discount-box .pro-discount-breakdown .pro-discount-line {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 0.42rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .pro-discount-box .pro-discount-breakdown .pro-discount-line:last-child {
-            margin-bottom: 0;
-        }
-
-        .pro-discount-box .pro-discount-breakdown .pro-discount-badge-slot {
-            width: 44px;
-            min-width: 44px;
-            height: 44px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .pro-discount-box .pro-discount-breakdown .pro-discount-badge-slot:empty {
-            display: none;
-        }
-
-        .pro-discount-box .pro-discount-breakdown.pro-discount-breakdown--with-badges .pro-discount-badge-slot:empty {
-            display: inline-flex;
-        }
-
-        .pro-discount-box .pro-discount-breakdown .pro-discount-text {
-            min-width: 0;
-            overflow-wrap: anywhere;
-        }
-
-        .pro-old-price {
-            text-decoration: line-through;
-            opacity: 0.75;
-            margin-right: 0.2rem;
-        }
-
-        .pro-new-price {
-            font-weight: 700;
-        }
-
-        .option-button .pro-old-price,
-        .option-button .pro-new-price {
-            font-weight: inherit;
-        }
-
-        @media (max-width: 600px) {
-            .play-hub-main {
-                padding-inline: 1.35rem;
-            }
-
-            .play-menu-hero {
-                padding: 1rem 0 0;
-            }
-
-            .img-crop {
-                width: min(100%, 408px);
-                height: clamp(300px, 44vh, 410px);
-            }
-
-            .play-menu-actions,
-            .play-join-actions,
-            .play-athlete-actions,
-            .play-dashboard-actions {
-                margin-top: 1.15rem;
-            }
-
-            .play-athlete-panel,
-            .play-dashboard-panel,
-            .play-join-panel {
-                padding-top: 2rem;
-            }
-
-            .play-athlete-title,
-            .play-dashboard-title,
-            .play-join-title {
-                margin-bottom: 0.85rem;
-                font-size: clamp(1.65rem, 7vw, 1.9rem);
-            }
-
-            .play-join-intro {
-                margin-bottom: 1rem;
-            }
-
-            .play-join-cards {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .play-join-card {
-                padding: 1.35rem;
-            }
-
-            .play-join-card--pro h2 {
-                padding-right: 4rem;
-            }
-
-            .play-join-meta {
-                grid-template-columns: minmax(6.5em, auto) 1fr;
-                gap: 0.4rem 0.8rem;
-            }
-
-            .play-athlete-visual,
-            .play-dashboard-visual {
-                margin-bottom: 1rem;
-            }
-
-            .athlete-picture-frame {
-                width: min(100%, 408px);
-            }
-
-            .play-autocomplete-wrapper {
-                margin-bottom: 1rem;
-            }
-
-            @supports selector(:has(*)) {
-                .play-autocomplete-wrapper:has(.autocomplete-items) {
-                    margin-bottom: calc(1rem + min(11.5rem, 34vh));
-                }
-
-                .play-athlete-panel:has(.autocomplete-items) {
-                    padding-top: 0.75rem;
-                }
-
-                .play-athlete-panel:has(.autocomplete-items) .play-athlete-title {
-                    margin-bottom: 0.45rem;
-                }
-
-                .play-athlete-panel:has(.autocomplete-items) .play-athlete-visual {
-                    margin-bottom: 0.55rem;
-                }
-
-                .play-athlete-panel:has(.autocomplete-items) .athlete-picture-frame {
-                    width: min(100%, 200px);
-                }
-            }
-
-            .play-dashboard-actions {
-                gap: 0.65rem;
-                margin-top: 0.1rem;
-            }
-        }
-
-        @media (min-width: 640px) and (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-            .play-athlete-panel,
-            .play-dashboard-panel,
-            .play-join-panel {
-                padding-top: 0.6rem;
-            }
-
-            .play-athlete-title,
-            .play-dashboard-title,
-            .play-join-title {
-                margin-bottom: 0.45rem;
-                font-size: clamp(1.55rem, 8vh, 2rem);
-                line-height: 1.05;
-            }
-
-            .play-join-cards {
-                grid-template-columns: 1fr 1fr;
-                gap: 1rem;
-            }
-
-            .play-join-card {
-                padding: 1rem;
-            }
-
-            .play-join-card--pro h2 {
-                padding-right: 3rem;
-            }
-
-            .play-join-meta {
-                grid-template-columns: 1fr;
-                gap: 0.15rem;
-            }
-
-            .play-athlete-visual,
-            .play-dashboard-visual {
-                margin-bottom: 0.65rem;
-            }
-
-            .athlete-picture-frame {
-                width: min(100%, 240px);
-            }
-
-            .athlete-picture-frame .illustration {
-                width: 100%;
-                max-width: none;
-                max-height: none;
-            }
-
-            .play-autocomplete-wrapper {
-                margin-bottom: 0.65rem;
-            }
-
-            @supports selector(:has(*)) {
-                .play-autocomplete-wrapper:has(.autocomplete-items) {
-                    margin-bottom: calc(0.65rem + min(8.5rem, 42vh));
-                }
-            }
-
-            .autocomplete-items {
-                max-height: min(8.5rem, 42vh);
-            }
-
-            .play-athlete-actions,
-            .play-dashboard-actions {
-                gap: 0.55rem;
-                margin-top: 0;
-            }
-
-            .play-dashboard-actions .option-button {
-                min-height: 42px;
-                padding-block: 0.55rem;
-            }
-
-            .pro-discount-box {
-                margin-top: 0;
-                padding: 0.6rem 0.75rem;
-                font-size: 0.82rem;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .play-hub-panel--entering {
-                transition: none;
-            }
-
-            .play-hub-panel--entering.play-hub-panel--from {
-                opacity: 1;
-                transform: none;
-            }
-        }
-
-</style>
+    <script>
+        document.documentElement.dataset.playEntry = ({
+            '/join': 'join',
+            '/select-athlete': 'selection',
+            '/dashboard': 'dashboard'
+        })[window.location.pathname.toLowerCase()] || 'start';
+    </script>
+    <link rel="stylesheet" href="{{ASSET_PLAY_MENU_CSS}}">
 </head>
-<body>
+<body class="play-flow-route play-hub-route play-start-active play-start-preintro"
+      data-default-headshot-webp="{{ASSET_HEADSHOT_WEBP}}"
+      data-default-headshot-jpeg="{{ASSET_HEADSHOT_JPEG}}">
     <!--HEADER-->
+    <img src="{{ASSET_FAVICON_DARK_512}}"
+         alt=""
+         class="play-logo-watermark"
+         width="512"
+         height="512"
+         loading="eager"
+         fetchpriority="high"
+         decoding="async"
+         aria-hidden="true">
     <main class="play-hub-main">
         <section id="playStartPanel" class="play-hub-panel play-start-panel">
             <h1 class="visually-hidden">Game menu</h1>
             <div class="play-menu-hero">
-                <div class="img-crop">
-                    <img src="../assets/content-images/JustTrackIt.jpg"
-                         alt="Illustration encouraging athletes to track their progress"
-                         class="illustration"
-                         loading="eager"
-                         fetchpriority="high"
-                         decoding="async">
-                </div>
+                <div class="play-menu-wordmark" aria-label="Just Track It"><span class="play-menu-wordmark__word" aria-hidden="true">JUST</span> <span class="play-menu-wordmark__word" aria-hidden="true">TRACK</span> <span class="play-menu-wordmark__word" aria-hidden="true">IT</span></div>
             </div>
 
-            <div class="options-container play-menu-actions flow-action-stack">
-                <button id="newGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
+            <div class="options-container play-menu-actions flow-action-stack" data-flow-dock="auto">
+                <button disabled id="newGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
                     <span class="flow-action__label">I'm new here</span>
                 </button>
-                <button id="continueGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
+                <button disabled id="continueGameBtn" type="button" class="option-button grey flow-action flow-action--secondary">
                     <span class="flow-action__label">I'm already an athlete</span>
                 </button>
             </div>
@@ -802,11 +73,6 @@
                                    rel="noopener">Pheno Age</a>
                             </dd>
                         </dl>
-                        <div class="options-container play-join-actions flow-action-stack">
-                            <button id="joinStartAmateurBtn" type="button" class="option-button grey flow-action flow-action--secondary">
-                                <span class="flow-action__label">Start amateur</span>
-                            </button>
-                        </div>
                         <div class="play-join-biomarkers">
                             <details>
                                 <summary>9 biomarkers needed:</summary>
@@ -822,6 +88,11 @@
                                     <li>C-reactive protein (CRP)</li>
                                 </ul>
                             </details>
+                        </div>
+                        <div class="play-join-card-actions flow-action-stack flow-action-stack--flush">
+                            <button disabled id="joinStartAmateurBtn" type="button" class="option-button grey flow-action flow-action--secondary">
+                                <span class="flow-action__label">Start amateur</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </button>
                         </div>
                     </div>
                 </article>
@@ -860,11 +131,6 @@
                                    rel="noopener">Bortz Age</a>
                             </dd>
                         </dl>
-                        <div class="options-container play-join-actions flow-action-stack">
-                            <button id="joinGoProButton" type="button" class="option-button green flow-action">
-                                <span class="flow-action__label">Go pro</span>
-                            </button>
-                        </div>
                         <div class="play-join-biomarkers">
                             <details>
                                 <summary>22 biomarkers needed:</summary>
@@ -894,17 +160,28 @@
                                 </ul>
                             </details>
                         </div>
+                        <div class="play-join-card-actions flow-action-stack flow-action-stack--flush">
+                            <button disabled id="joinGoProButton" type="button" class="option-button green flow-action">
+                                <span class="flow-action__label">Go pro</span><i class="fas fa-bolt" aria-hidden="true"></i>
+                            </button>
+                        </div>
                     </div>
                 </article>
-
             </div>
 
             <p class="play-join-challenge-note">
-                Not ready for a blood test yet? <a id="joinStartChallengeLink" href="/longevitymaxxing">Try our longevitymaxxing lifestyle challenge instead</a>
+                Not ready for a blood test yet?
+                <a id="joinStartChallengeLink" href="/longevitymaxxing">Try our longevitymaxxing lifestyle challenge instead</a>
             </p>
 
-            <div class="options-container play-join-back flow-action-stack">
-                <button id="joinTrackBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
+            <div class="options-container play-join-actions flow-action-stack" data-flow-dock="auto">
+                <button disabled id="joinMobileStartAmateurBtn" type="button" class="option-button grey flow-action flow-action--secondary play-join-mobile-track-action">
+                    <span class="flow-action__label">Start amateur</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </button>
+                <button disabled id="joinMobileGoProButton" type="button" class="option-button green flow-action play-join-mobile-track-action">
+                    <span class="flow-action__label">Go pro</span><i class="fas fa-bolt" aria-hidden="true"></i>
+                </button>
+                <button disabled id="joinTrackBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
                     <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                 </button>
             </div>
@@ -915,9 +192,9 @@
             <div class="play-athlete-visual">
                 <div id="athleteSelectionPicture" class="athlete-picture-frame">
                     <picture>
-                        <source srcset="../assets/content-images/headshot.webp" type="image/webp">
-                        <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
-                        <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration athlete-picture-placeholder" loading="lazy" decoding="async">
+                        <source srcset="{{ASSET_HEADSHOT_WEBP}}" type="image/webp">
+                        <source srcset="{{ASSET_HEADSHOT_JPEG}}" type="image/jpeg">
+                        <img src="{{ASSET_HEADSHOT_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" loading="eager" decoding="async">
                     </picture>
                 </div>
             </div>
@@ -937,11 +214,11 @@
                     <span id="playAthleteError" class="error-message" aria-live="polite"></span>
                 </div>
             </div>
-            <div class="options-container play-athlete-actions flow-action-stack">
+            <div class="options-container play-athlete-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-unless="body.play-route-hydrating">
                 <button disabled id="playConfirmAthleteBtn" type="button" class="option-button green flow-action">
                     <span class="flow-action__label">Select</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
                 </button>
-                <button id="playSelectionBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
+                <button disabled id="playSelectionBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
                     <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                 </button>
             </div>
@@ -952,18 +229,19 @@
             <div class="play-dashboard-visual">
                 <div id="athleteDashboardPicture" class="athlete-picture-frame">
                     <picture>
-                        <source srcset="../assets/content-images/headshot.webp" type="image/webp">
-                        <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
-                        <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration athlete-picture-placeholder" loading="lazy">
+                        <source srcset="{{ASSET_HEADSHOT_WEBP}}" type="image/webp">
+                        <source srcset="{{ASSET_HEADSHOT_JPEG}}" type="image/jpeg">
+                        <img src="{{ASSET_HEADSHOT_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" loading="eager" decoding="async">
                     </picture>
                 </div>
             </div>
-            <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack">
+            <div id="athleteDashboardDiscounts" class="play-dashboard-discounts" aria-live="polite"></div>
+            <div id="athleteDashboardActions" class="options-container play-dashboard-actions flow-action-stack" data-flow-dock="overflow" data-flow-dock-release-gap="0" data-flow-dock-unless="body.play-route-hydrating">
                 <button type="button" class="option-button grey flow-action flow-action--secondary" onclick="window.location.href='/edit-profile'">
                     <span class="dashboard-action-label flow-action__label">Edit profile</span><i class="fas fa-pen" aria-hidden="true"></i>
                 </button>
                 <div id="athleteDashboardDynamicActions"></div>
-                <button id="playDashboardBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
+                <button disabled id="playDashboardBackBtn" type="button" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" aria-label="Change athlete">
                     <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Change athlete</span>
                 </button>
             </div>
@@ -980,6 +258,23 @@
             const path = window.location.pathname.toLowerCase();
             let target = panelByPath[path];
             if (!target) return;
+
+            function hasSavedAthleteSelection() {
+                try {
+                    const athlete = JSON.parse(window.sessionStorage.getItem('selectedAthlete') || 'null');
+                    if (athlete && typeof athlete.Name === 'string' && athlete.Name.trim()) {
+                        return true;
+                    }
+                } catch (_) {
+                }
+
+                try {
+                    const selectedAthleteName = window.localStorage.getItem('selectedAthleteName');
+                    return typeof selectedAthleteName === 'string' && Boolean(selectedAthleteName.trim());
+                } catch (_) {
+                    return false;
+                }
+            }
 
             function redirectToSelectionPanel() {
                 try {
@@ -1004,406 +299,17 @@
             }
 
             document.querySelector('.play-hub-main')?.classList.toggle('play-hub-main--wide', target.isWide);
+            document.body.classList.remove('play-start-active');
+            document.body.classList.remove('play-start-preintro');
+            document.body.classList.remove('play-start-intro');
+            const requiresHydration = path === '/dashboard'
+                || (path === '/select-athlete' && hasSavedAthleteSelection());
+            document.body.classList.toggle('play-route-hydrating', requiresHydration);
             document.querySelectorAll('.play-hub-panel').forEach(panel => {
-                panel.hidden = panel.id !== target.panelId;
+                panel.hidden = requiresHydration || panel.id !== target.panelId;
             });
         })();
     </script>
-    <script>
-        (function () {
-            const storageErrorMessage = 'Browser storage is unavailable. Enable storage and try again.';
-            const PLAY_PANEL_TRANSITION_MS = 120;
-            let flow = null;
-            let athleteSelection = null;
-            let activePlayPanelName = null;
-            let hasRenderedPlayPanel = false;
-            let playPanelTransitionTimer = 0;
-            const playRouteStates = Object.freeze({
-                start: Object.freeze({ route: '/play', panelId: 'playStartPanel', isWide: false }),
-                join: Object.freeze({ route: '/join', panelId: 'joinTrackPanel', isWide: true }),
-                selection: Object.freeze({ route: '/select-athlete', panelId: 'athleteSelectionPanel', isWide: false }),
-                dashboard: Object.freeze({ route: '/dashboard', panelId: 'athleteDashboardPanel', isWide: false })
-            });
 
-            function getFlowReady() {
-                return Promise.resolve(window.modulesReady || undefined)
-                    .catch(() => {})
-                    .then(() => {
-                        flow = window.playAthleteFlow;
-                        if (!flow) throw new Error('Athlete flow module did not load.');
-                        return flow;
-                    });
-            }
-
-            function getPlayRouteState(panelName) {
-                return playRouteStates[panelName] || playRouteStates.start;
-            }
-
-            function getPlayRoute(panelName) {
-                return getPlayRouteState(panelName).route;
-            }
-
-            function getPlayPanelNameForPath(pathname = window.location.pathname) {
-                const path = pathname.toLowerCase();
-                if (path === '/join') return 'join';
-                if (path === '/select-athlete') return 'selection';
-                if (path === '/dashboard') return 'dashboard';
-                return 'start';
-            }
-
-            function getCurrentPlayPanelName() {
-                const statePanel = window.history && window.history.state && window.history.state.playPanel;
-                return activePlayPanelName || (playRouteStates[statePanel] ? statePanel : getPlayPanelNameForPath());
-            }
-
-            function getPlayUrl(panelName, options = {}) {
-                const route = getPlayRoute(panelName);
-                return options.preserveCurrentUrlParts
-                    ? `${route}${window.location.search}${window.location.hash}`
-                    : route;
-            }
-
-            function createPlayHistoryState(panelName, previousPlayPanel = null) {
-                return {
-                    playPanel: panelName,
-                    previousPlayPanel: playRouteStates[previousPlayPanel] ? previousPlayPanel : null
-                };
-            }
-
-            function setPlayHistory(panelName, historyMode, options = {}) {
-                if (!historyMode || !window.history) return;
-
-                const route = getPlayUrl(panelName, options);
-                const currentPath = window.location.pathname.toLowerCase();
-                const currentPanelName = getCurrentPlayPanelName();
-                const currentPreviousPanel = window.history.state && window.history.state.previousPlayPanel;
-                const nextPreviousPanel = historyMode === 'push' && currentPanelName !== panelName
-                    ? currentPanelName
-                    : currentPreviousPanel;
-                const state = createPlayHistoryState(panelName, nextPreviousPanel);
-                if (historyMode === 'replace') {
-                    window.history.replaceState(state, '', route);
-                    return;
-                }
-
-                if (historyMode === 'push') {
-                    if (currentPath === getPlayRoute(panelName)) {
-                        window.history.replaceState(state, '', route);
-                    } else {
-                        window.history.pushState(state, '', route);
-                    }
-                }
-            }
-
-            function prefersReducedPlayMotion() {
-                return window.matchMedia
-                    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            }
-
-            function clearPlayPanelAnimation(panel) {
-                panel.classList.remove(
-                    'play-hub-panel--entering',
-                    'play-hub-panel--from'
-                );
-            }
-
-            function completePlayPanelTransition(targetPanel, panelName) {
-                window.clearTimeout(playPanelTransitionTimer);
-                playPanelTransitionTimer = 0;
-                clearPlayPanelAnimation(targetPanel);
-                activePlayPanelName = panelName;
-                hasRenderedPlayPanel = true;
-            }
-
-            function showPanelByName(panelName) {
-                const state = getPlayRouteState(panelName);
-                const main = document.querySelector('.play-hub-main');
-                const targetPanel = document.getElementById(state.panelId);
-                if (!main || !targetPanel) return;
-
-                const shouldAnimate = hasRenderedPlayPanel
-                    && activePlayPanelName !== panelName
-                    && !prefersReducedPlayMotion();
-
-                window.clearTimeout(playPanelTransitionTimer);
-                playPanelTransitionTimer = 0;
-                document.querySelectorAll('.play-hub-panel').forEach(clearPlayPanelAnimation);
-                main.classList.toggle('play-hub-main--wide', state.isWide);
-                document.querySelectorAll('.play-hub-panel').forEach(panel => {
-                    panel.hidden = panel !== targetPanel;
-                });
-                activePlayPanelName = panelName;
-                window.scrollTo(0, 0);
-
-                if (!shouldAnimate) {
-                    completePlayPanelTransition(targetPanel, panelName);
-                    return;
-                }
-
-                targetPanel.classList.add('play-hub-panel--entering', 'play-hub-panel--from');
-                window.requestAnimationFrame(() => {
-                    targetPanel.classList.remove('play-hub-panel--from');
-                });
-                playPanelTransitionTimer = window.setTimeout(() => {
-                    completePlayPanelTransition(targetPanel, panelName);
-                }, PLAY_PANEL_TRANSITION_MS);
-            }
-
-            function resolveRequestedPlayPanel(panelName) {
-                if (panelName !== 'dashboard') {
-                    return { panelName, dashboardAthlete: null };
-                }
-
-                const dashboardAthlete = athleteSelection.getCurrentAthlete()
-                    || flow.getStoredSelectedAthlete();
-                if (!dashboardAthlete || !dashboardAthlete.Name) {
-                    if (window.location.pathname.toLowerCase() === getPlayRoute('dashboard')) {
-                        window.location.replace(getPlayRoute('selection'));
-                        return { panelName: 'selection', dashboardAthlete: null, isRedirecting: true };
-                    }
-                    return { panelName: 'selection', dashboardAthlete: null };
-                }
-
-                athleteSelection.setCurrentAthlete(dashboardAthlete);
-                return { panelName: 'dashboard', dashboardAthlete };
-            }
-
-            function showPlayPanel(requestedPanelName, options = {}) {
-                const requested = playRouteStates[requestedPanelName] ? requestedPanelName : 'start';
-                const resolved = resolveRequestedPlayPanel(requested);
-                if (resolved.isRedirecting) return;
-                const panelName = resolved.panelName;
-                const historyMode = requested === panelName ? options.historyMode : (options.historyMode || 'replace');
-
-                setPlayHistory(panelName, historyMode, options);
-
-                if (panelName === 'join') {
-                    athleteSelection.closeAllLists();
-                    renderJoinPricing();
-                    showPanelByName(panelName);
-                    flow.focusWithoutScrolling(document.getElementById('joinStartAmateurBtn'));
-                    return;
-                }
-
-                if (panelName === 'selection') {
-                    athleteSelection.hydrateStoredAthleteSelection();
-                    showPanelByName(panelName);
-                    athleteSelection.loadAthletes().catch(() => {});
-                    requestAnimationFrame(() => flow.focusWithoutScrolling(document.getElementById('playAthleteInput')));
-                    return;
-                }
-
-                if (panelName === 'dashboard') {
-                    const athlete = resolved.dashboardAthlete;
-                    flow.renderAthleteDashboardHeader(athlete, {
-                        titleElement: document.getElementById('athleteDashboardTitle'),
-                        frameElement: document.getElementById('athleteDashboardPicture')
-                    });
-                    flow.renderDashboardActions(athlete, {
-                        dynamicActionsElement: document.getElementById('athleteDashboardDynamicActions')
-                    });
-                    showPanelByName(panelName);
-                    return;
-                }
-
-                athleteSelection.closeAllLists();
-                showPanelByName(panelName);
-                flow.focusWithoutScrolling(document.getElementById('continueGameBtn'));
-            }
-
-            function showPanelForCurrentUrl() {
-                showPlayPanel(getPlayPanelNameForPath(), { historyMode: null });
-            }
-
-            function initializePlayHistory() {
-                if (!window.history) return;
-
-                try {
-                    window.history.scrollRestoration = 'manual';
-                } catch (_) {
-                }
-
-                const requestedPanelName = getPlayPanelNameForPath();
-                const resolved = resolveRequestedPlayPanel(requestedPanelName);
-                window.history.replaceState(
-                    createPlayHistoryState(resolved.panelName),
-                    '',
-                    getPlayUrl(resolved.panelName, { preserveCurrentUrlParts: true })
-                );
-            }
-
-            function navigateToPreviousPlayPanel(fallbackPanelName) {
-                const previousPanelName = window.history && window.history.state && window.history.state.previousPlayPanel;
-                if (previousPanelName === fallbackPanelName && window.history.length > 1) {
-                    window.history.back();
-                    return;
-                }
-
-                showPlayPanel(fallbackPanelName, { historyMode: 'replace' });
-            }
-
-            function navigateToStartPanel() {
-                navigateToPreviousPlayPanel('start');
-            }
-
-            function navigateToSelectionPanel() {
-                navigateToPreviousPlayPanel('selection');
-            }
-
-            function getCheckoutQuerySuffix() {
-                const params = new URLSearchParams();
-                const freePassValue = window.getFreePassValue ? window.getFreePassValue() : null;
-                const discountValue = window.getDiscountValue ? window.getDiscountValue() : null;
-                if (freePassValue !== null) params.set('freepass', freePassValue);
-                if (discountValue !== null) params.set('discount', discountValue);
-                const query = params.toString();
-                return query ? `?${query}` : '';
-            }
-
-            function startAmateurApplication(retryButton) {
-                const stored = flow.setPendingPaymentOffer({
-                    source: 'join-game',
-                    offerType: 'amateur',
-                    currency: 'USD',
-                    amountUsd: 10
-                }, retryButton);
-                if (!stored) return;
-                window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;
-            }
-
-            function startProApplication(retryButton) {
-                const result = window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
-                    ? window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false })
-                    : null;
-                const amountUsd = result && Number.isFinite(result.finalPriceUsd) ? result.finalPriceUsd : 100;
-                const paymentOffer = flow.preserveAppliedDiscountMetadata({
-                    source: 'join-game',
-                    offerType: 'pro',
-                    currency: 'USD',
-                    amountUsd
-                }, result);
-                if (!flow.setPendingPaymentOffer(paymentOffer, retryButton)) return;
-                window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;
-            }
-
-            function renderJoinFreePassPricing() {
-                if (!window.hasFreePass || !window.hasFreePass()) return false;
-
-                const amateurPrice = document.querySelector('.join-amateur-entry-cell .pro-new-price');
-                const note = document.getElementById('joinProDiscountNote');
-                const breakdown = document.getElementById('joinProDiscountBreakdown');
-                const proEntryPrice = document.getElementById('joinProEntryPrice');
-
-                if (amateurPrice) amateurPrice.textContent = 'free';
-                if (proEntryPrice) proEntryPrice.innerHTML = '<span class="pro-new-price">free</span>';
-                if (breakdown) breakdown.textContent = '';
-                if (breakdown) breakdown.classList.remove('pro-discount-breakdown--with-badges');
-                if (note) note.style.display = 'none';
-                return true;
-            }
-
-            function renderJoinPricing() {
-                if (renderJoinFreePassPricing()) return;
-                if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== 'function') return;
-
-                const result = window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false });
-                const note = document.getElementById('joinProDiscountNote');
-                const breakdown = document.getElementById('joinProDiscountBreakdown');
-                const proEntryPrice = document.getElementById('joinProEntryPrice');
-                if (!note || !breakdown || !proEntryPrice) return;
-                breakdown.classList.toggle(
-                    'pro-discount-breakdown--with-badges',
-                    Array.isArray(result.components) && result.components.some(component => component && component.isBadge)
-                );
-
-                proEntryPrice.innerHTML = typeof window.proDiscounts.createPriceHtml === 'function'
-                    ? window.proDiscounts.createPriceHtml(result)
-                    : flow.createPriceHtmlFallback(result);
-
-                if (!Array.isArray(result.components) || result.components.length === 0) {
-                    breakdown.textContent = '';
-                    breakdown.classList.remove('pro-discount-breakdown--with-badges');
-                    note.style.display = 'none';
-                    return;
-                }
-
-                if (typeof window.proDiscounts.createBreakdownHtml === 'function') {
-                    breakdown.innerHTML = window.proDiscounts.createBreakdownHtml(result);
-                } else {
-                    breakdown.textContent = window.proDiscounts.createBreakdownText(result);
-                }
-                note.style.display = '';
-            }
-
-            function promotePlayStartAction(button) {
-                button.classList.remove('grey', 'flow-action--secondary');
-                button.classList.add('green');
-            }
-
-            function demotePlayStartAction(button) {
-                button.classList.remove('green');
-                button.classList.add('grey', 'flow-action--secondary');
-            }
-
-            document.addEventListener('DOMContentLoaded', function () {
-                getFlowReady().then(() => {
-                    if (window.captureFreePassFromUrl) {
-                        window.captureFreePassFromUrl();
-                    }
-                    if (window.captureDiscountFromUrl) {
-                        window.captureDiscountFromUrl();
-                    }
-
-                    athleteSelection = flow.createAthleteSelectionController({
-                        input: document.getElementById('playAthleteInput'),
-                        errorElement: document.getElementById('playAthleteError'),
-                        confirmButton: document.getElementById('playConfirmAthleteBtn'),
-                        titleElement: document.getElementById('athleteSelectionTitle'),
-                        frameElement: document.getElementById('athleteSelectionPicture'),
-                        autocompleteRootSelector: '.play-autocomplete-container'
-                    }).bind();
-
-                    initializePlayHistory();
-
-                    const hasApp = flow.hasSubmittedApplication();
-                    const container = document.querySelector('.play-menu-actions');
-                    const newBtn = document.getElementById('newGameBtn');
-                    const contBtn = document.getElementById('continueGameBtn');
-
-                    if (hasApp) {
-                        promotePlayStartAction(contBtn);
-                        demotePlayStartAction(newBtn);
-                        container.insertBefore(contBtn, container.firstChild);
-                    } else {
-                        promotePlayStartAction(newBtn);
-                        demotePlayStartAction(contBtn);
-                        container.insertBefore(newBtn, container.firstChild);
-                    }
-
-                    newBtn.addEventListener('click', () => showPlayPanel('join', { historyMode: 'push' }));
-                    contBtn.addEventListener('click', () => showPlayPanel('selection', { historyMode: 'push' }));
-                    document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);
-                    document.getElementById('joinStartAmateurBtn').addEventListener('click', event => startAmateurApplication(event.currentTarget));
-                    document.getElementById('joinGoProButton').addEventListener('click', event => startProApplication(event.currentTarget));
-                    document.getElementById('playSelectionBackBtn').addEventListener('click', navigateToStartPanel);
-                    document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);
-
-                    document.getElementById('playConfirmAthleteBtn').addEventListener('click', () => {
-                        const currentAthlete = athleteSelection.getCurrentAthlete();
-                        if (!flow.persistSelectedAthlete(currentAthlete)) {
-                            customAlert(storageErrorMessage);
-                            return;
-                        }
-                        showPlayPanel('dashboard', { historyMode: 'push' });
-                    });
-
-                    window.addEventListener('popstate', showPanelForCurrentUrl);
-                    showPanelForCurrentUrl();
-                }).catch(error => {
-                    console.error('Unable to initialize athlete flow:', error);
-                });
-            });
-        })();
-    </script>
 </body>
 </html>

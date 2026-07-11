@@ -9,7 +9,7 @@
     <style>
         /* Match join-game biological age intro styling; align width with .bioageform */
         .lab-reassurance {
-            margin: 1.5rem auto 0;
+            margin: 1rem auto 0;
             width: min(100%, 600px);
             max-width: calc(100vw - 2rem);
             padding: 1rem 1.25rem;
@@ -95,10 +95,53 @@
             display: none !important;
         }
 
+        @media (min-width: 960px) and (min-height: 640px) {
+            .lab-reassurance,
+            .lab-access-panel {
+                width: min(100%, 760px);
+                margin-top: 0.65rem;
+            }
+
+            .lab-reassurance {
+                padding: 0.7rem 1rem;
+                font-size: 0.92rem;
+                line-height: 1.28;
+            }
+
+            .lab-access-panel {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr) auto;
+                align-items: center;
+                gap: 0.35rem 0.75rem;
+                padding: 0.65rem 0.85rem;
+                text-align: left;
+            }
+
+            .lab-access-panel h2 {
+                font-size: 0.95rem;
+                white-space: nowrap;
+            }
+
+            .lab-access-panel p {
+                margin: 0;
+                max-width: none;
+                font-size: 0.84rem;
+                line-height: 1.25;
+            }
+
+            .lab-access-link {
+                min-height: 44px;
+                margin: 0;
+                padding: 0.38rem 0.7rem;
+                font-size: 0.86rem;
+                white-space: nowrap;
+            }
+        }
+
         #mainPageTitleH2 {
             width: min(100%, 600px);
             max-width: 100%;
-            margin-inline: auto;
+            margin: clamp(0.85rem, 2.4vh, 1.2rem) auto 0;
             box-sizing: border-box;
             overflow-wrap: break-word;
             letter-spacing: 0;
@@ -348,7 +391,7 @@
             transform: translateY(15px);
             transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
             font-weight: 600;
-            letter-spacing: 1.2px;
+            letter-spacing: 0;
             text-transform: uppercase;
         }
 
@@ -381,7 +424,7 @@
             background-clip: text;
             text-shadow: none;
             line-height: 1;
-            letter-spacing: -3px;
+            letter-spacing: 0;
             opacity: 0;
             transform: scale(0.4) translateY(30px);
             transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
@@ -497,7 +540,7 @@
             transform: translateY(15px);
             transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s;
             font-weight: 500;
-            letter-spacing: 0.5px;
+            letter-spacing: 0;
         }
 
         #phenoAgeResult.show #yearsText {
@@ -519,7 +562,7 @@
 
             #animatedAge {
                 font-size: 5rem;
-                letter-spacing: -2px;
+                letter-spacing: 0;
             }
 
             #validAgeInput > div:first-child {
@@ -547,12 +590,12 @@
 
             #animatedAge {
                 font-size: 4rem;
-                letter-spacing: -1.5px;
+                letter-spacing: 0;
             }
 
             #validAgeInput > div:first-child {
                 font-size: 0.75rem;
-                letter-spacing: 0.8px;
+                letter-spacing: 0;
             }
 
             #yearsText {
@@ -787,14 +830,8 @@
                 margin-right: 0 !important;
             }
 
-            .phenoage-result-actions #continueButton:not(.show) {
-                position: absolute;
-                width: 1px;
-                height: 1px;
-                min-width: 0;
-                padding: 0;
-                margin: 0;
-                overflow: hidden;
+            .phenoage-result-actions[hidden] {
+                display: none !important;
             }
 
         @media (max-width: 600px) {
@@ -826,7 +863,7 @@
 
             .lwc-step.lwc-step--visible {
                 opacity: 1;
-                transform: translateX(0);
+                transform: none;
             }
 
         .lwc-wizard-nav {
@@ -906,6 +943,11 @@
             white-space: normal;
         }
 
+        .lwc-step-actions .bioage-calculate-button {
+            max-width: none;
+            margin: 0;
+        }
+
         @media (max-width: 480px) {
             #mainPageTitleH2 {
                 font-size: 1.42rem;
@@ -926,7 +968,7 @@
 
             #mainPageTitleH2 {
                 margin: 0.35rem auto 0.55rem;
-                font-size: clamp(1.7rem, 8vh, 2.25rem);
+                font-size: 2rem;
                 line-height: 1.05;
             }
 
@@ -947,7 +989,7 @@
         }
     </style>
 </head>
-<body>
+<body class="play-flow-route">
     <!--HEADER-->
     <main class="phenoage-main">
         <div class="lwc-steps-shell" id="lwcStepsShell">
@@ -1006,7 +1048,7 @@
                             <option value="" disabled selected>Select day</option>
                         </select>
 
-                        <p class="privacy-note" id="privacyNote">Your privacy matters. Consider leaving your birthday at December 31 at the cost of making you appear younger and giving you a slight disadvantage in the competition.</p>
+                        <p class="privacy-note" id="privacyNote">Privacy: keep December 31 to hide month/day; it may make you appear younger and slightly disadvantage you.</p>
                     </fieldset>
 
                     <!-- Blood Draw Details -->
@@ -1017,20 +1059,18 @@
                             <input type="date" id="blood-draw-date" name="blood-draw-date" required aria-required="true" aria-label="Blood draw date" max="" onchange="calculateResultIfResultAlreadyCalculated()" autocomplete="off">
                         </div>
                     </fieldset>
-                    <div class="lwc-step-actions flow-action-stack">
+                    <div id="lwcStepOneActions" class="lwc-step-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body:not(.bioage-result-ready)">
                         <button type="button" id="lwcToStep2Btn" class="option-button green flow-action" aria-label="Continue to biomarkers">
                             <span class="flow-action__label">Continue</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" id="bioageStepOneBackButton" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left" onclick="navigateBackFromBioage()">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
                         </button>
                     </div>
                 </section>
 
                 <section id="lwc-step-2" class="lwc-step" aria-labelledby="lwcStep2Title">
                     <h2 id="lwcStep2Title" class="visually-hidden">Step 2: Enter biomarkers</h2>
-                    <div class="lwc-step-actions flow-action-stack">
-                        <button type="button" id="lwcToStep1Btn" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
-                            <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
-                        </button>
-                    </div>
 
                     <!-- Biomarkers grouped by domain (aligned with leaderboard Best domain badges) -->
                     <fieldset>
@@ -1212,10 +1252,14 @@
                         </div>
                     </fieldset>
 
-                    <!-- Calculate Button -->
-                    <button type="submit" class="option-button grey flow-action flow-action--secondary bioage-calculate-button" aria-label="Calculate your biological age">
-                        <span class="flow-action__label">Calculate my biological&nbsp;age</span><i class="fas fa-heartbeat" aria-hidden="true"></i>
-                    </button>
+                    <div id="lwcStepTwoActions" class="lwc-step-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body:not(.bioage-result-ready)">
+                        <button type="submit" id="calculateBioageButton" class="option-button grey flow-action flow-action--secondary bioage-calculate-button" data-flow-dock-label="Calculate" aria-label="Calculate your biological age">
+                            <span class="flow-action__label">Calculate my biological&nbsp;age</span><i class="fas fa-heartbeat" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" id="lwcToStep1Btn" class="option-button back-button flow-action flow-action--secondary flow-action--icon-left">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i><span class="flow-action__label">Back</span>
+                        </button>
+                    </div>
                 </section>
             </form>
         </div>
@@ -1234,7 +1278,7 @@
             <div id="phenoAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
         </div>
 
-        <div class="options-container phenoage-result-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
+        <div class="options-container phenoage-result-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body.bioage-result-ready" data-aos="fade" data-aos-duration="700" data-aos-delay="450" hidden>
             <button type="button" id="continueButton" class="option-button green flow-action" onclick="proceedToNextPage()">
                 <span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>
             </button>
@@ -2358,7 +2402,8 @@
 
         // --- LWC step state ---
         let lwcCurrentStep = 1;
-        function lwcSetStep(step) {
+        function lwcSetStep(step, options) {
+            const shouldFocus = options?.focus !== false;
             lwcCurrentStep = step;
             const s1 = document.getElementById('lwc-step-1');
             const s2 = document.getElementById('lwc-step-2');
@@ -2400,14 +2445,12 @@
                 d2.tabIndex = step === 2 ? -1 : 0;
             }
 
+            if (!shouldFocus) return;
 
-            // focus niceties
-            if (step === 1) {
-                const y = document.getElementById('dob-year');
-                if (y) y.focus();
-            } else {
-                const firstOpen = document.querySelector('#lwc-step-2 .biomarker-card input, #lwc-step-2 input, #lwc-step-2 select');
-                if (firstOpen) firstOpen.focus();
+            const stepHeading = active?.querySelector('h2');
+            if (stepHeading) {
+                stepHeading.tabIndex = -1;
+                stepHeading.focus({ preventScroll: true });
             }
         }
 
@@ -2464,6 +2507,11 @@
             }
             if (toStep1Btn) {
                 toStep1Btn.addEventListener('click', () => {
+                    if (isUpdate) {
+                        navigateBackFromBioage();
+                        return;
+                    }
+
                     setSessionItem('lwcStep', '1');
                     lwcSetStep(1);
                 });
@@ -2489,8 +2537,8 @@
                 });
             }
 
-            // Back in .options-container (result section) always navigates to the page-level flow destination.
-            // Step-2 Back (lwcToStep1Btn) goes to step 1 like the prev green dot, except update mode hides it.
+            // Result Back always navigates to the page-level flow destination.
+            // Step-2 Back returns to step 1 in onboarding mode and to the dashboard in update mode.
 
             const unitSelects = Array.from(document.querySelectorAll('.input-group select'))
                 .filter(select => !select.closest('.biomarker-card-content'));
@@ -2549,8 +2597,6 @@
                 // Disable built-in HTML5 required checks in update mode
                 document.getElementById('phenoAgeForm').setAttribute('novalidate', '');
 
-                // Scroll the heading into view
-                document.querySelector('h1').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
             else {
                 updateMainProgress(2);
@@ -2579,19 +2625,20 @@
 
             if (isUpdate && hasSelectedAthlete) {
                 hideUpdateModeStepNavigation();
-                lwcSetStep(2);
+                lwcSetStep(2, { focus: false });
                 setSessionItem('lwcStep', '2');
+                bioageFlow.resetUpdateModeScroll();
             } else {
                 // Restore step 2 after refresh if user had navigated there and step 1 is valid.
                 let restoredStep = false;
                 try {
                     if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true)) {
-                        lwcSetStep(2);
+                        lwcSetStep(2, { focus: false });
                         restoredStep = true;
                     }
                 } catch (e) {}
                 if (!restoredStep) {
-                    lwcSetStep(1);
+                    lwcSetStep(1, { focus: false });
                     setSessionItem('lwcStep', '1');
                 }
             }
@@ -3077,12 +3124,6 @@
 
             // calculate (only reached when form is valid)
             calculateResult();
-
-            // scroll the Calculate button into view
-            const calculateButton = this.querySelector('button[type="submit"]');
-            if (calculateButton) {
-                calculateButton.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
         });
     </script>
 </body>

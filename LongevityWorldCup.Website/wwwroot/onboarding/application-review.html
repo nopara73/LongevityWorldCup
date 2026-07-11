@@ -44,7 +44,7 @@
         }
 
         .application-review-visual .illustration {
-            width: min(100%, 408px);
+            width: min(100%, 360px);
             margin-bottom: 0;
             box-sizing: border-box;
         }
@@ -106,7 +106,7 @@
                 display: block;
                 margin-bottom: 0.85rem;
                 padding-top: 0.3rem;
-                font-size: clamp(1.75rem, 8vw, 1.9rem);
+                font-size: 1.85rem;
                 line-height: 1.05;
                 overflow-wrap: normal;
                 word-break: normal;
@@ -123,6 +123,10 @@
                 margin-bottom: 0.95rem;
             }
 
+            .application-review-visual .illustration {
+                width: min(100%, 280px);
+            }
+
             .application-review-copy {
                 margin-top: 0.65rem;
                 font-size: 0.95rem;
@@ -132,6 +136,10 @@
             .application-review-copy.primary {
                 padding: 0.85rem 0.9rem;
                 line-height: 1.42;
+            }
+
+            .application-review-copy.community {
+                display: none;
             }
 
             .application-review-copy:not(.primary) .smaller-text {
@@ -153,6 +161,79 @@
             }
         }
 
+        @media (min-width: 960px) and (max-height: 780px) {
+            .application-review-panel {
+                margin-block: 1rem;
+                padding-block: 1.05rem;
+            }
+
+            .application-review-title {
+                margin-bottom: 0.7rem;
+                font-size: 2.1rem;
+                line-height: 1.05;
+            }
+
+            .application-review-visual {
+                margin-bottom: 0.7rem;
+            }
+
+            .application-review-visual .illustration {
+                width: min(100%, 280px);
+            }
+
+            .application-review-copy.primary {
+                margin-top: 0.6rem;
+                padding: 0.68rem 0.95rem;
+                line-height: 1.34;
+            }
+
+            .application-review-copy.contact {
+                margin-top: 0.6rem;
+            }
+
+            .application-review-copy.community {
+                display: none;
+            }
+
+            .application-review-actions {
+                margin-top: 0.85rem;
+            }
+        }
+
+        @media (min-width: 960px) and (max-height: 720px) {
+            .application-review-panel {
+                margin-block: 0.9rem;
+                padding-block: 0.95rem;
+            }
+
+            .application-review-title {
+                margin-bottom: 0.6rem;
+                font-size: 2rem;
+            }
+
+            .application-review-visual {
+                margin-bottom: 0.65rem;
+            }
+
+            .application-review-visual .illustration {
+                width: min(100%, 262px);
+            }
+
+            .application-review-copy.primary {
+                margin-top: 0.55rem;
+                padding-block: 0.65rem;
+                line-height: 1.34;
+            }
+
+            .application-review-copy.contact {
+                margin-top: 0.55rem;
+            }
+
+            .application-review-actions {
+                margin-top: 0.8rem;
+            }
+        }
+
         @media (max-width: 300px) {
             .application-review-copy:not(.primary) .smaller-text {
                 font-size: 0.82rem;
@@ -160,7 +241,7 @@
         }
     </style>
 </head>
-<body>
+<body class="play-flow-route">
     <!--HEADER-->
     <main>
         <section class="application-review-panel">
@@ -180,17 +261,17 @@
                     [insert contact email address here]
                 </span>
             </p>
-            <p class="application-review-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
+            <p class="application-review-copy contact" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
                 <span class="smaller-text">
                 Questions, concerns, or signs of aging? Let us know at <a href="mailto:hi@longevityworldcup.com">hi@longevityworldcup.com</a>
             </span>
             </p>
-            <p class="application-review-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+            <p class="application-review-copy community" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
                 <span class="smaller-text">
                 Want to hang out with other longevity athletes? Join the <span class="application-review-highlight">#longevity-world-cup</span> room on the <a href="https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ">TumbleBit Slack</a>!
             </span>
             </p>
-            <div class="options-container application-review-actions flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+            <div class="options-container application-review-actions flow-action-stack" data-flow-dock="overflow" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
                 <button class="option-button back-button flow-action flow-action--secondary" onclick="window.location.href='/'">
                     <span class="flow-action__label">Home</span><i class="fas fa-home" aria-hidden="true"></i>
                 </button>
@@ -331,11 +412,6 @@
         removeSessionItem("came-from");
 
         document.addEventListener('DOMContentLoaded', function () {
-            setTimeout(() => {
-                const viewTarget = document.querySelector('h1');
-                viewTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
-
             if (isNewResultsUploaded) {
                 document.getElementById("appReviewText").textContent = "Result review";
                 document.getElementById("whatAreWeReviewing").textContent = "your new results";
