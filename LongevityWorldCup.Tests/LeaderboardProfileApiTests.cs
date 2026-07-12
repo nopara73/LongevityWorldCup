@@ -431,6 +431,27 @@ public sealed class LeaderboardProfileApiTests
     }
 
     [Fact]
+    public async Task OpenDataReload_SkipsInvalidOfficialDiskProfilesWithoutBlockingValidUpdates()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var profiles = factory.Services.GetRequiredService<AthleteDataService>();
+        GetProfileWatcher(profiles, officialRoot: true).EnableRaisingEvents = false;
+        GetProfileWatcher(profiles, officialRoot: false).EnableRaisingEvents = false;
+
+        fixture.WriteInvalidOfficialAthleteProfile(1);
+        fixture.UpdateOpenDataProfileName(1, "Updated Despite Invalid Official File");
+        await profiles.OnOpenDataSourceChangedAsync();
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.Contains(
+            combined.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("ProfileType").GetString() == "OpenData" &&
+                       profile.GetProperty("Name").GetString() == "Updated Despite Invalid Official File");
+    }
+
+    [Fact]
     public async Task InvalidOpenDataEdit_IsWithheldAndCannotBlockOfficialAthleteReload()
     {
         using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
@@ -866,6 +887,14 @@ public sealed class LeaderboardProfileApiTests
             File.WriteAllText(
                 Path.Combine(_root, "athletes", slug, "athlete.json"),
                 OfficialAthleteJson(index, name));
+        }
+
+        public void WriteInvalidOfficialAthleteProfile(int index)
+        {
+            var slug = $"athlete_{index}";
+            File.WriteAllText(
+                Path.Combine(_root, "athletes", slug, "athlete.json"),
+                "{");
         }
 
         public string GetOfficialProfilePath(int index) =>

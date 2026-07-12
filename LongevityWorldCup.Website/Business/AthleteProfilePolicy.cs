@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Tools;
 
@@ -561,26 +562,33 @@ public static class AthleteProfilePolicy
 
     private static void ValidateAliases(JsonObject profile, JsonObject metadata, string sourcePath)
     {
+        var primaryName = RequiredString(profile["Name"], "Name", sourcePath);
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            NormalizeIdentityKey(primaryName)
+        };
+
+        if (profile.TryGetPropertyValue("DisplayName", out var displayNameNode))
+        {
+            var displayName = RequiredString(displayNameNode, "DisplayName", sourcePath);
+            if (!identities.Add(NormalizeIdentityKey(displayName)))
+                throw Invalid(sourcePath, "DisplayName duplicates the profile name.");
+        }
+
         if (!metadata.TryGetPropertyValue("Aliases", out var aliasesNode))
             return;
 
         if (aliasesNode is not JsonArray aliases || aliases.Count == 0)
             throw Invalid(sourcePath, "OpenData.Aliases must be a non-empty array of identity names when provided.");
 
-        var primaryName = RequiredString(profile["Name"], "Name", sourcePath);
-        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            NormalizeIdentity(primaryName)
-        };
-
         for (var index = 0; index < aliases.Count; index++)
         {
             var alias = RequiredString(aliases[index], $"OpenData.Aliases[{index}]", sourcePath);
-            if (!identities.Add(NormalizeIdentity(alias)))
+            if (!identities.Add(NormalizeIdentityKey(alias)))
             {
                 throw Invalid(
                     sourcePath,
-                    $"OpenData.Aliases[{index}] duplicates the profile name or another alias.");
+                    $"OpenData.Aliases[{index}] duplicates the profile name, display name, or another alias.");
             }
         }
     }
@@ -672,8 +680,23 @@ public static class AthleteProfilePolicy
             destination[propertyName] = value.DeepClone();
     }
 
-    private static string NormalizeIdentity(string value) =>
-        string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    internal static string NormalizeIdentityKey(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var normalized = value.Normalize(NormalizationForm.FormD);
+        var key = new StringBuilder(normalized.Length);
+        foreach (var character in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
+                continue;
+            if (char.IsLetterOrDigit(character))
+                key.Append(char.ToLowerInvariant(character));
+        }
+
+        return key.ToString();
+    }
 
     private static void ValidateOpenDataDatePrecision(
         JsonObject biomarker,
