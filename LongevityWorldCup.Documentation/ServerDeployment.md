@@ -35,6 +35,7 @@ fi
 git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
 
 dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output"
+mkdir -p "$publish_output/wwwroot/public-data-profiles"
 
 sudo systemctl stop longevityworldcup.service
 service_stopped=1
@@ -43,10 +44,13 @@ sudo rsync -a --checksum --no-owner --no-group \
   --exclude='/config.json.bak*' \
   --exclude='/AppData/***' \
   --exclude='/wwwroot/athletes/***' \
+  --exclude='/wwwroot/public-data-profiles/***' \
   --exclude='/wwwroot/generated/***' \
   "$publish_output"/ /var/www/LongevityWorldCup/publish/
 sudo rsync -a --checksum --delete --no-owner --no-group \
   "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
+sudo rsync -a --checksum --delete --no-owner --no-group \
+  "$publish_output/wwwroot/public-data-profiles"/ /var/www/LongevityWorldCup/publish/wwwroot/public-data-profiles/
 sudo mkdir -p /var/www/LongevityWorldCup/publish/wwwroot/generated
 sudo chown -R www-data:www-data /var/www/LongevityWorldCup/publish/wwwroot/generated
 sudo find /var/www/LongevityWorldCup/publish/wwwroot/generated -type d -exec chmod 755 {} \;
@@ -88,7 +92,7 @@ The final sync preserves production-owned runtime paths:
 - `AppData/`
 - `wwwroot/generated/`
 
-Deletion is scoped to `wwwroot/athletes/` so removed athlete proofs disappear from production without turning this deploy into a broad cleanup of old unrelated server files.
+Deletion is scoped to `wwwroot/athletes/` and `wwwroot/public-data-profiles/`. Removed athlete proofs and removed or corrected public-data manifests therefore disappear from production without turning this deploy into a broad cleanup of old unrelated server files. The publish script creates an empty public-data source directory so a valid zero-profile roster clears production cleanly instead of failing `rsync`.
 
 Social API token refreshes first try to persist updated token state in `config.json`. If the service account can read but not write that file, the app writes the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json` instead. On startup, that sidecar is applied only when it is newer than `config.json`, so a fresh manual edit to `config.json` takes precedence. Delete or update the sidecar when intentionally resetting social tokens.
 

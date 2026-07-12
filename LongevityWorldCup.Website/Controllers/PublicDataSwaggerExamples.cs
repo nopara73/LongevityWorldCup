@@ -93,7 +93,7 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
             case "/api/data/leaderboard-profiles":
                 operation.OperationId = "listLeaderboardProfiles";
                 operation.Summary = "List approved athletes and unranked open-data profiles";
-                operation.Description = "Returns the combined leaderboard display feed. ProfileType=Athlete records are approved applicants. ProfileType=OpenData records are capped, unranked transcriptions of complete nine-marker Pheno panels from linked self-published bloodwork; their subjects did not apply and do not participate in competition outcomes.";
+                operation.Description = "Returns the combined leaderboard display feed. ProfileType=Athlete records are approved applicants. ProfileType=OpenData records are capped, unranked transcriptions of complete nine-marker Pheno panels from linked bloodwork self-published or explicitly authorized by the subject; their subjects did not apply and do not participate in competition outcomes.";
                 SetResponseDescription(operation, "200", "Current combined leaderboard profile snapshot.");
                 SetResponseExample(operation, "200", """
                     [
@@ -118,14 +118,28 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                               "Title": "Public bloodwork dashboard",
                               "Url": "https://example.com/public-bloodwork",
                               "AccessedOn": "2026-07-11",
-                              "SelfPublishedBySubject": true
+                              "SubjectAuthorization": {
+                                "Kind": "SelfPublished"
+                              }
+                            },
+                            {
+                              "Id": "official-biography",
+                              "Kind": "Identity",
+                              "Title": "Official biography",
+                              "Url": "https://example.com/biography",
+                              "AccessedOn": "2026-07-11"
                             }
                           ],
+                          "Notability": {
+                            "Summary": "A globally recognized public figure with an established body of work.",
+                            "SourceIds": ["official-biography"]
+                          },
                           "IdentitySourceIds": ["bloodwork-2026"]
                         },
                         "Biomarkers": [
                           {
                             "Date": "2026-01-15",
+                            "DateBasis": "Collection",
                             "AgeYears": 45.5,
                             "SourceIds": ["bloodwork-2026"],
                             "AlbGL": 46,

@@ -141,10 +141,13 @@ public sealed class OpenDataProfileBrowserTests
         Assert.Equal(1, await page.Locator(".leaderboard table tbody tr[data-athlete-name]").CountAsync());
         Assert.Equal(1, await publicDataCard.CountAsync());
         Assert.Equal("PUBLIC DATA · UNRANKED", await publicDataCard.Locator(".open-data-token").InnerTextAsync());
+        Assert.Equal(
+            "A globally recognized public figure with an established body of work.",
+            await publicDataCard.Locator(".open-data-card-summary").InnerTextAsync());
         Assert.Contains("never affect rankings, awards, or prizes", await page.Locator("#openDataProfilesSection .open-data-explainer").InnerTextAsync());
         Assert.Equal("Reference Pheno difference", await publicDataCard.Locator(".open-data-card-metric-label").TextContentAsync());
         Assert.Equal(
-            new[] { "Pheno Age − age at published draw", "Uses a published assay boundary" },
+            new[] { "Pheno Age − age at published panel", "Uses a published assay boundary" },
             await publicDataCard.Locator(".open-data-card-metric-note").AllTextContentsAsync());
         Assert.Equal(0, await page.Locator(".leaderboard table tbody tr[data-athlete-name='Public Browser Subject']").CountAsync());
 
@@ -154,6 +157,8 @@ public sealed class OpenDataProfileBrowserTests
         await search.FillAsync("Published Browser Alias");
         await page.WaitForFunctionAsync("() => document.querySelector('.open-data-card')?.hidden === false");
         await search.FillAsync("normalized from the published units");
+        await page.WaitForFunctionAsync("() => document.querySelector('.open-data-card')?.hidden === false");
+        await search.FillAsync("established body of work");
         await page.WaitForFunctionAsync("() => document.querySelector('.open-data-card')?.hidden === false");
 
         var openProfileButton = publicDataCard.GetByRole(AriaRole.Button, new() { Name = "View unranked public-data profile for Public Browser Subject" });
@@ -165,13 +170,16 @@ public sealed class OpenDataProfileBrowserTests
         Assert.Equal("/public-data/public-browser-subject", new Uri(page.Url).AbsolutePath);
         Assert.Equal("closeAthleteDetailsModal", await page.EvaluateAsync<string>("() => document.activeElement?.id || ''"));
         Assert.True(await page.Locator("#openDataProfileDisclosure").IsVisibleAsync());
+        Assert.Equal(
+            "A globally recognized public figure with an established body of work.",
+            await page.Locator("#openDataNotabilitySummary").InnerTextAsync());
         var disclosure = await page.Locator("#openDataProfileDisclosure").InnerTextAsync();
         Assert.Contains("did not apply to the Longevity World Cup", disclosure);
         Assert.Contains("inclusion does not imply endorsement", disclosure);
         Assert.Contains("Request a correction or removal", disclosure);
         Assert.Equal("openDataProfileDisclosure", await page.Locator("#detailsModal").GetAttributeAsync("aria-describedby"));
         Assert.Equal("Close public-data profile", await page.Locator("#closeAthleteDetailsModal").GetAttributeAsync("aria-label"));
-        Assert.Equal("Age at published draw:", await page.Locator("#chronologicalAgeLabel").InnerTextAsync());
+        Assert.Equal("Age at published panel:", await page.Locator("#chronologicalAgeLabel").InnerTextAsync());
         Assert.Equal("47.7", await page.Locator("#chronologicalAge").InnerTextAsync());
         Assert.Equal("Reference Pheno Age:", await page.Locator("#lowestPhenoAgeLabel").InnerTextAsync());
         Assert.False(await page.Locator("#paceOfAgingContainer").IsVisibleAsync());
@@ -180,13 +188,18 @@ public sealed class OpenDataProfileBrowserTests
         await page.Locator("#publicDataSources").ScrollIntoViewIfNeededAsync();
         Assert.True(await page.Locator("#publicDataSources").IsVisibleAsync());
         await page.Locator("#modalStickyHeader.visible").WaitForAsync();
-        var sourceLink = page.Locator("#publicDataSourceList a");
+        var sourceLink = page.Locator("#publicDataSourceList a").First;
         Assert.Equal("https://example.com/public-labs", (await sourceLink.GetAttributeAsync("href"))?.TrimEnd('/'));
         Assert.Equal("_blank", await sourceLink.GetAttributeAsync("target"));
         Assert.Contains("noopener", await sourceLink.GetAttributeAsync("rel") ?? string.Empty);
         Assert.Contains("Accessed Jul 10, 2026", await page.Locator("#publicDataSourceList").InnerTextAsync());
+        Assert.Contains("Publication explicitly authorized by the subject", await page.Locator("#publicDataSourceList").InnerTextAsync());
+        Assert.Contains("Supports notability context", await page.Locator("#publicDataSourceList").InnerTextAsync());
+        var authorizationLink = page.GetByRole(AriaRole.Link, new() { Name = "View subject authorization evidence (opens in a new tab)" });
+        Assert.Equal("https://example.com/authorization", (await authorizationLink.GetAttributeAsync("href"))?.TrimEnd('/'));
         Assert.Contains("normalized from the published units", await page.Locator("#publicDataTranscriptionNotes").InnerTextAsync());
         Assert.Contains("month precision; no day was inferred", await page.Locator("#publicDataReviewed").InnerTextAsync());
+        Assert.Contains("uses the published report date", await page.Locator("#publicDataReviewed").InnerTextAsync());
 
         await page.EvaluateAsync(
             """
@@ -282,6 +295,7 @@ public sealed class OpenDataProfileBrowserTests
               {
                 "Date": "2026-02-01",
                 "DatePrecision": "Month",
+                "DateBasis": "Report",
                 "AgeYears": 47.7,
                 "Wbc1000cellsuL": 4.8,
                 "LymPc": 31.0,
@@ -308,9 +322,24 @@ public sealed class OpenDataProfileBrowserTests
                   "Title": "Published lab panel",
                   "Url": "https://example.com/public-labs",
                   "AccessedOn": "2026-07-10",
-                  "SelfPublishedBySubject": true
+                  "SubjectAuthorization": {
+                    "Kind": "ExplicitlyAuthorized",
+                    "EvidenceUrl": "https://example.com/authorization",
+                    "EvidenceNote": "The subject explicitly accepts publication in the source video."
+                  }
+                },
+                {
+                  "Id": "official-biography",
+                  "Kind": "Identity",
+                  "Title": "Official biography",
+                  "Url": "https://example.com/biography",
+                  "AccessedOn": "2026-07-10"
                 }
               ],
+              "Notability": {
+                "Summary": "A globally recognized public figure with an established body of work.",
+                "SourceIds": ["official-biography"]
+              },
               "TranscriptionNotes": [
                 "Values were normalized from the published units."
               ]

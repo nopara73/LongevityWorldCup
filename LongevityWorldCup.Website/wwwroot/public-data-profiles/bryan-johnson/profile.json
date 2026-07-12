@@ -24,9 +24,16 @@
   ],
   "OpenData": {
     "SubjectDidNotApply": true,
-    "ReviewedAt": "2026-07-11",
+    "ReviewedAt": "2026-07-12",
+    "Notability": {
+      "Summary": "Technology entrepreneur who founded Braintree, Kernel and Project Blueprint, the highly publicized quantified-self longevity program.",
+      "SourceIds": [
+        "official-biography"
+      ]
+    },
     "IdentitySourceIds": [
-      "labcorp-2025-04-01"
+      "labcorp-2025-04-01",
+      "official-biography"
     ],
     "Sources": [
       {
@@ -35,8 +42,20 @@
         "Title": "Bryan Johnson — full Labcorp results for the 1 April 2025 draw",
         "Url": "https://twitter.com/bryan_johnson/status/1912215143846723703",
         "AccessedOn": "2026-07-11",
-        "SelfPublishedBySubject": true,
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        },
         "PreferredForDisplay": true
+      },
+      {
+        "Id": "official-biography",
+        "Kind": "Identity",
+        "Title": "Bryan Johnson — official biography",
+        "Url": "https://www.bryanjohnson.com/about",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
       }
     ],
     "TranscriptionNotes": [

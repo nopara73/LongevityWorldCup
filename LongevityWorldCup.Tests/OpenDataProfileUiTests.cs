@@ -37,7 +37,10 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("normalizedPath.toLowerCase() === '/leaderboard'", html);
         Assert.Contains("sort((a, b) => a.displayName.localeCompare", html);
         Assert.Contains("metricLabel.textContent = 'Reference Pheno difference';", html);
-        Assert.Contains("formulaNote.textContent = 'Pheno Age − age at published draw';", html);
+        Assert.Contains("formulaNote.textContent = 'Pheno Age − age at published panel';", html);
+        Assert.Contains("summary.className = 'open-data-card-summary';", html);
+        Assert.Contains("summary.textContent = profile.notabilitySummary;", html);
+        Assert.Contains("id=\"openDataNotabilitySummary\"", html);
         Assert.Contains("fa-solid fa-database", html);
         Assert.Contains("renderOpenDataProfiles();", html);
         Assert.DoesNotContain("remainingAthletes = athleteResults.concat(openDataProfiles)", html);
@@ -53,7 +56,7 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("View unranked public-data profile for", html);
         Assert.Contains("sourceLink.rel = 'noopener noreferrer external';", html);
         Assert.Contains("sourceLink.setAttribute('aria-label'", html);
-        Assert.Contains("source.kind === 'Bloodwork' && source.selfPublishedBySubject", html);
+        Assert.Contains("source.kind === 'Bloodwork' && source.subjectAuthorization", html);
         Assert.Contains("filterOpenDataProfiles(uniqueSearchTerms);", html);
         Assert.Contains("...profile.aliases", html);
         Assert.Contains("const matches = terms.length === 0 || terms.every(term => searchText.includes(term));", html);
@@ -76,7 +79,7 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("resetModalForLoading(athleteSlug, openDataProfile)", html);
         Assert.Contains("populateOpenDataModal(fullAthleteData, athleteData);", html);
         Assert.Contains("gmaCard.hidden = openDataProfile;", html);
-        Assert.Contains("chronologicalAgeLabel: 'Age at published draw:'", html);
+        Assert.Contains("chronologicalAgeLabel: 'Age at published panel:'", html);
         Assert.Contains("lowestPhenoAgeLabel: 'Reference Pheno Age:'", html);
         Assert.Contains("if (phenoPaceContainer) phenoPaceContainer.style.display = 'none';", html);
         Assert.Contains("if (frame && !openDataProfile)", html);
@@ -114,6 +117,10 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("link.target = '_blank';", html);
         Assert.Contains("link.rel = 'noopener noreferrer external';", html);
         Assert.Contains("Accessed ${accessedOn}", html);
+        Assert.Contains("Publication explicitly authorized by the subject", html);
+        Assert.Contains("View authorization evidence", html);
+        Assert.Contains("getOpenDataSubjectAuthorization(source)", html);
+        Assert.Contains("Supports notability context", html);
         Assert.Contains("const transcriptionNotes = getOpenDataTranscriptionNotes(provenance.TranscriptionNotes);", html);
         Assert.Contains("Transcription notes: ${transcriptionNotes.join(' ')}", html);
         Assert.Contains("record.SourceIds", html);

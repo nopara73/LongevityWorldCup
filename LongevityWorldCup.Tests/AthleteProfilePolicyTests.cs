@@ -122,6 +122,7 @@ public sealed class AthleteProfilePolicyTests
     [InlineData("SubjectDidNotApply")]
     [InlineData("ReviewedAt")]
     [InlineData("Sources")]
+    [InlineData("Notability")]
     [InlineData("IdentitySourceIds")]
     public void OpenDataProfile_MissingRequiredMetadata_IsRejected(string propertyName)
     {
@@ -133,7 +134,7 @@ public sealed class AthleteProfilePolicyTests
     }
 
     [Fact]
-    public void OpenDataProfile_RequiresHttpsSelfPublishedBloodwork()
+    public void OpenDataProfile_RequiresHttpsSubjectAuthorizedBloodwork()
     {
         var profile = ValidOpenDataProfile();
         var source = profile["OpenData"]!["Sources"]![0]!.AsObject();
@@ -143,10 +144,47 @@ public sealed class AthleteProfilePolicyTests
             AthleteProfilePolicy.ValidateAndHydrate(profile, AthleteProfileType.OpenData, "profile.json"));
 
         source["Url"] = "https://example.test/bloodwork";
-        source["SelfPublishedBySubject"] = false;
+        source.Remove("SubjectAuthorization");
 
         Assert.Throws<InvalidDataException>(() =>
             AthleteProfilePolicy.ValidateAndHydrate(profile, AthleteProfileType.OpenData, "profile.json"));
+    }
+
+    [Fact]
+    public void OpenDataProfile_ValidatesExplicitSubjectAuthorizationEvidence()
+    {
+        var valid = ValidOpenDataProfile();
+        valid["OpenData"]!["Sources"]![0]!["SubjectAuthorization"] = new JsonObject
+        {
+            ["Kind"] = "ExplicitlyAuthorized",
+            ["EvidenceUrl"] = "https://example.test/video?t=630",
+            ["EvidenceNote"] = "The subject explicitly accepts the test and filmed publication."
+        };
+        AthleteProfilePolicy.ValidateAndHydrate(valid, AthleteProfileType.OpenData, "profile.json");
+
+        var missingEvidence = ValidOpenDataProfile();
+        missingEvidence["OpenData"]!["Sources"]![0]!["SubjectAuthorization"] = new JsonObject
+        {
+            ["Kind"] = "ExplicitlyAuthorized"
+        };
+        Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(missingEvidence, AthleteProfileType.OpenData, "profile.json"));
+
+        var insecureEvidence = ValidOpenDataProfile();
+        insecureEvidence["OpenData"]!["Sources"]![0]!["SubjectAuthorization"] = new JsonObject
+        {
+            ["Kind"] = "ExplicitlyAuthorized",
+            ["EvidenceUrl"] = "http://example.test/video?t=630",
+            ["EvidenceNote"] = "The subject explicitly accepts the test and filmed publication."
+        };
+        Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(insecureEvidence, AthleteProfileType.OpenData, "profile.json"));
+
+        var mislabeledSelfPublication = ValidOpenDataProfile();
+        mislabeledSelfPublication["OpenData"]!["Sources"]![0]!["SubjectAuthorization"]!["EvidenceUrl"] =
+            "https://example.test/unneeded-evidence";
+        Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(mislabeledSelfPublication, AthleteProfileType.OpenData, "profile.json"));
     }
 
     [Fact]
@@ -172,7 +210,7 @@ public sealed class AthleteProfilePolicyTests
 
         var identityError = Assert.Throws<InvalidDataException>(() =>
             AthleteProfilePolicy.ValidateAndHydrate(identityOnlyProfile, AthleteProfileType.OpenData, "profile.json"));
-        Assert.Contains("must reference at least one Bloodwork source published by the subject", identityError.Message);
+        Assert.Contains("must reference at least one Bloodwork source self-published or explicitly authorized", identityError.Message);
     }
 
     [Theory]
@@ -228,7 +266,9 @@ public sealed class AthleteProfilePolicyTests
         {
             ("profile root", profile => profile["Birthday"] = "1980-06-15"),
             ("OpenData", profile => profile["OpenData"]!["PrivateContact"] = "secret@example.test"),
+            ("Notability", profile => profile["OpenData"]!["Notability"]!["PrivateRationale"] = "secret"),
             ("source", profile => profile["OpenData"]!["Sources"]![0]!["AuthorizationToken"] = "secret"),
+            ("SubjectAuthorization", profile => profile["OpenData"]!["Sources"]![0]!["SubjectAuthorization"]!["PrivateEvidence"] = "secret"),
             ("biomarker", profile => profile["Biomarkers"]![0]!["ExactBirthDate"] = "1980-06-15")
         };
 
@@ -260,7 +300,10 @@ public sealed class AthleteProfilePolicyTests
         profile["OpenData"]!["Aliases"] = new JsonArray(
             "Public Alias",
             new JsonObject { ["PrivateAliasMetadata"] = "secret alias metadata" });
+        profile["OpenData"]!["Notability"]!["PrivateRationale"] = "secret notability rationale";
         profile["OpenData"]!["Sources"]![0]!["AuthorizationToken"] = "secret source token";
+        profile["OpenData"]!["Sources"]![0]!["SubjectAuthorization"]!["PrivateEvidence"] =
+            "secret authorization evidence";
         profile["Biomarkers"]![0]!["ExactBirthDate"] = "secret exact birth date";
         profile["Biomarkers"]![0]!["MeasurementQualifiers"] = new JsonObject
         {
@@ -286,6 +329,28 @@ public sealed class AthleteProfilePolicyTests
             projection["Biomarkers"]![0]!["MeasurementQualifiers"]!["CrpMgL"]!.GetValue<string>());
         Assert.False(
             projection["Biomarkers"]![0]!["MeasurementQualifiers"]!.AsObject().ContainsKey("PrivateQualifier"));
+    }
+
+    [Fact]
+    public void OpenDataProfile_RequiresConciseSourcedNotabilityContext()
+    {
+        var unknownSource = ValidOpenDataProfile();
+        unknownSource["OpenData"]!["Notability"]!["SourceIds"] = new JsonArray("missing");
+        var unknownError = Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(unknownSource, AthleteProfileType.OpenData, "profile.json"));
+        Assert.Contains("unknown source Id", unknownError.Message);
+
+        var bloodworkSource = ValidOpenDataProfile();
+        bloodworkSource["OpenData"]!["Notability"]!["SourceIds"] = new JsonArray("bloodwork-2026");
+        var kindError = Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(bloodworkSource, AthleteProfileType.OpenData, "profile.json"));
+        Assert.Contains("must reference Identity sources", kindError.Message);
+
+        var tooLong = ValidOpenDataProfile();
+        tooLong["OpenData"]!["Notability"]!["Summary"] = new string('x', 281);
+        var lengthError = Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(tooLong, AthleteProfileType.OpenData, "profile.json"));
+        Assert.Contains("at most 280 characters", lengthError.Message);
     }
 
     [Fact]
@@ -362,7 +427,32 @@ public sealed class AthleteProfilePolicyTests
     }
 
     [Fact]
-    public void OpenDataProfile_IdentityMustReferenceKnownSelfPublishedSource()
+    public void OpenDataProfile_DistinguishesCollectionDatesFromReportDates()
+    {
+        foreach (var validBasis in new[] { "Collection", "Report" })
+        {
+            var valid = ValidOpenDataProfile();
+            valid["Biomarkers"]![0]!["DateBasis"] = validBasis;
+            AthleteProfilePolicy.ValidateAndHydrate(valid, AthleteProfileType.OpenData, "profile.json");
+        }
+
+        foreach (var invalidBasis in new[] { "Draw", "report" })
+        {
+            var invalid = ValidOpenDataProfile();
+            invalid["Biomarkers"]![0]!["DateBasis"] = invalidBasis;
+            var error = Assert.Throws<InvalidDataException>(() =>
+                AthleteProfilePolicy.ValidateAndHydrate(invalid, AthleteProfileType.OpenData, "profile.json"));
+            Assert.Contains("must be 'Collection' or 'Report'", error.Message);
+        }
+
+        var nullBasis = ValidOpenDataProfile();
+        nullBasis["Biomarkers"]![0]!["DateBasis"] = null;
+        Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(nullBasis, AthleteProfileType.OpenData, "profile.json"));
+    }
+
+    [Fact]
+    public void OpenDataProfile_IdentityMustReferenceKnownSubjectAuthorizedSource()
     {
         var unknown = ValidOpenDataProfile();
         unknown["OpenData"]!["IdentitySourceIds"] = new JsonArray("missing");
@@ -370,24 +460,23 @@ public sealed class AthleteProfilePolicyTests
             AthleteProfilePolicy.ValidateAndHydrate(unknown, AthleteProfileType.OpenData, "profile.json"));
         Assert.Contains("unknown source Id", unknownError.Message);
 
-        var notSelfPublished = ValidOpenDataProfile();
-        notSelfPublished["OpenData"]!["Sources"]!.AsArray().Add(new JsonObject
+        var notSubjectAuthorized = ValidOpenDataProfile();
+        notSubjectAuthorized["OpenData"]!["Sources"]!.AsArray().Add(new JsonObject
         {
             ["Id"] = "third-party-identity",
             ["Kind"] = "Identity",
             ["Title"] = "Third-party biography",
             ["Url"] = "https://example.test/biography",
-            ["AccessedOn"] = "2026-07-11",
-            ["SelfPublishedBySubject"] = false
+            ["AccessedOn"] = "2026-07-11"
         });
-        notSelfPublished["OpenData"]!["IdentitySourceIds"] = new JsonArray("third-party-identity");
-        var selfPublishedError = Assert.Throws<InvalidDataException>(() =>
-            AthleteProfilePolicy.ValidateAndHydrate(notSelfPublished, AthleteProfileType.OpenData, "profile.json"));
-        Assert.Contains("must reference at least one source published by the subject", selfPublishedError.Message);
+        notSubjectAuthorized["OpenData"]!["IdentitySourceIds"] = new JsonArray("third-party-identity");
+        var authorizationError = Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(notSubjectAuthorized, AthleteProfileType.OpenData, "profile.json"));
+        Assert.Contains("self-published or explicitly authorized", authorizationError.Message);
     }
 
     [Fact]
-    public void OpenDataProfile_EveryBiomarkerRecordMustCiteSelfPublishedBloodwork()
+    public void OpenDataProfile_EveryBiomarkerRecordMustCiteSubjectAuthorizedBloodwork()
     {
         var profile = ValidOpenDataProfile();
         profile["OpenData"]!["Sources"]!.AsArray().Add(new JsonObject
@@ -396,15 +485,14 @@ public sealed class AthleteProfilePolicyTests
             ["Kind"] = "Bloodwork",
             ["Title"] = "Third-party copy",
             ["Url"] = "https://example.test/third-party-bloodwork",
-            ["AccessedOn"] = "2026-07-11",
-            ["SelfPublishedBySubject"] = false
+            ["AccessedOn"] = "2026-07-11"
         });
         profile["Biomarkers"]![0]!["SourceIds"] = new JsonArray("third-party-bloodwork");
 
         var error = Assert.Throws<InvalidDataException>(() =>
             AthleteProfilePolicy.ValidateAndHydrate(profile, AthleteProfileType.OpenData, "profile.json"));
 
-        Assert.Contains("Bloodwork source published by the subject", error.Message);
+        Assert.Contains("Bloodwork source self-published or explicitly authorized", error.Message);
     }
 
     [Fact]
@@ -446,7 +534,10 @@ public sealed class AthleteProfilePolicyTests
             ["Title"] = "Official publication page",
             ["Url"] = "https://example.test/publication",
             ["AccessedOn"] = "2026-07-11",
-            ["SelfPublishedBySubject"] = true,
+            ["SubjectAuthorization"] = new JsonObject
+            {
+                ["Kind"] = "SelfPublished"
+            },
             ["PreferredForDisplay"] = true
         });
 
@@ -561,8 +652,10 @@ public sealed class AthleteProfilePolicyTests
     }
 
     [Fact]
-    public void PopulationCap_AllowsTenPercentAndRejectsAnythingAboveIt()
+    public void PopulationCeiling_HasNoMinimumAndRejectsAnythingAboveTenPercent()
     {
+        AthleteProfilePolicy.ValidatePopulationCap(athleteCount: 212, openDataCount: 0);
+        AthleteProfilePolicy.ValidatePopulationCap(athleteCount: 212, openDataCount: 1);
         AthleteProfilePolicy.ValidatePopulationCap(athleteCount: 9, openDataCount: 1);
         AthleteProfilePolicy.ValidatePopulationCap(athleteCount: 212, openDataCount: 23);
 
@@ -593,8 +686,24 @@ public sealed class AthleteProfilePolicyTests
                         ["Title"] = "Self-published bloodwork",
                         ["Url"] = "https://example.test/bloodwork",
                         ["AccessedOn"] = "2026-07-11",
-                        ["SelfPublishedBySubject"] = true
+                        ["SubjectAuthorization"] = new JsonObject
+                        {
+                            ["Kind"] = "SelfPublished"
+                        }
+                    },
+                    new JsonObject
+                    {
+                        ["Id"] = "official-biography",
+                        ["Kind"] = "Identity",
+                        ["Title"] = "Official biography",
+                        ["Url"] = "https://example.test/biography",
+                        ["AccessedOn"] = "2026-07-11"
                     }
+                },
+                ["Notability"] = new JsonObject
+                {
+                    ["Summary"] = "A globally recognized public figure with an established body of work.",
+                    ["SourceIds"] = new JsonArray("official-biography")
                 },
                 ["IdentitySourceIds"] = new JsonArray("bloodwork-2026"),
                 ["TranscriptionNotes"] = new JsonArray("Units were already SI.")

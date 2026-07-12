@@ -8,7 +8,19 @@ namespace LongevityWorldCup.Tests;
 public sealed class OpenDataProfileFolderIntegrityTests
 {
     [Fact]
-    public void CommittedOpenDataProfiles_FollowTheValidatedPhysicalBoundaryAndPopulationBand()
+    public void DeploymentSynchronizesOpenDataProfilesWithScopedDeletion()
+    {
+        var repoRoot = FindRepoRoot();
+        var workflow = File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "deploy.yml"));
+        var deploymentGuide = File.ReadAllText(
+            Path.Combine(repoRoot, "LongevityWorldCup.Documentation", "ServerDeployment.md"));
+
+        AssertScopedOpenDataDeleteSync(workflow, "deployment workflow");
+        AssertScopedOpenDataDeleteSync(deploymentGuide, "manual deployment guide");
+    }
+
+    [Fact]
+    public void CommittedOpenDataProfiles_FollowTheValidatedPhysicalBoundaryAndPopulationCeiling()
     {
         var repoRoot = FindRepoRoot();
         var webRoot = Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot");
@@ -109,14 +121,6 @@ public sealed class OpenDataProfileFolderIntegrityTests
             issues.Add(ex.Message);
         }
 
-        var totalProfileCount = checked(athleteSlugs.Count + openDataSlugs.Count);
-        if (totalProfileCount > 0 && checked(openDataSlugs.Count * 100) < checked(totalProfileCount * 9))
-        {
-            issues.Add(
-                $"The committed leaderboard must keep OpenData profiles at or above 9% of all displayed profiles; " +
-                $"found {openDataSlugs.Count} of {totalProfileCount}.");
-        }
-
         Assert.True(
             issues.Count == 0,
             "OpenData profile folders must satisfy the public-data boundary:" + Environment.NewLine +
@@ -148,6 +152,29 @@ public sealed class OpenDataProfileFolderIntegrityTests
         }
 
         return identities;
+    }
+
+    private static void AssertScopedOpenDataDeleteSync(string content, string sourceName)
+    {
+        const string exclusion = "--exclude='/wwwroot/public-data-profiles/***'";
+        const string emptyRosterSource = "mkdir -p \"$publish_output/wwwroot/public-data-profiles\"";
+        const string source = "\"$publish_output/wwwroot/public-data-profiles\"/";
+        const string destination = "/var/www/LongevityWorldCup/publish/wwwroot/public-data-profiles/";
+
+        Assert.Contains(exclusion, content, StringComparison.Ordinal);
+        Assert.Contains(emptyRosterSource, content, StringComparison.Ordinal);
+
+        var sourceIndex = content.IndexOf(source, StringComparison.Ordinal);
+        Assert.True(sourceIndex >= 0, $"The {sourceName} must explicitly synchronize the OpenData manifest root.");
+
+        var commandStart = content.LastIndexOf("sudo rsync", sourceIndex, StringComparison.Ordinal);
+        var commandEnd = content.IndexOf('\n', sourceIndex);
+        Assert.True(commandStart >= 0 && commandEnd > sourceIndex,
+            $"The {sourceName} must keep the OpenData source and destination in one rsync command.");
+
+        var command = content[commandStart..commandEnd];
+        Assert.Contains("--delete", command, StringComparison.Ordinal);
+        Assert.Contains(destination, command, StringComparison.Ordinal);
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

@@ -21,10 +21,20 @@
   ],
   "OpenData": {
     "SubjectDidNotApply": true,
-    "ReviewedAt": "2026-07-11",
+    "ReviewedAt": "2026-07-12",
+    "Aliases": [
+      "Paul Saladino, MD"
+    ],
+    "Notability": {
+      "Summary": "Physician, author and podcaster known as a prominent and controversial advocate of animal-based and carnivore-style nutrition.",
+      "SourceIds": [
+        "official-biography"
+      ]
+    },
     "IdentitySourceIds": [
       "official-video-2024",
-      "official-episode-page"
+      "official-episode-page",
+      "official-biography"
     ],
     "Sources": [
       {
@@ -33,7 +43,9 @@
         "Title": "Paul Saladino — Bloodwork Review: April 2024",
         "Url": "https://www.youtube.com/watch?v=qigwrWJEo6Q",
         "AccessedOn": "2026-07-11",
-        "SelfPublishedBySubject": true
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
       },
       {
         "Id": "official-episode-page",
@@ -41,11 +53,24 @@
         "Title": "Paul Saladino MD — Bloodwork review: April 2024",
         "Url": "https://www.paulsaladinomd.com/psmd-podcast/bloodwork-review-april-2024",
         "AccessedOn": "2026-07-11",
-        "SelfPublishedBySubject": true,
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        },
         "PreferredForDisplay": true
+      },
+      {
+        "Id": "official-biography",
+        "Kind": "Identity",
+        "Title": "Paul Saladino, MD — official biography",
+        "Url": "https://www.paulsaladinomd.com/about",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
       }
     ],
     "TranscriptionNotes": [
+      "The linked official biography and episode page publish the identity Paul Saladino, MD; that source-backed variant is recorded as an alias for collision protection.",
       "The official video visibly presents the original six-page MDLab report. Its header identifies Paul Saladino and collection on 26 February 2024 at 08:30.",
       "AgeYears is his age at the draw, calculated from the date of birth and collection date shown in the report and rounded to two decimals.",
       "The CBC and fasting glucose/creatinine are visible around 13:20; albumin, alkaline phosphatase and hs-CRP are visible around 14:10–15:00.",

@@ -24,10 +24,17 @@
   ],
   "OpenData": {
     "SubjectDidNotApply": true,
-    "ReviewedAt": "2026-07-11",
+    "ReviewedAt": "2026-07-12",
+    "Notability": {
+      "Summary": "Endurance athlete, New York Times bestselling fitness author, human-performance coach and long-running health and biohacking podcaster.",
+      "SourceIds": [
+        "official-biography"
+      ]
+    },
     "IdentitySourceIds": [
       "wellnessfx-2014-04-23",
-      "official-age-source"
+      "official-age-source",
+      "official-biography"
     ],
     "Sources": [
       {
@@ -36,7 +43,9 @@
         "Title": "Ben Greenfield — WellnessFX results for the 23 April 2014 draw",
         "Url": "https://bengreenfieldlife.com/wp-content/uploads/2014/05/BenGreenfield_WellnessFX2014.pdf",
         "AccessedOn": "2026-07-11",
-        "SelfPublishedBySubject": true
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
       },
       {
         "Id": "official-age-source",
@@ -44,7 +53,19 @@
         "Title": "Ben Greenfield — official Cardiometabolic Report supporting age at collection",
         "Url": "https://bengreenfieldlife.com/wp-content/uploads/2020/10/Cardiometabolic-Report.pdf",
         "AccessedOn": "2026-07-11",
-        "SelfPublishedBySubject": true
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
+      },
+      {
+        "Id": "official-biography",
+        "Kind": "Identity",
+        "Title": "Ben Greenfield — official biography",
+        "Url": "https://bengreenfieldlife.com/ben-greenfield/",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
       }
     ],
     "TranscriptionNotes": [

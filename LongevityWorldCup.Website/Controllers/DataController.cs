@@ -90,7 +90,7 @@ namespace LongevityWorldCup.Website.Controllers
         /// </summary>
         /// <remarks>
         /// Returns approved Longevity athletes plus a capped set of OpenData profiles whose complete
-        /// nine-marker Pheno panels and age at draw were transcribed from linked, self-published bloodwork. A source that publishes only a month is represented explicitly as month precision; no day is inferred. OpenData subjects did not apply and never participate in
+        /// nine-marker Pheno panels and age at the source-dated panel were transcribed from linked bloodwork self-published or explicitly authorized by the subject. DateBasis distinguishes specimen dates from dated unified reports, and month-only sources do not infer a day. OpenData subjects did not apply and never participate in
         /// ranks, badges, placements, prizes, athlete counts, crowd age, or competition Events.
         /// Inspect `ProfileType` and the `OpenData` provenance object before presenting a record.
         /// </remarks>
