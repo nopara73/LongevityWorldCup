@@ -1900,7 +1900,11 @@ public sealed class FlowActionDockBrowserTests
                     if (route == "/select-athlete")
                     {
                         await page.WaitForFunctionAsync(
-                            "() => document.getElementById('athleteSelectionPanel')?.hidden === false");
+                            """
+                            () => document.documentElement.classList.contains('play-route-ready')
+                                && !document.body.classList.contains('play-route-hydrating')
+                                && document.getElementById('athleteSelectionPanel')?.hidden === false
+                            """);
                     }
                     else if (route == "/dashboard")
                     {
