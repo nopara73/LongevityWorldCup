@@ -183,10 +183,20 @@ public sealed class SwaggerOpenApiTests
         Assert.True(biomarkerProperties.TryGetProperty("SourceIds", out _));
         Assert.True(biomarkerProperties.TryGetProperty("AgeYears", out _));
         Assert.True(biomarkerProperties.TryGetProperty("DatePrecision", out _));
+        Assert.True(biomarkerProperties.TryGetProperty("DateBasis", out _));
         Assert.True(biomarkerProperties.TryGetProperty("MeasurementQualifiers", out _));
         var openDataProperties = schemas.GetProperty("PublicOpenDataMetadataApiDocument").GetProperty("properties");
         Assert.True(openDataProperties.TryGetProperty("IdentitySourceIds", out _));
-        Assert.True(schemas.GetProperty("PublicOpenDataSourceApiDocument").GetProperty("properties").TryGetProperty("PreferredForDisplay", out _));
+        Assert.True(openDataProperties.TryGetProperty("Notability", out _));
+        var notabilityProperties = schemas.GetProperty("PublicOpenDataNotabilityApiDocument").GetProperty("properties");
+        Assert.True(notabilityProperties.TryGetProperty("Summary", out _));
+        Assert.True(notabilityProperties.TryGetProperty("SourceIds", out _));
+        var sourceProperties = schemas.GetProperty("PublicOpenDataSourceApiDocument").GetProperty("properties");
+        Assert.True(sourceProperties.TryGetProperty("PreferredForDisplay", out _));
+        Assert.True(sourceProperties.TryGetProperty("SubjectAuthorization", out _));
+        var authorizationProperties = schemas.GetProperty("PublicOpenDataSubjectAuthorizationApiDocument").GetProperty("properties");
+        Assert.True(authorizationProperties.TryGetProperty("EvidenceUrl", out _));
+        Assert.True(authorizationProperties.TryGetProperty("EvidenceNote", out _));
         Assert.Contains("provenance", schemas.GetProperty("PublicOpenDataMetadataApiDocument").GetProperty("description").GetString());
     }
 
@@ -269,7 +279,7 @@ public sealed class SwaggerOpenApiTests
             .GetProperty("schemas")
             .GetProperty("PublicBiomarkerRecordApiDocument");
         Assert.Contains("Pheno Age-only records", biomarkerSchema.GetProperty("description").GetString());
-        Assert.Contains("age at draw", biomarkerSchema.GetProperty("description").GetString());
+        Assert.Contains("age at the source-dated panel", biomarkerSchema.GetProperty("description").GetString());
 
         var errorSchema = document.RootElement
             .GetProperty("components")

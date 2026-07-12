@@ -155,7 +155,7 @@
     }
     .open-data-grid{
         display:grid;
-        grid-template-columns:repeat(auto-fit, minmax(min(100%, 245px), 1fr));
+        grid-template-columns:repeat(auto-fit, minmax(min(100%, 285px), 1fr));
         gap:1rem;
         margin-top:1.25rem;
     }
@@ -199,6 +199,12 @@
         color:var(--dark-text-color);
         font-size:1rem;
         line-height:1.3;
+    }
+    .open-data-card-summary{
+        margin:-.25rem 0 1rem;
+        color:#475569;
+        font-size:.83rem;
+        line-height:1.5;
     }
     .open-data-card-metric{
         display:grid;
@@ -284,6 +290,11 @@
     .open-data-sticky-token[hidden]{ display:none !important; }
     .open-data-profile-disclosure .open-data-token{ margin-bottom:.65rem; }
     .open-data-profile-disclosure p{ margin:0; color:var(--athlete-modal-muted); line-height:1.55; }
+    .open-data-profile-disclosure .open-data-notability-summary{
+        margin-bottom:.65rem;
+        color:var(--athlete-modal-text);
+        font-weight:700;
+    }
     .open-data-profile-disclosure a{
         color:var(--athlete-modal-link);
         font-weight:700;
@@ -3048,6 +3059,7 @@
 
                     <div id="openDataProfileDisclosure" class="open-data-profile-disclosure" role="note" hidden>
                         <span class="open-data-token">PUBLIC DATA · UNRANKED</span>
+                        <p id="openDataNotabilitySummary" class="open-data-notability-summary"></p>
                         <p>These reference profiles use bloodwork the subjects made public. The subjects did not apply to the Longevity World Cup, are not Longevity athletes, and never affect rankings, awards, or prizes; inclusion does not imply endorsement. Profile subject? <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Request a correction or removal</a>.</p>
                         <p id="openDataQualifierNotice" class="detail-muted" hidden>This reference calculation uses a published assay boundary (such as “&lt;0.2”) under the World Cup detection-limit rule; the boundary is not presented as an exact measurement.</p>
                     </div>
@@ -3956,19 +3968,36 @@
         return window.calculateAgeAtDate(dob, new Date(entry.Date));
     }
 
-    function recordReferencesSelfPublishedBloodwork(entry, selfPublishedBloodworkIds) {
-        return entry && Array.isArray(entry.SourceIds) &&
-            entry.SourceIds.some(sourceId => selfPublishedBloodworkIds.has(String(sourceId)));
+    function getOpenDataSubjectAuthorization(source) {
+        const authorization = source && source.SubjectAuthorization;
+        if (!authorization || typeof authorization !== 'object') return null;
+
+        const kind = typeof authorization.Kind === 'string' ? authorization.Kind.trim() : '';
+        if (kind === 'SelfPublished') {
+            return { kind, evidenceUrl: '', evidenceNote: '' };
+        }
+
+        if (kind !== 'ExplicitlyAuthorized') return null;
+        const evidenceUrl = getSafePublicDataUrl(authorization.EvidenceUrl);
+        const evidenceNote = typeof authorization.EvidenceNote === 'string'
+            ? authorization.EvidenceNote.trim()
+            : '';
+        return evidenceUrl && evidenceNote ? { kind, evidenceUrl, evidenceNote } : null;
     }
 
-    function calculateOpenDataPhenoSummary(profile, selfPublishedBloodworkIds) {
+    function recordReferencesAuthorizedBloodwork(entry, authorizedBloodworkIds) {
+        return entry && Array.isArray(entry.SourceIds) &&
+            entry.SourceIds.some(sourceId => authorizedBloodworkIds.has(String(sourceId)));
+    }
+
+    function calculateOpenDataPhenoSummary(profile, authorizedBloodworkIds) {
         if (!window.PhenoAge || typeof window.PhenoAge.calculatePhenoAge !== 'function') return null;
         let lowestAge = Infinity;
         let chronologicalAge = null;
 
         (Array.isArray(profile.Biomarkers) ? profile.Biomarkers : []).forEach(entry => {
             if (!entry || !entry.Date || !isCompleteBiomarkerSet(entry) ||
-                !recordReferencesSelfPublishedBloodwork(entry, selfPublishedBloodworkIds)) return;
+                !recordReferencesAuthorizedBloodwork(entry, authorizedBloodworkIds)) return;
             const ageAtEntry = getProfileAgeAtBiomarker(profile, entry);
             const values = [
                 ageAtEntry,
@@ -3999,14 +4028,14 @@
         };
     }
 
-    function calculateOpenDataBortzSummary(profile, selfPublishedBloodworkIds) {
+    function calculateOpenDataBortzSummary(profile, authorizedBloodworkIds) {
         if (!window.BortzAge || typeof window.BortzAge.calculateBortzAge !== 'function') return null;
         let lowestAge = Infinity;
         let chronologicalAge = null;
 
         (Array.isArray(profile.Biomarkers) ? profile.Biomarkers : []).forEach(entry => {
             if (!entry || !entry.Date || !isCompleteBortzBiomarkerSet(entry) ||
-                !recordReferencesSelfPublishedBloodwork(entry, selfPublishedBloodworkIds)) return;
+                !recordReferencesAuthorizedBloodwork(entry, authorizedBloodworkIds)) return;
             const ageAtEntry = getProfileAgeAtBiomarker(profile, entry);
             const wbc = entry.Wbc1000cellsuL;
             const values = [
@@ -4064,23 +4093,31 @@
                 title: source && source.Title ? String(source.Title).trim() : 'Public bloodwork source',
                 url: getSafePublicDataUrl(source && source.Url),
                 accessedOn: source && source.AccessedOn ? String(source.AccessedOn) : '',
-                selfPublishedBySubject: source && source.SelfPublishedBySubject === true,
+                subjectAuthorization: getOpenDataSubjectAuthorization(source),
                 preferredForDisplay: source && source.PreferredForDisplay === true
             }))
             .filter(source => source.url);
-        if (sources.length === 0 || !sources.some(source => source.kind === 'Bloodwork' && source.selfPublishedBySubject)) {
-            console.warn('Skipped public-data profile without a valid self-published HTTPS source.', profile.AthleteSlug);
+        if (sources.length === 0 || !sources.some(source => source.kind === 'Bloodwork' && source.subjectAuthorization)) {
+            console.warn('Skipped public-data profile without valid subject-authorized HTTPS bloodwork.', profile.AthleteSlug);
             return null;
         }
 
-        const selfPublishedBloodworkIds = new Set(sources
-            .filter(source => source.kind === 'Bloodwork' && source.selfPublishedBySubject)
+        const notabilitySummary = provenance.Notability && typeof provenance.Notability.Summary === 'string'
+            ? provenance.Notability.Summary.trim()
+            : '';
+        if (!notabilitySummary) {
+            console.warn('Skipped public-data profile without sourced notability context.', profile.AthleteSlug);
+            return null;
+        }
+
+        const authorizedBloodworkIds = new Set(sources
+            .filter(source => source.kind === 'Bloodwork' && source.subjectAuthorization)
             .map(source => source.id));
         const displayName = profile.DisplayName && profile.DisplayName.trim()
             ? profile.DisplayName.trim()
             : profile.Name;
-        const pheno = calculateOpenDataPhenoSummary(profile, selfPublishedBloodworkIds);
-        const bortz = calculateOpenDataBortzSummary(profile, selfPublishedBloodworkIds);
+        const pheno = calculateOpenDataPhenoSummary(profile, authorizedBloodworkIds);
+        const bortz = calculateOpenDataBortzSummary(profile, authorizedBloodworkIds);
         const hasMeasurementQualifiers = profile.Biomarkers.some(record =>
             record && record.MeasurementQualifiers &&
             Object.keys(record.MeasurementQualifiers).length > 0);
@@ -4107,6 +4144,7 @@
             aliases,
             reviewedAt: provenance.ReviewedAt ? String(provenance.ReviewedAt) : '',
             transcriptionNotes: getOpenDataTranscriptionNotes(provenance.TranscriptionNotes),
+            notabilitySummary,
             hasMeasurementQualifiers
         };
     }
@@ -5247,6 +5285,7 @@
             card.dataset.searchText = window.normalizeString([
                 profile.name,
                 profile.displayName,
+                profile.notabilitySummary,
                 ...profile.aliases,
                 ...profile.transcriptionNotes,
                 ...profile.sources.flatMap(source => [source.title, source.kind])
@@ -5269,6 +5308,11 @@
             heading.append(avatar, name);
             card.appendChild(heading);
 
+            const summary = document.createElement('p');
+            summary.className = 'open-data-card-summary';
+            summary.textContent = profile.notabilitySummary;
+            card.appendChild(summary);
+
             const metric = document.createElement('div');
             metric.className = 'open-data-card-metric';
             const metricLabel = document.createElement('span');
@@ -5279,7 +5323,7 @@
             metricValue.textContent = formatReferenceCalculation(profile.ageReduction);
             const formulaNote = document.createElement('span');
             formulaNote.className = 'open-data-card-metric-note';
-            formulaNote.textContent = 'Pheno Age − age at published draw';
+            formulaNote.textContent = 'Pheno Age − age at published panel';
             metric.append(metricLabel, metricValue, formulaNote);
             if (profile.hasMeasurementQualifiers) {
                 const qualifierNote = document.createElement('span');
@@ -5301,7 +5345,7 @@
 
             const firstSource = profile.sources.find(source => source.preferredForDisplay) ||
                 profile.sources.find(source =>
-                source.kind === 'Bloodwork' && source.selfPublishedBySubject) || profile.sources[0];
+                source.kind === 'Bloodwork' && source.subjectAuthorization) || profile.sources[0];
             if (firstSource) {
                 const sourceLink = document.createElement('a');
                 sourceLink.className = 'open-data-card-action open-data-card-source';
@@ -7943,7 +7987,7 @@
     function configureProfileMetricLabels(isOpenData) {
         const textById = isOpenData
             ? {
-                chronologicalAgeLabel: 'Age at published draw:',
+                chronologicalAgeLabel: 'Age at published panel:',
                 chronologicalAgeUnit: 'years',
                 lowestBortzAgeLabel: 'Reference Bortz Age:',
                 lowestPhenoAgeLabel: 'Reference Pheno Age:',
@@ -7967,7 +8011,7 @@
             .forEach(id => {
                 const element = document.getElementById(id);
                 if (element) element.title = isOpenData
-                    ? 'Reference calculation from the cited published draw'
+                    ? 'Reference calculation from the cited published panel'
                     : 'Derived from the lowest biological age of the season';
             });
     }
@@ -8053,9 +8097,11 @@
         const athleteBio = document.getElementById('athleteBio');
         const modalBadgeSection = document.getElementById('modalBadgeStrip');
         const qualifierNotice = document.getElementById('openDataQualifierNotice');
+        const notabilitySummary = document.getElementById('openDataNotabilitySummary');
         if (athleteBio) athleteBio.textContent = '';
         if (modalBadgeSection) modalBadgeSection.innerHTML = '';
         if (qualifierNotice) qualifierNotice.hidden = !profileData.hasMeasurementQualifiers;
+        if (notabilitySummary) notabilitySummary.textContent = profileData.notabilitySummary;
 
         ['athleteRank', 'athleteDivision', 'athleteGeneration', 'athleteFlag', 'lowestPhenoAgeRank', 'paceOfAgingRank', 'bortzPaceOfAgingRank']
             .forEach(id => {
@@ -8829,15 +8875,25 @@
         const provenance = fullProfile && fullProfile.OpenData ? fullProfile.OpenData : {};
         const sources = Array.isArray(provenance.Sources) ? provenance.Sources : [];
         const biomarkerRecords = Array.isArray(fullProfile && fullProfile.Biomarkers) ? fullProfile.Biomarkers : [];
+        const notabilitySourceIds = new Set(
+            provenance.Notability && Array.isArray(provenance.Notability.SourceIds)
+                ? provenance.Notability.SourceIds.map(String)
+                : []);
         list.innerHTML = '';
         section.hidden = false;
 
         const reviewedDate = formatPublicDataDate(provenance.ReviewedAt || '');
         const monthPrecisionCount = biomarkerRecords.filter(record => record && record.DatePrecision === 'Month').length;
+        const reportDateCount = biomarkerRecords.filter(record => record && record.DateBasis === 'Report').length;
         const reviewedParts = [];
         if (reviewedDate) reviewedParts.push(`Profile reviewed ${reviewedDate}.`);
         if (monthPrecisionCount > 0) {
-            reviewedParts.push(`${monthPrecisionCount === 1 ? 'The published draw date has' : `${monthPrecisionCount} published draw dates have`} month precision; no day was inferred.`);
+            reviewedParts.push(`${monthPrecisionCount === 1 ? 'The published panel date has' : `${monthPrecisionCount} published panel dates have`} month precision; no day was inferred.`);
+        }
+        if (reportDateCount > 0) {
+            reviewedParts.push(reportDateCount === 1
+                ? 'One record uses the published report date because the source does not print a unified specimen date; it is not presented as a draw date.'
+                : `${reportDateCount} records use published report dates because their sources do not print unified specimen dates; they are not presented as draw dates.`);
         }
         reviewed.textContent = reviewedParts.join(' ');
 
@@ -8865,17 +8921,38 @@
             const citedRecordCount = sourceId
                 ? biomarkerRecords.filter(record => Array.isArray(record.SourceIds) && record.SourceIds.map(String).includes(sourceId)).length
                 : 0;
+            const subjectAuthorization = getOpenDataSubjectAuthorization(source);
             const metaParts = [];
             if (source && source.Kind) metaParts.push(String(source.Kind));
-            if (source && source.SelfPublishedBySubject === true) metaParts.push('Self-published by the subject');
+            if (subjectAuthorization && subjectAuthorization.kind === 'SelfPublished') {
+                metaParts.push('Self-published by the subject');
+            } else if (subjectAuthorization && subjectAuthorization.kind === 'ExplicitlyAuthorized') {
+                metaParts.push('Publication explicitly authorized by the subject');
+            }
             const accessedOn = formatPublicDataDate(source && source.AccessedOn ? String(source.AccessedOn) : '');
             if (accessedOn) metaParts.push(`Accessed ${accessedOn}`);
             if (citedRecordCount > 0) metaParts.push(`${citedRecordCount} cited biomarker ${citedRecordCount === 1 ? 'record' : 'records'}`);
+            if (sourceId && notabilitySourceIds.has(sourceId)) metaParts.push('Supports notability context');
             if (metaParts.length > 0) {
                 const meta = document.createElement('p');
                 meta.className = 'public-data-source-meta';
                 meta.textContent = metaParts.join(' · ');
                 item.appendChild(meta);
+            }
+
+            if (subjectAuthorization && subjectAuthorization.kind === 'ExplicitlyAuthorized') {
+                const evidence = document.createElement('p');
+                evidence.className = 'public-data-source-meta';
+                evidence.appendChild(document.createTextNode(`${subjectAuthorization.evidenceNote} `));
+                const evidenceLink = document.createElement('a');
+                evidenceLink.className = 'public-data-source-link';
+                evidenceLink.href = subjectAuthorization.evidenceUrl;
+                evidenceLink.target = '_blank';
+                evidenceLink.rel = 'noopener noreferrer external';
+                evidenceLink.textContent = 'View authorization evidence';
+                evidenceLink.setAttribute('aria-label', 'View subject authorization evidence (opens in a new tab)');
+                evidence.appendChild(evidenceLink);
+                item.appendChild(evidence);
             }
 
             list.appendChild(item);

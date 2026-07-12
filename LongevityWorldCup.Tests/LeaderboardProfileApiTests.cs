@@ -1073,9 +1073,22 @@ public sealed class LeaderboardProfileApiTests
                     "Title": "Self-published bloodwork",
                     "Url": "https://example.test/bloodwork",
                     "AccessedOn": "2026-07-11",
-                    "SelfPublishedBySubject": true
+                    "SubjectAuthorization": {
+                      "Kind": "SelfPublished"
+                    }
+                  },
+                  {
+                    "Id": "official-biography",
+                    "Kind": "Identity",
+                    "Title": "Official biography",
+                    "Url": "https://example.test/biography",
+                    "AccessedOn": "2026-07-11"
                   }
                 ],
+                "Notability": {
+                  "Summary": "A globally recognized public figure with an established body of work.",
+                  "SourceIds": ["official-biography"]
+                },
                 "IdentitySourceIds": ["bloodwork"]
               },
               "Biomarkers": [

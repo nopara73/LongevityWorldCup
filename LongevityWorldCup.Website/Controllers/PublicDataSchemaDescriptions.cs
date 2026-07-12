@@ -27,16 +27,16 @@ public sealed class PublicDataSchemaDescriptions : ISchemaFilter
         }
         else if (context.Type == typeof(PublicBiomarkerRecordApiDocument))
         {
-            openApiSchema.Description = "One dated biomarker record. Approved athletes may have Pheno Age-only records, Bortz Age records, or records that contain fields for both clocks. OpenData records include age at draw and a complete nine-marker Pheno panel cited to self-published bloodwork.";
+            openApiSchema.Description = "One dated biomarker record. Approved athletes may have Pheno Age-only records, Bortz Age records, or records that contain fields for both clocks. OpenData records include age at the source-dated panel and a complete nine-marker Pheno panel cited to bloodwork self-published or explicitly authorized by the subject.";
             openApiSchema.AdditionalPropertiesAllowed = true;
         }
         else if (context.Type == typeof(PublicOpenDataMetadataApiDocument))
         {
-            openApiSchema.Description = "Mandatory non-participation disclosure and reviewed provenance for an unranked OpenData profile.";
+            openApiSchema.Description = "Mandatory non-participation disclosure, sourced notability context and reviewed provenance for an unranked OpenData profile.";
         }
         else if (context.Type == typeof(PublicOpenDataSourceApiDocument))
         {
-            openApiSchema.Description = "An HTTPS identity or bloodwork source supporting an OpenData transcription.";
+            openApiSchema.Description = "An HTTPS identity/notability or bloodwork source supporting an OpenData transcription, with structured subject-authorization evidence when applicable.";
 
             if (openApiSchema.Properties is not null &&
                 openApiSchema.Properties.TryGetValue("Kind", out var sourceKind) &&

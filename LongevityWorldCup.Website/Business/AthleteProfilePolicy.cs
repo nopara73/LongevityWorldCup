@@ -18,10 +18,13 @@ public readonly record struct AthleteProfileCounts(
 
 /// <summary>
 /// Owns the trust boundary between approved Longevity athletes and unranked
-/// profiles transcribed from public, self-published bloodwork.
+/// profiles transcribed from bloodwork the subject intentionally made public.
 /// </summary>
 public static class AthleteProfilePolicy
 {
+    private const string SelfPublishedAuthorizationKind = "SelfPublished";
+    private const string ExplicitlyAuthorizedKind = "ExplicitlyAuthorized";
+
     private static readonly string[] PersistedOpenDataTopLevelFields =
     [
         ProfileTypePropertyName,
@@ -39,6 +42,7 @@ public static class AthleteProfilePolicy
         "SubjectDidNotApply",
         "ReviewedAt",
         "Aliases",
+        "Notability",
         "IdentitySourceIds",
         "Sources",
         "TranscriptionNotes"
@@ -47,6 +51,15 @@ public static class AthleteProfilePolicy
     private static readonly HashSet<string> OpenDataMetadataFieldSet =
         new(OpenDataMetadataFields, StringComparer.Ordinal);
 
+    private static readonly string[] OpenDataNotabilityFields =
+    [
+        "Summary",
+        "SourceIds"
+    ];
+
+    private static readonly HashSet<string> OpenDataNotabilityFieldSet =
+        new(OpenDataNotabilityFields, StringComparer.Ordinal);
+
     private static readonly string[] OpenDataSourceFields =
     [
         "Id",
@@ -54,12 +67,22 @@ public static class AthleteProfilePolicy
         "Title",
         "Url",
         "AccessedOn",
-        "SelfPublishedBySubject",
+        "SubjectAuthorization",
         "PreferredForDisplay"
     ];
 
     private static readonly HashSet<string> OpenDataSourceFieldSet =
         new(OpenDataSourceFields, StringComparer.Ordinal);
+
+    private static readonly string[] OpenDataSubjectAuthorizationFields =
+    [
+        "Kind",
+        "EvidenceUrl",
+        "EvidenceNote"
+    ];
+
+    private static readonly HashSet<string> OpenDataSubjectAuthorizationFieldSet =
+        new(OpenDataSubjectAuthorizationFields, StringComparer.Ordinal);
 
     private static readonly HashSet<string> ForbiddenPersistedOpenDataFields = new(
     [
@@ -112,6 +135,7 @@ public static class AthleteProfilePolicy
     [
         "Date",
         "DatePrecision",
+        "DateBasis",
         "AgeYears",
         .. RequiredPhenoBiomarkerFields,
         "MeasurementQualifiers",
@@ -201,7 +225,16 @@ public static class AthleteProfilePolicy
                         {
                             var projectedSources = new JsonArray();
                             foreach (var source in sources.OfType<JsonObject>())
-                                projectedSources.Add(ProjectJsonValues(source, OpenDataSourceFields));
+                            {
+                                var projectedSource = ProjectJsonValues(source, OpenDataSourceFields);
+                                if (source["SubjectAuthorization"] is JsonObject authorization)
+                                {
+                                    projectedSource["SubjectAuthorization"] = ProjectJsonValues(
+                                        authorization,
+                                        OpenDataSubjectAuthorizationFields);
+                                }
+                                projectedSources.Add(projectedSource);
+                            }
                             projectedMetadata[propertyName] = projectedSources;
                         }
                         break;
@@ -211,6 +244,16 @@ public static class AthleteProfilePolicy
                     case "TranscriptionNotes":
                         if (metadata[propertyName] is JsonArray values)
                             projectedMetadata[propertyName] = ProjectScalarArray(values);
+                        break;
+
+                    case "Notability":
+                        if (metadata[propertyName] is JsonObject notability)
+                        {
+                            var projectedNotability = ProjectJsonValues(notability, OpenDataNotabilityFields);
+                            if (notability["SourceIds"] is JsonArray sourceIds)
+                                projectedNotability["SourceIds"] = ProjectScalarArray(sourceIds);
+                            projectedMetadata[propertyName] = projectedNotability;
+                        }
                         break;
 
                     default:
@@ -363,8 +406,8 @@ public static class AthleteProfilePolicy
         if (metadata["Sources"] is not JsonArray sources || sources.Count == 0)
             throw Invalid(sourcePath, "OpenData.Sources must contain at least one source.");
 
-        var sourcesById = new Dictionary<string, (string Kind, bool SelfPublishedBySubject)>(StringComparer.Ordinal);
-        var hasSelfPublishedBloodworkSource = false;
+        var sourcesById = new Dictionary<string, (string Kind, bool SubjectAuthorized)>(StringComparer.Ordinal);
+        var hasAuthorizedBloodworkSource = false;
         var preferredForDisplayCount = 0;
 
         foreach (var (sourceNode, index) in sources.Select((node, index) => (node, index)))
@@ -391,27 +434,11 @@ public static class AthleteProfilePolicy
             }
 
             _ = RequiredString(source["Title"], $"OpenData.Sources[{index}].Title", sourcePath);
-            var urlText = RequiredString(source["Url"], $"OpenData.Sources[{index}].Url", sourcePath);
-            if (!Uri.TryCreate(urlText, UriKind.Absolute, out var url) ||
-                !string.Equals(url.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
-            {
-                throw Invalid(sourcePath, $"OpenData.Sources[{index}].Url must be an absolute HTTPS URL.");
-            }
+            ValidateHttpsUrl(source["Url"], $"OpenData.Sources[{index}].Url", sourcePath);
 
             ValidateIsoDate(source["AccessedOn"], $"OpenData.Sources[{index}].AccessedOn", sourcePath);
 
-            var selfPublished = false;
-            if (source.TryGetPropertyValue("SelfPublishedBySubject", out var selfPublishedNode) &&
-                selfPublishedNode is not null)
-            {
-                if (selfPublishedNode is not JsonValue selfPublishedValue ||
-                    !selfPublishedValue.TryGetValue<bool>(out selfPublished))
-                {
-                    throw Invalid(
-                        sourcePath,
-                        $"OpenData.Sources[{index}].SelfPublishedBySubject must be a boolean when provided.");
-                }
-            }
+            var subjectAuthorized = ValidateSubjectAuthorization(source, index, sourcePath);
 
             if (source.TryGetPropertyValue("PreferredForDisplay", out var preferredNode))
             {
@@ -427,24 +454,26 @@ public static class AthleteProfilePolicy
                     preferredForDisplayCount++;
             }
 
-            sourcesById.Add(id, (kind, selfPublished));
-            hasSelfPublishedBloodworkSource |= kind == "Bloodwork" && selfPublished;
+            sourcesById.Add(id, (kind, subjectAuthorized));
+            hasAuthorizedBloodworkSource |= kind == "Bloodwork" && subjectAuthorized;
         }
 
         if (preferredForDisplayCount > 1)
             throw Invalid(sourcePath, "At most one OpenData source may have PreferredForDisplay=true.");
 
-        if (!hasSelfPublishedBloodworkSource)
+        if (!hasAuthorizedBloodworkSource)
         {
             throw Invalid(
                 sourcePath,
-                "OpenData.Sources must include an HTTPS Bloodwork source with SelfPublishedBySubject=true.");
+                "OpenData.Sources must include an HTTPS Bloodwork source that was self-published or explicitly authorized by the subject.");
         }
+
+        ValidateNotability(metadata, sourcesById, sourcePath);
 
         if (metadata["IdentitySourceIds"] is not JsonArray identitySourceIds || identitySourceIds.Count == 0)
             throw Invalid(sourcePath, "OpenData.IdentitySourceIds must contain at least one source Id.");
 
-        var identityReferencesSelfPublishedSource = false;
+        var identityReferencesAuthorizedSource = false;
         foreach (var (sourceIdNode, sourceIndex) in identitySourceIds.Select((node, sourceIndex) => (node, sourceIndex)))
         {
             var sourceId = RequiredString(
@@ -454,14 +483,14 @@ public static class AthleteProfilePolicy
             if (!sourcesById.TryGetValue(sourceId, out var sourcePolicy))
                 throw Invalid(sourcePath, $"OpenData.IdentitySourceIds references unknown source Id '{sourceId}'.");
 
-            identityReferencesSelfPublishedSource |= sourcePolicy.SelfPublishedBySubject;
+            identityReferencesAuthorizedSource |= sourcePolicy.SubjectAuthorized;
         }
 
-        if (!identityReferencesSelfPublishedSource)
+        if (!identityReferencesAuthorizedSource)
         {
             throw Invalid(
                 sourcePath,
-                "OpenData.IdentitySourceIds must reference at least one source published by the subject.");
+                "OpenData.IdentitySourceIds must reference at least one source self-published or explicitly authorized by the subject.");
         }
 
         if (metadata.TryGetPropertyValue("TranscriptionNotes", out var notesNode) && notesNode is not null)
@@ -492,6 +521,7 @@ public static class AthleteProfilePolicy
                 $"Biomarkers[{index}].Date",
                 sourcePath);
             ValidateOpenDataDatePrecision(biomarker, index, measurementDate, sourcePath);
+            ValidateOpenDataDateBasis(biomarker, index, sourcePath);
             var ageYears = ValidateRequiredBiomarkerNumber(
                 biomarker["AgeYears"],
                 $"Biomarkers[{index}].AgeYears",
@@ -535,7 +565,7 @@ public static class AthleteProfilePolicy
             if (biomarker["SourceIds"] is not JsonArray sourceIds || sourceIds.Count == 0)
                 throw Invalid(sourcePath, $"Biomarkers[{index}].SourceIds must contain at least one source Id.");
 
-            var referencesSelfPublishedBloodwork = false;
+            var referencesAuthorizedBloodwork = false;
             foreach (var (sourceIdNode, sourceIndex) in sourceIds.Select((node, sourceIndex) => (node, sourceIndex)))
             {
                 var sourceId = RequiredString(
@@ -545,18 +575,107 @@ public static class AthleteProfilePolicy
                 if (!sourcesById.TryGetValue(sourceId, out var sourcePolicy))
                     throw Invalid(sourcePath, $"Biomarkers[{index}] references unknown source Id '{sourceId}'.");
 
-                referencesSelfPublishedBloodwork |=
-                    sourcePolicy.Kind == "Bloodwork" && sourcePolicy.SelfPublishedBySubject;
+                referencesAuthorizedBloodwork |=
+                    sourcePolicy.Kind == "Bloodwork" && sourcePolicy.SubjectAuthorized;
             }
 
-            if (!referencesSelfPublishedBloodwork)
+            if (!referencesAuthorizedBloodwork)
             {
                 throw Invalid(
                     sourcePath,
-                    $"Biomarkers[{index}] must reference at least one Bloodwork source published by the subject.");
+                    $"Biomarkers[{index}] must reference at least one Bloodwork source self-published or explicitly authorized by the subject.");
             }
 
             ValidateMeasurementQualifiers(biomarker, index, sourcePath);
+        }
+    }
+
+    private static bool ValidateSubjectAuthorization(JsonObject source, int sourceIndex, string sourcePath)
+    {
+        if (!source.TryGetPropertyValue("SubjectAuthorization", out var authorizationNode) ||
+            authorizationNode is null)
+        {
+            return false;
+        }
+
+        if (authorizationNode is not JsonObject authorization)
+        {
+            throw Invalid(
+                sourcePath,
+                $"OpenData.Sources[{sourceIndex}].SubjectAuthorization must be an object when provided.");
+        }
+
+        var field = $"OpenData.Sources[{sourceIndex}].SubjectAuthorization";
+        ValidateAllowedProperties(
+            authorization,
+            OpenDataSubjectAuthorizationFieldSet,
+            field,
+            sourcePath);
+
+        var kind = RequiredString(authorization["Kind"], $"{field}.Kind", sourcePath);
+        if (kind == SelfPublishedAuthorizationKind)
+        {
+            if (authorization.ContainsKey("EvidenceUrl") || authorization.ContainsKey("EvidenceNote"))
+            {
+                throw Invalid(
+                    sourcePath,
+                    $"{field} must not include explicit-authorization evidence when Kind='{SelfPublishedAuthorizationKind}'.");
+            }
+
+            return true;
+        }
+
+        if (kind == ExplicitlyAuthorizedKind)
+        {
+            ValidateHttpsUrl(authorization["EvidenceUrl"], $"{field}.EvidenceUrl", sourcePath);
+            _ = RequiredString(authorization["EvidenceNote"], $"{field}.EvidenceNote", sourcePath);
+            return true;
+        }
+
+        throw Invalid(
+            sourcePath,
+            $"{field}.Kind must be '{SelfPublishedAuthorizationKind}' or '{ExplicitlyAuthorizedKind}'.");
+    }
+
+    private static void ValidateNotability(
+        JsonObject metadata,
+        IReadOnlyDictionary<string, (string Kind, bool SubjectAuthorized)> sourcesById,
+        string sourcePath)
+    {
+        if (metadata["Notability"] is not JsonObject notability)
+            throw Invalid(sourcePath, "OpenData.Notability must be an object.");
+
+        ValidateAllowedProperties(
+            notability,
+            OpenDataNotabilityFieldSet,
+            "OpenData.Notability",
+            sourcePath);
+
+        var summary = RequiredString(notability["Summary"], "OpenData.Notability.Summary", sourcePath);
+        if (summary.Length > 280)
+        {
+            throw Invalid(
+                sourcePath,
+                "OpenData.Notability.Summary must contain at most 280 characters for concise public display.");
+        }
+
+        if (notability["SourceIds"] is not JsonArray sourceIds || sourceIds.Count == 0)
+            throw Invalid(sourcePath, "OpenData.Notability.SourceIds must contain at least one source Id.");
+
+        foreach (var (sourceIdNode, index) in sourceIds.Select((node, index) => (node, index)))
+        {
+            var sourceId = RequiredString(
+                sourceIdNode,
+                $"OpenData.Notability.SourceIds[{index}]",
+                sourcePath);
+            if (!sourcesById.TryGetValue(sourceId, out var sourcePolicy))
+                throw Invalid(sourcePath, $"OpenData.Notability.SourceIds references unknown source Id '{sourceId}'.");
+            if (sourcePolicy.Kind != "Identity")
+            {
+                throw Invalid(
+                    sourcePath,
+                    $"OpenData.Notability.SourceIds must reference Identity sources; '{sourceId}' is '{sourcePolicy.Kind}'.");
+            }
         }
     }
 
@@ -720,6 +839,20 @@ public static class AthleteProfilePolicy
         }
     }
 
+    private static void ValidateOpenDataDateBasis(
+        JsonObject biomarker,
+        int biomarkerIndex,
+        string sourcePath)
+    {
+        if (!biomarker.TryGetPropertyValue("DateBasis", out var basisNode))
+            return;
+
+        var field = $"Biomarkers[{biomarkerIndex}].DateBasis";
+        var basis = RequiredString(basisNode, field, sourcePath);
+        if (basis is not ("Collection" or "Report"))
+            throw Invalid(sourcePath, $"{field} must be 'Collection' or 'Report'.");
+    }
+
     private static DateOnly ValidateIsoDate(JsonNode? node, string field, string sourcePath)
     {
         var value = RequiredString(node, field, sourcePath);
@@ -734,6 +867,16 @@ public static class AthleteProfilePolicy
         }
 
         return parsed;
+    }
+
+    private static void ValidateHttpsUrl(JsonNode? node, string field, string sourcePath)
+    {
+        var value = RequiredString(node, field, sourcePath);
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var url) ||
+            !string.Equals(url.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            throw Invalid(sourcePath, $"{field} must be an absolute HTTPS URL.");
+        }
     }
 
     private static double ValidateRequiredBiomarkerNumber(
@@ -768,7 +911,7 @@ public static class AthleteProfilePolicy
     {
         // Age at draw replaces an exact date of birth in OpenData records. More
         // precision could encode a reconstructable birth day when combined with
-        // the exact draw date, so the public value is intentionally limited to
+        // the exact source date, so the public value is intentionally limited to
         // hundredths of a year (roughly a multi-day window).
         var hundredths = value * 100;
         if (Math.Abs(hundredths - Math.Round(hundredths)) > 1e-8)

@@ -102,6 +102,7 @@ jobs:
 
             git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
             dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output"
+            mkdir -p "$publish_output/wwwroot/public-data-profiles"
 
             sudo systemctl stop longevityworldcup.service
             service_stopped=1
@@ -110,10 +111,13 @@ jobs:
               --exclude='/config.json.bak*' \
               --exclude='/AppData/***' \
               --exclude='/wwwroot/athletes/***' \
+              --exclude='/wwwroot/public-data-profiles/***' \
               --exclude='/wwwroot/generated/***' \
               "$publish_output"/ /var/www/LongevityWorldCup/publish/
             sudo rsync -a --checksum --delete --no-owner --no-group \
               "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
+            sudo rsync -a --checksum --delete --no-owner --no-group \
+              "$publish_output/wwwroot/public-data-profiles"/ /var/www/LongevityWorldCup/publish/wwwroot/public-data-profiles/
             sudo mkdir -p /var/www/LongevityWorldCup/publish/wwwroot/generated
             sudo chown -R www-data:www-data /var/www/LongevityWorldCup/publish/wwwroot/generated
             sudo find /var/www/LongevityWorldCup/publish/wwwroot/generated -type d -exec chmod 755 {} \;
