@@ -278,6 +278,36 @@ public sealed class LeaderboardProfileApiTests
         Assert.Equal("Healthy", health.RootElement.GetProperty("status").GetString());
     }
 
+    [Fact]
+    public async Task InvalidOpenDataAtStartup_WithholdsOnlyTheInvalidProfile()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 18, openDataCount: 2);
+        fixture.WriteInvalidOpenDataProfile(2);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.Equal(18, CountProfileType(combined, "Athlete"));
+        var retainedOpenData = combined.RootElement.EnumerateArray()
+            .Single(profile => profile.GetProperty("ProfileType").GetString() == "OpenData");
+        Assert.Equal("Open Data Profile", retainedOpenData.GetProperty("Name").GetString());
+    }
+
+    [Fact]
+    public async Task OpenDataAtStartup_WithholdsCollisionsAndExcessWithoutDroppingValidProfiles()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 2);
+        fixture.UpdateOfficialAthleteName(1, "Open Data Profile");
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.Equal(9, CountProfileType(combined, "Athlete"));
+        var retainedOpenData = combined.RootElement.EnumerateArray()
+            .Single(profile => profile.GetProperty("ProfileType").GetString() == "OpenData");
+        Assert.Equal("Open Data Profile 2", retainedOpenData.GetProperty("Name").GetString());
+    }
+
     [Theory]
     [InlineData("proof_1.txt")]
     [InlineData("open-data-profile.png")]
@@ -372,6 +402,32 @@ public sealed class LeaderboardProfileApiTests
         Assert.True(
             Volatile.Read(ref athleteChangeNotifications) == 0,
             "OpenData reload raised AthletesChanged:" + Environment.NewLine + string.Join(Environment.NewLine, notificationStacks));
+    }
+
+    [Fact]
+    public async Task OpenDataReload_UsesOfficialDiskIdentitiesBeforeTheOfficialWatcherPublishesThem()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var profiles = factory.Services.GetRequiredService<AthleteDataService>();
+        var officialWatcher = GetProfileWatcher(profiles, officialRoot: true);
+        var openDataWatcher = GetProfileWatcher(profiles, officialRoot: false);
+        officialWatcher.EnableRaisingEvents = false;
+        openDataWatcher.EnableRaisingEvents = false;
+
+        fixture.UpdateOfficialAthleteName(1, "Open Data Profile");
+        await profiles.OnOpenDataSourceChangedAsync();
+
+        using var athletes = await ReadJsonAsync(client, "/api/data/athletes");
+        Assert.Contains(
+            athletes.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("Name").GetString() == "Athlete 1");
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.DoesNotContain(
+            combined.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("ProfileType").GetString() == "OpenData");
     }
 
     [Fact]
