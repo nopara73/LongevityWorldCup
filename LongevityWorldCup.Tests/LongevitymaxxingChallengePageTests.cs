@@ -950,27 +950,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-practice-note", css);
     }
 
-    private static string ReadFrontendSource(
-        [System.Runtime.CompilerServices.CallerFilePath] string sourceFilePath = "")
-    {
-        var current = new DirectoryInfo(Path.GetDirectoryName(sourceFilePath) ?? AppContext.BaseDirectory);
-        while (current is not null)
-        {
-            var candidate = Path.Combine(
-                current.FullName,
-                "LongevityWorldCup.Website",
-                "Frontend",
-                "longevitymaxxing.ts");
-            if (File.Exists(candidate))
-            {
-                return File.ReadAllText(candidate);
-            }
-
-            current = current.Parent;
-        }
-
-        throw new FileNotFoundException("Could not find the Longevitymaxxing TypeScript source.");
-    }
+    private static string ReadFrontendSource() =>
+        FrontendSourceTestHelper.ReadFrontendSource("longevitymaxxing.ts");
 
     private static WebApplicationFactory<Program> CreateFactory(Config? config = null)
     {

@@ -41,15 +41,13 @@ jobs:
       run: npm ci --ignore-scripts --no-audit --no-fund
     - name: Type-check and build frontend
       working-directory: LongevityWorldCup.Website
-      run: |
-        npm run check
-        npm run build
-    - name: Verify generated frontend assets
+      run: npm run build
+    - name: Verify generated frontend assets stay untracked
       shell: bash
       run: |
-        changes="$(git status --porcelain --untracked-files=all -- LongevityWorldCup.Website/wwwroot/js)"
-        if [[ -n "$changes" ]]; then
-          echo "$changes"
+        tracked="$(git ls-files -- 'LongevityWorldCup.Website/wwwroot/js')"
+        if [[ -n "$tracked" ]]; then
+          echo "$tracked"
           exit 1
         fi
     - name: Restore dependencies with NuGet audit
@@ -60,7 +58,21 @@ jobs:
         -p:NuGetAuditLevel=low
         -p:WarningsAsErrors=NU1900%3BNU1901%3BNU1902%3BNU1903%3BNU1904%3BNU1905
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore -p:BuildFrontend=false
+    - name: Verify Node-free publish contract
+      shell: bash
+      run: |
+        publish_output="$RUNNER_TEMP/longevityworldcup-publish"
+        dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj \
+          --configuration Release \
+          --no-restore \
+          --output "$publish_output" \
+          -p:BuildFrontend=false
+        source_scripts="$(find LongevityWorldCup.Website/wwwroot/js -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort)"
+        published_scripts="$(find "$publish_output/wwwroot/js" -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort)"
+        test -n "$source_scripts"
+        test "$source_scripts" = "$published_scripts"
+        test -z "$(find "$publish_output" -type f -name '*.ts' -print -quit)"
     - name: Install Playwright Chromium
       run: pwsh LongevityWorldCup.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
     - name: Test with coverage

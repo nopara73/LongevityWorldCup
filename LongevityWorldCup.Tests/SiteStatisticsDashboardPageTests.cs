@@ -1,5 +1,6 @@
 using Xunit;
 using System.Runtime.CompilerServices;
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 
 namespace LongevityWorldCup.Tests;
 
@@ -84,7 +85,7 @@ public sealed class SiteStatisticsDashboardPageTests
     {
         var repoRoot = FindRepoRoot();
         var menu = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "play", "menu.html"));
-        var tracker = ReadFrontendSource(repoRoot, "site-statistics-tracking.ts");
+        var tracker = ReadFrontendSource("site-statistics-tracking.ts");
 
         Assert.Contains("id=\"joinStartAmateurBtn\"", menu);
         Assert.Contains("id=\"joinGoProButton\"", menu);
@@ -118,11 +119,10 @@ public sealed class SiteStatisticsDashboardPageTests
     [Fact]
     public void SiteStatisticsTracker_EmitsDashboardDefinedPublicAndChallengeEvents()
     {
-        var repoRoot = FindRepoRoot();
-        var tracker = ReadFrontendSource(repoRoot, "site-statistics-tracking.ts");
-        var dashboard = ReadFrontendSource(repoRoot, "site-statistics.ts");
-        var rankPreview = ReadFrontendSource(repoRoot, "bioage-rank-preview.ts");
-        var proofHelpers = ReadFrontendSource(repoRoot, "proof-helpers.ts");
+        var tracker = ReadFrontendSource("site-statistics-tracking.ts");
+        var dashboard = ReadFrontendSource("site-statistics.ts");
+        var rankPreview = ReadFrontendSource("bioage-rank-preview.ts");
+        var proofHelpers = ReadFrontendSource("proof-helpers.ts");
 
         var expectedDashboardEvents = new[]
         {
@@ -166,8 +166,7 @@ public sealed class SiteStatisticsDashboardPageTests
     [Fact]
     public void SiteStatisticsTracker_RecordsPrefilledCalculatorProgress()
     {
-        var repoRoot = FindRepoRoot();
-        var tracker = ReadFrontendSource(repoRoot, "site-statistics-tracking.ts");
+        var tracker = ReadFrontendSource("site-statistics-tracking.ts");
 
         Assert.Contains("function fieldHasRequiredValue(el: RequiredCalculatorControl): boolean", tracker);
         Assert.Contains("function recordFieldCompletion(el: RequiredCalculatorControl, source: string): boolean", tracker);
@@ -184,8 +183,7 @@ public sealed class SiteStatisticsDashboardPageTests
     [Fact]
     public void SiteStatisticsDashboard_SurfacesCalculatorCompletionSources()
     {
-        var repoRoot = FindRepoRoot();
-        var dashboard = ReadFrontendSource(repoRoot, "site-statistics.ts");
+        var dashboard = ReadFrontendSource("site-statistics.ts");
 
         Assert.Contains("Calculator completion sources", dashboard);
         Assert.Contains("function calculatorCompletionSourceTable(events: DashboardEvent[]): string", dashboard);
@@ -203,9 +201,8 @@ public sealed class SiteStatisticsDashboardPageTests
     [Fact]
     public void SiteStatisticsTracker_DoesNotFlagValidApplicationEntryPagesAsMissingHandoff()
     {
-        var repoRoot = FindRepoRoot();
-        var tracker = ReadFrontendSource(repoRoot, "site-statistics-tracking.ts");
-        var dashboard = ReadFrontendSource(repoRoot, "site-statistics.ts");
+        var tracker = ReadFrontendSource("site-statistics-tracking.ts");
+        var dashboard = ReadFrontendSource("site-statistics.ts");
 
         var pageViewTrackingStart = tracker.IndexOf("function setupPageViews()", StringComparison.Ordinal);
         Assert.True(pageViewTrackingStart >= 0);
@@ -235,8 +232,7 @@ public sealed class SiteStatisticsDashboardPageTests
     [Fact]
     public void SiteStatisticsDashboard_SurfacesTrafficOverview()
     {
-        var repoRoot = FindRepoRoot();
-        var dashboard = ReadFrontendSource(repoRoot, "site-statistics.ts");
+        var dashboard = ReadFrontendSource("site-statistics.ts");
 
         Assert.Contains("\"Traffic Overview\"", dashboard);
         Assert.Contains("\"Onboarding Diagnostics\"", dashboard);
@@ -274,11 +270,6 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("function trafficPageTable(rows: TrafficPage[]): string", dashboard);
         Assert.Contains("function normalizeTrafficSummary(summary: RawTrafficSummary | null | undefined): TrafficSummary", dashboard);
         Assert.Contains("function normalizeTrafficQuality(quality: RawTrafficQuality | null | undefined): TrafficQuality", dashboard);
-    }
-
-    private static string ReadFrontendSource(string repoRoot, string fileName)
-    {
-        return File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "Frontend", fileName));
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

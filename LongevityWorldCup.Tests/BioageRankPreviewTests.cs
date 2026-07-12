@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -64,25 +64,4 @@ public sealed class BioageRankPreviewTests
         Assert.Contains("calculateBortzAge.call(clock, ageAtEntry, values)", source);
     }
 
-    private static async Task<string> GetFrontendTypeScriptAsync(
-        HttpClient client,
-        string fileName,
-        [CallerFilePath] string sourceFilePath = "")
-    {
-        _ = await client.GetStringAsync($"/js/{Path.ChangeExtension(fileName, ".js")}");
-
-        var current = new DirectoryInfo(Path.GetDirectoryName(sourceFilePath) ?? AppContext.BaseDirectory);
-        while (current is not null)
-        {
-            var path = Path.Combine(current.FullName, "LongevityWorldCup.Website", "Frontend", fileName);
-            if (File.Exists(path))
-            {
-                return await File.ReadAllTextAsync(path);
-            }
-
-            current = current.Parent;
-        }
-
-        throw new DirectoryNotFoundException($"Could not find {fileName} from {sourceFilePath}.");
-    }
 }

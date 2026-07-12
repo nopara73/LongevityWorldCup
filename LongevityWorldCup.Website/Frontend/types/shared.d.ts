@@ -166,6 +166,46 @@ interface HypotheticalRankResult {
     readonly nearby?: readonly HypotheticalRankNearbyItem[];
 }
 
+interface LwcSiteStatisticsMetadata {
+    athleteSlug?: string;
+    league?: string;
+    targetKind?: string;
+    eventType?: string;
+    highlightSelection?: string;
+    primarySlug?: string;
+    progressBucket?: string;
+    completionSource?: string;
+    ageReductionBucket?: string;
+    fileCountBucket?: string;
+    fileTypeBucket?: string;
+    fileSizeBucket?: string;
+    sourceControl?: string;
+    track?: string;
+    identityMode?: string;
+    pledgeBucket?: string;
+    checkinKind?: string;
+    commitmentState?: string;
+    clock?: "bortz" | "pheno";
+}
+
+interface LwcSiteStatisticsTrackOptions {
+    flow?: string;
+    component?: string;
+    step?: string;
+    outcome?: string;
+    errorCode?: string | null;
+    durationMs?: number;
+    metadata?: LwcSiteStatisticsMetadata;
+}
+
+interface LwcSiteStatisticsApi {
+    track(eventName: string | null, options?: LwcSiteStatisticsTrackOptions): void;
+    amountBucket(raw: unknown): string;
+    fileSizeBucket(file: File | null | undefined): string;
+    fileTypeBucket(file: File | null | undefined): string;
+    countBucket(count: number): string;
+}
+
 interface LwcFlowActionDockApi {
     refresh?: (() => void) | undefined;
 }
@@ -346,6 +386,7 @@ interface Window {
         error: unknown
     ): void;
     __hypotheticalRankRequestSequence?: number;
+    LwcSiteStats?: LwcSiteStatisticsApi;
     updateHypotheticalRankResult(options: HypotheticalRankOptions): Promise<void>;
     renderHypotheticalRankResult(container: HTMLElement, result: unknown): void;
     Chart?: RadarChartConstructor;

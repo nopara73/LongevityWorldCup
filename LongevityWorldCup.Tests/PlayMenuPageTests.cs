@@ -1,3 +1,4 @@
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -326,14 +327,4 @@ public sealed class PlayMenuPageTests
         Assert.Contains("pro-discount-breakdown--with-badges", flow);
     }
 
-    private static string ReadFrontendSource(
-        string fileName,
-        [System.Runtime.CompilerServices.CallerFilePath] string testFilePath = "")
-    {
-        var testsDirectory = Path.GetDirectoryName(testFilePath)
-            ?? throw new InvalidOperationException("Could not locate the test source directory.");
-        var repoRoot = Directory.GetParent(testsDirectory)?.FullName
-            ?? throw new InvalidOperationException("Could not locate the repository root.");
-        return File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "Frontend", fileName));
-    }
 }
