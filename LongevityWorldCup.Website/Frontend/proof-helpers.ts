@@ -3,20 +3,14 @@ interface ProofUploadSetupOptions {
     cameraInput?: HTMLInputElement | null;
 }
 
-interface ProofUploadStats {
-    track: (eventName: string, payload: {
-        component: string;
-        outcome: string;
-        errorCode: string;
-        metadata: {
-            fileCountBucket: string;
-            fileTypeBucket: string;
-            fileSizeBucket: string;
-        };
-    }) => void;
-    countBucket?: (count: number) => string;
-    fileTypeBucket?: (file: File | null) => string;
-    fileSizeBucket?: (file: File | null) => string;
+interface ProofFileRejectedTrackOptions {
+    component: string;
+    outcome: string;
+    errorCode: string;
+    metadata: Required<Pick<
+        LwcSiteStatisticsMetadata,
+        "fileCountBucket" | "fileTypeBucket" | "fileSizeBucket"
+    >>;
 }
 
 interface PdfViewport {
@@ -63,7 +57,6 @@ interface ProofHelpersWindowApi {
 
 declare global {
     interface Window extends ProofHelpersWindowApi {
-        LwcSiteStats?: ProofUploadStats;
         pdfjsLib?: PdfJsLibrary;
         __lwcPdfJsReady?: Promise<PdfJsLibrary> | null;
         customAlert: (message: string) => Promise<unknown>;
@@ -251,7 +244,7 @@ function trackProofFileRejected(
             fileTypeBucket: typeof stats.fileTypeBucket === 'function' ? stats.fileTypeBucket(first) : 'unknown',
             fileSizeBucket: typeof stats.fileSizeBucket === 'function' ? stats.fileSizeBucket(first) : 'unknown'
         }
-    });
+    } satisfies ProofFileRejectedTrackOptions);
 }
 
 window.setupProofUploadHTML = function (

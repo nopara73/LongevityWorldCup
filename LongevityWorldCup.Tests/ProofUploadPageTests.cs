@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -645,28 +644,6 @@ public sealed class ProofUploadPageTests
         Assert.DoesNotContain("localStorage.removeItem(", successBody);
     }
 
-    private static async Task<string> GetProofHelpersTypeScriptAsync(
-        HttpClient client,
-        [CallerFilePath] string sourceFilePath = "")
-    {
-        _ = await client.GetStringAsync("/js/proof-helpers.js");
-
-        var current = new DirectoryInfo(Path.GetDirectoryName(sourceFilePath) ?? AppContext.BaseDirectory);
-        while (current is not null)
-        {
-            var sourcePath = Path.Combine(
-                current.FullName,
-                "LongevityWorldCup.Website",
-                "Frontend",
-                "proof-helpers.ts");
-            if (File.Exists(sourcePath))
-            {
-                return await File.ReadAllTextAsync(sourcePath);
-            }
-
-            current = current.Parent;
-        }
-
-        throw new DirectoryNotFoundException($"Could not find proof-helpers.ts from {sourceFilePath}.");
-    }
+    private static Task<string> GetProofHelpersTypeScriptAsync(HttpClient client) =>
+        FrontendSourceTestHelper.GetFrontendTypeScriptAsync(client, "proof-helpers.ts");
 }

@@ -3,12 +3,44 @@
 ## SSH
 
 ### In a Hurry
-Use the **Auto Deploy on Master** GitHub Actions workflow. For SSH deploys, use the step-by-step flow below instead of a hand-rolled one-liner; it intentionally publishes from a temporary source tree, verifies public HTTP, and checks that the server checkout stays clean.
+Use the **Auto Deploy on Master** GitHub Actions workflow. It builds the frontend on the runner and transfers that exact artifact to the Node-free production host. For an emergency manual deploy, prepare and stage the artifact first, then use the server flow below instead of a hand-rolled one-liner.
+
+### Prepare a Manual Frontend Artifact
+
+Run this from a trusted workstation with the repository's pinned Node and npm versions. Build the exact commit that will be deployed:
+
+```sh
+git fetch origin master
+git switch --detach origin/master
+verified_sha="$(git rev-parse HEAD)"
+
+cd LongevityWorldCup.Website
+npm ci --ignore-scripts --no-audit --no-fund
+npm run build
+cd ..
+
+artifact_dir=".artifacts/frontend-${verified_sha}"
+mkdir -p "$artifact_dir"
+tar -czf "$artifact_dir/frontend-assets.tar.gz" -C LongevityWorldCup.Website/wwwroot js
+(
+  cd "$artifact_dir"
+  sha256sum frontend-assets.tar.gz > frontend-assets.tar.gz.sha256
+)
+
+ssh lwc-server "rm -rf /tmp/longevityworldcup-frontend-${verified_sha} && mkdir -p /tmp/longevityworldcup-frontend-${verified_sha}"
+scp "$artifact_dir/frontend-assets.tar.gz" "$artifact_dir/frontend-assets.tar.gz.sha256" \
+  "lwc-server:/tmp/longevityworldcup-frontend-${verified_sha}/"
+printf 'Deploy commit: %s\n' "$verified_sha"
+```
+
+Use the printed commit for `verified_sha` in the server commands. Do not combine an artifact from one commit with another checkout.
 
 ### Step By Step
 ```sh
 sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
 
+verified_sha="<exact commit printed while preparing the artifact>"
+frontend_stage="/tmp/longevityworldcup-frontend-${verified_sha}"
 deploy_source="$(mktemp -d)"
 publish_output="$(mktemp -d)"
 service_stopped=0
@@ -16,14 +48,22 @@ cleanup() {
   if [ "$service_stopped" -eq 1 ]; then
     sudo systemctl start longevityworldcup.service || true
   fi
-  rm -rf "$deploy_source" "$publish_output"
+  rm -rf "$frontend_stage" "$deploy_source" "$publish_output"
 }
 trap cleanup EXIT
 
+test -f "$frontend_stage/frontend-assets.tar.gz"
+test -f "$frontend_stage/frontend-assets.tar.gz.sha256"
+(
+  cd "$frontend_stage"
+  sha256sum --check frontend-assets.tar.gz.sha256
+)
+
 cd ~/LongevityWorldCup
 git fetch origin master
-git reset --hard origin/master
+git reset --hard "$verified_sha"
 git clean -fd
+test "$(git rev-parse HEAD)" = "$verified_sha"
 
 dotnet_version="$(dotnet --version)"
 dotnet_major="${dotnet_version%%.*}"
@@ -33,8 +73,16 @@ if [ "$dotnet_major" != "10" ]; then
 fi
 
 git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
+tar -xzf "$frontend_stage/frontend-assets.tar.gz" \
+  --no-same-owner \
+  --no-same-permissions \
+  -C "$deploy_source/LongevityWorldCup.Website/wwwroot"
 
 dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output" -p:BuildFrontend=false
+source_scripts="$(find "$deploy_source/LongevityWorldCup.Website/wwwroot/js" -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort)"
+published_scripts="$(find "$publish_output/wwwroot/js" -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort)"
+test -n "$source_scripts"
+test "$source_scripts" = "$published_scripts"
 
 sudo systemctl stop longevityworldcup.service
 service_stopped=1
@@ -44,9 +92,12 @@ sudo rsync -a --checksum --no-owner --no-group \
   --exclude='/AppData/***' \
   --exclude='/wwwroot/athletes/***' \
   --exclude='/wwwroot/generated/***' \
+  --exclude='/wwwroot/js/***' \
   "$publish_output"/ /var/www/LongevityWorldCup/publish/
 sudo rsync -a --checksum --delete --no-owner --no-group \
   "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
+sudo rsync -a --checksum --delete --no-owner --no-group \
+  "$publish_output/wwwroot/js"/ /var/www/LongevityWorldCup/publish/wwwroot/js/
 sudo mkdir -p /var/www/LongevityWorldCup/publish/wwwroot/generated
 sudo chown -R www-data:www-data /var/www/LongevityWorldCup/publish/wwwroot/generated
 sudo find /var/www/LongevityWorldCup/publish/wwwroot/generated -type d -exec chmod 755 {} \;
@@ -73,6 +124,12 @@ done
 grep -q '"status":"Healthy"' "$health_body"
 rm -f "$health_body"
 
+for script_path in "$publish_output"/wwwroot/js/*.js; do
+  curl -fsS --max-time 10 \
+    "https://www.longevityworldcup.com/js/$(basename "$script_path")?v=$verified_sha" \
+    -o /dev/null
+done
+
 git status --short
 
 sudo systemctl status longevityworldcup.service
@@ -80,7 +137,9 @@ sudo systemctl status longevityworldcup.service
 
 Publish from the temporary source, not from `~/LongevityWorldCup`. The website build regenerates documentation HTML during publish, and publishing from the checkout can dirty tracked files and break the next pull or deploy.
 
-The production host intentionally does not need Node.js. TypeScript is compiled during normal development and CI builds, and the generated `wwwroot/js` files are committed. The automatic deploy runner rebuilds and verifies those assets before opening the SSH session; production publish then passes `BuildFrontend=false` and consumes the verified JavaScript. Before using the manual SSH flow above, confirm that CI verified the commit and its generated assets.
+The production host intentionally does not need Node.js. Generated `wwwroot/js` files are ignored rather than committed. The automatic deploy runner builds and verifies them, packages an exact-commit artifact, checks its checksum after transfer, and injects it into the temporary source before publishing with `BuildFrontend=false`.
+
+Configure the repository's `SSH_FINGERPRINT` Actions secret with the production host-key fingerprint to enforce host verification for both artifact transfer and remote deployment. The workflow remains compatible with the existing secret set when it is absent, but then host identity is not pinned.
 
 The temporary source is copied with `rsync -a` from tracked Git files instead of `git archive` so unchanged athlete media keeps its original modification time. Startup uses those timestamps to decide whether profile thumbnails are stale; resetting every athlete image timestamp can force hundreds of thumbnail regenerations before Kestrel starts listening.
 
@@ -90,7 +149,7 @@ The final sync preserves production-owned runtime paths:
 - `AppData/`
 - `wwwroot/generated/`
 
-Deletion is scoped to `wwwroot/athletes/` so removed athlete proofs disappear from production without turning this deploy into a broad cleanup of old unrelated server files.
+Deletion is scoped to `wwwroot/athletes/` and the generated-only `wwwroot/js/` directory. Removed athlete proofs and obsolete scripts disappear from production without turning the deploy into a broad cleanup of unrelated server files.
 
 Social API token refreshes first try to persist updated token state in `config.json`. If the service account can read but not write that file, the app writes the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json` instead. On startup, that sidecar is applied only when it is newer than `config.json`, so a fresh manual edit to `config.json` takes precedence. Delete or update the sidecar when intentionally resetting social tokens.
 

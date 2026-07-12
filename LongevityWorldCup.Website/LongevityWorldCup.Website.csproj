@@ -72,7 +72,7 @@
       <ExpectedFrontendAsset Include="@(TypeScriptSource->'$(MSBuildProjectDirectory)/wwwroot/js/%(Filename).js')" />
     </ItemGroup>
     <Error Condition="!Exists('%(ExpectedFrontendAsset.Identity)')"
-           Text="Generated frontend asset %(ExpectedFrontendAsset.Filename).js is missing. Run npm run build in LongevityWorldCup.Website before building with BuildFrontend=false." />
+           Text="Generated frontend asset %(ExpectedFrontendAsset.Filename).js is missing. Run npm run build or inject the verified frontend artifact before building with BuildFrontend=false." />
   </Target>
 
 </Project>

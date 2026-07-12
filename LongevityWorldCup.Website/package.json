@@ -7,7 +7,7 @@
     "npm": ">=11 <12"
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json && npm run verify:outputs",
+    "build": "node -e \"require('node:fs').rmSync('wwwroot/js',{recursive:true,force:true})\" && tsc --project tsconfig.json && npm run verify:outputs",
     "check": "tsc --project tsconfig.json --noEmit",
     "verify:outputs": "node Scripts/verify-frontend-outputs.mjs"
   },

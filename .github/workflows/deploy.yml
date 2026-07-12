@@ -74,30 +74,52 @@ jobs:
           cache: npm
           cache-dependency-path: LongevityWorldCup.Website/package-lock.json
 
-      - name: Verify generated frontend assets
+      - name: Build frontend artifact
         if: steps.freshness.outputs.deploy == 'true'
         working-directory: LongevityWorldCup.Website
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
-          npm run check
           npm run build
-          changes="$(git status --porcelain --untracked-files=all -- wwwroot/js)"
-          if [[ -n "$changes" ]]; then
-            echo "$changes"
+          tracked="$(git ls-files -- 'wwwroot/js')"
+          if [[ -n "$tracked" ]]; then
+            echo "$tracked"
             exit 1
           fi
 
-      - name: Deploy via SSH
+      - name: Package frontend artifact
         if: steps.freshness.outputs.deploy == 'true'
-        uses: appleboy/ssh-action@v1.2.5
+        run: |
+          tar -czf frontend-assets.tar.gz -C LongevityWorldCup.Website/wwwroot js
+          sha256sum frontend-assets.tar.gz > frontend-assets.tar.gz.sha256
+
+      - name: Stage frontend artifact
+        if: steps.freshness.outputs.deploy == 'true'
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
+          port: 22
+          source: "frontend-assets.tar.gz,frontend-assets.tar.gz.sha256"
+          target: "/tmp/longevityworldcup-frontend"
+          rm: true
+          command_timeout: 2m
+
+      - name: Deploy via SSH
+        if: steps.freshness.outputs.deploy == 'true'
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
           port: 22
           command_timeout: 30m
           script: |
             set -eu
+            verified_sha="${{ github.sha }}"
+            frontend_stage="/tmp/longevityworldcup-frontend"
             deploy_source="$(mktemp -d)"
             publish_output="$(mktemp -d)"
             service_stopped=0
@@ -105,15 +127,22 @@ jobs:
               if [ "$service_stopped" -eq 1 ]; then
                 sudo systemctl start longevityworldcup.service || true
               fi
-              rm -rf "$deploy_source" "$publish_output"
+              rm -rf "$frontend_stage" "$deploy_source" "$publish_output"
             }
             trap cleanup EXIT
 
+            test -f "$frontend_stage/frontend-assets.tar.gz"
+            test -f "$frontend_stage/frontend-assets.tar.gz.sha256"
+            (
+              cd "$frontend_stage"
+              sha256sum --check frontend-assets.tar.gz.sha256
+            )
+
             cd ~/LongevityWorldCup
-            verified_sha="${{ github.sha }}"
             git fetch origin master
             git reset --hard "$verified_sha"
             git clean -fd
+            test "$(git rev-parse HEAD)" = "$verified_sha"
 
             dotnet_version="$(dotnet --version)"
             dotnet_major="${dotnet_version%%.*}"
@@ -123,7 +152,18 @@ jobs:
             fi
 
             git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
+            tar -xzf "$frontend_stage/frontend-assets.tar.gz" \
+              --no-same-owner \
+              --no-same-permissions \
+              -C "$deploy_source/LongevityWorldCup.Website/wwwroot"
             dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output" -p:BuildFrontend=false
+            source_scripts="$(find "$deploy_source/LongevityWorldCup.Website/wwwroot/js" -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort)"
+            published_scripts="$(find "$publish_output/wwwroot/js" -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort)"
+            test -n "$source_scripts"
+            if [ "$source_scripts" != "$published_scripts" ]; then
+              echo "Published frontend assets do not match the verified artifact."
+              exit 1
+            fi
 
             sudo systemctl stop longevityworldcup.service
             service_stopped=1
@@ -133,9 +173,12 @@ jobs:
               --exclude='/AppData/***' \
               --exclude='/wwwroot/athletes/***' \
               --exclude='/wwwroot/generated/***' \
+              --exclude='/wwwroot/js/***' \
               "$publish_output"/ /var/www/LongevityWorldCup/publish/
             sudo rsync -a --checksum --delete --no-owner --no-group \
               "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
+            sudo rsync -a --checksum --delete --no-owner --no-group \
+              "$publish_output/wwwroot/js"/ /var/www/LongevityWorldCup/publish/wwwroot/js/
             sudo mkdir -p /var/www/LongevityWorldCup/publish/wwwroot/generated
             sudo chown -R www-data:www-data /var/www/LongevityWorldCup/publish/wwwroot/generated
             sudo find /var/www/LongevityWorldCup/publish/wwwroot/generated -type d -exec chmod 755 {} \;
@@ -165,6 +208,12 @@ jobs:
               exit 1
             fi
             rm -f "$health_body"
+
+            for script_path in "$publish_output"/wwwroot/js/*.js; do
+              curl -fsS --max-time 10 \
+                "https://www.longevityworldcup.com/js/$(basename "$script_path")?v=$verified_sha" \
+                -o /dev/null
+            done
 
             if [ -n "$(git status --short)" ]; then
               echo "Server checkout was dirtied during deploy."

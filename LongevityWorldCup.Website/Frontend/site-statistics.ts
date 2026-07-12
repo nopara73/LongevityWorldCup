@@ -140,45 +140,14 @@
         browsers?: RawTrafficBreakdown[] | null;
     }
 
-    interface RawTrafficTotals {
-        sessions?: unknown;
-        pageViews?: unknown;
-        events?: unknown;
-    }
-
-    interface RawTrafficQuality {
-        rawSessions?: unknown;
-        cleanSessions?: unknown;
-        noisySessions?: unknown;
-        topSessionEvents?: unknown;
-        topSessionShare?: unknown;
-        repeatedPageViewSessions?: unknown;
-        pageViewDominantSessions?: unknown;
-        noisyPageViews?: unknown;
-        noisyPageViewShare?: unknown;
-    }
-
-    interface RawTrafficDailyPoint {
-        day?: string | null;
-        sessions?: unknown;
-        pageViews?: unknown;
-        events?: unknown;
-        successSessions?: unknown;
-        successActions?: unknown;
-    }
-
-    interface RawTrafficPage {
-        route?: string | null;
-        sessions?: unknown;
-        pageViews?: unknown;
-    }
-
-    interface RawTrafficBreakdown {
-        label?: string | null;
-        sessions?: unknown;
-        pageViews?: unknown;
-        events?: unknown;
-    }
+    type RawTrafficRecord<T, TextKey extends keyof T = never> =
+        { [Key in Exclude<keyof T, TextKey>]?: unknown }
+        & { [Key in TextKey]?: string | null };
+    type RawTrafficTotals = RawTrafficRecord<TrafficTotals>;
+    type RawTrafficQuality = RawTrafficRecord<TrafficQuality>;
+    type RawTrafficDailyPoint = RawTrafficRecord<TrafficDailyPoint, "day">;
+    type RawTrafficPage = RawTrafficRecord<TrafficPage, "route">;
+    type RawTrafficBreakdown = RawTrafficRecord<TrafficBreakdown, "label">;
 
     interface DashboardPayload {
         generatedAtUtc?: string | null;
@@ -310,47 +279,32 @@
         selectedLabel: "all events"
     };
 
+    function calculatorFunnel(selectionLabel: string): FunnelDefinition[] {
+        return [
+            ["onboarding_entry_viewed", "Join page viewed"],
+            ["onboarding_clock_selected", selectionLabel],
+            ["onboarding_biomarker_requirements_opened", "Biomarkers inspected"],
+            ["onboarding_page_viewed", "Page viewed"],
+            ["calculator_form_visible", "Form visible"],
+            ["calculator_started", "Calculator started"],
+            ["calculator_field_touched", "First field touched"],
+            ["calculator_field_completed", "Field completed"],
+            ["calculator_required_progress_changed", "Required progress"],
+            ["calculator_all_required_fields_completed", "All fields completed"],
+            ["calculator_validation_failed", "Validation failed"],
+            ["calculator_result_generated", "Result generated"],
+            ["rank_preview_requested", "Rank preview requested"],
+            ["rank_preview_rendered", "Rank preview rendered"],
+            ["calculator_continue_clicked", "Continue clicked"],
+            ["payment_offer_stored", "Payment offer stored"],
+            ["biomarker_handoff_stored", "Biomarker handoff stored"],
+            ["proof_flow_opened", "Proof/profile opened"]
+        ];
+    }
+
     const funnelDefs: Record<FunnelFlow, FunnelDefinition[]> = {
-        pheno: [
-            ["onboarding_entry_viewed", "Join page viewed"],
-            ["onboarding_clock_selected", "Amateur selected"],
-            ["onboarding_biomarker_requirements_opened", "Biomarkers inspected"],
-            ["onboarding_page_viewed", "Page viewed"],
-            ["calculator_form_visible", "Form visible"],
-            ["calculator_started", "Calculator started"],
-            ["calculator_field_touched", "First field touched"],
-            ["calculator_field_completed", "Field completed"],
-            ["calculator_required_progress_changed", "Required progress"],
-            ["calculator_all_required_fields_completed", "All fields completed"],
-            ["calculator_validation_failed", "Validation failed"],
-            ["calculator_result_generated", "Result generated"],
-            ["rank_preview_requested", "Rank preview requested"],
-            ["rank_preview_rendered", "Rank preview rendered"],
-            ["calculator_continue_clicked", "Continue clicked"],
-            ["payment_offer_stored", "Payment offer stored"],
-            ["biomarker_handoff_stored", "Biomarker handoff stored"],
-            ["proof_flow_opened", "Proof/profile opened"]
-        ],
-        bortz: [
-            ["onboarding_entry_viewed", "Join page viewed"],
-            ["onboarding_clock_selected", "Pro selected"],
-            ["onboarding_biomarker_requirements_opened", "Biomarkers inspected"],
-            ["onboarding_page_viewed", "Page viewed"],
-            ["calculator_form_visible", "Form visible"],
-            ["calculator_started", "Calculator started"],
-            ["calculator_field_touched", "First field touched"],
-            ["calculator_field_completed", "Field completed"],
-            ["calculator_required_progress_changed", "Required progress"],
-            ["calculator_all_required_fields_completed", "All fields completed"],
-            ["calculator_validation_failed", "Validation failed"],
-            ["calculator_result_generated", "Result generated"],
-            ["rank_preview_requested", "Rank preview requested"],
-            ["rank_preview_rendered", "Rank preview rendered"],
-            ["calculator_continue_clicked", "Continue clicked"],
-            ["payment_offer_stored", "Payment offer stored"],
-            ["biomarker_handoff_stored", "Biomarker handoff stored"],
-            ["proof_flow_opened", "Proof/profile opened"]
-        ],
+        pheno: calculatorFunnel("Amateur selected"),
+        bortz: calculatorFunnel("Pro selected"),
         application: [
             ["proof_flow_opened", "Application/proof opened"],
             ["biomarker_handoff_found", "Handoff found"],

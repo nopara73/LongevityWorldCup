@@ -11,6 +11,13 @@ interface BioageRankPreviewApi {
     clear: (targetId: string) => void;
 }
 
+interface RankPreviewTrackOptions {
+    component: string;
+    step: string;
+    outcome: string;
+    metadata: { clock: BioageRankClock };
+}
+
 declare global {
     interface Window {
         LwcBioAgeRankPreview: BioageRankPreviewApi;
@@ -82,15 +89,6 @@ declare global {
     interface BiologicalAgeClock {
         calculatePhenoAge?: (values: number[]) => number;
         calculateBortzAge?: (chronologicalAge: number, values: number[]) => number;
-    }
-
-    interface SiteStatsTracker {
-        track: (eventName: string, payload: {
-            component: string;
-            step: string;
-            outcome: string;
-            metadata: { clock: BioageRankClock };
-        }) => void;
     }
 
     function isObject(value: unknown): value is object {
@@ -476,14 +474,14 @@ declare global {
     }
 
     function trackRankPreview(eventName: string, clock: BioageRankClock, outcome: string): void {
-        var tracker = Reflect.get(window, 'LwcSiteStats') as SiteStatsTracker | undefined;
+        var tracker = Reflect.get(window, 'LwcSiteStats') as LwcSiteStatisticsApi | undefined;
         if (!tracker || typeof tracker.track !== 'function') return;
         tracker.track(eventName, {
             component: 'rank_preview',
             step: 'field_rank',
             outcome: outcome,
             metadata: { clock: clock }
-        });
+        } satisfies RankPreviewTrackOptions);
     }
 
     function render(

@@ -7,9 +7,9 @@ This directory is the source of every reusable script served from `wwwroot/js`. 
 - Use the Node version pinned in the repository's `.node-version` file.
 - Run `npm ci` in `LongevityWorldCup.Website` after dependency changes or a fresh checkout.
 - Run `npm run check` for a no-emit strict type check.
-- Run `npm run build` after changing TypeScript and commit the corresponding `wwwroot/js` output.
-- Normal `dotnet build` invokes the same compiler and verifies source/output file parity. CI rebuilds the assets and rejects modified or untracked output, preventing stale generated JavaScript from being merged.
-- The production host is intentionally .NET-only. Its documented publish command passes `BuildFrontend=false` and consumes the generated JavaScript that CI already verified.
+- Run `npm run build` after changing TypeScript. It clears stale output, compiles `wwwroot/js`, and verifies exact source/output file parity; generated JavaScript is ignored and must not be committed.
+- Normal `dotnet build` invokes the same compiler. CI builds the browser assets once, verifies that none are tracked, and reuses them for the .NET build.
+- The production host is intentionally .NET-only. Automatic deployment transfers the exact CI-built frontend artifact, injects it into the temporary source tree, and publishes with `BuildFrontend=false`.
 
 The compiler uses strict null checking, unchecked-index checks, exact optional properties, and erasable TypeScript syntax only. The build does not bundle, minify, reorder, or rename globals.
 
@@ -18,6 +18,12 @@ The compiler uses strict null checking, unchecked-index checks, exact optional p
 These files are dynamically imported as ES modules by `HtmlInjectionMiddleware` and may contain an emitted empty export: `misc`, `flags`, `leagueIcons`, `pheno-age`, `bortz-age`, `badges`, `age-visualization`, `play-athlete-flow`, `proof-helpers`, `pro-discounts`, `play-menu`, and `bioage-rank-preview`.
 
 These files must remain classic scripts with no import or export syntax because their timing or direct `<script>` use is part of the page contract: `flow-action-dock`, `bioage-flow`, `custom-event-markup`, `longevitymaxxing`, `site-statistics-tracking`, and `site-statistics`.
+
+## Consolidation boundaries
+
+Type-only browser contracts belong in `types/*.d.ts`, where entry points can share them without adding runtime imports or emitted code. The emitted entry points intentionally remain self-contained: adding shared browser chunks would change request ordering, cache-version coverage, and the current ability of one optional script to fail without preventing another from starting.
+
+Domain-sensitive ranking fallbacks in `longevitymaxxing`, commitment-payment markup and state transitions, and athlete-picture transition paths retain their local implementations. Their apparent duplication protects distinct failure, privacy, or timing behavior; consolidate them only with dedicated equivalence and browser coverage.
 
 ## Intentionally retained inline JavaScript
 
