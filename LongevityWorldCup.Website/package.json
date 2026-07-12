@@ -1,0 +1,17 @@
+{
+  "name": "longevity-world-cup-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.13.0 <25",
+    "npm": ">=11 <12"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('wwwroot/js',{recursive:true,force:true})\" && tsc --project tsconfig.json && npm run verify:outputs",
+    "check": "tsc --project tsconfig.json --noEmit",
+    "verify:outputs": "node Scripts/verify-frontend-outputs.mjs"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

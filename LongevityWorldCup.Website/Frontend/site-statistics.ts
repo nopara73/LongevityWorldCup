@@ -10,7 +10,243 @@
     const publicEventsDiagnosticsTab = "Public Event Diagnostics";
     const trafficOverviewEventLimit = 100;
     const diagnosticEventLimit = 5000;
-    const tabs = [
+
+    type DashboardTab =
+        | typeof trafficOverviewTab
+        | typeof onboardingDiagnosticsTab
+        | typeof challengeDiagnosticsTab
+        | typeof sourceQualityTab
+        | typeof reliabilityDiagnosticsTab
+        | typeof reviewDiagnosticsTab
+        | typeof publicEventsDiagnosticsTab;
+    type LegacyTab = "Onboarding" | "Challenge" | "Traffic" | "Reliability" | "Review Queue" | "Events";
+    type FunnelFlow = "pheno" | "bortz" | "application" | "challenge";
+    type FunnelDefinition = [eventName: string, label: string];
+    type OutcomeTile = [label: string, eventNames: string[]];
+
+    interface RawDashboardEvent {
+        occurredAtUtc: string;
+        sessionHash: string;
+        actorHash: string | null;
+        eventName: string;
+        flow: string | null;
+        route: string | null;
+        component: string | null;
+        step: string | null;
+        outcome: string | null;
+        errorCode: string | null;
+        durationMs: number | null;
+        deviceClass: string | null;
+        browserFamily: string | null;
+        referrerDomain: string | null;
+        source: string | null;
+        landingRoute: string | null;
+        firstReferrerDomain: string | null;
+        firstSource: string | null;
+        firstCampaign: string | null;
+        firstUtmSource: string | null;
+        firstUtmMedium: string | null;
+        firstUtmCampaign: string | null;
+        firstUtmTerm: string | null;
+        firstUtmContent: string | null;
+        metadata: object;
+    }
+
+    interface DashboardEvent extends RawDashboardEvent {
+        eventName: string;
+        sessionHash: string;
+        referrerDomain: string;
+        source: string;
+        landingRoute: string;
+        firstReferrerDomain: string;
+        firstSource: string;
+        firstCampaign: string;
+        firstUtmSource: string;
+        firstUtmMedium: string;
+        firstUtmCampaign: string;
+        firstUtmTerm: string;
+        firstUtmContent: string;
+        metadata: object;
+        time: number;
+        collapsedCount?: number;
+        collapsedFirstTime?: number;
+        collapsedLastTime?: number;
+        collapsedPageViewPriority?: number;
+    }
+
+    interface TrafficTotals {
+        sessions: number;
+        pageViews: number;
+        events: number;
+    }
+
+    interface TrafficQuality {
+        rawSessions: number;
+        cleanSessions: number;
+        noisySessions: number;
+        topSessionEvents: number;
+        topSessionShare: number;
+        repeatedPageViewSessions: number;
+        pageViewDominantSessions: number;
+        noisyPageViews: number;
+        noisyPageViewShare: number;
+    }
+
+    interface TrafficDailyPoint {
+        day: string;
+        sessions: number;
+        pageViews: number;
+        events: number;
+        successSessions: number;
+        successActions: number;
+    }
+
+    interface TrafficPage {
+        route: string;
+        sessions: number;
+        pageViews: number;
+    }
+
+    interface TrafficBreakdown {
+        label: string;
+        sessions: number;
+        pageViews: number;
+        events: number;
+    }
+
+    interface TrafficSummary {
+        totals: TrafficTotals;
+        previousTotals: TrafficTotals;
+        cleanTotals: TrafficTotals;
+        quality: TrafficQuality;
+        daily: TrafficDailyPoint[];
+        topPages: TrafficPage[];
+        sources: TrafficBreakdown[];
+        referrers: TrafficBreakdown[];
+        devices: TrafficBreakdown[];
+        browsers: TrafficBreakdown[];
+    }
+
+    interface RawTrafficSummary {
+        totals?: RawTrafficTotals | null;
+        previousTotals?: RawTrafficTotals | null;
+        cleanTotals?: RawTrafficTotals | null;
+        quality?: RawTrafficQuality | null;
+        daily?: RawTrafficDailyPoint[] | null;
+        topPages?: RawTrafficPage[] | null;
+        sources?: RawTrafficBreakdown[] | null;
+        referrers?: RawTrafficBreakdown[] | null;
+        devices?: RawTrafficBreakdown[] | null;
+        browsers?: RawTrafficBreakdown[] | null;
+    }
+
+    type RawTrafficRecord<T, TextKey extends keyof T = never> =
+        { [Key in Exclude<keyof T, TextKey>]?: unknown }
+        & { [Key in TextKey]?: string | null };
+    type RawTrafficTotals = RawTrafficRecord<TrafficTotals>;
+    type RawTrafficQuality = RawTrafficRecord<TrafficQuality>;
+    type RawTrafficDailyPoint = RawTrafficRecord<TrafficDailyPoint, "day">;
+    type RawTrafficPage = RawTrafficRecord<TrafficPage, "route">;
+    type RawTrafficBreakdown = RawTrafficRecord<TrafficBreakdown, "label">;
+
+    interface DashboardPayload {
+        generatedAtUtc?: string | null;
+        filters?: { limit?: number | null } | null;
+        events?: RawDashboardEvent[] | null;
+        previousEvents?: RawDashboardEvent[] | null;
+        trafficSummary?: RawTrafficSummary | null;
+    }
+
+    interface DecisionInsight {
+        title: string;
+        flow: string;
+        evidence: string;
+        hypothesis: string;
+        action: string;
+        confidence: string;
+        severity: string;
+        trend: string;
+        score: number;
+        events: DashboardEvent[];
+    }
+
+    interface Investigation {
+        title: string;
+        reason: string;
+        sessions: number;
+        events: DashboardEvent[];
+    }
+
+    interface SegmentRow {
+        dimension: string;
+        segment: string;
+        sessions: number;
+        frictionRate: string;
+        delta: string;
+        confidence: string;
+        level: string;
+        trend: string;
+        score: number;
+        events: DashboardEvent[];
+        flow: string;
+    }
+
+    interface TrendRow {
+        label: string;
+        current: string;
+        previous: string;
+        delta: string;
+        confidence: string;
+        level: string;
+        events: DashboardEvent[];
+    }
+
+    interface DecisionAction {
+        label: string;
+        events: DashboardEvent[];
+    }
+
+    interface BurstGroup {
+        key: string;
+        count: number;
+        first: DashboardEvent;
+        last: DashboardEvent;
+        firstTime: number;
+        lastTime: number;
+        sessionHash: string;
+        eventName: string;
+        flow?: string | null;
+        route?: string | null;
+        component?: string | null;
+        step?: string | null;
+        outcome?: string | null;
+        errorCode?: string | null;
+    }
+
+    interface CollapsedPageViewEvent extends DashboardEvent {
+        collapsedCount: number;
+        collapsedFirstTime: number;
+        collapsedLastTime: number;
+        collapsedPageViewPriority: number;
+    }
+
+    interface DashboardState {
+        tab: DashboardTab;
+        flow: string;
+        selectedFlow: string;
+        events: DashboardEvent[];
+        defaultEvents: DashboardEvent[];
+        previousEvents: DashboardEvent[];
+        previousDefaultEvents: DashboardEvent[];
+        trafficSummary: TrafficSummary;
+        loadedEventLimit: number;
+        decisionActions: DecisionAction[];
+        selectedEventName: string | null;
+        selectedSession: string | null;
+        selectedLabel: string;
+    }
+
+    const tabs: DashboardTab[] = [
         trafficOverviewTab,
         onboardingDiagnosticsTab,
         challengeDiagnosticsTab,
@@ -19,7 +255,7 @@
         reviewDiagnosticsTab,
         publicEventsDiagnosticsTab
     ];
-    const legacyTabs = {
+    const legacyTabs: Record<LegacyTab, DashboardTab> = {
         "Onboarding": onboardingDiagnosticsTab,
         "Challenge": challengeDiagnosticsTab,
         "Traffic": sourceQualityTab,
@@ -27,7 +263,7 @@
         "Review Queue": reviewDiagnosticsTab,
         "Events": publicEventsDiagnosticsTab
     };
-    const state = {
+    const state: DashboardState = {
         tab: trafficOverviewTab,
         flow: "all",
         selectedFlow: "pheno",
@@ -43,10 +279,10 @@
         selectedLabel: "all events"
     };
 
-    const funnelDefs = {
-        pheno: [
+    function calculatorFunnel(selectionLabel: string): FunnelDefinition[] {
+        return [
             ["onboarding_entry_viewed", "Join page viewed"],
-            ["onboarding_clock_selected", "Amateur selected"],
+            ["onboarding_clock_selected", selectionLabel],
             ["onboarding_biomarker_requirements_opened", "Biomarkers inspected"],
             ["onboarding_page_viewed", "Page viewed"],
             ["calculator_form_visible", "Form visible"],
@@ -63,27 +299,12 @@
             ["payment_offer_stored", "Payment offer stored"],
             ["biomarker_handoff_stored", "Biomarker handoff stored"],
             ["proof_flow_opened", "Proof/profile opened"]
-        ],
-        bortz: [
-            ["onboarding_entry_viewed", "Join page viewed"],
-            ["onboarding_clock_selected", "Pro selected"],
-            ["onboarding_biomarker_requirements_opened", "Biomarkers inspected"],
-            ["onboarding_page_viewed", "Page viewed"],
-            ["calculator_form_visible", "Form visible"],
-            ["calculator_started", "Calculator started"],
-            ["calculator_field_touched", "First field touched"],
-            ["calculator_field_completed", "Field completed"],
-            ["calculator_required_progress_changed", "Required progress"],
-            ["calculator_all_required_fields_completed", "All fields completed"],
-            ["calculator_validation_failed", "Validation failed"],
-            ["calculator_result_generated", "Result generated"],
-            ["rank_preview_requested", "Rank preview requested"],
-            ["rank_preview_rendered", "Rank preview rendered"],
-            ["calculator_continue_clicked", "Continue clicked"],
-            ["payment_offer_stored", "Payment offer stored"],
-            ["biomarker_handoff_stored", "Biomarker handoff stored"],
-            ["proof_flow_opened", "Proof/profile opened"]
-        ],
+        ];
+    }
+
+    const funnelDefs: Record<FunnelFlow, FunnelDefinition[]> = {
+        pheno: calculatorFunnel("Amateur selected"),
+        bortz: calculatorFunnel("Pro selected"),
         application: [
             ["proof_flow_opened", "Application/proof opened"],
             ["biomarker_handoff_found", "Handoff found"],
@@ -136,7 +357,7 @@
         ]
     };
 
-    const outcomeTiles = [
+    const outcomeTiles: OutcomeTile[] = [
         ["Page views", ["site_page_viewed", "onboarding_entry_viewed", "onboarding_page_viewed", "challenge_page_viewed"]],
         ["Calculator starts", ["calculator_started"]],
         ["Calculator results", ["calculator_result_generated"]],
@@ -153,15 +374,36 @@
 
     document.addEventListener("DOMContentLoaded", init);
 
-    function init() {
+    function isLegacyTab(value: string): value is LegacyTab {
+        return Object.prototype.hasOwnProperty.call(legacyTabs, value);
+    }
+
+    function isDashboardTab(value: string): value is DashboardTab {
+        return tabs.some(tab => tab === value);
+    }
+
+    function isFunnelFlow(value: string): value is FunnelFlow {
+        return value === "pheno" || value === "bortz" || value === "application" || value === "challenge";
+    }
+
+    function funnelDefinitionsFor(value: string): FunnelDefinition[] {
+        return isFunnelFlow(value) ? funnelDefs[value] : funnelDefs.pheno;
+    }
+
+    function errorMessage(error: unknown): string {
+        if (typeof error !== "object" || error === null || !("message" in error)) return "unknown error";
+        return typeof error.message === "string" && error.message ? error.message : "unknown error";
+    }
+
+    function init(): void {
         wireControls();
         renderTabs();
         readUrlState();
         loadDashboard();
     }
 
-    function wireControls() {
-        for (const id of ["statsRange", "statsFlow", "statsDevice", "statsSource"]) {
+    function wireControls(): void {
+        for (const id of ["statsRange", "statsFlow", "statsDevice", "statsSource"] as const) {
             el(id).addEventListener("change", () => {
                 if (id === "statsFlow") state.flow = el(id).value;
                 updateUrl();
@@ -186,21 +428,23 @@
         el("copyLink").addEventListener("click", copyLink);
     }
 
-    function readUrlState() {
+    function readUrlState(): void {
         const params = new URLSearchParams(window.location.search);
         const requestedTab = params.get("tab");
-        if (requestedTab && legacyTabs[requestedTab]) state.tab = legacyTabs[requestedTab];
-        else if (requestedTab && tabs.includes(requestedTab)) state.tab = requestedTab;
-        if (params.get("selectedFlow")) state.selectedFlow = params.get("selectedFlow");
-        for (const [id, key] of [["statsRange", "range"], ["statsFlow", "flow"], ["statsDevice", "device"], ["statsSource", "source"]]) {
-            if (params.get(key)) el(id).value = params.get(key);
+        if (requestedTab && isLegacyTab(requestedTab)) state.tab = legacyTabs[requestedTab];
+        else if (requestedTab && isDashboardTab(requestedTab)) state.tab = requestedTab;
+        const selectedFlow = params.get("selectedFlow");
+        if (selectedFlow) state.selectedFlow = selectedFlow;
+        for (const [id, key] of [["statsRange", "range"], ["statsFlow", "flow"], ["statsDevice", "device"], ["statsSource", "source"]] as const) {
+            const value = params.get(key);
+            if (value) el(id).value = value;
         }
         state.flow = el("statsFlow").value;
         state.selectedEventName = params.get("event");
         state.selectedSession = params.get("session");
     }
 
-    function updateUrl() {
+    function updateUrl(): void {
         const params = new URLSearchParams();
         params.set("tab", state.tab);
         params.set("range", el("statsRange").value);
@@ -213,7 +457,7 @@
         history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
     }
 
-    async function loadDashboard() {
+    async function loadDashboard(): Promise<void> {
         setStatus("Loading redacted analytics...");
         const params = new URLSearchParams({
             range: el("statsRange").value,
@@ -226,7 +470,7 @@
         try {
             const response = await fetch(`/api/site-statistics/dashboard?${params.toString()}`, { headers: { "Accept": "application/json" } });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const payload = await response.json();
+            const payload = await response.json() as DashboardPayload;
             state.events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
             state.previousEvents = Array.isArray(payload.previousEvents) ? payload.previousEvents.map(normalizeEvent) : [];
             state.trafficSummary = normalizeTrafficSummary(payload.trafficSummary);
@@ -243,20 +487,20 @@
             state.previousDefaultEvents = [];
             state.trafficSummary = emptyTrafficSummary();
             state.loadedEventLimit = 0;
-            setStatus(`Dashboard data could not be loaded: ${error.message || "unknown error"}.`, true);
+            setStatus(`Dashboard data could not be loaded: ${errorMessage(error)}.`, true);
             renderAll();
         }
     }
 
-    function dashboardEventLimit() {
+    function dashboardEventLimit(): number {
         return state.tab === trafficOverviewTab ? trafficOverviewEventLimit : diagnosticEventLimit;
     }
 
-    function needsDiagnosticEventReload() {
+    function needsDiagnosticEventReload(): boolean {
         return state.tab !== trafficOverviewTab && state.loadedEventLimit < diagnosticEventLimit;
     }
 
-    function renderAll() {
+    function renderAll(): void {
         renderTabs();
         renderPageMode();
         renderTrafficOverview();
@@ -270,7 +514,7 @@
         updateUrl();
     }
 
-    function renderPageMode() {
+    function renderPageMode(): void {
         const traffic = state.tab === trafficOverviewTab;
         el("trafficOverview").hidden = !traffic;
         for (const id of ["dataQualityStrip", "decisionGrid", "decisionSupportGrid", "outcomeStrip", "drilldownPanel", "statsMainGrid", "detailSections"]) {
@@ -278,7 +522,7 @@
         }
     }
 
-    function renderTrafficOverview() {
+    function renderTrafficOverview(): void {
         const host = el("trafficOverview");
         if (state.tab !== trafficOverviewTab) {
             host.innerHTML = "";
@@ -318,7 +562,7 @@
         `;
     }
 
-    function trafficQualityPanel(summary) {
+    function trafficQualityPanel(summary: TrafficSummary): string {
         const totals = summary.totals || emptyTrafficTotals();
         const clean = summary.cleanTotals || emptyTrafficTotals();
         const quality = summary.quality || emptyTrafficQuality();
@@ -344,7 +588,7 @@
         `;
     }
 
-    function trafficQualityCard(label, value, detail, level) {
+    function trafficQualityCard(label: string, value: unknown, detail: string, level: string): string {
         return `
             <div class="traffic-quality-card ${escAttr(level)}">
                 <span>${esc(label)}</span>
@@ -354,14 +598,14 @@
         `;
     }
 
-    function pageViewMixLabel(quality) {
+    function pageViewMixLabel(quality: TrafficQuality): string {
         if ((quality.noisyPageViewShare || 0) >= 0.5) return "page views dominated by noisy sessions";
         if ((quality.noisyPageViewShare || 0) >= 0.25) return "page views pressured by noisy sessions";
         if ((quality.repeatedPageViewSessions || 0) > 0) return "repeated refreshes detected";
         return "page views mostly clean";
     }
 
-    function trafficMetric(label, value, previous, detail) {
+    function trafficMetric(label: string, value: unknown, previous: unknown, detail?: string): string {
         const current = Number(value) || 0;
         const previousValue = previous === null || previous === undefined ? null : Number(previous) || 0;
         const delta = previousValue === null
@@ -379,7 +623,7 @@
         `;
     }
 
-    function successTrendPanel(summary) {
+    function successTrendPanel(summary: TrafficSummary): string {
         const points = summary.daily || [];
         const stats = successTrendStats(points);
         return `
@@ -398,7 +642,7 @@
         `;
     }
 
-    function successTrendCard(label, value, detail) {
+    function successTrendCard(label: string, value: unknown, detail: string): string {
         return `
             <div class="success-summary-card">
                 <span>${esc(label)}</span>
@@ -408,11 +652,17 @@
         `;
     }
 
-    function successTrendStats(points) {
+    function successTrendStats(points: TrafficDailyPoint[]): {
+        actions: string;
+        sessions: string;
+        rate: number;
+        bestDayLabel: string;
+        bestDayRate: string;
+    } {
         const actions = points.reduce((sum, point) => sum + (Number(point.successActions) || 0), 0);
         const sessions = points.reduce((sum, point) => sum + (Number(point.successSessions) || 0), 0);
         const visitorSessions = points.reduce((sum, point) => sum + (Number(point.sessions) || 0), 0);
-        const best = points.reduce((winner, point) => {
+        const best = points.reduce<{ point: TrafficDailyPoint; rate: number } | null>((winner, point) => {
             const currentRate = successRate(point);
             return !winner || currentRate > winner.rate ? { point, rate: currentRate } : winner;
         }, null);
@@ -425,7 +675,7 @@
         };
     }
 
-    function successTrendChart(points) {
+    function successTrendChart(points: TrafficDailyPoint[]): string {
         if (!points.length) return empty("No conversion data for the active timeframe.");
 
         const width = Math.max(720, points.length * 58);
@@ -440,9 +690,9 @@
         const maxActions = Math.max(1, ...points.map(point => Number(point.successActions) || 0));
         const labelsEvery = Math.max(1, Math.ceil(points.length / 9));
         const barWidth = Math.max(6, Math.min(26, (plotWidth / Math.max(1, points.length)) * 0.36));
-        const x = index => left + (points.length === 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth);
-        const yRate = value => top + (1 - ((Number(value) || 0) / maxRate)) * plotHeight;
-        const yActions = value => top + (1 - ((Number(value) || 0) / maxActions)) * plotHeight;
+        const x = (index: number) => left + (points.length === 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth);
+        const yRate = (value: unknown) => top + (1 - ((Number(value) || 0) / maxRate)) * plotHeight;
+        const yActions = (value: unknown) => top + (1 - ((Number(value) || 0) / maxActions)) * plotHeight;
         const rateLine = points.map((point, index) => `${x(index).toFixed(1)},${yRate(successRate(point)).toFixed(1)}`).join(" ");
         const gridLines = [0, 0.25, 0.5, 0.75, 1].map(step => {
             const y = top + step * plotHeight;
@@ -483,17 +733,17 @@
         `;
     }
 
-    function successRate(point) {
+    function successRate(point: TrafficDailyPoint | null | undefined): number {
         return ratio(point && point.successSessions, point && point.sessions);
     }
 
-    function selectedRangeLabel() {
+    function selectedRangeLabel(): string {
         const range = el("statsRange");
         const option = range.options[range.selectedIndex];
         return option ? option.text : "selected timeframe";
     }
 
-    function dailyTrafficChart(points) {
+    function dailyTrafficChart(points: TrafficDailyPoint[]): string {
         if (!points.length) return empty("No daily traffic for the active filters.");
 
         const maxValue = Math.max(1, ...points.flatMap(point => [point.sessions, point.pageViews]));
@@ -518,22 +768,22 @@
         `;
     }
 
-    function trafficBarHeight(value, maxValue) {
+    function trafficBarHeight(value: unknown, maxValue: number): number {
         return Math.max(4, Math.round(((Number(value) || 0) / Math.max(1, maxValue)) * 100));
     }
 
-    function trafficPanel(title, content) {
+    function trafficPanel(title: string, content: string): string {
         return `<section class="stats-panel traffic-panel"><div class="panel-heading"><h2>${esc(title)}</h2></div>${content}</section>`;
     }
 
-    function trafficPageTable(rows) {
+    function trafficPageTable(rows: TrafficPage[]): string {
         if (!rows.length) return empty("No page-view traffic for the active filters.");
         return table(
             ["Page", "Sessions", "Page views"],
             rows.map(row => [row.route || "unknown", formatNumber(row.sessions), formatNumber(row.pageViews)]));
     }
 
-    function trafficBreakdownTable(rows) {
+    function trafficBreakdownTable(rows: TrafficBreakdown[]): string {
         if (!rows.length) return empty("No traffic for the active filters.");
         const maxSessions = Math.max(1, ...rows.map(row => Number(row.sessions) || 0));
         return `
@@ -550,7 +800,7 @@
         `;
     }
 
-    function renderDataQuality() {
+    function renderDataQuality(): void {
         const host = el("dataQualityStrip");
         const active = decisionScopeEvents(defaultEvents());
         const previous = decisionScopeEvents(defaultPreviousEvents());
@@ -593,7 +843,7 @@
         `).join("");
     }
 
-    function renderDecisionLayer() {
+    function renderDecisionLayer(): void {
         state.decisionActions = [];
         const active = decisionScopeEvents(defaultEvents());
         const previous = decisionScopeEvents(defaultPreviousEvents());
@@ -605,7 +855,7 @@
         wireDecisionActions();
     }
 
-    function renderDecisionBrief(insights, active, previous) {
+    function renderDecisionBrief(insights: DecisionInsight[], active: DashboardEvent[], previous: DashboardEvent[]): void {
         const host = el("decisionBrief");
         el("decisionBriefMeta").textContent = `${uniqueSessions(active)} sessions / ${uniqueSessions(previous)} previous`;
         if (!active.length) {
@@ -649,7 +899,7 @@
         `).join("");
     }
 
-    function renderRecommendedInvestigations(insights, active) {
+    function renderRecommendedInvestigations(insights: DecisionInsight[], active: DashboardEvent[]): void {
         const host = el("recommendedInvestigations");
         const investigations = buildRecommendedInvestigations(insights, active).slice(0, 6);
         el("investigationMeta").textContent = `${investigations.length} next clicks`;
@@ -667,7 +917,7 @@
         `).join("");
     }
 
-    function renderSegmentComparisons(active, previous) {
+    function renderSegmentComparisons(active: DashboardEvent[], previous: DashboardEvent[]): void {
         const host = el("segmentComparisons");
         const rows = buildSegmentRows(active, previous).slice(0, 10);
         el("segmentMeta").textContent = `${rows.length} segments`;
@@ -686,7 +936,7 @@
         `).join("");
     }
 
-    function renderTrendWatch(active, previous) {
+    function renderTrendWatch(active: DashboardEvent[], previous: DashboardEvent[]): void {
         const host = el("trendWatch");
         const rows = buildTrendRows(active, previous);
         el("trendMeta").textContent = `${rows.length} metrics`;
@@ -705,15 +955,16 @@
         `).join("");
     }
 
-    function buildDecisionInsights(active, previous) {
-        const insights = []
-            .concat(joinTrackSelectionInsights(active, previous))
-            .concat(funnelBottleneckInsights(active, previous))
-            .concat(frictionInsights(active, previous))
-            .concat(continuationInsights(active, previous))
-            .concat(segmentIssueInsights(active, previous));
+    function buildDecisionInsights(active: DashboardEvent[], previous: DashboardEvent[]): DecisionInsight[] {
+        const insights: DecisionInsight[] = [
+            ...joinTrackSelectionInsights(active, previous),
+            ...funnelBottleneckInsights(active, previous),
+            ...frictionInsights(active, previous),
+            ...continuationInsights(active, previous),
+            ...segmentIssueInsights(active, previous)
+        ];
 
-        const seen = new Set();
+        const seen = new Set<string>();
         return insights
             .filter(item => {
                 const key = `${item.title}|${item.flow}|${item.evidence}`;
@@ -724,7 +975,7 @@
             .sort((a, b) => b.score - a.score);
     }
 
-    function joinTrackSelectionInsights(active, previous) {
+    function joinTrackSelectionInsights(active: DashboardEvent[], previous: DashboardEvent[]): DecisionInsight[] {
         if (state.tab === challengeDiagnosticsTab) return [];
         const entrySessions = sessionsForNames(active, ["onboarding_entry_viewed"]);
         const selectedSessions = sessionsForNames(active, ["onboarding_clock_selected"]);
@@ -759,14 +1010,17 @@
         }];
     }
 
-    function funnelBottleneckInsights(active, previous) {
-        const flows = state.tab === challengeDiagnosticsTab ? ["challenge"] : ["pheno", "bortz", "application", "challenge"];
-        const insights = [];
+    function funnelBottleneckInsights(active: DashboardEvent[], previous: DashboardEvent[]): DecisionInsight[] {
+        const flows: FunnelFlow[] = state.tab === challengeDiagnosticsTab ? ["challenge"] : ["pheno", "bortz", "application", "challenge"];
+        const insights: DecisionInsight[] = [];
         flows.forEach(flow => {
-            const defs = funnelDefs[flow] || [];
+            const defs = funnelDefs[flow];
             for (let index = 1; index < defs.length; index++) {
-                const [eventName, label] = defs[index];
-                const [priorName, priorLabel] = defs[index - 1];
+                const currentDefinition = defs[index];
+                const previousDefinition = defs[index - 1];
+                if (!currentDefinition || !previousDefinition) continue;
+                const [eventName, label] = currentDefinition;
+                const [priorName, priorLabel] = previousDefinition;
                 if ((flow === "pheno" || flow === "bortz") && eventName === "onboarding_clock_selected") continue;
                 const priorSessions = sessionsForFunnelStep(active, flow, priorName);
                 const reachedSessions = sessionsForFunnelStep(active, flow, eventName);
@@ -799,10 +1053,10 @@
         return insights;
     }
 
-    function frictionInsights(active, previous) {
+    function frictionInsights(active: DashboardEvent[], previous: DashboardEvent[]): DecisionInsight[] {
         const grouped = groupBy(frictionEvents(active), e => `${e.flow || "site"}|${e.eventName}|${e.step || e.errorCode || "general"}`);
         return Array.from(grouped.entries()).map(([key, items]) => {
-            const [flow, eventName, step] = key.split("|");
+            const [flow = "site", eventName = "event", step = "general"] = key.split("|");
             const affected = uniqueSessions(items);
             const flowSessions = uniqueSessions(active.filter(e => (e.flow || "site") === flow)) || uniqueSessions(active);
             const matchingPrevious = frictionEvents(previous).filter(e => (e.flow || "site") === flow && e.eventName === eventName && (e.step || e.errorCode || "general") === step);
@@ -826,8 +1080,8 @@
         }).filter(item => item.events.length >= 2 || uniqueSessions(item.events) >= 2);
     }
 
-    function continuationInsights(active, previous) {
-        const insights = [];
+    function continuationInsights(active: DashboardEvent[], previous: DashboardEvent[]): DecisionInsight[] {
+        const insights: DecisionInsight[] = [];
         const calcResults = sessionsForNames(active, ["calculator_result_generated"]);
         const proofOpened = sessionsForNames(active, ["proof_flow_opened"]);
         const calcMissing = difference(calcResults, proofOpened);
@@ -894,7 +1148,7 @@
         return insights;
     }
 
-    function segmentIssueInsights(active, previous) {
+    function segmentIssueInsights(active: DashboardEvent[], previous: DashboardEvent[]): DecisionInsight[] {
         return buildSegmentRows(active, previous)
             .filter(row => row.level === "high" || row.level === "med")
             .slice(0, 3)
@@ -912,8 +1166,8 @@
             }));
     }
 
-    function buildRecommendedInvestigations(insights, active) {
-        const items = insights.map(insight => ({
+    function buildRecommendedInvestigations(insights: DecisionInsight[], active: DashboardEvent[]): Investigation[] {
+        const items: Investigation[] = insights.map(insight => ({
             title: `Inspect: ${insight.title}`,
             reason: insight.evidence,
             sessions: uniqueSessions(insight.events),
@@ -926,22 +1180,29 @@
         return items.filter(item => item.events.length > 0);
     }
 
-    function addInvestigation(items, events, names, title, reason, sessionFilter) {
+    function addInvestigation(
+        items: Investigation[],
+        events: DashboardEvent[],
+        names: string[],
+        title: string,
+        reason: string,
+        sessionFilter?: string[]
+    ): void {
         const filtered = events.filter(e => names.includes(e.eventName) && !isBenignMissingContextEvent(e) && (!sessionFilter || sessionFilter.includes(e.sessionHash)));
         if (!filtered.length || items.some(item => item.title === title)) return;
         items.push({ title, reason, sessions: uniqueSessions(filtered), events: filtered });
     }
 
-    function buildSegmentRows(active, previous) {
-        const previousSessions = new Set(previous.map(e => e.sessionHash));
-        const dimensions = [
+    function buildSegmentRows(active: DashboardEvent[], previous: DashboardEvent[]): SegmentRow[] {
+        const previousSessions = new Set<string>(previous.map(e => e.sessionHash));
+        const dimensions: [dimension: string, picker: (event: DashboardEvent) => string][] = [
             ["device", e => e.deviceClass || "unknown"],
             ["source", acquisitionSource],
             ["flow", e => flowLabel(e.flow || "site")],
             ["session", e => previousSessions.has(e.sessionHash) ? "returning" : "new"]
         ];
         const overallRate = frictionSessionRate(active);
-        const rows = [];
+        const rows: SegmentRow[] = [];
         dimensions.forEach(([dimension, picker]) => {
             const grouped = groupBy(active, picker);
             grouped.forEach((events, segment) => {
@@ -971,25 +1232,31 @@
         return rows.sort((a, b) => b.score - a.score);
     }
 
-    function buildTrendRows(active, previous) {
+    function buildTrendRows(active: DashboardEvent[], previous: DashboardEvent[]): TrendRow[] {
         const rows = [
             rateTrend("Calculator result conversion", active, previous, ["calculator_started"], ["calculator_result_generated"]),
             rateTrend("Result to proof handoff", active, previous, ["calculator_result_generated"], ["proof_flow_opened"]),
             rateTrend("Application submit conversion", active, previous, ["proof_flow_opened"], ["application_submit_succeeded"]),
             rateTrend("Challenge signup to practice", active, previous, ["challenge_signup_succeeded"], ["challenge_practice_checkin_submitted"]),
             frictionTrend("Friction rate", active, previous)
-        ].filter(Boolean);
+        ].filter((row): row is TrendRow => row !== null);
         return rows;
     }
 
-    function rateTrend(label, active, previous, startNames, finishNames) {
+    function rateTrend(
+        label: string,
+        active: DashboardEvent[],
+        previous: DashboardEvent[],
+        startNames: string[],
+        finishNames: string[]
+    ): TrendRow | null {
         const starts = sessionsForNames(active, startNames);
         const previousStarts = sessionsForNames(previous, startNames);
         if (starts.size === 0 && previousStarts.size === 0) return null;
         const rate = starts.size ? intersectionSize(starts, sessionsForNames(active, finishNames)) / starts.size : 0;
         const previousRate = previousStarts.size ? intersectionSize(previousStarts, sessionsForNames(previous, finishNames)) / previousStarts.size : 0;
         const hasBaseline = previousStarts.size > 0;
-        const delta = hasBaseline ? rate - previousRate : null;
+        const delta = hasBaseline ? rate - previousRate : 0;
         const events = active.filter(e => startNames.includes(e.eventName) || finishNames.includes(e.eventName));
         return {
             label,
@@ -1002,13 +1269,13 @@
         };
     }
 
-    function frictionTrend(label, active, previous) {
+    function frictionTrend(label: string, active: DashboardEvent[], previous: DashboardEvent[]): TrendRow | null {
         const activeRate = frictionSessionRate(active);
         const previousRate = frictionSessionRate(previous);
         if (!active.length && !previous.length) return null;
         const previousSessionCount = uniqueSessions(previous);
         const hasBaseline = previousSessionCount > 0;
-        const delta = hasBaseline ? activeRate - previousRate : null;
+        const delta = hasBaseline ? activeRate - previousRate : 0;
         return {
             label,
             current: percentNumber(activeRate),
@@ -1020,8 +1287,8 @@
         };
     }
 
-    function wireDecisionActions() {
-        document.querySelectorAll("[data-action]").forEach(node => {
+    function wireDecisionActions(): void {
+        document.querySelectorAll<HTMLElement>("[data-action]").forEach(node => {
             node.addEventListener("click", () => {
                 const action = state.decisionActions[Number(node.dataset.action)];
                 if (!action) return;
@@ -1030,13 +1297,13 @@
         });
     }
 
-    function registerDecisionAction(label, events) {
+    function registerDecisionAction(label: string, events: DashboardEvent[]): number {
         const index = state.decisionActions.length;
         state.decisionActions.push({ label, events: events || [] });
         return index;
     }
 
-    function drillToEvents(events, label) {
+    function drillToEvents(events: DashboardEvent[], label: string): void {
         state.selectedEventName = null;
         state.selectedSession = null;
         state.selectedLabel = label || "Decision evidence";
@@ -1044,7 +1311,7 @@
         el("drilldownTitle").scrollIntoView({ block: "nearest" });
     }
 
-    function renderTabs() {
+    function renderTabs(): void {
         const host = el("statsTabs");
         host.innerHTML = "";
         tabs.forEach(tab => {
@@ -1065,7 +1332,7 @@
         });
     }
 
-    function renderOutcomeStrip() {
+    function renderOutcomeStrip(): void {
         const host = el("outcomeStrip");
         const events = scopedEvents();
         const friction = frictionEvents(events);
@@ -1095,7 +1362,7 @@
                 <span class="metric-footer"><span>${esc(footer)}</span>${spark(tileEvents)}</span>
             `;
             tile.addEventListener("click", () => {
-                state.selectedEventName = names.length === 1 ? names[0] : null;
+                state.selectedEventName = names.length === 1 ? names[0] ?? null : null;
                 state.selectedSession = null;
                 state.selectedLabel = label;
                 renderDrilldown(label === "Error rate" || label === "Friction" ? friction : tileEvents);
@@ -1104,7 +1371,7 @@
         });
     }
 
-    function renderPrimaryPanel() {
+    function renderPrimaryPanel(): void {
         const selected = state.tab === challengeDiagnosticsTab ? "challenge" : state.selectedFlow;
         const title = state.tab === challengeDiagnosticsTab
             ? "Challenge Activation Funnel"
@@ -1131,11 +1398,11 @@
                         ? funnelDefs.application.slice(10)
                         : state.tab === publicEventsDiagnosticsTab
                             ? eventsFunnelDefs()
-                            : funnelDefs[selected] || funnelDefs.pheno;
+                            : funnelDefinitionsFor(selected);
         renderFunnel(defs, scopedEvents());
     }
 
-    function renderFlowSelectors() {
+    function renderFlowSelectors(): void {
         const host = el("flowSelectors");
         host.innerHTML = "";
         if (state.tab !== onboardingDiagnosticsTab) return;
@@ -1164,14 +1431,16 @@
         });
     }
 
-    function renderFunnel(defs, events) {
+    function renderFunnel(defs: FunnelDefinition[], events: DashboardEvent[]): void {
         const host = el("primaryFunnel");
         host.innerHTML = "";
         if (!defs.length) {
             host.innerHTML = empty("No funnel data for the active filters.");
             return;
         }
-        const first = Math.max(1, uniqueSessionsFor(events, [defs[0][0]]));
+        const firstDefinition = defs[0];
+        if (!firstDefinition) return;
+        const first = Math.max(1, uniqueSessionsFor(events, [firstDefinition[0]]));
         let previous = first;
         defs.forEach(([name, label]) => {
             const count = uniqueSessionsFor(events, [name]);
@@ -1194,7 +1463,7 @@
         });
     }
 
-    function renderFriction() {
+    function renderFriction(): void {
         const host = el("frictionRadar");
         const events = frictionEvents(scopedEvents());
         el("frictionMeta").textContent = `${uniqueSessions(events)} affected sessions / ${events.length} events`;
@@ -1205,7 +1474,7 @@
 
         const grouped = groupBy(events, e => `${e.eventName}|${e.step || e.errorCode || "general"}`);
         const rows = Array.from(grouped.entries()).map(([key, items]) => {
-            const [eventName, step] = key.split("|");
+            const [eventName = "event", step = "general"] = key.split("|");
             return {
                 eventName,
                 step,
@@ -1235,7 +1504,7 @@
         });
     }
 
-    function renderDetailSections() {
+    function renderDetailSections(): void {
         const host = el("detailSections");
         const events = scopedEvents();
         if (state.tab === challengeDiagnosticsTab) {
@@ -1287,7 +1556,7 @@
         ].join("");
     }
 
-    function renderDrilldown(explicitEvents) {
+    function renderDrilldown(explicitEvents?: DashboardEvent[]): void {
         const events = explicitEvents || selectedEvents();
         const selected = events.length ? events : scopedEvents();
         const session = state.selectedSession || (selected[0] && selected[0].sessionHash);
@@ -1298,7 +1567,7 @@
         renderTimeline(session, selected);
     }
 
-    function renderSummary(events) {
+    function renderSummary(events: DashboardEvent[]): void {
         const sessions = new Set(events.map(e => e.sessionHash)).size;
         const failures = frictionEvents(events).length;
         const median = medianDuration(events);
@@ -1321,7 +1590,7 @@
         `;
     }
 
-    function renderSamples(events) {
+    function renderSamples(events: DashboardEvent[]): void {
         const host = el("eventSamples");
         const rows = collapseEventBursts(events).sort((a, b) => b.lastTime - a.lastTime).slice(0, 50);
         if (!rows.length) {
@@ -1334,15 +1603,17 @@
                 <span class="sample-meta">${esc(formatTime(group.last.occurredAtUtc))} / ${esc(group.flow || "site")} / ${esc(group.step || group.component || "-")} / ${esc(group.errorCode || group.outcome || "-")}${burstLabel(group)}</span>
             </button>
         `).join("");
-        host.querySelectorAll(".sample-row").forEach(row => {
+        host.querySelectorAll<HTMLElement>(".sample-row").forEach(row => {
             row.addEventListener("click", () => {
-                state.selectedSession = row.dataset.session;
+                const selectedSession = row.dataset.session;
+                if (!selectedSession) return;
+                state.selectedSession = selectedSession;
                 renderDrilldown(events);
             });
         });
     }
 
-    function renderTimeline(sessionHash, contextEvents) {
+    function renderTimeline(sessionHash: string | null | undefined, contextEvents: DashboardEvent[]): void {
         const host = el("sessionTimeline");
         if (!sessionHash) {
             host.innerHTML = empty("Select an event sample to inspect an anonymous session timeline.");
@@ -1355,7 +1626,7 @@
             host.innerHTML = empty("No events found for that session.");
             return;
         }
-        const started = rows[0].time || 0;
+        const started = rows[0]?.time || 0;
         const groups = collapseEventBursts(rows, true);
         host.innerHTML = `
             <h3 style="margin-bottom:8px">Session ${esc(sessionHash)}</h3>
@@ -1368,22 +1639,22 @@
         `;
     }
 
-    function decisionScopeEvents(events) {
+    function decisionScopeEvents(events: DashboardEvent[]): DashboardEvent[] {
         if (state.tab === onboardingDiagnosticsTab) {
             return events.filter(e => ["onboarding", "pheno", "bortz", "application", "challenge"].includes(e.flow || ""));
         }
         return scopeEventsFor(events, state.tab, state.selectedFlow);
     }
 
-    function defaultEvents() {
+    function defaultEvents(): DashboardEvent[] {
         return state.defaultEvents;
     }
 
-    function defaultPreviousEvents() {
+    function defaultPreviousEvents(): DashboardEvent[] {
         return state.previousDefaultEvents;
     }
 
-    function scopeEventsFor(events, tab, selectedFlow) {
+    function scopeEventsFor(events: DashboardEvent[], tab: DashboardTab, selectedFlow: string): DashboardEvent[] {
         events = events.slice();
         if (tab === onboardingDiagnosticsTab) {
             if (selectedFlow === "application") return events.filter(e => e.flow === "application");
@@ -1396,44 +1667,44 @@
         return events;
     }
 
-    function decisionLensLabel() {
+    function decisionLensLabel(): string {
         return state.tab === onboardingDiagnosticsTab ? "onboarding + activation" : state.tab;
     }
 
-    function scopedEvents() {
+    function scopedEvents(): DashboardEvent[] {
         return scopeEventsFor(defaultEvents(), state.tab, state.selectedFlow);
     }
 
-    function rawScopedEvents() {
+    function rawScopedEvents(): DashboardEvent[] {
         return scopeEventsFor(state.events, state.tab, state.selectedFlow);
     }
 
-    function selectedEvents() {
+    function selectedEvents(): DashboardEvent[] {
         let events = scopedEvents();
         if (state.selectedEventName) events = events.filter(e => e.eventName === state.selectedEventName);
         if (state.selectedSession) events = events.filter(e => e.sessionHash === state.selectedSession);
         return events;
     }
 
-    function selectedRawEvents() {
+    function selectedRawEvents(): DashboardEvent[] {
         let events = rawScopedEvents();
         if (state.selectedEventName) events = events.filter(e => e.eventName === state.selectedEventName);
         if (state.selectedSession) events = events.filter(e => e.sessionHash === state.selectedSession);
         return events;
     }
 
-    function selectDrilldown(eventName, label) {
+    function selectDrilldown(eventName: string | null, label: string): void {
         state.selectedEventName = eventName;
         state.selectedSession = null;
         state.selectedLabel = label || eventName || "all events";
         renderOutcomeStrip();
         renderFriction();
-        renderFunnel(state.tab === challengeDiagnosticsTab ? funnelDefs.challenge : (funnelDefs[state.selectedFlow] || funnelDefs.pheno), scopedEvents());
+        renderFunnel(state.tab === challengeDiagnosticsTab ? funnelDefs.challenge : funnelDefinitionsFor(state.selectedFlow), scopedEvents());
         renderDrilldown();
         updateUrl();
     }
 
-    function isIgnoredClientError(e) {
+    function isIgnoredClientError(e: DashboardEvent | null | undefined): boolean {
         if (!e || e.eventName !== "client_error_observed") return false;
         const errorCode = String(e.errorCode || "").trim();
         return errorCode === "ResizeObserver loop completed with undelivered notifications." ||
@@ -1441,7 +1712,7 @@
             errorCode === "ResizeObserver loop limit exceeded";
     }
 
-    function isBenignMissingContextEvent(e) {
+    function isBenignMissingContextEvent(e: DashboardEvent | null | undefined): boolean {
         if (!e) return false;
         const route = String(e.route || "").toLowerCase();
         if (e.eventName === "proof_flow_missing_handoff") {
@@ -1453,7 +1724,7 @@
         return false;
     }
 
-    function frictionEvents(events) {
+    function frictionEvents(events: DashboardEvent[]): DashboardEvent[] {
         return events.filter(e =>
             !isIgnoredClientError(e) &&
             !isBenignMissingContextEvent(e) &&
@@ -1462,7 +1733,16 @@
                 !!e.errorCode));
     }
 
-    function dataQualityStats(events, previous) {
+    function dataQualityStats(events: DashboardEvent[], previous: DashboardEvent[]): {
+        events: number;
+        sessions: number;
+        cleanSessions: number;
+        noisySessions: number;
+        topSessionEvents: number;
+        topSessionShare: number;
+        previousEvents: number;
+        previousSessions: number;
+    } {
         const sessionGroups = Array.from(groupBy(events, e => e.sessionHash).values());
         const sessionCounts = sessionGroups.map(items => items.length);
         const topSessionEvents = sessionCounts.length ? Math.max(...sessionCounts) : 0;
@@ -1479,7 +1759,7 @@
         };
     }
 
-    function isNoisySession(events) {
+    function isNoisySession(events: DashboardEvent[]): boolean {
         if (events.length < 20) return false;
         const bursts = collapseEventBursts(events);
         const largestBurst = bursts.length ? Math.max(...bursts.map(group => group.count)) : 0;
@@ -1489,13 +1769,13 @@
             (pageViews >= 20 && pageViews / events.length >= 0.6);
     }
 
-    function isPageViewEvent(event) {
+    function isPageViewEvent(event: DashboardEvent): boolean {
         return ["site_page_viewed", "onboarding_entry_viewed", "onboarding_page_viewed", "challenge_page_viewed"].includes(event.eventName);
     }
 
-    function collapseRepeatedPageViewBursts(events) {
-        const collapsed = [];
-        const pageViewsByRoute = new Map();
+    function collapseRepeatedPageViewBursts(events: DashboardEvent[]): DashboardEvent[] {
+        const collapsed: DashboardEvent[] = [];
+        const pageViewsByRoute = new Map<string, CollapsedPageViewEvent>();
         events.slice().sort((a, b) => a.time - b.time).forEach(event => {
             if (!isPageViewEvent(event)) {
                 collapsed.push(event);
@@ -1505,7 +1785,7 @@
             const key = [event.sessionHash, event.route || ""].join("|");
             const existing = pageViewsByRoute.get(key);
             if (!existing) {
-                const copy = Object.assign({}, event, {
+                const copy: CollapsedPageViewEvent = Object.assign({}, event, {
                     collapsedCount: 1,
                     collapsedFirstTime: event.time || 0,
                     collapsedLastTime: event.time || 0,
@@ -1537,7 +1817,7 @@
         return collapsed.sort((a, b) => b.time - a.time);
     }
 
-    function pageViewPriority(event) {
+    function pageViewPriority(event: DashboardEvent): number {
         if (event.eventName === "challenge_page_viewed") return 4;
         if (event.eventName === "onboarding_entry_viewed") return 3;
         if (event.eventName === "onboarding_page_viewed") return 3;
@@ -1545,10 +1825,10 @@
         return 0;
     }
 
-    function collapseEventBursts(events, sequential) {
+    function collapseEventBursts(events: DashboardEvent[], sequential?: boolean): BurstGroup[] {
         const sorted = events.slice().sort((a, b) => a.time - b.time);
         if (sequential) {
-            const groups = [];
+            const groups: BurstGroup[] = [];
             sorted.forEach(event => {
                 const key = burstSignature(event);
                 const last = groups[groups.length - 1];
@@ -1561,16 +1841,19 @@
             return groups;
         }
 
-        const groups = new Map();
+        const groups = new Map<string, BurstGroup>();
         sorted.forEach(event => {
             const key = burstSignature(event);
             if (!groups.has(key)) groups.set(key, createBurst(key, event));
-            else addToBurst(groups.get(key), event);
+            else {
+                const group = groups.get(key);
+                if (group) addToBurst(group, event);
+            }
         });
         return Array.from(groups.values());
     }
 
-    function burstSignature(event) {
+    function burstSignature(event: DashboardEvent): string {
         return [
             event.sessionHash,
             event.eventName,
@@ -1583,7 +1866,7 @@
         ].join("|");
     }
 
-    function createBurst(key, event) {
+    function createBurst(key: string, event: DashboardEvent): BurstGroup {
         const count = event.collapsedCount || 1;
         return {
             key,
@@ -1603,7 +1886,7 @@
         };
     }
 
-    function addToBurst(group, event) {
+    function addToBurst(group: BurstGroup, event: DashboardEvent): void {
         const count = event.collapsedCount || 1;
         const firstTime = event.collapsedFirstTime || event.time || 0;
         const lastTime = event.collapsedLastTime || event.time || 0;
@@ -1618,13 +1901,13 @@
         }
     }
 
-    function burstLabel(group) {
+    function burstLabel(group: BurstGroup | null | undefined): string {
         if (!group || group.count <= 1) return "";
         const span = Math.max(0, group.lastTime - group.firstTime);
         return ` / burst x${group.count}${span >= 60000 ? ` over ${timeSpan(span)}` : ""}`;
     }
 
-    function timeSpan(value) {
+    function timeSpan(value: unknown): string {
         const totalMinutes = Math.max(1, Math.round((Number(value) || 0) / 60000));
         if (totalMinutes < 60) return `${totalMinutes}m`;
         const hours = totalMinutes / 60;
@@ -1633,15 +1916,15 @@
         return `${days.toFixed(days >= 10 ? 0 : 1)}d`;
     }
 
-    function sessionsForNames(events, names) {
-        return new Set(events.filter(e => names.includes(e.eventName)).map(e => e.sessionHash));
+    function sessionsForNames(events: DashboardEvent[], names: string[]): Set<string> {
+        return new Set<string>(events.filter(e => names.includes(e.eventName)).map(e => e.sessionHash));
     }
 
-    function sessionsForFunnelStep(events, flow, name) {
-        return new Set(events.filter(e => e.eventName === name && eventBelongsToFlowStep(e, flow, name)).map(e => e.sessionHash));
+    function sessionsForFunnelStep(events: DashboardEvent[], flow: string, name: string): Set<string> {
+        return new Set<string>(events.filter(e => e.eventName === name && eventBelongsToFlowStep(e, flow, name)).map(e => e.sessionHash));
     }
 
-    function eventBelongsToFlowStep(event, flow, name) {
+    function eventBelongsToFlowStep(event: DashboardEvent, flow: string, name: string): boolean {
         if (flow === "pheno" || flow === "bortz") {
             if (name === "onboarding_entry_viewed") return event.flow === "onboarding" || event.flow === flow;
             return event.flow === flow;
@@ -1649,11 +1932,11 @@
         return event.flow === flow;
     }
 
-    function difference(left, right) {
+    function difference(left: ReadonlySet<string>, right: ReadonlySet<string>): string[] {
         return Array.from(left).filter(item => !right.has(item));
     }
 
-    function intersectionSize(left, right) {
+    function intersectionSize(left: ReadonlySet<string>, right: ReadonlySet<string>): number {
         let count = 0;
         left.forEach(item => {
             if (right.has(item)) count++;
@@ -1661,70 +1944,70 @@
         return count;
     }
 
-    function sessionsMissing(events, startNames, finishNames) {
+    function sessionsMissing(events: DashboardEvent[], startNames: string[], finishNames: string[]): string[] {
         return difference(sessionsForNames(events, startNames), sessionsForNames(events, finishNames));
     }
 
-    function missingRate(events, startNames, finishNames) {
+    function missingRate(events: DashboardEvent[], startNames: string[], finishNames: string[]): number | null {
         const starts = sessionsForNames(events, startNames);
         if (!starts.size) return null;
         return difference(starts, sessionsForNames(events, finishNames)).length / starts.size;
     }
 
-    function frictionSessionRate(events) {
+    function frictionSessionRate(events: DashboardEvent[]): number {
         const sessions = uniqueSessions(events);
         if (!sessions) return 0;
         return uniqueSessions(frictionEvents(events)) / sessions;
     }
 
-    function percentNumber(value) {
-        value = Number(value);
-        if (!Number.isFinite(value)) return "0%";
-        return `${Math.round(value * 100)}%`;
+    function percentNumber(value: unknown): string {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return "0%";
+        return `${Math.round(numericValue * 100)}%`;
     }
 
-    function severityFor(rate, count) {
+    function severityFor(rate: number, count: number): string {
         if (rate >= 0.6 || count >= 10) return "high";
         if (rate >= 0.35 || count >= 4) return "med";
         return "low";
     }
 
-    function confidenceFor(currentSessions, previousSessions) {
+    function confidenceFor(currentSessions: number, previousSessions: number): string {
         const total = (Number(currentSessions) || 0) + (Number(previousSessions) || 0);
         if (total >= 30 && currentSessions >= 10) return "high";
         if (total >= 10 && currentSessions >= 4) return "medium";
         return "low";
     }
 
-    function trendPhrase(current, previous, higherIsBad) {
+    function trendPhrase(current: unknown, previous: unknown, higherIsBad: boolean): string {
         if (previous === null || previous === undefined || !Number.isFinite(Number(previous))) return "trend sparse";
-        current = Number(current) || 0;
-        previous = Number(previous) || 0;
-        const delta = current - previous;
+        const numericCurrent = Number(current) || 0;
+        const numericPrevious = Number(previous) || 0;
+        const delta = numericCurrent - numericPrevious;
         if (Math.abs(delta) < 0.03) return "flat";
         const bad = higherIsBad ? delta > 0 : delta < 0;
         return bad ? "worse vs previous" : "better vs previous";
     }
 
-    function trendScore(trend) {
+    function trendScore(trend: string): number {
         if (trend === "worse vs previous") return 18;
         if (trend === "trend sparse") return -4;
         if (trend === "better vs previous") return -8;
         return 0;
     }
 
-    function flowPriority(flow) {
+    function flowPriority(flow: string): number {
         if (flow === "application") return 14;
         if (flow === "pheno" || flow === "bortz") return 12;
         if (flow === "challenge") return 10;
         return 0;
     }
 
-    function friendlyEvent(eventName) {
+    function friendlyEvent(eventName: string): string {
         return String(eventName || "event").replace(/_/g, " ");
     }
 
-    function hypothesisFor(eventName) {
+    function hypothesisFor(eventName: string): string {
         if (/validation/.test(eventName)) return "The field expectation, default, or browser validation state is unclear.";
         if (/missing_handoff|context_missing/.test(eventName)) return "Browser storage or handoff recovery is failing for some sessions.";
         if (/proof|upload|file_rejected/.test(eventName)) return "File type, file size, camera, or PDF processing may be blocking submission.";
@@ -1735,7 +2018,7 @@
         return "This step is behaving worse than nearby steps or segments.";
     }
 
-    function actionFor(eventName) {
+    function actionFor(eventName: string): string {
         if (/validation/.test(eventName)) return "Inspect field-level failures, then adjust labels, defaults, or validation recovery.";
         if (/missing_handoff|context_missing/.test(eventName)) return "Inspect affected timelines and add a visible recovery path for missing context.";
         if (/proof|upload|file_rejected/.test(eventName)) return "Compare failed uploads by device and file bucket, then improve upload guidance or fallback handling.";
@@ -1746,51 +2029,51 @@
         return "Open supporting sessions and compare the failing step against healthier cohorts.";
     }
 
-    function countMatching(events, names) {
+    function countMatching(events: DashboardEvent[], names: string[]): number {
         if (!names.length) return 0;
         return events.filter(e => names.includes(e.eventName)).length;
     }
 
-    function uniqueSessionsFor(events, names) {
+    function uniqueSessionsFor(events: DashboardEvent[], names: string[]): number {
         const filtered = names && names.length ? events.filter(e => names.includes(e.eventName)) : events;
         return new Set(filtered.map(e => e.sessionHash)).size;
     }
 
-    function metadataValue(event, key) {
+    function metadataValue(event: DashboardEvent | null | undefined, key: string): string {
         if (!event || !event.metadata || !Object.prototype.hasOwnProperty.call(event.metadata, key)) return "";
-        return String(event.metadata[key] || "");
+        return String(Reflect.get(event.metadata, key) || "");
     }
 
-    function calculatorEntryMode(event) {
+    function calculatorEntryMode(event: DashboardEvent): string {
         return metadataValue(event, "entryMode") || "standard";
     }
 
-    function completionSource(event) {
+    function completionSource(event: DashboardEvent): string {
         return metadataValue(event, "completionSource") || "legacy";
     }
 
-    function completionSourceLabel(source) {
+    function completionSourceLabel(source: string): string {
         const normalized = String(source || "legacy").toLowerCase();
         if (normalized === "pageshow") return "page restore";
         return normalized || "legacy";
     }
 
-    function isAutomaticCompletion(event) {
+    function isAutomaticCompletion(event: DashboardEvent): boolean {
         const source = completionSource(event).toLowerCase();
         return source === "initial" || source === "autofill" || source === "pageshow";
     }
 
-    function isLateCompletion(event) {
+    function isLateCompletion(event: DashboardEvent): boolean {
         const source = completionSource(event).toLowerCase();
         return source === "submit" || source === "result";
     }
 
-    function isManualCompletion(event) {
+    function isManualCompletion(event: DashboardEvent): boolean {
         const source = completionSource(event).toLowerCase();
         return source === "change" || source === "input";
     }
 
-    function completionSourceClass(source) {
+    function completionSourceClass(source: string): string {
         source = String(source || "legacy").toLowerCase();
         if (source === "initial" || source === "autofill" || source === "pageshow" || source === "page restore") return "auto";
         if (source === "submit" || source === "result") return "late";
@@ -1798,11 +2081,11 @@
         return "legacy";
     }
 
-    function firstEntryMode(events) {
+    function firstEntryMode(events: DashboardEvent[]): string {
         return events.map(calculatorEntryMode).find(mode => mode && mode !== "standard") || "standard";
     }
 
-    function calculatorCompletionSourceTable(events) {
+    function calculatorCompletionSourceTable(events: DashboardEvent[]): string {
         const completions = events.filter(e => e.eventName === "calculator_field_completed");
         if (!completions.length) return empty("No calculator completion-source events yet.");
 
@@ -1821,7 +2104,7 @@
 
         const rows = Array.from(groupBy(sessions, s => `${s.entryMode}|${s.source}`).entries())
             .map(([key, items]) => {
-                const [entryMode, source] = key.split("|");
+                const [entryMode = "standard", source = "legacy"] = key.split("|");
                 const fields = items.reduce((sum, item) => sum + item.fields, 0);
                 return {
                     entryMode,
@@ -1868,7 +2151,7 @@
         `;
     }
 
-    function fieldFrictionTable(events) {
+    function fieldFrictionTable(events: DashboardEvent[]): string {
         const relevant = events.filter(e => /^calculator_field_|calculator_validation_failed/.test(e.eventName));
         if (!relevant.length) return empty("No calculator field events yet.");
         const rows = Array.from(groupBy(relevant, e => e.step || "unknown").entries()).map(([field, items]) => {
@@ -1923,8 +2206,8 @@
         `;
     }
 
-    function completionLegend(includeFailed) {
-        const entries = [
+    function completionLegend(includeFailed?: boolean): string {
+        const entries: [className: string, label: string][] = [
             ["manual", "Manual"],
             ["auto", "Auto"],
             ["late", "Late"],
@@ -1934,37 +2217,37 @@
         return `<div class="visual-legend">${entries.map(([key, label]) => `<span><i class="${escAttr(key)}"></i>${esc(label)}</span>`).join("")}</div>`;
     }
 
-    function metricChip(value, label) {
+    function metricChip(value: unknown, label: string): string {
         return `<span class="metric-chip"><strong>${esc(String(value))}</strong>${esc(label)}</span>`;
     }
 
-    function barWidth(value, total) {
-        value = Number(value) || 0;
-        total = Math.max(1, Number(total) || 1);
-        if (value <= 0) return 0;
-        return Math.max(4, Math.round((value / total) * 100));
+    function barWidth(value: unknown, total: unknown): number {
+        const numericValue = Number(value) || 0;
+        const numericTotal = Math.max(1, Number(total) || 1);
+        if (numericValue <= 0) return 0;
+        return Math.max(4, Math.round((numericValue / numericTotal) * 100));
     }
 
-    function barSegment(value, total, className, label) {
-        value = Number(value) || 0;
-        if (value <= 0) return "";
-        return `<span class="${escAttr(className)}" style="width:${barWidth(value, total)}%" title="${escAttr(`${value} ${label}`)}"></span>`;
+    function barSegment(value: unknown, total: unknown, className: string, label: string): string {
+        const numericValue = Number(value) || 0;
+        if (numericValue <= 0) return "";
+        return `<span class="${escAttr(className)}" style="width:${barWidth(numericValue, total)}%" title="${escAttr(`${numericValue} ${label}`)}"></span>`;
     }
 
-    function proofUploadTable(events) {
+    function proofUploadTable(events: DashboardEvent[]): string {
         const names = ["proof_upload_clicked", "proof_camera_clicked", "proof_files_selected", "proof_file_rejected", "proof_processing_succeeded", "proof_processing_failed"];
         const relevant = events.filter(e => names.includes(e.eventName));
         if (!relevant.length) return empty("No proof upload events yet.");
         return groupedTable(relevant, names);
     }
 
-    function handoffTable(events) {
+    function handoffTable(events: DashboardEvent[]): string {
         const relevant = events.filter(e => /handoff|context|payment_offer|browser_storage|review/.test(e.eventName));
         if (!relevant.length) return empty("No handoff events yet.");
         return splitTable(relevant, e => e.eventName);
     }
 
-    function challengeActivationTable(events) {
+    function challengeActivationTable(events: DashboardEvent[]): string {
         return groupedTable(events, [
             "challenge_signup_started",
             "challenge_signup_succeeded",
@@ -1974,19 +2257,19 @@
         ]);
     }
 
-    function sourceQualityTable(events) {
-        const rows = Array.from(groupBy(events, acquisitionSource).entries()).map(([source, items]) => {
+    function sourceQualityTable(events: DashboardEvent[]): string {
+        const rows: [string, number, number, number, number, number][] = Array.from(groupBy(events, acquisitionSource).entries()).map(([source, items]) => {
             const results = uniqueSessionsFor(items, ["calculator_result_generated"]);
             const applications = uniqueSessionsFor(items, ["application_submit_succeeded"]);
             const challenge = uniqueSessionsFor(items, ["challenge_scored_checkin_submitted"]);
             const quality = applications * 5 + challenge * 4 + results;
-            return [source, uniqueSessions(items), results, applications, challenge, quality];
+            return [source, uniqueSessions(items), results, applications, challenge, quality] as [string, number, number, number, number, number];
         }).sort((a, b) => b[5] - a[5]);
         return table(["Source", "Sessions", "Results", "Apps", "Challenge", "Quality"], rows.slice(0, 12));
     }
 
-    function campaignTable(events) {
-        const rows = Array.from(groupBy(events, campaignLabel).entries())
+    function campaignTable(events: DashboardEvent[]): string {
+        const rows: [string, number, string, number, number][] = Array.from(groupBy(events, campaignLabel).entries())
             .filter(([campaign]) => campaign !== "none")
             .map(([campaign, items]) => [
                 campaign,
@@ -1994,13 +2277,13 @@
                 mostCommon(items.map(acquisitionSource)),
                 uniqueSessionsFor(items, ["calculator_result_generated"]),
                 uniqueSessionsFor(items, ["application_submit_succeeded", "challenge_signup_succeeded"])
-            ])
+            ] as [string, number, string, number, number])
             .sort((a, b) => b[1] - a[1] || b[4] - a[4])
             .slice(0, 12);
         return rows.length ? table(["Campaign", "Sessions", "Top source", "Results", "Conversions"], rows) : empty("No campaign-tagged sessions yet.");
     }
 
-    function slowStepTable(events) {
+    function slowStepTable(events: DashboardEvent[]): string {
         const rows = events.filter(e => Number(e.durationMs) > 5000)
             .sort((a, b) => Number(b.durationMs) - Number(a.durationMs))
             .slice(0, 12)
@@ -2008,44 +2291,44 @@
         return rows.length ? table(["Event", "Step", "Duration", "Session"], rows) : empty("No slow events over 5s.");
     }
 
-    function sessionStateTable(events) {
+    function sessionStateTable(events: DashboardEvent[]): string {
         const rows = Array.from(groupBy(events, e => e.sessionHash).entries()).map(([session, items]) => {
             const sorted = items.slice().sort((a, b) => b.time - a.time);
-            const last = sorted[0];
+            const last = sorted[0]!;
             return [session, last.eventName, last.outcome || "-", formatTime(last.occurredAtUtc)];
         }).slice(0, 12);
         return rows.length ? table(["Session", "Last event", "State", "Time"], rows) : empty("No review sessions yet.");
     }
 
-    function groupedTable(events, names) {
+    function groupedTable(events: DashboardEvent[], names: string[]): string {
         const rows = names.map(name => {
             const items = events.filter(e => e.eventName === name);
-            return [name, items.length, new Set(items.map(i => i.sessionHash)).size, mostCommon(items.map(acquisitionSource))];
+            return [name, items.length, new Set(items.map(i => i.sessionHash)).size, mostCommon(items.map(acquisitionSource))] as [string, number, number, string];
         }).filter(r => r[1] > 0);
         return rows.length ? table(["Event", "Events", "Sessions", "Top source"], rows) : empty("No matching events yet.");
     }
 
-    function splitTable(events, picker) {
+    function splitTable(events: DashboardEvent[], picker: (event: DashboardEvent) => string): string {
         const rows = Array.from(groupBy(events, picker).entries())
-            .map(([key, items]) => [key || "unknown", items.length, new Set(items.map(i => i.sessionHash)).size])
+            .map(([key, items]) => [key || "unknown", items.length, new Set(items.map(i => i.sessionHash)).size] as [string, number, number])
             .sort((a, b) => b[1] - a[1])
             .slice(0, 12);
         return rows.length ? table(["Segment", "Events", "Sessions"], rows) : empty("No data for this split.");
     }
 
-    function sourceFunnelDefs() {
+    function sourceFunnelDefs(): FunnelDefinition[] {
         return [["site_page_viewed", "Site viewed"], ["calculator_result_generated", "Calculator result"], ["application_submit_succeeded", "Application submitted"], ["challenge_signup_succeeded", "Challenge signup"], ["challenge_scored_checkin_submitted", "Scored check-in"]];
     }
 
-    function reliabilityFunnelDefs() {
+    function reliabilityFunnelDefs(): FunnelDefinition[] {
         return [["client_error_observed", "Client errors"], ["api_request_failed", "API failures"], ["calculator_validation_failed", "Calculator validation"], ["rank_preview_failed", "Rank preview failed"], ["application_submit_failed", "Application submit failed"], ["challenge_signup_failed", "Challenge signup failed"], ["challenge_scored_checkin_failed", "Check-in failed"]];
     }
 
-    function eventsFunnelDefs() {
+    function eventsFunnelDefs(): FunnelDefinition[] {
         return [["homepage_highlight_viewed", "Highlight viewed"], ["homepage_highlight_clicked", "Highlight clicked"], ["event_viewed", "Event viewed"], ["event_link_clicked", "Event link clicked"], ["athlete_profile_viewed", "Athlete profile"], ["league_viewed", "League viewed"]];
     }
 
-    function normalizeEvent(event) {
+    function normalizeEvent(event: RawDashboardEvent): DashboardEvent {
         const referrerDomain = event.referrerDomain || "";
         return Object.assign({}, event, {
             eventName: event.eventName || "",
@@ -2066,7 +2349,7 @@
         });
     }
 
-    function normalizeTrafficSummary(summary) {
+    function normalizeTrafficSummary(summary: RawTrafficSummary | null | undefined): TrafficSummary {
         summary = summary && typeof summary === "object" ? summary : {};
         return {
             totals: normalizeTrafficTotals(summary.totals),
@@ -2093,7 +2376,7 @@
         };
     }
 
-    function normalizeTrafficTotals(totals) {
+    function normalizeTrafficTotals(totals: RawTrafficTotals | null | undefined): TrafficTotals {
         totals = totals && typeof totals === "object" ? totals : {};
         return {
             sessions: numberValue(totals.sessions),
@@ -2102,11 +2385,14 @@
         };
     }
 
-    function normalizeTrafficRows(rows, mapper) {
-        return Array.isArray(rows) ? rows.map(row => mapper(row || {})) : [];
+    function normalizeTrafficRows<TInput, TOutput>(
+        rows: TInput[] | null | undefined,
+        mapper: (row: TInput) => TOutput
+    ): TOutput[] {
+        return Array.isArray(rows) ? rows.map(mapper) : [];
     }
 
-    function normalizeTrafficBreakdown(row) {
+    function normalizeTrafficBreakdown(row: RawTrafficBreakdown): TrafficBreakdown {
         return {
             label: row.label || "unknown",
             sessions: numberValue(row.sessions),
@@ -2115,7 +2401,7 @@
         };
     }
 
-    function normalizeTrafficQuality(quality) {
+    function normalizeTrafficQuality(quality: RawTrafficQuality | null | undefined): TrafficQuality {
         quality = quality && typeof quality === "object" ? quality : {};
         return {
             rawSessions: numberValue(quality.rawSessions),
@@ -2130,7 +2416,7 @@
         };
     }
 
-    function emptyTrafficSummary() {
+    function emptyTrafficSummary(): TrafficSummary {
         return {
             totals: emptyTrafficTotals(),
             previousTotals: emptyTrafficTotals(),
@@ -2145,11 +2431,11 @@
         };
     }
 
-    function emptyTrafficTotals() {
+    function emptyTrafficTotals(): TrafficTotals {
         return { sessions: 0, pageViews: 0, events: 0 };
     }
 
-    function emptyTrafficQuality() {
+    function emptyTrafficQuality(): TrafficQuality {
         return {
             rawSessions: 0,
             cleanSessions: 0,
@@ -2163,34 +2449,34 @@
         };
     }
 
-    function numberValue(value) {
-        value = Number(value);
-        return Number.isFinite(value) ? value : 0;
+    function numberValue(value: unknown): number {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) ? numericValue : 0;
     }
 
-    function effectiveSource(source, referrerDomain) {
+    function effectiveSource(source: string | null | undefined, referrerDomain: string | null | undefined): string {
         if (isInternalReferrer(referrerDomain)) return "internal";
         return source || "direct";
     }
 
-    function acquisitionSource(event) {
+    function acquisitionSource(event: DashboardEvent): string {
         return event.firstSource || event.source || "direct";
     }
 
-    function campaignLabel(event) {
+    function campaignLabel(event: DashboardEvent): string {
         return event.firstCampaign
             || event.firstUtmCampaign
             || event.firstUtmSource
             || "none";
     }
 
-    function isInternalReferrer(referrerDomain) {
+    function isInternalReferrer(referrerDomain: string | null | undefined): boolean {
         if (!referrerDomain) return false;
         const normalized = String(referrerDomain).toLowerCase().replace(/^www\./, "");
         return normalized === "longevityworldcup.com";
     }
 
-    function table(headers, rows) {
+    function table(headers: readonly string[], rows: readonly (readonly unknown[])[]): string {
         return `
             <table class="compact-table">
                 <thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead>
@@ -2199,119 +2485,123 @@
         `;
     }
 
-    function detailPanel(title, content) {
+    function detailPanel(title: string, content: string): string {
         return `<section class="detail-panel"><div class="panel-heading"><h2>${esc(title)}</h2></div>${content}</section>`;
     }
 
-    function summaryItem(label, value) {
+    function summaryItem(label: string, value: unknown): string {
         return `<div class="summary-item"><span>${esc(label)}</span><strong>${esc(String(value))}</strong></div>`;
     }
 
-    function spark(events, names) {
+    function spark(events: DashboardEvent[], names?: string[]): string {
         const buckets = Array.from({ length: 7 }, () => 0);
         const now = Date.now();
         const day = 24 * 60 * 60 * 1000;
         const filtered = names && names.length ? events.filter(e => names.includes(e.eventName)) : events;
         filtered.forEach(e => {
             const index = 6 - Math.floor((now - e.time) / day);
-            if (index >= 0 && index < buckets.length) buckets[index]++;
+            if (index >= 0 && index < buckets.length) {
+                buckets[index] = (buckets[index] ?? 0) + 1;
+            }
         });
         const max = Math.max(1, ...buckets);
         return `<span class="spark" aria-hidden="true">${buckets.map(v => `<span style="height:${Math.max(2, Math.round((v / max) * 18))}px"></span>`).join("")}</span>`;
     }
 
-    function groupBy(items, picker) {
-        const map = new Map();
+    function groupBy<TItem>(items: TItem[], picker: (item: TItem) => string | null | undefined): Map<string, TItem[]> {
+        const map = new Map<string, TItem[]>();
         items.forEach(item => {
             const key = picker(item) || "unknown";
-            if (!map.has(key)) map.set(key, []);
-            map.get(key).push(item);
+            const group = map.get(key);
+            if (group) group.push(item);
+            else map.set(key, [item]);
         });
         return map;
     }
 
-    function mostCommon(values) {
-        const map = new Map();
-        values.filter(Boolean).forEach(v => map.set(v, (map.get(v) || 0) + 1));
+    function mostCommon(values: (string | null | undefined)[]): string {
+        const map = new Map<string, number>();
+        values.filter((value): value is string => Boolean(value)).forEach(v => map.set(v, (map.get(v) || 0) + 1));
         return Array.from(map.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "-";
     }
 
-    function medianDuration(events) {
+    function medianDuration(events: DashboardEvent[]): string {
         const values = events.map(e => Number(e.durationMs)).filter(Number.isFinite).sort((a, b) => a - b);
         if (!values.length) return "-";
-        return ms(values[Math.floor(values.length / 2)]);
+        return ms(values[Math.floor(values.length / 2)] ?? 0);
     }
 
-    function percent(value, total) {
+    function percent(value: number, total: number): string {
         if (!total) return "0%";
         return `${Math.round((value / total) * 100)}%`;
     }
 
-    function ratio(value, total) {
-        total = Number(total) || 0;
-        return total ? (Number(value) || 0) / total : 0;
+    function ratio(value: unknown, total: unknown): number {
+        const numericTotal = Number(total) || 0;
+        return numericTotal ? (Number(value) || 0) / numericTotal : 0;
     }
 
-    function formatNumber(value) {
+    function formatNumber(value: unknown): string {
         return numberValue(value).toLocaleString();
     }
 
-    function signedNumber(value) {
-        value = Number(value) || 0;
-        if (value === 0) return "0";
-        return `${value > 0 ? "+" : "-"}${formatNumber(Math.abs(value))}`;
+    function signedNumber(value: unknown): string {
+        const numericValue = Number(value) || 0;
+        if (numericValue === 0) return "0";
+        return `${numericValue > 0 ? "+" : "-"}${formatNumber(Math.abs(numericValue))}`;
     }
 
-    function formatDay(value) {
+    function formatDay(value: string): string {
         const date = new Date(`${value}T00:00:00Z`);
         if (Number.isNaN(date.getTime())) return value || "-";
         return date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
     }
 
-    function uniqueSessions(items) {
+    function uniqueSessions(items: DashboardEvent[]): number {
         return new Set(items.map(i => i.sessionHash)).size;
     }
 
-    function ms(value) {
-        value = Number(value);
-        if (!Number.isFinite(value)) return "-";
-        if (value < 1000) return `${Math.round(value)}ms`;
-        return `${(value / 1000).toFixed(1)}s`;
+    function ms(value: unknown): string {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return "-";
+        if (numericValue < 1000) return `${Math.round(numericValue)}ms`;
+        return `${(numericValue / 1000).toFixed(1)}s`;
     }
 
-    function offset(value) {
-        value = Math.max(0, Number(value) || 0);
-        const total = Math.floor(value / 1000);
+    function offset(value: unknown): string {
+        const numericValue = Math.max(0, Number(value) || 0);
+        const total = Math.floor(numericValue / 1000);
         const min = Math.floor(total / 60);
         const sec = total % 60;
         return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
     }
 
-    function metadataChips(metadata) {
+    function metadataChips(metadata: object | null | undefined): string {
         const entries = Object.entries(metadata || {}).slice(0, 4);
         if (!entries.length) return "";
         return ` / ${entries.map(([k, v]) => `${k}=${v}`).join(" / ")}`;
     }
 
-    function formatTime(value) {
-        const date = new Date(value);
+    function formatTime(value: string | number | Date | null | undefined): string {
+        if (value === null || value === undefined) return "-";
+        const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
         if (Number.isNaN(date.getTime())) return "-";
         return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
     }
 
-    function flowLabel(flow) {
+    function flowLabel(flow: string | null | undefined): string {
         return flow === "pheno" ? "pheno age" : flow === "bortz" ? "bortz age" : flow === "challenge" ? "Challenge" : flow === "application" ? "application" : flow === "onboarding" ? "onboarding" : "all";
     }
 
-    function setStatus(message, error) {
+    function setStatus(message: string, error?: boolean): void {
         const host = el("statsStatus");
         host.textContent = message;
         host.classList.toggle("error", !!error);
     }
 
-    function exportCsv() {
+    function exportCsv(): void {
         const events = selectedRawEvents();
-        const headers = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source", "landingRoute", "firstReferrerDomain", "firstSource", "firstCampaign", "firstUtmSource", "firstUtmMedium", "firstUtmCampaign", "firstUtmTerm", "firstUtmContent"];
+        const headers: (keyof RawDashboardEvent)[] = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source", "landingRoute", "firstReferrerDomain", "firstSource", "firstCampaign", "firstUtmSource", "firstUtmMedium", "firstUtmCampaign", "firstUtmTerm", "firstUtmContent"];
         const lines = [headers.join(",")].concat(events.map(e => headers.map(h => csv(e[h])).join(",")));
         const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
         const url = URL.createObjectURL(blob);
@@ -2322,7 +2612,7 @@
         setTimeout(() => URL.revokeObjectURL(url), 500);
     }
 
-    async function copyLink() {
+    async function copyLink(): Promise<void> {
         try {
             await navigator.clipboard.writeText(window.location.href);
             setStatus("Copied dashboard link.");
@@ -2331,20 +2621,24 @@
         }
     }
 
-    function csv(value) {
+    function csv(value: unknown): string {
         const text = String(value ?? "");
         return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
     }
 
-    function empty(message) {
+    function empty(message: string): string {
         return `<div class="empty-state">${esc(message)}</div>`;
     }
 
-    function el(id) {
-        return document.getElementById(id);
+    function el(id: "statsRange" | "statsFlow" | "statsDevice" | "statsSource"): HTMLSelectElement;
+    function el(id: string): HTMLElement;
+    function el(id: string): HTMLElement {
+        const element = document.getElementById(id);
+        if (!element) throw new Error(`Missing site statistics element #${id}.`);
+        return element;
     }
 
-    function esc(value) {
+    function esc(value: unknown): string {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -2352,7 +2646,7 @@
             .replace(/"/g, "&quot;");
     }
 
-    function escAttr(value) {
+    function escAttr(value: unknown): string {
         return esc(value).replace(/'/g, "&#39;");
     }
 })();

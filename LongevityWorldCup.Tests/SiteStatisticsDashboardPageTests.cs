@@ -1,5 +1,6 @@
 using Xunit;
 using System.Runtime.CompilerServices;
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 
 namespace LongevityWorldCup.Tests;
 
@@ -84,7 +85,7 @@ public sealed class SiteStatisticsDashboardPageTests
     {
         var repoRoot = FindRepoRoot();
         var menu = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "play", "menu.html"));
-        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
+        var tracker = ReadFrontendSource("site-statistics-tracking.ts");
 
         Assert.Contains("id=\"joinStartAmateurBtn\"", menu);
         Assert.Contains("id=\"joinGoProButton\"", menu);
@@ -94,17 +95,19 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("joinGoProButton", tracker);
         Assert.Contains("joinStartChallengeLink", tracker);
         Assert.Contains("onboarding_challenge_selected", tracker);
+        Assert.Contains("crypto.getRandomValues(new Uint8Array(16))", tracker);
+        Assert.DoesNotContain("Math.random()", tracker);
         Assert.Contains(".play-join-biomarkers details", tracker);
         Assert.Contains(".play-join-card--pro", tracker);
         Assert.Contains("function setupSpaRouteTracking()", tracker);
         Assert.Contains("trackJoinPanelViewForCurrentRoute", tracker);
         Assert.Contains("window.history[method] = function ()", tracker);
-        Assert.Contains("function isIgnoredClientErrorMessage(message)", tracker);
+        Assert.Contains("function isIgnoredClientErrorMessage(message: unknown): boolean", tracker);
         Assert.Contains("ResizeObserver loop completed with undelivered notifications", tracker);
         Assert.Contains("function hasApplicationReviewContext()", tracker);
         Assert.Contains("isReviewSource(params.get(\"from\"))", tracker);
         Assert.Contains("isReviewSource(sessionStorage.getItem(\"came-from\"))", tracker);
-        Assert.Contains("function isEmailReferrer(host)", tracker);
+        Assert.Contains("function isEmailReferrer(host: string): boolean", tracker);
         const string emailSourceLine = "if (isEmailReferrer(host)) return \"email\";";
         const string searchSourceLine = "if (/google|bing|duckduckgo|yahoo|brave|search/i.test(host)) return \"search\";";
         Assert.Contains(emailSourceLine, tracker);
@@ -116,11 +119,10 @@ public sealed class SiteStatisticsDashboardPageTests
     [Fact]
     public void SiteStatisticsTracker_EmitsDashboardDefinedPublicAndChallengeEvents()
     {
-        var repoRoot = FindRepoRoot();
-        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
-        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
-        var rankPreview = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "bioage-rank-preview.js"));
-        var proofHelpers = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "proof-helpers.js"));
+        var tracker = ReadFrontendSource("site-statistics-tracking.ts");
+        var dashboard = ReadFrontendSource("site-statistics.ts");
+        var rankPreview = ReadFrontendSource("bioage-rank-preview.ts");
+        var proofHelpers = ReadFrontendSource("proof-helpers.ts");
 
         var expectedDashboardEvents = new[]
         {
@@ -158,18 +160,17 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.DoesNotContain("querySelector(\".lmx-commitment-card\")", tracker);
         Assert.Contains("setupPublicContentTracking", tracker);
         Assert.Contains("trackPublicPageViews", tracker);
-        Assert.Contains("function isIgnoredClientError(e)", dashboard);
+        Assert.Contains("function isIgnoredClientError(e: DashboardEvent | null | undefined): boolean", dashboard);
     }
 
     [Fact]
     public void SiteStatisticsTracker_RecordsPrefilledCalculatorProgress()
     {
-        var repoRoot = FindRepoRoot();
-        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
+        var tracker = ReadFrontendSource("site-statistics-tracking.ts");
 
-        Assert.Contains("function fieldHasRequiredValue(el)", tracker);
-        Assert.Contains("function recordFieldCompletion(el, source)", tracker);
-        Assert.Contains("function scanRequiredFields(source)", tracker);
+        Assert.Contains("function fieldHasRequiredValue(el: RequiredCalculatorControl): boolean", tracker);
+        Assert.Contains("function recordFieldCompletion(el: RequiredCalculatorControl, source: string): boolean", tracker);
+        Assert.Contains("function scanRequiredFields(source: string): void", tracker);
         Assert.Contains("scanRequiredFields(\"initial\")", tracker);
         Assert.Contains("scanRequiredFields(\"autofill\")", tracker);
         Assert.Contains("scanRequiredFields(\"submit\")", tracker);
@@ -182,12 +183,11 @@ public sealed class SiteStatisticsDashboardPageTests
     [Fact]
     public void SiteStatisticsDashboard_SurfacesCalculatorCompletionSources()
     {
-        var repoRoot = FindRepoRoot();
-        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+        var dashboard = ReadFrontendSource("site-statistics.ts");
 
         Assert.Contains("Calculator completion sources", dashboard);
-        Assert.Contains("function calculatorCompletionSourceTable(events)", dashboard);
-        Assert.Contains("function completionSourceLabel(source)", dashboard);
+        Assert.Contains("function calculatorCompletionSourceTable(events: DashboardEvent[]): string", dashboard);
+        Assert.Contains("function completionSourceLabel(source: string): string", dashboard);
         Assert.Contains("completionSource", dashboard);
         Assert.Contains("entryMode", dashboard);
         Assert.Contains("source-visual-list", dashboard);
@@ -201,9 +201,8 @@ public sealed class SiteStatisticsDashboardPageTests
     [Fact]
     public void SiteStatisticsTracker_DoesNotFlagValidApplicationEntryPagesAsMissingHandoff()
     {
-        var repoRoot = FindRepoRoot();
-        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
-        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+        var tracker = ReadFrontendSource("site-statistics-tracking.ts");
+        var dashboard = ReadFrontendSource("site-statistics.ts");
 
         var pageViewTrackingStart = tracker.IndexOf("function setupPageViews()", StringComparison.Ordinal);
         Assert.True(pageViewTrackingStart >= 0);
@@ -223,7 +222,7 @@ public sealed class SiteStatisticsDashboardPageTests
         var proofsBlock = tracker[proofsBlockStart..calculatorBlockStart];
         Assert.Contains("proof_flow_missing_handoff", proofsBlock);
 
-        Assert.Contains("function isBenignMissingContextEvent(e)", dashboard);
+        Assert.Contains("function isBenignMissingContextEvent(e: DashboardEvent | null | undefined): boolean", dashboard);
         Assert.Contains("route === \"/apply\"", dashboard);
         Assert.Contains("route.includes(\"from=proof-upload\")", dashboard);
         Assert.DoesNotContain("route.includes(\"from=redacted\")", dashboard);
@@ -233,8 +232,7 @@ public sealed class SiteStatisticsDashboardPageTests
     [Fact]
     public void SiteStatisticsDashboard_SurfacesTrafficOverview()
     {
-        var repoRoot = FindRepoRoot();
-        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+        var dashboard = ReadFrontendSource("site-statistics.ts");
 
         Assert.Contains("\"Traffic Overview\"", dashboard);
         Assert.Contains("\"Onboarding Diagnostics\"", dashboard);
@@ -266,12 +264,12 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("Top-session share", dashboard);
         Assert.Contains("Noisy page-view share", dashboard);
         Assert.Contains("Repeated-refresh sessions", dashboard);
-        Assert.Contains("function pageViewMixLabel(quality)", dashboard);
+        Assert.Contains("function pageViewMixLabel(quality: TrafficQuality): string", dashboard);
         Assert.DoesNotContain("Unique visitors", dashboard);
-        Assert.Contains("function dailyTrafficChart(points)", dashboard);
-        Assert.Contains("function trafficPageTable(rows)", dashboard);
-        Assert.Contains("function normalizeTrafficSummary(summary)", dashboard);
-        Assert.Contains("function normalizeTrafficQuality(quality)", dashboard);
+        Assert.Contains("function dailyTrafficChart(points: TrafficDailyPoint[]): string", dashboard);
+        Assert.Contains("function trafficPageTable(rows: TrafficPage[]): string", dashboard);
+        Assert.Contains("function normalizeTrafficSummary(summary: RawTrafficSummary | null | undefined): TrafficSummary", dashboard);
+        Assert.Contains("function normalizeTrafficQuality(quality: RawTrafficQuality | null | undefined): TrafficQuality", dashboard);
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")

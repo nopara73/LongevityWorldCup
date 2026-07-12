@@ -1,3 +1,4 @@
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -14,6 +15,7 @@ public sealed class CharacterCustomizationPageTests
         var css = await client.GetStringAsync("/css/play-athlete-flow.css");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
         var playMenu = await client.GetStringAsync("/js/play-menu.js");
+        var playMenuSource = ReadFrontendSource("play-menu.ts");
 
         Assert.Contains("/js/play-athlete-flow.js", html);
         Assert.Contains("/css/play-athlete-flow.css", html);
@@ -25,7 +27,8 @@ public sealed class CharacterCustomizationPageTests
         Assert.DoesNotContain("flow.readRequiredSelectedAthlete();", playMenu);
         Assert.Contains("flow.renderAthleteDashboardHeader(athlete, {", playMenu);
         Assert.Contains("flow.renderDashboardActions(athlete, {", playMenu);
-        Assert.Contains("document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);", playMenu);
+        Assert.Contains("const dashboardBackButton = document.getElementById('playDashboardBackBtn');", playMenuSource);
+        Assert.Contains("dashboardBackButton.addEventListener('click', navigateToSelectionPanel);", playMenuSource);
         Assert.Contains("aspect-ratio: 1 / 1;", css);
         Assert.Contains("object-fit: contain;", css);
         Assert.DoesNotContain("object-fit: cover;", css);
@@ -46,14 +49,14 @@ public sealed class CharacterCustomizationPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/dashboard");
-        var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
-        var playMenu = await client.GetStringAsync("/js/play-menu.js");
+        var flowSource = ReadFrontendSource("play-athlete-flow.ts");
+        var playMenuSource = ReadFrontendSource("play-menu.ts");
 
-        Assert.Contains("Promise.resolve(window.modulesReady || undefined)", playMenu);
-        Assert.Contains(".catch(() => {})", playMenu);
-        Assert.Contains("flow.renderDashboardActions(athlete, {", playMenu);
-        Assert.Contains("const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});", flow);
-        Assert.Contains("return ready.catch(() => {}).then(() => {", flow);
+        Assert.Contains("Promise.resolve(window.modulesReady || undefined)", playMenuSource);
+        Assert.Contains(".catch(() => {})", playMenuSource);
+        Assert.Contains("flow.renderDashboardActions(athlete, {", playMenuSource);
+        Assert.Contains("const ready = Promise.resolve(window.modulesReady || undefined).catch(() => {});", flowSource);
+        Assert.Contains("return ready.catch(() => {}).then(() => {", flowSource);
         Assert.DoesNotContain("const ready = window.modulesReady || Promise.resolve();", html);
     }
 
@@ -65,12 +68,15 @@ public sealed class CharacterCustomizationPageTests
 
         var html = await client.GetStringAsync("/dashboard");
         var playMenu = await client.GetStringAsync("/js/play-menu.js");
+        var playMenuSource = ReadFrontendSource("play-menu.ts");
 
         Assert.Contains("id=\"playDashboardBackBtn\" type=\"button\"", html);
         Assert.Contains("function navigateToSelectionPanel()", playMenu);
         Assert.Contains("navigateToPreviousPlayPanel('selection');", playMenu);
         Assert.Contains("showPlayPanel(fallbackPanelName, { historyMode: 'replace' });", playMenu);
-        Assert.Contains("document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);", playMenu);
+        Assert.Contains("const dashboardBackButton = document.getElementById('playDashboardBackBtn');", playMenuSource);
+        Assert.Contains("dashboardBackButton.addEventListener('click', navigateToSelectionPanel);", playMenuSource);
         Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", html);
     }
+
 }

@@ -1,3 +1,4 @@
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -10,7 +11,7 @@ public sealed class BioageRankPreviewTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/misc.js");
+        var javascript = await GetFrontendTypeScriptAsync(client, "misc.ts");
         var previewStart = javascript.IndexOf("window.updateHypotheticalRankResult = async function (options)", StringComparison.Ordinal);
         var previewEnd = javascript.IndexOf("window.renderHypotheticalRankResult = function", previewStart, StringComparison.Ordinal);
 
@@ -49,4 +50,18 @@ public sealed class BioageRankPreviewTests
         Assert.Contains("fetch('/api/data/athletes', {", javascript);
         Assert.Contains("cache: 'no-store'", javascript);
     }
+
+    [Fact]
+    public async Task RankPreview_PreservesSharedCalculatorReceivers()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var source = await GetFrontendTypeScriptAsync(client, "bioage-rank-preview.ts");
+
+        Assert.Contains(".call(window, dob, date)", source);
+        Assert.Contains("calculatePhenoAge.call(clock, values)", source);
+        Assert.Contains("calculateBortzAge.call(clock, ageAtEntry, values)", source);
+    }
+
 }

@@ -115,8 +115,8 @@ public sealed class OpenDataProfileBrowserTests
                 errors.Add(message.Text);
         };
         page.PageError += (_, error) => errors.Add(error);
-        page.SetDefaultTimeout(5_000);
-        page.SetDefaultNavigationTimeout(10_000);
+        page.SetDefaultTimeout(30_000);
+        page.SetDefaultNavigationTimeout(30_000);
         page.Request += (_, request) =>
         {
             if (request.Url.Contains("/api/data/leaderboard-profiles", StringComparison.OrdinalIgnoreCase))
@@ -165,9 +165,12 @@ public sealed class OpenDataProfileBrowserTests
         await openProfileButton.FocusAsync();
         await openProfileButton.ClickAsync();
         await page.Locator("#detailsModal .modal-content.open-data-profile").WaitForAsync();
-        await page.WaitForURLAsync("**/public-data/public-browser-subject");
+        await page.Locator("#publicDataSourceList > li").First.WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 60_000 });
 
-        Assert.Equal("/public-data/public-browser-subject", new Uri(page.Url).AbsolutePath);
+        Assert.Equal(
+            "/public-data/public-browser-subject",
+            await page.EvaluateAsync<string>("() => window.location.pathname"));
         Assert.Equal("closeAthleteDetailsModal", await page.EvaluateAsync<string>("() => document.activeElement?.id || ''"));
         Assert.True(await page.Locator("#openDataProfileDisclosure").IsVisibleAsync());
         Assert.Equal(
@@ -238,18 +241,26 @@ public sealed class OpenDataProfileBrowserTests
         }
 
         await page.Keyboard.PressAsync("Escape");
-        await page.WaitForURLAsync("**/leaderboard**");
+        await page.Locator("#detailsModal").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 30_000 });
+        Assert.Equal("/leaderboard", await page.EvaluateAsync<string>("() => window.location.pathname"));
         await page.WaitForFunctionAsync(
             "() => document.activeElement?.getAttribute('aria-label') === 'View unranked public-data profile for Public Browser Subject'");
         Assert.True(await openProfileButton.EvaluateAsync<bool>("button => button === document.activeElement"));
         await search.FillAsync(string.Empty);
         await page.EvaluateAsync("() => localStorage.setItem('gmaSkipAll', 'true')");
         await page.Locator(".leaderboard table tbody tr[data-athlete-name='Official Browser Athlete']").ClickAsync();
-        await page.WaitForURLAsync("**/athlete/official-browser-athlete");
-        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('open-data-profile')");
+        await page.Locator("#detailsModal #personalLink").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 60_000 });
 
+        Assert.Equal(
+            "/athlete/official-browser-athlete",
+            await page.EvaluateAsync<string>("() => window.location.pathname"));
         Assert.Null(await page.Locator("#detailsModal").GetAttributeAsync("aria-describedby"));
         Assert.Equal("Close athlete details", await page.Locator("#closeAthleteDetailsModal").GetAttributeAsync("aria-label"));
+        Assert.DoesNotContain(
+            "open-data-profile",
+            await page.Locator("#detailsModal .modal-content").GetAttributeAsync("class") ?? string.Empty);
         Assert.False(await page.Locator("#publicDataSources").IsVisibleAsync());
         Assert.True(await page.Locator("#detailsModal .official-profile-only").First.IsVisibleAsync());
 

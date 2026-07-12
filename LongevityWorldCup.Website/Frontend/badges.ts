@@ -18,26 +18,26 @@
 const LEGACY_BG = {
     default: "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;",
     medal: [
-        "background: linear-gradient(135deg, #ffd700, #8b8000); border: 2px solid #8a6f00; --badge-fg: #0b1220;", // Gold
-        "background: linear-gradient(135deg, #c0c0c0, #696969); border: 2px solid #6e6e6e; --badge-fg: #0b1220;", // Silver
+        "background: linear-gradient(135deg, #ffd700, #8b8000); border: 2px solid #8a6f00;", // Gold
+        "background: linear-gradient(135deg, #c0c0c0, #696969); border: 2px solid #6e6e6e;", // Silver
         "background: linear-gradient(135deg, #cd7f32, #5c4033); border: 2px solid #6b3519;"  // Bronze
     ],
     pheno:        "background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: 2px solid #1e40af;",
-    bortz:        "background: linear-gradient(135deg, #22c55e, #15803d); border: 2px solid #166534; --badge-fg: #0b1220;",
+    bortz:        "background: linear-gradient(135deg, #22c55e, #15803d); border: 2px solid #166534;",
     liver:        "background: linear-gradient(135deg, #aa336a, #6e0f3c); border: 2px solid #4a0b27;",
     kidney:       "background: linear-gradient(135deg, #128fa1, #0e4d64); border: 2px solid #082c3a;",
-    metabolic:    "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200; --badge-fg: #0b1220;",
+    metabolic:    "background: linear-gradient(135deg, #ff9800, #9c5700); border: 2px solid #5c3200;",
     inflammation: "background: linear-gradient(135deg, #b71c1c, #7f0000); border: 2px solid #4a0000;",
     immune:       "background: linear-gradient(135deg, #43a047, #1b5e20); border: 2px solid #0d3a12;",
-    vitaminD:     "background: linear-gradient(135deg, #f9a825, #f57f17); border: 2px solid #8d5b00; --badge-fg: #0b1220;",
+    vitaminD:     "background: linear-gradient(135deg, #f9a825, #f57f17); border: 2px solid #8d5b00;",
     phenoPace:    "background: linear-gradient(135deg, #3b82f6, #1d4ed8); border: 2px solid #1e40af;",
-    bortzPace:    "background: linear-gradient(135deg, #22c55e, #15803d); border: 2px solid #166534; --badge-fg: #0b1220;",
-    personal:     "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56; --badge-fg: #0b1220;",
+    bortzPace:    "background: linear-gradient(135deg, #22c55e, #15803d); border: 2px solid #166534;",
+    personal:     "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;",
     black:        "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;"
 };
 
 // FontAwesome icon mapping (by server labels)
-const BASE_ICONS = {
+const BASE_ICONS: Readonly<Record<string, string>> = {
     'Age reduction': 'fa-bolt',
     'Chronological age – oldest': 'fa-infinity',
     'Chronological age – youngest': 'fa-baby',
@@ -65,13 +65,27 @@ const BASE_ICONS = {
     'Perfect application': 'fa-ruler'
 };
 
-function canonicalizeBadgeLabel(label) {
+interface BadgeTooltipOptions {
+    readonly suppressValues?: boolean;
+}
+
+interface RenderedBadgeItem {
+    readonly order: number;
+    readonly searchText: string;
+    readonly html: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function canonicalizeBadgeLabel(label: unknown): string {
     const normalized = String(label || '')
         .replace(/â€“/g, '-')
         .replace(/[–—]/g, '-')
         .trim();
 
-    const aliases = {
+    const aliases: Readonly<Record<string, string>> = {
         'Age Reduction': 'Age reduction',
         'Chronological Age - Oldest': 'Chronological age - oldest',
         'Chronological Age - Youngest': 'Chronological age - youngest',
@@ -91,7 +105,8 @@ function canonicalizeBadgeLabel(label) {
         'Perfect Application': 'Perfect application'
     };
 
-    if (aliases[normalized]) return aliases[normalized];
+    const alias = aliases[normalized];
+    if (alias) return alias;
     if (normalized.startsWith('Best Domain - ')) {
         const domain = normalized.slice('Best Domain - '.length).trim();
         return 'Best domain – ' + (domain === 'Vitamin D' ? 'vitamin D' : domain.toLowerCase());
@@ -100,22 +115,22 @@ function canonicalizeBadgeLabel(label) {
 }
 
 // Normalized getters (support server PascalCase and possible legacy camelCase)
-function getLabel(b) { return canonicalizeBadgeLabel(b.BadgeLabel || b.Label || ''); }
-function getCat(b)   { return b.LeagueCategory || b.Category || 'Global'; }
-function getVal(b)   { return b.LeagueValue ?? b.Value ?? null; }
-function getPlace(b) { return (typeof b.Place === 'number') ? b.Place : null; }
+function getLabel(b: ServerBadge): string { return canonicalizeBadgeLabel(b.BadgeLabel || b.Label || ''); }
+function getCat(b: ServerBadge): string { return String(b.LeagueCategory || b.Category || 'Global'); }
+function getVal(b: ServerBadge): unknown { return b.LeagueValue ?? b.Value ?? null; }
+function getPlace(b: ServerBadge): number | null { return (typeof b.Place === 'number') ? b.Place : null; }
 
-function isSeasonBadgeLabel(label) {
+function isSeasonBadgeLabel(label: unknown): boolean {
     return /^S\d{2}$/i.test(String(label || '').trim());
 }
 
-function getSeasonBadgeYear(label) {
+function getSeasonBadgeYear(label: unknown): number | null {
     const match = /^S(\d{2})$/i.exec(String(label || '').trim());
     if (!match) return null;
     return 2000 + Number(match[1]);
 }
 
-function capitalizeBadgeTooltipPrefix(tooltip) {
+function capitalizeBadgeTooltipPrefix(tooltip: unknown): string {
     const text = String(tooltip || '');
     const colonIndex = text.indexOf(':');
     if (colonIndex < 0) return text;
@@ -126,12 +141,12 @@ function capitalizeBadgeTooltipPrefix(tooltip) {
     return prefix + text.slice(colonIndex);
 }
 
-function getSeasonBadgeTag(label) {
+function getSeasonBadgeTag(label: unknown): string {
     const year = getSeasonBadgeYear(label);
     return year ? `LWC${String(year).slice(-2)}` : String(label || '').trim().toUpperCase();
 }
 
-function escapeAttr(value) {
+function escapeAttr(value: unknown): string {
     return String(value ?? '')
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')
@@ -139,13 +154,13 @@ function escapeAttr(value) {
         .replace(/>/g, '&gt;');
 }
 
-function styleWithBadgeVars(style) {
+function styleWithBadgeVars(style: string): string {
     const raw = String(style || '');
     const match = /background\s*:\s*([^;]+);?/i.exec(raw);
     return match ? `${raw}--badge-bg:${match[1]};` : raw;
 }
 
-function getAthleteProfileSlug(athlete) {
+function getAthleteProfileSlug(athlete: BadgeAthlete | null | undefined): string {
     const explicitSlug = athlete && (athlete.AthleteSlug || athlete.athleteSlug || athlete.Slug || athlete.slug);
     const raw = explicitSlug || (athlete && (athlete.name || athlete.Name || athlete.displayName || athlete.DisplayName));
     if (!raw) return '';
@@ -159,12 +174,12 @@ function getAthleteProfileSlug(athlete) {
     return s.replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
-function getAthleteProfileUrl(athlete) {
+function getAthleteProfileUrl(athlete: BadgeAthlete | null | undefined): string {
     const slug = getAthleteProfileSlug(athlete);
     return slug ? `/athlete/${encodeURIComponent(slug)}` : '';
 }
 
-function getBadgeFamilyClass(b) {
+function getBadgeFamilyClass(b: ServerBadge): string {
     const label = getLabel(b);
     const place = getPlace(b);
 
@@ -197,7 +212,7 @@ function getBadgeFamilyClass(b) {
 }
 
 // Choose proper icon; override special cases
-function pickIconForServerBadge(b) {
+function pickIconForServerBadge(b: ServerBadge): string {
     const label = getLabel(b);
     const cat = (getCat(b) || '').toLowerCase();
     const place = getPlace(b);
@@ -211,10 +226,10 @@ function pickIconForServerBadge(b) {
 
     if (label === 'Age reduction' && (cat === 'division' || cat === 'generation') && val) {
         if (cat === 'division' && typeof window.TryGetDivisionFaIcon === 'function') {
-            return window.TryGetDivisionFaIcon(val) || (BASE_ICONS[label] || 'fa-award');
+            return window.TryGetDivisionFaIcon(String(val)) || (BASE_ICONS[label] || 'fa-award');
         }
         if (cat === 'generation' && typeof window.TryGetGenerationFaIcon === 'function') {
-            return window.TryGetGenerationFaIcon(val) || (BASE_ICONS[label] || 'fa-award');
+            return window.TryGetGenerationFaIcon(String(val)) || (BASE_ICONS[label] || 'fa-award');
         }
     }
 
@@ -272,7 +287,7 @@ function pickIconForServerBadge(b) {
 }
 
 // Backgrounds to mimic the old palette
-function pickBackgroundForServerBadge(b) {
+function pickBackgroundForServerBadge(b: ServerBadge): string {
     const label = getLabel(b);
     const place = getPlace(b);
 
@@ -291,7 +306,7 @@ function pickBackgroundForServerBadge(b) {
         (typeof label === 'string' && label.startsWith('Crowd – '));
 
     if (medalLike && place && [1, 2, 3].includes(place)) {
-        return LEGACY_BG.medal[place - 1];
+        return LEGACY_BG.medal[place - 1] ?? LEGACY_BG.default;
     }
 
     if (label === 'Most submissions' || label === '≥2 submissions') return LEGACY_BG.black;
@@ -313,7 +328,7 @@ function pickBackgroundForServerBadge(b) {
 }
 
 // Optional link target (when clicking a medal/badge)
-function pickClickUrl(b, athlete) {
+function pickClickUrl(b: ServerBadge, athlete?: BadgeAthlete | null): string | null {
     const label = getLabel(b);
     const cat = (getCat(b) || '').toLowerCase();
     const val = getVal(b);
@@ -329,13 +344,18 @@ function pickClickUrl(b, athlete) {
     if (label === 'Podcast') {
         const podcastLink = (athlete && (athlete.podcastLink || athlete.PodcastLink)) || null;
         if (!podcastLink) return null;
-        return podcastLink.startsWith('http') ? podcastLink : ('https://' + podcastLink);
+        const podcastUrl = String(podcastLink);
+        return podcastUrl.startsWith('http') ? podcastUrl : ('https://' + podcastUrl);
     }
     return null;
 }
 
 // Legacy tooltip builders (exact old copy)
-function makeTooltipFromServerBadge(b, athlete, opts) {
+function makeUnformattedTooltipFromServerBadge(
+    b: ServerBadge,
+    athlete?: BadgeAthlete | null,
+    opts?: BadgeTooltipOptions
+): string {
     const label = getLabel(b);
     const place = getPlace(b);
     const cat = (getCat(b) || '').toLowerCase();
@@ -626,15 +646,18 @@ function makeTooltipFromServerBadge(b, athlete, opts) {
     return place ? `${label}: #${place}` : `${label}`;
 }
 
-const makeUnformattedTooltipFromServerBadge = makeTooltipFromServerBadge;
-makeTooltipFromServerBadge = function (b, athlete, opts) {
+function makeTooltipFromServerBadge(
+    b: ServerBadge,
+    athlete?: BadgeAthlete | null,
+    opts?: BadgeTooltipOptions
+): string {
     return capitalizeBadgeTooltipPrefix(makeUnformattedTooltipFromServerBadge(b, athlete, opts));
-};
+}
 
 /* -------------------------------------------------
    ORDERING — match legacy: link → podcast → neutrals → medals
    ------------------------------------------------- */
-function computeOrder(b) {
+function computeOrder(b: ServerBadge): number {
     const label = getLabel(b);
     const cat = (getCat(b) || '').toLowerCase();
     const place = getPlace(b);
@@ -689,7 +712,7 @@ function computeOrder(b) {
 }
 
 // Build one server badge bubble HTML
-function buildServerBadgeHtml(b, athlete) {
+function buildServerBadgeHtml(b: ServerBadge, athlete: BadgeAthlete): RenderedBadgeItem {
     const icon = pickIconForServerBadge(b);
     const tooltip = makeTooltipFromServerBadge(b, athlete);
     const style = pickBackgroundForServerBadge(b);
@@ -721,7 +744,7 @@ function buildServerBadgeHtml(b, athlete) {
    Public API
    ========================= */
 window.setBadges = function (athlete, athleteCell) {
-    let badgeContainer = null;
+    let badgeContainer: HTMLElement | null = null;
     if (athleteCell && athleteCell.classList && athleteCell.classList.contains('badge-section')) {
         badgeContainer = athleteCell;
     } else if (athleteCell && typeof athleteCell.querySelector === 'function') {
@@ -729,9 +752,9 @@ window.setBadges = function (athlete, athleteCell) {
     }
     if (!badgeContainer) return;
 
-    const items = [];
+    const items: RenderedBadgeItem[] = [];
 
-    const personalLink = athlete.personalLink || athlete.PersonalLink;
+    const personalLink = String(athlete.personalLink || athlete.PersonalLink || '');
     if (personalLink) {
         const href = personalLink.startsWith('http') ? personalLink : `https://${personalLink}`;
         items.push({
@@ -753,23 +776,27 @@ window.setBadges = function (athlete, athleteCell) {
     try {
         const rawName = athlete.name || athlete.Name || athlete.displayName || athlete.DisplayName || '';
         if (rawName) {
-            let slug;
+            let slug: string;
             if (typeof window.slugifyName === 'function') {
-                slug = window.slugifyName(rawName, true);
+                slug = window.slugifyName(String(rawName), true);
             } else {
                 let s = String(rawName).toLowerCase();
                 try { s = s.normalize('NFKD'); } catch (_) {}
                 slug = s.replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
             }
 
-            const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-            const g = allGuesses && allGuesses[slug];
-            const guessed = (g && g.value != null) ? parseInt(g.value, 10) : null;
+            const parsedGuesses: unknown = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+            const allGuesses = isRecord(parsedGuesses) ? parsedGuesses : {};
+            const g = allGuesses[slug];
+            const guessed = (isRecord(g) && g.value != null) ? parseInt(String(g.value), 10) : null;
 
             const chrono = athlete.chronologicalAge ?? athlete.ChronoAge ?? null;
-            const actualInt = Number.isFinite(chrono) ? parseInt(chrono, 10) : null;
+            const actualInt = Number.isFinite(chrono) ? parseInt(String(chrono), 10) : null;
 
-            if (Number.isInteger(guessed) && Number.isInteger(actualInt) && (guessed - actualInt === 0)) {
+            if (guessed !== null && actualInt !== null
+                && Number.isInteger(guessed)
+                && Number.isInteger(actualInt)
+                && (guessed - actualInt === 0)) {
                 if (window.proDiscounts && typeof window.proDiscounts.setPerfectGuessMarker === 'function') {
                     window.proDiscounts.setPerfectGuessMarker();
                 }
@@ -819,8 +846,8 @@ window.setBadges = function (athlete, athleteCell) {
 
     try {
         const overflowLinks = badgeContainer.querySelectorAll('.badge-overflow-count[data-athlete-slug]');
-        overflowLinks.forEach(link => {
-            link.addEventListener('click', event => {
+        overflowLinks.forEach((link: Element) => {
+            link.addEventListener('click', (event: Event) => {
                 event.stopPropagation();
                 const slug = link.getAttribute('data-athlete-slug');
                 if (slug && typeof window.openAthleteModalBySlug === 'function' && window.openAthleteModalBySlug(slug, { suppressGuessMyAge: true })) {
@@ -830,8 +857,8 @@ window.setBadges = function (athlete, athleteCell) {
         });
 
         if (!isModalStrip) {
-            Array.from(badgeContainer.children).forEach(badge => {
-                badge.style.animation = '';
+            Array.from(badgeContainer.children).forEach((badge: Element) => {
+                if (badge instanceof HTMLElement) badge.style.animation = '';
             });
         }
     } catch {}
@@ -844,3 +871,5 @@ window.makeTooltipFromServerBadge = makeTooltipFromServerBadge;
 window.pickClickUrl = pickClickUrl;
 window.getBadgeFamilyClass = getBadgeFamilyClass;
 window.styleWithBadgeVars = styleWithBadgeVars;
+
+export {};

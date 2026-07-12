@@ -4,18 +4,22 @@ const ATHLETE_PICTURE_TRANSITION_MS = 180;
 const MIN_USABLE_ATHLETE_PICTURE_SIDE = 16;
 const PENDING_PAYMENT_OFFER_KEY = "pendingPaymentOffer";
 
-const pictureTransitionTokens = new WeakMap();
-const pictureReadyPromises = new WeakMap();
+const pictureTransitionTokens = new WeakMap<HTMLElement, number>();
+const pictureReadyPromises = new WeakMap<HTMLElement, Promise<unknown>>();
 
-function getDefaultHeadshotWebp() {
+function isPlayObject(value: unknown): value is object {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getDefaultHeadshotWebp(): string {
     return document.body?.dataset.defaultHeadshotWebp || DEFAULT_HEADSHOT_WEBP_FALLBACK;
 }
 
-function getDefaultHeadshotJpeg() {
+function getDefaultHeadshotJpeg(): string {
     return document.body?.dataset.defaultHeadshotJpeg || DEFAULT_HEADSHOT_JPEG_FALLBACK;
 }
 
-function getBrowserStorageItem(storageName, key) {
+function getBrowserStorageItem(storageName: PlayBrowserStorageName, key: string): string | null {
     try {
         return window[storageName].getItem(key);
     } catch (_) {
@@ -23,7 +27,7 @@ function getBrowserStorageItem(storageName, key) {
     }
 }
 
-function setBrowserStorageItem(storageName, key, value) {
+function setBrowserStorageItem(storageName: PlayBrowserStorageName, key: string, value: string): boolean {
     try {
         window[storageName].setItem(key, value);
         return true;
@@ -32,25 +36,25 @@ function setBrowserStorageItem(storageName, key, value) {
     }
 }
 
-function removeBrowserStorageItem(storageName, key) {
+function removeBrowserStorageItem(storageName: PlayBrowserStorageName, key: string): void {
     try {
         window[storageName].removeItem(key);
     } catch (_) {
     }
 }
 
-function getLocalItem(key) { return getBrowserStorageItem("localStorage", key); }
-function setLocalItem(key, value) { return setBrowserStorageItem("localStorage", key, value); }
-function removeLocalItem(key) { removeBrowserStorageItem("localStorage", key); }
-function getSessionItem(key) { return getBrowserStorageItem("sessionStorage", key); }
-function setSessionItem(key, value) { return setBrowserStorageItem("sessionStorage", key, value); }
-function removeSessionItem(key) { removeBrowserStorageItem("sessionStorage", key); }
+function getLocalItem(key: string): string | null { return getBrowserStorageItem("localStorage", key); }
+function setLocalItem(key: string, value: string): boolean { return setBrowserStorageItem("localStorage", key, value); }
+function removeLocalItem(key: string): void { removeBrowserStorageItem("localStorage", key); }
+function getSessionItem(key: string): string | null { return getBrowserStorageItem("sessionStorage", key); }
+function setSessionItem(key: string, value: string): boolean { return setBrowserStorageItem("sessionStorage", key, value); }
+function removeSessionItem(key: string): void { removeBrowserStorageItem("sessionStorage", key); }
 
-function hasSubmittedApplication() {
+function hasSubmittedApplication(): boolean {
     return getLocalItem("hasApplication") === "true";
 }
 
-function focusWithoutScrolling(element) {
+function focusWithoutScrolling(element: HTMLElement | null | undefined): void {
     try {
         element?.focus({ preventScroll: true });
     } catch (_) {
@@ -58,7 +62,7 @@ function focusWithoutScrolling(element) {
     }
 }
 
-function getAthleteDisplayName(athlete) {
+function getAthleteDisplayName(athlete: PlayAthlete | null | undefined): string {
     if (athlete && typeof athlete.DisplayName === "string" && athlete.DisplayName.trim()) {
         return athlete.DisplayName.trim();
     }
@@ -66,11 +70,14 @@ function getAthleteDisplayName(athlete) {
     return athlete && typeof athlete.Name === "string" ? athlete.Name : "";
 }
 
-function getAthleteCanonicalName(athlete) {
+function getAthleteCanonicalName(athlete: PlayAthlete | null | undefined): string {
     return athlete && typeof athlete.Name === "string" ? athlete.Name.trim() : "";
 }
 
-function isAthleteInputValue(athlete, value) {
+function isAthleteInputValue(
+    athlete: PlayAthlete | null | undefined,
+    value: string | null | undefined
+): boolean {
     const query = (value || "").trim().toLowerCase();
     const canonicalName = getAthleteCanonicalName(athlete);
     if (!query || !canonicalName) return false;
@@ -79,17 +86,18 @@ function isAthleteInputValue(athlete, value) {
         || getAthleteDisplayName(athlete).toLowerCase() === query;
 }
 
-function getAthleteSearchText(athlete) {
+function getAthleteSearchText(athlete: PlayAthlete): string {
     return `${getAthleteCanonicalName(athlete)} ${getAthleteDisplayName(athlete)}`.toLowerCase();
 }
 
-function getAthletePictureImageSrc(athlete) {
-    return athlete && (athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb)
+function getAthletePictureImageSrc(athlete: PlayAthlete | null | undefined): string {
+    const pictureSource = athlete
         ? athlete.ProfilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb
-        : getDefaultHeadshotJpeg();
+        : null;
+    return pictureSource || getDefaultHeadshotJpeg();
 }
 
-function getStoredSelectedAthlete() {
+function getStoredSelectedAthlete(): PlayAthlete | null {
     const json = getSessionItem("selectedAthlete");
     if (!json) return null;
 
@@ -106,21 +114,19 @@ function getStoredSelectedAthlete() {
     return null;
 }
 
-function getSavedSelectedAthleteName() {
+function getSavedSelectedAthleteName(): string {
     const selectedAthleteName = getLocalItem("selectedAthleteName");
     return typeof selectedAthleteName === "string" ? selectedAthleteName.trim() : "";
 }
 
-function isValidSelectedAthlete(value) {
-    return value
-        && typeof value === "object"
-        && !Array.isArray(value)
-        && typeof value.Name === "string"
-        && value.Name.trim();
+function isValidSelectedAthlete(value: unknown): value is PlayAthlete {
+    if (!isPlayObject(value)) return false;
+    const name = Reflect.get(value, "Name");
+    return typeof name === "string" && name.trim().length > 0;
 }
 
-function readRequiredSelectedAthlete() {
-    let athlete = null;
+function readRequiredSelectedAthlete(): PlayAthlete | null {
+    let athlete: unknown = null;
 
     try {
         const selectedAthleteJson = getSessionItem("selectedAthlete");
@@ -139,13 +145,13 @@ function readRequiredSelectedAthlete() {
     return athlete;
 }
 
-function clearStaleTempAthlete(selectedAthleteName) {
+function clearStaleTempAthlete(selectedAthleteName: string): void {
     const tempJson = getSessionItem("tempAthlete");
     if (!tempJson) return;
 
     try {
         const tempAthlete = JSON.parse(tempJson);
-        if (tempAthlete && typeof tempAthlete === "object" && tempAthlete.Name === selectedAthleteName) {
+        if (isPlayObject(tempAthlete) && Reflect.get(tempAthlete, "Name") === selectedAthleteName) {
             return;
         }
     } catch (_) {
@@ -154,7 +160,7 @@ function clearStaleTempAthlete(selectedAthleteName) {
     removeSessionItem("tempAthlete");
 }
 
-function persistSelectedAthlete(athlete) {
+function persistSelectedAthlete(athlete: PlayAthlete | null): boolean {
     if (!athlete || !athlete.Name) return false;
 
     const prevName = getLocalItem("selectedAthleteName");
@@ -175,7 +181,7 @@ function persistSelectedAthlete(athlete) {
     return true;
 }
 
-function createDefaultAthletePicture() {
+function createDefaultAthletePicture(): HTMLPictureElement {
     const picture = document.createElement("picture");
     const webpSource = document.createElement("source");
     webpSource.srcset = getDefaultHeadshotWebp();
@@ -195,7 +201,7 @@ function createDefaultAthletePicture() {
     return picture;
 }
 
-function createDefaultAthleteImage() {
+function createDefaultAthleteImage(): HTMLImageElement {
     const image = document.createElement("img");
     image.src = getDefaultHeadshotJpeg();
     image.alt = "Headshot";
@@ -205,7 +211,10 @@ function createDefaultAthleteImage() {
     return image;
 }
 
-function createAthletePictureImage(altText, loading = "eager") {
+function createAthletePictureImage(
+    altText: string,
+    loading: "eager" | "lazy" = "eager"
+): HTMLImageElement {
     const image = document.createElement("img");
     image.alt = altText;
     image.className = "illustration athlete-picture-next";
@@ -214,7 +223,7 @@ function createAthletePictureImage(altText, loading = "eager") {
     return image;
 }
 
-function isDefaultHeadshotSrc(src) {
+function isDefaultHeadshotSrc(src: string): boolean {
     if (!src) return false;
 
     try {
@@ -224,15 +233,15 @@ function isDefaultHeadshotSrc(src) {
     }
 }
 
-function shouldUseDefaultForLoadedAthleteImage(image) {
-    return image
+function shouldUseDefaultForLoadedAthleteImage(image: HTMLImageElement | null | undefined): boolean {
+    return Boolean(image
         && image.naturalWidth > 0
         && image.naturalHeight > 0
         && !isDefaultHeadshotSrc(image.currentSrc || image.src)
-        && (image.naturalWidth < MIN_USABLE_ATHLETE_PICTURE_SIDE || image.naturalHeight < MIN_USABLE_ATHLETE_PICTURE_SIDE);
+        && (image.naturalWidth < MIN_USABLE_ATHLETE_PICTURE_SIDE || image.naturalHeight < MIN_USABLE_ATHLETE_PICTURE_SIDE));
 }
 
-function setDefaultAthleteImageSource(image) {
+function setDefaultAthleteImageSource(image: HTMLImageElement | null | undefined): boolean {
     if (!image || isDefaultHeadshotSrc(image.currentSrc || image.src)) {
         return false;
     }
@@ -242,7 +251,7 @@ function setDefaultAthleteImageSource(image) {
     return true;
 }
 
-function watchAthleteImageLoad(image, onLoaded) {
+function watchAthleteImageLoad(image: HTMLImageElement, onLoaded: () => void): () => void {
     let hasCompleted = false;
     let fallbackRequested = false;
 
@@ -298,21 +307,19 @@ function watchAthleteImageLoad(image, onLoaded) {
     return handleImageLoad;
 }
 
-function waitForNextPaint(value) {
-    return new Promise(resolve => {
+function waitForNextPaint<T>(value: T): Promise<T> {
+    return new Promise<T>(resolve => {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => resolve(value));
         });
     });
 }
 
-function waitForImageElementReady(image) {
-    if (!image) return Promise.resolve();
-
+function waitForImageElementReady(image: HTMLImageElement): Promise<HTMLImageElement | void> {
     const loaded = image.complete
         ? Promise.resolve()
-        : new Promise(resolve => {
-            function done() {
+        : new Promise<void>(resolve => {
+            function done(): void {
                 image.removeEventListener("load", done);
                 image.removeEventListener("error", done);
                 resolve();
@@ -327,37 +334,39 @@ function waitForImageElementReady(image) {
             if (typeof image.decode === "function" && image.complete && image.naturalWidth > 0) {
                 return image.decode().catch(() => {});
             }
+            return undefined;
         })
         .then(() => waitForNextPaint(image));
 }
 
-function waitForAthletePictureFrameReady(frame) {
+function waitForAthletePictureFrameReady(frame: HTMLElement | null): Promise<unknown> {
     if (!frame) return Promise.resolve();
 
     const readyPromise = pictureReadyPromises.get(frame);
     if (readyPromise) return readyPromise;
 
-    return waitForImageElementReady(frame.querySelector("img"));
+    const image = frame.querySelector<HTMLImageElement>("img");
+    return image ? waitForImageElementReady(image) : Promise.resolve();
 }
 
-function nextPictureTransitionToken(frame) {
+function nextPictureTransitionToken(frame: HTMLElement): number {
     const token = (pictureTransitionTokens.get(frame) || 0) + 1;
     pictureTransitionTokens.set(frame, token);
     return token;
 }
 
-function transitionAthletePicture(frame, image, src) {
+function transitionAthletePicture(frame: HTMLElement, image: HTMLImageElement, src: string): Promise<HTMLImageElement | void> {
     const transitionToken = nextPictureTransitionToken(frame);
-    let resolveReady;
-    const readyPromise = new Promise(resolve => { resolveReady = resolve; });
+    let resolveReady: (value?: HTMLImageElement | void) => void = () => {};
+    const readyPromise = new Promise<HTMLImageElement | void>(resolve => { resolveReady = resolve; });
     pictureReadyPromises.set(frame, readyPromise);
     let hasFinished = false;
 
-    function finishReady() {
+    function finishReady(): void {
         waitForNextPaint(image).then(() => resolveReady(image));
     }
 
-    function finishImageSwap() {
+    function finishImageSwap(): void {
         if (hasFinished) return;
         if (transitionToken !== pictureTransitionTokens.get(frame)) {
             resolveReady();
@@ -412,14 +421,14 @@ function transitionAthletePicture(frame, image, src) {
     return readyPromise;
 }
 
-function replaceAthletePictureImmediately(frame, image, src) {
+function replaceAthletePictureImmediately(frame: HTMLElement, image: HTMLImageElement, src: string): Promise<HTMLImageElement | void> {
     const transitionToken = nextPictureTransitionToken(frame);
-    let resolveReady;
-    const readyPromise = new Promise(resolve => { resolveReady = resolve; });
+    let resolveReady: (value?: HTMLImageElement | void) => void = () => {};
+    const readyPromise = new Promise<HTMLImageElement | void>(resolve => { resolveReady = resolve; });
     pictureReadyPromises.set(frame, readyPromise);
     let hasFinished = false;
     image.classList.remove("athlete-picture-next", "is-visible");
-    function finishImageSwap() {
+    function finishImageSwap(): void {
         if (hasFinished) return;
         if (transitionToken !== pictureTransitionTokens.get(frame)) {
             resolveReady();
@@ -447,17 +456,21 @@ function replaceAthletePictureImmediately(frame, image, src) {
     return readyPromise;
 }
 
-function renderAthletePicture(frame, athlete, altText) {
+function renderAthletePicture(
+    frame: HTMLElement,
+    athlete: PlayAthlete,
+    altText: string
+): Promise<HTMLImageElement | void> {
     const image = createAthletePictureImage(altText, "eager");
     return replaceAthletePictureImmediately(frame, image, getAthletePictureImageSrc(athlete));
 }
 
-function resetAthletePreview({ titleElement, frameElement, defaultTitle }) {
+function resetAthletePreview({ titleElement, frameElement, defaultTitle }: AthletePictureTargets & { defaultTitle: string }): void {
     titleElement.textContent = defaultTitle;
     transitionAthletePicture(frameElement, createDefaultAthleteImage(), getDefaultHeadshotJpeg());
 }
 
-function appendHighlightedText(container, text, query) {
+function appendHighlightedText(container: HTMLElement, text: string, query: string): void {
     const lowerText = text.toLowerCase();
     const idx = lowerText.indexOf(query);
     if (idx < 0) {
@@ -471,7 +484,9 @@ function appendHighlightedText(container, text, query) {
     container.append(strong, document.createTextNode(text.slice(idx + query.length)));
 }
 
-function createAthleteSelectionController(options) {
+function createAthleteSelectionController(
+    options: AthleteSelectionControllerOptions
+): AthleteSelectionController {
     const input = options.input;
     const errorElement = options.errorElement;
     const confirmButton = options.confirmButton;
@@ -483,33 +498,35 @@ function createAthleteSelectionController(options) {
     const autocompleteRootSelector = options.autocompleteRootSelector || null;
 
     let currentAthlete = options.initialAthlete || null;
-    let athletes = [];
+    let athletes: PlayAthlete[] = [];
     let currentFocus = -1;
     let athleteAutocompleteReady = false;
-    let athleteLoadPromise = null;
+    let athleteLoadPromise: Promise<PlayAthlete[]> | null = null;
     let isBound = false;
     let hasUserEditedInput = false;
 
-    function closeAllLists() {
-        document.querySelectorAll(".autocomplete-items")
+    function closeAllLists(): void {
+        document.querySelectorAll<HTMLElement>(".autocomplete-items")
             .forEach(list => list.remove());
         currentFocus = -1;
     }
 
-    function addActive(items) {
+    function addActive(items: HTMLCollectionOf<HTMLDivElement> | null): void {
         if (!items) return;
         removeActive(items);
         if (currentFocus >= items.length) currentFocus = 0;
         if (currentFocus < 0) currentFocus = items.length - 1;
-        items[currentFocus].classList.add("autocomplete-active");
-        items[currentFocus].scrollIntoView({ block: "nearest" });
+        const activeItem = items[currentFocus];
+        if (!activeItem) return;
+        activeItem.classList.add("autocomplete-active");
+        activeItem.scrollIntoView({ block: "nearest" });
     }
 
-    function removeActive(items) {
-        Array.from(items).forEach(item => item.classList.remove("autocomplete-active"));
+    function removeActive(items: HTMLCollectionOf<HTMLDivElement>): void {
+        Array.from(items).forEach((item: HTMLDivElement) => item.classList.remove("autocomplete-active"));
     }
 
-    function clearCurrentAthleteSelectionIfInputChanged(value) {
+    function clearCurrentAthleteSelectionIfInputChanged(value: string): void {
         if (!currentAthlete || isAthleteInputValue(currentAthlete, value)) return;
 
         currentAthlete = null;
@@ -517,11 +534,14 @@ function createAthleteSelectionController(options) {
         resetAthletePreview({ titleElement, frameElement, defaultTitle });
     }
 
-    function findExactAthleteMatch(value) {
+    function findExactAthleteMatch(value: string): PlayAthlete | null {
         return athletes.find(athlete => isAthleteInputValue(athlete, value)) || null;
     }
 
-    function renderSelectedAthletePreview(athlete, selectionOptions = {}) {
+    function renderSelectedAthletePreview(
+        athlete: PlayAthlete,
+        selectionOptions: AthleteSelectionRenderOptions = {}
+    ): Promise<HTMLImageElement | void> {
         const displayName = getAthleteDisplayName(athlete);
         input.value = displayName;
         titleElement.textContent = displayName;
@@ -535,14 +555,17 @@ function createAthleteSelectionController(options) {
         return pictureReady;
     }
 
-    function selectAthlete(athlete, selectionOptions = {}) {
+    function selectAthlete(
+        athlete: PlayAthlete,
+        selectionOptions: AthleteSelectionRenderOptions = {}
+    ): void {
         renderSelectedAthletePreview(athlete, selectionOptions.transition === undefined ? { transition: true } : selectionOptions);
         if (typeof options.onAthleteSelected === "function") {
             options.onAthleteSelected(athlete, api);
         }
     }
 
-    function hydrateStoredAthleteSelection() {
+    function hydrateStoredAthleteSelection(): boolean {
         const storedAthlete = currentAthlete || getStoredSelectedAthlete();
         if (!storedAthlete || !storedAthlete.Name) return false;
 
@@ -550,7 +573,7 @@ function createAthleteSelectionController(options) {
         return true;
     }
 
-    function renderAthleteMatches() {
+    function renderAthleteMatches(): boolean {
         const query = input.value.trim().toLowerCase();
         const terms = query.split(/\s+/).filter(term => term);
         clearCurrentAthleteSelectionIfInputChanged(input.value);
@@ -562,20 +585,23 @@ function createAthleteSelectionController(options) {
         const list = document.createElement("div");
         list.setAttribute("id", `${input.id}-autocomplete-list`);
         list.setAttribute("class", "autocomplete-items");
-        input.parentNode.appendChild(list);
+        input.parentNode?.appendChild(list);
 
         let count = 0;
-        athletes.forEach(athlete => {
+        athletes.forEach((athlete: PlayAthlete) => {
             if (count >= maxItems) return;
             if (!getAthleteCanonicalName(athlete)) return;
             const searchText = getAthleteSearchText(athlete);
             if (terms.every(term => searchText.includes(term))) {
                 const first = terms[0];
+                if (!first) return;
                 const displayName = getAthleteDisplayName(athlete);
                 const item = document.createElement("div");
                 appendHighlightedText(item, displayName, first);
                 item.dataset.value = athlete.Name;
-                item.dataset.profilePic = athlete.ProfilePic;
+                if (typeof athlete.ProfilePic === "string") {
+                    item.dataset.profilePic = athlete.ProfilePic;
+                }
 
                 item.addEventListener("mousedown", event => {
                     event.preventDefault();
@@ -594,18 +620,18 @@ function createAthleteSelectionController(options) {
         return count > 0;
     }
 
-    function loadAthletes(loadOptions = {}) {
+    function loadAthletes(loadOptions: AthleteSelectionLoadOptions = {}): Promise<PlayAthlete[]> {
         if (athleteAutocompleteReady) return Promise.resolve(athletes);
         if (athleteLoadPromise) return athleteLoadPromise;
         errorElement.textContent = "";
         athleteLoadPromise = fetch(athleteApiPath)
             .then(response => response.ok ? response.json() : Promise.reject(new Error("Athlete list request failed")))
-            .then(data => {
+            .then((data: unknown) => {
                 if (!Array.isArray(data)) {
                     throw new Error("Athlete list response was invalid");
                 }
 
-                athletes = data;
+                athletes = data.filter(isValidSelectedAthlete);
                 athleteAutocompleteReady = true;
                 const saved = getSavedSelectedAthleteName();
                 if (saved && !currentAthlete && !hasUserEditedInput) {
@@ -621,7 +647,7 @@ function createAthleteSelectionController(options) {
 
                 return athletes;
             })
-            .catch(error => {
+            .catch((error: unknown) => {
                 console.error("Error fetching athletes:", error);
                 errorElement.textContent = "Athlete list could not load. Check your connection and try again.";
                 throw error;
@@ -633,13 +659,13 @@ function createAthleteSelectionController(options) {
         return athleteLoadPromise;
     }
 
-    function retryAthleteLoad() {
+    function retryAthleteLoad(): void {
         if (!athleteAutocompleteReady) {
             loadAthletes().catch(() => {});
         }
     }
 
-    function bind() {
+    function bind(): AthleteSelectionController {
         if (isBound) return api;
         isBound = true;
 
@@ -653,8 +679,8 @@ function createAthleteSelectionController(options) {
         });
 
         input.addEventListener("keydown", event => {
-            let list = document.getElementById(`${input.id}-autocomplete-list`);
-            if (list) list = list.getElementsByTagName("div");
+            const listElement = document.getElementById(`${input.id}-autocomplete-list`);
+            const list = listElement?.getElementsByTagName("div") ?? null;
             if (event.keyCode === 40) {
                 currentFocus++;
                 addActive(list);
@@ -664,7 +690,7 @@ function createAthleteSelectionController(options) {
             } else if (event.keyCode === 13) {
                 event.preventDefault();
                 if (currentFocus > -1 && list) {
-                    list[currentFocus].dispatchEvent(new MouseEvent("mousedown"));
+                    list[currentFocus]?.dispatchEvent(new MouseEvent("mousedown"));
                     return;
                 }
 
@@ -680,14 +706,16 @@ function createAthleteSelectionController(options) {
         });
 
         document.addEventListener("click", event => {
-            if (autocompleteRootSelector && event.target.closest(autocompleteRootSelector)) return;
+            if (autocompleteRootSelector
+                && event.target instanceof Element
+                && event.target.closest(autocompleteRootSelector)) return;
             closeAllLists();
         });
 
         return api;
     }
 
-    function start(startOptions = {}) {
+    function start(startOptions: AthleteSelectionStartOptions = {}): AthleteSelectionController {
         bind();
         if (startOptions.hydrate !== false) {
             hydrateStoredAthleteSelection();
@@ -698,11 +726,11 @@ function createAthleteSelectionController(options) {
         return api;
     }
 
-    function setCurrentAthlete(athlete) {
+    function setCurrentAthlete(athlete: PlayAthlete | null): void {
         currentAthlete = athlete;
     }
 
-    const api = {
+    const api: AthleteSelectionController = {
         bind,
         start,
         loadAthletes,
@@ -720,7 +748,7 @@ function createAthleteSelectionController(options) {
     return api;
 }
 
-function serializePendingPaymentOffer(offer) {
+function serializePendingPaymentOffer(offer: unknown): string | null {
     if (!isUsablePaymentOffer(offer)) return null;
 
     try {
@@ -733,35 +761,49 @@ function serializePendingPaymentOffer(offer) {
     }
 }
 
-function isUsablePaymentOffer(paymentOffer) {
-    return paymentOffer
-        && typeof paymentOffer === "object"
-        && !Array.isArray(paymentOffer)
-        && typeof paymentOffer.source === "string"
-        && paymentOffer.source.trim()
+function isUsablePaymentOffer(paymentOffer: unknown): paymentOffer is PendingPaymentOffer {
+    if (!paymentOffer || typeof paymentOffer !== "object" || Array.isArray(paymentOffer)) return false;
+    if (!("source" in paymentOffer)
+        || !("offerType" in paymentOffer)
+        || !("currency" in paymentOffer)
+        || !("amountUsd" in paymentOffer)) {
+        return false;
+    }
+
+    return typeof paymentOffer.source === "string"
+        && paymentOffer.source.trim().length > 0
         && typeof paymentOffer.offerType === "string"
-        && paymentOffer.offerType.trim()
+        && paymentOffer.offerType.trim().length > 0
         && typeof paymentOffer.currency === "string"
-        && paymentOffer.currency.trim()
+        && paymentOffer.currency.trim().length > 0
         && typeof paymentOffer.amountUsd === "number"
         && Number.isFinite(paymentOffer.amountUsd)
         && paymentOffer.amountUsd >= 0;
 }
 
-function preserveAppliedDiscountMetadata(offer, result) {
+function preserveAppliedDiscountMetadata(offer: PendingPaymentOffer, result: DiscountBreakdown | null): PendingPaymentOffer | null {
     const hasDiscountCode = result
         && Array.isArray(result.components)
         && result.components.some(component => component && component.kind === "discountCode");
     if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
 
     try {
-        return window.addActiveDiscountMetadataToPaymentOffer(offer);
+        const adjustedOffer = window.addActiveDiscountMetadataToPaymentOffer(offer);
+        return isUsablePaymentOffer(adjustedOffer) ? adjustedOffer : null;
     } catch (_) {
         return null;
     }
 }
 
-function notifyPaymentStorageFailure(retryButton) {
+function notifyPaymentPreparationFailure(retryButton?: HTMLButtonElement | null): void {
+    const message = "Payment details could not be prepared. Refresh the page and try again.";
+    const alertPromise = typeof window.customAlert === "function"
+        ? window.customAlert(message)
+        : Promise.resolve(window.alert(message));
+    alertPromise?.then?.(() => retryButton?.focus());
+}
+
+function notifyPaymentStorageFailure(retryButton?: HTMLButtonElement | null): void {
     const message = "Payment details could not be saved. Enable browser storage and try again.";
     const alertPromise = typeof window.customAlert === "function"
         ? window.customAlert(message)
@@ -769,8 +811,13 @@ function notifyPaymentStorageFailure(retryButton) {
     alertPromise?.then?.(() => retryButton?.focus());
 }
 
-function setPendingPaymentOffer(offer, retryButton) {
-    let effectiveOffer = offer;
+function setPendingPaymentOffer(offer: unknown, retryButton?: HTMLButtonElement | null): boolean {
+    if (!isUsablePaymentOffer(offer)) {
+        notifyPaymentPreparationFailure(retryButton);
+        return false;
+    }
+
+    let effectiveOffer: unknown = offer;
     try {
         effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
             ? window.applyPaymentAdjustmentsToPaymentOffer(offer)
@@ -778,24 +825,27 @@ function setPendingPaymentOffer(offer, retryButton) {
                 ? window.applyFreePassToPaymentOffer(offer)
                 : offer;
     } catch (_) {
-        notifyPaymentStorageFailure(retryButton);
+        notifyPaymentPreparationFailure(retryButton);
         return false;
     }
 
     const serializedOffer = serializePendingPaymentOffer(effectiveOffer);
-    if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) {
-        return true;
+    if (!serializedOffer) {
+        notifyPaymentPreparationFailure(retryButton);
+        return false;
     }
+
+    if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) return true;
 
     notifyPaymentStorageFailure(retryButton);
     return false;
 }
 
-function clearPendingPaymentOffer() {
+function clearPendingPaymentOffer(): void {
     removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
 }
 
-function createPriceHtmlFallback(result) {
+function createPriceHtmlFallback(result: DiscountBreakdown): string {
     const oldText = `$${result.basePriceUsd}`;
     if (result.finalPriceUsd < result.basePriceUsd) {
         return `<span class="pro-old-price">${oldText}</span> <span class="pro-new-price">${result.finalPriceText}</span>`;
@@ -803,7 +853,12 @@ function createPriceHtmlFallback(result) {
     return `<span class="pro-new-price">${oldText}</span>`;
 }
 
-function createDashboardButton(label, className, href, beforeNavigate) {
+function createDashboardButton(
+    label: string,
+    className: string,
+    href: string,
+    beforeNavigate?: (button: HTMLButtonElement) => boolean | void
+): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
     button.className = className;
@@ -815,7 +870,7 @@ function createDashboardButton(label, className, href, beforeNavigate) {
     return button;
 }
 
-function createGoProDiscountSummary(result) {
+function createGoProDiscountSummary(result: DiscountBreakdown): HTMLDivElement | null {
     if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== "function") {
         return null;
     }
@@ -837,13 +892,16 @@ function createGoProDiscountSummary(result) {
     return wrapper;
 }
 
-function renderAthleteDashboardHeader(athlete, { titleElement, frameElement }) {
+function renderAthleteDashboardHeader(
+    athlete: PlayAthlete,
+    { titleElement, frameElement }: AthletePictureTargets
+): Promise<HTMLImageElement | void> {
     const athleteDisplayName = getAthleteDisplayName(athlete);
     titleElement.textContent = athleteDisplayName;
     return renderAthletePicture(frameElement, athlete, `${athleteDisplayName} headshot`);
 }
 
-function refreshFlowActionDock() {
+function refreshFlowActionDock(): void {
     const dock = window.LwcFlowActionDock;
     if (typeof dock?.refreshNow === "function") {
         dock.refreshNow();
@@ -853,7 +911,10 @@ function refreshFlowActionDock() {
     dock?.refresh?.();
 }
 
-function renderDashboardActions(athlete, options) {
+function renderDashboardActions(
+    athlete: PlayAthlete,
+    options: AthleteDashboardActionsOptions
+): Promise<void> {
     const dynamicActions = options.dynamicActionsElement;
     const discountElement = options.discountElement;
     dynamicActions.replaceChildren();
@@ -976,3 +1037,5 @@ window.playAthleteFlow = {
     renderAthleteDashboardHeader,
     renderDashboardActions
 };
+
+export {};

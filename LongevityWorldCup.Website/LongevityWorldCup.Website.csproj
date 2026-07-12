@@ -9,7 +9,14 @@
     <RepositoryRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/..'))</RepositoryRoot>
     <DocumentationPageGeneratorProject>$(RepositoryRoot)/LongevityWorldCup.MarkdownPageGenerator/LongevityWorldCup.MarkdownPageGenerator.csproj</DocumentationPageGeneratorProject>
     <DocumentationPageGeneratorDll>$(RepositoryRoot)/LongevityWorldCup.MarkdownPageGenerator/bin/$(Configuration)/net10.0/LongevityWorldCup.MarkdownPageGenerator.dll</DocumentationPageGeneratorDll>
+    <BuildFrontend Condition="'$(BuildFrontend)' == ''">true</BuildFrontend>
   </PropertyGroup>
+
+  <ItemGroup>
+    <TypeScriptSource Include="Frontend\*.ts" />
+    <NestedFrontendRuntimeSource Include="Frontend\**\*.ts"
+                                 Exclude="Frontend\*.ts;Frontend\**\*.d.ts" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="AppData\**" />
@@ -42,6 +49,37 @@
   <Target Name="GenerateDocumentationPages" BeforeTargets="BeforeBuild">
     <Exec Command="dotnet build &quot;$(DocumentationPageGeneratorProject)&quot; --configuration &quot;$(Configuration)&quot;" />
     <Exec Command="dotnet &quot;$(DocumentationPageGeneratorDll)&quot; &quot;$(RepositoryRoot)&quot; &quot;$(MSBuildProjectDirectory)&quot;" />
+  </Target>
+
+  <Target Name="RestoreFrontendDependencies"
+          Condition="'$(BuildFrontend)' == 'true'"
+          Inputs="package.json;package-lock.json"
+          Outputs="node_modules/typescript/bin/tsc">
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+          Command="npm ci --ignore-scripts --no-audit --no-fund" />
+  </Target>
+
+  <Target Name="ValidateFrontendSourceLayout" BeforeTargets="BeforeBuild">
+    <Error Condition="'@(NestedFrontendRuntimeSource)' != ''"
+           Text="Runtime TypeScript entry points must stay directly under Frontend so every emitted script remains independently versioned: @(NestedFrontendRuntimeSource, ', ')." />
+  </Target>
+
+  <Target Name="CompileTypeScript"
+          BeforeTargets="BeforeBuild"
+          Condition="'$(BuildFrontend)' == 'true'"
+          DependsOnTargets="RestoreFrontendDependencies">
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+          Command="npm run build" />
+  </Target>
+
+  <Target Name="ValidateGeneratedFrontendAssets"
+          BeforeTargets="BeforeBuild"
+          Condition="'$(BuildFrontend)' != 'true'">
+    <ItemGroup>
+      <ExpectedFrontendAsset Include="@(TypeScriptSource->'$(MSBuildProjectDirectory)/wwwroot/js/%(Filename).js')" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(ExpectedFrontendAsset.Identity)')"
+           Text="Generated frontend asset %(ExpectedFrontendAsset.Filename).js is missing. Run npm run build or inject the verified frontend artifact before building with BuildFrontend=false." />
   </Target>
 
 </Project>

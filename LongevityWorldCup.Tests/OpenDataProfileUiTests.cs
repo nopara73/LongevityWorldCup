@@ -126,6 +126,7 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("record.SourceIds", html);
         Assert.Contains("const route = isOpenData ? 'public-data' : 'athlete';", html);
         Assert.Contains("const profilePath = openDataProfile ? `/public-data/${athleteSlug}` : `/athlete/${athleteSlug}`;", html);
+        Assert.Contains("history.pushState({ modal: 'details', athlete: athleteSlug, profileType: athleteData.profileType }, \"\", profilePath);", html);
         Assert.Contains("/^\\/(athlete|public-data)\\/([^/]+)\\/?$/i", html);
         Assert.Contains("function getInitialProfileRoute()", html);
         Assert.Contains("return { slug: publicDataParam, profileType: 'OpenData' };", html);
