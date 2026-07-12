@@ -23,6 +23,14 @@ namespace LongevityWorldCup.Website.Controllers
         {
             // normalize incoming name (hyphens → underscores)
             var key = athleteName.Replace('-', '_');
+            if (!_svc.IsOfficialAthleteSlug(key))
+            {
+                return NotFound(new
+                {
+                    message = "Crowd age guesses are available only for approved Longevity athletes."
+                });
+            }
+
             var actualAge = _svc.GetActualAge(key);
 
             // rejection rules ─ hard limits + asymmetric “too old” cap
@@ -44,8 +52,14 @@ namespace LongevityWorldCup.Website.Controllers
                 var clientIdentifier = ClientIdentifier.From(HttpContext);
                 if (_crowdAgeGuessRateLimiter.TryAccept(clientIdentifier, key, out var retryAfter))
                 {
-                    _svc.AddAgeGuess(key, ageGuess);
-                    accepted = true;
+                    accepted = _svc.AddAgeGuess(key, ageGuess);
+                    if (!accepted)
+                    {
+                        return NotFound(new
+                        {
+                            message = "Crowd age guesses are available only for approved Longevity athletes."
+                        });
+                    }
                 }
                 else
                 {

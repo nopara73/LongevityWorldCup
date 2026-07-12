@@ -1,0 +1,59 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "James W. Clement",
+  "Biomarkers": [
+    {
+      "Date": "2017-04-11",
+      "AgeYears": 61.44,
+      "AlbGL": 46,
+      "CreatUmolL": 81.328,
+      "GluMmolL": 5.217,
+      "CrpMgL": 0.25,
+      "LymPc": 36,
+      "McvFL": 92,
+      "RdwPc": 13.3,
+      "AlpUL": 62,
+      "Wbc1000cellsuL": 4.4,
+      "SourceIds": [
+        "participant-blood-tests-2017"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-11",
+    "Aliases": [
+      "James Clement"
+    ],
+    "IdentitySourceIds": [
+      "pgp-public-profile"
+    ],
+    "Sources": [
+      {
+        "Id": "participant-blood-tests-2017",
+        "Kind": "Bloodwork",
+        "Title": "James W. Clement — participant-uploaded 2017 Labcorp/Life Extension blood tests",
+        "Url": "https://my.pgp-hms.org/user_file/download/2910",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true
+      },
+      {
+        "Id": "pgp-public-profile",
+        "Kind": "Identity",
+        "Title": "Personal Genome Project — James W. Clement public profile hu82E689",
+        "Url": "https://my.pgp-hms.org/profile/hu82E689",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true,
+        "PreferredForDisplay": true
+      }
+    ],
+    "TranscriptionNotes": [
+      "The Personal Genome Project profile explicitly identifies James W. Clement and labels the 2017 blood-test PDF as participant-supplied data.",
+      "The report identifies James W. Clement and assigns the complete blood count, chemistry panel, and cardiac CRP to one Labcorp order collected on 11 April 2017 at 10:15 AM EST.",
+      "AgeYears was calculated from the date of birth and collection date shown in the voluntarily public report, rounded to two decimals; the date of birth is not republished here. The report also states age 61.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Jaci Strese",
+  "Biomarkers": [
+    {
+      "Date": "2026-02-01",
+      "DatePrecision": "Month",
+      "AgeYears": 32,
+      "AlbGL": 48,
+      "CreatUmolL": 58.344,
+      "GluMmolL": 4.662,
+      "CrpMgL": 0.3,
+      "LymPc": 19.7,
+      "McvFL": 89.4,
+      "RdwPc": 11.4,
+      "AlpUL": 50,
+      "Wbc1000cellsuL": 7.7,
+      "SourceIds": [
+        "function-health-one-year-review"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-11",
+    "Aliases": [
+      "Jacki Marie"
+    ],
+    "IdentitySourceIds": [
+      "function-health-one-year-review",
+      "awake-active-aligned-podcast"
+    ],
+    "Sources": [
+      {
+        "Id": "function-health-one-year-review",
+        "Kind": "Bloodwork",
+        "Title": "Jacki Marie | Awake Active Aligned — Function Health Review: Is It Worth $500? (My Results After 1 Year)",
+        "Url": "https://www.youtube.com/watch?v=VMf4WJUJSjg",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true,
+        "PreferredForDisplay": true
+      },
+      {
+        "Id": "awake-active-aligned-podcast",
+        "Kind": "Identity",
+        "Title": "Awake Active Aligned — podcast by Jaci Strese",
+        "Url": "https://podcasts.apple.com/us/podcast/awake-active-aligned/id1474034976",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true
+      }
+    ],
+    "TranscriptionNotes": [
+      "The subject's dashboard greets her as Jaci, while her self-published Awake Active Aligned podcast identifies its creator as Jaci Strese.",
+      "In the dashboard walkthrough, Jaci explicitly says, 'I am 32,' while displaying her February 2026 results; no date of birth was inferred or republished.",
+      "All nine stored biomarker values are visibly reported in the same Function Health walkthrough. The dashboard marks the current run as tested in February 2026 and shows August 2025 only as the earlier comparison point.",
+      "The stored date uses the first day of February 2026 only as the required representation of a month-precision source. No specimen day was inferred.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

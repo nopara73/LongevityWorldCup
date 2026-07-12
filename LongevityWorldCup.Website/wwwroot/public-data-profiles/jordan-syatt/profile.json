@@ -1,0 +1,63 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Jordan Syatt",
+  "Biomarkers": [
+    {
+      "Date": "2023-09-01",
+      "DatePrecision": "Month",
+      "AgeYears": 32,
+      "AlbGL": 46,
+      "CreatUmolL": 110.5,
+      "GluMmolL": 4.329,
+      "CrpMgL": 0.3,
+      "LymPc": 40.1,
+      "McvFL": 90.2,
+      "RdwPc": 12.7,
+      "AlpUL": 78,
+      "Wbc1000cellsuL": 4.5,
+      "MeasurementQualifiers": {
+        "CrpMgL": "<"
+      },
+      "SourceIds": [
+        "sugar-bloodwork-september-2023"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-12",
+    "IdentitySourceIds": [
+      "sugar-bloodwork-september-2023",
+      "official-21st-birthday-post"
+    ],
+    "Sources": [
+      {
+        "Id": "sugar-bloodwork-september-2023",
+        "Kind": "Bloodwork",
+        "Title": "Jordan Syatt — 30 Days Of Sugar: My Blood Test Results",
+        "Url": "https://www.youtube.com/watch?v=qpCYmEOAx-A",
+        "AccessedOn": "2026-07-12",
+        "SelfPublishedBySubject": true,
+        "PreferredForDisplay": true
+      },
+      {
+        "Id": "official-21st-birthday-post",
+        "Kind": "Identity",
+        "Title": "Jordan Syatt — Me, Myself, and I: Jordan Syatt in the Past, Present, and Future (readable mirror)",
+        "Url": "https://r.jina.ai/http://www.syattfitness.com/random-musings/me-myself-and-i-jordan-syatt-in-the-past-present-and-future/",
+        "AccessedOn": "2026-07-12",
+        "SelfPublishedBySubject": true
+      }
+    ],
+    "TranscriptionNotes": [
+      "Jordan Syatt's own channel publishes his comprehensive before-and-after blood panel. The September 2023 column visibly provides all nine stored PhenoAge inputs: hs-CRP at 1:40, glucose at 1:45, albumin and alkaline phosphatase at 1:48–1:49, creatinine at 1:50, lymphocyte percentage at 1:55, and MCV, RDW, and WBC at 1:57.",
+      "The panel labels the accepted draw only as September 2023, so Date uses the first day of that month with DatePrecision='Month'; no collection day is invented.",
+      "Jordan's dated first-party birthday post establishes that he was 32 throughout September 2023. AgeYears preserves that whole-year age without republishing or encoding a date of birth.",
+      "The birthday post is linked through a read-only HTTPS mirror because the origin site blocks automated requests; the first-party origin URL remains explicit in the mirror path.",
+      "The panel reports hs-CRP as below 0.3 mg/L. The stored value is the published assay limit with a '<' qualifier, not an exact measured concentration.",
+      "Albumin was converted from 4.6 g/dL to 46 g/L by multiplying by 10.",
+      "Creatinine was converted from 1.25 mg/dL to 110.5 µmol/L by multiplying by 88.4.",
+      "Glucose was converted from 78 mg/dL to 4.329 mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

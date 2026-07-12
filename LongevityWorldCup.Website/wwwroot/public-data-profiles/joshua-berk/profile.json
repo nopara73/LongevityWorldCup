@@ -1,0 +1,59 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Joshua J. Berk",
+  "Biomarkers": [
+    {
+      "Date": "2015-07-30",
+      "AgeYears": 25.97,
+      "AlbGL": 44,
+      "CreatUmolL": 99.008,
+      "GluMmolL": 4.995,
+      "CrpMgL": 0.26,
+      "LymPc": 38,
+      "McvFL": 87,
+      "RdwPc": 13.4,
+      "AlpUL": 62,
+      "Wbc1000cellsuL": 5.3,
+      "SourceIds": [
+        "participant-directlabs-results"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-11",
+    "Aliases": [
+      "Joshua Berk"
+    ],
+    "IdentitySourceIds": [
+      "pgp-public-profile"
+    ],
+    "Sources": [
+      {
+        "Id": "participant-directlabs-results",
+        "Kind": "Bloodwork",
+        "Title": "Joshua J. Berk — participant-uploaded DirectLabs Labcorp results",
+        "Url": "https://my.pgp-hms.org/user_file/download/1903",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true
+      },
+      {
+        "Id": "pgp-public-profile",
+        "Kind": "Identity",
+        "Title": "Personal Genome Project — Joshua J. Berk public profile hu9EDB77",
+        "Url": "https://my.pgp-hms.org/profile/hu9EDB77",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true,
+        "PreferredForDisplay": true
+      }
+    ],
+    "TranscriptionNotes": [
+      "The Personal Genome Project profile explicitly identifies Joshua J. Berk and labels the DirectLabs report as participant-supplied data.",
+      "The Labcorp report identifies Joshua Berk and assigns the complete blood count, comprehensive metabolic panel, and cardiac CRP to one order collected on 30 July 2015 at 10:49.",
+      "AgeYears was calculated from the date of birth and collection date shown in the voluntarily public report, rounded to two decimals; the date of birth is not republished here. The report also states age 25.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

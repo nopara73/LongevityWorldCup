@@ -1,0 +1,50 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Kevin Stock",
+  "Biomarkers": [
+    {
+      "Date": "2018-09-27",
+      "AgeYears": 31.42,
+      "AlbGL": 47,
+      "CreatUmolL": 89.284,
+      "GluMmolL": 4.9395,
+      "CrpMgL": 0.2,
+      "LymPc": 37,
+      "McvFL": 87.9,
+      "RdwPc": 12.9,
+      "AlpUL": 90,
+      "Wbc1000cellsuL": 4.1,
+      "MeasurementQualifiers": {
+        "CrpMgL": "<"
+      },
+      "SourceIds": [
+        "bloodwork-2018-09-27"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-11",
+    "IdentitySourceIds": [
+      "bloodwork-2018-09-27"
+    ],
+    "Sources": [
+      {
+        "Id": "bloodwork-2018-09-27",
+        "Kind": "Bloodwork",
+        "Title": "Kevin Stock — laboratory report for the 27 September 2018 draw",
+        "Url": "https://www.kevinstock.io/wp-content/uploads/2019/01/blood-work-10-2018.pdf",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true
+      }
+    ],
+    "TranscriptionNotes": [
+      "The report header is dated 1 October 2018; the biomarker date is the specimen collection time shown in the report, 27 September 2018 at 09:05.",
+      "The source reports hs-CRP as below 0.2 mg/L. The stored value is the published assay limit, following the World Cup detection-limit rule; it is not presented as an exact measured concentration.",
+      "AgeYears is Kevin Stock's age at the draw, calculated from the date of birth and collection date shown in the report and rounded to two decimals.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

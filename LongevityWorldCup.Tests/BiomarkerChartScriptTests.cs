@@ -12,7 +12,8 @@ public class BiomarkerChartScriptTests
 
         Assert.Contains("const chartData = biomarkerData.filter(entry => entry && entry.Date", html);
         Assert.Contains("chartData.forEach(entry =>", html);
-        Assert.Contains("if (isCompleteBiomarkerSet(entry))", html);
+        Assert.Contains("const chronoAgeAtEntry = getProfileAgeAtBiomarker(fullAthleteData, entry);", html);
+        Assert.Contains("if (Number.isFinite(chronoAgeAtEntry) && isCompleteBiomarkerSet(entry))", html);
         Assert.Contains("phenoAges.push(phenoAge);", html);
         Assert.Contains("isCompleteBortzBiomarkerSet(entry)", html);
         Assert.DoesNotContain("const completeData = biomarkerData.filter(isCompleteBiomarkerSet);", html);
