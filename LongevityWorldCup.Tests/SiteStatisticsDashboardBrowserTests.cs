@@ -79,6 +79,9 @@ public sealed class SiteStatisticsDashboardBrowserTests
         await page.GetByText("Segment Comparison").WaitForAsync();
         await page.GetByText("Trend Watch").WaitForAsync();
         var onboardingDetailText = await page.Locator("#detailSections").InnerTextAsync();
+        await page.Locator("#flowSelectors .flow-card").Filter(new() { HasText = "application" }).ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "Application stage completion" }).WaitForAsync();
+        var applicationStageText = await page.Locator("#detailSections").InnerTextAsync();
         await page.Locator("#statsTabs").GetByRole(AriaRole.Button, new() { Name = "Challenge Diagnostics" }).ClickAsync();
         await page.Locator("#primaryFunnel").GetByRole(AriaRole.Button, new() { Name = "Signup accepted" }).ClickAsync();
         await page.Locator("#sessionTimeline .timeline-row").First.WaitForAsync();
@@ -93,6 +96,9 @@ public sealed class SiteStatisticsDashboardBrowserTests
         Assert.Contains("Signup accepted", visibleText);
         Assert.Contains("prefilled / initial", onboardingDetailText);
         Assert.Contains("AUTO", onboardingDetailText);
+        Assert.Contains("Identity", applicationStageText);
+        Assert.Contains("Motivation", applicationStageText);
+        Assert.Contains("Stopped before next", applicationStageText);
         Assert.Contains("baseline pending", visibleText);
         Assert.Contains("S-", visibleText);
         Assert.DoesNotContain("ResizeObserver loop completed", visibleText);
@@ -157,6 +163,40 @@ public sealed class SiteStatisticsDashboardBrowserTests
         Assert.Empty(errors);
     }
 
+    [Fact]
+    public async Task ApplyPage_RecordsOnlyTheCoarseApplicationStage()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US"
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var stageRequestTask = page.WaitForRequestAsync(request =>
+            request.Url.Contains("/api/site-statistics/event", StringComparison.OrdinalIgnoreCase) &&
+            (request.PostData ?? string.Empty).Contains("\"eventName\":\"application_stage_reached\"", StringComparison.Ordinal));
+
+        await page.GotoAsync("/apply", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var stageRequest = await stageRequestTask;
+        using var payload = JsonDocument.Parse(stageRequest.PostData ?? "{}");
+        var root = payload.RootElement;
+
+        Assert.Equal("application_stage_reached", root.GetProperty("eventName").GetString());
+        Assert.Equal("application", root.GetProperty("flow").GetString());
+        Assert.Equal("identity", root.GetProperty("step").GetString());
+        Assert.Equal("1", root.GetProperty("metadata").GetProperty("stageNumber").GetString());
+        Assert.DoesNotContain("accountEmail", stageRequest.PostData ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("biomarkers", stageRequest.PostData ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static async Task SeedEventsAsync(HttpClient client)
     {
         await PostEventAsync(client, "onboarding_page_viewed", "pheno", "raw-browser-session", "/pheno-age?token=private-token", "calculator", "viewed");
@@ -182,6 +222,8 @@ public sealed class SiteStatisticsDashboardBrowserTests
                 ["resultBucket"] = JsonSerializer.SerializeToElement("30_39")
             });
         await PostEventAsync(client, "proof_flow_opened", "application", "raw-browser-session", "/onboarding/convergence.html", "proof", "opened");
+        await PostEventAsync(client, "application_stage_reached", "application", "raw-browser-session", "/apply", "application", "reached", step: "identity");
+        await PostEventAsync(client, "application_stage_reached", "application", "raw-browser-session", "/apply", "application", "reached", step: "motivation");
         foreach (var session in new[] { "calc-drop-1", "calc-drop-2", "calc-drop-3" })
         {
             await PostEventAsync(client, "onboarding_entry_viewed", "onboarding", session, "/join", "join_game", "viewed");
@@ -236,7 +278,8 @@ public sealed class SiteStatisticsDashboardBrowserTests
         string component,
         string outcome,
         Dictionary<string, JsonElement>? metadata = null,
-        string? errorCode = null)
+        string? errorCode = null,
+        string? step = null)
     {
         using var response = await client.PostAsync(
             "/api/site-statistics/event",
@@ -247,6 +290,7 @@ public sealed class SiteStatisticsDashboardBrowserTests
                 Flow = flow,
                 Route = route,
                 Component = component,
+                Step = step,
                 Outcome = outcome,
                 ErrorCode = errorCode,
                 DeviceClass = "desktop",

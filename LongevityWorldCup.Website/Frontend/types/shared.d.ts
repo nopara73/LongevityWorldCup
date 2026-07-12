@@ -186,6 +186,7 @@ interface LwcSiteStatisticsMetadata {
     checkinKind?: string;
     commitmentState?: string;
     clock?: "bortz" | "pheno";
+    stageNumber?: string;
 }
 
 interface LwcSiteStatisticsTrackOptions {
