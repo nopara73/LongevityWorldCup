@@ -475,7 +475,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
     }
 
-    private async Task LoadOfficialAthletesAsync()
+    private async Task<(JsonArray Athletes, JsonArray OpenDataProfiles)> PrepareOfficialProfilesAsync()
     {
         var athletesRoot = await LoadProfileRootAsync(
             _athletesRootDir,
@@ -504,11 +504,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             athletesRoot,
             openDataCandidates);
 
-        lock (_athletesJsonLock)
-        {
-            _athletes = athletesRoot;
-            _openDataProfiles = reconciledOpenData;
-        }
+        return (athletesRoot, reconciledOpenData);
     }
 
     private JsonArray ReconcileOpenDataProfilesForOfficialSnapshot(
@@ -834,8 +830,18 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
     }
 
-    private static void ValidateOpenDataProfileFolder(string folder, string profilePath)
+    private void ValidateOpenDataProfileFolder(string folder, string profilePath)
     {
+        var relativeSegments = Path.GetRelativePath(_openDataProfilesRootDir, profilePath)
+            .Split(
+                [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+                StringSplitOptions.RemoveEmptyEntries);
+        if (relativeSegments.Length != 2)
+        {
+            throw new InvalidDataException(
+                $"OpenData profile '{profilePath}' must be stored directly under one slug folder as '<slug>/profile.json'.");
+        }
+
         var expectedProfilePath = Path.GetFullPath(profilePath);
         var unexpectedEntry = Directory
             .EnumerateFileSystemEntries(folder, "*", SearchOption.TopDirectoryOnly)
@@ -1043,49 +1049,66 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         await _reloadLock.WaitAsync();
         try
         {
-            await LoadOfficialAthletesAsync();
+            var prepared = await PrepareOfficialProfilesAsync();
 
-            var newlyJoined = EnsureDbRowsForNewAthletes();
-
-            ReloadCrowdStats();
-            HydrateAgeImprovementIntoAthletesJson();
-            HydratePlacementsIntoAthletesJson();
-            HydrateNewFlagsIntoAthletesJson();
-            HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-            HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
-
-            // recompute and persist biomarker/test signatures after reload
-            var changedSigs = SyncBiomarkerSignatures();
-            SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigs);
-            var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
-            var bioAgeImprovements = SyncBestBioAgeStates(
-                changedSigs,
-                newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
-
-            if (newlyJoined.Count > 0)
+            // Publication is atomic with all synchronous hydration and database
+            // reconciliation. Public snapshot readers take the same monitor, so
+            // they see either the previous fully hydrated field or the completed
+            // new one, never the disk JSON in between. Re-entrant helper locks are
+            // safe because no await occurs inside this block.
+            lock (_athletesJsonLock)
             {
-                var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
-                _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+                var previousAthletes = _athletes;
+                var previousOpenDataProfiles = _openDataProfiles;
+                _athletes = prepared.Athletes;
+                _openDataProfiles = prepared.OpenDataProfiles;
+
+                try
+                {
+                    var newlyJoined = EnsureDbRowsForNewAthletes();
+
+                    ReloadCrowdStats();
+                    HydrateAgeImprovementIntoAthletesJson();
+                    HydratePlacementsIntoAthletesJson();
+                    HydrateNewFlagsIntoAthletesJson();
+                    HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+                    HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
+
+                    // recompute and persist biomarker/test signatures after reload
+                    var changedSigs = SyncBiomarkerSignatures();
+                    SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigs);
+                    var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+                    var bioAgeImprovements = SyncBestBioAgeStates(
+                        changedSigs,
+                        newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+
+                    if (newlyJoined.Count > 0)
+                    {
+                        var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
+                        _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+                    }
+
+                    if (becamePro.Count > 0)
+                        _eventDataService.CreateBecameProEvents(becamePro, skipIfExists: true);
+
+                    if (bioAgeImprovements.Count > 0)
+                        _eventDataService.CreateBiologicalAgeImprovementEvents(bioAgeImprovements, skipIfExists: true);
+
+                    DetectAndEmitRankUpsForSlugs(
+                        changedSlugs: changedSigs,
+                        newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
+                    );
+
+                    DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
+                    notify = true;
+                }
+                catch
+                {
+                    _athletes = previousAthletes;
+                    _openDataProfiles = previousOpenDataProfiles;
+                    throw;
+                }
             }
-
-            if (becamePro.Count > 0)
-            {
-                _eventDataService.CreateBecameProEvents(becamePro, skipIfExists: true);
-            }
-
-            if (bioAgeImprovements.Count > 0)
-            {
-                _eventDataService.CreateBiologicalAgeImprovementEvents(bioAgeImprovements, skipIfExists: true);
-            }
-
-            DetectAndEmitRankUpsForSlugs(
-                changedSlugs: changedSigs,
-                newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
-            );
-
-            DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
-
-            notify = true;
         }
         catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
         {
