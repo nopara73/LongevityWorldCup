@@ -431,7 +431,7 @@ public sealed class LeaderboardProfileApiTests
     }
 
     [Fact]
-    public async Task InvalidOpenDataEdit_RetainsOnlyOpenDataAndCannotBlockOfficialAthleteReload()
+    public async Task InvalidOpenDataEdit_IsWithheldAndCannotBlockOfficialAthleteReload()
     {
         using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
         using var factory = fixture.CreateFactory();
@@ -459,9 +459,28 @@ public sealed class LeaderboardProfileApiTests
 
         Assert.True(officialReloaded, "An invalid OpenData edit blocked the independent official athlete reload.");
         using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.DoesNotContain(
+            combined.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("ProfileType").GetString() == "OpenData");
+    }
+
+    [Fact]
+    public async Task InvalidOpenDataEdit_DoesNotBlockOtherValidProfilesFromReloading()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 18, openDataCount: 2);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var profiles = factory.Services.GetRequiredService<AthleteDataService>();
+        GetProfileWatcher(profiles, officialRoot: false).EnableRaisingEvents = false;
+
+        fixture.WriteInvalidOpenDataProfile(1);
+        fixture.UpdateOpenDataProfileName(2, "Updated Valid Public Data Profile");
+        await profiles.OnOpenDataSourceChangedAsync();
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
         var retainedOpenData = combined.RootElement.EnumerateArray()
             .Single(profile => profile.GetProperty("ProfileType").GetString() == "OpenData");
-        Assert.Equal("Open Data Profile", retainedOpenData.GetProperty("Name").GetString());
+        Assert.Equal("Updated Valid Public Data Profile", retainedOpenData.GetProperty("Name").GetString());
     }
 
     [Fact]
