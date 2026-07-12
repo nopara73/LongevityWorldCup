@@ -53,6 +53,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private const int LeaderboardThumbSizePx = 320;
     private const int LeaderboardThumbQuality = 84;
     private const int CrowdAgeLeaderboardMinimumGuessCount = 100;
+    internal const int OpenDataPortraitSizePx = 640;
+    internal const int OpenDataPortraitMaxBytes = 2 * 1024 * 1024;
 
     // Approved athletes are the default capability. Open-data profiles are kept
     // in a separate collection so rank/event/badge callers cannot include them
@@ -786,8 +788,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         string publicUrlSegment)
     {
         var folder = Path.GetDirectoryName(file)!;
+        string? openDataPortraitPath = null;
+        string? openDataPortraitVersion = null;
         if (expectedType == AthleteProfileType.OpenData)
-            ValidateOpenDataProfileFolder(folder, file);
+        {
+            (openDataPortraitPath, openDataPortraitVersion) =
+                ValidateOpenDataProfileFolder(folder, file);
+        }
 
         var text = await ReadProfileTextWithRetryAsync(file);
 
@@ -865,6 +872,15 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
             athlete["Proofs"] = proofs;
         }
+        else
+        {
+            var portrait = athlete[AthleteProfilePolicy.OpenDataMetadataPropertyName]![
+                AthleteProfilePolicy.OpenDataPortraitPropertyName]!.AsObject();
+            portrait[AthleteProfilePolicy.OpenDataPortraitAssetUrlPropertyName] =
+                BuildOpenDataPortraitAssetUrl(folderName, openDataPortraitVersion!);
+            athlete[AthleteProfilePolicy.OpenDataPortraitAssetPathPropertyName] = openDataPortraitPath;
+            athlete[AthleteProfilePolicy.OpenDataPortraitVersionPropertyName] = openDataPortraitVersion;
+        }
 
         CanonicalizeIsoDatesInPlace(athlete);
         return athlete;
@@ -885,7 +901,9 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
     }
 
-    private void ValidateOpenDataProfileFolder(string folder, string profilePath)
+    private (string PortraitPath, string Version) ValidateOpenDataProfileFolder(
+        string folder,
+        string profilePath)
     {
         var relativeSegments = Path.GetRelativePath(_openDataProfilesRootDir, profilePath)
             .Split(
@@ -897,20 +915,98 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 $"OpenData profile '{profilePath}' must be stored directly under one slug folder as '<slug>/profile.json'.");
         }
 
+        if (!string.Equals(Path.GetFileName(profilePath), "profile.json", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException(
+                $"OpenData profile manifest '{profilePath}' must be named exactly 'profile.json'.");
+        }
+
         var expectedProfilePath = Path.GetFullPath(profilePath);
+        var portraitPath = Path.Combine(folder, "portrait.webp");
+        var expectedPortraitPath = Path.GetFullPath(portraitPath);
+        if (!File.Exists(portraitPath))
+        {
+            throw new InvalidDataException(
+                $"OpenData profile folder '{folder}' must contain a licensed 640x640 WebP named exactly 'portrait.webp'.");
+        }
+
         var unexpectedEntry = Directory
             .EnumerateFileSystemEntries(folder, "*", SearchOption.TopDirectoryOnly)
-            .FirstOrDefault(entry => !string.Equals(
-                Path.GetFullPath(entry),
-                expectedProfilePath,
-                StringComparison.OrdinalIgnoreCase));
-        if (unexpectedEntry is null)
-            return;
+            .FirstOrDefault(entry =>
+            {
+                var entryPath = Path.GetFullPath(entry);
+                return !string.Equals(entryPath, expectedProfilePath, StringComparison.OrdinalIgnoreCase) &&
+                       !string.Equals(entryPath, expectedPortraitPath, StringComparison.OrdinalIgnoreCase);
+            });
+        if (unexpectedEntry is not null)
+        {
+            throw new InvalidDataException(
+                $"OpenData profile folder '{folder}' may contain exactly profile.json and portrait.webp. " +
+                $"Unexpected local asset or entry '{Path.GetFileName(unexpectedEntry)}'.");
+        }
 
-        throw new InvalidDataException(
-            $"OpenData profile folder '{folder}' may contain only profile.json. " +
-            $"Unexpected local asset or entry '{Path.GetFileName(unexpectedEntry)}'.");
+        var portraitEntry = Directory
+            .EnumerateFileSystemEntries(folder, "*", SearchOption.TopDirectoryOnly)
+            .SingleOrDefault(entry => string.Equals(
+                Path.GetFullPath(entry),
+                expectedPortraitPath,
+                StringComparison.OrdinalIgnoreCase));
+        if (portraitEntry is null ||
+            !string.Equals(Path.GetFileName(portraitEntry), "portrait.webp", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException(
+                $"OpenData profile folder '{folder}' must contain a portrait named exactly 'portrait.webp'.");
+        }
+
+        return ValidateOpenDataPortraitAsset(portraitPath, profilePath);
     }
+
+    private static (string PortraitPath, string Version) ValidateOpenDataPortraitAsset(
+        string portraitPath,
+        string profilePath)
+    {
+        if ((File.GetAttributes(portraitPath) & FileAttributes.ReparsePoint) != 0)
+        {
+            throw new InvalidDataException(
+                $"OpenData portrait for '{profilePath}' must be a regular file, not a symbolic link.");
+        }
+
+        var portraitBytes = File.ReadAllBytes(portraitPath);
+        if (portraitBytes.Length == 0 || portraitBytes.Length > OpenDataPortraitMaxBytes)
+        {
+            throw new InvalidDataException(
+                $"OpenData portrait for '{profilePath}' must be between 1 byte and {OpenDataPortraitMaxBytes} bytes.");
+        }
+
+        try
+        {
+            var format = Image.DetectFormat(portraitBytes);
+            var imageInfo = Image.Identify(portraitBytes);
+            if (!string.Equals(format.Name, WebpFormat.Instance.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException(
+                    $"OpenData portrait for '{profilePath}' must contain WebP image data.");
+            }
+
+            if (imageInfo.Width != OpenDataPortraitSizePx || imageInfo.Height != OpenDataPortraitSizePx)
+            {
+                throw new InvalidDataException(
+                    $"OpenData portrait for '{profilePath}' must be exactly {OpenDataPortraitSizePx}x{OpenDataPortraitSizePx} pixels.");
+            }
+        }
+        catch (Exception ex) when (ex is UnknownImageFormatException or InvalidImageContentException)
+        {
+            throw new InvalidDataException(
+                $"OpenData portrait for '{profilePath}' must contain valid WebP image data.",
+                ex);
+        }
+
+        var version = Convert.ToHexString(SHA256.HashData(portraitBytes)).ToLowerInvariant();
+        return (Path.GetFullPath(portraitPath), version);
+    }
+
+    private static string BuildOpenDataPortraitAssetUrl(string folderName, string version)
+        => $"/public-data/{Uri.EscapeDataString(folderName.Replace('_', '-'))}/portrait?v={version}";
 
     private static string BuildVersionedProfileAssetUrl(string rootSegment, string folderName, string fileName, long version)
         => $"/{rootSegment}/{folderName}/{fileName}?v={version}";
@@ -2774,6 +2870,72 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     profile["AthleteSlug"]?.GetValue<string>(),
                     profileSlug,
                     StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    public bool TryReadOpenDataPortrait(
+        string? profileSlug,
+        string? version,
+        out byte[] portraitBytes)
+    {
+        portraitBytes = [];
+        if (string.IsNullOrWhiteSpace(profileSlug) ||
+            string.IsNullOrWhiteSpace(version) ||
+            version.Length != 64 ||
+            !version.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f'))
+        {
+            return false;
+        }
+
+        string? portraitPath = null;
+        string? retainedVersion = null;
+        lock (_athletesJsonLock)
+        {
+            var profile = _openDataProfiles.OfType<JsonObject>().FirstOrDefault(candidate =>
+                string.Equals(
+                    candidate["AthleteSlug"]?.GetValue<string>(),
+                    profileSlug,
+                    StringComparison.OrdinalIgnoreCase));
+            if (profile is not null)
+            {
+                portraitPath = profile[AthleteProfilePolicy.OpenDataPortraitAssetPathPropertyName]
+                    ?.GetValue<string>();
+                retainedVersion = profile[AthleteProfilePolicy.OpenDataPortraitVersionPropertyName]
+                    ?.GetValue<string>();
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(portraitPath) ||
+            !string.Equals(version, retainedVersion, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var relativePath = Path.GetRelativePath(_openDataProfilesRootDir, portraitPath);
+        if (Path.IsPathRooted(relativePath) ||
+            relativePath.Equals("..", StringComparison.Ordinal) ||
+            relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+            relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            var bytes = File.ReadAllBytes(portraitPath);
+            if (bytes.Length == 0 || bytes.Length > OpenDataPortraitMaxBytes)
+                return false;
+
+            var currentVersion = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            if (!string.Equals(currentVersion, retainedVersion, StringComparison.Ordinal))
+                return false;
+
+            portraitBytes = bytes;
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 

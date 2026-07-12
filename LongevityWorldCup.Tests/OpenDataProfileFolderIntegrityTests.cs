@@ -1,6 +1,8 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Business;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -57,22 +59,46 @@ public sealed class OpenDataProfileFolderIntegrityTests
                 issues.Add($"{folderName}: duplicate normalized OpenData slug");
 
             var profilePath = Path.Combine(folder, "profile.json");
+            var portraitPath = Path.Combine(folder, "portrait.webp");
             if (!File.Exists(profilePath))
             {
                 issues.Add($"{folderName}: missing profile.json");
                 continue;
             }
+            if (!File.Exists(portraitPath))
+                issues.Add($"{folderName}: missing portrait.webp");
 
             foreach (var unexpectedEntry in Directory
                          .EnumerateFileSystemEntries(folder, "*", SearchOption.TopDirectoryOnly)
-                         .Where(entry => !string.Equals(
-                             Path.GetFullPath(entry),
-                             Path.GetFullPath(profilePath),
-                             StringComparison.OrdinalIgnoreCase)))
+                         .Where(entry => Path.GetFileName(entry) is not ("profile.json" or "portrait.webp")))
             {
                 issues.Add(
                     $"{folderName}: unexpected local asset or entry '{Path.GetFileName(unexpectedEntry)}'; " +
-                    "OpenData folders may contain only profile.json");
+                    "OpenData folders must contain exactly profile.json and portrait.webp");
+            }
+
+            if (File.Exists(portraitPath))
+            {
+                try
+                {
+                    var portraitInfo = new FileInfo(portraitPath);
+                    if (portraitInfo.Length == 0 || portraitInfo.Length > 2 * 1024 * 1024)
+                        issues.Add($"{folderName}: portrait.webp must be between 1 byte and 2097152 bytes");
+                    if ((portraitInfo.Attributes & FileAttributes.ReparsePoint) != 0)
+                        issues.Add($"{folderName}: portrait.webp must be a regular file, not a symbolic link");
+
+                    var bytes = File.ReadAllBytes(portraitPath);
+                    var format = Image.DetectFormat(bytes);
+                    var imageInfo = Image.Identify(bytes);
+                    if (!string.Equals(format.Name, WebpFormat.Instance.Name, StringComparison.OrdinalIgnoreCase))
+                        issues.Add($"{folderName}: portrait.webp does not contain WebP image data");
+                    if (imageInfo.Width != 640 || imageInfo.Height != 640)
+                        issues.Add($"{folderName}: portrait.webp must be exactly 640x640 pixels");
+                }
+                catch (Exception ex)
+                {
+                    issues.Add($"{folderName}: portrait.webp is invalid: {ex.Message}");
+                }
             }
 
             try

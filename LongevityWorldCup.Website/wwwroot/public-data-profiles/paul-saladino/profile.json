@@ -22,6 +22,14 @@
   "OpenData": {
     "SubjectDidNotApply": true,
     "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Paul_Saladino_(54234761210).jpg",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Paul_Saladino_%2854234761210%29.jpg",
+      "Author": "Gage Skidmore",
+      "LicenseName": "CC BY-SA 2.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
     "Aliases": [
       "Paul Saladino, MD"
     ],

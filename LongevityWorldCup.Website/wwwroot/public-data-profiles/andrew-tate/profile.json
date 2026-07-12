@@ -22,6 +22,14 @@
   "OpenData": {
     "SubjectDidNotApply": true,
     "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Andrew_Tate_-_James_Tamim_Upload_(Cropped_Wide_Portrait).png",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Andrew_Tate_-_James_Tamim_Upload_%28Cropped_Wide_Portrait%29.png",
+      "Author": "Anything Goes With James English",
+      "LicenseName": "CC BY 3.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by/3.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
     "Aliases": [
       "Cobra Tate"
     ],

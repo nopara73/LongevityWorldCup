@@ -123,6 +123,7 @@ public sealed class AthleteProfilePolicyTests
     [InlineData("ReviewedAt")]
     [InlineData("Sources")]
     [InlineData("Notability")]
+    [InlineData("Portrait")]
     [InlineData("IdentitySourceIds")]
     public void OpenDataProfile_MissingRequiredMetadata_IsRejected(string propertyName)
     {
@@ -148,6 +149,64 @@ public sealed class AthleteProfilePolicyTests
 
         Assert.Throws<InvalidDataException>(() =>
             AthleteProfilePolicy.ValidateAndHydrate(profile, AthleteProfileType.OpenData, "profile.json"));
+    }
+
+    [Fact]
+    public void OpenDataProfile_RequiresClosedConciseHttpsPortraitAttribution()
+    {
+        foreach (var requiredField in new[]
+                 {
+                     "SourcePageUrl",
+                     "OriginalUrl",
+                     "Author",
+                     "LicenseName",
+                     "LicenseUrl",
+                     "EditNote"
+                 })
+        {
+            var missing = ValidOpenDataProfile();
+            missing["OpenData"]!["Portrait"]!.AsObject().Remove(requiredField);
+            var error = Assert.Throws<InvalidDataException>(() =>
+                AthleteProfilePolicy.ValidateAndHydrate(missing, AthleteProfileType.OpenData, "profile.json"));
+            Assert.Contains($"OpenData.Portrait.{requiredField}", error.Message);
+        }
+
+        foreach (var urlField in new[] { "SourcePageUrl", "OriginalUrl", "LicenseUrl" })
+        {
+            var insecure = ValidOpenDataProfile();
+            insecure["OpenData"]!["Portrait"]![urlField] = "http://example.test/portrait";
+            var error = Assert.Throws<InvalidDataException>(() =>
+                AthleteProfilePolicy.ValidateAndHydrate(insecure, AthleteProfileType.OpenData, "profile.json"));
+            Assert.Contains("absolute HTTPS URL", error.Message);
+        }
+
+        foreach (var (field, value) in new[]
+                 {
+                     ("Author", new string('a', 201)),
+                     ("LicenseName", new string('l', 201)),
+                     ("EditNote", new string('e', 281))
+                 })
+        {
+            var verbose = ValidOpenDataProfile();
+            verbose["OpenData"]!["Portrait"]![field] = value;
+            var error = Assert.Throws<InvalidDataException>(() =>
+                AthleteProfilePolicy.ValidateAndHydrate(verbose, AthleteProfileType.OpenData, "profile.json"));
+            Assert.Contains("concise public attribution", error.Message);
+        }
+
+        var unknown = ValidOpenDataProfile();
+        unknown["OpenData"]!["Portrait"]!["PhotographerEmail"] = "private@example.test";
+        var unknownError = Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(unknown, AthleteProfileType.OpenData, "profile.json"));
+        Assert.Contains("closed schema", unknownError.Message);
+        Assert.Contains("OpenData.Portrait", unknownError.Message);
+
+        var persistedAssetUrl = ValidOpenDataProfile();
+        persistedAssetUrl["OpenData"]!["Portrait"]!["AssetUrl"] =
+            "/public-data/public-figure/portrait?v=" + new string('a', 64);
+        var assetError = Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(persistedAssetUrl, AthleteProfileType.OpenData, "profile.json"));
+        Assert.Contains("service-controlled state", assetError.Message);
     }
 
     [Fact]
@@ -267,6 +326,7 @@ public sealed class AthleteProfilePolicyTests
             ("profile root", profile => profile["Birthday"] = "1980-06-15"),
             ("OpenData", profile => profile["OpenData"]!["PrivateContact"] = "secret@example.test"),
             ("Notability", profile => profile["OpenData"]!["Notability"]!["PrivateRationale"] = "secret"),
+            ("Portrait", profile => profile["OpenData"]!["Portrait"]!["PrivateCredit"] = "secret"),
             ("source", profile => profile["OpenData"]!["Sources"]![0]!["AuthorizationToken"] = "secret"),
             ("SubjectAuthorization", profile => profile["OpenData"]!["Sources"]![0]!["SubjectAuthorization"]!["PrivateEvidence"] = "secret"),
             ("biomarker", profile => profile["Biomarkers"]![0]!["ExactBirthDate"] = "1980-06-15")
@@ -293,6 +353,9 @@ public sealed class AthleteProfilePolicyTests
         AthleteProfilePolicy.ValidateAndHydrate(profile, AthleteProfileType.OpenData, "profile.json");
 
         profile["AthleteSlug"] = "public_subject";
+        profile["OpenData"]!["Portrait"]!["AssetUrl"] =
+            "/public-data/public-subject/portrait?v=" + new string('a', 64);
+        profile[AthleteProfilePolicy.OpenDataPortraitVersionPropertyName] = new string('a', 64);
         profile["Birthday"] = "secret birthday";
         profile["ProfilePic"] = "/public-data-profiles/public-subject/secret.png";
         profile["Proofs"] = new JsonArray("/public-data-profiles/public-subject/proof_secret.png");
@@ -301,6 +364,7 @@ public sealed class AthleteProfilePolicyTests
             "Public Alias",
             new JsonObject { ["PrivateAliasMetadata"] = "secret alias metadata" });
         profile["OpenData"]!["Notability"]!["PrivateRationale"] = "secret notability rationale";
+        profile["OpenData"]!["Portrait"]!["PrivateCredit"] = "secret portrait credit";
         profile["OpenData"]!["Sources"]![0]!["AuthorizationToken"] = "secret source token";
         profile["OpenData"]!["Sources"]![0]!["SubjectAuthorization"]!["PrivateEvidence"] =
             "secret authorization evidence";
@@ -320,6 +384,10 @@ public sealed class AthleteProfilePolicyTests
         Assert.False(projection.ContainsKey("Birthday"));
         Assert.False(projection.ContainsKey("ProfilePic"));
         Assert.False(projection.ContainsKey("Proofs"));
+        Assert.Equal(
+            "/public-data/public-subject/portrait?v=" + new string('a', 64),
+            projection["OpenData"]!["Portrait"]!["AssetUrl"]!.GetValue<string>());
+        Assert.False(projection["OpenData"]!["Portrait"]!.AsObject().ContainsKey("PrivateCredit"));
         Assert.DoesNotContain("secret", json, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(
             new[] { "Public Alias" },
@@ -329,6 +397,20 @@ public sealed class AthleteProfilePolicyTests
             projection["Biomarkers"]![0]!["MeasurementQualifiers"]!["CrpMgL"]!.GetValue<string>());
         Assert.False(
             projection["Biomarkers"]![0]!["MeasurementQualifiers"]!.AsObject().ContainsKey("PrivateQualifier"));
+    }
+
+    [Fact]
+    public void OpenDataPublicProjection_RejectsAnAssetUrlWithoutTheServiceHydratedVersion()
+    {
+        var profile = ValidOpenDataProfile();
+        AthleteProfilePolicy.ValidateAndHydrate(profile, AthleteProfileType.OpenData, "profile.json");
+        profile["AthleteSlug"] = "public_subject";
+        profile["OpenData"]!["Portrait"]!["AssetUrl"] =
+            "/public-data/public-subject/portrait?v=" + new string('a', 64);
+
+        var projection = AthleteProfilePolicy.CreatePublicOpenDataProjection(profile);
+
+        Assert.False(projection["OpenData"]!["Portrait"]!.AsObject().ContainsKey("AssetUrl"));
     }
 
     [Fact]
@@ -704,6 +786,15 @@ public sealed class AthleteProfilePolicyTests
                 {
                     ["Summary"] = "A globally recognized public figure with an established body of work.",
                     ["SourceIds"] = new JsonArray("official-biography")
+                },
+                ["Portrait"] = new JsonObject
+                {
+                    ["SourcePageUrl"] = "https://commons.example.test/wiki/File:Public_Figure.jpg",
+                    ["OriginalUrl"] = "https://upload.example.test/public-figure.jpg",
+                    ["Author"] = "Example Photographer",
+                    ["LicenseName"] = "CC BY 4.0",
+                    ["LicenseUrl"] = "https://creativecommons.org/licenses/by/4.0/",
+                    ["EditNote"] = "Cropped to a square and converted to WebP."
                 },
                 ["IdentitySourceIds"] = new JsonArray("bloodwork-2026"),
                 ["TranscriptionNotes"] = new JsonArray("Units were already SI.")

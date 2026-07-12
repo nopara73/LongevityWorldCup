@@ -229,7 +229,7 @@ The final sync preserves production-owned runtime paths:
 - `AppData/`
 - `wwwroot/generated/`
 
-Deletion is scoped to `wwwroot/athletes/`, `wwwroot/public-data-profiles/`, and the generated-only `wwwroot/js/` directory. Removed athlete proofs, removed or corrected public-data manifests, and obsolete scripts therefore disappear from production without turning the deploy into a broad cleanup of unrelated server files. The publish script creates an empty public-data source directory so a valid zero-profile roster clears production cleanly instead of failing `rsync`.
+Deletion is scoped to `wwwroot/athletes/`, `wwwroot/public-data-profiles/`, and the generated-only `wwwroot/js/` directory. Removed athlete proofs, removed or corrected public-data records and their licensed portraits, and obsolete scripts therefore disappear from production without turning the deploy into a broad cleanup of unrelated server files. The publish script creates an empty public-data source directory so a valid zero-profile roster clears production cleanly instead of failing `rsync`.
 
 Social API token refreshes first try to persist updated token state in `config.json`. If the service account can read but not write that file, the app writes the runtime token fields to `/var/www/.longevityworldcup/runtime-config.json` instead. On startup, that sidecar is applied only when it is newer than `config.json`, so a fresh manual edit to `config.json` takes precedence. Delete or update the sidecar when intentionally resetting social tokens.
 

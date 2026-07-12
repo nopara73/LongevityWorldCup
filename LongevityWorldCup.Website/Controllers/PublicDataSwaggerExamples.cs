@@ -134,6 +134,15 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                             "Summary": "A globally recognized public figure with an established body of work.",
                             "SourceIds": ["official-biography"]
                           },
+                          "Portrait": {
+                            "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Example_portrait.jpg",
+                            "OriginalUrl": "https://upload.wikimedia.org/example-portrait.jpg",
+                            "Author": "Example Photographer",
+                            "LicenseName": "CC BY 4.0",
+                            "LicenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+                            "EditNote": "Cropped to a square and converted to WebP.",
+                            "AssetUrl": "/public-data/example-public-figure/portrait?v=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                          },
                           "IdentitySourceIds": ["bloodwork-2026"]
                         },
                         "Biomarkers": [

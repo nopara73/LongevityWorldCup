@@ -1,11 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -75,6 +78,11 @@ public sealed class LeaderboardProfileApiTests
             .Single(profile => profile.GetProperty("ProfileType").GetString() == "OpenData");
         Assert.Equal("open_data_profile", openData.GetProperty("AthleteSlug").GetString());
         Assert.True(openData.GetProperty("OpenData").GetProperty("SubjectDidNotApply").GetBoolean());
+        var portrait = openData.GetProperty("OpenData").GetProperty("Portrait");
+        Assert.Equal("CC BY 4.0", portrait.GetProperty("LicenseName").GetString());
+        Assert.Matches(
+            "^/public-data/open-data-profile/portrait\\?v=[0-9a-f]{64}$",
+            portrait.GetProperty("AssetUrl").GetString());
         Assert.Equal(JsonValueKind.Null, openData.GetProperty("CurrentPlacement").ValueKind);
         Assert.Empty(openData.GetProperty("Placements").EnumerateArray());
         Assert.Empty(openData.GetProperty("Badges").EnumerateArray());
@@ -256,6 +264,78 @@ public sealed class LeaderboardProfileApiTests
         Assert.Equal("noindex, nofollow", response.Headers.GetValues("X-Robots-Tag").Single());
         Assert.Equal("text/plain", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal("Not found.", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task RetainedOpenDataPortrait_IsServedOnlyAtItsImmutableContentVersion()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        var profile = combined.RootElement.EnumerateArray()
+            .Single(row => row.GetProperty("ProfileType").GetString() == "OpenData");
+        var assetUrl = profile.GetProperty("OpenData").GetProperty("Portrait")
+            .GetProperty("AssetUrl").GetString();
+        Assert.NotNull(assetUrl);
+
+        using var response = await client.GetAsync(assetUrl);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("image/webp", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("public, max-age=31536000, immutable", response.Headers.CacheControl?.ToString());
+        Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
+        Assert.Equal("noindex, nofollow", response.Headers.GetValues("X-Robots-Tag").Single());
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal("RIFF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
+        Assert.Equal("WEBP", System.Text.Encoding.ASCII.GetString(bytes, 8, 4));
+
+        using var missingVersion = await client.GetAsync("/public-data/open-data-profile/portrait");
+        AssertNoStoreNotFound(missingVersion);
+        using var staleVersion = await client.GetAsync(
+            "/public-data/open-data-profile/portrait?v=" + new string('0', 64));
+        AssertNoStoreNotFound(staleVersion);
+    }
+
+    [Fact]
+    public async Task UnknownOrWithheldOpenDataPortrait_IsNeverServedFromDisk()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 2);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        var retainedSlug = combined.RootElement.EnumerateArray()
+            .Single(row => row.GetProperty("ProfileType").GetString() == "OpenData")
+            .GetProperty("AthleteSlug").GetString();
+        var withheldIndex = retainedSlug == "open_data_profile" ? 2 : 1;
+        var withheldSlug = withheldIndex == 1 ? "open-data-profile" : "open-data-profile-2";
+        var withheldVersion = fixture.GetOpenDataPortraitVersion(withheldIndex);
+        using var withheld = await client.GetAsync(
+            $"/public-data/{withheldSlug}/portrait?v={withheldVersion}");
+        AssertNoStoreNotFound(withheld);
+
+        using var unknown = await client.GetAsync(
+            $"/public-data/not-a-real-profile/portrait?v={withheldVersion}");
+        AssertNoStoreNotFound(unknown);
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("invalid")]
+    [InlineData("wrong-format")]
+    [InlineData("wrong-dimensions")]
+    [InlineData("oversized")]
+    public async Task InvalidRequiredOpenDataPortrait_WithholdsOnlyItsProfile(string failure)
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
+        fixture.InvalidateOpenDataPortrait(1, failure);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.Equal(9, CountProfileType(combined, "Athlete"));
+        Assert.Equal(0, CountProfileType(combined, "OpenData"));
     }
 
     [Fact]
@@ -910,6 +990,13 @@ public sealed class LeaderboardProfileApiTests
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync());
     }
 
+    private static void AssertNoStoreNotFound(HttpResponseMessage response)
+    {
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+        Assert.Equal("noindex, nofollow", response.Headers.GetValues("X-Robots-Tag").Single());
+    }
+
     private static JsonObject IdentityProfile(
         string slug,
         string name,
@@ -1010,6 +1097,7 @@ public sealed class LeaderboardProfileApiTests
                 var folder = Path.Combine(openDataRoot, slug);
                 Directory.CreateDirectory(folder);
                 File.WriteAllText(Path.Combine(folder, "profile.json"), OpenDataProfileJson(i));
+                WriteValidPortrait(Path.Combine(folder, "portrait.webp"));
             }
         }
 
@@ -1019,10 +1107,14 @@ public sealed class LeaderboardProfileApiTests
         public void UpdateOpenDataProfileName(int index, string name)
         {
             var slug = index == 1 ? "open-data-profile" : $"open-data-profile-{index}";
-            Directory.CreateDirectory(Path.Combine(_root, "public-data-profiles", slug));
+            var folder = Path.Combine(_root, "public-data-profiles", slug);
+            Directory.CreateDirectory(folder);
             File.WriteAllText(
-                Path.Combine(_root, "public-data-profiles", slug, "profile.json"),
+                Path.Combine(folder, "profile.json"),
                 OpenDataProfileJson(index, name));
+            var portraitPath = Path.Combine(folder, "portrait.webp");
+            if (!File.Exists(portraitPath))
+                WriteValidPortrait(portraitPath);
         }
 
         public void MoveOpenDataProfileFolder(int index, string destinationSlug)
@@ -1057,6 +1149,42 @@ public sealed class LeaderboardProfileApiTests
             File.WriteAllText(
                 Path.Combine(_root, "public-data-profiles", slug, fileName),
                 "must never be enumerated by the OpenData API");
+        }
+
+        public string GetOpenDataPortraitVersion(int index)
+        {
+            var slug = index == 1 ? "open-data-profile" : $"open-data-profile-{index}";
+            var bytes = File.ReadAllBytes(
+                Path.Combine(_root, "public-data-profiles", slug, "portrait.webp"));
+            return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        }
+
+        public void InvalidateOpenDataPortrait(int index, string failure)
+        {
+            var slug = index == 1 ? "open-data-profile" : $"open-data-profile-{index}";
+            var path = Path.Combine(_root, "public-data-profiles", slug, "portrait.webp");
+            switch (failure)
+            {
+                case "missing":
+                    File.Delete(path);
+                    break;
+                case "invalid":
+                    File.WriteAllText(path, "not an image");
+                    break;
+                case "wrong-format":
+                    using (var image = new Image<Rgba32>(640, 640, new Rgba32(20, 30, 40)))
+                        image.SaveAsPng(path);
+                    break;
+                case "wrong-dimensions":
+                    using (var image = new Image<Rgba32>(639, 640, new Rgba32(20, 30, 40)))
+                        image.SaveAsWebp(path);
+                    break;
+                case "oversized":
+                    File.WriteAllBytes(path, new byte[(2 * 1024 * 1024) + 1]);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(failure));
+            }
         }
 
         public void UpdateOfficialAthleteName(int index, string name)
@@ -1223,6 +1351,14 @@ public sealed class LeaderboardProfileApiTests
                   "Summary": "A globally recognized public figure with an established body of work.",
                   "SourceIds": ["official-biography"]
                 },
+                "Portrait": {
+                  "SourcePageUrl": "https://commons.example.test/wiki/File:Open_Data_Profile.jpg",
+                  "OriginalUrl": "https://upload.example.test/open-data-profile.jpg",
+                  "Author": "Example Photographer",
+                  "LicenseName": "CC BY 4.0",
+                  "LicenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+                  "EditNote": "Cropped to a square and converted to WebP."
+                },
                 "IdentitySourceIds": ["bloodwork"]
               },
               "Biomarkers": [
@@ -1243,5 +1379,11 @@ public sealed class LeaderboardProfileApiTests
               ]
             }
             """;
+
+        private static void WriteValidPortrait(string path)
+        {
+            using var image = new Image<Rgba32>(640, 640, new Rgba32(32, 48, 64));
+            image.SaveAsWebp(path);
+        }
     }
 }

@@ -85,7 +85,7 @@
     .open-data-profiles{
         width:min(1120px, calc(100% - 2rem));
         margin:2.5rem auto 1rem;
-        padding:1.35rem;
+        padding:1.1rem;
         box-sizing:border-box;
         border:1px solid rgba(71,85,105,.34);
         border-radius:18px;
@@ -97,35 +97,22 @@
     }
     .open-data-profiles[hidden]{ display:none !important; }
     .open-data-profiles-header{
-        display:grid;
-        grid-template-columns:auto 1fr;
-        gap:.9rem 1rem;
-        align-items:start;
-        max-width:880px;
-    }
-    .open-data-profiles-header-icon{
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        width:46px;
-        height:46px;
-        border:1px solid rgba(71,85,105,.38);
-        border-radius:14px;
-        background:rgba(255,255,255,.72);
-        color:#475569;
-        font-size:1.15rem;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+        display:flex;
+        align-items:baseline;
+        flex-wrap:wrap;
+        gap:.25rem .75rem;
     }
     .open-data-profiles h2{
-        margin:0 0 .35rem;
+        margin:0;
         color:var(--dark-text-color);
-        font-size:clamp(1.25rem, 2vw, 1.6rem);
+        font-size:clamp(1.15rem, 2vw, 1.45rem);
     }
     .open-data-explainer{
         margin:0;
         color:#475569;
-        line-height:1.55;
-        font-size:.94rem;
+        line-height:1.4;
+        font-size:.8rem;
+        flex:1 1 470px;
     }
     .open-data-explainer a{
         color:#334155;
@@ -157,41 +144,85 @@
         display:grid;
         grid-template-columns:repeat(auto-fit, minmax(min(100%, 285px), 1fr));
         gap:1rem;
-        margin-top:1.25rem;
+        margin-top:.9rem;
     }
     .open-data-card{
         display:flex;
         flex-direction:column;
         min-width:0;
-        padding:1rem;
+        padding:.85rem;
         border:1px solid rgba(71,85,105,.3);
         border-radius:15px;
         background:rgba(255,255,255,.78);
         box-shadow:0 6px 18px rgba(15,23,42,.07);
     }
     .open-data-card[hidden]{ display:none !important; }
-    .open-data-card-heading{
-        display:grid;
-        grid-template-columns:48px minmax(0, 1fr);
-        gap:.75rem;
-        align-items:center;
-        margin:.8rem 0 .85rem;
+    .open-data-card-media{
+        position:relative;
+        min-height:0;
+        aspect-ratio:16 / 9;
+        margin:0 0 .8rem;
+        overflow:hidden;
+        border:1px solid rgba(71,85,105,.32);
+        border-radius:12px;
+        background:linear-gradient(145deg, #f8fafc, #e2e8f0);
     }
-    .open-data-card-avatar,
-    .open-data-modal-avatar{
-        display:inline-flex;
+    .open-data-card-portrait,
+    .open-data-card-portrait-fallback{
+        position:absolute;
+        inset:0;
+        width:100%;
+        height:100%;
+    }
+    .open-data-card-portrait{
+        display:block;
+        object-fit:cover;
+    }
+    .open-data-card-portrait-fallback{
+        display:flex;
         align-items:center;
         justify-content:center;
-        border:1px solid rgba(71,85,105,.38);
-        background:linear-gradient(145deg, #f8fafc, #e2e8f0);
         color:#475569;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+        font-size:2rem;
     }
-    .open-data-card-avatar{
-        width:48px;
-        height:48px;
-        border-radius:14px;
-        font-size:1rem;
+    .open-data-card-media .open-data-token{
+        position:absolute;
+        top:.55rem;
+        left:.55rem;
+        z-index:2;
+        background:rgba(248,250,252,.94);
+        box-shadow:0 2px 8px rgba(15,23,42,.16);
+    }
+    .open-data-photo-credit{
+        position:absolute;
+        right:.45rem;
+        bottom:.45rem;
+        z-index:2;
+        max-width:calc(100% - .9rem);
+        padding:.26rem .42rem;
+        overflow:hidden;
+        border-radius:7px;
+        background:rgba(15,23,42,.8);
+        color:#f8fafc;
+        font-size:.58rem;
+        line-height:1.25;
+        overflow-wrap:anywhere;
+        text-align:right;
+        white-space:normal;
+    }
+    .open-data-photo-credit a{
+        color:inherit;
+        font-weight:700;
+        text-decoration-color:rgba(248,250,252,.7);
+        text-underline-offset:2px;
+    }
+    .open-data-photo-credit a:focus-visible{
+        outline:2px solid #fff;
+        outline-offset:2px;
+        border-radius:2px;
+    }
+    .open-data-card-heading{
+        margin:0 0 .35rem;
     }
     .open-data-card-name{
         margin:0;
@@ -201,7 +232,7 @@
         line-height:1.3;
     }
     .open-data-card-summary{
-        margin:-.25rem 0 1rem;
+        margin:0 0 1rem;
         color:#475569;
         font-size:.83rem;
         line-height:1.5;
@@ -276,39 +307,82 @@
     .open-data-profile-disclosure{
         width:min(100%, var(--athlete-modal-section-width));
         box-sizing:border-box;
-        margin:.3rem auto 1rem;
-        padding:1rem;
-        border:1px solid var(--athlete-modal-cream-border);
-        border-left-width:4px;
-        border-radius:16px;
-        background:var(--athlete-modal-card-strong);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:.38rem .55rem;
+        margin:.1rem auto .75rem;
+        padding:.5rem .65rem;
+        border:1px solid rgba(246,244,237,.28);
+        border-radius:12px;
+        background:rgba(246,244,237,.06);
         color:var(--athlete-modal-text);
-        text-align:left;
+        text-align:center;
+        font-size:.76rem;
+        line-height:1.35;
     }
     .open-data-profile-disclosure[hidden],
+    .open-data-modal-summary[hidden],
+    .open-data-modal-photo-credit[hidden],
     .open-data-modal-avatar[hidden],
     .open-data-sticky-token[hidden]{ display:none !important; }
-    .open-data-profile-disclosure .open-data-token{ margin-bottom:.65rem; }
-    .open-data-profile-disclosure p{ margin:0; color:var(--athlete-modal-muted); line-height:1.55; }
-    .open-data-profile-disclosure .open-data-notability-summary{
-        margin-bottom:.65rem;
+    .open-data-profile-disclosure .open-data-token{ flex:0 0 auto; }
+    .open-data-profile-disclosure p{ margin:0; color:var(--athlete-modal-muted); }
+    .open-data-modal-summary{
+        width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        margin:.1rem auto .65rem;
         color:var(--athlete-modal-text);
-        font-weight:700;
+        font-size:1rem;
+        font-weight:650;
+        line-height:1.5;
+        text-align:center;
+        text-wrap:balance;
     }
-    .open-data-profile-disclosure a{
+    .open-data-modal-photo-credit{
+        width:min(100%, var(--athlete-modal-section-width));
+        margin:-.15rem auto .45rem;
+        color:var(--athlete-modal-muted);
+        font-size:.66rem;
+        line-height:1.35;
+        text-align:center;
+    }
+    .open-data-qualifier-notice{
+        width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        margin:0 auto .8rem;
+        padding:.45rem .65rem;
+        border-radius:10px;
+        background:rgba(246,244,237,.06);
+        color:var(--athlete-modal-muted);
+        font-size:.72rem;
+        line-height:1.4;
+        text-align:left;
+    }
+    .open-data-profile-disclosure a,
+    .open-data-modal-photo-credit a{
         color:var(--athlete-modal-link);
         font-weight:700;
         text-underline-offset:2px;
     }
-    .open-data-profile-disclosure a:focus-visible{
+    .open-data-profile-disclosure a:focus-visible,
+    .open-data-modal-photo-credit a:focus-visible{
         outline:3px solid var(--athlete-modal-cream);
         outline-offset:3px;
         border-radius:3px;
     }
     .open-data-modal-avatar{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
         width:168px;
         height:168px;
+        border:1px solid rgba(71,85,105,.38);
         border-radius:50%;
+        background:linear-gradient(145deg, #f8fafc, #e2e8f0);
+        color:#475569;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
         font-size:3rem;
     }
     .open-data-sticky-token{
@@ -317,7 +391,6 @@
         padding:.28rem .48rem;
         font-size:.58rem;
     }
-    #detailsModal .modal-content.open-data-profile #modalProfilePic,
     #detailsModal .modal-content.open-data-profile .pro-badge,
     #detailsModal .modal-content.open-data-profile .sticky-pro-badge,
     #detailsModal .modal-content.open-data-profile #modalBadgeStrip,
@@ -387,9 +460,8 @@
 
     @media (max-width: 640px){
         .open-data-profiles{ width:calc(100% - 1rem); margin-top:1.5rem; padding:1rem; }
-        .open-data-profiles-header{ grid-template-columns:1fr; }
-        .open-data-profiles-header-icon{ width:42px; height:42px; }
         .open-data-grid{ grid-template-columns:1fr; }
+        .open-data-card-media{ aspect-ratio:3 / 2; }
         .open-data-card-actions{ display:grid; grid-template-columns:1fr; }
         .open-data-card-action{ width:100%; }
         .open-data-modal-avatar{ width:136px; height:136px; font-size:2.4rem; }
@@ -3021,11 +3093,8 @@
 
         <section id="openDataProfilesSection" class="open-data-profiles" aria-labelledby="openDataProfilesTitle" hidden>
             <div class="open-data-profiles-header">
-                <span class="open-data-profiles-header-icon" aria-hidden="true"><i class="fa-solid fa-database"></i></span>
-                <div>
-                    <h2 id="openDataProfilesTitle">Public-data profiles</h2>
-                    <p class="open-data-explainer">These reference profiles use bloodwork the subjects made public. The subjects did not apply to the Longevity World Cup, are not Longevity athletes, and never affect rankings, awards, or prizes; inclusion does not imply endorsement. Profile subject? <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Request a correction or removal</a>.</p>
-                </div>
+                <h2 id="openDataProfilesTitle">Public-data profiles</h2>
+                <p class="open-data-explainer">Unranked references from bloodwork the subjects made public. Not World Cup athletes, applicants, or endorsements; never affect rankings or prizes. <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Corrections</a>.</p>
             </div>
             <div id="openDataProfilesGrid" class="open-data-grid"></div>
             <p id="openDataProfilesEmpty" class="open-data-empty" hidden>No public-data profiles match this search.</p>
@@ -3055,14 +3124,15 @@
                         <span id="openDataModalAvatar" class="open-data-modal-avatar" aria-label="Public database profile" role="img" hidden><i class="fa-solid fa-database" aria-hidden="true"></i></span>
                         <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
                     </span>
+                    <p id="openDataModalPhotoCredit" class="open-data-modal-photo-credit" hidden></p>
                     <h2 id="athleteName"></h2>
+                    <p id="openDataNotabilitySummary" class="open-data-modal-summary" hidden></p>
 
                     <div id="openDataProfileDisclosure" class="open-data-profile-disclosure" role="note" hidden>
                         <span class="open-data-token">PUBLIC DATA · UNRANKED</span>
-                        <p id="openDataNotabilitySummary" class="open-data-notability-summary"></p>
-                        <p>These reference profiles use bloodwork the subjects made public. The subjects did not apply to the Longevity World Cup, are not Longevity athletes, and never affect rankings, awards, or prizes; inclusion does not imply endorsement. Profile subject? <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Request a correction or removal</a>.</p>
-                        <p id="openDataQualifierNotice" class="detail-muted" hidden>This reference calculation uses a published assay boundary (such as “&lt;0.2”) under the World Cup detection-limit rule; the boundary is not presented as an exact measurement.</p>
+                        <p>Did not apply or join · cannot affect rankings, awards, or prizes · inclusion is not endorsement. <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Corrections</a>.</p>
                     </div>
+                    <p id="openDataQualifierNotice" class="open-data-qualifier-notice" hidden>A source reports an assay boundary (such as “&lt;0.2”); the reference calculation uses that published boundary, not an exact measurement.</p>
 
                     <!--GUESS-MY-AGE-->
 
@@ -3946,6 +4016,65 @@
         }
     }
 
+    function getSafePublicDataPortraitUrl(value, expectedSlug) {
+        if (typeof value !== 'string' || !value.trim()) return '';
+        try {
+            const url = new URL(value.trim(), window.location.origin);
+            const validPath = /^\/public-data\/[a-z0-9]+(?:-[a-z0-9]+)*\/portrait$/i.test(url.pathname);
+            const validVersion = /^\?v=[a-f0-9]{64}$/.test(url.search);
+            const expectedPath = `/public-data/${getCanonicalProfileRouteSlug(expectedSlug)}/portrait`;
+            if (url.origin !== window.location.origin || !validPath || !validVersion ||
+                url.pathname.toLowerCase() !== expectedPath.toLowerCase()) return '';
+            return `${url.pathname}${url.search}`;
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function buildOpenDataPortrait(value, expectedSlug) {
+        if (!value || typeof value !== 'object') return null;
+        const portrait = {
+            assetUrl: getSafePublicDataPortraitUrl(value.AssetUrl, expectedSlug),
+            sourcePageUrl: getSafePublicDataUrl(value.SourcePageUrl),
+            originalUrl: getSafePublicDataUrl(value.OriginalUrl),
+            author: typeof value.Author === 'string' ? value.Author.trim() : '',
+            licenseName: typeof value.LicenseName === 'string' ? value.LicenseName.trim() : '',
+            licenseUrl: getSafePublicDataUrl(value.LicenseUrl),
+            editNote: typeof value.EditNote === 'string' ? value.EditNote.trim() : ''
+        };
+        return portrait.assetUrl && portrait.sourcePageUrl && portrait.originalUrl &&
+            portrait.author && portrait.licenseName && portrait.licenseUrl && portrait.editNote
+            ? portrait
+            : null;
+    }
+
+    function populateOpenDataPhotoCredit(element, portrait) {
+        if (!element) return;
+        element.replaceChildren();
+        if (!portrait) {
+            element.hidden = true;
+            return;
+        }
+
+        const authorLink = document.createElement('a');
+        authorLink.href = portrait.sourcePageUrl;
+        authorLink.target = '_blank';
+        authorLink.rel = 'noopener noreferrer external';
+        authorLink.textContent = portrait.author;
+        authorLink.setAttribute('aria-label', `Photo source by ${portrait.author} (opens in a new tab)`);
+
+        const licenseLink = document.createElement('a');
+        licenseLink.href = portrait.licenseUrl;
+        licenseLink.target = '_blank';
+        licenseLink.rel = 'noopener noreferrer external';
+        licenseLink.textContent = portrait.licenseName;
+        licenseLink.setAttribute('aria-label', `${portrait.licenseName} license (opens in a new tab)`);
+
+        element.append('Photo: ', authorLink, ' · ', licenseLink, ' · cropped');
+        element.title = portrait.editNote;
+        element.hidden = false;
+    }
+
     function getOpenDataTranscriptionNotes(value) {
         if (!Array.isArray(value)) return [];
         return value
@@ -4110,6 +4239,12 @@
             return null;
         }
 
+        const portrait = buildOpenDataPortrait(provenance.Portrait, profile.AthleteSlug);
+        if (!portrait) {
+            console.warn('Skipped public-data profile without a valid licensed portrait.', profile.AthleteSlug);
+            return null;
+        }
+
         const authorizedBloodworkIds = new Set(sources
             .filter(source => source.kind === 'Bloodwork' && source.subjectAuthorization)
             .map(source => source.id));
@@ -4145,6 +4280,7 @@
             reviewedAt: provenance.ReviewedAt ? String(provenance.ReviewedAt) : '',
             transcriptionNotes: getOpenDataTranscriptionNotes(provenance.TranscriptionNotes),
             notabilitySummary,
+            portrait,
             hasMeasurementQualifiers
         };
     }
@@ -5291,21 +5427,39 @@
                 ...profile.sources.flatMap(source => [source.title, source.kind])
             ].filter(Boolean).join(' ').toLowerCase());
 
+            const media = document.createElement('figure');
+            media.className = 'open-data-card-media';
+            const portrait = document.createElement('img');
+            portrait.className = 'open-data-card-portrait';
+            portrait.src = profile.portrait.assetUrl;
+            portrait.alt = `Portrait of ${profile.displayName}`;
+            portrait.loading = 'lazy';
+            portrait.decoding = 'async';
+            const portraitFallback = document.createElement('span');
+            portraitFallback.className = 'open-data-card-portrait-fallback';
+            portraitFallback.setAttribute('aria-hidden', 'true');
+            portraitFallback.hidden = true;
+            portraitFallback.innerHTML = '<i class="fa-solid fa-database"></i>';
+            portrait.addEventListener('error', () => {
+                portrait.hidden = true;
+                portraitFallback.hidden = false;
+            }, { once: true });
+
             const token = document.createElement('span');
             token.className = 'open-data-token';
             token.textContent = 'PUBLIC DATA · UNRANKED';
-            card.appendChild(token);
+            const photoCredit = document.createElement('figcaption');
+            photoCredit.className = 'open-data-photo-credit';
+            populateOpenDataPhotoCredit(photoCredit, profile.portrait);
+            media.append(portrait, portraitFallback, token, photoCredit);
+            card.appendChild(media);
 
             const heading = document.createElement('div');
             heading.className = 'open-data-card-heading';
-            const avatar = document.createElement('span');
-            avatar.className = 'open-data-card-avatar';
-            avatar.setAttribute('aria-hidden', 'true');
-            avatar.innerHTML = '<i class="fa-solid fa-database"></i>';
             const name = document.createElement('h3');
             name.className = 'open-data-card-name';
             name.textContent = profile.displayName;
-            heading.append(avatar, name);
+            heading.appendChild(name);
             card.appendChild(heading);
 
             const summary = document.createElement('p');
@@ -6703,7 +6857,16 @@
             url.searchParams.set('view', currentLeaderboardView);
         }
 
-        history.replaceState({}, "", url.toString());
+        const profileRouteIsOpen = /^\/(?:athlete|public-data)\/[^/]+\/?$/.test(window.location.pathname);
+        if (profileRouteIsOpen) {
+            // A pending search/filter debounce may finish after a profile modal
+            // has already pushed its canonical route. Keep that typed route in
+            // the address bar, but remember the updated leaderboard URL so the
+            // modal closes back to the current filters instead of stale state.
+            originalAthletelessURL = url;
+        } else {
+            history.replaceState({}, "", url.toString());
+        }
     }
 
     function updateRankingExplanation(currentLeaderboardView) {
@@ -8025,7 +8188,7 @@
             modalContent.dataset.profileType = isOpenData ? 'OpenData' : 'Athlete';
         }
         if (detailsModal) {
-            if (isOpenData) detailsModal.setAttribute('aria-describedby', 'openDataProfileDisclosure');
+            if (isOpenData) detailsModal.setAttribute('aria-describedby', 'openDataNotabilitySummary openDataProfileDisclosure');
             else detailsModal.removeAttribute('aria-describedby');
         }
 
@@ -8042,10 +8205,17 @@
         const stickyToken = document.getElementById('openDataStickyToken');
         const databaseAvatar = document.getElementById('openDataModalAvatar');
         const profilePic = document.getElementById('modalProfilePic');
+        const notabilitySummary = document.getElementById('openDataNotabilitySummary');
+        const photoCredit = document.getElementById('openDataModalPhotoCredit');
         if (disclosure) disclosure.hidden = !isOpenData;
         if (stickyToken) stickyToken.hidden = !isOpenData;
         if (databaseAvatar) databaseAvatar.hidden = !isOpenData;
-        if (profilePic) profilePic.hidden = isOpenData;
+        if (notabilitySummary) notabilitySummary.hidden = !isOpenData;
+        if (profilePic) {
+            profilePic.hidden = isOpenData;
+            profilePic.onerror = null;
+        }
+        if (!isOpenData && photoCredit) populateOpenDataPhotoCredit(photoCredit, null);
 
         const publicSources = document.getElementById('publicDataSources');
         const eventsEmbed = document.querySelector('#detailsModal .events-embed');
@@ -8085,10 +8255,24 @@
         configureAthleteShareButton(displayName, routeSlug, null, true);
 
         const profilePic = document.getElementById('modalProfilePic');
+        const databaseAvatar = document.getElementById('openDataModalAvatar');
+        const photoCredit = document.getElementById('openDataModalPhotoCredit');
         if (profilePic) {
-            profilePic.removeAttribute('src');
-            profilePic.alt = '';
+            profilePic.src = profileData.portrait.assetUrl;
+            profilePic.dataset.fullSrc = profileData.portrait.assetUrl;
+            profilePic.alt = `Portrait of ${displayName}`;
+            profilePic.loading = 'lazy';
+            profilePic.decoding = 'async';
+            profilePic.classList.remove('portrait-fallback');
+            profilePic.hidden = false;
+            profilePic.onerror = () => {
+                profilePic.hidden = true;
+                if (databaseAvatar) databaseAvatar.hidden = false;
+                populateOpenDataPhotoCredit(photoCredit, null);
+            };
         }
+        if (databaseAvatar) databaseAvatar.hidden = true;
+        populateOpenDataPhotoCredit(photoCredit, profileData.portrait);
         const athleteProfile = document.getElementById('athlete-profile');
         const modalStickyHeader = document.getElementById('modalStickyHeader');
         if (athleteProfile) athleteProfile.classList.remove('is-pro');
@@ -8101,7 +8285,10 @@
         if (athleteBio) athleteBio.textContent = '';
         if (modalBadgeSection) modalBadgeSection.innerHTML = '';
         if (qualifierNotice) qualifierNotice.hidden = !profileData.hasMeasurementQualifiers;
-        if (notabilitySummary) notabilitySummary.textContent = profileData.notabilitySummary;
+        if (notabilitySummary) {
+            notabilitySummary.textContent = profileData.notabilitySummary;
+            notabilitySummary.hidden = false;
+        }
 
         ['athleteRank', 'athleteDivision', 'athleteGeneration', 'athleteFlag', 'lowestPhenoAgeRank', 'paceOfAgingRank', 'bortzPaceOfAgingRank']
             .forEach(id => {

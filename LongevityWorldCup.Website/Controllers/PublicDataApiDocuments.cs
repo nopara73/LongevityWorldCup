@@ -261,6 +261,10 @@ public sealed class PublicOpenDataMetadataApiDocument
     [JsonPropertyName("Notability")]
     public PublicOpenDataNotabilityApiDocument? Notability { get; init; }
 
+    /// <summary>Required licensed portrait attribution and the service-generated, versioned portrait URL.</summary>
+    [JsonPropertyName("Portrait")]
+    public PublicOpenDataPortraitApiDocument? Portrait { get; init; }
+
     /// <summary>Date on which the transcription and its sources were last reviewed.</summary>
     [JsonPropertyName("ReviewedAt")]
     public string? ReviewedAt { get; init; }
@@ -288,6 +292,38 @@ public sealed class PublicOpenDataNotabilityApiDocument
     /// <summary>Identifiers of linked Identity sources that support the summary.</summary>
     [JsonPropertyName("SourceIds")]
     public IReadOnlyList<string>? SourceIds { get; init; }
+}
+
+/// <summary>Licensed portrait attribution for an OpenData subject.</summary>
+public sealed class PublicOpenDataPortraitApiDocument
+{
+    /// <summary>Absolute HTTPS page that publishes the portrait and its attribution or license context.</summary>
+    [JsonPropertyName("SourcePageUrl")]
+    public string? SourcePageUrl { get; init; }
+
+    /// <summary>Absolute HTTPS URL of the original image published by the source.</summary>
+    [JsonPropertyName("OriginalUrl")]
+    public string? OriginalUrl { get; init; }
+
+    /// <summary>Concise author or creator credit supplied by the source.</summary>
+    [JsonPropertyName("Author")]
+    public string? Author { get; init; }
+
+    /// <summary>Name of the license under which the portrait may be reused.</summary>
+    [JsonPropertyName("LicenseName")]
+    public string? LicenseName { get; init; }
+
+    /// <summary>Absolute HTTPS URL of the applicable license text.</summary>
+    [JsonPropertyName("LicenseUrl")]
+    public string? LicenseUrl { get; init; }
+
+    /// <summary>Concise disclosure of edits made to the locally served portrait.</summary>
+    [JsonPropertyName("EditNote")]
+    public string? EditNote { get; init; }
+
+    /// <summary>Service-generated, content-versioned local URL for the validated 640x640 WebP.</summary>
+    [JsonPropertyName("AssetUrl")]
+    public string? AssetUrl { get; init; }
 }
 
 /// <summary>One external source used by an OpenData profile.</summary>
