@@ -795,6 +795,14 @@ function preserveAppliedDiscountMetadata(offer: PendingPaymentOffer, result: Dis
     }
 }
 
+function notifyPaymentPreparationFailure(retryButton?: HTMLButtonElement | null): void {
+    const message = "Payment details could not be prepared. Refresh the page and try again.";
+    const alertPromise = typeof window.customAlert === "function"
+        ? window.customAlert(message)
+        : Promise.resolve(window.alert(message));
+    alertPromise?.then?.(() => retryButton?.focus());
+}
+
 function notifyPaymentStorageFailure(retryButton?: HTMLButtonElement | null): void {
     const message = "Payment details could not be saved. Enable browser storage and try again.";
     const alertPromise = typeof window.customAlert === "function"
@@ -804,6 +812,11 @@ function notifyPaymentStorageFailure(retryButton?: HTMLButtonElement | null): vo
 }
 
 function setPendingPaymentOffer(offer: unknown, retryButton?: HTMLButtonElement | null): boolean {
+    if (!isUsablePaymentOffer(offer)) {
+        notifyPaymentPreparationFailure(retryButton);
+        return false;
+    }
+
     let effectiveOffer: unknown = offer;
     try {
         effectiveOffer = window.applyPaymentAdjustmentsToPaymentOffer
@@ -812,14 +825,17 @@ function setPendingPaymentOffer(offer: unknown, retryButton?: HTMLButtonElement 
                 ? window.applyFreePassToPaymentOffer(offer)
                 : offer;
     } catch (_) {
-        notifyPaymentStorageFailure(retryButton);
+        notifyPaymentPreparationFailure(retryButton);
         return false;
     }
 
     const serializedOffer = serializePendingPaymentOffer(effectiveOffer);
-    if (serializedOffer && setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) {
-        return true;
+    if (!serializedOffer) {
+        notifyPaymentPreparationFailure(retryButton);
+        return false;
     }
+
+    if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) return true;
 
     notifyPaymentStorageFailure(retryButton);
     return false;

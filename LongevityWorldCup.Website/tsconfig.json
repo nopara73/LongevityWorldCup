@@ -21,6 +21,7 @@
     "newLine": "lf"
   },
   "include": [
-    "Frontend/**/*.ts"
+    "Frontend/*.ts",
+    "Frontend/types/**/*.d.ts"
   ]
 }
