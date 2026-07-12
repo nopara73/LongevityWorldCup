@@ -13,6 +13,11 @@
         --tier-amateur-bg-even: rgba(59, 130, 246, 0.11);
         --tier-amateur-border: 4px solid rgba(37, 99, 235, 0.45);
         --tier-amateur-hover: rgba(59, 130, 246, 0.12);
+        /* Public-data comparison rows: violet is reserved for non-competing references. */
+        --open-data-row-bg: linear-gradient(90deg, rgba(124,58,237,.10), rgba(124,58,237,.045));
+        --open-data-row-hover: linear-gradient(90deg, rgba(124,58,237,.15), rgba(124,58,237,.075));
+        --open-data-row-edge: rgba(109,40,217,.72);
+        --open-data-row-ink: #5b21b6;
     }
 
     /* =========================
@@ -140,6 +145,78 @@
         line-height:1.15;
         text-transform:uppercase;
     }
+    .leaderboard table tbody tr.open-data-leaderboard-row,
+    .leaderboard table tbody tr.open-data-leaderboard-row:nth-child(even){
+        background:var(--open-data-row-bg);
+        box-shadow:inset 4px 0 0 var(--open-data-row-edge);
+    }
+    .leaderboard table tbody tr.open-data-leaderboard-row:hover,
+    .leaderboard table tbody tr.open-data-leaderboard-row:focus-within{
+        background:var(--open-data-row-hover);
+        box-shadow:inset 4px 0 0 var(--open-data-row-edge), 0 5px 14px rgba(76,29,149,.12);
+    }
+    .open-data-hypothetical-rank{
+        display:inline-flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        color:var(--open-data-row-ink);
+        font-variant-numeric:tabular-nums;
+        font-weight:800;
+        line-height:1;
+    }
+    .open-data-hypothetical-prefix{
+        font-size:.55rem;
+        letter-spacing:.08em;
+        text-transform:uppercase;
+    }
+    .open-data-hypothetical-number{ margin-top:.16rem; font-size:1rem; }
+    .open-data-row-identity{
+        display:inline-flex;
+        min-width:0;
+        flex-direction:column;
+        align-items:flex-start;
+        gap:.18rem;
+    }
+    .open-data-row-name{
+        max-width:100%;
+        margin:0;
+        padding:0;
+        border:0;
+        background:transparent;
+        color:var(--open-data-row-ink);
+        font:inherit;
+        font-weight:700;
+        text-align:left;
+        cursor:pointer;
+    }
+    .open-data-row-name:hover{ text-decoration:underline; text-underline-offset:2px; }
+    .open-data-row-name:focus-visible{
+        border-radius:4px;
+        outline:3px solid rgba(109,40,217,.28);
+        outline-offset:3px;
+    }
+    .open-data-row-token{
+        display:inline-flex;
+        width:max-content;
+        max-width:100%;
+        padding:.2rem .42rem;
+        border:1px solid rgba(109,40,217,.32);
+        border-radius:999px;
+        background:rgba(245,243,255,.86);
+        color:#5b21b6;
+        font-size:.55rem;
+        font-weight:800;
+        letter-spacing:.055em;
+        line-height:1.2;
+        text-transform:uppercase;
+    }
+    .open-data-leaderboard-row .portrait{
+        border-color:#7c3aed;
+        box-shadow:0 0 0 2px rgba(124,58,237,.13);
+    }
+    .open-data-leaderboard-row .age-reduction{ color:var(--open-data-row-ink); }
+    .open-data-row-empty{ color:#6d28d9; font-weight:700; }
     .open-data-grid{
         display:grid;
         grid-template-columns:repeat(auto-fit, minmax(min(100%, 285px), 1fr));
@@ -251,6 +328,13 @@
         font-weight:650;
         line-height:1.35;
     }
+    .open-data-card-hypothetical{
+        margin-top:.2rem;
+        color:#5b21b6;
+        font-size:.75rem;
+        font-weight:800;
+        line-height:1.35;
+    }
     .open-data-card-metric-label{
         color:#64748b;
         font-size:.72rem;
@@ -324,6 +408,7 @@
     }
     .open-data-profile-disclosure[hidden],
     .open-data-modal-summary[hidden],
+    .open-data-modal-hypothetical[hidden],
     .open-data-modal-photo-credit[hidden],
     .open-data-modal-avatar[hidden],
     .open-data-sticky-token[hidden]{ display:none !important; }
@@ -339,6 +424,21 @@
         line-height:1.5;
         text-align:center;
         text-wrap:balance;
+    }
+    .open-data-modal-hypothetical{
+        width:max-content;
+        max-width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        margin:0 auto .65rem;
+        padding:.4rem .65rem;
+        border:1px solid rgba(196,181,253,.5);
+        border-radius:999px;
+        background:rgba(124,58,237,.09);
+        color:#ddd6fe;
+        font-size:.76rem;
+        font-weight:750;
+        line-height:1.35;
+        text-align:center;
     }
     .open-data-modal-photo-credit{
         width:min(100%, var(--athlete-modal-section-width));
@@ -474,6 +574,21 @@
             letter-spacing:.055em;
             white-space:nowrap;
         }
+        .open-data-row-token{
+            padding:.18rem .32rem;
+            font-size:.48rem;
+            letter-spacing:.035em;
+            white-space:normal;
+        }
+    }
+
+    @media (forced-colors: active){
+        .leaderboard table tbody tr.open-data-leaderboard-row{
+            border-left:4px solid Highlight;
+            box-shadow:none;
+        }
+        .open-data-row-token{ border:1px solid Highlight; }
+        .open-data-leaderboard-row .portrait{ border-color:Highlight; }
     }
 
     @keyframes skeletonShimmer{
@@ -900,6 +1015,14 @@
     }
     .ranking-explanation.is-visible{ display:block; }
     .ranking-explanation strong{ color:var(--primary-color); }
+    .open-data-rank-key{
+        display:block;
+        margin-top:.3rem;
+        color:#64748b;
+        font-size:.78rem;
+        line-height:1.35;
+    }
+    .open-data-rank-key strong{ color:#6d28d9; }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
@@ -3094,7 +3217,7 @@
         <section id="openDataProfilesSection" class="open-data-profiles" aria-labelledby="openDataProfilesTitle" hidden>
             <div class="open-data-profiles-header">
                 <h2 id="openDataProfilesTitle">Public-data profiles</h2>
-                <p class="open-data-explainer">Unranked references from bloodwork the subjects made public. Not World Cup athletes, applicants, or endorsements; never affect rankings or prizes. <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Corrections</a>.</p>
+                <p class="open-data-explainer">Non-competing references from bloodwork the subjects made public. Their hypothetical positions are independent comparisons; they never change official ranks or prizes. <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Corrections</a>.</p>
             </div>
             <div id="openDataProfilesGrid" class="open-data-grid"></div>
             <p id="openDataProfilesEmpty" class="open-data-empty" hidden>No public-data profiles match this search.</p>
@@ -3108,7 +3231,7 @@
                     <div class="sticky-header-left">
                         <span class="sticky-athlete-name" id="stickyAthleteName"></span>
                         <span class="sticky-pro-badge" id="stickyProBadge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
-                        <span id="openDataStickyToken" class="open-data-token open-data-sticky-token" hidden>PUBLIC DATA · UNRANKED</span>
+                        <span id="openDataStickyToken" class="open-data-token open-data-sticky-token" hidden>PUBLIC DATA · DID NOT APPLY</span>
                     </div>
                     <button class="sticky-close-btn" id="stickyCloseBtn" aria-label="Close athlete details">&times;</button>
                 </div>
@@ -3127,10 +3250,11 @@
                     <p id="openDataModalPhotoCredit" class="open-data-modal-photo-credit" hidden></p>
                     <h2 id="athleteName"></h2>
                     <p id="openDataNotabilitySummary" class="open-data-modal-summary" hidden></p>
+                    <p id="openDataHypotheticalSummary" class="open-data-modal-hypothetical" hidden></p>
 
                     <div id="openDataProfileDisclosure" class="open-data-profile-disclosure" role="note" hidden>
-                        <span class="open-data-token">PUBLIC DATA · UNRANKED</span>
-                        <p>Did not apply or join · cannot affect rankings, awards, or prizes · inclusion is not endorsement. <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Corrections</a>.</p>
+                        <span class="open-data-token">PUBLIC DATA · DID NOT APPLY</span>
+                        <p>Hypothetical positions are comparisons only · cannot affect official ranks, awards, or prizes · inclusion is not endorsement. <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Corrections</a>.</p>
                     </div>
                     <p id="openDataQualifierNotice" class="open-data-qualifier-notice" hidden>A source reports an assay boundary (such as “&lt;0.2”); the reference calculation uses that published boundary, not an exact measurement.</p>
 
@@ -4157,57 +4281,6 @@
         };
     }
 
-    function calculateOpenDataBortzSummary(profile, authorizedBloodworkIds) {
-        if (!window.BortzAge || typeof window.BortzAge.calculateBortzAge !== 'function') return null;
-        let lowestAge = Infinity;
-        let chronologicalAge = null;
-
-        (Array.isArray(profile.Biomarkers) ? profile.Biomarkers : []).forEach(entry => {
-            if (!entry || !entry.Date || !isCompleteBortzBiomarkerSet(entry) ||
-                !recordReferencesAuthorizedBloodwork(entry, authorizedBloodworkIds)) return;
-            const ageAtEntry = getProfileAgeAtBiomarker(profile, entry);
-            const wbc = entry.Wbc1000cellsuL;
-            const values = [
-                ageAtEntry,
-                entry.AlbGL,
-                entry.AlpUL,
-                entry.UreaMmolL,
-                entry.CholesterolMmolL,
-                entry.CreatUmolL,
-                entry.CystatinCMgL,
-                entry.Hba1cMmolMol,
-                entry.CrpMgL,
-                entry.GgtUL,
-                entry.Rbc10e12L,
-                entry.McvFL,
-                entry.RdwPc,
-                wbc * entry.MonocytePc / 100,
-                wbc * entry.NeutrophilPc / 100,
-                entry.LymPc,
-                entry.AltUL,
-                entry.ShbgNmolL,
-                entry.VitaminDNmolL,
-                entry.GluMmolL,
-                entry.MchPg,
-                entry.ApoA1GL
-            ];
-            if (!values.every(Number.isFinite)) return;
-            const bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, values);
-            if (Number.isFinite(bortzAge) && bortzAge < lowestAge) {
-                lowestAge = bortzAge;
-                chronologicalAge = ageAtEntry;
-            }
-        });
-
-        if (!Number.isFinite(lowestAge) || !Number.isFinite(chronologicalAge)) return null;
-        return {
-            lowestAge,
-            chronologicalAge,
-            ageReduction: lowestAge - chronologicalAge,
-            ageReductionPercent: (1 - lowestAge / chronologicalAge) * 100
-        };
-    }
-
     function buildOpenDataProfile(profile) {
         const provenance = profile && profile.OpenData;
         if (!profile || !Array.isArray(profile.Biomarkers) || !provenance || provenance.SubjectDidNotApply !== true) {
@@ -4252,7 +4325,6 @@
             ? profile.DisplayName.trim()
             : profile.Name;
         const pheno = calculateOpenDataPhenoSummary(profile, authorizedBloodworkIds);
-        const bortz = calculateOpenDataBortzSummary(profile, authorizedBloodworkIds);
         const hasMeasurementQualifiers = profile.Biomarkers.some(record =>
             record && record.MeasurementQualifiers &&
             Object.keys(record.MeasurementQualifiers).length > 0);
@@ -4271,10 +4343,10 @@
             chronoAtLowestPhenoAge: pheno ? pheno.chronologicalAge : null,
             ageReduction: pheno ? pheno.ageReduction : null,
             ageReductionPercent: pheno ? pheno.ageReductionPercent : null,
-            lowestBortzAge: bortz ? bortz.lowestAge : null,
-            chronoAtLowestBortzAge: bortz ? bortz.chronologicalAge : null,
-            bortzAgeReduction: bortz ? bortz.ageReduction : null,
-            bortzAgeReductionPercent: bortz ? bortz.ageReductionPercent : null,
+            lowestBortzAge: null,
+            chronoAtLowestBortzAge: null,
+            bortzAgeReduction: null,
+            bortzAgeReductionPercent: null,
             sources,
             aliases,
             reviewedAt: provenance.ReviewedAt ? String(provenance.ReviewedAt) : '',
@@ -5265,6 +5337,7 @@
                     tableBody.appendChild(row);
                 });
                 renderOpenDataProfiles();
+                const renderedOpenDataRowCount = renderOpenDataLeaderboardRows();
                 scheduleLeaderboardTableHeightSync();
 
                 const hash = window.location.hash;
@@ -5361,6 +5434,10 @@
                     }
                 }
 
+                if (renderedOpenDataRowCount > 0) {
+                    performFilter();
+                }
+
                 // Pick up dynamically inserted [data-aos] nodes
                 if (window.AOS && typeof AOS.refreshHard === 'function') {
                     AOS.refreshHard();
@@ -5392,6 +5469,165 @@
         return normalizedPath.toLowerCase() === '/leaderboard';
     }
 
+    function shouldShowOpenDataLeaderboardRows() {
+        return !includePodiumGlobal && !Number.isFinite(maxAthletesGlobal);
+    }
+
+    function getOpenDataSearchText(profile) {
+        return window.normalizeString([
+            profile.name,
+            profile.displayName,
+            profile.notabilitySummary,
+            ...profile.aliases,
+            ...profile.transcriptionNotes,
+            ...profile.sources.flatMap(source => [source.title, source.kind])
+        ].filter(Boolean).join(' ').toLowerCase());
+    }
+
+    function getOpenDataMetricForView(profile, view) {
+        if (!profile || (view !== 'ultimate' && view !== 'pheno')) return null;
+        return Number.isFinite(profile.ageReduction) ? profile.ageReduction : null;
+    }
+
+    function getOpenDataHypotheticalRank(profile, view) {
+        const referenceMetric = getOpenDataMetricForView(profile, view);
+        if (!Number.isFinite(referenceMetric)) return null;
+
+        let officialAheadOrTied = 0;
+
+        athleteResults.forEach(athlete => {
+            const athleteHasBortz = Number.isFinite(athlete.bortzAgeReduction);
+            if (view === 'ultimate') {
+                if (athleteHasBortz) {
+                    officialAheadOrTied++;
+                    return;
+                }
+
+                if (Number.isFinite(athlete.ageReduction) && athlete.ageReduction <= referenceMetric) {
+                    officialAheadOrTied++;
+                }
+                return;
+            }
+
+            if (view === 'pheno' && Number.isFinite(athlete.ageReduction) && athlete.ageReduction <= referenceMetric) {
+                officialAheadOrTied++;
+            }
+        });
+
+        // Exact-score ties stay behind every official athlete because OpenData deliberately omits exact DOB.
+        return officialAheadOrTied + 1;
+    }
+
+    function getOpenDataHypotheticalSummary(profile) {
+        const summary = [];
+        const ultimateRank = getOpenDataHypotheticalRank(profile, 'ultimate');
+        const phenoRank = getOpenDataHypotheticalRank(profile, 'pheno');
+        if (Number.isFinite(ultimateRank)) summary.push(`Ultimate #${ultimateRank}`);
+        if (Number.isFinite(phenoRank)) summary.push(`Pheno #${phenoRank}`);
+        return summary.length > 0 ? `Hypothetical ${summary.join(' · ')}` : '';
+    }
+
+    function getPreferredOpenDataSource(profile) {
+        return profile.sources.find(source => source.preferredForDisplay) ||
+            profile.sources.find(source => source.kind === 'Bloodwork' && source.subjectAuthorization) ||
+            profile.sources[0] || null;
+    }
+
+    function updateOpenDataLeaderboardRow(row, profile, view, hypotheticalRank) {
+        const rankCell = row.querySelector('.rank-td');
+        const rankNumber = row.querySelector('.open-data-hypothetical-number');
+        const metricCell = row.querySelector('.age-reduction-td');
+        const metric = row.querySelector('.age-reduction');
+        const metricValue = getOpenDataMetricForView(profile, view);
+        const viewLabel = 'Pheno';
+
+        row.dataset.hypotheticalRank = String(hypotheticalRank);
+        if (rankNumber) rankNumber.textContent = `#${hypotheticalRank}`;
+        if (rankCell) {
+            rankCell.setAttribute(
+                'aria-label',
+                `Hypothetical position ${hypotheticalRank}; official athlete ranks are unchanged.`);
+            rankCell.title = 'Compared independently with official athletes; official athlete ranks stay unchanged.';
+        }
+        if (metricCell) metricCell.setAttribute('data-label', `Reference ${viewLabel}`);
+        if (metric) metric.textContent = formatReferenceCalculation(metricValue);
+    }
+
+    function renderOpenDataLeaderboardRows() {
+        const tableBody = document.querySelector('.leaderboard table tbody');
+        if (!tableBody) return 0;
+
+        tableBody.querySelectorAll('.open-data-leaderboard-row').forEach(row => row.remove());
+        if (!shouldShowOpenDataLeaderboardRows()) return 0;
+
+        const template = document.getElementById('leaderboardRowTemplate');
+        const fragment = document.createDocumentFragment();
+        let renderedCount = 0;
+
+        openDataProfiles.forEach(profile => {
+            const hypotheticalRank = getOpenDataHypotheticalRank(profile, 'ultimate');
+            if (!Number.isFinite(hypotheticalRank)) return;
+
+            const row = template.content.firstElementChild.cloneNode(true);
+            row.className = 'open-data-leaderboard-row';
+            row.id = `public-data-row-${profile.athleteSlug}`;
+            row.dataset.athleteName = profile.name;
+            row.dataset.profileSlug = profile.athleteSlug;
+            row.dataset.profileType = 'OpenData';
+            row.dataset.searchText = getOpenDataSearchText(profile);
+            row.hidden = true;
+            row.style.display = 'none';
+
+            const rank = row.querySelector('.rank');
+            rank.className = 'open-data-hypothetical-rank';
+            rank.innerHTML = '<span class="open-data-hypothetical-prefix">HYP.</span><span class="open-data-hypothetical-number"></span>';
+
+            const athleteCell = row.querySelector('.athlete-td');
+            athleteCell.querySelector('.pro-badge')?.remove();
+            athleteCell.querySelector('.badge-section')?.remove();
+            const portrait = athleteCell.querySelector('img.portrait');
+            portrait.src = profile.portrait.assetUrl;
+            portrait.alt = `Portrait of ${profile.displayName}`;
+            wirePortraitFallback(portrait);
+
+            const originalName = athleteCell.querySelector('.athlete-name');
+            const identity = document.createElement('span');
+            identity.className = 'open-data-row-identity';
+            const nameButton = document.createElement('button');
+            nameButton.type = 'button';
+            nameButton.className = 'athlete-name open-data-row-name';
+            nameButton.innerHTML = formatAthleteNameForMobile(profile.displayName);
+            nameButton.setAttribute('aria-label', `View public-data profile for ${profile.displayName}`);
+            nameButton.addEventListener('click', event => {
+                event.stopPropagation();
+                fetchFullAthleteData(profile.name, profile);
+            });
+            const token = document.createElement('span');
+            token.className = 'open-data-row-token';
+            token.textContent = 'PUBLIC DATA · DID NOT APPLY';
+            identity.append(nameButton, token);
+            originalName.replaceWith(identity);
+
+            const sponsorCell = row.querySelector('.sponsor-td');
+            sponsorCell.innerHTML = '<span class="open-data-row-empty" aria-hidden="true">—</span><span class="visually-hidden">Sponsor: not applicable for a non-competing public-data profile.</span>';
+
+            const mediaCell = row.querySelector('.media-contact-td');
+            mediaCell.innerHTML = '<span class="open-data-row-empty" aria-hidden="true">—</span><span class="visually-hidden">Media contact: not provided for this public-data profile.</span>';
+
+            updateOpenDataLeaderboardRow(row, profile, 'ultimate', hypotheticalRank);
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', event => {
+                if (event.target.closest('a, button')) return;
+                fetchFullAthleteData(profile.name, profile);
+            });
+            fragment.appendChild(row);
+            renderedCount++;
+        });
+
+        tableBody.appendChild(fragment);
+        return renderedCount;
+    }
+
     function formatReferenceCalculation(value) {
         if (!Number.isFinite(value)) return 'Not available';
         const prefix = value > 0 ? '+' : '';
@@ -5418,14 +5654,7 @@
             card.className = 'open-data-card';
             card.dataset.athleteName = profile.name;
             card.dataset.profileSlug = profile.athleteSlug;
-            card.dataset.searchText = window.normalizeString([
-                profile.name,
-                profile.displayName,
-                profile.notabilitySummary,
-                ...profile.aliases,
-                ...profile.transcriptionNotes,
-                ...profile.sources.flatMap(source => [source.title, source.kind])
-            ].filter(Boolean).join(' ').toLowerCase());
+            card.dataset.searchText = getOpenDataSearchText(profile);
 
             const media = document.createElement('figure');
             media.className = 'open-data-card-media';
@@ -5447,7 +5676,7 @@
 
             const token = document.createElement('span');
             token.className = 'open-data-token';
-            token.textContent = 'PUBLIC DATA · UNRANKED';
+            token.textContent = 'PUBLIC DATA · DID NOT APPLY';
             const photoCredit = document.createElement('figcaption');
             photoCredit.className = 'open-data-photo-credit';
             populateOpenDataPhotoCredit(photoCredit, profile.portrait);
@@ -5479,6 +5708,17 @@
             formulaNote.className = 'open-data-card-metric-note';
             formulaNote.textContent = 'Pheno Age − age at published panel';
             metric.append(metricLabel, metricValue, formulaNote);
+            const hypotheticalSummary = getOpenDataHypotheticalSummary(profile);
+            if (hypotheticalSummary) {
+                const hypothetical = document.createElement('span');
+                hypothetical.className = 'open-data-card-hypothetical';
+                hypothetical.textContent = hypotheticalSummary;
+                metric.appendChild(hypothetical);
+                const hypotheticalNote = document.createElement('span');
+                hypotheticalNote.className = 'open-data-card-metric-note';
+                hypotheticalNote.textContent = 'Independent comparison; official ranks stay unchanged';
+                metric.appendChild(hypotheticalNote);
+            }
             if (profile.hasMeasurementQualifiers) {
                 const qualifierNote = document.createElement('span');
                 qualifierNote.className = 'open-data-card-metric-note';
@@ -5493,13 +5733,11 @@
             openButton.type = 'button';
             openButton.className = 'open-data-card-action open-data-card-open';
             openButton.innerHTML = '<i class="fa-solid fa-database" aria-hidden="true"></i> View public data';
-            openButton.setAttribute('aria-label', `View unranked public-data profile for ${profile.displayName}`);
+            openButton.setAttribute('aria-label', `View public-data profile for ${profile.displayName}`);
             openButton.addEventListener('click', () => fetchFullAthleteData(profile.name, profile));
             actions.appendChild(openButton);
 
-            const firstSource = profile.sources.find(source => source.preferredForDisplay) ||
-                profile.sources.find(source =>
-                source.kind === 'Bloodwork' && source.subjectAuthorization) || profile.sources[0];
+            const firstSource = getPreferredOpenDataSource(profile);
             if (firstSource) {
                 const sourceLink = document.createElement('a');
                 sourceLink.className = 'open-data-card-action open-data-card-source';
@@ -5886,6 +6124,10 @@
         if (modalBadgeStrip) modalBadgeStrip.innerHTML = '';
         const athleteBio = document.getElementById('athleteBio');
         if (athleteBio) athleteBio.textContent = '';
+        const openDataNotabilitySummary = document.getElementById('openDataNotabilitySummary');
+        if (openDataNotabilitySummary) openDataNotabilitySummary.textContent = '';
+        const openDataHypotheticalSummary = document.getElementById('openDataHypotheticalSummary');
+        if (openDataHypotheticalSummary) openDataHypotheticalSummary.textContent = '';
         const personalLinkElement = document.getElementById('personalLink');
         if (personalLinkElement) personalLinkElement.style.display = 'none';
         const mediaContactElement = document.getElementById('mediaContact');
@@ -6472,7 +6714,8 @@
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
         syncAgingClockFilters(currentLeaderboardView);
         updateActiveFilterSections();
-        updateRankingExplanation(currentLeaderboardView);
+        const athleteOnlyFiltersActive = selectedDivisions.length > 0 || selectedFlags.length > 0 ||
+            selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 || leagueTrackFilterActive;
 
         const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
         const hasCrowdAge = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
@@ -6556,6 +6799,9 @@
         } else {
             baseList = athleteResults; // ultimate: already in rank order
         }
+        baseList.forEach((athlete, index) => {
+            athlete.viewRank = index + 1;
+        });
 
         const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
@@ -6563,6 +6809,15 @@
         filterOpenDataProfiles(uniqueSearchTerms);
 
         const showAll = uniqueSearchTerms.length === 0;
+        const visibleOpenDataProfiles = shouldShowOpenDataLeaderboardRows() && !athleteOnlyFiltersActive
+            ? openDataProfiles.filter(profile => {
+                const hypotheticalRank = getOpenDataHypotheticalRank(profile, currentLeaderboardView);
+                if (!Number.isFinite(hypotheticalRank)) return false;
+                const searchText = getOpenDataSearchText(profile);
+                return showAll || uniqueSearchTerms.every(term => searchText.includes(term));
+            })
+            : [];
+        updateRankingExplanation(currentLeaderboardView, visibleOpenDataProfiles.length > 0);
 
         const athleteBadgeTextByName = new Map();
         document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
@@ -6662,9 +6917,11 @@
                 athlete.filteredRank = index + 1;
             });
         } else {
-            // Keep original ranks
+            // Search keeps each view's global official rank; OpenData rows never participate in it.
             filteredAthletes.forEach(athlete => {
-                athlete.filteredRank = athlete.rank;
+                athlete.filteredRank = currentLeaderboardView === 'ultimate'
+                    ? athlete.rank
+                    : athlete.viewRank;
             });
         }
 
@@ -6672,6 +6929,7 @@
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
         tableRows.forEach(row => {
             row.style.display = 'none';
+            if (row.classList.contains('open-data-leaderboard-row')) row.hidden = true;
         });
         const tierSeparatorRow = document.querySelector('.leaderboard table tbody tr.tier-separator');
 
@@ -6713,6 +6971,19 @@
             }
         });
 
+        visibleOpenDataProfiles.forEach(profile => {
+            const row = Array.from(tableRows).find(candidate =>
+                candidate.classList.contains('open-data-leaderboard-row') &&
+                candidate.dataset.profileSlug === profile.athleteSlug);
+            const hypotheticalRank = getOpenDataHypotheticalRank(profile, currentLeaderboardView);
+            if (!row || !Number.isFinite(hypotheticalRank)) return;
+
+            row.hidden = false;
+            row.style.display = '';
+            updateOpenDataLeaderboardRow(row, profile, currentLeaderboardView, hypotheticalRank);
+            window.showWithDelay(row);
+        });
+
         const hidePodiumRowsInTable = includePodiumGlobal && selectedDivisions.length === 0 && selectedFlags.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
             !leagueTrackFilterActive && currentLeaderboardView === 'ultimate' && uniqueSearchTerms.length === 0;
         const tableVisibleAthletes = hidePodiumRowsInTable
@@ -6722,15 +6993,50 @@
             markAthletesSkippedForGuessMyAgeIfUnset(tableVisibleAthletes);
         }
 
-        // Show tier separator when both pro and amateur rows are visible in the table (first amateur after at least one pro); hide for clock views.
-        // Use tableVisibleAthletes order (not DOM order) so homepage podium rows do not keep the separator alive after their table rows are hidden.
+        // Compose official and display-only reference rows without ever adding references to the ranked field.
+        const tableBody = document.querySelector('.leaderboard table tbody');
+        const allRows = Array.from(tableBody.querySelectorAll('tr'));
+        const officialEntries = tableVisibleAthletes.map((athlete, officialIndex) => ({
+            athlete,
+            profile: null,
+            isReference: false,
+            isProComparable: Number.isFinite(athlete.bortzAgeReduction),
+            sortRank: athlete.viewRank,
+            metric: getMetricValueForView(athlete),
+            stableIndex: officialIndex,
+            row: allRows.find(row =>
+                !row.classList.contains('open-data-leaderboard-row') &&
+                row.getAttribute('data-athlete-name') === athlete.name)
+        })).filter(entry => entry.row);
+        const referenceEntries = visibleOpenDataProfiles.map(profile => ({
+            athlete: null,
+            profile,
+            isReference: true,
+            isProComparable: Number.isFinite(profile.bortzAgeReduction),
+            sortRank: getOpenDataHypotheticalRank(profile, currentLeaderboardView),
+            metric: getOpenDataMetricForView(profile, currentLeaderboardView),
+            stableIndex: Number.MAX_SAFE_INTEGER,
+            row: allRows.find(row =>
+                row.classList.contains('open-data-leaderboard-row') &&
+                row.dataset.profileSlug === profile.athleteSlug)
+        })).filter(entry => entry.row && Number.isFinite(entry.sortRank));
+        const visibleEntries = officialEntries.concat(referenceEntries).sort((a, b) => {
+            if (a.sortRank !== b.sortRank) return a.sortRank - b.sortRank;
+            if (a.isReference !== b.isReference) return a.isReference ? -1 : 1;
+            if (a.isReference && b.isReference) {
+                if (a.metric !== b.metric) return a.metric - b.metric;
+                return a.profile.displayName.localeCompare(b.profile.displayName, undefined, { sensitivity: 'base' });
+            }
+            return a.stableIndex - b.stableIndex;
+        });
+
+        // Show the official Pro/Amateur boundary around the mixed presentation; references do not join either track.
         if (tierSeparatorRow) {
             let separatorShouldShow = false;
             if (currentLeaderboardView === 'ultimate') {
-                const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
                 let sawPro = false;
-                for (const a of tableVisibleAthletes) {
-                    if (isPro(a)) sawPro = true;
+                for (const entry of visibleEntries) {
+                    if (entry.isProComparable) sawPro = true;
                     else if (sawPro) {
                         separatorShouldShow = true;
                         break;
@@ -6740,15 +7046,12 @@
             tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
         }
 
-        // Reorder tbody so visible rows match the athletes actually shown in the table.
-        const tableBody = document.querySelector('.leaderboard table tbody');
-        const allRows = Array.from(tableBody.querySelectorAll('tr'));
-        const visibleOrdered = tableVisibleAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
+        // Reorder tbody so reference rows occupy their counterfactual slot while official rank cells remain untouched.
+        const visibleOrdered = visibleEntries.map(entry => entry.row);
         const separator = allRows.find(r => r.classList.contains('tier-separator'));
         const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
         const fragment = document.createDocumentFragment();
-        const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
-        const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
+        const firstAmateurIndex = visibleEntries.findIndex(entry => !entry.isProComparable);
         const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
         if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
             visibleOrdered.slice(0, firstAmateurIndex).forEach(r => fragment.appendChild(r));
@@ -6765,15 +7068,15 @@
         window.removeAllHighlights();
 
         // Highlight search terms
+        const visibleOpenDataNames = new Set(visibleOpenDataProfiles.map(profile => profile.name));
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
             const athleteNameText = athleteNameElement.textContent;
             const athleteOwner = athleteNameElement.closest('[data-athlete-name]');
             const athleteKey = athleteOwner ? athleteOwner.getAttribute('data-athlete-name') : null;
 
-            // Check if the athlete is in filteredAthletes
-            const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === (athleteKey || athleteNameText));
-            const athleteInFilteredByDisplayedText = filteredAthletes.some(athlete => athlete.name === athleteNameText);
-            if (athleteInFiltered) {
+            const isVisibleProfile = filteredAthletes.some(athlete => athlete.name === (athleteKey || athleteNameText)) ||
+                visibleOpenDataNames.has(athleteKey || athleteNameText);
+            if (isVisibleProfile) {
                 window.highlightText(athleteNameElement, uniqueSearchTerms);
             }
         });
@@ -6869,7 +7172,7 @@
         }
     }
 
-    function updateRankingExplanation(currentLeaderboardView) {
+    function updateRankingExplanation(currentLeaderboardView, showOpenDataRankKey) {
         const explanation = document.getElementById('rankingExplanation');
         if (!explanation) return;
 
@@ -6883,8 +7186,11 @@
         };
 
         const html = explanations[currentLeaderboardView] || '';
-        explanation.innerHTML = html;
-        explanation.classList.toggle('is-visible', html.length > 0);
+        const openDataRankKey = showOpenDataRankKey
+            ? '<span class="open-data-rank-key"><strong>Hyp.</strong> marks independent public-data comparisons; official ranks stay unchanged.</span>'
+            : '';
+        explanation.innerHTML = html + openDataRankKey;
+        explanation.classList.toggle('is-visible', html.length > 0 || openDataRankKey.length > 0);
     }
 
     function updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView) {
@@ -7806,7 +8112,7 @@
             ? `${displayName} public-data reference | Longevity World Cup`
             : `${displayName} | Longevity World Cup`;
         const text = isOpenData
-            ? `View the unranked public-data reference for ${displayName}. The subject did not apply to the Longevity World Cup; inclusion does not imply endorsement.`
+            ? `View the non-competing public-data reference for ${displayName}. The subject did not apply; hypothetical positions never change official Longevity World Cup ranks; inclusion is not endorsement.`
             : Number.isFinite(ultimateRank)
                 ? `${displayName} is ranked #${ultimateRank} in the Longevity World Cup.`
                 : `View ${displayName} in the Longevity World Cup.`;
@@ -8188,7 +8494,7 @@
             modalContent.dataset.profileType = isOpenData ? 'OpenData' : 'Athlete';
         }
         if (detailsModal) {
-            if (isOpenData) detailsModal.setAttribute('aria-describedby', 'openDataNotabilitySummary openDataProfileDisclosure');
+            if (isOpenData) detailsModal.setAttribute('aria-describedby', 'openDataNotabilitySummary openDataHypotheticalSummary openDataProfileDisclosure');
             else detailsModal.removeAttribute('aria-describedby');
         }
 
@@ -8206,11 +8512,13 @@
         const databaseAvatar = document.getElementById('openDataModalAvatar');
         const profilePic = document.getElementById('modalProfilePic');
         const notabilitySummary = document.getElementById('openDataNotabilitySummary');
+        const hypotheticalSummary = document.getElementById('openDataHypotheticalSummary');
         const photoCredit = document.getElementById('openDataModalPhotoCredit');
         if (disclosure) disclosure.hidden = !isOpenData;
         if (stickyToken) stickyToken.hidden = !isOpenData;
         if (databaseAvatar) databaseAvatar.hidden = !isOpenData;
         if (notabilitySummary) notabilitySummary.hidden = !isOpenData;
+        if (hypotheticalSummary) hypotheticalSummary.hidden = !isOpenData;
         if (profilePic) {
             profilePic.hidden = isOpenData;
             profilePic.onerror = null;
@@ -8282,12 +8590,20 @@
         const modalBadgeSection = document.getElementById('modalBadgeStrip');
         const qualifierNotice = document.getElementById('openDataQualifierNotice');
         const notabilitySummary = document.getElementById('openDataNotabilitySummary');
+        const hypotheticalSummary = document.getElementById('openDataHypotheticalSummary');
         if (athleteBio) athleteBio.textContent = '';
         if (modalBadgeSection) modalBadgeSection.innerHTML = '';
         if (qualifierNotice) qualifierNotice.hidden = !profileData.hasMeasurementQualifiers;
         if (notabilitySummary) {
             notabilitySummary.textContent = profileData.notabilitySummary;
             notabilitySummary.hidden = false;
+        }
+        if (hypotheticalSummary) {
+            const hypotheticalPositions = getOpenDataHypotheticalSummary(profileData);
+            hypotheticalSummary.textContent = hypotheticalPositions
+                ? `${hypotheticalPositions} · official ranks stay unchanged`
+                : '';
+            hypotheticalSummary.hidden = !hypotheticalPositions;
         }
 
         ['athleteRank', 'athleteDivision', 'athleteGeneration', 'athleteFlag', 'lowestPhenoAgeRank', 'paceOfAgingRank', 'bortzPaceOfAgingRank']

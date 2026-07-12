@@ -281,6 +281,8 @@ public sealed class AthleteProfilePolicyTests
     [InlineData("PersonalLink")]
     [InlineData("PodcastLink")]
     [InlineData("Why")]
+    [InlineData("Rank")]
+    [InlineData("HypotheticalRank")]
     [InlineData("CurrentPlacement")]
     [InlineData("Badges")]
     [InlineData("CrowdAge")]
