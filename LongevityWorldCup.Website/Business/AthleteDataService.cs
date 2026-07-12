@@ -554,20 +554,12 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private async Task LoadOpenDataProfilesAsync()
     {
-        // Read the official root too. Its watcher may still be inside its debounce
-        // window, so the in-memory snapshot alone is insufficient to prevent a
-        // newly added applicant from briefly appearing beside a colliding
-        // public-data profile.
-        var officialAthletesOnDisk = await LoadProfileRootAsync(
-            _athletesRootDir,
-            "athlete.json",
-            AthleteProfileType.Athlete,
-            "athletes");
-        _ = GetUniqueProfileSlugs(officialAthletesOnDisk);
+        // The official watcher may still be inside its debounce window. Include
+        // identities already present on disk without making an OpenData refresh
+        // depend on hydrating every official profile and its image assets.
+        var onDiskOfficialIdentities = await LoadOfficialIdentityKeysFromDiskAsync();
 
         var openDataRoot = await LoadValidOpenDataProfilesAsync("public-data refresh");
-
-        var onDiskOfficialIdentities = GetProfileIdentityKeys(officialAthletesOnDisk);
 
         lock (_athletesJsonLock)
         {
@@ -625,7 +617,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var propertyName in new[] { "AthleteSlug", "Name", "DisplayName" })
         {
-            var identity = NormalizeProfileIdentity(profile[propertyName]?.GetValue<string>());
+            var identity = AthleteProfilePolicy.NormalizeIdentityKey(
+                profile[propertyName]?.GetValue<string>());
             if (!string.IsNullOrWhiteSpace(identity))
                 identities.Add(identity);
         }
@@ -634,34 +627,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         {
             foreach (var aliasNode in aliases)
             {
-                var alias = NormalizeProfileIdentity(aliasNode?.GetValue<string>());
+                var alias = AthleteProfilePolicy.NormalizeIdentityKey(aliasNode?.GetValue<string>());
                 if (!string.IsNullOrWhiteSpace(alias))
                     identities.Add(alias);
             }
         }
 
         return identities;
-    }
-
-    internal static string NormalizeProfileIdentity(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return string.Empty;
-
-        // Filesystem slugs use '-' or '_', while public names use spaces and
-        // punctuation. Compare a diacritic-insensitive alphanumeric key so those
-        // equivalent spellings cannot evade identity isolation.
-        var normalized = value.Normalize(NormalizationForm.FormD);
-        var key = new StringBuilder(normalized.Length);
-        foreach (var character in normalized)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
-                continue;
-            if (char.IsLetterOrDigit(character))
-                key.Append(char.ToLowerInvariant(character));
-        }
-
-        return key.ToString();
     }
 
     private static HashSet<string> GetUniqueProfileSlugs(JsonArray profiles)
@@ -692,6 +664,40 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             result.Add(await LoadProfileFileAsync(file, expectedType, publicUrlSegment));
 
         return result;
+    }
+
+    private async Task<HashSet<string>> LoadOfficialIdentityKeysFromDiskAsync()
+    {
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var files = Directory
+            .EnumerateFiles(_athletesRootDir, "athlete.json", SearchOption.AllDirectories)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var file in files)
+        {
+            try
+            {
+                var text = await ReadProfileTextWithRetryAsync(file);
+                var profile = JsonNode.Parse(text)?.AsObject()
+                    ?? throw new InvalidDataException($"Profile '{file}' is empty.");
+                var folderName = Path.GetFileName(Path.GetDirectoryName(file)!);
+                profile["AthleteSlug"] = folderName.Replace('-', '_');
+                identities.UnionWith(GetProfileIdentityKeys(profile));
+            }
+            catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
+            {
+                // Existing official identities remain covered by the in-memory
+                // snapshot passed to reconciliation. A new unreadable or invalid
+                // file is not an approved/displayed athlete yet, so it must not
+                // block unrelated public-data updates.
+                _log.LogError(
+                    ex,
+                    "Could not inspect official profile identity {OfficialProfilePath} during a public-data refresh.",
+                    file);
+            }
+        }
+
+        return identities;
     }
 
     private async Task<JsonArray> LoadValidOpenDataProfilesAsync(string loadContext)
@@ -732,20 +738,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         if (expectedType == AthleteProfileType.OpenData)
             ValidateOpenDataProfileFolder(folder, file);
 
-        // Retry reads in case a profile is observed while it is being replaced.
-        string text = "";
-        for (var attempt = 0; ; attempt++)
-        {
-            try
-            {
-                text = File.ReadAllText(file);
-                break;
-            }
-            catch (IOException) when (attempt < 5)
-            {
-                await Task.Delay(50);
-            }
-        }
+        var text = await ReadProfileTextWithRetryAsync(file);
 
         JsonObject athlete;
         try
@@ -824,6 +817,21 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         CanonicalizeIsoDatesInPlace(athlete);
         return athlete;
+    }
+
+    private static async Task<string> ReadProfileTextWithRetryAsync(string file)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return File.ReadAllText(file);
+            }
+            catch (IOException) when (attempt < 5)
+            {
+                await Task.Delay(50);
+            }
+        }
     }
 
     private static void ValidateOpenDataProfileFolder(string folder, string profilePath)

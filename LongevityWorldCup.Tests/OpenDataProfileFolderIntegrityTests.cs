@@ -19,7 +19,7 @@ public sealed class OpenDataProfileFolderIntegrityTests
         var athleteSlugs = athletePaths
             .Select(path => Path.GetFileName(Path.GetDirectoryName(path)))
             .Where(slug => !string.IsNullOrWhiteSpace(slug))
-            .Select(slug => AthleteDataService.NormalizeProfileIdentity(slug))
+            .Select(slug => AthleteProfilePolicy.NormalizeIdentityKey(slug))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var athleteIdentities = new HashSet<string>(athleteSlugs, StringComparer.OrdinalIgnoreCase);
         foreach (var athletePath in athletePaths)
@@ -40,7 +40,7 @@ public sealed class OpenDataProfileFolderIntegrityTests
         foreach (var folder in Directory.GetDirectories(openDataRoot))
         {
             var folderName = Path.GetFileName(folder);
-            var slug = AthleteDataService.NormalizeProfileIdentity(folderName);
+            var slug = AthleteProfilePolicy.NormalizeIdentityKey(folderName);
             if (!openDataSlugs.Add(slug))
                 issues.Add($"{folderName}: duplicate normalized OpenData slug");
 
@@ -131,7 +131,7 @@ public sealed class OpenDataProfileFolderIntegrityTests
 
         foreach (var propertyName in new[] { "Name", "DisplayName" })
         {
-            var identity = AthleteDataService.NormalizeProfileIdentity(
+            var identity = AthleteProfilePolicy.NormalizeIdentityKey(
                 profile[propertyName]?.GetValue<string>());
             if (!string.IsNullOrWhiteSpace(identity))
                 identities.Add(identity);
@@ -142,7 +142,7 @@ public sealed class OpenDataProfileFolderIntegrityTests
 
         foreach (var aliasNode in aliases)
         {
-            var alias = AthleteDataService.NormalizeProfileIdentity(aliasNode?.GetValue<string>());
+            var alias = AthleteProfilePolicy.NormalizeIdentityKey(aliasNode?.GetValue<string>());
             if (!string.IsNullOrWhiteSpace(alias))
                 identities.Add(alias);
         }

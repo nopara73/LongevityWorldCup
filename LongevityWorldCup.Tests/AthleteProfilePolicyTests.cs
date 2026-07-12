@@ -61,6 +61,7 @@ public sealed class AthleteProfilePolicyTests
                      new JsonArray(),
                      new JsonArray(""),
                      new JsonArray("Public Figure"),
+                     new JsonArray("Públic-Figure"),
                      new JsonArray("Public Channel", "  public   channel  "),
                      "Public Channel",
                      null
@@ -71,6 +72,27 @@ public sealed class AthleteProfilePolicyTests
             Assert.Throws<InvalidDataException>(() =>
                 AthleteProfilePolicy.ValidateAndHydrate(invalid, AthleteProfileType.OpenData, "profile.json"));
         }
+    }
+
+    [Fact]
+    public void OpenDataProfile_UsesOneCanonicalIdentityKeyForNameDisplayNameAndAliases()
+    {
+        var duplicateDisplayName = ValidOpenDataProfile();
+        duplicateDisplayName["DisplayName"] = "Públic-Figure";
+        Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(
+                duplicateDisplayName,
+                AthleteProfileType.OpenData,
+                "profile.json"));
+
+        var duplicateAlias = ValidOpenDataProfile();
+        duplicateAlias["DisplayName"] = "Public Channel";
+        duplicateAlias["OpenData"]!["Aliases"] = new JsonArray("Públic-Channel");
+        Assert.Throws<InvalidDataException>(() =>
+            AthleteProfilePolicy.ValidateAndHydrate(
+                duplicateAlias,
+                AthleteProfileType.OpenData,
+                "profile.json"));
     }
 
     [Fact]
