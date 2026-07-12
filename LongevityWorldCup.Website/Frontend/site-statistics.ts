@@ -309,6 +309,7 @@
             ["proof_flow_opened", "Application/proof opened"],
             ["biomarker_handoff_found", "Handoff found"],
             ["proof_flow_missing_handoff", "Missing handoff"],
+            ["application_stage_reached", "Application stage reached"],
             ["profile_picture_started", "Profile picture started"],
             ["proof_upload_clicked", "Proof upload clicked"],
             ["proof_camera_clicked", "Proof camera clicked"],
@@ -1548,6 +1549,14 @@
             ].join("");
             return;
         }
+        if (state.tab === onboardingDiagnosticsTab && state.selectedFlow === "application") {
+            host.innerHTML = [
+                detailPanel("Application stage completion", applicationStageTable(events)),
+                detailPanel("Proof upload", proofUploadTable(events)),
+                detailPanel("Handoff integrity", handoffTable(events))
+            ].join("");
+            return;
+        }
         host.innerHTML = [
             detailPanel("Calculator completion sources", calculatorCompletionSourceTable(events)),
             detailPanel("Calculator fields", fieldFrictionTable(events)),
@@ -2239,6 +2248,45 @@
         const relevant = events.filter(e => names.includes(e.eventName));
         if (!relevant.length) return empty("No proof upload events yet.");
         return groupedTable(relevant, names);
+    }
+
+    function applicationStageTable(events: DashboardEvent[]): string {
+        const stages: FunnelDefinition[] = [
+            ["identity", "Identity"],
+            ["motivation", "Motivation"],
+            ["price-and-privacy", "Price and privacy"],
+            ["profile-picture", "Profile picture"],
+            ["proof", "Proof"],
+            ["final-details", "Final details"],
+            ["contact-email", "Contact email"]
+        ];
+        const stageEvents = events.filter(e => e.eventName === "application_stage_reached");
+        if (!stageEvents.length) return empty("No application stage data yet.");
+
+        const firstStep = stages[0]?.[0];
+        const firstSessions = new Set(stageEvents.filter(e => e.step === firstStep).map(e => e.sessionHash));
+        if (!firstSessions.size) return empty("No application stage data yet.");
+
+        const rows = stages.map(([step, label]) => {
+            const reached = new Set(stageEvents
+                .filter(e => e.step === step && firstSessions.has(e.sessionHash))
+                .map(e => e.sessionHash));
+            return { label, count: reached.size };
+        });
+        const submitted = new Set(events
+            .filter(e => e.eventName === "application_submit_succeeded" && firstSessions.has(e.sessionHash))
+            .map(e => e.sessionHash));
+        rows.push({ label: "Submitted", count: submitted.size });
+
+        return table(["Stage", "Reached", "Stopped before next", "Share of starters"], rows.map((row, index) => {
+            const nextCount = rows[index + 1]?.count;
+            return [
+                row.label,
+                row.count,
+                nextCount === undefined ? "-" : Math.max(0, row.count - nextCount),
+                percent(row.count, firstSessions.size)
+            ];
+        }));
     }
 
     function handoffTable(events: DashboardEvent[]): string {

@@ -712,6 +712,43 @@
         }, { passive: true });
     }
 
+    function setupApplicationStageTracking(): void {
+        const path = pathLower();
+        if (path !== "/apply" && !path.includes("convergence")) return;
+
+        const stageSteps: Readonly<Record<string, string>> = {
+            "1": "identity",
+            "2": "motivation",
+            "3": "price-and-privacy",
+            "4": "profile-picture",
+            "5": "proof",
+            "6": "final-details",
+            "7": "contact-email"
+        };
+        const recordCurrentStage = (): void => {
+            const stageNumber = document.body?.dataset.convergenceStage;
+            if (!stageNumber) return;
+            const step = stageSteps[stageNumber];
+            if (!step) return;
+
+            trackOnce(`application-stage-${step}`, "application_stage_reached", {
+                component: "application",
+                step,
+                outcome: "reached",
+                metadata: { stageNumber }
+            });
+        };
+
+        recordCurrentStage();
+        if (!document.body) return;
+
+        const observer = new MutationObserver(recordCurrentStage);
+        observer.observe(document.body, {
+            attributes: true,
+            attributeFilter: ["data-convergence-stage"]
+        });
+    }
+
     function setupJoinGameTracking(): void {
         const amateur = document.getElementById("joinStartAmateurBtn") || document.querySelector("[onclick*='startAmateurApplication']");
         const pro = document.getElementById("joinGoProButton") || document.querySelector("[onclick*='startProApplication']");
@@ -1067,6 +1104,7 @@
         safe(setupJoinGameTracking);
         safe(setupCalculatorTracking);
         safe(setupProofTracking);
+        safe(setupApplicationStageTracking);
         safe(setupChallengeTracking);
         safe(setupPublicContentTracking);
     });

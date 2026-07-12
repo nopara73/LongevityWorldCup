@@ -230,6 +230,25 @@ public sealed class SiteStatisticsDashboardPageTests
     }
 
     [Fact]
+    public void SiteStatisticsTracker_RecordsCoarseApplicationStagesForDashboard()
+    {
+        var repoRoot = FindRepoRoot();
+        var tracker = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics-tracking.js"));
+        var dashboard = File.ReadAllText(Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "js", "site-statistics.js"));
+
+        Assert.Contains("function setupApplicationStageTracking()", tracker);
+        Assert.Contains("data-convergence-stage", tracker);
+        Assert.Contains("application_stage_reached", tracker);
+        Assert.Contains("price-and-privacy", tracker);
+        Assert.Contains("safe(setupApplicationStageTracking)", tracker);
+
+        Assert.Contains("Application stage completion", dashboard);
+        Assert.Contains("function applicationStageTable(events)", dashboard);
+        Assert.Contains("Stopped before next", dashboard);
+        Assert.Contains("No application stage data yet.", dashboard);
+    }
+
+    [Fact]
     public void SiteStatisticsDashboard_SurfacesTrafficOverview()
     {
         var dashboard = ReadFrontendSource("site-statistics.ts");
