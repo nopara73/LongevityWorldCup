@@ -334,6 +334,20 @@ public sealed class LeaderboardProfileApiTests
     }
 
     [Fact]
+    public async Task NestedOpenDataManifest_IsWithheldInsteadOfReceivingItsParentFolderSlug()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
+        fixture.NestOpenDataProfileFolder(1);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.Equal(9, combined.RootElement.GetArrayLength());
+        Assert.All(combined.RootElement.EnumerateArray(), profile =>
+            Assert.Equal("Athlete", profile.GetProperty("ProfileType").GetString()));
+    }
+
+    [Fact]
     public async Task LeaderboardProfilesEndpoint_UsesConditionalGetCaching()
     {
         using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
@@ -703,6 +717,34 @@ public sealed class LeaderboardProfileApiTests
     }
 
     [Fact]
+    public async Task OfficialReloadFailureAfterProfileRead_RestoresTheLastFullyHydratedSnapshot()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var profiles = factory.Services.GetRequiredService<AthleteDataService>();
+        GetProfileWatcher(profiles, officialRoot: true).EnableRaisingEvents = false;
+
+        fixture.UpdateOfficialAthleteName(1, "Must Not Publish Partially");
+        factory.Services.GetRequiredService<DatabaseManager>().Run(sqlite =>
+        {
+            using var command = sqlite.CreateCommand();
+            command.CommandText = "DROP TABLE Athletes;";
+            command.ExecuteNonQuery();
+        });
+
+        await profiles.OnAthleteSourceChangedAsync();
+
+        using var athletes = await ReadJsonAsync(client, "/api/data/athletes");
+        Assert.Contains(
+            athletes.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("Name").GetString() == "Athlete 1");
+        Assert.DoesNotContain(
+            athletes.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("Name").GetString() == "Must Not Publish Partially");
+    }
+
+    [Fact]
     public async Task OpenDataProfiles_CreateNoCompetitionDatabaseRowsEventsOrBadges()
     {
         using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
@@ -863,6 +905,16 @@ public sealed class LeaderboardProfileApiTests
             Directory.Move(
                 Path.Combine(_root, "public-data-profiles", sourceSlug),
                 Path.Combine(_root, "public-data-profiles", destinationSlug));
+        }
+
+        public void NestOpenDataProfileFolder(int index)
+        {
+            var sourceSlug = index == 1 ? "open-data-profile" : $"open-data-profile-{index}";
+            var nestedRoot = Path.Combine(_root, "public-data-profiles", "unexpected-parent");
+            Directory.CreateDirectory(nestedRoot);
+            Directory.Move(
+                Path.Combine(_root, "public-data-profiles", sourceSlug),
+                Path.Combine(nestedRoot, sourceSlug));
         }
 
         public void WriteInvalidOpenDataProfile(int index)
