@@ -1,3 +1,4 @@
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -115,9 +116,9 @@ public sealed class SelectedAthleteBootstrapPageTests
         var isBioagePage = path is "/onboarding/pheno-age.html" or "/onboarding/bortz-age.html";
         var dashboardScript = path == "/dashboard" ? await client.GetStringAsync("/js/play-menu.js") : null;
         var validationSource = path == "/dashboard"
-            ? await client.GetStringAsync("/js/play-athlete-flow.js")
+            ? await GetFrontendTypeScriptAsync(client, "play-athlete-flow.ts")
             : isBioagePage
-                ? await client.GetStringAsync("/js/bioage-flow.js")
+                ? await GetFrontendTypeScriptAsync(client, "bioage-flow.ts")
                 : html;
 
         if (path == "/dashboard")
@@ -129,8 +130,18 @@ public sealed class SelectedAthleteBootstrapPageTests
             Assert.Contains("const isValidSelectedAthlete = bioageFlow.isValidSelectedAthlete;", html);
         }
 
-        Assert.Contains("typeof value.Name === \"string\"", validationSource.Replace('\'', '"'));
-        Assert.Contains("value.Name.trim()", validationSource);
+        if (path == "/dashboard" || isBioagePage)
+        {
+            var normalizedSource = validationSource.Replace('\'', '"');
+            Assert.Contains("const name = Reflect.get(value, \"Name\");", normalizedSource);
+            Assert.Contains("typeof name === \"string\"", normalizedSource);
+            Assert.Contains("name.trim().length > 0", normalizedSource);
+        }
+        else
+        {
+            Assert.Contains("typeof value.Name === \"string\"", validationSource.Replace('\'', '"'));
+            Assert.Contains("value.Name.trim()", validationSource);
+        }
     }
 
     [Theory]
@@ -142,22 +153,24 @@ public sealed class SelectedAthleteBootstrapPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
-        var flow = await client.GetStringAsync("/js/bioage-flow.js");
+        var flow = await GetFrontendTypeScriptAsync(client, "bioage-flow.ts");
 
         Assert.Contains("const isValidSelectedAthlete = bioageFlow.isValidSelectedAthlete;", html);
-        Assert.Contains("hasSelectedAthleteDateOfBirth(value.DateOfBirth)", flow);
-        Assert.Contains("function hasSelectedAthleteDateOfBirth(value)", flow);
-        Assert.Contains("if (!value || typeof value !== 'object' || Array.isArray(value)) return false;", flow);
-        Assert.Contains("const year = toSelectedAthleteDatePart(value.Year, 1, 9999);", flow);
-        Assert.Contains("const month = toSelectedAthleteDatePart(value.Month, 1, 12);", flow);
-        Assert.Contains("const day = toSelectedAthleteDatePart(value.Day, 1, 31);", flow);
+        Assert.Contains("const dateOfBirth = Reflect.get(value, 'DateOfBirth');", flow);
+        Assert.Contains("hasSelectedAthleteDateOfBirth(dateOfBirth)", flow);
+        Assert.Contains("function hasSelectedAthleteDateOfBirth(value: unknown): value is BioageSelectedAthleteDateOfBirth", flow);
+        Assert.Contains("function isObject(value: unknown): value is object", flow);
+        Assert.Contains("return typeof value === 'object' && value !== null && !Array.isArray(value);", flow);
+        Assert.Contains("const year = toSelectedAthleteDatePart(Reflect.get(value, 'Year'), 1, 9999);", flow);
+        Assert.Contains("const month = toSelectedAthleteDatePart(Reflect.get(value, 'Month'), 1, 12);", flow);
+        Assert.Contains("const day = toSelectedAthleteDatePart(Reflect.get(value, 'Day'), 1, 31);", flow);
         Assert.Contains("const date = new Date(0);", flow);
         Assert.Contains("date.setUTCFullYear(year, month - 1, day);", flow);
         Assert.Contains("date.setUTCHours(0, 0, 0, 0);", flow);
         Assert.Contains("date.getUTCFullYear() === year", flow);
         Assert.Contains("date.getUTCMonth() === month - 1", flow);
         Assert.Contains("date.getUTCDate() === day", flow);
-        Assert.Contains("function toSelectedAthleteDatePart(value, min, max)", flow);
+        Assert.Contains("function toSelectedAthleteDatePart(value: unknown, min: number, max: number): number | null", flow);
         Assert.Contains("if (typeof value === 'boolean' || value === null || value === undefined) return null;", flow);
         Assert.Contains("? number", flow);
         Assert.Contains(": null", flow);
@@ -189,4 +202,5 @@ public sealed class SelectedAthleteBootstrapPageTests
         Assert.Contains("function removeSessionItem(key)", html);
         Assert.Contains("removeSessionItem('tempAthlete');", fallbackBody);
     }
+
 }

@@ -63,6 +63,8 @@ Critical reminders:
 
 ## Static Assets
 
+Frontend source lives in `LongevityWorldCup.Website/Frontend` and compiles to the ignored `LongevityWorldCup.Website/wwwroot/js` directory. Normal builds type-check and compile it through the website project; never commit generated JavaScript. `BuildFrontend=false` is reserved for the documented Node-free production publish, where the exact frontend artifact built by CI is injected before publishing.
+
 Injected HTML and partials must use the shared middleware asset-versioning flow. Do not add raw `/js/...`, `/css/...`, `/assets/...`, favicon, or manifest URLs to injected HTML unless there is a strong reason and cache behavior has been verified.
 
 When adding or moving injected-page assets, wire placeholders through `HtmlInjectionMiddleware` and `AssetVersionProvider.AppendVersion(...)`, then check every page, modal, iframe, or embedded context that calls the changed helper.

@@ -8,36 +8,6 @@ on:
   push:
     branches:
       - master
-    paths-ignore:
-      - README.md
-      - LICENSE
-      - AGENTS.md
-      - DESIGN.md
-      - UBIQUITOUS_LANGUAGE.md
-      - .cursorrules
-      - .editorconfig
-      - .gitattributes
-      - .gitignore
-      - .aiassistant/**
-      - .codex/**
-      - .cursor/**
-      - .vscode/**
-      - .github/workflows/**
-      - LongevityWorldCup.sln
-      - LongevityWorldCup.Tests/**
-      - LongevityWorldCup.ApplicationReviewer/**
-      - LongevityWorldCup.FacebookOAuthHelper/**
-      - LongevityWorldCup.XOAuthHelper/**
-      - LongevityWorldCup.Documentation/AgingClocks.md
-      - LongevityWorldCup.Documentation/AthleteAdditionWorkflow.md
-      - LongevityWorldCup.Documentation/CustomEvent.md
-      - LongevityWorldCup.Documentation/FacebookApiSetup.md
-      - LongevityWorldCup.Documentation/GameNights.md
-      - LongevityWorldCup.Documentation/ServerDeployment.md
-      - LongevityWorldCup.Documentation/ThreadsApiSetup.md
-      - LongevityWorldCup.Documentation/XApiSetup.md
-      - LongevityWorldCup.Documentation/MediaKit.zip
-      - LongevityWorldCup.Documentation/pheno-age.pdf
 
 permissions:
   contents: read
@@ -58,7 +28,13 @@ jobs:
       - name: Check whether this deploy is still current
         id: freshness
         run: |
+          set -eu
           latest_sha="$(git ls-remote origin refs/heads/master | cut -f1)"
+          if [ -z "$latest_sha" ]; then
+            echo "Could not resolve the current master SHA." >&2
+            exit 1
+          fi
+
           if [ "$latest_sha" != "$GITHUB_SHA" ]; then
             echo "deploy=false" >> "$GITHUB_OUTPUT"
             echo "Skipping stale deploy for $GITHUB_SHA; latest master is $latest_sha."
@@ -66,32 +42,132 @@ jobs:
             echo "deploy=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Deploy via SSH
+      - name: Setup Node.js
         if: steps.freshness.outputs.deploy == 'true'
-        uses: appleboy/ssh-action@v1.2.5
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: LongevityWorldCup.Website/package-lock.json
+
+      - name: Build frontend artifact
+        if: steps.freshness.outputs.deploy == 'true'
+        working-directory: LongevityWorldCup.Website
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          tracked="$(git -C "$GITHUB_WORKSPACE" ls-files -- 'LongevityWorldCup.Website/wwwroot/js')"
+          if [[ -n "$tracked" ]]; then
+            echo "$tracked"
+            exit 1
+          fi
+
+      - name: Package frontend artifact
+        if: steps.freshness.outputs.deploy == 'true'
+        run: |
+          tar -czf frontend-assets.tar.gz -C LongevityWorldCup.Website/wwwroot js
+          sha256sum frontend-assets.tar.gz > frontend-assets.tar.gz.sha256
+
+      - name: Stage frontend artifact
+        if: steps.freshness.outputs.deploy == 'true'
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
+          port: 22
+          source: "frontend-assets.tar.gz,frontend-assets.tar.gz.sha256"
+          target: "/tmp/longevityworldcup-frontend"
+          rm: true
+          command_timeout: 2m
+
+      - name: Deploy via SSH
+        if: steps.freshness.outputs.deploy == 'true'
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
           port: 22
           command_timeout: 30m
           script: |
             set -eu
+            verified_sha="${{ github.sha }}"
+            frontend_stage="/tmp/longevityworldcup-frontend"
             deploy_source="$(mktemp -d)"
             publish_output="$(mktemp -d)"
+            publish_root="/var/www/LongevityWorldCup/publish"
+            rollback_output="${publish_root}.rollback-${verified_sha}"
+            failed_output="${publish_root}.failed-${verified_sha}"
+            source_manifest="$frontend_stage/source-js.sha256"
+            published_manifest="$frontend_stage/published-js.sha256"
+            live_manifest="$frontend_stage/live-js.sha256"
             service_stopped=0
+            deploy_started=0
+            deploy_succeeded=0
+            frontend_manifest() {
+              root="$1"
+              (
+                cd "$root"
+                find . -type f -name '*.js' -print0 \
+                  | LC_ALL=C sort -z \
+                  | xargs -0 -r sha256sum
+              )
+            }
+            sudo_frontend_manifest() {
+              root="$1"
+              sudo sh -c '
+                set -eu
+                cd "$1"
+                find . -type f -name "*.js" -print0 \
+                  | LC_ALL=C sort -z \
+                  | xargs -0 -r sha256sum
+              ' sh "$root"
+            }
             cleanup() {
+              status=$?
+              trap - EXIT
+              if [ "$deploy_started" -eq 1 ] && [ "$deploy_succeeded" -ne 1 ] && [ -d "$rollback_output" ]; then
+                echo "Deployment failed; restoring the previous published release."
+                if [ "$service_stopped" -eq 0 ]; then
+                  sudo systemctl stop longevityworldcup.service || true
+                  service_stopped=1
+                fi
+                sudo rm -rf "$failed_output" || true
+                if sudo mv "$publish_root" "$failed_output" && sudo mv "$rollback_output" "$publish_root"; then
+                  sudo rm -rf "$failed_output" || true
+                else
+                  echo "Automatic release rollback failed; attempting to restore the interrupted release path." >&2
+                  if [ ! -d "$publish_root" ] && [ -d "$failed_output" ]; then
+                    sudo mv "$failed_output" "$publish_root" || true
+                  fi
+                fi
+              fi
               if [ "$service_stopped" -eq 1 ]; then
                 sudo systemctl start longevityworldcup.service || true
               fi
-              rm -rf "$deploy_source" "$publish_output"
+              if [ "$deploy_started" -eq 0 ] || [ "$deploy_succeeded" -eq 1 ]; then
+                sudo rm -rf "$rollback_output" "$failed_output" || true
+              fi
+              rm -rf "$frontend_stage" "$deploy_source" "$publish_output"
+              exit "$status"
             }
             trap cleanup EXIT
 
+            test -f "$frontend_stage/frontend-assets.tar.gz"
+            test -f "$frontend_stage/frontend-assets.tar.gz.sha256"
+            (
+              cd "$frontend_stage"
+              sha256sum --check frontend-assets.tar.gz.sha256
+            )
+
             cd ~/LongevityWorldCup
             git fetch origin master
-            git reset --hard origin/master
+            git reset --hard "$verified_sha"
             git clean -fd
+            test "$(git rev-parse HEAD)" = "$verified_sha"
 
             dotnet_version="$(dotnet --version)"
             dotnet_major="${dotnet_version%%.*}"
@@ -101,19 +177,43 @@ jobs:
             fi
 
             git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
-            dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output"
+            tar -xzf "$frontend_stage/frontend-assets.tar.gz" \
+              --no-same-owner \
+              --no-same-permissions \
+              -C "$deploy_source/LongevityWorldCup.Website/wwwroot"
+            frontend_manifest "$deploy_source/LongevityWorldCup.Website/wwwroot/js" > "$source_manifest"
+            test -s "$source_manifest"
+            dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output" -p:BuildFrontend=false
+            frontend_manifest "$publish_output/wwwroot/js" > "$published_manifest"
+            if ! cmp -s "$source_manifest" "$published_manifest"; then
+              echo "Published frontend assets differ from the verified artifact." >&2
+              diff -u "$source_manifest" "$published_manifest" || true
+              exit 1
+            fi
 
             sudo systemctl stop longevityworldcup.service
             service_stopped=1
+            sudo rm -rf "$rollback_output" "$failed_output"
+            sudo cp -al "$publish_root" "$rollback_output"
+            deploy_started=1
             sudo rsync -a --checksum --no-owner --no-group \
               --exclude='/config.json' \
               --exclude='/config.json.bak*' \
               --exclude='/AppData/***' \
               --exclude='/wwwroot/athletes/***' \
               --exclude='/wwwroot/generated/***' \
+              --exclude='/wwwroot/js/***' \
               "$publish_output"/ /var/www/LongevityWorldCup/publish/
             sudo rsync -a --checksum --delete --no-owner --no-group \
               "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
+            sudo rsync -a --checksum --delete --no-owner --no-group \
+              "$publish_output/wwwroot/js"/ /var/www/LongevityWorldCup/publish/wwwroot/js/
+            sudo_frontend_manifest "$publish_root/wwwroot/js" > "$live_manifest"
+            if ! cmp -s "$published_manifest" "$live_manifest"; then
+              echo "Live frontend assets differ from the verified published assets." >&2
+              diff -u "$published_manifest" "$live_manifest" || true
+              exit 1
+            fi
             sudo mkdir -p /var/www/LongevityWorldCup/publish/wwwroot/generated
             sudo chown -R www-data:www-data /var/www/LongevityWorldCup/publish/wwwroot/generated
             sudo find /var/www/LongevityWorldCup/publish/wwwroot/generated -type d -exec chmod 755 {} \;
@@ -144,8 +244,27 @@ jobs:
             fi
             rm -f "$health_body"
 
+            downloaded_script="$frontend_stage/deployed-script.js"
+            for script_path in "$publish_output"/wwwroot/js/*.js; do
+              curl -fsS --max-time 10 \
+                "https://www.longevityworldcup.com/js/$(basename "$script_path")?v=$verified_sha" \
+                -o "$downloaded_script"
+              expected_hash="$(sha256sum "$script_path")"
+              expected_hash="${expected_hash%% *}"
+              actual_hash="$(sha256sum "$downloaded_script")"
+              actual_hash="${actual_hash%% *}"
+              if [ "$expected_hash" != "$actual_hash" ]; then
+                echo "Deployed script content differs from the verified artifact: $(basename "$script_path")" >&2
+                exit 1
+              fi
+            done
+            rm -f "$downloaded_script"
+
             if [ -n "$(git status --short)" ]; then
               echo "Server checkout was dirtied during deploy."
               git status --short
               exit 1
             fi
+
+            sudo systemctl status longevityworldcup.service --no-pager
+            deploy_succeeded=1

@@ -7,6 +7,72 @@ namespace LongevityWorldCup.Tests;
 public sealed class PlayAthleteFlowBrowserTests
 {
     [Fact]
+    public async Task PaymentOfferFailures_DistinguishPreparationFromStorage()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1280, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => window.playAthleteFlow && !document.getElementById('joinGoProButton').disabled");
+
+        await page.EvaluateAsync(
+            """
+            window.__paymentFailureMessage = null;
+            window.customAlert = message => {
+                window.__paymentFailureMessage = message;
+                return Promise.resolve();
+            };
+            window.applyPaymentAdjustmentsToPaymentOffer = () => null;
+            sessionStorage.removeItem('pendingPaymentOffer');
+            """);
+
+        await page.Locator("#joinGoProButton").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.__paymentFailureMessage !== null");
+
+        Assert.Equal(
+            "Payment details could not be prepared. Refresh the page and try again.",
+            await page.EvaluateAsync<string>("window.__paymentFailureMessage"));
+        Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
+        Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('pendingPaymentOffer')"));
+
+        await page.EvaluateAsync(
+            """
+            window.__paymentFailureMessage = null;
+            window.applyPaymentAdjustmentsToPaymentOffer = offer => offer;
+            Object.defineProperty(window, 'sessionStorage', {
+                configurable: true,
+                value: {
+                    getItem: () => null,
+                    removeItem: () => {},
+                    setItem: () => { throw new Error('Storage denied'); }
+                }
+            });
+            """);
+
+        await page.Locator("#joinStartAmateurBtn").ClickAsync();
+        await page.WaitForFunctionAsync("() => window.__paymentFailureMessage !== null");
+
+        Assert.Equal(
+            "Payment details could not be saved. Enable browser storage and try again.",
+            await page.EvaluateAsync<string>("window.__paymentFailureMessage"));
+        Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
+        Assert.Null(await page.EvaluateAsync<string?>("sessionStorage.getItem('pendingPaymentOffer')"));
+    }
+
+    [Fact]
     public async Task NewAthleteNavigation_KeepsJoinUrlPanelAndBackActionsInSync()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -411,6 +477,8 @@ public sealed class PlayAthleteFlowBrowserTests
 
         var page = await context.NewPageAsync();
         await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => typeof window.playAthleteFlow?.replaceAthletePictureImmediately === 'function'");
 
         var result = await page.EvaluateAsync<string>(
             """
@@ -502,11 +570,6 @@ public sealed class PlayAthleteFlowBrowserTests
 
         await context.AddInitScriptAsync(
             """
-            const nativeSetTimeout = window.setTimeout.bind(window);
-            window.setTimeout = (handler, delay, ...args) => nativeSetTimeout(
-                handler,
-                delay === 120 ? 700 : delay,
-                ...args);
             window.localStorage.setItem('selectedAthleteName', 'Browser Api Athlete');
             window.localStorage.setItem('hasApplication', 'true');
             """);
@@ -570,10 +633,38 @@ public sealed class PlayAthleteFlowBrowserTests
                     && !image.classList.contains('athlete-picture-placeholder');
             }
             """);
+        var dockedWhenRefreshed = await page.Locator(".play-athlete-actions").EvaluateAsync<bool>(
+            """
+            async element => {
+                window.LwcFlowActionDock?.refreshNow?.();
+                const docked = element.classList.contains('flow-action-stack--docked');
+                await new Promise(resolve => {
+                    requestAnimationFrame(() => requestAnimationFrame(resolve));
+                });
+                return docked;
+            }
+            """);
+        Assert.True(dockedWhenRefreshed, "Selection actions should dock as soon as the saved-athlete panel is ready.");
+        await page.WaitForFunctionAsync(
+            """
+            () => {
+                const element = document.querySelector('.play-athlete-actions');
+                if (!element
+                    || !element.classList.contains('flow-action-stack--docked')
+                    || element.classList.contains('flow-action-stack--dock-entering')
+                    || element.getAnimations().some(animation =>
+                        animation.playState === 'pending' || animation.playState === 'running')) {
+                    return false;
+                }
+                const rect = element.getBoundingClientRect();
+                return rect.top >= -1 && rect.bottom <= window.innerHeight + 1;
+            }
+            """,
+            null,
+            new PageWaitForFunctionOptions { Timeout = 5_000 });
         var actionLayout = await page.Locator(".play-athlete-actions").EvaluateAsync<ActionStackTransitionLayout>(
             """
             element => {
-                window.LwcFlowActionDock?.refreshNow?.();
                 const rect = element.getBoundingClientRect();
                 return {
                     Docked: element.classList.contains('flow-action-stack--docked'),
