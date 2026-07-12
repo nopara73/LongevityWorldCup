@@ -16,7 +16,7 @@
     font-size:.95rem;
     line-height:1;
     font-weight:bold;
-    color:var(--badge-fg,#fff)!important;
+    color:#fff!important;
     margin-left:0;
     box-shadow:0 1px 2px rgba(0,0,0,.18);
     transition:transform .2s ease,filter .2s ease,box-shadow .2s ease
