@@ -80,7 +80,7 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build
-          tracked="$(git ls-files -- 'wwwroot/js')"
+          tracked="$(git -C "$GITHUB_WORKSPACE" ls-files -- 'LongevityWorldCup.Website/wwwroot/js')"
           if [[ -n "$tracked" ]]; then
             echo "$tracked"
             exit 1
