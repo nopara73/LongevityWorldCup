@@ -454,15 +454,16 @@ public sealed class LeaderboardProfileApiTests
         GetProfileWatcher(profiles, officialRoot: true).EnableRaisingEvents = false;
         GetProfileWatcher(profiles, officialRoot: false).EnableRaisingEvents = false;
 
-        fixture.WriteInvalidOfficialAthleteProfile(1);
-        fixture.UpdateOpenDataProfileName(1, "Updated Despite Invalid Official File");
+        const string updatedOpenDataName = "Updated Despite Invalid Official File";
+        fixture.WriteInvalidOfficialAthleteProfile(1, updatedOpenDataName);
+        fixture.UpdateOpenDataProfileName(1, updatedOpenDataName);
         await profiles.OnOpenDataSourceChangedAsync();
 
         using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
         Assert.Contains(
             combined.RootElement.EnumerateArray(),
             profile => profile.GetProperty("ProfileType").GetString() == "OpenData" &&
-                       profile.GetProperty("Name").GetString() == "Updated Despite Invalid Official File");
+                       profile.GetProperty("Name").GetString() == updatedOpenDataName);
     }
 
     [Fact]
@@ -941,12 +942,16 @@ public sealed class LeaderboardProfileApiTests
                 OfficialAthleteJson(index, name));
         }
 
-        public void WriteInvalidOfficialAthleteProfile(int index)
+        public void WriteInvalidOfficialAthleteProfile(int index, string name)
         {
             var slug = $"athlete_{index}";
             File.WriteAllText(
                 Path.Combine(_root, "athletes", slug, "athlete.json"),
-                "{");
+                new JsonObject
+                {
+                    ["ProfileType"] = "OpenData",
+                    ["Name"] = name
+                }.ToJsonString());
         }
 
         public string GetOfficialProfilePath(int index) =>
