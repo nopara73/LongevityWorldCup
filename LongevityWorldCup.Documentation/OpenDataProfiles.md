@@ -1,6 +1,6 @@
 # OpenData profile curation
 
-OpenData profiles are neutral, unranked references built from bloodwork that a public-facing person self-published or explicitly authorized for public release. The subject did not apply to or join the Longevity World Cup and is not a Longevity athlete. See `UBIQUITOUS_LANGUAGE.md` for the domain invariants.
+OpenData profiles are neutral, non-competing references built from bloodwork that a public-facing person self-published or explicitly authorized for public release. The subject did not apply to or join the Longevity World Cup and is not a Longevity athlete. See `UBIQUITOUS_LANGUAGE.md` for the domain invariants.
 
 ## Admission checklist
 
@@ -65,7 +65,11 @@ openDataCount × 10 <= athleteCount + openDataCount
 
 The population rule is deliberately one-sided: OpenData profiles may comprise at most 10% of the combined leaderboard population. There is no minimum. Curators add a profile only when the subject is unmistakably notable and the evidence satisfies every provenance and completeness requirement; athlete growth never creates pressure to add filler.
 
-OpenData records are loaded from a separate root and are exposed only through the combined display feed. They never enter athlete persistence, ranking, league, badge, Event, crowd-age, prize, sitemap, or notification paths. Invalid or temporarily conflicting OpenData records cannot block approved athlete loading, and a later valid reconciliation can restore a withheld record.
+OpenData records are loaded from a separate root and are exposed only through the combined display feed. They never enter athlete persistence, canonical ranking, league, badge, Event, crowd-age, prize, sitemap, or notification paths. Backend rankings, field sizes, snapshots, placements, and competition outputs remain official-athlete-only.
+
+After official ranks are fixed, the leaderboard presentation may interleave a visually distinct OpenData row with a display-only hypothetical rank. This presentation merge is not canonical ranking and does not renumber or displace official athletes. Each reference is evaluated independently against official athletes only, so OpenData profiles never consume positions for one another. Its hypothetical rank is one plus the number of eligible official rows ahead in the selected view; the unrounded relevant age reduction is compared, and an official athlete wins an exact score tie. Do not infer an exact date of birth to apply the competition tie-breaker.
+
+A hypothetical row currently appears only in the selected Ultimate or pheno age view because the validated OpenData schema accepts complete pheno panels only. A pheno-only Ultimate reference follows all Pros and is Amateur-comparable without joining the Amateur track. OpenData rows remain absent from bortz age, crowd age, and improvement views; division, generation, flag, exclusive, and track-filtered leagues; and all podium and prize presentation. Invalid or temporarily conflicting OpenData records cannot block approved athlete loading, and a later valid reconciliation can restore a withheld record.
 
 ## Verification
 
@@ -75,4 +79,4 @@ Run at least:
 dotnet test LongevityWorldCup.Tests/LongevityWorldCup.Tests.csproj --filter "AthleteProfilePolicyTests|OpenDataProfileFolderIntegrityTests|LeaderboardProfileApiTests|OpenDataProfileUiTests|OpenDataProfileBrowserTests"
 ```
 
-The folder-integrity test validates every committed record, licensed 640×640 WebP portrait, provenance, aliases, identities, and the population cap. Browser coverage verifies the separate unranked presentation, portrait attribution, compact disclosure, direct route, provenance, focus behavior, and suppression of competition-only UI.
+The folder-integrity test validates every committed record, licensed 640×640 WebP portrait, provenance, aliases, identities, and the population cap. Browser coverage verifies visually distinct hypothetical rows, unchanged official ranks, portrait attribution, compact disclosure, direct routes, provenance, focus behavior, supported-view limits, and suppression of competition-only UI.

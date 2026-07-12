@@ -86,6 +86,8 @@ public sealed class LeaderboardProfileApiTests
         Assert.Equal(JsonValueKind.Null, openData.GetProperty("CurrentPlacement").ValueKind);
         Assert.Empty(openData.GetProperty("Placements").EnumerateArray());
         Assert.Empty(openData.GetProperty("Badges").EnumerateArray());
+        Assert.False(openData.TryGetProperty("Rank", out _));
+        Assert.False(openData.TryGetProperty("HypotheticalRank", out _));
         Assert.False(openData.TryGetProperty("ProfilePic", out _));
         Assert.False(openData.TryGetProperty("ProfilePicThumb", out _));
         Assert.False(openData.TryGetProperty("ProfilePicLeaderboardThumb", out _));

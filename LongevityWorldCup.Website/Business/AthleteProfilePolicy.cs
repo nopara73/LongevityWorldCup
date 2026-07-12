@@ -114,6 +114,8 @@ public static class AthleteProfilePolicy
         "CrowdAge",
         "CrowdCount",
         "IsNew",
+        "Rank",
+        "HypotheticalRank",
         "CurrentPlacement",
         "Placements",
         "Badges",

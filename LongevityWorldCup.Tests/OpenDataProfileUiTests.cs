@@ -24,20 +24,25 @@ public sealed class OpenDataProfileUiTests
     }
 
     [Fact]
-    public void FullLeaderboard_UsesASeparateUnrankedPublicDataSection()
+    public void FullLeaderboard_UsesDistinctHypotheticalRowsAndDetailedPublicDataCards()
     {
         var html = ReadLeaderboardPartial();
-        const string compactExplainer = "Unranked references from bloodwork the subjects made public. Not World Cup athletes, applicants, or endorsements; never affect rankings or prizes.";
+        const string compactExplainer = "Non-competing references from bloodwork the subjects made public. Their hypothetical positions are independent comparisons; they never change official ranks or prizes.";
 
         Assert.Contains("id=\"openDataProfilesSection\"", html);
         Assert.Contains("aria-labelledby=\"openDataProfilesTitle\"", html);
-        Assert.Contains("PUBLIC DATA · UNRANKED", html);
+        Assert.Contains("PUBLIC DATA · DID NOT APPLY", html);
         Assert.Contains(compactExplainer, html);
         Assert.Contains(">Corrections</a>", html);
         Assert.Contains("normalizedPath.toLowerCase() === '/leaderboard'", html);
         Assert.Contains("sort((a, b) => a.displayName.localeCompare", html);
+        Assert.Contains("className = 'open-data-leaderboard-row';", html);
+        Assert.Contains("row.dataset.profileType = 'OpenData';", html);
+        Assert.Contains("open-data-hypothetical-prefix\">HYP.", html);
+        Assert.Contains("marks independent public-data comparisons; official ranks stay unchanged.", html);
         Assert.Contains("metricLabel.textContent = 'Reference Pheno difference';", html);
         Assert.Contains("formulaNote.textContent = 'Pheno Age − age at published panel';", html);
+        Assert.Contains("getOpenDataHypotheticalSummary(profile)", html);
         Assert.Contains("portrait.className = 'open-data-card-portrait';", html);
         Assert.Contains("portrait.alt = `Portrait of ${profile.displayName}`;", html);
         Assert.Contains("portrait.loading = 'lazy';", html);
@@ -45,8 +50,44 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("summary.className = 'open-data-card-summary';", html);
         Assert.Contains("summary.textContent = profile.notabilitySummary;", html);
         Assert.Contains("id=\"openDataNotabilitySummary\"", html);
+        Assert.Contains("id=\"openDataHypotheticalSummary\"", html);
         Assert.Contains("renderOpenDataProfiles();", html);
+        Assert.Contains("renderOpenDataLeaderboardRows();", html);
         Assert.DoesNotContain("remainingAthletes = athleteResults.concat(openDataProfiles)", html);
+    }
+
+    [Fact]
+    public void HypotheticalRows_AreComputedAfterOfficialRanksAndNeverEnterCompetitionState()
+    {
+        var html = ReadLeaderboardPartial();
+
+        var officialRankAssignment = html.IndexOf("athlete.rank = index + 1;", StringComparison.Ordinal);
+        var referenceRendering = html.IndexOf("function renderOpenDataLeaderboardRows()", StringComparison.Ordinal);
+        Assert.True(officialRankAssignment >= 0 && referenceRendering > officialRankAssignment,
+            "Official ranks must be complete before reference rows are rendered.");
+
+        Assert.Contains("function getOpenDataHypotheticalRank(profile, view)", html);
+        Assert.Contains("athleteResults.forEach(athlete =>", html);
+        Assert.Contains("athlete.ageReduction <= referenceMetric", html);
+        Assert.Contains("Exact-score ties stay behind every official athlete", html);
+        Assert.Contains("return officialAheadOrTied + 1;", html);
+        Assert.Contains("Compared independently with official athletes; official athlete ranks stay unchanged.", html);
+        Assert.DoesNotContain("official #${hypotheticalRank} keeps that rank", html);
+        Assert.Contains("return !includePodiumGlobal && !Number.isFinite(maxAthletesGlobal);", html);
+        Assert.Contains("const athleteOnlyFiltersActive =", html);
+        Assert.Contains("shouldShowOpenDataLeaderboardRows() && !athleteOnlyFiltersActive", html);
+        Assert.Contains("view !== 'ultimate' && view !== 'pheno'", html);
+        Assert.Contains("view === 'pheno'", html);
+        Assert.Contains("view === 'ultimate'", html);
+        Assert.DoesNotContain("calculateOpenDataBortzSummary", html);
+        Assert.Contains("return null;", html);
+        Assert.Contains("row.id = `public-data-row-${profile.athleteSlug}`;", html);
+        Assert.Contains("row.id = `rank-${athlete.rank}`;", html);
+        Assert.Contains("Sponsor: not applicable for a non-competing public-data profile.", html);
+        Assert.Contains("Media contact: not provided for this public-data profile.", html);
+        Assert.DoesNotContain("open-data-row-status", html);
+        Assert.DoesNotContain("athleteResults.push(profile)", html);
+        Assert.DoesNotContain("filteredAthletes.concat(visibleOpenDataProfiles)", html);
     }
 
     [Fact]
@@ -56,7 +97,7 @@ public sealed class OpenDataProfileUiTests
 
         Assert.Contains("const openButton = document.createElement('button');", html);
         Assert.Contains("openButton.type = 'button';", html);
-        Assert.Contains("View unranked public-data profile for", html);
+        Assert.Contains("View public-data profile for", html);
         Assert.Contains("sourceLink.rel = 'noopener noreferrer external';", html);
         Assert.Contains("sourceLink.setAttribute('aria-label'", html);
         Assert.Contains("source.kind === 'Bloodwork' && source.subjectAuthorization", html);
@@ -78,7 +119,7 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("id=\"openDataStickyToken\"", html);
         Assert.Contains("id=\"openDataModalPhotoCredit\"", html);
         Assert.Contains("modalContent.classList.toggle('open-data-profile', isOpenData);", html);
-        Assert.Contains("detailsModal.setAttribute('aria-describedby', 'openDataNotabilitySummary openDataProfileDisclosure');", html);
+        Assert.Contains("detailsModal.setAttribute('aria-describedby', 'openDataNotabilitySummary openDataHypotheticalSummary openDataProfileDisclosure');", html);
         Assert.Contains("'Close public-data profile'", html);
         Assert.Contains("resetModalForLoading(athleteSlug, openDataProfile)", html);
         Assert.Contains("populateOpenDataModal(fullAthleteData, athleteData);", html);
@@ -153,7 +194,7 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("const athleteSlug = getCanonicalProfileRouteSlug(athleteData.athleteSlug || athleteNameText);", html);
         Assert.Contains("url.searchParams.delete('publicData');", html);
         Assert.Contains("public-data reference - Longevity World Cup", html);
-        Assert.Contains("The subject did not apply to the Longevity World Cup; inclusion does not imply endorsement.", html);
+        Assert.Contains("hypothetical positions never change official Longevity World Cup ranks", html);
     }
 
     private static string ReadLeaderboardPartial([CallerFilePath] string sourceFilePath = "")
