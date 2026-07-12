@@ -30,6 +30,26 @@ jobs:
       uses: actions/setup-dotnet@v5
       with:
         dotnet-version: 10.0.x
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version-file: .node-version
+        cache: npm
+        cache-dependency-path: LongevityWorldCup.Website/package-lock.json
+    - name: Restore frontend dependencies
+      working-directory: LongevityWorldCup.Website
+      run: npm ci --ignore-scripts --no-audit --no-fund
+    - name: Type-check and build frontend
+      working-directory: LongevityWorldCup.Website
+      run: npm run build
+    - name: Verify generated frontend assets stay untracked
+      shell: bash
+      run: |
+        tracked="$(git ls-files -- 'LongevityWorldCup.Website/wwwroot/js')"
+        if [[ -n "$tracked" ]]; then
+          echo "$tracked"
+          exit 1
+        fi
     - name: Restore dependencies with NuGet audit
       run: >
         dotnet restore
@@ -38,7 +58,49 @@ jobs:
         -p:NuGetAuditLevel=low
         -p:WarningsAsErrors=NU1900%3BNU1901%3BNU1902%3BNU1903%3BNU1904%3BNU1905
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore -p:BuildFrontend=false
+    - name: Verify Node-free publish contract
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        publish_output="$RUNNER_TEMP/longevityworldcup-publish"
+        deny_node_bin="$RUNNER_TEMP/longevityworldcup-deny-node"
+        source_manifest="$RUNNER_TEMP/longevityworldcup-source-js.sha256"
+        published_manifest="$RUNNER_TEMP/longevityworldcup-published-js.sha256"
+
+        frontend_manifest() {
+          local root="$1"
+          (
+            cd "$root"
+            find . -type f -name '*.js' -print0 \
+              | LC_ALL=C sort -z \
+              | xargs -0 -r sha256sum
+          )
+        }
+
+        rm -rf LongevityWorldCup.Website/node_modules "$publish_output" "$deny_node_bin"
+        mkdir -p "$deny_node_bin"
+        printf '#!/usr/bin/env bash\necho "Node.js is forbidden in the BuildFrontend=false publish contract." >&2\nexit 1\n' > "$deny_node_bin/node"
+        cp "$deny_node_bin/node" "$deny_node_bin/npm"
+        chmod +x "$deny_node_bin/node" "$deny_node_bin/npm"
+
+        frontend_manifest LongevityWorldCup.Website/wwwroot/js > "$source_manifest"
+        test -s "$source_manifest"
+
+        PATH="$deny_node_bin:$PATH" dotnet publish LongevityWorldCup.Website/LongevityWorldCup.Website.csproj \
+          --configuration Release \
+          --no-restore \
+          --output "$publish_output" \
+          -p:BuildFrontend=false
+
+        frontend_manifest "$publish_output/wwwroot/js" > "$published_manifest"
+        if ! cmp -s "$source_manifest" "$published_manifest"; then
+          echo "Published frontend assets differ from the generated source assets." >&2
+          diff -u "$source_manifest" "$published_manifest" || true
+          exit 1
+        fi
+        test -z "$(find "$publish_output" -type f -name '*.ts' -print -quit)"
     - name: Install Playwright Chromium
       run: pwsh LongevityWorldCup.Tests/bin/Debug/net10.0/playwright.ps1 install chromium
     - name: Test with coverage

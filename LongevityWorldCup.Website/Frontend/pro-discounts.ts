@@ -5,13 +5,23 @@ const BADGE_BG_DEFAULT = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e);
 const BADGE_BG_PERSONAL = "background: linear-gradient(135deg, #00bcd4, #006e7a); border: 2px solid #004f56;";
 const BADGE_BG_BLACK = "background: linear-gradient(135deg, #2a2a2a, #1e1e1e); border: 2px solid #333333;";
 
-function canonicalizeBadgeLabel(label) {
+interface ActiveProDiscount {
+    readonly code: string;
+    readonly label: string;
+    readonly percent: number;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function canonicalizeBadgeLabel(label: unknown): string {
     const normalized = String(label || "")
         .replace(/â€“/g, "-")
         .replace(/[–—]/g, "-")
         .trim();
 
-    const aliases = {
+    const aliases: Readonly<Record<string, string>> = {
         "Age Reduction": "Age reduction",
         "Chronological Age - Oldest": "Chronological age - oldest",
         "Chronological Age - Youngest": "Chronological age - youngest",
@@ -31,7 +41,8 @@ function canonicalizeBadgeLabel(label) {
         "Perfect Application": "Perfect application"
     };
 
-    if (aliases[normalized]) return aliases[normalized];
+    const alias = aliases[normalized];
+    if (alias) return alias;
     if (normalized.startsWith("Best Domain - ")) {
         const domain = normalized.slice("Best Domain - ".length).trim();
         return "Best domain – " + (domain === "Vitamin D" ? "vitamin D" : domain.toLowerCase());
@@ -39,51 +50,51 @@ function canonicalizeBadgeLabel(label) {
     return normalized.replace(/ - /g, " – ");
 }
 
-function readBadgeLabel(badge) {
+function readBadgeLabel(badge: ServerBadge | null | undefined): string {
     return canonicalizeBadgeLabel(badge?.BadgeLabel || badge?.Label || "");
 }
 
-function readBadgeCategory(badge) {
+function readBadgeCategory(badge: ServerBadge | null | undefined): unknown {
     return badge?.LeagueCategory || badge?.Category || "";
 }
 
-function readBadgeLeagueValue(badge) {
+function readBadgeLeagueValue(badge: ServerBadge | null | undefined): unknown {
     return badge?.LeagueValue ?? badge?.Value ?? null;
 }
 
-function readBadgePlace(badge) {
+function readBadgePlace(badge: ServerBadge | null | undefined): number | null {
     const place = badge?.Place;
     return Number.isFinite(place) ? Number(place) : null;
 }
 
-function normalizeCategory(category) {
+function normalizeCategory(category: unknown): string {
     return String(category || "").trim().toLowerCase();
 }
 
-function toTitleCategory(category) {
+function toTitleCategory(category: unknown): string {
     const c = normalizeCategory(category);
     if (!c) return "Global";
-    return c[0].toUpperCase() + c.slice(1);
+    return c.charAt(0).toUpperCase() + c.slice(1);
 }
 
-function isSeasonBadgeLabel(label) {
+function isSeasonBadgeLabel(label: unknown): boolean {
     return /^S\d{2}$/i.test(String(label || "").trim());
 }
 
-function readServerBadges(athlete) {
+function readServerBadges(athlete: BadgeAthlete | null | undefined): readonly ServerBadge[] {
     if (!athlete) return [];
     if (Array.isArray(athlete.Badges)) return athlete.Badges;
     if (Array.isArray(athlete.badges)) return athlete.badges;
     return [];
 }
 
-function hasPersonalLink(athlete) {
+function hasPersonalLink(athlete: BadgeAthlete | null | undefined): boolean {
     if (!athlete) return false;
     const link = athlete.PersonalLink ?? athlete.personalLink;
     return Boolean(String(link || "").trim());
 }
 
-function getPersonalLinkUrl(athlete) {
+function getPersonalLinkUrl(athlete: BadgeAthlete | null | undefined): string | null {
     const link = athlete?.PersonalLink ?? athlete?.personalLink ?? "";
     const raw = String(link || "").trim();
     if (!raw) return null;
@@ -93,8 +104,9 @@ function getPersonalLinkUrl(athlete) {
 function hasPerfectGuessMarker() {
     try {
         if (localStorage.getItem(PERFECT_GUESS_KEY) === "1") return true;
-        const allGuesses = JSON.parse(localStorage.getItem("gmaAllGuesses") || "{}");
-        const hasExact = Object.values(allGuesses).some(g => g && g.exact === true);
+        const parsed: unknown = JSON.parse(localStorage.getItem("gmaAllGuesses") || "{}");
+        const allGuesses = isRecord(parsed) ? parsed : {};
+        const hasExact = Object.values(allGuesses).some(g => isRecord(g) && g.exact === true);
         if (hasExact) {
             setPerfectGuessMarker();
             return true;
@@ -112,21 +124,22 @@ function setPerfectGuessMarker() {
     }
 }
 
-function slugToDisplayName(slug) {
+function slugToDisplayName(slug: unknown): string {
     const raw = String(slug || "").trim();
     if (!raw) return "";
     return raw
         .split(/[-_]+/)
         .filter(Boolean)
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
         .join(" ");
 }
 
-function getExactGuessAthleteNames(currentAthlete) {
+function getExactGuessAthleteNames(currentAthlete: BadgeAthlete | null | undefined): string[] {
     try {
-        const allGuesses = JSON.parse(localStorage.getItem("gmaAllGuesses") || "{}");
+        const parsed: unknown = JSON.parse(localStorage.getItem("gmaAllGuesses") || "{}");
+        const allGuesses = isRecord(parsed) ? parsed : {};
         const exactSlugs = Object.entries(allGuesses)
-            .filter(([_, guess]) => guess && guess.exact === true)
+            .filter(([_, guess]) => isRecord(guess) && guess.exact === true)
             .map(([slug]) => slug)
             .filter(Boolean);
 
@@ -154,17 +167,17 @@ function getExactGuessAthleteNames(currentAthlete) {
     }
 }
 
-function weightForAgeReduction(category, place) {
-    if (![1, 2, 3].includes(place)) return 0;
+function weightForAgeReduction(category: string, place: number | null): number {
+    if (place === null || ![1, 2, 3].includes(place)) return 0;
     if (category === "amateur") return 100;
-    if (category === "global") return [100, 50, 40][place - 1];
-    if (category === "division") return [100, 50, 20][place - 1];
-    if (category === "generation") return [100, 50, 20][place - 1];
-    if (category === "exclusive") return [100, 50, 20][place - 1];
+    if (category === "global") return [100, 50, 40][place - 1] ?? 0;
+    if (category === "division") return [100, 50, 20][place - 1] ?? 0;
+    if (category === "generation") return [100, 50, 20][place - 1] ?? 0;
+    if (category === "exclusive") return [100, 50, 20][place - 1] ?? 0;
     return 0;
 }
 
-function weightForBadge(badge) {
+function weightForBadge(badge: ServerBadge): number {
     const label = readBadgeLabel(badge);
     const place = readBadgePlace(badge);
     const category = normalizeCategory(readBadgeCategory(badge));
@@ -233,7 +246,7 @@ function weightForBadge(badge) {
         if (place === 1) return 100;
         if (place === 2) return 90;
         if (place === 3) return 80;
-        if (place >= 4 && place <= 10) return 70;
+        if (place !== null && place >= 4 && place <= 10) return 70;
         return 0;
     }
     if (label === "Pregnancy") return 10;
@@ -244,15 +257,15 @@ function weightForBadge(badge) {
         if (place === 1) return 100;
         if (place === 2) return 90;
         if (place === 3) return 80;
-        if (place >= 4 && place <= 10) return 70;
-        if (place >= 11 && place <= 20) return 60;
+        if (place !== null && place >= 4 && place <= 10) return 70;
+        if (place !== null && place >= 11 && place <= 20) return 60;
         return 0;
     }
 
     return 0;
 }
 
-function badgeComponentLabel(badge) {
+function badgeComponentLabel(badge: ServerBadge): string {
     const label = readBadgeLabel(badge);
     const place = readBadgePlace(badge);
     const category = toTitleCategory(readBadgeCategory(badge));
@@ -260,16 +273,16 @@ function badgeComponentLabel(badge) {
     return `${label} (${category})`;
 }
 
-function toMoney(value) {
+function toMoney(value: number): string {
     const rounded = Math.round(value * 100) / 100;
     const asFixed = rounded.toFixed(2);
     return asFixed.endsWith(".00") ? asFixed.slice(0, -3) : asFixed;
 }
 
-function readActiveProDiscount() {
+function readActiveProDiscount(): ActiveProDiscount | null {
     const getter = window.getActiveProDiscount;
     const discount = typeof getter === "function" ? getter() : null;
-    if (!discount || typeof discount !== "object") return null;
+    if (!isRecord(discount)) return null;
 
     const percent = Number(discount.percent);
     if (!Number.isFinite(percent) || percent <= 0) return null;
@@ -281,8 +294,11 @@ function readActiveProDiscount() {
     };
 }
 
-function buildDiscountBreakdown(athlete, options = {}) {
-    const components = [];
+function buildDiscountBreakdown(
+    athlete: BadgeAthlete | null | undefined,
+    options: { readonly isOnLeaderboard?: boolean } = {}
+): DiscountBreakdown {
+    const components: DiscountComponent[] = [];
 
     if (options.isOnLeaderboard !== false) {
         components.push({ label: "Leaderboard", percent: 10, isBadge: false, kind: "leaderboard" });
@@ -348,7 +364,7 @@ function buildDiscountBreakdown(athlete, options = {}) {
     };
 }
 
-function createBreakdownText(result) {
+function createBreakdownText(result: DiscountBreakdown): string {
     const ordered = [...result.components].sort((a, b) => {
         if (Boolean(a.isBadge) !== Boolean(b.isBadge)) {
             return a.isBadge ? 1 : -1; // non-badge items first
@@ -360,7 +376,7 @@ function createBreakdownText(result) {
     return pieces.length > 0 ? pieces.join("\n") : "0%";
 }
 
-function formatDiscountLine(percent, reason) {
+function formatDiscountLine(percent: number, reason: unknown): string {
     const raw = String(reason || "").trim();
     if (raw.toLowerCase().startsWith("while ")) {
         return `${percent}% discount ${raw}`;
@@ -368,7 +384,7 @@ function formatDiscountLine(percent, reason) {
     return `${percent}% discount for ${raw}`;
 }
 
-function formatCompactDiscountLine(component) {
+function formatCompactDiscountLine(component: DiscountComponent | null | undefined): string {
     const percent = component?.percent ?? 0;
     if (component?.kind === "leaderboard") return `${percent}% leaderboard`;
     if (component?.kind === "personalLink") return `${percent}% personal page`;
@@ -382,7 +398,7 @@ function formatCompactDiscountLine(component) {
     return `${percent}% discount`;
 }
 
-function describeDiscountReason(component) {
+function describeDiscountReason(component: DiscountComponent | null | undefined): string {
     if (!component) return "eligible achievements";
 
     if (component.kind === "leaderboard") return "being on the leaderboard";
@@ -416,7 +432,7 @@ function describeDiscountReason(component) {
     return String(component.label || "eligible achievements");
 }
 
-function describeServerBadgeReason(badge) {
+function describeServerBadgeReason(badge: ServerBadge): string | null {
     const label = readBadgeLabel(badge);
     const place = readBadgePlace(badge);
     const category = toTitleCategory(readBadgeCategory(badge));
@@ -427,8 +443,8 @@ function describeServerBadgeReason(badge) {
         if (place === 1) return `winning ${seasonTag}`;
         if (place === 2) return `a 2nd-place finish in ${seasonTag}`;
         if (place === 3) return `a 3rd-place finish in ${seasonTag}`;
-        if (place >= 4 && place <= 10) return `a top-10 finish in ${seasonTag}`;
-        if (place >= 11 && place <= 20) return `a top-20 finish in ${seasonTag}`;
+        if (place !== null && place >= 4 && place <= 10) return `a top-10 finish in ${seasonTag}`;
+        if (place !== null && place >= 11 && place <= 20) return `a top-20 finish in ${seasonTag}`;
         return `a seasonal finish in ${seasonTag}`;
     }
 
@@ -436,7 +452,7 @@ function describeServerBadgeReason(badge) {
         if (place === 1) return "being the first applicant to join";
         if (place === 2) return "being the second applicant to join";
         if (place === 3) return "being the third applicant to join";
-        if (place >= 4 && place <= 10) return "being among the first 10 applicants";
+        if (place !== null && place >= 4 && place <= 10) return "being among the first 10 applicants";
         return "being an early applicant";
     }
 
@@ -486,7 +502,7 @@ function describeServerBadgeReason(badge) {
     return null;
 }
 
-function extractBadgeTitle(tooltip) {
+function extractBadgeTitle(tooltip: unknown): string {
     const raw = String(tooltip || "").trim();
     if (!raw) return "";
     const beforeColon = raw.includes(":") ? raw.slice(0, raw.indexOf(":")).trim() : raw;
@@ -495,7 +511,7 @@ function extractBadgeTitle(tooltip) {
         .trim();
 }
 
-function escapeHtml(text) {
+function escapeHtml(text: unknown): string {
     return String(text)
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
@@ -504,7 +520,7 @@ function escapeHtml(text) {
         .replaceAll("'", "&#39;");
 }
 
-function getDiscountIconClass(component) {
+function getDiscountIconClass(component: DiscountComponent | null | undefined): string | null {
     if (!component || !component.isBadge) return null;
     if (component.kind === "personalLink") return "fa-link";
     if (component.kind === "perfectGuess") return "fa-bullseye";
@@ -519,7 +535,7 @@ function getDiscountIconClass(component) {
     return "fa-award";
 }
 
-function getDiscountBadgeBackground(component) {
+function getDiscountBadgeBackground(component: DiscountComponent | null | undefined): string {
     if (!component || !component.isBadge) return BADGE_BG_DEFAULT;
     if (component.kind === "personalLink") return BADGE_BG_PERSONAL;
     if (component.kind === "perfectGuess") return BADGE_BG_BLACK;
@@ -533,7 +549,7 @@ function getDiscountBadgeBackground(component) {
     return BADGE_BG_DEFAULT;
 }
 
-function getDiscountBadgeFamilyClass(component) {
+function getDiscountBadgeFamilyClass(component: DiscountComponent | null | undefined): string {
     if (!component || !component.isBadge) return "";
     if (component.kind === "serverBadge" && component.badge) {
         const picker = window.getBadgeFamilyClass;
@@ -544,7 +560,7 @@ function getDiscountBadgeFamilyClass(component) {
     return "badge-family-utility";
 }
 
-function getDiscountBadgeStyle(component) {
+function getDiscountBadgeStyle(component: DiscountComponent | null | undefined): string {
     const background = getDiscountBadgeBackground(component);
     if (component?.kind === "serverBadge" && typeof window.styleWithBadgeVars === "function") {
         return window.styleWithBadgeVars(background);
@@ -552,7 +568,7 @@ function getDiscountBadgeStyle(component) {
     return background;
 }
 
-function createDiscountBadgeChipHtml(component) {
+function createDiscountBadgeChipHtml(component: DiscountComponent | null | undefined): string {
     if (!component || !component.isBadge) return "";
     const icon = getDiscountIconClass(component) || "fa-award";
     const familyClass = getDiscountBadgeFamilyClass(component);
@@ -594,7 +610,7 @@ function createDiscountBadgeChipHtml(component) {
     return `<span class="${escapeHtml(badgeClasses)}"${titleAttr} aria-hidden="true" style="${escapeHtml(badgeStyle)} ${compact}">${chipInner}</span>`;
 }
 
-function createBreakdownHtml(result) {
+function createBreakdownHtml(result: DiscountBreakdown): string {
     const ordered = [...result.components].sort((a, b) => {
         if (Boolean(a.isBadge) !== Boolean(b.isBadge)) {
             return a.isBadge ? 1 : -1; // non-badge items first
@@ -613,7 +629,7 @@ function createBreakdownHtml(result) {
     }).join("");
 }
 
-function createPriceHtml(result) {
+function createPriceHtml(result: DiscountBreakdown): string {
     const oldText = `$${result.basePriceUsd}`;
     if (result.finalPriceUsd < result.basePriceUsd) {
         return `<span class="pro-old-price">${oldText}</span> <span class="pro-new-price">${result.finalPriceText}</span>`;
@@ -630,3 +646,5 @@ window.proDiscounts = {
     createBreakdownHtml,
     createPriceHtml
 };
+
+export {};

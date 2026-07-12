@@ -1,23 +1,32 @@
 (function () {
-    let mentionResolver = null;
+    interface MarkupHandlers {
+        text(value: string): string;
+        bold(inner: string): string;
+        strong(inner: string): string;
+        mention(slug: string): string;
+        link(label: string, href: string): string;
+    }
 
-    function escapeHtml(value) {
+    let mentionResolver: MentionResolver | null = null;
+
+    function escapeHtml(value: unknown): string {
         return String(value ?? "").replace(/[&<>"']/g, function (ch) {
-            return {
+            const replacements: Readonly<Record<string, string>> = {
                 "&": "&amp;",
                 "<": "&lt;",
                 ">": "&gt;",
                 "\"": "&quot;",
                 "'": "&#39;"
-            }[ch];
+            };
+            return replacements[ch] ?? ch;
         });
     }
 
-    function normalizeNewlines(value) {
+    function normalizeNewlines(value: unknown): string {
         return String(value || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     }
 
-    function splitText(text) {
+    function splitText(text: unknown): { title: string; content: string } {
         var normalized = normalizeNewlines(text);
         var idx = normalized.indexOf("\n\n");
         if (idx >= 0) {
@@ -27,21 +36,21 @@
         return { title: normalized.trimEnd(), content: "" };
     }
 
-    function isSafeHttpUrl(value) {
+    function isSafeHttpUrl(value: unknown): boolean {
         return /^https?:\/\/.+/i.test(String(value || "").trim());
     }
 
-    function containsHyperlink(text) {
+    function containsHyperlink(text: unknown): boolean {
         return containsHyperlinkCore(String(text || ""));
     }
 
-    function getSingleHyperlink(text) {
-        var links = [];
+    function getSingleHyperlink(text: unknown): string {
+        var links: string[] = [];
         collectHyperlinks(String(text || ""), links);
-        return links.length === 1 ? links[0] : "";
+        return links.length === 1 ? links[0] ?? "" : "";
     }
 
-    function containsHyperlinkCore(text) {
+    function containsHyperlinkCore(text: string): boolean {
         var s = String(text || "");
         var i = 0;
         while (i < s.length) {
@@ -60,7 +69,7 @@
             var depth = 1;
             var j = parenStart;
             while (j < s.length && depth > 0) {
-                var ch = s[j];
+                var ch = s.charAt(j);
                 if (ch === "(") depth++;
                 else if (ch === ")") depth--;
                 j++;
@@ -86,7 +95,7 @@
         return false;
     }
 
-    function collectHyperlinks(text, links) {
+    function collectHyperlinks(text: string, links: string[]): void {
         var s = String(text || "");
         var i = 0;
         while (i < s.length) {
@@ -105,7 +114,7 @@
             var depth = 1;
             var j = parenStart;
             while (j < s.length && depth > 0) {
-                var ch = s[j];
+                var ch = s.charAt(j);
                 if (ch === "(") depth++;
                 else if (ch === ")") depth--;
                 j++;
@@ -130,17 +139,17 @@
         }
     }
 
-    function humanizeSlug(value) {
+    function humanizeSlug(value: unknown): string {
         return String(value || "")
             .replace(/[_-]+/g, " ")
             .trim()
             .split(/\s+/)
             .filter(Boolean)
-            .map(function (part) { return part.charAt(0).toUpperCase() + part.slice(1); })
+            .map(function (part: string) { return part.charAt(0).toUpperCase() + part.slice(1); })
             .join(" ");
     }
 
-    function resolveMentionText(slug, overrideResolver) {
+    function resolveMentionText(slug: unknown, overrideResolver?: MentionResolver): string {
         var normalized = String(slug || "").trim();
         if (!normalized) {
             return "";
@@ -151,7 +160,7 @@
         return resolved ? String(resolved) : (humanizeSlug(normalized) || normalized);
     }
 
-    function walk(text, handlers) {
+    function walk(text: unknown, handlers: MarkupHandlers): string {
         var s = String(text || "");
         var out = "";
         var i = 0;
@@ -174,7 +183,7 @@
             var depth = 1;
             var j = parenStart;
             while (j < s.length && depth > 0) {
-                var ch = s[j];
+                var ch = s.charAt(j);
                 if (ch === "(") depth++;
                 else if (ch === ")") depth--;
                 j++;
@@ -205,7 +214,10 @@
         return out;
     }
 
-    function renderMarkup(text, options) {
+    function renderMarkup(
+        text: unknown,
+        options?: CustomEventMarkupOptions | null
+    ): string {
         var opts = options || {};
         return walk(text, {
             text: function (value) { return escapeHtml(value); },
@@ -230,13 +242,19 @@
         });
     }
 
-    function renderMarkupWithBreaks(text, options) {
+    function renderMarkupWithBreaks(
+        text: unknown,
+        options?: CustomEventMarkupOptions | null
+    ): string {
         return normalizeNewlines(text || "").split("\n").map(function (line) {
             return renderMarkup(line, options);
         }).join("<br>");
     }
 
-    function renderWebpageMarkup(text, options) {
+    function renderWebpageMarkup(
+        text: unknown,
+        options?: CustomEventMarkupOptions | null
+    ): string {
         var opts = options || {};
         return renderMarkup(text, {
             mentionResolver: opts.mentionResolver,
@@ -256,13 +274,19 @@
         });
     }
 
-    function renderWebpageMarkupWithBreaks(text, options) {
+    function renderWebpageMarkupWithBreaks(
+        text: unknown,
+        options?: CustomEventMarkupOptions | null
+    ): string {
         return normalizeNewlines(text || "").split("\n").map(function (line) {
             return renderWebpageMarkup(line, options);
         }).join("<br>");
     }
 
-    function renderImageMarkup(text, options) {
+    function renderImageMarkup(
+        text: unknown,
+        options?: CustomEventMarkupOptions | null
+    ): string {
         var opts = options || {};
         return walk(text, {
             text: function (value) { return escapeHtml(value); },
@@ -281,13 +305,19 @@
         });
     }
 
-    function renderImageMarkupWithBreaks(text, options) {
+    function renderImageMarkupWithBreaks(
+        text: unknown,
+        options?: CustomEventMarkupOptions | null
+    ): string {
         return normalizeNewlines(text || "").split("\n").map(function (line) {
             return renderImageMarkup(line, options);
         }).join("<br>");
     }
 
-    function toPlainText(text, options) {
+    function toPlainText(
+        text: unknown,
+        options?: CustomEventMarkupOptions | null
+    ): string {
         var opts = options || {};
         var keepHyperlinkLabels = opts.keepHyperlinkLabels !== false;
         return walk(text, {
@@ -299,7 +329,7 @@
         });
     }
 
-    function setMentionResolver(resolver) {
+    function setMentionResolver(resolver: MentionResolver | null | undefined): void {
         mentionResolver = typeof resolver === "function" ? resolver : null;
     }
 

@@ -1,4 +1,31 @@
+interface FlowActionDockEnsureClearOptions {
+    followingVisibleSiblingCount?: number;
+    includeNextVisibleSibling?: boolean;
+    margin?: number;
+    behavior?: ScrollBehavior;
+}
+
+interface FlowActionDockApi {
+    refresh: () => void;
+    refreshNow: () => void;
+    ensureClear: (element: Element | null | undefined, options?: FlowActionDockEnsureClearOptions) => void;
+}
+
 (function () {
+    interface DockState {
+        docked: boolean;
+        enterFrame: number;
+        inlineHeight: number;
+        mutationObserver: MutationObserver;
+        placeholder: HTMLDivElement;
+    }
+
+    interface VisualViewportBounds {
+        top: number;
+        bottom: number;
+        height: number;
+    }
+
     const dockSelector = '[data-flow-dock]';
     const dockClass = 'flow-action-stack--docked';
     const dockEnteringClass = 'flow-action-stack--dock-entering';
@@ -9,18 +36,18 @@
     const backPrimaryActionClass = 'flow-action-stack--back-primary-action';
     const mobileMedia = window.matchMedia('(max-width: 760px)');
     const reducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const states = new Map();
+    const states = new Map<HTMLElement, DockState>();
     let refreshFrame = 0;
-    let resizeObserver = null;
-    let registrationObserver = null;
-    let documentStateObserver = null;
+    let resizeObserver: ResizeObserver | null = null;
+    let registrationObserver: MutationObserver | null = null;
+    let documentStateObserver: MutationObserver | null = null;
     let transitionsReady = false;
     let generatedFormId = 0;
 
-    function getVisualViewportBounds() {
+    function getVisualViewportBounds(): VisualViewportBounds {
         const visualViewport = window.visualViewport;
-        const top = Number.isFinite(visualViewport?.offsetTop) ? visualViewport.offsetTop : 0;
-        const height = Number.isFinite(visualViewport?.height)
+        const top = visualViewport && Number.isFinite(visualViewport.offsetTop) ? visualViewport.offsetTop : 0;
+        const height = visualViewport && Number.isFinite(visualViewport.height)
             ? visualViewport.height
             : window.innerHeight;
 
@@ -31,29 +58,29 @@
         };
     }
 
-    function hasLayoutBox(element) {
-        if (!element || !element.isConnected || element.hidden) return false;
+    function hasLayoutBox(element: Element | null | undefined): element is HTMLElement {
+        if (!(element instanceof HTMLElement) || !element.isConnected || element.hidden) return false;
         const style = window.getComputedStyle(element);
         if (style.display === 'none') return false;
         const rect = element.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0;
     }
 
-    function isVisible(element) {
+    function isVisible(element: Element | null | undefined): element is HTMLElement {
         if (!hasLayoutBox(element)) return false;
         const style = window.getComputedStyle(element);
         return style.visibility !== 'hidden' && Number(style.opacity) !== 0;
     }
 
-    function isBackAction(element) {
-        return element?.classList.contains('back-button')
-            && element.classList.contains('flow-action--icon-left');
+    function isBackAction(element: HTMLElement | undefined): boolean {
+        return Boolean(element?.classList.contains('back-button')
+            && element.classList.contains('flow-action--icon-left'));
     }
 
-    function updateActionLayoutState(element) {
-        const visibleActions = Array.from(element.querySelectorAll(':scope > .flow-action')).filter(isVisible);
-        element.querySelectorAll('.flow-action[data-flow-dock-label]').forEach(action => {
-            const label = action.querySelector('.flow-action__label');
+    function updateActionLayoutState(element: HTMLElement): void {
+        const visibleActions = Array.from(element.querySelectorAll<HTMLElement>(':scope > .flow-action')).filter(isVisible);
+        element.querySelectorAll<HTMLElement>('.flow-action[data-flow-dock-label]').forEach(action => {
+            const label = action.querySelector<HTMLElement>('.flow-action__label');
             if (label) label.dataset.flowDockLabel = action.dataset.flowDockLabel;
         });
         const backAction = visibleActions.find(isBackAction);
@@ -64,11 +91,11 @@
         element.classList.toggle(backPrimaryActionClass, visibleActions.length === 2 && !!backAction && !!primaryAction);
     }
 
-    function clearActionLayoutState(element) {
+    function clearActionLayoutState(element: HTMLElement): void {
         element.classList.remove(singleBackActionClass, backPrimaryActionClass);
     }
 
-    function conditionMatches(element) {
+    function conditionMatches(element: HTMLElement): boolean {
         const requiredSelector = element.getAttribute('data-flow-dock-when');
         if (requiredSelector && !document.querySelector(requiredSelector)) return false;
 
@@ -76,10 +103,10 @@
         return !(excludedSelector && document.querySelector(excludedSelector));
     }
 
-    function ensureSubmitButtonFormOwnership(element) {
-        element.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(control => {
+    function ensureSubmitButtonFormOwnership(element: HTMLElement): void {
+        element.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button[type="submit"], input[type="submit"]').forEach(control => {
             if (control.hasAttribute('form')) return;
-            const form = control.closest('form');
+            const form = control.closest<HTMLFormElement>('form');
             if (!form) return;
 
             if (!form.id) {
@@ -90,13 +117,14 @@
         });
     }
 
-    function registerElement(element) {
+    function registerElement(element: Element): void {
+        if (!(element instanceof HTMLElement)) return;
         if (states.has(element)) return;
 
         const placeholder = document.createElement('div');
         placeholder.className = placeholderClass;
         placeholder.hidden = true;
-        element.parentNode.insertBefore(placeholder, element);
+        element.parentNode?.insertBefore(placeholder, element);
 
         const mutationObserver = new MutationObserver(scheduleRefresh);
         mutationObserver.observe(element, {
@@ -118,7 +146,7 @@
         resizeObserver?.observe(placeholder);
     }
 
-    function unregisterDisconnectedElements() {
+    function unregisterDisconnectedElements(): void {
         Array.from(states.entries()).forEach(([element, state]) => {
             if (element.isConnected && state.placeholder.isConnected) return;
             if (state.enterFrame) window.cancelAnimationFrame(state.enterFrame);
@@ -131,12 +159,12 @@
         });
     }
 
-    function ensureRegisteredElements() {
+    function ensureRegisteredElements(): void {
         document.querySelectorAll(dockSelector).forEach(registerElement);
         unregisterDisconnectedElements();
     }
 
-    function beginDockEnter(element, state) {
+    function beginDockEnter(element: HTMLElement, state: DockState): void {
         if (!transitionsReady || reducedMotionMedia.matches) return;
         element.classList.add(dockEnteringClass);
         state.enterFrame = window.requestAnimationFrame(() => {
@@ -147,7 +175,7 @@
         });
     }
 
-    function cancelDockEnter(element, state) {
+    function cancelDockEnter(element: HTMLElement, state: DockState): void {
         if (state.enterFrame) {
             window.cancelAnimationFrame(state.enterFrame);
             state.enterFrame = 0;
@@ -155,7 +183,7 @@
         element.classList.remove(dockEnteringClass);
     }
 
-    function dockElement(element, state) {
+    function dockElement(element: HTMLElement, state: DockState): void {
         const rect = element.getBoundingClientRect();
         state.inlineHeight = rect.height || element.offsetHeight || state.inlineHeight;
         state.placeholder.hidden = false;
@@ -169,7 +197,7 @@
         beginDockEnter(element, state);
     }
 
-    function undockElement(element, state) {
+    function undockElement(element: HTMLElement, state: DockState): void {
         cancelDockEnter(element, state);
         element.classList.remove(dockClass);
         clearActionLayoutState(element);
@@ -182,13 +210,13 @@
         state.placeholder.style.height = '';
     }
 
-    function getMeasurementRect(element, state) {
+    function getMeasurementRect(element: HTMLElement, state: DockState): DOMRect {
         return state.docked
             ? state.placeholder.getBoundingClientRect()
             : element.getBoundingClientRect();
     }
 
-    function shouldDock(element, state) {
+    function shouldDock(element: HTMLElement, state: DockState): boolean {
         if (!conditionMatches(element)) return false;
         if (state.docked ? !hasLayoutBox(state.placeholder) : !isVisible(element)) return false;
 
@@ -214,7 +242,7 @@
         return rect.bottom > viewport.bottom - gap || rect.top < viewport.top + gap;
     }
 
-    function refresh() {
+    function refresh(): void {
         refreshFrame = 0;
         ensureRegisteredElements();
 
@@ -241,11 +269,11 @@
         document.body.style.setProperty('--flow-action-dock-height', heightValue);
     }
 
-    function scheduleRefresh() {
+    function scheduleRefresh(): void {
         if (!refreshFrame) refreshFrame = window.requestAnimationFrame(refresh);
     }
 
-    function refreshImmediately() {
+    function refreshImmediately(): void {
         if (refreshFrame) {
             window.cancelAnimationFrame(refreshFrame);
             refreshFrame = 0;
@@ -253,7 +281,7 @@
         refresh();
     }
 
-    function getNextVisibleSibling(element) {
+    function getNextVisibleSibling(element: Element | null | undefined): HTMLElement | null {
         let sibling = element?.nextElementSibling;
         while (sibling) {
             if (isVisible(sibling)) return sibling;
@@ -262,14 +290,15 @@
         return null;
     }
 
-    function getClearanceRect(element, options) {
+    function getClearanceRect(element: Element, options: FlowActionDockEnsureClearOptions): { top: number; bottom: number } {
         const rect = element.getBoundingClientRect();
-        const siblingCount = Number.isFinite(options.followingVisibleSiblingCount)
-            ? Math.max(0, Math.floor(options.followingVisibleSiblingCount))
+        const requestedSiblingCount = options.followingVisibleSiblingCount;
+        const siblingCount = typeof requestedSiblingCount === 'number' && Number.isFinite(requestedSiblingCount)
+            ? Math.max(0, Math.floor(requestedSiblingCount))
             : options.includeNextVisibleSibling ? 1 : 0;
         let top = rect.top;
         let bottom = rect.bottom;
-        let sibling = element;
+        let sibling: Element | null = element;
 
         for (let index = 0; index < siblingCount; index += 1) {
             sibling = getNextVisibleSibling(sibling);
@@ -281,7 +310,10 @@
         return { top, bottom };
     }
 
-    function ensureElementClear(element, options = {}) {
+    function ensureElementClear(
+        element: Element | null | undefined,
+        options: FlowActionDockEnsureClearOptions = {}
+    ): void {
         if (!element?.isConnected) return;
         refreshImmediately();
 
@@ -289,7 +321,8 @@
             .getPropertyValue('--flow-action-dock-height')) || 0;
         if (!dockHeight) return;
 
-        const margin = Number.isFinite(options.margin) ? options.margin : 16;
+        const requestedMargin = options.margin;
+        const margin = typeof requestedMargin === 'number' && Number.isFinite(requestedMargin) ? requestedMargin : 16;
         const rect = getClearanceRect(element, options);
         const viewport = getVisualViewportBounds();
         const bottomLimit = viewport.bottom - dockHeight - margin;
@@ -301,7 +334,7 @@
         });
     }
 
-    function init() {
+    function init(): void {
         if ('ResizeObserver' in window) resizeObserver = new ResizeObserver(scheduleRefresh);
         ensureRegisteredElements();
 
@@ -338,7 +371,8 @@
         }
         document.fonts?.ready.then(scheduleRefresh).catch(() => {});
 
-        window.LwcFlowActionDock = {
+        const runtimeWindow = window as Window & { LwcFlowActionDock?: FlowActionDockApi };
+        runtimeWindow.LwcFlowActionDock = {
             refresh: scheduleRefresh,
             refreshNow: refreshImmediately,
             ensureClear: ensureElementClear

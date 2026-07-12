@@ -130,15 +130,17 @@ window.slugifyName = function (name, encode) {
         return decodeURIComponent(normalized);
     }
 }
-window.normalizeString = function (str) {
+function normalizeString(str: string): string {
     return str.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
+window.normalizeString = normalizeString;
 
-window.escapeHTML = function (string) {
+function escapeHTML(string: string | null): string {
     const div = document.createElement('div');
     div.textContent = string;
     return div.innerHTML;
 }
+window.escapeHTML = escapeHTML;
 
 /**
  * Comparator function to rank athletes based on competition rules.
@@ -149,11 +151,12 @@ window.escapeHTML = function (string) {
  * 4. Alphabetical Order (as a last resort)
  */
 window.compareAthleteRank = function (a, b) {
-    const hasBortz = function (x) {
-        return x.bortzAgeReduction != null && Number.isFinite(x.bortzAgeReduction);
+    const hasBortz = function (x: RankedAthlete): boolean {
+        return typeof x.bortzAgeReduction === 'number' && Number.isFinite(x.bortzAgeReduction);
     };
-    const getAgeReduction = function (x) {
-        return hasBortz(x) ? x.bortzAgeReduction : x.ageReduction;
+    const getAgeReduction = function (x: RankedAthlete): number {
+        const value = hasBortz(x) ? x.bortzAgeReduction : x.ageReduction;
+        return Number(value);
     };
 
     // First criterion: athletes with bortz age rank ahead of those with only pheno age
@@ -211,9 +214,13 @@ window.compareAthleteRankPhenoOnly = function (a, b) {
  * Pheno improvement comparator: rank by latest eligible pheno age minus worst eligible pheno age.
  * More negative values are better. Ties follow the Pheno Age view ordering.
  */
+function finiteNumberOr(value: number | null | undefined, fallback: number): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
 window.compareAthleteRankPhenoImprovement = function (a, b) {
-    const aImprovement = Number.isFinite(a.phenoAgeImprovement) ? a.phenoAgeImprovement : Infinity;
-    const bImprovement = Number.isFinite(b.phenoAgeImprovement) ? b.phenoAgeImprovement : Infinity;
+    const aImprovement = finiteNumberOr(a.phenoAgeImprovement, Infinity);
+    const bImprovement = finiteNumberOr(b.phenoAgeImprovement, Infinity);
     if (aImprovement < bImprovement) return -1;
     if (aImprovement > bImprovement) return 1;
     return window.compareAthleteRankPhenoOnly(a, b);
@@ -224,8 +231,8 @@ window.compareAthleteRankPhenoImprovement = function (a, b) {
  * More negative values are better. Ties follow the Bortz Age view ordering.
  */
 window.compareAthleteRankBortzImprovement = function (a, b) {
-    const aImprovement = Number.isFinite(a.bortzAgeImprovement) ? a.bortzAgeImprovement : Infinity;
-    const bImprovement = Number.isFinite(b.bortzAgeImprovement) ? b.bortzAgeImprovement : Infinity;
+    const aImprovement = finiteNumberOr(a.bortzAgeImprovement, Infinity);
+    const bImprovement = finiteNumberOr(b.bortzAgeImprovement, Infinity);
     if (aImprovement < bImprovement) return -1;
     if (aImprovement > bImprovement) return 1;
     return window.compareAthleteRank(a, b);
@@ -236,13 +243,13 @@ window.compareAthleteRankBortzImprovement = function (a, b) {
  * Used only for the Crowd Age view; Ultimate League ordering still follows compareAthleteRank.
  */
 window.compareAthleteRankCrowdAge = function (a, b) {
-    const aReduction = Number.isFinite(a.crowdAgeReduction) ? a.crowdAgeReduction : -Infinity;
-    const bReduction = Number.isFinite(b.crowdAgeReduction) ? b.crowdAgeReduction : -Infinity;
+    const aReduction = finiteNumberOr(a.crowdAgeReduction, -Infinity);
+    const bReduction = finiteNumberOr(b.crowdAgeReduction, -Infinity);
     if (aReduction < bReduction) return -1;
     if (aReduction > bReduction) return 1;
 
-    const aCount = Number.isFinite(a.crowdCount) ? a.crowdCount : 0;
-    const bCount = Number.isFinite(b.crowdCount) ? b.crowdCount : 0;
+    const aCount = finiteNumberOr(a.crowdCount, 0);
+    const bCount = finiteNumberOr(b.crowdCount, 0);
     if (aCount > bCount) return -1;
     if (aCount < bCount) return 1;
 
@@ -296,8 +303,8 @@ window.showWithDelay = function (element) {
 window.calculateAgeAtDate = function (birthDate, atDate) {
     if (!(birthDate instanceof Date)) throw new Error("Invalid input: birthDate must be a Date object");
     if (!(atDate instanceof Date)) throw new Error("Invalid input: atDate must be a Date object");
-    if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
-    if (isNaN(atDate)) throw new Error("Invalid blood draw date.");
+    if (Number.isNaN(birthDate.getTime())) throw new Error("Invalid date of birth.");
+    if (Number.isNaN(atDate.getTime())) throw new Error("Invalid blood draw date.");
 
     if (birthDate > atDate) throw new Error("Date of birth cannot be in the future.");
 
@@ -314,8 +321,8 @@ window.calculateAgeAtDate = function (birthDate, atDate) {
 window.calculateCompletedYearsAtDate = function (birthDate, atDate) {
     if (!(birthDate instanceof Date)) throw new Error("Invalid input: birthDate must be a Date object");
     if (!(atDate instanceof Date)) throw new Error("Invalid input: atDate must be a Date object");
-    if (isNaN(birthDate)) throw new Error("Invalid date of birth.");
-    if (isNaN(atDate)) throw new Error("Invalid date.");
+    if (Number.isNaN(birthDate.getTime())) throw new Error("Invalid date of birth.");
+    if (Number.isNaN(atDate.getTime())) throw new Error("Invalid date.");
 
     if (birthDate > atDate) throw new Error("Date of birth cannot be in the future.");
 
@@ -330,22 +337,22 @@ window.calculateCompletedYearsAtDate = function (birthDate, atDate) {
 
 window.removeAllHighlights = function () {
     document.querySelectorAll('.athlete-name').forEach(element => {
-        element.innerHTML = window.escapeHTML(element.textContent);
+        element.innerHTML = escapeHTML(element.textContent);
     });
 }
 
 window.highlightText = function (element, searchTerms) {
-    const originalText = element.textContent;
-    const normalizedText = window.normalizeString(originalText);
+    const originalText = element.textContent ?? '';
+    const normalizedText = normalizeString(originalText);
 
     // Build a mapping from positions in normalizedText to positions in originalText
-    const mapping = [];
+    const mapping: number[] = [];
     let originalIndex = 0;
     let normalizedIndex = 0;
 
     while (originalIndex < originalText.length) {
-        const originalChar = originalText[originalIndex];
-        const normalizedChar = window.normalizeString(originalChar);
+        const originalChar = originalText.charAt(originalIndex);
+        const normalizedChar = normalizeString(originalChar);
 
         for (let i = 0; i < normalizedChar.length; i++) {
             mapping[normalizedIndex] = originalIndex;
@@ -356,7 +363,7 @@ window.highlightText = function (element, searchTerms) {
     }
 
     // Now search for matches in normalizedText
-    let matchIndices = [];
+    const matchIndices: Array<{ start: number; end: number }> = [];
 
     searchTerms.forEach(term => {
         let startIndex = 0;
@@ -366,7 +373,12 @@ window.highlightText = function (element, searchTerms) {
             if (normalizedText.substr(startIndex, termLength) === term) {
                 // Map the normalized indices back to original indices
                 const originalStart = mapping[startIndex];
-                const originalEnd = mapping[startIndex + termLength - 1] + 1;
+                const mappedEnd = mapping[startIndex + termLength - 1];
+                if (originalStart === undefined || mappedEnd === undefined) {
+                    startIndex += termLength;
+                    continue;
+                }
+                const originalEnd = mappedEnd + 1;
                 matchIndices.push({ start: originalStart, end: originalEnd });
                 startIndex += termLength;
             } else {
@@ -377,13 +389,13 @@ window.highlightText = function (element, searchTerms) {
 
     // Merge overlapping matches
     matchIndices.sort((a, b) => a.start - b.start);
-    let mergedIndices = [];
+    const mergedIndices: Array<{ start: number; end: number }> = [];
     matchIndices.forEach(match => {
         if (mergedIndices.length === 0) {
             mergedIndices.push(match);
         } else {
             const last = mergedIndices[mergedIndices.length - 1];
-            if (match.start <= last.end) {
+            if (last && match.start <= last.end) {
                 last.end = Math.max(last.end, match.end);
             } else {
                 mergedIndices.push(match);
@@ -397,18 +409,18 @@ window.highlightText = function (element, searchTerms) {
 
     mergedIndices.forEach(match => {
         // Append text before the match
-        highlightedHTML += window.escapeHTML(originalText.slice(currentIndex, match.start));
+        highlightedHTML += escapeHTML(originalText.slice(currentIndex, match.start));
 
         // Append the matched text with highlight
         highlightedHTML += '<span class="highlight">' +
-            window.escapeHTML(originalText.slice(match.start, match.end)) +
+            escapeHTML(originalText.slice(match.start, match.end)) +
             '</span>';
 
         currentIndex = match.end;
     });
 
     // Append any remaining text
-    highlightedHTML += window.escapeHTML(originalText.slice(currentIndex));
+    highlightedHTML += escapeHTML(originalText.slice(currentIndex));
 
     element.innerHTML = highlightedHTML;
 }
@@ -431,7 +443,7 @@ window.navigateToFlowDestination = function (destination) {
 }
 
 window.optimizeImageClient = async function (dataUri, options) {
-    options = options || {};
+    const settings = options || {};
     const MaxBase64Length = 50 * 1024 * 1024; // 50 MB
     if (!dataUri || dataUri.length > MaxBase64Length) {
         return { dataUrl: null, contentType: null, extension: null };
@@ -442,8 +454,11 @@ window.optimizeImageClient = async function (dataUri, options) {
     if (!match) {
         return { dataUrl: null, contentType: null, extension: null };
     }
-    const contentType = match.groups.type;
-    const base64Data = match.groups.data;
+    const contentType = match.groups?.type;
+    const base64Data = match.groups?.data;
+    if (!contentType || !base64Data) {
+        return { dataUrl: null, contentType: null, extension: null };
+    }
 
     // Decode Base64 to a Blob
     const binaryString = atob(base64Data);
@@ -454,24 +469,36 @@ window.optimizeImageClient = async function (dataUri, options) {
     }
     const blob = new Blob([bytes], { type: contentType });
 
-    let img;
+    let img: ImageBitmap;
     try {
         img = await createImageBitmap(blob);
     } catch (_) {
-        return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };
+        return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] ?? null };
     }
 
-    const targetContentType = options.contentType || 'image/webp';
-    const initialQuality = Number.isFinite(options.quality) ? options.quality : 0.8;
-    const initialMaxSize = Number.isFinite(options.maxSize) ? options.maxSize : 2048;
-    const targetMaxBytes = Number.isFinite(options.targetMaxBytes) && options.targetMaxBytes > 0
-        ? options.targetMaxBytes
+    const targetContentType = settings.contentType || 'image/webp';
+    const initialQuality = typeof settings.quality === 'number' && Number.isFinite(settings.quality)
+        ? settings.quality
+        : 0.8;
+    const initialMaxSize = typeof settings.maxSize === 'number' && Number.isFinite(settings.maxSize)
+        ? settings.maxSize
+        : 2048;
+    const targetMaxBytes = typeof settings.targetMaxBytes === 'number'
+        && Number.isFinite(settings.targetMaxBytes)
+        && settings.targetMaxBytes > 0
+        ? settings.targetMaxBytes
         : null;
-    const minQuality = Number.isFinite(options.minQuality) ? options.minQuality : 0.76;
-    const minResizeQuality = Number.isFinite(options.minResizeQuality) ? options.minResizeQuality : 0.72;
-    const minMaxSize = Number.isFinite(options.minMaxSize) ? options.minMaxSize : 2048;
+    const minQuality = typeof settings.minQuality === 'number' && Number.isFinite(settings.minQuality)
+        ? settings.minQuality
+        : 0.76;
+    const minResizeQuality = typeof settings.minResizeQuality === 'number' && Number.isFinite(settings.minResizeQuality)
+        ? settings.minResizeQuality
+        : 0.72;
+    const minMaxSize = typeof settings.minMaxSize === 'number' && Number.isFinite(settings.minMaxSize)
+        ? settings.minMaxSize
+        : 2048;
 
-    const encode = async (maxSize, quality) => {
+    const encode = async (maxSize: number, quality: number): Promise<Blob | null> => {
         let { width, height } = img;
         if (width > maxSize || height > maxSize) {
             const ratio = Math.min(maxSize / width, maxSize / height);
@@ -485,12 +512,12 @@ window.optimizeImageClient = async function (dataUri, options) {
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
         ctx.drawImage(img, 0, 0, width, height);
-        return await new Promise(resolve =>
+        return await new Promise<Blob | null>(resolve =>
             canvas.toBlob(resolve, targetContentType, quality)
         );
     };
 
-    let optimizedBlob = null;
+    let optimizedBlob: Blob | null = null;
     let maxSize = initialMaxSize;
     let quality = initialQuality;
     for (let attempt = 0; attempt < 8; attempt++) {
@@ -513,7 +540,7 @@ window.optimizeImageClient = async function (dataUri, options) {
 
     if (!optimizedBlob) {
         // fallback to original if conversion failed
-        return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };
+        return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] ?? null };
     }
 
     const optimizedContentType = optimizedBlob.type || targetContentType;
@@ -524,7 +551,7 @@ window.optimizeImageClient = async function (dataUri, options) {
     let binary = '';
     const chunk = 0x8000;
     for (let i = 0; i < u8.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+        binary += String.fromCharCode(...u8.subarray(i, i + chunk));
     }
     const optimizedBase64 = btoa(binary);
     const optimizedDataUrl = 'data:' + optimizedContentType + ';base64,' + optimizedBase64;
@@ -532,7 +559,7 @@ window.optimizeImageClient = async function (dataUri, options) {
     return {
         dataUrl: optimizedDataUrl,
         contentType: optimizedContentType,
-        extension: optimizedContentType.split('/')[1]
+        extension: optimizedContentType.split('/')[1] ?? null
     };
 };
 
@@ -544,6 +571,15 @@ window.PROFILE_IMAGE_OPTIMIZATION_OPTIONS = {
     minResizeQuality: 0.68,
     targetMaxBytes: 900 * 1024
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown): string | null {
+    if (!isRecord(error) || typeof error.message !== 'string' || !error.message) return null;
+    return error.message.slice(0, 500);
+}
 
 window.createApplicationSubmissionId = function () {
     if (typeof window.__pendingApplicationSubmissionId === 'string'
@@ -584,29 +620,29 @@ window.extractApplicationErrorMessage = function (text, fallback) {
     const raw = String(text || '').trim();
     if (!raw) return fallback || 'Request failed';
     if (/^(?:<!doctype\s+html\b|<html[\s>])/i.test(raw)) return fallback || 'Request failed';
-    const collectMessages = function (values) {
+    const collectMessages = function (values: readonly unknown[]): string[] {
         return values
-            .flatMap(value => Array.isArray(value) ? value : [value])
-            .filter(value => typeof value === 'string')
+            .flatMap<unknown>(value => Array.isArray(value) ? value : [value])
+            .filter((value): value is string => typeof value === 'string')
             .map(value => value.trim())
             .filter(Boolean);
     };
 
     try {
-        const data = JSON.parse(raw);
+        const data: unknown = JSON.parse(raw);
         if (typeof data === 'string' && data.trim()) {
             return data.trim();
         }
 
-        if (data && typeof data.message === 'string' && data.message.trim()) {
+        if (isRecord(data) && typeof data.message === 'string' && data.message.trim()) {
             return data.message.trim();
         }
 
-        if (data && typeof data.detail === 'string' && data.detail.trim()) {
+        if (isRecord(data) && typeof data.detail === 'string' && data.detail.trim()) {
             return data.detail.trim();
         }
 
-        if (data && data.errors && typeof data.errors === 'object') {
+        if (isRecord(data) && isRecord(data.errors)) {
             const messages = collectMessages(Object.values(data.errors));
             if (messages.length) return messages.join('\n');
         }
@@ -616,12 +652,12 @@ window.extractApplicationErrorMessage = function (text, fallback) {
             if (messages.length) return messages.join('\n');
         }
 
-        if (data && typeof data === 'object' && !Array.isArray(data)) {
+        if (isRecord(data)) {
             const messages = collectMessages(Object.values(data));
             if (messages.length) return messages.join('\n');
         }
 
-        if (data && typeof data.title === 'string' && data.title.trim()) {
+        if (isRecord(data) && typeof data.title === 'string' && data.title.trim()) {
             return data.title.trim();
         }
     } catch (_) {
@@ -632,14 +668,14 @@ window.extractApplicationErrorMessage = function (text, fallback) {
 };
 
 window.buildApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error) {
-    applicantData = applicantData || {};
-    const proofs = Array.isArray(applicantData.proofPics) ? applicantData.proofPics : [];
-    const profilePic = typeof applicantData.profilePic === 'string' && applicantData.profilePic.startsWith('data:')
-        ? applicantData.profilePic
+    const data = isRecord(applicantData) ? applicantData : {};
+    const proofs: readonly unknown[] = Array.isArray(data.proofPics) ? data.proofPics : [];
+    const profilePic = typeof data.profilePic === 'string' && data.profilePic.startsWith('data:')
+        ? data.profilePic
         : null;
     let jsonBodyLength = null;
     try {
-        jsonBodyLength = JSON.stringify(applicantData).length;
+        jsonBodyLength = JSON.stringify(data).length;
     } catch (_) {
         jsonBodyLength = null;
     }
@@ -653,8 +689,8 @@ window.buildApplicationSubmissionReport = function (applicantData, submissionId,
         proofDataUrlLengths: proofs.map(value => typeof value === 'string' ? value.length : 0),
         profilePicDataUrlLength: profilePic ? profilePic.length : null,
         jsonBodyLength,
-        errorType: error && error.type || null,
-        errorMessage: error && error.message ? String(error.message).slice(0, 500) : null
+        errorType: isRecord(error) ? error.type || null : null,
+        errorMessage: getErrorMessage(error)
     };
 };
 
@@ -705,6 +741,29 @@ window.trySendApplicationSubmissionReport = function (applicantData, submissionI
     }
 };
 
+function isHypotheticalRankNearbyItem(value: unknown): value is HypotheticalRankNearbyItem {
+    if (!isRecord(value)) return false;
+    return (value.rank === undefined || typeof value.rank === 'number')
+        && (value.name === undefined || typeof value.name === 'string')
+        && (value.category === undefined || typeof value.category === 'string')
+        && (value.ageDifference === undefined || typeof value.ageDifference === 'number')
+        && (value.isHypothetical === undefined || typeof value.isHypothetical === 'boolean');
+}
+
+function isHypotheticalRankResult(value: unknown): value is HypotheticalRankResult {
+    if (!isRecord(value)
+        || typeof value.rank !== 'number'
+        || typeof value.fieldSize !== 'number') {
+        return false;
+    }
+
+    return (value.currentFieldSize === undefined || typeof value.currentFieldSize === 'number')
+        && (value.category === undefined || typeof value.category === 'string')
+        && (value.leagueName === undefined || typeof value.leagueName === 'string')
+        && (value.nearby === undefined
+            || (Array.isArray(value.nearby) && value.nearby.every(isHypotheticalRankNearbyItem)));
+}
+
 window.updateHypotheticalRankResult = async function (options) {
     const container = document.getElementById(options && options.containerId);
     if (!container) return;
@@ -753,7 +812,7 @@ window.updateHypotheticalRankResult = async function (options) {
         });
 
         if (!response.ok) throw new Error('Rank lookup failed.');
-        const result = await response.json();
+        const result: unknown = await response.json();
         if (!isCurrentRequest()) return;
 
         window.renderHypotheticalRankResult(container, result);
@@ -770,23 +829,30 @@ window.updateHypotheticalRankResult = async function (options) {
 };
 
 window.renderHypotheticalRankResult = function (container, result) {
-    if (!container || !result || !Number.isFinite(result.rank) || !Number.isFinite(result.fieldSize)) {
+    if (!container || !isHypotheticalRankResult(result)
+        || !Number.isFinite(result.rank)
+        || !Number.isFinite(result.fieldSize)) {
         if (container) container.hidden = true;
         return;
     }
 
     const rank = Math.round(result.rank);
     const fieldSize = Math.round(result.fieldSize);
-    const currentFieldSize = Number.isFinite(result.currentFieldSize) ? Math.round(result.currentFieldSize) : Math.max(0, fieldSize - 1);
-    const category = window.escapeHTML(result.category || '');
-    const leagueName = window.escapeHTML(result.leagueName || 'Ultimate League');
+    const currentFieldSize = typeof result.currentFieldSize === 'number'
+        && Number.isFinite(result.currentFieldSize)
+        ? Math.round(result.currentFieldSize)
+        : Math.max(0, fieldSize - 1);
+    const category = escapeHTML(result.category || '');
+    const leagueName = escapeHTML(result.leagueName || 'Ultimate League');
     const nearby = Array.isArray(result.nearby) ? result.nearby : [];
 
     const nearbyHtml = nearby.map(item => {
-        const place = Number.isFinite(item.rank) ? Math.round(item.rank) : '';
-        const name = window.escapeHTML(item.isHypothetical ? 'You' : (item.name || ''));
-        const itemCategory = item.category ? ` · ${window.escapeHTML(item.category)}` : '';
-        const diff = Number.isFinite(item.ageDifference)
+        const place = typeof item.rank === 'number' && Number.isFinite(item.rank)
+            ? Math.round(item.rank)
+            : '';
+        const name = escapeHTML(item.isHypothetical ? 'You' : (item.name || ''));
+        const itemCategory = item.category ? ` · ${escapeHTML(item.category)}` : '';
+        const diff = typeof item.ageDifference === 'number' && Number.isFinite(item.ageDifference)
             ? `${item.ageDifference > 0 ? '+' : ''}${item.ageDifference.toFixed(1)}y`
             : '';
         return `<li class="${item.isHypothetical ? 'is-you' : ''}">
@@ -811,3 +877,5 @@ window.renderHypotheticalRankResult = function (container, result) {
         ${nearbyHtml ? `<ol class="bioage-rank-nearby">${nearbyHtml}</ol>` : ''}
     `;
 };
+
+export {};

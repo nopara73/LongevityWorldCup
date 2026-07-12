@@ -1,9 +1,449 @@
 (function () {
+    type HabitKey = "sleep" | "exercise" | "nutrition" | "vices";
+    type IdentityScope = "signup" | "edit";
+    type IdentityMode = "participant" | "athlete";
+    type ParticipantTab = "checkin" | "profile" | "home";
+    type AccessTab = "signup" | "signin";
+    type QuoteBucket = HabitKey | "mindset";
+    type ButtonWork = () => Promise<void>;
+    type ErrorHandler = (error: unknown) => void;
+    type Quote = readonly [text: string, author: string, athleteSlug: string, sourceUrl: string];
+
+    interface AnswerOption {
+        label: string;
+        value: number;
+    }
+
+    interface ChallengeQuestion {
+        key: HabitKey;
+        icon: string;
+        title: string;
+        text: string;
+    }
+
+    interface DaySummary {
+        challengeDay: number;
+        date: string;
+    }
+
+    interface DayCell {
+        challengeDay: number;
+        checkedIn: boolean;
+        score: number | null;
+        countsForScore: boolean;
+        sleep: number | null;
+        exercise: number | null;
+        nutrition: number | null;
+        vices: number | null;
+    }
+
+    interface DashboardCell extends DayCell {
+        date: string;
+    }
+
+    interface CheckInImage {
+        url: string;
+        width: number;
+        height: number;
+    }
+
+    interface CheckInDraft {
+        sleep: number;
+        exercise: number;
+        nutrition: number;
+        vices: number;
+        note: string | null;
+        images: CheckInImage[];
+    }
+
+    interface CheckInFormDraft {
+        sleep: number;
+        exercise: number;
+        nutrition: number;
+        vices: number;
+        note: string;
+    }
+
+    interface CheckInPayload {
+        accessToken: string;
+        challengeDay: number;
+        sleep: number;
+        exercise: number;
+        nutrition: number;
+        vices: number;
+        note: string | null;
+    }
+
+    interface EligibleDay {
+        challengeDay: number;
+        date: string;
+        countsForScore: boolean;
+        existing: CheckInDraft | null;
+    }
+
+    interface ParticipantNote {
+        participantId: string;
+        displayName: string;
+        challengeDay: number;
+        date: string;
+        note: string | null;
+        updatedAtUtc: string;
+        images: CheckInImage[];
+    }
+
+    interface LeaderboardRow {
+        participantId: string;
+        displayName: string;
+        athleteUrl: string | null;
+        profileImageUrl: string | null;
+        checkedInDays: number;
+        totalPoints: number;
+        currentStreak: number;
+        cells: DayCell[];
+        badges: string[];
+        latestCheckInAtUtc: string | null;
+        challengeEmailsStopped: boolean;
+        challengeInactive: boolean;
+        commitmentStatus: string | null;
+    }
+
+    interface PodiumRow {
+        placement: number;
+        displayName: string;
+        athleteUrl: string | null;
+        profileImageUrl: string | null;
+        checkedInDays: number;
+        totalPoints: number;
+    }
+
+    interface CallSlot {
+        id: string;
+        startsAtUtc: string;
+    }
+
+    interface PublicCall {
+        key: string;
+        label: string;
+        candidateSlots: CallSlot[];
+        selectedSlot: CallSlot | null;
+    }
+
+    interface ParticipantCall {
+        key: string;
+        label: string;
+        selectedSlot: CallSlot | null;
+        videoCallUrl: string | null;
+    }
+
+    interface PublicState {
+        challengeName: string;
+        phase: string;
+        signupOpen: boolean;
+        startDate: string;
+        signupClosesAtUtc: string;
+        callSelectionClosesAtUtc: string;
+        endDate: string;
+        durationDays: number;
+        dailyMaxScore: number;
+        days: DaySummary[];
+        leaderboard: LeaderboardRow[];
+        podium: PodiumRow[];
+        notes: ParticipantNote[];
+        calls: PublicCall[];
+        slackInviteUrl: string;
+        slackRoomUrl: string | null;
+    }
+
+    interface ParticipantSummary {
+        id: string;
+        email: string;
+        displayName: string;
+        timeZoneId: string;
+        athleteSlug: string | null;
+        athleteUrl: string | null;
+        profileImageUrl: string | null;
+        challengeEmailsStopped: boolean;
+        challengeInactive: boolean;
+        commitmentAmountUsd: number | null;
+        daysIn: number;
+    }
+
+    interface CommitmentState {
+        status: string;
+        blocksParticipant: boolean;
+        canEditAmount: boolean;
+        canPay: boolean;
+        amountUsd: number | null;
+        owedAmountUsd: number | null;
+        triggerChallengeDay: number | null;
+        triggerScore: number | null;
+        thresholdAverage: number | null;
+        invoiceId: string | null;
+        checkoutLink: string | null;
+        invoiceStatus: string | null;
+        message: string | null;
+    }
+
+    interface CommitmentTrendGuidance {
+        enforced: boolean;
+        priorScoredDays: number;
+        averagePoints: number | null;
+        neededPoints: number | null;
+        text: string;
+    }
+
+    interface ParticipantState {
+        public: PublicState;
+        participant: ParticipantSummary;
+        eligibleDays: EligibleDay[];
+        notes: ParticipantNote[];
+        calls: ParticipantCall[];
+        commitment: CommitmentState;
+        trendGuidance: CommitmentTrendGuidance;
+    }
+
+    interface SignupResult {
+        message: string;
+    }
+
+    interface AccessResult {
+        accessToken: string;
+        state: ParticipantState;
+    }
+
+    interface ParticipantNotice {
+        message: string;
+        isError: boolean;
+    }
+
+    interface ResponsiveLabel {
+        shortLabel: string;
+        longLabel: string;
+    }
+
+    interface DashboardCategory {
+        key: HabitKey;
+        label: string;
+        icon: string;
+        tone: string;
+    }
+
+    interface CategorySummary {
+        category: DashboardCategory;
+        total: number;
+        max: number;
+        rate: number;
+    }
+
+    interface HabitBreakdownItem {
+        key: HabitKey;
+        label: string;
+        short: string;
+        value: number;
+    }
+
+    interface AthleteOption {
+        name: string;
+        legalName: string;
+        slug: string;
+        profilePic: string;
+    }
+
+    interface AthleteSelectorController {
+        input: HTMLInputElement;
+        athletes: AthleteOption[];
+        clear: () => void;
+        getPayload: () => string | null;
+        getSelectedName: () => string;
+        setValue: (value: string) => void;
+    }
+
+    interface DateOfBirthParts {
+        Year: number;
+        Month: number;
+        Day: number;
+    }
+
+    interface BiomarkerEntry {
+        Date: string;
+        Wbc1000cellsuL: number | null;
+        LymPc: number | null;
+        NeutrophilPc: number | null;
+        MonocytePc: number | null;
+        Rbc10e12L: number | null;
+        McvFL: number | null;
+        MchPg: number | null;
+        RdwPc: number | null;
+        AlbGL: number | null;
+        AltUL: number | null;
+        AlpUL: number | null;
+        GgtUL: number | null;
+        UreaMmolL: number | null;
+        CreatUmolL: number | null;
+        CystatinCMgL: number | null;
+        GluMmolL: number | null;
+        Hba1cMmolMol: number | null;
+        CholesterolMmolL: number | null;
+        ApoA1GL: number | null;
+        CrpMgL: number | null;
+        ShbgNmolL: number | null;
+        VitaminDNmolL: number | null;
+    }
+
+    interface CompletePhenoBiomarkerEntry extends BiomarkerEntry {
+        Wbc1000cellsuL: number;
+        LymPc: number;
+        McvFL: number;
+        RdwPc: number;
+        AlbGL: number;
+        AlpUL: number;
+        CreatUmolL: number;
+        GluMmolL: number;
+        CrpMgL: number;
+    }
+
+    interface CompleteBortzBiomarkerEntry extends CompletePhenoBiomarkerEntry {
+        NeutrophilPc: number;
+        MonocytePc: number;
+        Rbc10e12L: number;
+        MchPg: number;
+        AltUL: number;
+        GgtUL: number;
+        UreaMmolL: number;
+        CystatinCMgL: number;
+        Hba1cMmolMol: number;
+        CholesterolMmolL: number;
+        ApoA1GL: number;
+        ShbgNmolL: number;
+        VitaminDNmolL: number;
+    }
+
+    interface AthleteRecord {
+        Name?: string;
+        DisplayName?: string;
+        AthleteSlug?: string;
+        ProfilePic?: string;
+        ProfilePicLeaderboardThumb?: string;
+        ProfilePicThumb?: string;
+        DateOfBirth?: DateOfBirthParts;
+        Biomarkers?: BiomarkerEntry[];
+        Division?: string;
+        ExclusiveLeague?: string | null;
+        CrowdAge?: number | null;
+        CrowdCount?: number | null;
+        PodcastLink?: string | null;
+        PhenoAgeImprovementFromWorst?: number | null;
+        BortzAgeImprovementFromWorst?: number | null;
+    }
+
+    interface QuoteAthlete {
+        name: string;
+        legalName: string;
+        slug: string;
+        profilePic: string;
+        dateOfBirth: Date;
+        chronologicalAge: number;
+        crowdAge: number | null;
+        generation: string;
+        division: string;
+        exclusiveLeague: string;
+        podcastLink: string;
+        rank?: number | null;
+        ageReduction: number | null;
+        ageReductionPercent: number | null;
+        lowestPhenoAge: number;
+        chronoAtLowestPhenoAge: number;
+        bortzAgeReduction: number | null;
+        lowestBortzAge: number | null;
+        chronoAtLowestBortzAge: number | null;
+        phenoAgeImprovement: number | null;
+        bortzAgeImprovement: number | null;
+        crowdAgeReduction: number | null;
+        crowdCount: number;
+        bestRankCandidates: QuoteRankCandidate[];
+    }
+
+    interface QuoteRankCandidate {
+        key: string;
+        rank: number;
+        leagueName: string;
+        leagueLabel: string;
+        leagueLabelHtml: string | null;
+        leagueType: string;
+        href: string | null;
+        targetBlank: boolean;
+        tiePriority: number;
+    }
+
+    interface QuoteRankCandidateInput {
+        rank?: number | null;
+        leagueName?: string | null;
+        leagueLabel?: string | null;
+        leagueLabelHtml?: string | null;
+        leagueType?: string | null;
+        href?: string | null;
+        targetBlank?: boolean;
+        tiePriority?: number;
+    }
+
+    interface QuoteSubmissionAge {
+        submittedAt: Date;
+        index: number;
+    }
+
+    interface QuotePhenoStats {
+        lowestPhenoAge: number;
+        chronoAtLowestPhenoAge: number;
+        ageReduction: number | null;
+        ageReductionPercent: number | null;
+        phenoAgeImprovement: number | null;
+    }
+
+    interface QuoteBortzStats {
+        lowestBortzAge: number | null;
+        chronoAtLowestBortzAge: number | null;
+        bortzAgeReduction: number | null;
+        bortzAgeImprovement: number | null;
+    }
+
+    interface CheckInQuote {
+        bucket: QuoteBucket;
+        text: string;
+        athleteName: string;
+        athleteSlug: string;
+        youtubeUrl: string;
+    }
+
+    interface PhenoAgeApi {
+        calculatePhenoAge(values: number[]): number;
+    }
+
+    interface BortzAgeApi {
+        calculateBortzAge(age: number, values: number[]): number;
+    }
+
+    interface SharedWindowApi {
+        PhenoAge?: PhenoAgeApi;
+        BortzAge?: BortzAgeApi;
+        calculateAgeAtDate?: (birthDate: Date, atDate: Date) => number;
+        getGeneration?: (birthYear: number) => string;
+        slugifyName?: (name: string, encode?: boolean) => string;
+    }
+
+    interface CommitmentPaymentCheckOptions {
+        showWaiting?: boolean;
+        finalWaitingMessage?: string;
+    }
+
+    interface RefreshPublicOptions {
+        keepParticipant?: boolean;
+    }
+
     const STORAGE_KEY = "lmxAccessToken";
     const API = "/api/longevitymaxxing";
     const REQUEST_TIMEOUT_MS = 65000;
     const CALL_ACTIVE_WINDOW_MS = 90 * 60 * 1000;
-    const ANSWERS = [
+    const ANSWERS: readonly AnswerOption[] = [
         { label: "No", value: 0 },
         { label: "Somewhat", value: 1 },
         { label: "Yes", value: 2 }
@@ -14,13 +454,13 @@
     const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const LEADERBOARD_SCORING_WINDOW_DAYS = 14;
     const COMMITMENT_PAYMENT_POLL_DELAYS_MS = [2500, 5000, 8000, 12000];
-    const QUESTIONS = [
+    const QUESTIONS: readonly ChallengeQuestion[] = [
         { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you set yourself up for good sleep last night?" },
         { key: "exercise", icon: "fa-dumbbell", title: "Exercise", text: "Did you challenge or intentionally rest your body yesterday?" },
         { key: "nutrition", icon: "fa-bowl-food", title: "Nutrition", text: "By your own standards, did you eat healthy yesterday?" },
         { key: "vices", icon: "fa-shield-halved", title: "Vices", text: "Were your vices under control yesterday?" }
     ];
-    const LMX_QUOTES = {
+    const LMX_QUOTES: Record<QuoteBucket, readonly Quote[]> = {
         sleep: [
             ["Sleep is still a work in progress, immensely better than it's been. Going to sleep at the same time every night, trying to sleep as much as I physically can, that is almost a constant.","Michael Lustgarten","michael_lustgarten","https://youtu.be/KFfGdf20-1g"],
             ["Sleep quality is immeasurably better, and nothing affects my mental health more than a great night of sleep.","Michael Lustgarten","michael_lustgarten","https://youtu.be/KFfGdf20-1g"],
@@ -161,40 +601,119 @@
     ];
     const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE,OM,RE,SC,TF|Asia/Kabul=AF|Europe/Tirane=AL|Asia/Yerevan=AM|Antarctica/Casey=AQ|Antarctica/Davis=AQ|Antarctica/Mawson=AQ|Antarctica/Palmer=AQ|Antarctica/Rothera=AQ|Antarctica/Troll=AQ|Antarctica/Vostok=AQ|America/Argentina/Buenos_Aires=AR|America/Argentina/Cordoba=AR|America/Argentina/Salta=AR|America/Argentina/Jujuy=AR|America/Argentina/Tucuman=AR|America/Argentina/Catamarca=AR|America/Argentina/La_Rioja=AR|America/Argentina/San_Juan=AR|America/Argentina/Mendoza=AR|America/Argentina/San_Luis=AR|America/Argentina/Rio_Gallegos=AR|America/Argentina/Ushuaia=AR|Pacific/Pago_Pago=AS,UM|Europe/Vienna=AT|Australia/Lord_Howe=AU|Antarctica/Macquarie=AU|Australia/Hobart=AU|Australia/Melbourne=AU|Australia/Sydney=AU|Australia/Broken_Hill=AU|Australia/Brisbane=AU|Australia/Lindeman=AU|Australia/Adelaide=AU|Australia/Darwin=AU|Australia/Perth=AU|Australia/Eucla=AU|Asia/Baku=AZ|America/Barbados=BB|Asia/Dhaka=BD|Europe/Brussels=BE,LU,NL|Europe/Sofia=BG|Atlantic/Bermuda=BM|America/La_Paz=BO|America/Noronha=BR|America/Belem=BR|America/Fortaleza=BR|America/Recife=BR|America/Araguaina=BR|America/Maceio=BR|America/Bahia=BR|America/Sao_Paulo=BR|America/Campo_Grande=BR|America/Cuiaba=BR|America/Santarem=BR|America/Porto_Velho=BR|America/Boa_Vista=BR|America/Manaus=BR|America/Eirunepe=BR|America/Rio_Branco=BR|Asia/Thimphu=BT|Europe/Minsk=BY|America/Belize=BZ|America/St_Johns=CA|America/Halifax=CA|America/Glace_Bay=CA|America/Moncton=CA|America/Goose_Bay=CA|America/Toronto=CA,BS|America/Iqaluit=CA|America/Winnipeg=CA|America/Resolute=CA|America/Rankin_Inlet=CA|America/Regina=CA|America/Swift_Current=CA|America/Edmonton=CA|America/Cambridge_Bay=CA|America/Inuvik=CA|America/Dawson_Creek=CA|America/Fort_Nelson=CA|America/Whitehorse=CA|America/Dawson=CA|America/Vancouver=CA|Europe/Zurich=CH,DE,LI|Africa/Abidjan=CI,BF,GH,GM,GN,IS,ML,MR,SH,SL,SN,TG|Pacific/Rarotonga=CK|America/Santiago=CL|America/Coyhaique=CL|America/Punta_Arenas=CL|Pacific/Easter=CL|Asia/Shanghai=CN|Asia/Urumqi=CN|America/Bogota=CO|America/Costa_Rica=CR|America/Havana=CU|Atlantic/Cape_Verde=CV|Asia/Nicosia=CY|Asia/Famagusta=CY|Europe/Prague=CZ,SK|Europe/Berlin=DE,DK,NO,SE,SJ|America/Santo_Domingo=DO|Africa/Algiers=DZ|America/Guayaquil=EC|Pacific/Galapagos=EC|Europe/Tallinn=EE|Africa/Cairo=EG|Africa/El_Aaiun=EH|Europe/Madrid=ES|Africa/Ceuta=ES|Atlantic/Canary=ES|Europe/Helsinki=FI,AX|Pacific/Fiji=FJ|Atlantic/Stanley=FK|Pacific/Kosrae=FM|Atlantic/Faroe=FO|Europe/Paris=FR,MC|Europe/London=GB,GG,IM,JE|Asia/Tbilisi=GE|America/Cayenne=GF|Europe/Gibraltar=GI|America/Nuuk=GL|America/Danmarkshavn=GL|America/Scoresbysund=GL|America/Thule=GL|Europe/Athens=GR|Atlantic/South_Georgia=GS|America/Guatemala=GT|Pacific/Guam=GU,MP|Africa/Bissau=GW|America/Guyana=GY|Asia/Hong_Kong=HK|America/Tegucigalpa=HN|America/Port-au-Prince=HT|Europe/Budapest=HU|Asia/Jakarta=ID|Asia/Pontianak=ID|Asia/Makassar=ID|Asia/Jayapura=ID|Europe/Dublin=IE|Asia/Jerusalem=IL|Asia/Kolkata=IN|Indian/Chagos=IO|Asia/Baghdad=IQ|Asia/Tehran=IR|Europe/Rome=IT,SM,VA|America/Jamaica=JM|Asia/Amman=JO|Asia/Tokyo=JP,AU|Africa/Nairobi=KE,DJ,ER,ET,KM,MG,SO,TZ,UG,YT|Asia/Bishkek=KG|Pacific/Tarawa=KI,MH,TV,UM,WF|Pacific/Kanton=KI|Pacific/Kiritimati=KI|Asia/Pyongyang=KP|Asia/Seoul=KR|Asia/Almaty=KZ|Asia/Qyzylorda=KZ|Asia/Qostanay=KZ|Asia/Aqtobe=KZ|Asia/Aqtau=KZ|Asia/Atyrau=KZ|Asia/Oral=KZ|Asia/Beirut=LB|Asia/Colombo=LK|Africa/Monrovia=LR|Europe/Vilnius=LT|Europe/Riga=LV|Africa/Tripoli=LY|Africa/Casablanca=MA|Europe/Chisinau=MD|Pacific/Kwajalein=MH|Asia/Yangon=MM,CC|Asia/Ulaanbaatar=MN|Asia/Hovd=MN|Asia/Macau=MO|America/Martinique=MQ|Europe/Malta=MT|Indian/Mauritius=MU|Indian/Maldives=MV,TF|America/Mexico_City=MX|America/Cancun=MX|America/Merida=MX|America/Monterrey=MX|America/Matamoros=MX|America/Chihuahua=MX|America/Ciudad_Juarez=MX|America/Ojinaga=MX|America/Mazatlan=MX|America/Bahia_Banderas=MX|America/Hermosillo=MX|America/Tijuana=MX|Asia/Kuching=MY,BN|Africa/Maputo=MZ,BI,BW,CD,MW,RW,ZM,ZW|Africa/Windhoek=NA|Pacific/Noumea=NC|Pacific/Norfolk=NF|Africa/Lagos=NG,AO,BJ,CD,CF,CG,CM,GA,GQ,NE|America/Managua=NI|Asia/Kathmandu=NP|Pacific/Nauru=NR|Pacific/Niue=NU|Pacific/Auckland=NZ,AQ|Pacific/Chatham=NZ|America/Panama=PA,CA,KY|America/Lima=PE|Pacific/Tahiti=PF|Pacific/Marquesas=PF|Pacific/Gambier=PF|Pacific/Port_Moresby=PG,AQ,FM|Pacific/Bougainville=PG|Asia/Manila=PH|Asia/Karachi=PK|Europe/Warsaw=PL|America/Miquelon=PM|Pacific/Pitcairn=PN|America/Puerto_Rico=PR,AG,CA,AI,AW,BL,BQ,CW,DM,GD,GP,KN,LC,MF,MS,SX,TT,VC,VG,VI|Asia/Gaza=PS|Asia/Hebron=PS|Europe/Lisbon=PT|Atlantic/Madeira=PT|Atlantic/Azores=PT|Pacific/Palau=PW|America/Asuncion=PY|Asia/Qatar=QA,BH|Europe/Bucharest=RO|Europe/Belgrade=RS,BA,HR,ME,MK,SI|Europe/Kaliningrad=RU|Europe/Moscow=RU|Europe/Simferopol=RU,UA|Europe/Kirov=RU|Europe/Volgograd=RU|Europe/Astrakhan=RU|Europe/Saratov=RU|Europe/Ulyanovsk=RU|Europe/Samara=RU|Asia/Yekaterinburg=RU|Asia/Omsk=RU|Asia/Novosibirsk=RU|Asia/Barnaul=RU|Asia/Tomsk=RU|Asia/Novokuznetsk=RU|Asia/Krasnoyarsk=RU|Asia/Irkutsk=RU|Asia/Chita=RU|Asia/Yakutsk=RU|Asia/Khandyga=RU|Asia/Vladivostok=RU|Asia/Ust-Nera=RU|Asia/Magadan=RU|Asia/Sakhalin=RU|Asia/Srednekolymsk=RU|Asia/Kamchatka=RU|Asia/Anadyr=RU|Asia/Riyadh=SA,AQ,KW,YE|Pacific/Guadalcanal=SB,FM|Africa/Khartoum=SD|Asia/Singapore=SG,AQ,MY|America/Paramaribo=SR|Africa/Juba=SS|Africa/Sao_Tome=ST|America/El_Salvador=SV|Asia/Damascus=SY|America/Grand_Turk=TC|Africa/Ndjamena=TD|Asia/Bangkok=TH,CX,KH,LA,VN|Asia/Dushanbe=TJ|Pacific/Fakaofo=TK|Asia/Dili=TL|Asia/Ashgabat=TM|Africa/Tunis=TN|Pacific/Tongatapu=TO|Europe/Istanbul=TR|Asia/Taipei=TW|Europe/Kyiv=UA|America/New_York=US|America/Detroit=US|America/Kentucky/Louisville=US|America/Kentucky/Monticello=US|America/Indiana/Indianapolis=US|America/Indiana/Vincennes=US|America/Indiana/Winamac=US|America/Indiana/Marengo=US|America/Indiana/Petersburg=US|America/Indiana/Vevay=US|America/Chicago=US|America/Indiana/Tell_City=US|America/Indiana/Knox=US|America/Menominee=US|America/North_Dakota/Center=US|America/North_Dakota/New_Salem=US|America/North_Dakota/Beulah=US|America/Denver=US|America/Boise=US|America/Phoenix=US,CA|America/Los_Angeles=US|America/Anchorage=US|America/Juneau=US|America/Sitka=US|America/Metlakatla=US|America/Yakutat=US|America/Nome=US|America/Adak=US|Pacific/Honolulu=US|America/Montevideo=UY|Asia/Samarkand=UZ|Asia/Tashkent=UZ|America/Caracas=VE|Asia/Ho_Chi_Minh=VN|Pacific/Efate=VU|Pacific/Apia=WS|Africa/Johannesburg=ZA,LS,SZ";
 
-    let publicState = null;
-    let participantState = null;
+    let publicState: PublicState | null = null;
+    let participantState: ParticipantState | null = null;
     let accessToken = safeStorageGet(STORAGE_KEY);
     let signupSubmitted = false;
-    let selectedCheckInDay = null;
-    const savedDays = new Set();
-    const pendingNotePhotos = new Map();
-    const pendingNotePhotoUrls = new Map();
-    const PARTICIPANT_TABS = ["checkin", "profile", "home"];
-    const athleteSelectors = new Map();
-    let athleteDirectory = [];
-    let athleteDirectoryPromise = null;
-    let quoteAthleteResults = [];
-    let boardScrollObserver = null;
-    let boardScrollObservedElement = null;
-    let dashboardScrollObserver = null;
-    let dashboardScrollObservedElement = null;
-    let participantActiveTab = null;
+    let selectedCheckInDay: number | null = null;
+    const savedDays = new Set<number>();
+    const pendingNotePhotos = new Map<string, File[]>();
+    const pendingNotePhotoUrls = new Map<string, string[]>();
+    const PARTICIPANT_TABS: readonly ParticipantTab[] = ["checkin", "profile", "home"];
+    const athleteSelectors = new Map<string, AthleteSelectorController>();
+    let athleteDirectory: AthleteOption[] = [];
+    let athleteDirectoryPromise: Promise<AthleteOption[]> | null = null;
+    let quoteAthleteResults: QuoteAthlete[] = [];
+    let boardScrollObserver: ResizeObserver | null = null;
+    let boardScrollObservedElement: Element | null = null;
+    let dashboardScrollObserver: ResizeObserver | null = null;
+    let dashboardScrollObservedElement: Element | null = null;
+    let participantActiveTab: ParticipantTab | null = null;
     let participantTabManual = false;
-    let participantNotice = null;
+    let participantNotice: ParticipantNotice | null = null;
     let showInactiveLeaderboard = false;
     let commitmentPaymentPollRun = 0;
-    let accessTab = "signup";
+    let accessTab: AccessTab = "signup";
     let accessLoading = !!accessToken;
-    let timeZoneCountryCodes = null;
-    let regionDisplayNames = null;
-    let callCountdownTimer = null;
-    let quoteDialogLastFocus = null;
+    let timeZoneCountryCodes: Map<string, string[]> | null = null;
+    let regionDisplayNames: Intl.DisplayNames | null = null;
+    let callCountdownTimer: number | null = null;
+    let quoteDialogLastFocus: HTMLElement | null = null;
+
+    function readSharedWindowApi(): SharedWindowApi {
+        const api: SharedWindowApi = {};
+        if ("PhenoAge" in window && isPhenoAgeApi(window.PhenoAge)) api.PhenoAge = window.PhenoAge;
+        if ("BortzAge" in window && isBortzAgeApi(window.BortzAge)) api.BortzAge = window.BortzAge;
+        if ("calculateAgeAtDate" in window && isAgeAtDateFunction(window.calculateAgeAtDate)) api.calculateAgeAtDate = window.calculateAgeAtDate;
+        if ("getGeneration" in window && isGenerationFunction(window.getGeneration)) api.getGeneration = window.getGeneration;
+        if ("slugifyName" in window && isSlugifyFunction(window.slugifyName)) api.slugifyName = window.slugifyName;
+        return api;
+    }
+
+    function isPhenoAgeApi(value: unknown): value is PhenoAgeApi {
+        return hasProperties(value, "calculatePhenoAge") && typeof value.calculatePhenoAge === "function";
+    }
+
+    function isBortzAgeApi(value: unknown): value is BortzAgeApi {
+        return hasProperties(value, "calculateBortzAge") && typeof value.calculateBortzAge === "function";
+    }
+
+    function isAgeAtDateFunction(value: unknown): value is (birthDate: Date, atDate: Date) => number {
+        return typeof value === "function";
+    }
+
+    function isGenerationFunction(value: unknown): value is (birthYear: number) => string {
+        return typeof value === "function";
+    }
+
+    function isSlugifyFunction(value: unknown): value is (name: string, encode?: boolean) => string {
+        return typeof value === "function";
+    }
+
+    function requiredElement<T extends HTMLElement>(id: string, expected: abstract new (...args: never[]) => T): T {
+        const element = document.getElementById(id);
+        if (!(element instanceof expected)) {
+            throw new Error(`Required challenge element #${id} is missing or has the wrong type.`);
+        }
+        return element;
+    }
+
+    function optionalElement<T extends HTMLElement>(id: string, expected: abstract new (...args: never[]) => T): T | null {
+        const element = document.getElementById(id);
+        return element instanceof expected ? element : null;
+    }
+
+    function requiredInput(id: string): HTMLInputElement {
+        return requiredElement(id, HTMLInputElement);
+    }
+
+    function optionalInput(id: string): HTMLInputElement | null {
+        return optionalElement(id, HTMLInputElement);
+    }
+
+    function requiredSelect(id: string): HTMLSelectElement {
+        return requiredElement(id, HTMLSelectElement);
+    }
+
+    function optionalSelect(id: string): HTMLSelectElement | null {
+        return optionalElement(id, HTMLSelectElement);
+    }
+
+    function requiredForm(id: string): HTMLFormElement {
+        return requiredElement(id, HTMLFormElement);
+    }
+
+    function requiredButton(id: string): HTMLButtonElement {
+        return requiredElement(id, HTMLButtonElement);
+    }
+
+    function isHTMLElement(value: EventTarget | null): value is HTMLElement {
+        return value instanceof HTMLElement;
+    }
+
+    function isButton(value: EventTarget | null): value is HTMLButtonElement {
+        return value instanceof HTMLButtonElement;
+    }
+
+    function isParticipantTab(value: string | undefined): value is ParticipantTab {
+        return value === "checkin" || value === "profile" || value === "home";
+    }
 
     document.addEventListener("DOMContentLoaded", init);
 
     async function init() {
-        fillTimeZones(document.getElementById("lmxSignupTimeZone"));
-        fillTimeZones(document.getElementById("lmxEditTimeZone"));
+        fillTimeZones(requiredSelect("lmxSignupTimeZone"));
+        fillTimeZones(requiredSelect("lmxEditTimeZone"));
         initTimeZonePickers();
         renderQuestionPreview();
         wireForms();
@@ -215,16 +734,16 @@
     }
 
     function wireForms() {
-        const signupForm = document.getElementById("lmxSignupForm");
-        const resendForm = document.getElementById("lmxResendForm");
-        const editForm = document.getElementById("lmxEditForm");
-        const signupAgain = document.getElementById("lmxSignupAgain");
-        const signupEmailInput = document.getElementById("lmxSignupEmail");
-        const resendEmailInput = document.getElementById("lmxResendEmail");
-        const profilePictureInput = document.getElementById("lmxProfilePictureInput");
-        const profilePictureButton = document.getElementById("lmxProfilePictureButton");
-        const editTimeZone = document.getElementById("lmxEditTimeZone");
-        const inactiveToggle = document.getElementById("lmxInactiveToggle");
+        const signupForm = requiredForm("lmxSignupForm");
+        const resendForm = requiredForm("lmxResendForm");
+        const editForm = requiredForm("lmxEditForm");
+        const signupAgain = requiredButton("lmxSignupAgain");
+        const signupEmailInput = requiredInput("lmxSignupEmail");
+        const resendEmailInput = requiredInput("lmxResendEmail");
+        const profilePictureInput = requiredInput("lmxProfilePictureInput");
+        const profilePictureButton = requiredButton("lmxProfilePictureButton");
+        const editTimeZone = requiredSelect("lmxEditTimeZone");
+        const inactiveToggle = optionalElement("lmxInactiveToggle", HTMLButtonElement);
         wireEmailValidityReset(signupEmailInput);
         wireEmailValidityReset(resendEmailInput);
         wireCommitmentAmountValidation("lmxEditCommitmentAmount");
@@ -239,7 +758,7 @@
                 const payload = {
                     email: signupEmail,
                     displayName: getIdentityDisplayName("signup"),
-                    timeZoneId: document.getElementById("lmxSignupTimeZone").value,
+                    timeZoneId: requiredSelect("lmxSignupTimeZone").value,
                     athleteLink: getIdentityAthletePayload("signup")
                 };
                 const result = await postJson(`${API}/signup`, payload);
@@ -247,7 +766,7 @@
                 signupForm.reset();
                 clearAthleteSelector("lmxSignupAthlete");
                 setIdentityMode("signup", "participant");
-                setDefaultTimezone(document.getElementById("lmxSignupTimeZone"));
+                setDefaultTimezone(requiredSelect("lmxSignupTimeZone"));
                 signupSubmitted = true;
                 renderAll();
             }, "Joining...");
@@ -273,7 +792,7 @@
             }, "Sending...");
         });
 
-        document.querySelectorAll("[data-lmx-tab]").forEach(button => {
+        document.querySelectorAll<HTMLButtonElement>("[data-lmx-tab]").forEach(button => {
             button.addEventListener("click", () => {
                 if (button.disabled || button.getAttribute("aria-disabled") === "true") return;
                 setParticipantTab(button.dataset.lmxTab, true);
@@ -298,7 +817,7 @@
             await withButton(editForm.querySelector("button[type='submit']"), async () => {
                 const result = await postJson(`${API}/edit`, {
                     accessToken,
-                    timeZoneId: document.getElementById("lmxEditTimeZone").value,
+                    timeZoneId: requiredSelect("lmxEditTimeZone").value,
                     commitmentAmountUsd: parseOptionalCommitmentAmount("lmxEditCommitmentAmount")
                 });
                 participantState = result;
@@ -319,7 +838,7 @@
     }
 
     function wireAccessTabs() {
-        document.querySelectorAll("[data-lmx-access-tab]").forEach(button => {
+        document.querySelectorAll<HTMLButtonElement>("[data-lmx-access-tab]").forEach(button => {
             button.addEventListener("click", () => {
                 accessTab = button.dataset.lmxAccessTab === "signin" ? "signin" : "signup";
                 renderPanels(publicState || {});
@@ -331,42 +850,43 @@
     }
 
     function wireIdentityControls() {
-        ["signup"].forEach(scope => {
-            document.querySelectorAll(`input[name="${identityRadioName(scope)}"]`).forEach(input => {
+        const scopes: readonly IdentityScope[] = ["signup"];
+        scopes.forEach(scope => {
+            document.querySelectorAll<HTMLInputElement>(`input[name="${identityRadioName(scope)}"]`).forEach(input => {
                 input.addEventListener("change", () => updateIdentityScope(scope));
             });
             updateIdentityScope(scope);
         });
     }
 
-    function identityRadioName(scope) {
+    function identityRadioName(scope: IdentityScope): string {
         return scope === "edit" ? "lmxEditIdentity" : "lmxSignupIdentity";
     }
 
-    function identityPrefix(scope) {
+    function identityPrefix(scope: IdentityScope): string {
         return scope === "edit" ? "lmxEdit" : "lmxSignup";
     }
 
-    function getIdentityMode(scope) {
-        return document.querySelector(`input[name="${identityRadioName(scope)}"]:checked`)?.value === "athlete"
+    function getIdentityMode(scope: IdentityScope): IdentityMode {
+        return document.querySelector<HTMLInputElement>(`input[name="${identityRadioName(scope)}"]:checked`)?.value === "athlete"
             ? "athlete"
             : "participant";
     }
 
-    function setIdentityMode(scope, mode) {
+    function setIdentityMode(scope: IdentityScope, mode: IdentityMode): void {
         const value = mode === "athlete" ? "athlete" : "participant";
-        const radio = document.querySelector(`input[name="${identityRadioName(scope)}"][value="${value}"]`);
+        const radio = document.querySelector<HTMLInputElement>(`input[name="${identityRadioName(scope)}"][value="${value}"]`);
         if (radio) radio.checked = true;
         updateIdentityScope(scope);
     }
 
-    function updateIdentityScope(scope) {
+    function updateIdentityScope(scope: IdentityScope): void {
         const prefix = identityPrefix(scope);
         const athleteMode = getIdentityMode(scope) === "athlete";
         const usernameField = document.getElementById(`${prefix}UsernameField`);
         const athleteField = document.getElementById(`${prefix}AthleteField`);
-        const usernameInput = document.getElementById(`${prefix}Name`);
-        const athleteInput = document.getElementById(`${prefix}Athlete`);
+        const usernameInput = optionalInput(`${prefix}Name`);
+        const athleteInput = optionalInput(`${prefix}Athlete`);
 
         usernameField?.classList.toggle("lmx-hidden", athleteMode);
         athleteField?.classList.toggle("lmx-hidden", !athleteMode);
@@ -384,21 +904,21 @@
         }
     }
 
-    function getIdentityDisplayName(scope) {
+    function getIdentityDisplayName(scope: IdentityScope): string {
         if (getIdentityMode(scope) !== "athlete")
-            return document.getElementById(`${identityPrefix(scope)}Name`)?.value.trim() || "";
+            return optionalInput(`${identityPrefix(scope)}Name`)?.value.trim() || "";
 
         const athleteInputId = `${identityPrefix(scope)}Athlete`;
         return getAthleteSelectorDisplayName(athleteInputId);
     }
 
-    function normalizeEmailInput(input) {
+    function normalizeEmailInput(input: HTMLInputElement | null): string {
         const normalized = normalizeEmailValue(input?.value || "");
         if (input) input.value = normalized;
         return normalized;
     }
 
-    function validateEmailInput(input) {
+    function validateEmailInput(input: HTMLInputElement | null): string | null {
         const normalized = normalizeEmailInput(input);
         if (!input) return normalized;
 
@@ -412,32 +932,32 @@
         return null;
     }
 
-    function wireEmailValidityReset(input) {
+    function wireEmailValidityReset(input: HTMLInputElement | null): void {
         input?.addEventListener("input", () => input.setCustomValidity(""));
     }
 
-    function isEmailAddress(value) {
+    function isEmailAddress(value: string): boolean {
         const input = document.createElement("input");
         input.type = "email";
         input.value = String(value || "");
         return input.checkValidity();
     }
 
-    function normalizeEmailValue(value) {
+    function normalizeEmailValue(value: string): string {
         let normalized = String(value || "").trim();
         const bracketMatch = /<([^<>]+)>/.exec(normalized);
         if (bracketMatch) {
-            normalized = bracketMatch[1].trim();
+            normalized = bracketMatch[1]?.trim() || "";
         }
 
         if (/^mailto:/i.test(normalized)) {
-            normalized = normalized.replace(/^mailto:/i, "").split("?")[0].trim();
+            normalized = normalized.replace(/^mailto:/i, "").split("?")[0]?.trim() || "";
         }
 
         return normalized;
     }
 
-    function getIdentityAthletePayload(scope) {
+    function getIdentityAthletePayload(scope: IdentityScope): string | null {
         if (getIdentityMode(scope) !== "athlete")
             return null;
 
@@ -526,7 +1046,7 @@
         }
     }
 
-    async function refreshPublicOnly(options) {
+    async function refreshPublicOnly(options: RefreshPublicOptions = {}): Promise<void> {
         const keepParticipant = !!(options && options.keepParticipant);
         publicState = await getJson(`${API}/state`);
         if (!keepParticipant) participantState = null;
@@ -566,7 +1086,7 @@
             </div>`).join("");
     }
 
-    function renderMetrics(state) {
+    function renderMetrics(state: PublicState): void {
         const preStartSignup = isPreStartSignup(state);
         const boardRows = splitLeaderboardRows(state);
         const checks = boardRows.active.reduce((sum, row) => sum + row.checkedInDays, 0);
@@ -587,7 +1107,7 @@
         }
     }
 
-    function renderHeroContext(state) {
+    function renderHeroContext(state: PublicState): void {
         const hasParticipant = !!participantState;
         const preStartSignup = isPreStartSignup(state);
         const dashboardMode = hasParticipant || !preStartSignup;
@@ -647,7 +1167,9 @@
             return;
         }
 
-        const participant = participantState.participant || {};
+        const activeParticipantState = participantState;
+        if (!activeParticipantState) return;
+        const participant = activeParticipantState.participant;
         const leaderboardRows = splitLeaderboardRows(state);
         const leaderboard = participant.challengeInactive ? (state.leaderboard || []) : leaderboardRows.active;
         const rowIndex = leaderboard.findIndex(row => row.participantId === participant.id);
@@ -670,11 +1192,11 @@
         ].join("");
     }
 
-    function responsiveLabel(shortLabel, longLabel) {
+    function responsiveLabel(shortLabel: string, longLabel: string): ResponsiveLabel {
         return { shortLabel, longLabel };
     }
 
-    function opsTile(label, value, icon, modifier) {
+    function opsTile(label: string | ResponsiveLabel, value: string | number, icon: string, modifier = ""): string {
         const hasLabel = !!String(label || "").trim();
         const labelHtml = opsTileLabelHtml(label);
         return `<div class="lmx-ops-tile${hasLabel ? "" : " no-label"}${modifier ? ` ${escAttr(modifier)}` : ""}">
@@ -684,7 +1206,7 @@
         </div>`;
     }
 
-    function opsTileLabelHtml(label) {
+    function opsTileLabelHtml(label: string | ResponsiveLabel): string {
         if (label && typeof label === "object") {
             return `<span class="lmx-ops-label">
                 <span class="lmx-ops-label-short">${esc(label.shortLabel || "")}</span>
@@ -694,7 +1216,7 @@
         return String(label || "").trim() ? `<span class="lmx-ops-label">${esc(label)}</span>` : "";
     }
 
-    function challengeCallCount(state) {
+    function challengeCallCount(state: PublicState): number {
         const dayCount = (state?.days || []).length;
         if (dayCount > 0) return Math.max(1, Math.ceil(dayCount / 7));
 
@@ -705,7 +1227,7 @@
         return Math.max(1, Math.ceil(elapsedDays / 7));
     }
 
-    function renderChallengeVisuals(state) {
+    function renderChallengeVisuals(state: PublicState): void {
         const track = document.getElementById("lmxTrack");
         if (!track) return;
 
@@ -769,7 +1291,7 @@
             </div>`;
     }
 
-    function normalizeDashboardCells(row, state) {
+    function normalizeDashboardCells(row: LeaderboardRow | null | undefined, state: PublicState): DashboardCell[] {
         const byDay = new Map(((row && row.cells) || []).map(cell => [cell.challengeDay, cell]));
         return (state.days || []).map(day => {
             const cell = byDay.get(day.challengeDay) || {
@@ -786,7 +1308,7 @@
         });
     }
 
-    function dashboardCategories() {
+    function dashboardCategories(): DashboardCategory[] {
         return [
             { key: "sleep", label: "Sleep", icon: "fa-moon", tone: "sleep" },
             { key: "exercise", label: "Exercise", icon: "fa-dumbbell", tone: "exercise" },
@@ -795,7 +1317,7 @@
         ];
     }
 
-    function categorySummary(category, cells, scoredCells) {
+    function categorySummary(category: DashboardCategory, cells: DashboardCell[], scoredCells: DashboardCell[]): CategorySummary {
         const denominatorCells = scoredCells.length ? scoredCells : cells.filter(cell => cell.checkedIn);
         const total = denominatorCells.reduce((sum, cell) => sum + clampHabitValue(cell[category.key]), 0);
         const max = denominatorCells.length * 2;
@@ -807,7 +1329,7 @@
         };
     }
 
-    function categoryDashboardRow(summary, cells, today) {
+    function categoryDashboardRow(summary: CategorySummary, cells: DashboardCell[], today: string): string {
         const category = summary.category;
         const width = summary.max > 0 ? Math.round(summary.rate * 100) : 0;
         const dayCells = cells.map(cell => categoryDayCell(category, cell, today)).join("");
@@ -822,7 +1344,7 @@
         </div>`;
     }
 
-    function categoryDayCell(category, cell, today) {
+    function categoryDayCell(category: DashboardCategory, cell: DashboardCell, today: string): string {
         const classes = ["lmx-category-day"];
         if (cell.date === today) classes.push("today");
         if (cell.countsForScore === false) classes.push("practice");
@@ -836,7 +1358,7 @@
         return `<span class="${classes.join(" ")}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(`${dayTitle(cell)}: ${category.label} ${value}/2`)}" aria-label="${escAttr(`${category.label} day ${cell.challengeDay}: ${value} of 2`)}"></span>`;
     }
 
-    function dashboardStat(label, value, detail, icon, tone) {
+    function dashboardStat(label: string, value: string, detail: string, icon: string, tone = ""): string {
         const toneClass = tone ? ` ${escAttr(tone)}` : "";
         return `<div class="lmx-dashboard-stat${toneClass}">
             <i class="fas ${escAttr(icon)}" aria-hidden="true"></i>
@@ -846,27 +1368,28 @@
         </div>`;
     }
 
-    function isLockedInDay(cell, categories) {
+    function isLockedInDay(cell: DashboardCell, categories: DashboardCategory[]): boolean {
         return categories.every(category => clampHabitValue(cell[category.key]) >= 2);
     }
 
-    function clampHabitValue(value) {
+    function clampHabitValue(value: number | null): number {
         const number = Number(value);
         return Number.isFinite(number) ? Math.max(0, Math.min(2, number)) : 0;
     }
 
-    function dayTitle(cell) {
+    function dayTitle(cell: DashboardCell): string {
         const date = cell.date ? ` · ${formatCheckInDate(cell.date)}` : "";
         const practice = cell.countsForScore === false ? " · practice" : "";
         return `Day ${cell.challengeDay}${date}${practice}`;
     }
 
-    function renderPanels(state) {
-        const hasParticipant = !!participantState;
+    function renderPanels(state: Partial<PublicState>): void {
+        const currentParticipantState = participantState;
+        const hasParticipant = currentParticipantState !== null;
         const isAccessLoading = accessLoading && !hasParticipant;
-        const pendingCheckInDays = hasParticipant ? getPendingCheckInDays(participantState) : [];
-        const commitmentBlocked = hasCommitmentBlock(participantState);
-        const activeParticipantTab = hasParticipant ? ensureParticipantTab(participantState) : null;
+        const pendingCheckInDays = currentParticipantState ? getPendingCheckInDays(currentParticipantState) : [];
+        const commitmentBlocked = hasCommitmentBlock(currentParticipantState);
+        const activeParticipantTab = currentParticipantState ? ensureParticipantTab(currentParticipantState) : null;
         const checkInOnly = !commitmentBlocked && pendingCheckInDays.length > 0 && activeParticipantTab === "checkin";
         const participantGateOnly = commitmentBlocked || checkInOnly;
         const publicContentHidden = checkInOnly;
@@ -892,7 +1415,7 @@
         toggle("lmxMetrics", hasParticipant && dashboardMode && !participantGateOnly);
         toggle("lmxBoardSection", !publicContentHidden);
         toggle("lmxParticipantTabs", hasParticipant && !commitmentBlocked);
-        toggle("lmxCommitmentPanel", hasParticipant && shouldShowCommitmentPanel(participantState, activeParticipantTab));
+        toggle("lmxCommitmentPanel", currentParticipantState !== null && activeParticipantTab !== null && shouldShowCommitmentPanel(currentParticipantState, activeParticipantTab));
         toggle("lmxCheckinPanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "checkin");
         toggle("lmxEditForm", hasParticipant && !commitmentBlocked && activeParticipantTab === "profile");
         toggle("lmxHomePanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
@@ -906,13 +1429,13 @@
             setText("lmxResendButtonText", "Send check-in link");
         }
         renderAccessTabs();
-        const slackInvite = document.getElementById("lmxSlackInviteLink");
+        const slackInvite = optionalElement("lmxSlackInviteLink", HTMLAnchorElement);
         if (slackInvite) {
             slackInvite.href = state.slackInviteUrl || "#";
             slackInvite.classList.toggle("lmx-hidden", !state.slackInviteUrl);
         }
 
-        const slackRoom = document.getElementById("lmxSlackRoomLink");
+        const slackRoom = optionalElement("lmxSlackRoomLink", HTMLAnchorElement);
         if (slackRoom) {
             slackRoom.href = state.slackRoomUrl || "#";
             slackRoom.classList.toggle("lmx-hidden", !state.slackRoomUrl);
@@ -927,7 +1450,7 @@
         toggle("lmxAccessLoadingPanel", true);
     }
 
-    function renderParticipant(state) {
+    function renderParticipant(state: ParticipantState): void {
         const participant = state.participant;
         const pendingCheckInDays = getPendingCheckInDays(state);
         const activeTab = ensureParticipantTab(state);
@@ -940,10 +1463,10 @@
         renderParticipantNotice();
 
         renderProfileIdentity(participant);
-        setSelectValue(document.getElementById("lmxEditTimeZone"), participant.timeZoneId);
+        setSelectValue(requiredSelect("lmxEditTimeZone"), participant.timeZoneId);
         setCommitmentInputValue("lmxEditCommitmentAmount", participant.commitmentAmountUsd ?? state.commitment?.amountUsd);
         toggle("lmxEditCommitmentField", shouldShowCommitmentAmountField(state));
-        const commitmentInput = document.getElementById("lmxEditCommitmentAmount");
+        const commitmentInput = optionalInput("lmxEditCommitmentAmount");
         if (commitmentInput) {
             const showCommitment = shouldShowCommitmentAmountField(state);
             commitmentInput.disabled = !showCommitment || state.commitment?.canEditAmount === false;
@@ -956,10 +1479,11 @@
         renderParticipantTabs();
     }
 
-    function participantPanelTitle(activeTab, pendingCheckInDays, participant, phase) {
+    function participantPanelTitle(activeTab: ParticipantTab, pendingCheckInDays: EligibleDay[], participant: ParticipantSummary, phase: string): string {
         const name = participant.displayName || "participant";
-        if (hasCommitmentBlock(participantState)) {
-            return participantState.commitment?.status === "due"
+        const commitment = participantState?.commitment;
+        if (commitment?.blocksParticipant) {
+            return commitment.status === "due"
                 ? `Commitment due, ${name}`
                 : "Make a pledge";
         }
@@ -971,7 +1495,7 @@
         return pendingCheckInDays.length ? `Check in, ${name}` : `Check-in, ${name}`;
     }
 
-    function participantPanelKicker(activeTab, pendingCheckInDays, phase) {
+    function participantPanelKicker(activeTab: ParticipantTab, pendingCheckInDays: EligibleDay[], phase: string): string {
         if (hasCommitmentBlock(participantState)) return "pledge";
         if (activeTab === "profile") return "profile";
         if (activeTab === "home") {
@@ -985,18 +1509,17 @@
         const notice = document.getElementById("lmxParticipantNotice");
         if (!notice) return;
 
-        const visible = !!(participantNotice && participantNotice.message && participantState && !hasCommitmentBlock(participantState));
-        notice.textContent = visible ? participantNotice.message : "";
+        const currentNotice = participantNotice;
+        const visible = !!(currentNotice?.message && participantState && !hasCommitmentBlock(participantState));
+        notice.textContent = visible ? currentNotice?.message ?? "" : "";
         notice.classList.toggle("lmx-hidden", !visible);
-        notice.classList.toggle("error", visible && !!participantNotice.isError);
-        notice.classList.toggle("success", visible && !participantNotice.isError);
+        notice.classList.toggle("error", visible && !!currentNotice?.isError);
+        notice.classList.toggle("success", visible && !currentNotice?.isError);
     }
 
-    function ensureParticipantTab(state) {
-        if (!state) return null;
-
+    function ensureParticipantTab(state: ParticipantState): ParticipantTab {
         const fallback = getDefaultParticipantTab(state);
-        if (!PARTICIPANT_TABS.includes(participantActiveTab)) {
+        if (!participantActiveTab || !PARTICIPANT_TABS.includes(participantActiveTab)) {
             participantActiveTab = fallback;
             participantTabManual = false;
             return participantActiveTab;
@@ -1015,7 +1538,7 @@
         return participantActiveTab;
     }
 
-    function getDefaultParticipantTab(state) {
+    function getDefaultParticipantTab(state: ParticipantState): ParticipantTab {
         return getPendingCheckInDays(state).length ? "checkin" : "home";
     }
 
@@ -1038,9 +1561,11 @@
         });
     }
 
-    function handleAccessTabKeydown(event, button) {
-        const tabs = ["signup", "signin"];
-        const currentIndex = tabs.indexOf(button.dataset.lmxAccessTab);
+    function handleAccessTabKeydown(event: KeyboardEvent, button: HTMLButtonElement): void {
+        const tabs: readonly AccessTab[] = ["signup", "signin"];
+        const requestedTab = button.dataset.lmxAccessTab;
+        if (requestedTab !== "signup" && requestedTab !== "signin") return;
+        const currentIndex = tabs.indexOf(requestedTab);
         if (currentIndex < 0) return;
 
         let nextIndex = currentIndex;
@@ -1057,13 +1582,15 @@
         }
 
         event.preventDefault();
-        accessTab = tabs[nextIndex];
+        const nextTab = tabs[nextIndex];
+        if (!nextTab) return;
+        accessTab = nextTab;
         renderPanels(publicState || {});
-        document.querySelector(`[data-lmx-access-tab="${accessTab}"]`)?.focus();
+        document.querySelector<HTMLElement>(`[data-lmx-access-tab="${accessTab}"]`)?.focus();
     }
 
-    function setParticipantTab(tab, manual) {
-        if (!PARTICIPANT_TABS.includes(tab) || !participantState) return;
+    function setParticipantTab(tab: string | undefined, manual: boolean): void {
+        if (!isParticipantTab(tab) || !participantState) return;
         if (isParticipantTabLocked(tab, participantState)) return;
         participantActiveTab = tab;
         participantTabManual = !!manual;
@@ -1075,11 +1602,12 @@
     }
 
     function renderParticipantTabs() {
-        if (!participantState) return;
-        if (hasCommitmentBlock(participantState)) {
+        const currentParticipantState = participantState;
+        if (!currentParticipantState) return;
+        if (hasCommitmentBlock(currentParticipantState)) {
             PARTICIPANT_TABS.forEach(tab => {
                 const panel = getParticipantTabPanel(tab);
-                const button = document.querySelector(`[data-lmx-tab="${tab}"]`);
+                const button = document.querySelector<HTMLButtonElement>(`[data-lmx-tab="${tab}"]`);
                 if (button) {
                     button.setAttribute("aria-selected", "false");
                     button.setAttribute("tabindex", "-1");
@@ -1093,12 +1621,12 @@
             return;
         }
 
-        const activeTab = ensureParticipantTab(participantState);
+        const activeTab = ensureParticipantTab(currentParticipantState);
         PARTICIPANT_TABS.forEach(tab => {
-            const button = document.querySelector(`[data-lmx-tab="${tab}"]`);
+            const button = document.querySelector<HTMLButtonElement>(`[data-lmx-tab="${tab}"]`);
             const panel = getParticipantTabPanel(tab);
             const isActive = tab === activeTab;
-            const locked = isParticipantTabLocked(tab, participantState);
+            const locked = isParticipantTabLocked(tab, currentParticipantState);
             if (button) {
                 button.setAttribute("aria-selected", isActive ? "true" : "false");
                 button.setAttribute("tabindex", locked ? "-1" : (isActive ? "0" : "-1"));
@@ -1114,18 +1642,21 @@
         });
     }
 
-    function getParticipantTabPanel(tab) {
+    function getParticipantTabPanel(tab: ParticipantTab): HTMLElement | null {
         if (tab === "checkin") return document.getElementById("lmxCheckinPanel");
         if (tab === "profile") return document.getElementById("lmxEditForm");
         if (tab === "home") return document.getElementById("lmxHomePanel");
         return null;
     }
 
-    function handleParticipantTabKeydown(event, button) {
-        if (!participantState || hasCommitmentBlock(participantState)) return;
+    function handleParticipantTabKeydown(event: KeyboardEvent, button: HTMLButtonElement): void {
+        const currentParticipantState = participantState;
+        if (!currentParticipantState || hasCommitmentBlock(currentParticipantState)) return;
 
-        const availableTabs = PARTICIPANT_TABS.filter(tab => !isParticipantTabLocked(tab, participantState));
-        const currentIndex = availableTabs.indexOf(button.dataset.lmxTab);
+        const availableTabs = PARTICIPANT_TABS.filter(tab => !isParticipantTabLocked(tab, currentParticipantState));
+        const requestedTab = button.dataset.lmxTab;
+        if (!isParticipantTab(requestedTab)) return;
+        const currentIndex = availableTabs.indexOf(requestedTab);
         if (currentIndex < 0) return;
 
         let nextIndex = currentIndex;
@@ -1143,15 +1674,16 @@
 
         event.preventDefault();
         const nextTab = availableTabs[nextIndex];
+        if (!nextTab) return;
         setParticipantTab(nextTab, true);
-        document.querySelector(`[data-lmx-tab="${nextTab}"]`)?.focus();
+        document.querySelector<HTMLElement>(`[data-lmx-tab="${nextTab}"]`)?.focus();
     }
 
-    function isParticipantTabLocked(tab, state) {
+    function isParticipantTabLocked(tab: ParticipantTab, state: ParticipantState): boolean {
         return tab !== "checkin" && getPendingCheckInDays(state).length > 0;
     }
 
-    function renderCommitmentPanel(state, activeTab) {
+    function renderCommitmentPanel(state: ParticipantState, activeTab: ParticipantTab): void {
         const panel = document.getElementById("lmxCommitmentPanel");
         if (!panel) return;
 
@@ -1181,7 +1713,7 @@
                 </form>`;
             panel.querySelector("form")?.addEventListener("submit", event => {
                 event.preventDefault();
-                saveCommitmentAmountFromPanel("lmxPledgeCommitmentAmount", panel.querySelector("button[type='submit']"), "Pledge saved.");
+                saveCommitmentAmountFromPanel("lmxPledgeCommitmentAmount", panel.querySelector<HTMLButtonElement>("button[type='submit']"), "Pledge saved.");
             });
             wireCommitmentAmountValidation("lmxPledgeCommitmentAmount");
             return;
@@ -1217,7 +1749,7 @@
                 </form>`;
             panel.querySelector("form")?.addEventListener("submit", event => {
                 event.preventDefault();
-                saveCommitmentAmountFromPanel("lmxBlockedCommitmentAmount", panel.querySelector("button[type='submit']"), "Commitment amount saved. You can continue.");
+                saveCommitmentAmountFromPanel("lmxBlockedCommitmentAmount", panel.querySelector<HTMLButtonElement>("button[type='submit']"), "Commitment amount saved. You can continue.");
             });
             wireCommitmentAmountValidation("lmxBlockedCommitmentAmount");
             return;
@@ -1263,10 +1795,10 @@
             </div>`;
 
         panel.querySelector("#lmxCommitmentPayButton")?.addEventListener("click", event => {
-            payCommitment(event.currentTarget);
+            payCommitment(isButton(event.currentTarget) ? event.currentTarget : null);
         });
         panel.querySelector("#lmxCommitmentCheckButton")?.addEventListener("click", event => {
-            checkCommitmentPayment(event.currentTarget, { showWaiting: true, finalWaitingMessage: "Still waiting. This can take a minute." });
+            checkCommitmentPayment(isButton(event.currentTarget) ? event.currentTarget : null, { showWaiting: true, finalWaitingMessage: "Still waiting. This can take a minute." });
         });
         if (editableDays.length) {
             renderCheckIns(editableDays, "lmxCommitmentCheckinList", recentPublicRemarks(state));
@@ -1282,15 +1814,15 @@
         }
     }
 
-    function hasCommitmentBlock(state) {
+    function hasCommitmentBlock(state: ParticipantState | null): boolean {
         return !!(state && state.commitment && state.commitment.blocksParticipant);
     }
 
-    function shouldShowCommitmentPanel(state, activeTab) {
+    function shouldShowCommitmentPanel(state: ParticipantState, activeTab: ParticipantTab): boolean {
         return !!(state && state.commitment && (state.commitment.blocksParticipant || shouldShowCheckInPledgePrompt(state, activeTab)));
     }
 
-    function shouldShowCheckInPledgePrompt(state, activeTab) {
+    function shouldShowCheckInPledgePrompt(state: ParticipantState, activeTab: ParticipantTab): boolean {
         if (activeTab !== "checkin") return false;
         if (state?.commitment?.status !== "deferred") return false;
         const pendingScoredDays = getPendingCheckInDays(state).filter(day => day.countsForScore !== false);
@@ -1298,26 +1830,28 @@
         return Number(state.trendGuidance?.priorScoredDays || 0) >= 3;
     }
 
-    function shouldShowCommitmentAmountField(state) {
+    function shouldShowCommitmentAmountField(state: ParticipantState): boolean {
         return !!(state && state.commitment);
     }
 
-    function hasConfiguredCommitmentAmount(state) {
+    function hasConfiguredCommitmentAmount(state: ParticipantState): boolean {
         return Number(state?.participant?.commitmentAmountUsd ?? state?.commitment?.amountUsd ?? 0) >= 1;
     }
 
-    function getCommitmentEditableDays(state) {
+    function getCommitmentEditableDays(state: ParticipantState): EligibleDay[] {
         const triggerDay = Number(state?.commitment?.triggerChallengeDay || 0);
         return ((state && state.eligibleDays) || [])
             .filter(day => day.existing && (!triggerDay || day.challengeDay === triggerDay));
     }
 
-    async function saveCommitmentAmountFromPanel(inputId, button, successMessage) {
+    async function saveCommitmentAmountFromPanel(inputId: string, button: HTMLButtonElement | null, successMessage: string): Promise<void> {
         if (!accessToken || !participantState) return;
+        const currentParticipantState = participantState;
+        const currentAccessToken = accessToken;
         await withButton(button, async () => {
-            const participant = participantState.participant || {};
+            const participant = currentParticipantState.participant;
             const result = await postJson(`${API}/edit`, {
-                accessToken,
+                accessToken: currentAccessToken,
                 displayName: participant.displayName || "",
                 timeZoneId: participant.timeZoneId || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
                 athleteLink: participant.athleteSlug || participant.athleteUrl || null,
@@ -1334,7 +1868,7 @@
         }, "Saving...");
     }
 
-    function normalizeCheckoutLink(value) {
+    function normalizeCheckoutLink(value: unknown): string {
         const raw = typeof value === "string" ? value.trim() : "";
         if (!raw) return "";
 
@@ -1348,7 +1882,7 @@
         }
     }
 
-    async function payCommitment(button) {
+    async function payCommitment(button: HTMLButtonElement | null): Promise<void> {
         if (!accessToken) return;
         const checkoutWindow = window.open("", "_blank", "noopener");
         await withStandaloneButton(button, button?.dataset.busyText || "Creating invoice...", async () => {
@@ -1371,7 +1905,7 @@
         });
     }
 
-    async function checkCommitmentPayment(button, options = {}) {
+    async function checkCommitmentPayment(button: HTMLButtonElement | null, options: CommitmentPaymentCheckOptions = {}): Promise<void> {
         if (!accessToken) return;
         if (options.showWaiting) setCommitmentStatus("Waiting for payment confirmation...", false);
         await withStandaloneButton(button, "Checking...", async () => {
@@ -1405,7 +1939,7 @@
         });
     }
 
-    function commitmentWaitingMessage(commitment, fallback) {
+    function commitmentWaitingMessage(commitment: CommitmentState, fallback = ""): string {
         const status = String(commitment?.invoiceStatus || "").trim();
         const normalized = status.toLowerCase();
         if (["expired", "failed", "invalid"].includes(normalized)) {
@@ -1415,7 +1949,7 @@
         return fallback || "Waiting for payment confirmation...";
     }
 
-    async function withStandaloneButton(button, busyText, work, onError) {
+    async function withStandaloneButton(button: HTMLButtonElement | null, busyText: string, work: ButtonWork, onError?: ErrorHandler): Promise<void> {
         if (button && (button.disabled || button.getAttribute("aria-busy") === "true")) return;
 
         const original = button ? button.innerHTML : "";
@@ -1438,7 +1972,7 @@
         }
     }
 
-    function setCommitmentStatus(message, isError) {
+    function setCommitmentStatus(message: string, isError: boolean): void {
         const status = document.getElementById("lmxCommitmentStatus");
         if (!status) return;
         status.textContent = message || "";
@@ -1446,7 +1980,7 @@
         status.classList.toggle("success", !!message && !isError);
     }
 
-    function renderProfileIdentity(participant) {
+    function renderProfileIdentity(participant: ParticipantSummary): void {
         const container = document.getElementById("lmxProfileIdentity");
         if (!container) return;
 
@@ -1461,10 +1995,10 @@
             <span>${identity}<em>${esc(badge)}</em></span>`;
     }
 
-    function renderProfilePictureControls(participant) {
+    function renderProfilePictureControls(participant: ParticipantSummary): void {
         const field = document.getElementById("lmxProfilePictureField");
         const preview = document.getElementById("lmxProfilePicturePreview");
-        const image = document.getElementById("lmxProfilePictureImage");
+        const image = optionalElement("lmxProfilePictureImage", HTMLImageElement);
         if (!field || !preview || !image) return;
 
         const canUpload = !(participant.athleteSlug || participant.athleteUrl);
@@ -1478,8 +2012,9 @@
         image.alt = profileImage ? `${participant.displayName || "Participant"} profile picture` : "";
     }
 
-    function renderParticipantCalls(calls, callSelectionClosesAtUtc) {
+    function renderParticipantCalls(calls: ParticipantCall[], callSelectionClosesAtUtc: string): void {
         const container = document.getElementById("lmxParticipantCalls");
+        if (!container) return;
         const visibleCalls = (calls || [])
             .filter(call => !isParticipantCallDone(call))
             .sort((a, b) => getCallStartsAtMs(a) - getCallStartsAtMs(b))
@@ -1515,7 +2050,7 @@
         updateCallCountdowns();
     }
 
-    function callCountdownHtml(startsAtUtc) {
+    function callCountdownHtml(startsAtUtc: string): string {
         const countdown = formatCallCountdown(startsAtUtc);
         if (!countdown.value) return "";
         return `<span class="lmx-call-countdown" data-call-countdown data-call-starts-at="${escAttr(startsAtUtc)}">
@@ -1530,7 +2065,7 @@
     }
 
     function updateCallCountdowns() {
-        document.querySelectorAll("[data-call-countdown]").forEach(element => {
+        document.querySelectorAll<HTMLElement>("[data-call-countdown]").forEach(element => {
             const countdown = formatCallCountdown(element.dataset.callStartsAt || "");
             element.classList.toggle("live", countdown.label === "Live now");
             element.classList.toggle("lmx-hidden", !countdown.value);
@@ -1541,7 +2076,7 @@
         });
     }
 
-    function formatCallCountdown(startsAtUtc) {
+    function formatCallCountdown(startsAtUtc: string): { label: string; value: string } {
         const startsAtMs = Date.parse(startsAtUtc);
         if (!Number.isFinite(startsAtMs)) return { label: "", value: "" };
         const remainingMinutes = Math.ceil((startsAtMs - Date.now()) / 60000);
@@ -1555,18 +2090,18 @@
         return { label: "Starts in", value: minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h` };
     }
 
-    function isParticipantCallDone(call) {
+    function isParticipantCallDone(call: ParticipantCall): boolean {
         const startsAtMs = getCallStartsAtMs(call);
         return Number.isFinite(startsAtMs) && startsAtMs + CALL_ACTIVE_WINDOW_MS < Date.now();
     }
 
-    function getCallStartsAtMs(call) {
+    function getCallStartsAtMs(call: ParticipantCall): number {
         const startsAtMs = call && call.selectedSlot ? Date.parse(call.selectedSlot.startsAtUtc) : NaN;
         return Number.isFinite(startsAtMs) ? startsAtMs : Number.MAX_SAFE_INTEGER;
     }
 
-    function renderBoard(state) {
-        const board = document.getElementById("lmxBoard");
+    function renderBoard(state: PublicState): void {
+        const board = requiredElement("lmxBoard", HTMLElement);
         if (isPreStartSignup(state)) {
             renderRosterBoard(board, state);
             return;
@@ -1605,7 +2140,7 @@
         </div>${rows || emptyBoardRow(dayCount, leaderboardRows.inactive.length)}`;
     }
 
-    function practiceDayCellHtml(cell) {
+    function practiceDayCellHtml(cell: DayCell): string {
         const breakdown = habitBreakdown(cell);
         const title = practiceCellTitle(cell, breakdown);
         if (!breakdown.length) {
@@ -1619,7 +2154,7 @@
         </div>`;
     }
 
-    function scoredDayCellHtml(cell) {
+    function scoredDayCellHtml(cell: DayCell): string {
         const score = typeof cell.score === "number" ? cell.score : 0;
         const breakdown = habitBreakdown(cell);
         const title = habitCellTitle(cell, score, breakdown);
@@ -1637,8 +2172,8 @@
         </div>`;
     }
 
-    function habitBreakdown(cell) {
-        const habits = [
+    function habitBreakdown(cell: DayCell): HabitBreakdownItem[] {
+        const habits: ReadonlyArray<Omit<HabitBreakdownItem, "value">> = [
             { key: "sleep", label: "Sleep", short: "S" },
             { key: "exercise", label: "Exercise", short: "E" },
             { key: "nutrition", label: "Nutrition", short: "N" },
@@ -1651,10 +2186,12 @@
                 : null;
         });
 
-        return values.every(Boolean) ? values : [];
+        return values.every(Boolean)
+            ? values.filter((value): value is HabitBreakdownItem => value !== null)
+            : [];
     }
 
-    function habitCellTitle(cell, score, breakdown) {
+    function habitCellTitle(cell: DayCell, score: number, breakdown: HabitBreakdownItem[]): string {
         if (!breakdown.length) return `Day ${cell.challengeDay}: ${score}`;
 
         const pieces = breakdown.map(item => `${item.label} ${item.value}/2`);
@@ -1663,7 +2200,7 @@
         return `Day ${cell.challengeDay}: ${score} points. ${pieces.join(", ")}${missedText}`;
     }
 
-    function practiceCellTitle(cell, breakdown) {
+    function practiceCellTitle(cell: DayCell, breakdown: HabitBreakdownItem[]): string {
         if (!breakdown.length) return `Day ${cell.challengeDay}: practice check-in`;
 
         const pieces = breakdown.map(item => `${item.label} ${item.value}/2`);
@@ -1672,13 +2209,13 @@
         return `Day ${cell.challengeDay}: practice check-in. ${pieces.join(", ")}${missedText}`;
     }
 
-    function habitMarkClass(value) {
+    function habitMarkClass(value: number): string {
         if (value >= 2) return "lmx-habit-mark full";
         if (value > 0) return "lmx-habit-mark partial";
         return "lmx-habit-mark missed";
     }
 
-    function renderRosterBoard(board, state) {
+    function renderRosterBoard(board: HTMLElement, state: PublicState): void {
         board.className = "lmx-board roster";
         const dayCount = (state.days || []).length || state.durationDays || 14;
         setBoardDayColumns(board, dayCount, true);
@@ -1703,7 +2240,7 @@
         </div>${rows || emptyRosterRow(dayCount, leaderboardRows.inactive.length)}`;
     }
 
-    function setBoardDayColumns(board, dayCount, rosterMode) {
+    function setBoardDayColumns(board: HTMLElement, dayCount: number, rosterMode: boolean): void {
         const count = Math.max(1, Math.trunc(Number(dayCount) || 14));
         board.style.setProperty("--lmx-day-columns", `repeat(${count}, 2.55rem)`);
         const stickyWidthRem = rosterMode ? 16 : 21.15;
@@ -1714,7 +2251,7 @@
         board.style.setProperty("--lmx-board-min-width", `${(stickyWidthRem + dayWidthRem + gapWidthRem + rowPaddingRem).toFixed(2)}rem`);
     }
 
-    function splitLeaderboardRows(state) {
+    function splitLeaderboardRows(state: PublicState): { active: LeaderboardRow[]; inactive: LeaderboardRow[]; visible: LeaderboardRow[] } {
         const all = (state && state.leaderboard) || [];
         const active = all.filter(row => !row.challengeInactive);
         const inactive = all.filter(row => row.challengeInactive);
@@ -1725,12 +2262,12 @@
         };
     }
 
-    function leaderboardScoringWindowDays(state) {
+    function leaderboardScoringWindowDays(state: PublicState): number {
         const dayCount = (state?.days || []).length || state?.durationDays || LEADERBOARD_SCORING_WINDOW_DAYS;
         return Math.min(LEADERBOARD_SCORING_WINDOW_DAYS, Math.max(1, Math.trunc(Number(dayCount) || LEADERBOARD_SCORING_WINDOW_DAYS)));
     }
 
-    function updateInactiveToggle(state) {
+    function updateInactiveToggle(state: PublicState): void {
         const button = document.getElementById("lmxInactiveToggle");
         if (!button) return;
         const rows = splitLeaderboardRows(state);
@@ -1773,17 +2310,17 @@
     }
 
     function scrollDashboardToLatestDay() {
-        const scroller = document.querySelector("#lmxTrack .lmx-dashboard-scroll");
+        const scroller = document.querySelector<HTMLElement>("#lmxTrack .lmx-dashboard-scroll");
         if (!scroller) return;
 
         const scrollCurrentDayIntoFocus = () => {
-            const currentDay = scroller.querySelector(".lmx-dashboard-row-head .lmx-dashboard-day.today");
+            const currentDay = scroller.querySelector<HTMLElement>(".lmx-dashboard-row-head .lmx-dashboard-day.today");
             if (!currentDay) {
                 scroller.scrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
                 return;
             }
 
-            const stickyColumn = scroller.querySelector(".lmx-dashboard-corner");
+            const stickyColumn = scroller.querySelector<HTMLElement>(".lmx-dashboard-corner");
             const styles = getComputedStyle(scroller.querySelector(".lmx-dashboard-grid") || scroller);
             const gap = parseFloat(styles.getPropertyValue("--lmx-dashboard-gap")) || 0;
             const stickyWidth = (stickyColumn?.offsetWidth || 0) + gap;
@@ -1814,7 +2351,7 @@
         }
     }
 
-    function emptyBoardRow(durationDays, hiddenInactiveCount) {
+    function emptyBoardRow(durationDays: number, hiddenInactiveCount: number): string {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
         const scoreLabel = hasHiddenInactive ? "No active score" : "No score yet";
@@ -1827,7 +2364,7 @@
         </div>`;
     }
 
-    function emptyRosterRow(durationDays, hiddenInactiveCount) {
+    function emptyRosterRow(durationDays: number, hiddenInactiveCount: number): string {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
         return `<div class="lmx-board-row lmx-roster-row" role="row">
@@ -1838,7 +2375,7 @@
         </div>`;
     }
 
-    function renderCheckIns(days, containerId, recentRemarks) {
+    function renderCheckIns(days: EligibleDay[], containerId = "lmxCheckinList", recentRemarks: ParticipantNote[] = []): void {
         const container = document.getElementById(containerId || "lmxCheckinList");
         if (!container) return;
         if (!days.length) {
@@ -1848,30 +2385,32 @@
 
         const orderedDays = [...days].sort((a, b) => a.challengeDay - b.challengeDay);
         const activeDay = pickActiveCheckInDay(orderedDays);
-        const previousForm = container.querySelector(".lmx-checkin-card");
+        const previousForm = container.querySelector<HTMLFormElement>(".lmx-checkin-card");
         if (previousForm) revokePendingNotePhotoUrls(checkInDayKey(previousForm));
         container.innerHTML = checkInSwitcherHtml(orderedDays, activeDay) + checkInCardHtml(activeDay, recentRemarks);
-        container.querySelectorAll(".lmx-checkin-switcher button").forEach(button => {
+        container.querySelectorAll<HTMLButtonElement>(".lmx-checkin-switcher button").forEach(button => {
             button.addEventListener("click", () => {
                 selectedCheckInDay = Number(button.dataset.day);
                 renderCheckIns(orderedDays, containerId, recentRemarks);
             });
         });
-        container.querySelectorAll(".lmx-segmented button").forEach(button => {
+        container.querySelectorAll<HTMLButtonElement>(".lmx-segmented button").forEach(button => {
             button.addEventListener("click", () => {
                 const group = button.closest(".lmx-segmented");
-                group.querySelectorAll("button").forEach(item => item.setAttribute("aria-pressed", "false"));
+                group?.querySelectorAll("button").forEach(item => item.setAttribute("aria-pressed", "false"));
                 button.setAttribute("aria-pressed", "true");
-                updateCheckInSaveState(button.closest("form"));
+                const form = button.closest("form");
+                if (form) updateCheckInSaveState(form);
             });
         });
-        container.querySelectorAll("form").forEach(form => {
+        container.querySelectorAll<HTMLFormElement>("form").forEach(form => {
             form.querySelector("textarea")?.addEventListener("input", () => updateCheckInSaveState(form));
-            form.querySelector("[data-photo-button]")?.addEventListener("click", () => {
-                form.querySelector("input[data-note-photos]")?.click();
+            form.querySelector<HTMLButtonElement>("[data-photo-button]")?.addEventListener("click", () => {
+                form.querySelector<HTMLInputElement>("input[data-note-photos]")?.click();
             });
-            form.querySelector("input[data-note-photos]")?.addEventListener("change", event => {
-                const input = event.target;
+            form.querySelector<HTMLInputElement>("input[data-note-photos]")?.addEventListener("change", event => {
+                const input = event.currentTarget;
+                if (!(input instanceof HTMLInputElement)) return;
                 setPendingNotePhotos(form, Array.from(input.files || []));
                 input.value = "";
                 renderSelectedNotePhotoPreviews(form);
@@ -1886,19 +2425,20 @@
         });
     }
 
-    function pickActiveCheckInDay(days) {
+    function pickActiveCheckInDay(days: EligibleDay[]): EligibleDay {
         const current = days.find(day => day.challengeDay === selectedCheckInDay);
         if (current) return current;
 
         const missing = [...days]
             .filter(day => !day.existing)
             .sort((a, b) => b.challengeDay - a.challengeDay)[0];
-        const fallback = missing || days[days.length - 1];
+        const fallback = missing || days.at(-1);
+        if (!fallback) throw new Error("At least one eligible check-in day is required.");
         selectedCheckInDay = fallback.challengeDay;
         return fallback;
     }
 
-    function checkInSwitcherHtml(days, activeDay) {
+    function checkInSwitcherHtml(days: EligibleDay[], activeDay: EligibleDay): string {
         if (days.length < 2) return "";
 
         return `<div class="lmx-checkin-switcher" aria-label="Eligible check-in days">
@@ -1914,8 +2454,8 @@
         </div>`;
     }
 
-    function checkInCardHtml(day, recentRemarks) {
-        const existing = day.existing || {};
+    function checkInCardHtml(day: EligibleDay, recentRemarks: ParticipantNote[]): string {
+        const existing: Partial<CheckInDraft> = day.existing || {};
         const saved = savedDays.has(day.challengeDay);
         const practice = day.countsForScore === false;
         const hasExisting = !!day.existing;
@@ -1968,14 +2508,14 @@
         </form>`;
     }
 
-    function recentPublicRemarks(state) {
+    function recentPublicRemarks(state: ParticipantState): ParticipantNote[] {
         const notes = Array.isArray(state?.public?.notes) ? state.public.notes : [];
         return notes
             .filter(note => String(note?.note || "").trim())
             .slice(0, RECENT_REMARK_LIMIT);
     }
 
-    function recentRemarksHtml(notes) {
+    function recentRemarksHtml(notes: ParticipantNote[]): string {
         const remarks = (Array.isArray(notes) ? notes : [])
             .filter(note => String(note?.note || "").trim())
             .slice(0, RECENT_REMARK_LIMIT);
@@ -1994,7 +2534,7 @@
         </section>`;
     }
 
-    function notePhotoHtml(image, key) {
+    function notePhotoHtml(image: CheckInImage, key: string): string {
         const url = String(image && image.url || "").trim();
         if (!url) return "";
         const width = Number(image.width) || "";
@@ -2004,9 +2544,9 @@
         </a>`;
     }
 
-    function setPendingNotePhotos(form, files) {
+    function setPendingNotePhotos(form: HTMLFormElement, files: File[]): void {
         const key = checkInDayKey(form);
-        const slots = Number(form.querySelector(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
+        const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
         const photos = files
             .filter(file => /^image\//i.test(String(file.type || "")) || /\.(heic|heif)$/i.test(file.name || ""))
             .slice(0, Math.max(0, slots));
@@ -2016,26 +2556,26 @@
         else pendingNotePhotos.delete(key);
     }
 
-    function removePendingNotePhoto(form, index) {
+    function removePendingNotePhoto(form: HTMLFormElement, index: number): void {
         const key = checkInDayKey(form);
         const photos = getPendingNotePhotos(form).filter((_, photoIndex) => photoIndex !== index);
         revokePendingNotePhotoUrls(key);
         if (photos.length) pendingNotePhotos.set(key, photos);
         else pendingNotePhotos.delete(key);
-        const input = form.querySelector("input[data-note-photos]");
+        const input = form.querySelector<HTMLInputElement>("input[data-note-photos]");
         if (input && !photos.length) input.value = "";
         renderSelectedNotePhotoPreviews(form);
         updateCheckInSaveState(form);
     }
 
-    function renderSelectedNotePhotoPreviews(form) {
+    function renderSelectedNotePhotoPreviews(form: HTMLFormElement): void {
         const previews = form.querySelector("[data-photo-previews]");
         const count = form.querySelector("[data-photo-count]");
         if (!previews) return;
 
         const key = checkInDayKey(form);
         const photos = getPendingNotePhotos(form);
-        const slots = Number(form.querySelector(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
+        const slots = Number(form.querySelector<HTMLElement>(".lmx-note-photo-field")?.dataset.photoSlots || MAX_NOTE_PHOTOS);
         revokePendingNotePhotoUrls(key);
         const urls = photos.map(photo => URL.createObjectURL(photo));
         if (urls.length) pendingNotePhotoUrls.set(key, urls);
@@ -2047,7 +2587,7 @@
             </button>
         </span>`).join("");
 
-        previews.querySelectorAll("[data-remove-photo]").forEach(button => {
+        previews.querySelectorAll<HTMLElement>("[data-remove-photo]").forEach(button => {
             button.addEventListener("click", () => removePendingNotePhoto(form, Number(button.dataset.removePhoto)));
         });
 
@@ -2059,22 +2599,22 @@
         }
     }
 
-    function clearPendingNotePhotos(challengeDay) {
+    function clearPendingNotePhotos(challengeDay: number): void {
         const key = String(challengeDay);
         revokePendingNotePhotoUrls(key);
         pendingNotePhotos.delete(key);
     }
 
-    function revokePendingNotePhotoUrls(key) {
+    function revokePendingNotePhotoUrls(key: string): void {
         (pendingNotePhotoUrls.get(key) || []).forEach(url => URL.revokeObjectURL(url));
         pendingNotePhotoUrls.delete(key);
     }
 
-    function getPendingNotePhotos(form) {
+    function getPendingNotePhotos(form: HTMLFormElement): File[] {
         return pendingNotePhotos.get(checkInDayKey(form)) || [];
     }
 
-    function checkInDayKey(form) {
+    function checkInDayKey(form: HTMLFormElement): string {
         return String(Number(form?.dataset.day || 0));
     }
 
@@ -2097,7 +2637,7 @@
         </div>`;
     }
 
-    function selectQuoteBucket(draft) {
+    function selectQuoteBucket(draft: CheckInFormDraft): QuoteBucket | null {
         const values = QUESTIONS.map(question => ({
             key: question.key,
             value: clampHabitValue(draft?.[question.key])
@@ -2106,10 +2646,11 @@
 
         const minValue = Math.min(...values.map(item => item.value));
         const worst = values.filter(item => item.value === minValue);
-        return worst.length === 1 ? worst[0].key : "mindset";
+        const soleWorst = worst[0];
+        return worst.length === 1 && soleWorst ? soleWorst.key : "mindset";
     }
 
-    async function showRandomCheckInQuote(bucket) {
+    async function showRandomCheckInQuote(bucket: QuoteBucket): Promise<void> {
         const quote = pickQuote(bucket);
         if (!quote) return;
 
@@ -2125,12 +2666,13 @@
         updateCheckInQuoteDialogRank(quote, computeQuoteAthleteBestRank(athlete), token);
     }
 
-    function pickQuote(bucket) {
-        const safeBucket = QUOTE_BUCKETS.includes(bucket) ? bucket : "mindset";
+    function pickQuote(bucket: QuoteBucket): CheckInQuote | null {
+        const safeBucket: QuoteBucket = QUOTE_BUCKETS.includes(bucket) ? bucket : "mindset";
         const rows = LMX_QUOTES[safeBucket] || [];
         if (!rows.length) return null;
 
         const row = rows[Math.floor(Math.random() * rows.length)];
+        if (!row) return null;
         return {
             bucket: safeBucket,
             text: row[0],
@@ -2140,7 +2682,7 @@
         };
     }
 
-    function findQuoteAthlete(quote) {
+    function findQuoteAthlete(quote: CheckInQuote): QuoteAthlete | AthleteOption | null {
         const slug = normalizeAthleteSlug(quote?.athleteSlug);
         if (!slug) return null;
         return quoteAthleteResults.find(athlete => normalizeAthleteSlug(athlete.slug) === slug)
@@ -2148,15 +2690,15 @@
             || null;
     }
 
-    function showCheckInQuoteDialog(quote, bestRank, token) {
+    function showCheckInQuoteDialog(quote: CheckInQuote, bestRank: QuoteRankCandidateInput | null, token: string): void {
         const dialog = ensureCheckInQuoteDialog();
         const text = dialog.querySelector("#lmxQuoteDialogText");
         const source = dialog.querySelector("#lmxQuoteDialogSource");
         const portrait = dialog.querySelector("#lmxQuoteDialogPortrait");
-        const ok = dialog.querySelector("#lmxQuoteDialogOk");
+        const ok = dialog.querySelector<HTMLButtonElement>("#lmxQuoteDialogOk");
         if (!text || !source || !portrait || !ok) return;
 
-        quoteDialogLastFocus = document.activeElement;
+        quoteDialogLastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         dialog.dataset.quoteToken = token || "";
         dialog.dataset.quoteBucket = quote.bucket || "";
         text.textContent = quote.text || "";
@@ -2167,7 +2709,7 @@
         requestAnimationFrame(() => ok.focus({ preventScroll: true }));
     }
 
-    function ensureCheckInQuoteDialog() {
+    function ensureCheckInQuoteDialog(): HTMLElement {
         let dialog = document.getElementById("lmxQuoteDialog");
         if (dialog) return dialog;
 
@@ -2190,8 +2732,8 @@
                     </div>
                 </div>
             </div>`);
-        dialog = document.getElementById("lmxQuoteDialog");
-        const ok = dialog.querySelector("#lmxQuoteDialogOk");
+        dialog = requiredElement("lmxQuoteDialog", HTMLElement);
+        const ok = requiredButton("lmxQuoteDialogOk");
         ok.addEventListener("click", closeCheckInQuoteDialog);
         dialog.addEventListener("keydown", event => {
             if (event.key === "Escape") {
@@ -2211,16 +2753,16 @@
             const last = focusable[focusable.length - 1];
             if (event.shiftKey && document.activeElement === first) {
                 event.preventDefault();
-                last.focus({ preventScroll: true });
+                last?.focus({ preventScroll: true });
             } else if (!event.shiftKey && document.activeElement === last) {
                 event.preventDefault();
-                first.focus({ preventScroll: true });
+                first?.focus({ preventScroll: true });
             }
         });
         return dialog;
     }
 
-    function updateCheckInQuoteDialogRank(quote, bestRank, token) {
+    function updateCheckInQuoteDialogRank(quote: CheckInQuote, bestRank: QuoteRankCandidateInput | null, token: string): void {
         const dialog = document.getElementById("lmxQuoteDialog");
         if (!dialog || dialog.hidden || dialog.dataset.quoteToken !== token) return;
 
@@ -2245,7 +2787,7 @@
         quoteDialogLastFocus = null;
     }
 
-    function renderCheckInQuoteSourceHtml(quote, bestRank) {
+    function renderCheckInQuoteSourceHtml(quote: CheckInQuote, bestRank: QuoteRankCandidateInput | null): string {
         const athleteSlug = normalizeAthleteSlug(quote.athleteSlug);
         const athleteName = quote.athleteName || "Longevity athlete";
         const athlete = athleteSlug
@@ -2262,7 +2804,7 @@
         ].filter(Boolean).join("");
     }
 
-    function renderCheckInQuotePortraitHtml(quote, athlete) {
+    function renderCheckInQuotePortraitHtml(quote: CheckInQuote, athlete: QuoteAthlete | AthleteOption | null): string {
         const athleteName = quote.athleteName || athlete?.name || "Longevity athlete";
         const image = getQuoteAthleteProfileImage(athlete);
         const hasProfileImage = !!image;
@@ -2277,17 +2819,17 @@
         </div>`;
     }
 
-    function getQuoteAthleteProfileImage(athlete) {
+    function getQuoteAthleteProfileImage(athlete: QuoteAthlete | AthleteOption | null): string {
         const image = String(athlete?.profilePic || "").trim();
         return isPlaceholderProfileImage(image) ? "" : image;
     }
 
-    function getDialogFocusableElements(dialog) {
-        return Array.from(dialog.querySelectorAll("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"))
+    function getDialogFocusableElements(dialog: HTMLElement): HTMLElement[] {
+        return Array.from(dialog.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"))
             .filter(element => element.offsetParent !== null);
     }
 
-    function getQuoteDialogIconClass(bucket) {
+    function getQuoteDialogIconClass(bucket: QuoteBucket): string {
         switch (bucket) {
             case "sleep": return "fa-moon";
             case "exercise": return "fa-dumbbell";
@@ -2298,25 +2840,31 @@
         }
     }
 
-    function formatQuoteRankText(bestRank) {
-        if (!bestRank || !Number.isFinite(bestRank.rank)) return "";
+    function formatQuoteRankText(bestRank: QuoteRankCandidateInput | null): string {
+        if (!bestRank) return "";
+        const rank = toFiniteNumber(bestRank.rank);
+        if (rank === null) return "";
         const label = String(bestRank.leagueLabel || bestRank.leagueName || "Ultimate League").trim();
-        return `#${Math.trunc(bestRank.rank)} in ${label || "Ultimate League"}`;
+        return `#${Math.trunc(rank)} in ${label || "Ultimate League"}`;
     }
 
-    async function submitCheckIn(form) {
+    async function submitCheckIn(form: HTMLFormElement): Promise<void> {
         if (!accessToken) return;
+        const currentAccessToken = accessToken;
         if (!hasCheckInChanged(form)) return;
-        await withButton(form.querySelector("button[type='submit']"), async () => {
+        await withButton(form.querySelector<HTMLButtonElement>("button[type='submit']"), async () => {
             const draft = collectCheckInDraft(form);
             const quoteBucket = selectQuoteBucket(draft);
             const notePhotos = getPendingNotePhotos(form);
-            const payload = {
-                accessToken,
+            const payload: CheckInPayload = {
+                accessToken: currentAccessToken,
                 challengeDay: Number(form.dataset.day),
+                sleep: draft.sleep,
+                exercise: draft.exercise,
+                nutrition: draft.nutrition,
+                vices: draft.vices,
                 note: draft.note || null
             };
-            QUESTIONS.forEach(q => payload[q.key] = draft[q.key]);
             const result = notePhotos.length
                 ? await postCheckInWithPhotos(payload, notePhotos)
                 : await postJson(`${API}/check-in`, payload);
@@ -2332,7 +2880,7 @@
         }, "Saving...");
     }
 
-    async function postCheckInWithPhotos(payload, photos) {
+    async function postCheckInWithPhotos(payload: CheckInPayload, photos: File[]): Promise<ParticipantState> {
         const formData = new FormData();
         formData.append("accessToken", payload.accessToken);
         formData.append("challengeDay", String(payload.challengeDay));
@@ -2350,18 +2898,22 @@
         return postForm(`${API}/check-in`, formData);
     }
 
-    function collectCheckInDraft(form) {
-        const draft = {
-            note: form.querySelector("textarea").value.trim()
+    function collectCheckInDraft(form: HTMLFormElement): CheckInFormDraft {
+        const readHabit = (key: HabitKey): number => {
+            const pressed = form.querySelector<HTMLButtonElement>(`.lmx-question[data-key="${key}"] button[aria-pressed="true"]`);
+            return Number(pressed ? pressed.dataset.value : 1);
         };
-        QUESTIONS.forEach(q => {
-            const pressed = form.querySelector(`.lmx-question[data-key="${q.key}"] button[aria-pressed="true"]`);
-            draft[q.key] = Number(pressed ? pressed.dataset.value : 1);
-        });
+        const draft: CheckInFormDraft = {
+            note: form.querySelector<HTMLTextAreaElement>("textarea")?.value.trim() || "",
+            sleep: readHabit("sleep"),
+            exercise: readHabit("exercise"),
+            nutrition: readHabit("nutrition"),
+            vices: readHabit("vices")
+        };
         return draft;
     }
 
-    function hasCheckInChanged(form) {
+    function hasCheckInChanged(form: HTMLFormElement): boolean {
         if (!form || form.dataset.saved !== "true") return true;
 
         const draft = collectCheckInDraft(form);
@@ -2371,10 +2923,10 @@
         return QUESTIONS.some(q => Number(form.dataset[`original${capitalize(q.key)}`]) !== draft[q.key]);
     }
 
-    function updateCheckInSaveState(form) {
+    function updateCheckInSaveState(form: HTMLFormElement): void {
         if (!form) return;
 
-        const button = form.querySelector("button[type='submit']");
+        const button = form.querySelector<HTMLButtonElement>("button[type='submit']");
         const status = form.querySelector(".lmx-status");
         const changed = hasCheckInChanged(form);
 
@@ -2386,10 +2938,10 @@
         }
     }
 
-    async function uploadProfilePicture(file, input) {
+    async function uploadProfilePicture(file: File, input: HTMLInputElement): Promise<void> {
         if (!accessToken) return;
 
-        const button = document.getElementById("lmxProfilePictureButton");
+        const button = optionalElement("lmxProfilePictureButton", HTMLButtonElement);
         input.disabled = true;
         if (button) button.disabled = true;
         let shouldFocusRetry = false;
@@ -2416,7 +2968,7 @@
         }
     }
 
-    async function prepareProfilePictureFile(file) {
+    async function prepareProfilePictureFile(file: File): Promise<File> {
         const type = String(file.type || "");
         const isServerPreferred = /^image\/(jpeg|png|webp)$/i.test(type);
         const shouldNormalize = file.size > 1024 * 1024 || !isServerPreferred;
@@ -2437,9 +2989,9 @@
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(bitmap, 0, 0, width, height);
-            if (typeof bitmap.close === "function") bitmap.close();
+            closeImageBitmap(bitmap);
 
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
+            const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
             if (!blob) return file;
             return new File([blob], replaceImageExtension(file.name || "profile-picture", "jpg"), { type: "image/jpeg" });
         } catch (_) {
@@ -2447,7 +2999,7 @@
         }
     }
 
-    async function prepareNotePhotoFile(file) {
+    async function prepareNotePhotoFile(file: File): Promise<File> {
         try {
             const bitmap = await loadProfileBitmap(file);
             const scale = Math.min(1, NOTE_PHOTO_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
@@ -2462,12 +3014,12 @@
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(bitmap, 0, 0, width, height);
-            if (typeof bitmap.close === "function") bitmap.close();
+            closeImageBitmap(bitmap);
 
-            let blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
+            let blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
             let extension = "webp";
             if (!blob || blob.type !== "image/webp") {
-                blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
+                blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
                 extension = "jpg";
             }
 
@@ -2479,15 +3031,15 @@
         }
     }
 
-    async function loadProfileBitmap(file) {
-        if (window.createImageBitmap) {
+    async function loadProfileBitmap(file: File): Promise<ImageBitmap | HTMLImageElement> {
+        if (typeof globalThis.createImageBitmap === "function") {
             try {
                 return await createImageBitmap(file, { imageOrientation: "from-image" });
             } catch (_) {
             }
         }
 
-        return await new Promise((resolve, reject) => {
+        return await new Promise<HTMLImageElement>((resolve, reject) => {
             const url = URL.createObjectURL(file);
             const image = new Image();
             image.onload = () => {
@@ -2502,13 +3054,18 @@
         });
     }
 
-    function replaceImageExtension(name, extension) {
+    function closeImageBitmap(bitmap: ImageBitmap | HTMLImageElement): void {
+        if ("close" in bitmap && typeof bitmap.close === "function") bitmap.close();
+    }
+
+    function replaceImageExtension(name: string, extension: string): string {
         const clean = String(name || "profile-picture").replace(/\.[^.]+$/, "");
         return `${clean || "profile-picture"}.${extension}`;
     }
 
-    function renderNotes(notes, participantView) {
+    function renderNotes(notes: ParticipantNote[], participantView: boolean): void {
         const container = document.getElementById("lmxNotes");
+        if (!container) return;
         if (!notes.length) {
             container.innerHTML = `<div class="lmx-note"><strong>${participantView ? "No participant notes yet." : "No public notes yet."}</strong></div>`;
             return;
@@ -2528,8 +3085,8 @@
         }).join("");
     }
 
-    function parseCommitmentAmount(inputId) {
-        const input = document.getElementById(inputId);
+    function parseCommitmentAmount(inputId: string): number {
+        const input = optionalInput(inputId);
         if (input) sanitizeCommitmentAmountInput(input);
         const raw = String(input?.value || "").trim();
         const normalized = raw;
@@ -2545,8 +3102,8 @@
         return Math.round(value * 100) / 100;
     }
 
-    function parseOptionalCommitmentAmount(inputId) {
-        const input = document.getElementById(inputId);
+    function parseOptionalCommitmentAmount(inputId: string): number | null {
+        const input = optionalInput(inputId);
         if (input) sanitizeCommitmentAmountInput(input);
         const raw = String(input?.value || "").trim();
         if (!raw) {
@@ -2557,8 +3114,8 @@
         return parseCommitmentAmount(inputId);
     }
 
-    function wireCommitmentAmountValidation(inputId) {
-        const input = document.getElementById(inputId);
+    function wireCommitmentAmountValidation(inputId: string): void {
+        const input = optionalInput(inputId);
         if (!input || input.dataset.commitmentValidationWired) return;
         input.dataset.commitmentValidationWired = "true";
         input.addEventListener("input", () => {
@@ -2571,7 +3128,7 @@
         });
     }
 
-    function sanitizeCommitmentAmountInput(input) {
+    function sanitizeCommitmentAmountInput(input: HTMLInputElement): void {
         const original = String(input.value || "");
         let next = "";
         let hasDecimal = false;
@@ -2594,7 +3151,7 @@
         if (input.value !== next) input.value = next;
     }
 
-    function markCommitmentAmountInvalid(input, message, report) {
+    function markCommitmentAmountInvalid(input: HTMLInputElement | null, message: string, report = false): void {
         if (!input) return;
         input.setAttribute("aria-invalid", "true");
         if (typeof input.setCustomValidity === "function") {
@@ -2603,19 +3160,19 @@
         }
     }
 
-    function clearCommitmentAmountValidity(input) {
+    function clearCommitmentAmountValidity(input: HTMLInputElement | null): void {
         if (!input) return;
         input.removeAttribute("aria-invalid");
         if (typeof input.setCustomValidity === "function") input.setCustomValidity("");
     }
 
-    function setCommitmentInputValue(inputId, value) {
-        const input = document.getElementById(inputId);
+    function setCommitmentInputValue(inputId: string, value: number | null): void {
+        const input = optionalInput(inputId);
         if (!input) return;
         input.value = value === null || value === undefined ? "" : String(value);
     }
 
-    function formatUsd(value) {
+    function formatUsd(value: unknown): string {
         const amount = Number(value);
         if (!Number.isFinite(amount)) return "USD -";
         return new Intl.NumberFormat("en-US", {
@@ -2626,13 +3183,13 @@
         }).format(amount);
     }
 
-    function formatNumber(value) {
+    function formatNumber(value: unknown): string {
         const number = Number(value);
         if (!Number.isFinite(number)) return "-";
         return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(number);
     }
 
-    function participantNameHtml(row, nameHtml, rank) {
+    function participantNameHtml(row: LeaderboardRow, nameHtml: string, rank: number): string {
         const athlete = findAthleteForParticipant(row);
         const profileImage = String(row.profileImageUrl || "").trim();
         const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? "" : (athlete?.profilePic || "");
@@ -2657,25 +3214,33 @@
         </div>`;
     }
 
-    function isPlaceholderProfileImage(url) {
+    function isPlaceholderProfileImage(url: unknown): boolean {
         const value = String(url || "").trim();
         return !value || value.includes(ATHLETE_PLACEHOLDER_IMAGE);
     }
 
-    function findAthleteForParticipant(row) {
+    function findAthleteForParticipant(row: LeaderboardRow): AthleteOption | null {
         if (!row || !row.athleteUrl || !athleteDirectory.length) return null;
         const slug = normalizeAthleteSlug(row.athleteUrl);
         if (!slug) return null;
         return athleteDirectory.find(athlete => normalizeAthleteSlug(athlete.slug) === slug) || null;
     }
 
-    function loadAthleteDirectory() {
+    function isAthleteRecord(value: unknown): value is AthleteRecord {
+        return typeof value === "object" && value !== null && !Array.isArray(value);
+    }
+
+    function loadAthleteDirectory(): Promise<AthleteOption[]> {
         if (athleteDirectoryPromise) return athleteDirectoryPromise;
 
         athleteDirectoryPromise = fetch("/api/data/athletes")
-            .then(response => response.ok ? response.json() : [])
+            .then(async response => {
+                if (!response.ok) return [];
+                const data: unknown = await response.json();
+                return data;
+            })
             .then(data => {
-                const athletes = Array.isArray(data) ? data : [];
+                const athletes = Array.isArray(data) ? data.filter(isAthleteRecord) : [];
                 quoteAthleteResults = buildQuoteAthleteResults(athletes);
                 athleteDirectory = athletes
                     .map(a => ({
@@ -2698,10 +3263,10 @@
         return athleteDirectoryPromise;
     }
 
-    function buildQuoteAthleteResults(athletes) {
+    function buildQuoteAthleteResults(athletes: AthleteRecord[]): QuoteAthlete[] {
         const rows = (Array.isArray(athletes) ? athletes : [])
             .map(buildQuoteAthleteRankRow)
-            .filter(Boolean)
+            .filter((athlete): athlete is QuoteAthlete => athlete !== null)
             .sort(compareQuoteAthleteRank);
 
         rows.forEach((athlete, index) => {
@@ -2711,7 +3276,7 @@
         return rows;
     }
 
-    function buildQuoteAthleteRankRow(athlete) {
+    function buildQuoteAthleteRankRow(athlete: AthleteRecord): QuoteAthlete | null {
         const slug = String(athlete?.AthleteSlug || "").trim();
         const name = String(athlete?.DisplayName || athlete?.Name || "").trim();
         const legalName = String(athlete?.Name || "").trim();
@@ -2724,11 +3289,12 @@
         const bortzStats = calculateQuoteBortzStats(athlete, dob);
         const crowdAge = toFiniteNumber(athlete.CrowdAge);
         const crowdCount = Math.max(0, Math.trunc(toFiniteNumber(athlete.CrowdCount) || 0));
-        const crowdAgeReduction = Number.isFinite(crowdAge) && Number.isFinite(chronologicalAge)
+        const crowdAgeReduction = crowdAge !== null && Number.isFinite(chronologicalAge)
             ? crowdAge - chronologicalAge
             : null;
-        const generation = typeof window.getGeneration === "function"
-            ? window.getGeneration(dob.getFullYear())
+        const generationApi = readSharedWindowApi();
+        const generation = typeof generationApi.getGeneration === "function"
+            ? generationApi.getGeneration.call(window, dob.getFullYear())
             : resolveQuoteGeneration(dob.getFullYear());
 
         return {
@@ -2762,9 +3328,10 @@
         };
     }
 
-    function calculateQuotePhenoStats(athlete, dob, chronologicalAge) {
+    function calculateQuotePhenoStats(athlete: AthleteRecord, dob: Date, chronologicalAge: number): QuotePhenoStats {
         let lowestPhenoAge = Infinity;
         let chronoAtLowestPhenoAge = chronologicalAge;
+        const phenoAgeApi = readSharedWindowApi().PhenoAge;
         const phenoSubmissionAges = quoteBiomarkers(athlete)
             .filter(isQuoteCompleteBiomarkerSet)
             .map((entry, index) => {
@@ -2782,8 +3349,8 @@
                     entry.RdwPc,
                     entry.AlpUL
                 ];
-                const phenoAge = window.PhenoAge && typeof window.PhenoAge.calculatePhenoAge === "function"
-                    ? window.PhenoAge.calculatePhenoAge(values)
+                const phenoAge = phenoAgeApi && typeof phenoAgeApi.calculatePhenoAge === "function"
+                    ? phenoAgeApi.calculatePhenoAge(values)
                     : NaN;
                 if (Number.isFinite(phenoAge) && phenoAge < lowestPhenoAge) {
                     lowestPhenoAge = phenoAge;
@@ -2808,7 +3375,7 @@
         if (phenoSubmissionAges.length >= 2) {
             const latest = phenoSubmissionAges.slice().sort(compareQuoteSubmissionDate).at(-1);
             const worst = Math.max(...phenoSubmissionAges.map(result => result.phenoAge));
-            phenoAgeImprovement = latest.phenoAge - worst;
+            if (latest) phenoAgeImprovement = latest.phenoAge - worst;
         }
 
         return {
@@ -2820,12 +3387,13 @@
         };
     }
 
-    function calculateQuoteBortzStats(athlete, dob) {
+    function calculateQuoteBortzStats(athlete: AthleteRecord, dob: Date): QuoteBortzStats {
         let lowestBortzAge = null;
         let chronoAtLowestBortzAge = null;
         let bortzAgeReduction = null;
         let bortzAgeImprovement = null;
         let bortzMin = Infinity;
+        const bortzAgeApi = readSharedWindowApi().BortzAge;
 
         const bortzSubmissionAges = quoteBiomarkers(athlete)
             .filter(isQuoteCompleteBortzBiomarkerSet)
@@ -2833,8 +3401,8 @@
                 const submittedAt = parseQuoteDate(entry.Date) || new Date();
                 const ageAtEntry = calculateQuoteAgeAtDate(dob, submittedAt);
                 const values = buildQuoteBortzValues(entry, ageAtEntry);
-                const bortzAge = window.BortzAge && typeof window.BortzAge.calculateBortzAge === "function"
-                    ? window.BortzAge.calculateBortzAge(ageAtEntry, values)
+                const bortzAge = bortzAgeApi && typeof bortzAgeApi.calculateBortzAge === "function"
+                    ? bortzAgeApi.calculateBortzAge(ageAtEntry, values)
                     : NaN;
                 if (Number.isFinite(bortzAge) && bortzAge < bortzMin) {
                     bortzMin = bortzAge;
@@ -2844,7 +3412,7 @@
             })
             .filter(result => Number.isFinite(result.bortzAge));
 
-        if (Number.isFinite(bortzMin) && Number.isFinite(chronoAtLowestBortzAge)) {
+        if (Number.isFinite(bortzMin) && chronoAtLowestBortzAge !== null) {
             lowestBortzAge = bortzMin;
             bortzAgeReduction = lowestBortzAge - chronoAtLowestBortzAge;
         }
@@ -2852,7 +3420,7 @@
         if (bortzSubmissionAges.length >= 2) {
             const latest = bortzSubmissionAges.slice().sort(compareQuoteSubmissionDate).at(-1);
             const worst = Math.max(...bortzSubmissionAges.map(result => result.bortzAge));
-            bortzAgeImprovement = latest.bortzAge - worst;
+            if (latest) bortzAgeImprovement = latest.bortzAge - worst;
         }
 
         return {
@@ -2863,11 +3431,11 @@
         };
     }
 
-    function quoteBiomarkers(athlete) {
+    function quoteBiomarkers(athlete: AthleteRecord): BiomarkerEntry[] {
         return Array.isArray(athlete?.Biomarkers) ? athlete.Biomarkers : [];
     }
 
-    function isQuoteCompleteBiomarkerSet(entry) {
+    function isQuoteCompleteBiomarkerSet(entry: BiomarkerEntry): entry is CompletePhenoBiomarkerEntry {
         const values = [
             entry?.Wbc1000cellsuL,
             entry?.LymPc,
@@ -2879,10 +3447,10 @@
             entry?.GluMmolL,
             entry?.CrpMgL
         ];
-        return values.every(Number.isFinite) && entry.CrpMgL > 0;
+        return values.every(Number.isFinite) && Number(entry.CrpMgL) > 0;
     }
 
-    function isQuoteCompleteBortzBiomarkerSet(entry) {
+    function isQuoteCompleteBortzBiomarkerSet(entry: BiomarkerEntry): entry is CompleteBortzBiomarkerEntry {
         if (!entry || !entry.Date) return false;
         const values = [
             entry.AlbGL,
@@ -2909,14 +3477,14 @@
             entry.ApoA1GL
         ];
         return values.every(Number.isFinite) &&
-            entry.CrpMgL > 0 &&
-            entry.GgtUL > 0 &&
-            entry.AltUL > 0 &&
-            entry.ShbgNmolL > 0 &&
-            entry.VitaminDNmolL > 0;
+            Number(entry.CrpMgL) > 0 &&
+            Number(entry.GgtUL) > 0 &&
+            Number(entry.AltUL) > 0 &&
+            Number(entry.ShbgNmolL) > 0 &&
+            Number(entry.VitaminDNmolL) > 0;
     }
 
-    function buildQuoteBortzValues(entry, ageAtEntry) {
+    function buildQuoteBortzValues(entry: CompleteBortzBiomarkerEntry, ageAtEntry: number): number[] {
         const wbc = Number(entry.Wbc1000cellsuL);
         const monocyteCount = wbc * Number(entry.MonocytePc) / 100;
         const neutrophilCount = wbc * Number(entry.NeutrophilPc) / 100;
@@ -2946,11 +3514,11 @@
         ];
     }
 
-    function buildQuoteViewHref(view) {
+    function buildQuoteViewHref(view: string): string {
         return `/league/${encodeURIComponent(String(view || "").trim())}`;
     }
 
-    function buildQuoteFiltersHref(filters) {
+    function buildQuoteFiltersHref(filters: string | string[]): string {
         const values = (Array.isArray(filters) ? filters : [filters])
             .map(value => String(value || "").trim())
             .filter(Boolean)
@@ -2958,9 +3526,10 @@
         return values.length ? `/league/${values.join("/")}` : "/leaderboard";
     }
 
-    function quoteSlugifyName(name, encode) {
-        if (typeof window.slugifyName === "function") {
-            return window.slugifyName(name, encode);
+    function quoteSlugifyName(name: string, encode: boolean): string {
+        const slugifyName = readSharedWindowApi().slugifyName;
+        if (typeof slugifyName === "function") {
+            return slugifyName.call(window, name, encode);
         }
 
         const normalized = String(name || "")
@@ -2975,11 +3544,11 @@
         return encode ? encodeURIComponent(normalized) : decodeURIComponent(normalized);
     }
 
-    function assignQuoteBestRankCandidates(athletes) {
+    function assignQuoteBestRankCandidates(athletes: QuoteAthlete[]): void {
         const rows = Array.isArray(athletes) ? athletes : [];
         rows.forEach(athlete => {
             athlete.bestRankCandidates = [];
-            if (Number.isFinite(athlete.rank)) {
+            if (isFiniteNumber(athlete.rank)) {
                 addQuoteBestRankCandidate(athlete, {
                     rank: athlete.rank,
                     leagueName: "Ultimate League",
@@ -3076,11 +3645,8 @@
 
         assignQuoteRankedBestCandidates(
             orderByQuoteNumberAsc(
-                rows.filter(athlete =>
-                    athlete.lowestBortzAge != null &&
-                    athlete.chronoAtLowestBortzAge != null &&
-                    Number.isFinite(athlete.lowestBortzAge / athlete.chronoAtLowestBortzAge)),
-                athlete => athlete.lowestBortzAge / athlete.chronoAtLowestBortzAge),
+                rows.filter(athlete => quoteBortzPace(athlete) !== null),
+                quoteBortzPace),
             () => ({
                 leagueName: "Bortz pace of aging",
                 leagueLabel: "Bortz pace of aging ranking",
@@ -3089,7 +3655,12 @@
             })
         );
 
-        const addGroupedRanks = (values, predicate, comparator, candidateFactory) => {
+        const addGroupedRanks = <T extends string>(
+            values: T[],
+            predicate: (athlete: QuoteAthlete, value: T) => boolean,
+            comparator: (a: QuoteAthlete, b: QuoteAthlete) => number,
+            candidateFactory: (athlete: QuoteAthlete, value: T) => QuoteRankCandidateInput
+        ): void => {
             values.filter(Boolean).forEach(value => {
                 assignQuoteRankedBestCandidates(
                     sortedQuoteRankableAthletes(rows, athlete => predicate(athlete, value), comparator),
@@ -3161,13 +3732,13 @@
         );
     }
 
-    function addQuoteBestRankCandidate(athlete, candidate) {
+    function addQuoteBestRankCandidate(athlete: QuoteAthlete, candidate: QuoteRankCandidateInput): void {
         if (!athlete || !candidate) return;
 
         const rank = Number(candidate.rank);
         if (!Number.isFinite(rank) || rank < 1) return;
 
-        const normalized = {
+        const normalized: Omit<QuoteRankCandidate, "key"> = {
             rank,
             leagueName: String(candidate.leagueName || candidate.leagueLabel || "").trim(),
             leagueLabel: String(candidate.leagueLabel || candidate.leagueName || "").trim(),
@@ -3175,7 +3746,7 @@
             leagueType: String(candidate.leagueType || "other").trim(),
             href: candidate.href || null,
             targetBlank: !!candidate.targetBlank,
-            tiePriority: Number.isFinite(candidate.tiePriority) ? candidate.tiePriority : 100
+            tiePriority: isFiniteNumber(candidate.tiePriority) ? candidate.tiePriority : 100
         };
         if (!normalized.leagueName && !normalized.leagueLabel) return;
 
@@ -3187,7 +3758,7 @@
         const existingIndex = athlete.bestRankCandidates.findIndex(item => item.key === key);
         if (existingIndex >= 0) {
             const existing = athlete.bestRankCandidates[existingIndex];
-            if (compareQuoteBestRankCandidates(normalized, existing) < 0) {
+            if (existing && compareQuoteBestRankCandidates(normalized, existing) < 0) {
                 athlete.bestRankCandidates[existingIndex] = { ...normalized, key };
             }
             return;
@@ -3196,7 +3767,7 @@
         athlete.bestRankCandidates.push({ ...normalized, key });
     }
 
-    function compareQuoteBestRankCandidates(a, b) {
+    function compareQuoteBestRankCandidates(a: Omit<QuoteRankCandidate, "key"> | QuoteRankCandidate, b: Omit<QuoteRankCandidate, "key"> | QuoteRankCandidate): number {
         if (!a) return 1;
         if (!b) return -1;
 
@@ -3205,10 +3776,10 @@
         return String(a.leagueLabel || a.leagueName || "").localeCompare(String(b.leagueLabel || b.leagueName || ""));
     }
 
-    function computeQuoteAthleteBestRank(athlete) {
-        if (!athlete) return null;
+    function computeQuoteAthleteBestRank(athlete: QuoteAthlete | AthleteOption | null): QuoteRankCandidateInput | null {
+        if (!athlete || !("bestRankCandidates" in athlete)) return null;
         const candidates = Array.isArray(athlete.bestRankCandidates) ? athlete.bestRankCandidates : [];
-        if (!candidates.length && Number.isFinite(athlete.rank)) {
+        if (!candidates.length && isFiniteNumber(athlete.rank)) {
             return {
                 rank: athlete.rank,
                 leagueName: "Ultimate League",
@@ -3222,7 +3793,10 @@
         return candidates.slice().sort(compareQuoteBestRankCandidates)[0] || null;
     }
 
-    function assignQuoteRankedBestCandidates(items, candidateFactory) {
+    function assignQuoteRankedBestCandidates(
+        items: QuoteAthlete[],
+        candidateFactory: (athlete: QuoteAthlete, index: number) => QuoteRankCandidateInput
+    ): void {
         (Array.isArray(items) ? items : []).forEach((athlete, index) => {
             addQuoteBestRankCandidate(athlete, {
                 ...candidateFactory(athlete, index),
@@ -3231,58 +3805,70 @@
         });
     }
 
-    function sortedQuoteRankableAthletes(athletes, predicate, comparator) {
+    function sortedQuoteRankableAthletes(
+        athletes: QuoteAthlete[],
+        predicate: (athlete: QuoteAthlete) => boolean,
+        comparator: (a: QuoteAthlete, b: QuoteAthlete) => number
+    ): QuoteAthlete[] {
         return (Array.isArray(athletes) ? athletes : [])
             .filter(predicate || (() => true))
             .slice()
             .sort(comparator);
     }
 
-    function hasQuoteBortzRankData(athlete) {
+    function hasQuoteBortzRankData(athlete: QuoteAthlete): boolean {
         return athlete && athlete.bortzAgeReduction != null && Number.isFinite(athlete.bortzAgeReduction);
     }
 
-    function compareQuoteAthleteRank(a, b) {
+    function quoteBortzPace(athlete: QuoteAthlete): number | null {
+        const lowestAge = athlete.lowestBortzAge;
+        const chronologicalAge = athlete.chronoAtLowestBortzAge;
+        if (lowestAge === null || chronologicalAge === null) return null;
+        const pace = lowestAge / chronologicalAge;
+        return Number.isFinite(pace) ? pace : null;
+    }
+
+    function compareQuoteAthleteRank(a: QuoteAthlete, b: QuoteAthlete): number {
         const aHasBortz = hasQuoteBortzRankData(a);
         const bHasBortz = hasQuoteBortzRankData(b);
         if (aHasBortz && !bHasBortz) return -1;
         if (!aHasBortz && bHasBortz) return 1;
 
-        const aRed = aHasBortz ? a.bortzAgeReduction : a.ageReduction;
-        const bRed = bHasBortz ? b.bortzAgeReduction : b.ageReduction;
+        const aRed = (aHasBortz ? a.bortzAgeReduction : a.ageReduction) ?? 0;
+        const bRed = (bHasBortz ? b.bortzAgeReduction : b.ageReduction) ?? 0;
         if (aRed < bRed) return -1;
         if (aRed > bRed) return 1;
 
         return compareQuoteDobAndName(a, b);
     }
 
-    function compareQuoteAthleteRankPhenoOnly(a, b) {
-        const aRed = Number.isFinite(a.ageReduction) ? a.ageReduction : 0;
-        const bRed = Number.isFinite(b.ageReduction) ? b.ageReduction : 0;
+    function compareQuoteAthleteRankPhenoOnly(a: QuoteAthlete, b: QuoteAthlete): number {
+        const aRed = isFiniteNumber(a.ageReduction) ? a.ageReduction : 0;
+        const bRed = isFiniteNumber(b.ageReduction) ? b.ageReduction : 0;
         if (aRed < bRed) return -1;
         if (aRed > bRed) return 1;
         return compareQuoteDobAndName(a, b);
     }
 
-    function compareQuoteAthleteRankPhenoImprovement(a, b) {
-        const aImprovement = Number.isFinite(a.phenoAgeImprovement) ? a.phenoAgeImprovement : Infinity;
-        const bImprovement = Number.isFinite(b.phenoAgeImprovement) ? b.phenoAgeImprovement : Infinity;
+    function compareQuoteAthleteRankPhenoImprovement(a: QuoteAthlete, b: QuoteAthlete): number {
+        const aImprovement = isFiniteNumber(a.phenoAgeImprovement) ? a.phenoAgeImprovement : Infinity;
+        const bImprovement = isFiniteNumber(b.phenoAgeImprovement) ? b.phenoAgeImprovement : Infinity;
         if (aImprovement < bImprovement) return -1;
         if (aImprovement > bImprovement) return 1;
         return compareQuoteAthleteRankPhenoOnly(a, b);
     }
 
-    function compareQuoteAthleteRankBortzImprovement(a, b) {
-        const aImprovement = Number.isFinite(a.bortzAgeImprovement) ? a.bortzAgeImprovement : Infinity;
-        const bImprovement = Number.isFinite(b.bortzAgeImprovement) ? b.bortzAgeImprovement : Infinity;
+    function compareQuoteAthleteRankBortzImprovement(a: QuoteAthlete, b: QuoteAthlete): number {
+        const aImprovement = isFiniteNumber(a.bortzAgeImprovement) ? a.bortzAgeImprovement : Infinity;
+        const bImprovement = isFiniteNumber(b.bortzAgeImprovement) ? b.bortzAgeImprovement : Infinity;
         if (aImprovement < bImprovement) return -1;
         if (aImprovement > bImprovement) return 1;
         return compareQuoteAthleteRank(a, b);
     }
 
-    function compareQuoteAthleteRankCrowdAge(a, b) {
-        const aReduction = Number.isFinite(a.crowdAgeReduction) ? a.crowdAgeReduction : -Infinity;
-        const bReduction = Number.isFinite(b.crowdAgeReduction) ? b.crowdAgeReduction : -Infinity;
+    function compareQuoteAthleteRankCrowdAge(a: QuoteAthlete, b: QuoteAthlete): number {
+        const aReduction = isFiniteNumber(a.crowdAgeReduction) ? a.crowdAgeReduction : -Infinity;
+        const bReduction = isFiniteNumber(b.crowdAgeReduction) ? b.crowdAgeReduction : -Infinity;
         if (aReduction < bReduction) return -1;
         if (aReduction > bReduction) return 1;
 
@@ -3294,7 +3880,7 @@
         return compareQuoteDobAndName(a, b);
     }
 
-    function compareQuoteDobAndName(a, b) {
+    function compareQuoteDobAndName(a: QuoteAthlete, b: QuoteAthlete): number {
         if (a.dateOfBirth < b.dateOfBirth) return -1;
         if (a.dateOfBirth > b.dateOfBirth) return 1;
         if (a.name < b.name) return -1;
@@ -3302,32 +3888,32 @@
         return 0;
     }
 
-    function compareQuoteSubmissionDate(a, b) {
+    function compareQuoteSubmissionDate(a: QuoteSubmissionAge, b: QuoteSubmissionAge): number {
         const timeDiff = a.submittedAt.getTime() - b.submittedAt.getTime();
         return timeDiff !== 0 ? timeDiff : a.index - b.index;
     }
 
-    function orderByQuoteNumberDesc(items, selector) {
+    function orderByQuoteNumberDesc<T>(items: T[], selector: (item: T) => number | null | undefined): T[] {
         return [...items].sort((a, b) => {
             const aValue = selector(a);
             const bValue = selector(b);
-            const aRank = Number.isFinite(aValue) ? aValue : Number.NEGATIVE_INFINITY;
-            const bRank = Number.isFinite(bValue) ? bValue : Number.NEGATIVE_INFINITY;
+            const aRank = isFiniteNumber(aValue) ? aValue : Number.NEGATIVE_INFINITY;
+            const bRank = isFiniteNumber(bValue) ? bValue : Number.NEGATIVE_INFINITY;
             return bRank - aRank;
         });
     }
 
-    function orderByQuoteNumberAsc(items, selector) {
+    function orderByQuoteNumberAsc<T>(items: T[], selector: (item: T) => number | null | undefined): T[] {
         return [...items].sort((a, b) => {
             const aValue = selector(a);
             const bValue = selector(b);
-            const aRank = Number.isFinite(aValue) ? aValue : Number.POSITIVE_INFINITY;
-            const bRank = Number.isFinite(bValue) ? bValue : Number.POSITIVE_INFINITY;
+            const aRank = isFiniteNumber(aValue) ? aValue : Number.POSITIVE_INFINITY;
+            const bRank = isFiniteNumber(bValue) ? bValue : Number.POSITIVE_INFINITY;
             return aRank - bRank;
         });
     }
 
-    function parseQuoteDateOfBirth(dateOfBirth) {
+    function parseQuoteDateOfBirth(dateOfBirth: DateOfBirthParts | undefined): Date | null {
         const year = Number(dateOfBirth?.Year);
         const month = Number(dateOfBirth?.Month);
         const day = Number(dateOfBirth?.Day);
@@ -3336,15 +3922,16 @@
         return Number.isNaN(date.getTime()) ? null : date;
     }
 
-    function parseQuoteDate(value) {
+    function parseQuoteDate(value: string): Date | null {
         const date = new Date(value);
         return Number.isNaN(date.getTime()) ? null : date;
     }
 
-    function calculateQuoteAgeAtDate(dob, date) {
-        if (typeof window.calculateAgeAtDate === "function") {
+    function calculateQuoteAgeAtDate(dob: Date, date: Date): number {
+        const calculateAgeAtDate = readSharedWindowApi().calculateAgeAtDate;
+        if (typeof calculateAgeAtDate === "function") {
             try {
-                return window.calculateAgeAtDate(dob, date);
+                return calculateAgeAtDate.call(window, dob, date);
             } catch (_) {
             }
         }
@@ -3355,7 +3942,7 @@
         return Math.round(((end - start) / msPerDay / 365.2425) * 100) / 100;
     }
 
-    function resolveQuoteGeneration(birthYear) {
+    function resolveQuoteGeneration(birthYear: number): string {
         if (birthYear >= 1928 && birthYear <= 1945) return "Silent Generation";
         if (birthYear >= 1946 && birthYear <= 1964) return "Baby Boomers";
         if (birthYear >= 1965 && birthYear <= 1980) return "Gen X";
@@ -3365,15 +3952,19 @@
         return "Unknown";
     }
 
-    function toFiniteNumber(value) {
+    function toFiniteNumber(value: unknown): number | null {
         const number = Number(value);
         return Number.isFinite(number) ? number : null;
     }
 
+    function isFiniteNumber(value: unknown): value is number {
+        return typeof value === "number" && Number.isFinite(value);
+    }
+
     function initAthleteSelectors() {
         const inputs = ["lmxSignupAthlete"]
-            .map(id => document.getElementById(id))
-            .filter(Boolean);
+            .map(optionalInput)
+            .filter((input): input is HTMLInputElement => input !== null);
         if (!inputs.length) return;
 
         inputs.forEach(input => {
@@ -3387,16 +3978,16 @@
             .then(athletes => inputs.forEach(input => wireAthleteSelector(input, athletes)));
     }
 
-    function wireAthleteSelector(input, athletes) {
+    function wireAthleteSelector(input: HTMLInputElement, athletes: AthleteOption[]): void {
         if (athleteSelectors.has(input.id)) return;
 
         let currentFocus = -1;
         const selected = document.getElementById(`${input.id}Selected`);
         const clearButton = document.getElementById(`${input.id}Clear`);
-        const selector = {
+        const selector: AthleteSelectorController = {
             input,
             athletes,
-            setValue(value) {
+            setValue(value: string) {
                 const raw = String(value || "").trim();
                 const normalized = normalizeAthleteSlug(raw);
                 const match = athletes.find(a =>
@@ -3448,7 +4039,7 @@
                 input.focus();
                 throw new Error(message);
             },
-            getSelectedName() {
+            getSelectedName(): string {
                 return input.dataset.athleteName || input.value.trim();
             }
         };
@@ -3479,16 +4070,18 @@
                 event.preventDefault();
                 currentFocus--;
                 setActive(items);
-            } else if (event.key === "Enter" && currentFocus > -1 && items[currentFocus]) {
+            } else if (event.key === "Enter" && currentFocus > -1) {
+                const activeItem = items[currentFocus];
+                if (!activeItem) return;
                 event.preventDefault();
-                items[currentFocus].dispatchEvent(new MouseEvent("mousedown"));
+                activeItem.dispatchEvent(new MouseEvent("mousedown"));
             } else if (event.key === "Escape") {
                 closeList();
             }
         });
 
         document.addEventListener("click", event => {
-            if (!input.closest(".lmx-athlete-selector")?.contains(event.target)) closeList();
+            if (!(event.target instanceof Node) || !input.closest(".lmx-athlete-selector")?.contains(event.target)) closeList();
         });
 
         clearButton?.addEventListener("click", () => {
@@ -3496,7 +4089,7 @@
             input.focus();
         });
 
-        function renderSuggestions(showInitial) {
+        function renderSuggestions(showInitial = false): void {
             const query = input.value.trim().toLowerCase();
             const terms = query.split(/\s+/).filter(Boolean);
             closeList();
@@ -3540,7 +4133,7 @@
             });
         }
 
-        function select(athlete) {
+        function select(athlete: AthleteOption): void {
             input.value = athlete.name;
             input.dataset.athleteSlug = athlete.slug;
             input.dataset.athleteName = athlete.name;
@@ -3548,12 +4141,12 @@
             updateSelectedState(athlete);
         }
 
-        function clearSelection() {
+        function clearSelection(): void {
             delete input.dataset.athleteSlug;
             delete input.dataset.athleteName;
         }
 
-        function updateSelectedState(athlete) {
+        function updateSelectedState(athlete: AthleteOption | null): void {
             const hasSelection = !!athlete;
             input.classList.toggle("has-athlete-selection", hasSelection);
             clearButton?.classList.toggle("lmx-hidden", !hasSelection && !input.value.trim());
@@ -3566,27 +4159,28 @@
                 : "";
         }
 
-        function closeList() {
+        function closeList(): void {
             document.getElementById(`${input.id}-autocomplete-list`)?.remove();
             input.setAttribute("aria-expanded", "false");
             currentFocus = -1;
         }
 
-        function setActive(items) {
+        function setActive(items: Element[]): void {
             if (!items.length) return;
             items.forEach(item => item.classList.remove("autocomplete-active"));
             if (currentFocus >= items.length) currentFocus = 0;
             if (currentFocus < 0) currentFocus = items.length - 1;
-            items[currentFocus].classList.add("autocomplete-active");
-            items[currentFocus].scrollIntoView({ block: "nearest" });
+            const activeItem = items[currentFocus];
+            activeItem?.classList.add("autocomplete-active");
+            activeItem?.scrollIntoView({ block: "nearest" });
         }
     }
 
-    function getAthleteSelectorPayload(id) {
+    function getAthleteSelectorPayload(id: string): string | null {
         const selector = athleteSelectors.get(id);
         if (selector) return selector.getPayload();
 
-        const input = document.getElementById(id);
+        const input = optionalInput(id);
         if (!input) return null;
 
         const raw = input.value.trim();
@@ -3599,8 +4193,8 @@
         throw new Error(message);
     }
 
-    function getRequiredAthleteSelectorPayload(id) {
-        const input = document.getElementById(id);
+    function getRequiredAthleteSelectorPayload(id: string): string {
+        const input = optionalInput(id);
         const payload = getAthleteSelectorPayload(id);
         if (payload) return payload;
 
@@ -3611,33 +4205,33 @@
         throw new Error(message);
     }
 
-    function getAthleteSelectorDisplayName(id) {
+    function getAthleteSelectorDisplayName(id: string): string {
         const selector = athleteSelectors.get(id);
         if (selector) return selector.getSelectedName();
 
-        const input = document.getElementById(id);
+        const input = optionalInput(id);
         return input?.dataset.athleteName || input?.value.trim() || "";
     }
 
-    function setAthleteSelectorValue(id, value) {
+    function setAthleteSelectorValue(id: string, value: string): void {
         const selector = athleteSelectors.get(id);
         if (selector) {
             selector.setValue(value);
             return;
         }
 
-        const input = document.getElementById(id);
+        const input = optionalInput(id);
         if (input) input.value = value || "";
     }
 
-    function clearAthleteSelector(id) {
+    function clearAthleteSelector(id: string): void {
         const selector = athleteSelectors.get(id);
         if (selector) {
             selector.clear();
             return;
         }
 
-        const input = document.getElementById(id);
+        const input = optionalInput(id);
         if (!input) return;
         input.value = "";
         delete input.dataset.athleteSlug;
@@ -3645,7 +4239,7 @@
         input.setCustomValidity?.("");
     }
 
-    function normalizeAthleteSlug(value) {
+    function normalizeAthleteSlug(value: unknown): string {
         let raw = String(value || "").trim();
         if (!raw) return "";
 
@@ -3664,7 +4258,7 @@
             .replace(/^-|-$/g, "");
     }
 
-    function highlightMatch(value, term) {
+    function highlightMatch(value: string, term: string): string {
         const text = String(value || "");
         const lower = text.toLowerCase();
         const needle = String(term || "").toLowerCase();
@@ -3674,16 +4268,181 @@
         return `${esc(text.slice(0, index))}<strong>${esc(text.slice(index, index + needle.length))}</strong>${esc(text.slice(index + needle.length))}`;
     }
 
-    function getPendingCheckInDays(state) {
+    function getPendingCheckInDays(state: ParticipantState): EligibleDay[] {
         return ((state && state.eligibleDays) || []).filter(day => !day.existing);
     }
 
-    async function getJson(url) {
-        const response = await requestJson(url, { headers: { "Accept": "application/json" } });
-        return readJsonResponse(response, url);
+    type Properties<K extends string> = { [P in K]: unknown };
+
+    function hasProperties<K extends string>(value: unknown, ...keys: K[]): value is object & Properties<K> {
+        return typeof value === "object" && value !== null && keys.every(key => key in value);
     }
 
-    async function postJson(url, payload) {
+    function isNullableString(value: unknown): value is string | null {
+        return value === null || typeof value === "string";
+    }
+
+    function isNullableNumber(value: unknown): value is number | null {
+        return value === null || typeof value === "number";
+    }
+
+    function isArrayOf<T>(value: unknown, guard: (item: unknown) => item is T): value is T[] {
+        return Array.isArray(value) && value.every(guard);
+    }
+
+    function isDaySummary(value: unknown): value is DaySummary {
+        return hasProperties(value, "challengeDay", "date") &&
+            typeof value.challengeDay === "number" && typeof value.date === "string";
+    }
+
+    function isDayCell(value: unknown): value is DayCell {
+        return hasProperties(value, "challengeDay", "checkedIn", "score", "countsForScore", "sleep", "exercise", "nutrition", "vices") &&
+            typeof value.challengeDay === "number" && typeof value.checkedIn === "boolean" &&
+            isNullableNumber(value.score) && typeof value.countsForScore === "boolean" &&
+            isNullableNumber(value.sleep) && isNullableNumber(value.exercise) &&
+            isNullableNumber(value.nutrition) && isNullableNumber(value.vices);
+    }
+
+    function isCheckInImage(value: unknown): value is CheckInImage {
+        return hasProperties(value, "url", "width", "height") &&
+            typeof value.url === "string" && typeof value.width === "number" && typeof value.height === "number";
+    }
+
+    function isCheckInDraft(value: unknown): value is CheckInDraft {
+        return hasProperties(value, "sleep", "exercise", "nutrition", "vices", "note", "images") &&
+            typeof value.sleep === "number" && typeof value.exercise === "number" &&
+            typeof value.nutrition === "number" && typeof value.vices === "number" &&
+            isNullableString(value.note) && isArrayOf(value.images, isCheckInImage);
+    }
+
+    function isEligibleDay(value: unknown): value is EligibleDay {
+        return hasProperties(value, "challengeDay", "date", "countsForScore", "existing") &&
+            typeof value.challengeDay === "number" && typeof value.date === "string" &&
+            typeof value.countsForScore === "boolean" && (value.existing === null || isCheckInDraft(value.existing));
+    }
+
+    function isParticipantNote(value: unknown): value is ParticipantNote {
+        return hasProperties(value, "participantId", "displayName", "challengeDay", "date", "note", "updatedAtUtc", "images") &&
+            typeof value.participantId === "string" && typeof value.displayName === "string" &&
+            typeof value.challengeDay === "number" && typeof value.date === "string" &&
+            isNullableString(value.note) && typeof value.updatedAtUtc === "string" &&
+            isArrayOf(value.images, isCheckInImage);
+    }
+
+    function isLeaderboardRow(value: unknown): value is LeaderboardRow {
+        return hasProperties(value, "participantId", "displayName", "athleteUrl", "profileImageUrl", "checkedInDays", "totalPoints", "currentStreak", "cells", "badges", "latestCheckInAtUtc", "challengeEmailsStopped", "challengeInactive", "commitmentStatus") &&
+            typeof value.participantId === "string" && typeof value.displayName === "string" &&
+            isNullableString(value.athleteUrl) && isNullableString(value.profileImageUrl) &&
+            typeof value.checkedInDays === "number" && typeof value.totalPoints === "number" &&
+            typeof value.currentStreak === "number" && isArrayOf(value.cells, isDayCell) &&
+            Array.isArray(value.badges) && value.badges.every(badge => typeof badge === "string") &&
+            isNullableString(value.latestCheckInAtUtc) && typeof value.challengeEmailsStopped === "boolean" &&
+            typeof value.challengeInactive === "boolean" && isNullableString(value.commitmentStatus);
+    }
+
+    function isPodiumRow(value: unknown): value is PodiumRow {
+        return hasProperties(value, "placement", "displayName", "athleteUrl", "profileImageUrl", "checkedInDays", "totalPoints") &&
+            typeof value.placement === "number" && typeof value.displayName === "string" &&
+            isNullableString(value.athleteUrl) && isNullableString(value.profileImageUrl) &&
+            typeof value.checkedInDays === "number" && typeof value.totalPoints === "number";
+    }
+
+    function isCallSlot(value: unknown): value is CallSlot {
+        return hasProperties(value, "id", "startsAtUtc") &&
+            typeof value.id === "string" && typeof value.startsAtUtc === "string";
+    }
+
+    function isPublicCall(value: unknown): value is PublicCall {
+        return hasProperties(value, "key", "label", "candidateSlots", "selectedSlot") &&
+            typeof value.key === "string" && typeof value.label === "string" &&
+            isArrayOf(value.candidateSlots, isCallSlot) &&
+            (value.selectedSlot === null || isCallSlot(value.selectedSlot));
+    }
+
+    function isParticipantCall(value: unknown): value is ParticipantCall {
+        return hasProperties(value, "key", "label", "selectedSlot", "videoCallUrl") &&
+            typeof value.key === "string" && typeof value.label === "string" &&
+            (value.selectedSlot === null || isCallSlot(value.selectedSlot)) && isNullableString(value.videoCallUrl);
+    }
+
+    function isPublicState(value: unknown): value is PublicState {
+        return hasProperties(value, "challengeName", "phase", "signupOpen", "startDate", "signupClosesAtUtc", "callSelectionClosesAtUtc", "endDate", "durationDays", "dailyMaxScore", "days", "leaderboard", "podium", "notes", "calls", "slackInviteUrl", "slackRoomUrl") &&
+            typeof value.challengeName === "string" && typeof value.phase === "string" &&
+            typeof value.signupOpen === "boolean" && typeof value.startDate === "string" &&
+            typeof value.signupClosesAtUtc === "string" && typeof value.callSelectionClosesAtUtc === "string" &&
+            typeof value.endDate === "string" && typeof value.durationDays === "number" &&
+            typeof value.dailyMaxScore === "number" && isArrayOf(value.days, isDaySummary) &&
+            isArrayOf(value.leaderboard, isLeaderboardRow) && isArrayOf(value.podium, isPodiumRow) &&
+            isArrayOf(value.notes, isParticipantNote) && isArrayOf(value.calls, isPublicCall) &&
+            typeof value.slackInviteUrl === "string" && isNullableString(value.slackRoomUrl);
+    }
+
+    function isParticipantSummary(value: unknown): value is ParticipantSummary {
+        return hasProperties(value, "id", "email", "displayName", "timeZoneId", "athleteSlug", "athleteUrl", "profileImageUrl", "challengeEmailsStopped", "challengeInactive", "commitmentAmountUsd", "daysIn") &&
+            typeof value.id === "string" && typeof value.email === "string" &&
+            typeof value.displayName === "string" && typeof value.timeZoneId === "string" &&
+            isNullableString(value.athleteSlug) && isNullableString(value.athleteUrl) &&
+            isNullableString(value.profileImageUrl) && typeof value.challengeEmailsStopped === "boolean" &&
+            typeof value.challengeInactive === "boolean" && isNullableNumber(value.commitmentAmountUsd) &&
+            typeof value.daysIn === "number";
+    }
+
+    function isCommitmentState(value: unknown): value is CommitmentState {
+        return hasProperties(value, "status", "blocksParticipant", "canEditAmount", "canPay", "amountUsd", "owedAmountUsd", "triggerChallengeDay", "triggerScore", "thresholdAverage", "invoiceId", "checkoutLink", "invoiceStatus", "message") &&
+            typeof value.status === "string" && typeof value.blocksParticipant === "boolean" &&
+            typeof value.canEditAmount === "boolean" && typeof value.canPay === "boolean" &&
+            isNullableNumber(value.amountUsd) && isNullableNumber(value.owedAmountUsd) &&
+            isNullableNumber(value.triggerChallengeDay) && isNullableNumber(value.triggerScore) &&
+            isNullableNumber(value.thresholdAverage) && isNullableString(value.invoiceId) &&
+            isNullableString(value.checkoutLink) && isNullableString(value.invoiceStatus) &&
+            isNullableString(value.message);
+    }
+
+    function isCommitmentTrendGuidance(value: unknown): value is CommitmentTrendGuidance {
+        return hasProperties(value, "enforced", "priorScoredDays", "averagePoints", "neededPoints", "text") &&
+            typeof value.enforced === "boolean" && typeof value.priorScoredDays === "number" &&
+            isNullableNumber(value.averagePoints) && isNullableNumber(value.neededPoints) && typeof value.text === "string";
+    }
+
+    function isParticipantState(value: unknown): value is ParticipantState {
+        return hasProperties(value, "public", "participant", "eligibleDays", "notes", "calls", "commitment", "trendGuidance") &&
+            isPublicState(value.public) && isParticipantSummary(value.participant) &&
+            isArrayOf(value.eligibleDays, isEligibleDay) && isArrayOf(value.notes, isParticipantNote) &&
+            isArrayOf(value.calls, isParticipantCall) && isCommitmentState(value.commitment) &&
+            isCommitmentTrendGuidance(value.trendGuidance);
+    }
+
+    function isSignupResult(value: unknown): value is SignupResult {
+        return hasProperties(value, "message") && typeof value.message === "string";
+    }
+
+    function isAccessResult(value: unknown): value is AccessResult {
+        return hasProperties(value, "accessToken", "state") &&
+            typeof value.accessToken === "string" && isParticipantState(value.state);
+    }
+
+    function invalidApiResponse(url: string): Error {
+        return new Error(`${url} returned an unexpected response shape.`);
+    }
+
+    async function getJson(url: `${typeof API}/state`): Promise<PublicState>;
+    async function getJson(url: string): Promise<unknown>;
+    async function getJson(url: string): Promise<unknown> {
+        const response = await requestJson(url, { headers: { "Accept": "application/json" } });
+        const data = await readJsonResponse(response, url);
+        if (url === `${API}/state` && !isPublicState(data)) throw invalidApiResponse(url);
+        return data;
+    }
+
+    async function postJson(url: `${typeof API}/signup` | `${typeof API}/resend`, payload: object): Promise<SignupResult>;
+    async function postJson(url: `${typeof API}/confirm`, payload: object): Promise<AccessResult>;
+    async function postJson(
+        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/commitment-payment` | `${typeof API}/commitment-payment/status` | `${typeof API}/check-in`,
+        payload: object
+    ): Promise<ParticipantState>;
+    async function postJson(url: `${typeof API}/stop-emails`, payload: object): Promise<unknown>;
+    async function postJson(url: string, payload: object): Promise<unknown>;
+    async function postJson(url: string, payload: object): Promise<unknown> {
         const response = await requestJson(url, {
             method: "POST",
             headers: {
@@ -3692,19 +4451,27 @@
             },
             body: JSON.stringify(payload)
         });
-        return readJsonResponse(response, url);
+        const data = await readJsonResponse(response, url);
+        if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
+        if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
+        if ((url === `${API}/edit` || url === `${API}/participant` || url === `${API}/commitment-payment` || url === `${API}/commitment-payment/status` || url === `${API}/check-in`) && !isParticipantState(data)) {
+            throw invalidApiResponse(url);
+        }
+        return data;
     }
 
-    async function postForm(url, formData) {
+    async function postForm(url: `${typeof API}/check-in` | `${typeof API}/profile-picture`, formData: FormData): Promise<ParticipantState> {
         const response = await requestJson(url, {
             method: "POST",
             headers: { "Accept": "application/json" },
             body: formData
         });
-        return readJsonResponse(response, url);
+        const data = await readJsonResponse(response, url);
+        if (!isParticipantState(data)) throw invalidApiResponse(url);
+        return data;
     }
 
-    async function requestJson(url, options) {
+    async function requestJson(url: string, options: RequestInit): Promise<Response> {
         const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
         const timer = controller
             ? window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
@@ -3716,17 +4483,17 @@
                 ...(controller ? { signal: controller.signal } : {})
             });
         } catch (err) {
-            if (err && err.name === "AbortError") throw new Error("Request timed out");
+            if (hasStringProperty(err, "name") && err.name === "AbortError") throw new Error("Request timed out");
             throw err;
         } finally {
             if (timer) window.clearTimeout(timer);
         }
     }
 
-    async function readJsonResponse(response, url) {
+    async function readJsonResponse(response: Response, url: string): Promise<unknown> {
         const text = await response.text();
         const contentType = response.headers.get("content-type") || "";
-        let data = {};
+        let data: unknown = {};
         if (text) {
             try {
                 data = JSON.parse(text);
@@ -3741,23 +4508,28 @@
             const fallback = response.statusText || (response.status ? `HTTP ${response.status}` : "Request failed");
             const message = typeof data === "string" && data.trim()
                 ? data.trim()
-                : data && typeof data.message === "string" && data.message.trim()
+                : hasStringProperty(data, "message") && data.message.trim()
                     ? data.message.trim()
                     : Array.isArray(data)
                         ? data.filter(value => typeof value === "string").map(value => value.trim()).filter(Boolean).join("\n")
                         : "";
-            const err = new Error(message || fallback);
-            err.status = response.status;
-            throw err;
+            throw Object.assign(new Error(message || fallback), { status: response.status });
         }
         return data;
     }
 
-    function isAuthFailure(err) {
-        return err && (err.status === 401 || err.status === 403);
+    function hasStringProperty<K extends string>(value: unknown, key: K): value is object & { [P in K]: string } {
+        return hasProperties(value, key) && typeof value[key] === "string";
     }
 
-    async function withButton(button, work, busyText) {
+    function isAuthFailure(err: unknown): boolean {
+        if (!(err instanceof Error) || !hasProperties(err, "status")) return false;
+        const status = err.status;
+        return status === 401 || status === 403;
+    }
+
+    async function withButton(button: HTMLButtonElement | null, work: ButtonWork, busyText: string): Promise<void> {
+        if (!button) return;
         if (button.disabled || button.getAttribute("aria-busy") === "true") return;
 
         const original = button.innerHTML;
@@ -3780,8 +4552,7 @@
         }
     }
 
-    function fillTimeZones(select) {
-        if (!select) return;
+    function fillTimeZones(select: HTMLSelectElement): void {
         const current = getBrowserTimeZone();
         select.innerHTML = getAvailableTimeZones(current)
             .filter(Boolean)
@@ -3790,12 +4561,12 @@
         setDefaultTimezone(select);
     }
 
-    function initTimeZonePickers() {
-        document.querySelectorAll("[data-timezone-picker]").forEach(picker => {
+    function initTimeZonePickers(): void {
+        document.querySelectorAll<HTMLElement>("[data-timezone-picker]").forEach(picker => {
             if (picker.dataset.wired === "true") return;
             picker.dataset.wired = "true";
             const button = picker.querySelector(".lmx-timezone-button");
-            const input = picker.querySelector(".lmx-timezone-search input");
+            const input = picker.querySelector<HTMLInputElement>(".lmx-timezone-search input");
             const select = getTimeZoneSelect(picker);
 
             button?.addEventListener("click", () => toggleTimeZonePicker(picker));
@@ -3806,18 +4577,18 @@
         });
 
         document.addEventListener("click", event => {
-            document.querySelectorAll("[data-timezone-picker].open").forEach(picker => {
-                if (!picker.contains(event.target)) closeTimeZonePicker(picker);
+            document.querySelectorAll<HTMLElement>("[data-timezone-picker].open").forEach(picker => {
+                if (!(event.target instanceof Node) || !picker.contains(event.target)) closeTimeZonePicker(picker);
             });
         });
     }
 
-    function getTimeZoneSelect(picker) {
+    function getTimeZoneSelect(picker: HTMLElement): HTMLSelectElement | null {
         const id = picker?.dataset?.selectId || "";
-        return id ? document.getElementById(id) : null;
+        return id ? optionalSelect(id) : null;
     }
 
-    function toggleTimeZonePicker(picker) {
+    function toggleTimeZonePicker(picker: HTMLElement): void {
         if (picker.classList.contains("open")) {
             closeTimeZonePicker(picker);
         } else {
@@ -3825,14 +4596,14 @@
         }
     }
 
-    function openTimeZonePicker(picker) {
-        document.querySelectorAll("[data-timezone-picker].open").forEach(openPicker => {
+    function openTimeZonePicker(picker: HTMLElement): void {
+        document.querySelectorAll<HTMLElement>("[data-timezone-picker].open").forEach(openPicker => {
             if (openPicker !== picker) closeTimeZonePicker(openPicker);
         });
         picker.classList.add("open");
         const button = picker.querySelector(".lmx-timezone-button");
-        const popover = picker.querySelector(".lmx-timezone-popover");
-        const input = picker.querySelector(".lmx-timezone-search input");
+        const popover = picker.querySelector<HTMLElement>(".lmx-timezone-popover");
+        const input = picker.querySelector<HTMLInputElement>(".lmx-timezone-search input");
         button?.setAttribute("aria-expanded", "true");
         if (popover) popover.hidden = false;
         if (input) {
@@ -3845,14 +4616,14 @@
         }
     }
 
-    function closeTimeZonePicker(picker) {
+    function closeTimeZonePicker(picker: HTMLElement): void {
         picker.classList.remove("open");
         picker.querySelector(".lmx-timezone-button")?.setAttribute("aria-expanded", "false");
-        const popover = picker.querySelector(".lmx-timezone-popover");
+        const popover = picker.querySelector<HTMLElement>(".lmx-timezone-popover");
         if (popover) popover.hidden = true;
     }
 
-    function syncTimeZonePicker(picker) {
+    function syncTimeZonePicker(picker: HTMLElement): void {
         const select = getTimeZoneSelect(picker);
         const display = picker.querySelector("[data-timezone-display]");
         const offset = picker.querySelector("[data-timezone-offset]");
@@ -3861,7 +4632,7 @@
         if (offset) offset.textContent = timeZoneOffsetLabel(value);
     }
 
-    function renderTimeZoneOptions(picker, query) {
+    function renderTimeZoneOptions(picker: HTMLElement, query: string): void {
         const select = getTimeZoneSelect(picker);
         const list = picker.querySelector(".lmx-timezone-list");
         if (!select || !list) return;
@@ -3877,38 +4648,38 @@
             ? matches.map((item, index) => timeZoneOptionHtml(item.zone, selected, index === 0)).join("")
             : `<div class="lmx-timezone-empty">No timezone found</div>`;
 
-        list.querySelectorAll(".lmx-timezone-option").forEach(option => {
+        list.querySelectorAll<HTMLElement>(".lmx-timezone-option").forEach(option => {
             option.addEventListener("click", () => chooseTimeZone(picker, option.dataset.timeZone || "UTC"));
         });
     }
 
-    function timeZoneOptionHtml(zone, selected, active) {
+    function timeZoneOptionHtml(zone: string, selected: string, active: boolean): string {
         return `<button type="button" class="lmx-timezone-option${active ? " active" : ""}" role="option" data-time-zone="${escAttr(zone)}" aria-selected="${zone === selected ? "true" : "false"}">
             <span>${esc(timeZoneDisplayName(zone))}</span>
             <small>${esc(zone)} · ${esc(timeZoneOffsetLabel(zone))}</small>
         </button>`;
     }
 
-    function chooseTimeZone(picker, zone) {
+    function chooseTimeZone(picker: HTMLElement, zone: string): void {
         const select = getTimeZoneSelect(picker);
         if (!select) return;
         setSelectValue(select, zone);
         select.dispatchEvent(new Event("change", { bubbles: true }));
         closeTimeZonePicker(picker);
-        picker.querySelector(".lmx-timezone-button")?.focus();
+        picker.querySelector<HTMLButtonElement>(".lmx-timezone-button")?.focus();
     }
 
-    function handleTimeZoneSearchKeydown(event, picker) {
-        const options = Array.from(picker.querySelectorAll(".lmx-timezone-option"));
+    function handleTimeZoneSearchKeydown(event: KeyboardEvent, picker: HTMLElement): void {
+        const options = Array.from(picker.querySelectorAll<HTMLElement>(".lmx-timezone-option"));
         if (event.key === "Escape") {
             event.preventDefault();
             closeTimeZonePicker(picker);
-            picker.querySelector(".lmx-timezone-button")?.focus();
+            picker.querySelector<HTMLButtonElement>(".lmx-timezone-button")?.focus();
             return;
         }
         if (event.key === "Enter") {
             event.preventDefault();
-            const active = picker.querySelector(".lmx-timezone-option.active") || options[0];
+            const active = picker.querySelector<HTMLElement>(".lmx-timezone-option.active") || options[0];
             if (active) chooseTimeZone(picker, active.dataset.timeZone || "UTC");
             return;
         }
@@ -3920,10 +4691,10 @@
             ? (current + 1) % options.length
             : (current - 1 + options.length) % options.length;
         options.forEach((option, index) => option.classList.toggle("active", index === next));
-        options[next].scrollIntoView({ block: "nearest" });
+        options[next]?.scrollIntoView({ block: "nearest" });
     }
 
-    function getAvailableTimeZones(current) {
+    function getAvailableTimeZones(current: string): string[] {
         const zones = typeof Intl.supportedValuesOf === "function"
             ? Intl.supportedValuesOf("timeZone")
             : FALLBACK_TIME_ZONES;
@@ -3933,16 +4704,15 @@
         return Array.from(new Set([current || "UTC", ...sorted]));
     }
 
-    function setDefaultTimezone(select) {
+    function setDefaultTimezone(select: HTMLSelectElement): void {
         setSelectValue(select, getBrowserTimeZone());
     }
 
-    function getBrowserTimeZone() {
+    function getBrowserTimeZone(): string {
         return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     }
 
-    function setSelectValue(select, value) {
-        if (!select) return;
+    function setSelectValue(select: HTMLSelectElement, value: string): void {
         const candidate = value || "UTC";
         if (!Array.from(select.options).some(option => option.value === candidate)) {
             const option = document.createElement("option");
@@ -3951,12 +4721,12 @@
             select.appendChild(option);
         }
         select.value = candidate;
-        const picker = Array.from(document.querySelectorAll("[data-timezone-picker]"))
+        const picker = Array.from(document.querySelectorAll<HTMLElement>("[data-timezone-picker]"))
             .find(candidatePicker => candidatePicker.dataset.selectId === select.id);
         if (picker) syncTimeZonePicker(picker);
     }
 
-    function timeZoneMatchScore(zone, terms, selected) {
+    function timeZoneMatchScore(zone: string, terms: string[], selected: string): number {
         if (!terms.length) return zone === selected ? 1000 : 1;
         const haystack = normalizeTimeZoneQuery(`${zone} ${timeZoneDisplayName(zone)} ${timeZoneCountryLabel(zone, true)}`);
         let score = zone === selected ? 8 : 0;
@@ -3969,7 +4739,7 @@
         return score;
     }
 
-    function normalizeTimeZoneQuery(value) {
+    function normalizeTimeZoneQuery(value: string): string {
         return String(value || "")
             .toLowerCase()
             .replace(/[_/-]+/g, " ")
@@ -3977,7 +4747,7 @@
             .trim();
     }
 
-    function timeZoneDisplayName(zone) {
+    function timeZoneDisplayName(zone: string): string {
         if (!zone) return "UTC";
         const parts = String(zone).split("/");
         const city = (parts[parts.length - 1] || zone).replace(/_/g, " ");
@@ -3985,7 +4755,7 @@
         return country ? `${city}, ${country}` : city;
     }
 
-    function timeZoneCountryLabel(zone, includeAll) {
+    function timeZoneCountryLabel(zone: string, includeAll: boolean): string {
         const codes = getTimeZoneCountryCodes().get(zone) || [];
         const names = codes
             .map(code => {
@@ -4001,17 +4771,18 @@
         return names[0] || "";
     }
 
-    function getTimeZoneCountryCodes() {
+    function getTimeZoneCountryCodes(): Map<string, string[]> {
         if (!timeZoneCountryCodes) {
-            timeZoneCountryCodes = new Map(TIME_ZONE_COUNTRY_DATA.split("|").map(entry => {
-                const [zone, codes] = entry.split("=");
-                return [zone, String(codes || "").split(",").filter(Boolean)];
+            timeZoneCountryCodes = new Map(TIME_ZONE_COUNTRY_DATA.split("|").map(serializedEntry => {
+                const [zone, codes] = serializedEntry.split("=");
+                const mapEntry: [string, string[]] = [zone || "", String(codes || "").split(",").filter(Boolean)];
+                return mapEntry;
             }));
         }
         return timeZoneCountryCodes;
     }
 
-    function timeZoneOffsetLabel(zone) {
+    function timeZoneOffsetLabel(zone: string): string {
         try {
             const parts = new Intl.DateTimeFormat("en-US", {
                 timeZone: zone,
@@ -4026,7 +4797,7 @@
     }
 
 
-    function phaseLabel(phase) {
+    function phaseLabel(phase: string | undefined): string {
         switch (phase) {
             case "signup": return "Signup open";
             case "roster": return "Getting ready";
@@ -4035,51 +4806,59 @@
         }
     }
 
-    function isPreStartSignup(state) {
+    function isPreStartSignup(state: Partial<PublicState>): boolean {
         return !!state && state.phase === "signup";
     }
 
-    function formatDateLabel(value) {
+    function formatDateLabel(value: string): string {
         const date = parseIsoDate(value);
         if (!date) return value || "";
         return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" }).format(date);
     }
 
-    function formatShortDateLabel(value) {
+    function formatShortDateLabel(value: string): string {
         const date = parseIsoDate(value);
         if (!date) return value || "";
         return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(date);
     }
 
-    function formatCheckInDate(value) {
+    function formatCheckInDate(value: string): string {
         const date = parseIsoDate(value);
         if (!date) return value || "";
         return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" }).format(date);
     }
 
-    function formatWeekday(value) {
+    function formatWeekday(value: string): string {
         const date = parseIsoDate(value);
         if (!date) return value || "";
         return new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(date);
     }
 
-    function parseIsoDate(value) {
+    function parseIsoDate(value: string | undefined): Date | null {
         const parts = String(value || "").split("-").map(Number);
         if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
-        return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 12, 0, 0));
+        const year = parts[0];
+        const month = parts[1];
+        const day = parts[2];
+        if (year === undefined || month === undefined || day === undefined) return null;
+        return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
     }
 
-    function datePlusDays(value, days) {
+    function datePlusDays(value: string, days: number): string {
         const parts = String(value || "").split("-").map(Number);
         if (parts.length !== 3 || parts.some(Number.isNaN)) return value || "";
-        const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + days, 12, 0, 0));
+        const year = parts[0];
+        const month = parts[1];
+        const day = parts[2];
+        if (year === undefined || month === undefined || day === undefined) return value || "";
+        const date = new Date(Date.UTC(year, month - 1, day + days, 12, 0, 0));
         return date.toISOString().slice(0, 10);
     }
 
-    function formatDateTime(value, timeZoneId) {
+    function formatDateTime(value: string, timeZoneId: string): string {
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return value || "";
-        const options = {
+        const options: Intl.DateTimeFormatOptions = {
             weekday: "short",
             month: "short",
             day: "numeric",
@@ -4092,16 +4871,16 @@
         return new Intl.DateTimeFormat("en-US", options).format(date);
     }
 
-    function formatCallWhen(value, timeZoneId) {
+    function formatCallWhen(value: string, timeZoneId: string): { primary: string; secondary: string } {
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return { primary: value || "", secondary: "" };
         const timeZone = normalizeDisplayTimeZone(timeZoneId);
-        const primaryOptions = {
+        const primaryOptions: Intl.DateTimeFormatOptions = {
             weekday: "long",
             hour: "numeric",
             minute: "2-digit"
         };
-        const secondaryOptions = {
+        const secondaryOptions: Intl.DateTimeFormatOptions = {
             month: "short",
             day: "numeric",
             timeZoneName: "short"
@@ -4116,15 +4895,15 @@
         };
     }
 
-    function pendingCallTimeLabel(callSelectionClosesAtUtc, timeZoneId) {
+    function pendingCallTimeLabel(_callSelectionClosesAtUtc: string, _timeZoneId: string): string {
         return "Meeting time pending.";
     }
 
-    function getParticipantTimeZone() {
+    function getParticipantTimeZone(): string {
         return participantState?.participant?.timeZoneId || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     }
 
-    function normalizeDisplayTimeZone(timeZoneId) {
+    function normalizeDisplayTimeZone(timeZoneId: string): string | null {
         const value = String(timeZoneId || "").trim();
         if (!value) return null;
         try {
@@ -4135,7 +4914,7 @@
         }
     }
 
-    function setStatus(id, message, isError) {
+    function setStatus(id: string, message: string, isError: boolean): void {
         const el = document.getElementById(id);
         if (!el) return;
         el.textContent = message || "";
@@ -4143,27 +4922,27 @@
         el.classList.toggle("success", !isError && !!message);
     }
 
-    function setText(id, value) {
+    function setText(id: string, value: string): void {
         const el = document.getElementById(id);
         if (el) el.textContent = value;
     }
 
-    function toggle(id, visible) {
+    function toggle(id: string, visible: boolean): void {
         const el = document.getElementById(id);
         if (!el) return;
         el.classList.toggle("lmx-hidden", !visible);
         el.toggleAttribute("hidden", !visible);
     }
 
-    function messageOf(err) {
-        return err && err.message ? err.message : "Something went wrong.";
+    function messageOf(err: unknown): string {
+        return hasStringProperty(err, "message") && err.message ? err.message : "Something went wrong.";
     }
 
-    function capitalize(value) {
+    function capitalize(value: string): string {
         return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
     }
 
-    function esc(value) {
+    function esc(value: unknown): string {
         return String(value ?? "")
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -4172,19 +4951,19 @@
             .replace(/'/g, "&#39;");
     }
 
-    function escAttr(value) {
+    function escAttr(value: unknown): string {
         return esc(value);
     }
 
-    function safeStorageGet(key) {
+    function safeStorageGet(key: string): string | null {
         try { return localStorage.getItem(key); } catch (_) { return null; }
     }
 
-    function safeStorageSet(key, value) {
+    function safeStorageSet(key: string, value: string): void {
         try { localStorage.setItem(key, value); } catch (_) {}
     }
 
-    function safeStorageRemove(key) {
+    function safeStorageRemove(key: string): void {
         try { localStorage.removeItem(key); } catch (_) {}
     }
 })();
