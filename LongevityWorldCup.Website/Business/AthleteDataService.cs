@@ -452,7 +452,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         JsonArray openDataRoot;
         try
         {
-            var openDataCandidates = await LoadOpenDataProfilesBestEffortAsync();
+            var openDataCandidates = await LoadValidOpenDataProfilesAsync("startup");
             openDataRoot = ReconcileOpenDataProfilesForOfficialSnapshot(
                 athletesRoot,
                 openDataCandidates);
@@ -490,18 +490,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         try
         {
-            var openDataFromDisk = await LoadProfileRootAsync(
-                _openDataProfilesRootDir,
-                "profile.json",
-                AthleteProfileType.OpenData,
-                "public-data-profiles");
-
-            // Validate the OpenData root on its own before reconciling it against
-            // the authoritative official-athlete snapshot. Official collisions
-            // and a temporary cap are handled by withholding display profiles;
-            // malformed or internally ambiguous OpenData retains the last good
-            // display snapshot instead.
-            ValidateCombinedProfileIdentities([], openDataFromDisk);
+            var openDataFromDisk = await LoadValidOpenDataProfilesAsync("official athlete refresh");
             openDataCandidates = openDataFromDisk;
         }
         catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
@@ -576,12 +565,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             "athletes");
         _ = GetUniqueProfileSlugs(officialAthletesOnDisk);
 
-        var openDataRoot = await LoadProfileRootAsync(
-            _openDataProfilesRootDir,
-            "profile.json",
-            AthleteProfileType.OpenData,
-            "public-data-profiles");
-        ValidateCombinedProfileIdentities([], openDataRoot);
+        var openDataRoot = await LoadValidOpenDataProfilesAsync("public-data refresh");
 
         var onDiskOfficialIdentities = GetProfileIdentityKeys(officialAthletesOnDisk);
 
@@ -710,7 +694,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return result;
     }
 
-    private async Task<JsonArray> LoadOpenDataProfilesBestEffortAsync()
+    private async Task<JsonArray> LoadValidOpenDataProfilesAsync(string loadContext)
     {
         var result = new JsonArray();
         var files = Directory
@@ -726,12 +710,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     AthleteProfileType.OpenData,
                     "public-data-profiles"));
             }
-            catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
+            catch (Exception ex) when (IsInvalidOpenDataProfileException(ex))
             {
                 _log.LogError(
                     ex,
-                    "Withheld invalid OpenData profile {OpenDataProfilePath} during startup.",
-                    file);
+                    "Withheld invalid OpenData profile {OpenDataProfilePath} during {OpenDataLoadContext}.",
+                    file,
+                    loadContext);
             }
         }
 
@@ -1142,6 +1127,14 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             or ArgumentException
             or NotSupportedException
             or SqliteException;
+
+    private static bool IsInvalidOpenDataProfileException(Exception exception) =>
+        exception is InvalidDataException
+            or JsonException
+            or InvalidOperationException
+            or FormatException
+            or ArgumentException
+            or NotSupportedException;
 
     /// <summary>
     /// Fired if the FileSystemWatcher’s internal buffer overflows or another error occurs.
