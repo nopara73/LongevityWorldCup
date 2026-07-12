@@ -484,20 +484,27 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             "athletes");
         _ = GetUniqueProfileSlugs(athletesRoot);
 
-        JsonArray openDataCandidates;
+        JsonArray previousOpenDataProfiles;
         lock (_athletesJsonLock)
-            openDataCandidates = (JsonArray)_openDataProfiles.DeepClone();
+            previousOpenDataProfiles = (JsonArray)_openDataProfiles.DeepClone();
 
+        JsonArray openDataCandidates;
         try
         {
-            var openDataFromDisk = await LoadValidOpenDataProfilesAsync("official athlete refresh");
-            openDataCandidates = openDataFromDisk;
+            openDataCandidates = await LoadValidOpenDataProfilesAsync(
+                "official athlete refresh",
+                previousOpenDataProfiles);
         }
         catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
         {
+            // Publishing a new official snapshot against the previous OpenData
+            // snapshot could re-expose a profile that was deleted or corrected on
+            // disk. OpenData is optional, so fail closed for this combined snapshot;
+            // a later successful OpenData refresh will restore valid profiles.
             _log.LogError(
                 ex,
-                "Could not re-read OpenData profiles during an official athlete refresh; reconciling the last valid OpenData snapshot instead.");
+                "Could not re-read OpenData profiles during an official athlete refresh; publishing the official snapshot without OpenData profiles.");
+            openDataCandidates = [];
         }
 
         var reconciledOpenData = ReconcileOpenDataProfilesForOfficialSnapshot(
@@ -555,7 +562,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         // depend on hydrating every official profile and its image assets.
         var onDiskOfficialIdentities = await LoadOfficialIdentityKeysFromDiskAsync();
 
-        var openDataRoot = await LoadValidOpenDataProfilesAsync("public-data refresh");
+        JsonArray previousOpenDataProfiles;
+        lock (_athletesJsonLock)
+            previousOpenDataProfiles = (JsonArray)_openDataProfiles.DeepClone();
+
+        var openDataRoot = await LoadValidOpenDataProfilesAsync(
+            "public-data refresh",
+            previousOpenDataProfiles);
 
         lock (_athletesJsonLock)
         {
@@ -700,9 +713,22 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return identities;
     }
 
-    private async Task<JsonArray> LoadValidOpenDataProfilesAsync(string loadContext)
+    private async Task<JsonArray> LoadValidOpenDataProfilesAsync(
+        string loadContext,
+        JsonArray? transientFallbackProfiles = null)
     {
         var result = new JsonArray();
+        var transientFallbackBySlug = new Dictionary<string, JsonObject>(StringComparer.OrdinalIgnoreCase);
+        if (transientFallbackProfiles is not null)
+        {
+            foreach (var profile in transientFallbackProfiles.OfType<JsonObject>())
+            {
+                var slug = profile["AthleteSlug"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(slug))
+                    transientFallbackBySlug[slug] = profile;
+            }
+        }
+
         var files = Directory
             .EnumerateFiles(_openDataProfilesRootDir, "profile.json", SearchOption.AllDirectories)
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase);
@@ -723,6 +749,31 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     "Withheld invalid OpenData profile {OpenDataProfilePath} during {OpenDataLoadContext}.",
                     file,
                     loadContext);
+            }
+            catch (Exception ex) when (IsTransientOpenDataProfileReadException(ex))
+            {
+                var folderName = Path.GetFileName(Path.GetDirectoryName(file)!);
+                var slug = folderName.Replace('-', '_');
+                if (File.Exists(file) && transientFallbackBySlug.TryGetValue(slug, out var fallbackProfile))
+                {
+                    // The current disk enumeration proves this slug still exists.
+                    // Preserve only its own last-good value; deleted profiles stay
+                    // deleted and other readable profiles still publish updates.
+                    result.Add(fallbackProfile.DeepClone());
+                    _log.LogWarning(
+                        ex,
+                        "Could not temporarily read OpenData profile {OpenDataProfilePath} during {OpenDataLoadContext}; retaining its last valid same-slug snapshot.",
+                        file,
+                        loadContext);
+                }
+                else
+                {
+                    _log.LogError(
+                        ex,
+                        "Could not read OpenData profile {OpenDataProfilePath} during {OpenDataLoadContext}; withholding it because no current same-slug fallback is available.",
+                        file,
+                        loadContext);
+                }
             }
         }
 
@@ -1170,6 +1221,9 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             or FormatException
             or ArgumentException
             or NotSupportedException;
+
+    private static bool IsTransientOpenDataProfileReadException(Exception exception) =>
+        exception is IOException or UnauthorizedAccessException;
 
     /// <summary>
     /// Fired if the FileSystemWatcher’s internal buffer overflows or another error occurs.
