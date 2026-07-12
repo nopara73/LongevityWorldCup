@@ -1,5 +1,6 @@
 using LongevityWorldCup.Website.Tools;
 using System.Text.RegularExpressions;
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -192,7 +193,7 @@ public sealed class ApplicationOnboardingPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/misc.js");
+        var javascript = await GetFrontendTypeScriptAsync(client, "misc.ts");
         var html = await client.GetStringAsync("/onboarding/convergence.html");
 
         Assert.Contains("window.readApplicationErrorMessage = async function (response)", javascript);
@@ -202,12 +203,13 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("return fallback;", javascript);
         Assert.Contains("if (/^(?:<!doctype\\s+html\\b|<html[\\s>])/i.test(raw)) return fallback || 'Request failed';", javascript);
         Assert.Contains("if (typeof data === 'string' && data.trim())", javascript);
-        Assert.Contains("if (data && typeof data.message === 'string' && data.message.trim())", javascript);
-        Assert.Contains("if (data && data.errors && typeof data.errors === 'object')", javascript);
-        Assert.Contains("const collectMessages = function (values)", javascript);
-        Assert.Contains(".filter(value => typeof value === 'string')", javascript);
+        Assert.Contains("const data: unknown = JSON.parse(raw);", javascript);
+        Assert.Contains("if (isRecord(data) && typeof data.message === 'string' && data.message.trim())", javascript);
+        Assert.Contains("if (isRecord(data) && isRecord(data.errors))", javascript);
+        Assert.Contains("const collectMessages = function (values: readonly unknown[]): string[]", javascript);
+        Assert.Contains(".filter((value): value is string => typeof value === 'string')", javascript);
         Assert.Contains("if (Array.isArray(data))", javascript);
-        Assert.Contains("if (data && typeof data === 'object' && !Array.isArray(data))", javascript);
+        Assert.Contains("if (isRecord(data))", javascript);
         Assert.Contains("return messages.join('\\n');", javascript);
         Assert.DoesNotContain(".map(value => String(value || '').trim())", javascript);
         Assert.Contains("const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';", html);
@@ -226,12 +228,12 @@ public sealed class ApplicationOnboardingPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
-        var javascript = await client.GetStringAsync("/js/misc.js");
+        var javascript = await GetFrontendTypeScriptAsync(client, "misc.ts");
 
         Assert.Contains("const ctx = canvas.getContext('2d');", javascript);
         Assert.Contains("if (!ctx) return null;", javascript);
         Assert.Contains("if (!optimizedBlob) {", javascript);
-        Assert.Contains("return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] };", javascript);
+        Assert.Contains("return { dataUrl: dataUri, contentType, extension: contentType.split('/')[1] ?? null };", javascript);
     }
 
     [Fact]
@@ -995,4 +997,5 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("cropButton.disabled = false;", cropBody);
         Assert.Contains("cancelProfileCropButton.disabled = false;", cropBody);
     }
+
 }

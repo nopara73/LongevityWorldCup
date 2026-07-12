@@ -1,12 +1,100 @@
+type BioageBrowserStorageName = 'localStorage' | 'sessionStorage';
+type BioageStorageGetter = (key: string) => string | null;
+type BioageStorageRemover = (key: string) => void;
+
+interface BioageSelectedAthleteDateOfBirth {
+    Year: unknown;
+    Month: unknown;
+    Day: unknown;
+}
+
+interface BioageSelectedAthlete {
+    Name: string;
+    DateOfBirth: BioageSelectedAthleteDateOfBirth;
+    Biomarkers?: unknown[];
+}
+
+interface BioageLatestBiomarkerValue {
+    entry: object;
+    value: number;
+}
+
+interface BioageBiomarkerComparisonState {
+    currentDisplayValue?: unknown;
+    previousDisplayValue?: unknown;
+    currentScore?: unknown;
+    previousScore?: unknown;
+    neutral?: boolean;
+}
+
+type BioageBiomarkerComparisonGetter = (input: HTMLInputElement) => BioageBiomarkerComparisonState | null | undefined;
+type BioageUnitDisplayValue = (
+    canonicalValue: number,
+    option: HTMLOptionElement,
+    unitText: string
+) => unknown;
+
+interface BioageResultRevealOptions {
+    instant?: boolean;
+}
+
+interface LwcBioageFlowApi {
+    bindBiomarkerComparison: (inputId: string, getState: BioageBiomarkerComparisonGetter) => void;
+    clearStoredBiomarkerHandoff: (removeItem?: BioageStorageRemover) => void;
+    buildUnitSpecificBiomarkerPlaceholders: (
+        inputId: string,
+        canonicalValue: unknown,
+        displayValueForUnit?: BioageUnitDisplayValue
+    ) => object | null;
+    getLatestBiomarkerEntry: (athlete: unknown, fieldNames?: string | readonly string[]) => object | null;
+    getLatestBiomarkerValue: (athlete: unknown, fieldNames: string | readonly string[]) => BioageLatestBiomarkerValue | null;
+    getBackDestination: (isUpdate: boolean) => '/dashboard' | '/join';
+    getBrowserStorageItem: (storageName: BioageBrowserStorageName, key: string) => string | null;
+    getLocalItem: BioageStorageGetter;
+    getSessionItem: BioageStorageGetter;
+    hasFiniteBiomarkerValue: (value: unknown) => boolean;
+    hideUpdateModeStepNavigation: () => void;
+    isUpdateMode: (search?: string) => boolean;
+    isValidSelectedAthlete: (value: unknown) => value is BioageSelectedAthlete;
+    navigateBack: (isUpdate: boolean) => void;
+    readBiomarkerValue: (entry: unknown, fieldNames: string | readonly string[]) => number | null;
+    readSelectedAthlete: (getItem?: BioageStorageGetter) => unknown;
+    redirectMissingSelectedAthlete: (removeItem?: BioageStorageRemover) => void;
+    removeBrowserStorageItem: (storageName: BioageBrowserStorageName, key: string) => void;
+    removeLocalItem: BioageStorageRemover;
+    removeSessionItem: BioageStorageRemover;
+    resetUpdateModeScroll: () => void;
+    revealBioageResult: (resultElement: HTMLElement | null, revealOptions?: BioageResultRevealOptions) => void;
+    setBrowserStorageItem: (storageName: BioageBrowserStorageName, key: string, value: string) => boolean;
+    setLocalItem: (key: string, value: string) => boolean;
+    setSubmittedBiomarkerPlaceholders: (placeholdersByInputId: unknown) => void;
+    setSessionItem: (key: string, value: string) => boolean;
+    syncBioageResultActions: () => void;
+    syncBioageResultVisibility: () => void;
+    syncBiomarkerExamplePlaceholders: (root?: ParentNode | null) => void;
+    toFiniteBiomarkerNumber: (value: unknown) => number | null;
+    updateBiomarkerComparison: (inputId: string) => void;
+    updateBiomarkerExamplePlaceholder: (selectOrInput: Element | null | undefined) => void;
+    updateCalculateButton: () => void;
+}
+
+interface Window {
+    LwcBioageFlow: LwcBioageFlowApi;
+}
+
 (function () {
-    function removeBrowserStorageItem(storageName, key) {
+    function isObject(value: unknown): value is object {
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
+
+    function removeBrowserStorageItem(storageName: BioageBrowserStorageName, key: string): void {
         try {
             window[storageName].removeItem(key);
         } catch (_) {
         }
     }
 
-    function getBrowserStorageItem(storageName, key) {
+    function getBrowserStorageItem(storageName: BioageBrowserStorageName, key: string): string | null {
         try {
             return window[storageName].getItem(key);
         } catch (_) {
@@ -14,7 +102,7 @@
         }
     }
 
-    function setBrowserStorageItem(storageName, key, value) {
+    function setBrowserStorageItem(storageName: BioageBrowserStorageName, key: string, value: string): boolean {
         try {
             window[storageName].setItem(key, value);
             return true;
@@ -23,12 +111,12 @@
         }
     }
 
-    function setSessionItem(key, value) { return setBrowserStorageItem('sessionStorage', key, value); }
-    function getSessionItem(key) { return getBrowserStorageItem('sessionStorage', key); }
-    function removeSessionItem(key) { removeBrowserStorageItem('sessionStorage', key); }
-    function setLocalItem(key, value) { return setBrowserStorageItem('localStorage', key, value); }
-    function getLocalItem(key) { return getBrowserStorageItem('localStorage', key); }
-    function removeLocalItem(key) { removeBrowserStorageItem('localStorage', key); }
+    function setSessionItem(key: string, value: string): boolean { return setBrowserStorageItem('sessionStorage', key, value); }
+    function getSessionItem(key: string): string | null { return getBrowserStorageItem('sessionStorage', key); }
+    function removeSessionItem(key: string): void { removeBrowserStorageItem('sessionStorage', key); }
+    function setLocalItem(key: string, value: string): boolean { return setBrowserStorageItem('localStorage', key, value); }
+    function getLocalItem(key: string): string | null { return getBrowserStorageItem('localStorage', key); }
+    function removeLocalItem(key: string): void { removeBrowserStorageItem('localStorage', key); }
 
     const biomarkerExamplePlaceholders = {
         albumin: { 'g/L': '44', 'g/dL': '4.4' },
@@ -58,11 +146,11 @@
         wbc: { '10⁹/L': '5.5', '10³/µL': '5.5' }
     };
 
-    function normalizeUnitText(value) {
+    function normalizeUnitText(value: unknown): string {
         return String(value || '').replace(/\s+/g, ' ').trim();
     }
 
-    function toFiniteBiomarkerNumber(value) {
+    function toFiniteBiomarkerNumber(value: unknown): number | null {
         if (value === null || value === undefined || typeof value === 'boolean') return null;
         if (typeof value === 'number') return Number.isFinite(value) ? value : null;
         if (typeof value === 'string') {
@@ -74,41 +162,43 @@
         return null;
     }
 
-    function hasFiniteBiomarkerValue(value) {
+    function hasFiniteBiomarkerValue(value: unknown): boolean {
         return toFiniteBiomarkerNumber(value) !== null;
     }
 
-    function formatBiomarkerPlaceholderValue(value) {
+    function formatBiomarkerPlaceholderValue(value: unknown): string | null {
         const number = toFiniteBiomarkerNumber(value);
         if (number === null) return null;
 
         return Number(number.toFixed(2)).toString();
     }
 
-    function readBiomarkerValue(entry, fieldNames) {
+    function readBiomarkerValue(entry: unknown, fieldNames: string | readonly string[]): number | null {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
 
         const fields = Array.isArray(fieldNames) ? fieldNames : [fieldNames];
         for (const field of fields) {
-            const value = toFiniteBiomarkerNumber(entry[field]);
+            const value = toFiniteBiomarkerNumber(Reflect.get(entry, field));
             if (value !== null) return value;
         }
 
         return null;
     }
 
-    function getLatestBiomarkerEntry(athlete, fieldNames) {
-        if (!athlete || !Array.isArray(athlete.Biomarkers)) return null;
+    function getLatestBiomarkerEntry(athlete: unknown, fieldNames?: string | readonly string[]): object | null {
+        if (!isObject(athlete)) return null;
+        const biomarkers = Reflect.get(athlete, 'Biomarkers');
+        if (!Array.isArray(biomarkers)) return null;
 
-        let latestEntry = null;
+        let latestEntry: object | null = null;
         let latestTime = Number.NEGATIVE_INFINITY;
         let latestIndex = -1;
 
-        athlete.Biomarkers.forEach((entry, index) => {
+        biomarkers.forEach((entry: unknown, index: number) => {
             if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return;
             if (fieldNames !== undefined && readBiomarkerValue(entry, fieldNames) === null) return;
 
-            const parsedTime = Date.parse(entry.Date);
+            const parsedTime = Date.parse(String(Reflect.get(entry, 'Date')));
             const entryTime = Number.isFinite(parsedTime) ? parsedTime : Number.NEGATIVE_INFINITY;
             if (!latestEntry || entryTime > latestTime || (entryTime === latestTime && index > latestIndex)) {
                 latestEntry = entry;
@@ -120,19 +210,27 @@
         return latestEntry;
     }
 
-    function getLatestBiomarkerValue(athlete, fieldNames) {
+    function getLatestBiomarkerValue(
+        athlete: unknown,
+        fieldNames: string | readonly string[]
+    ): BioageLatestBiomarkerValue | null {
         const entry = getLatestBiomarkerEntry(athlete, fieldNames);
+        if (!entry) return null;
         const value = readBiomarkerValue(entry, fieldNames);
         return value === null ? null : { entry, value };
     }
 
-    function buildUnitSpecificBiomarkerPlaceholders(inputId, canonicalValue, displayValueForUnit) {
+    function buildUnitSpecificBiomarkerPlaceholders(
+        inputId: string,
+        canonicalValue: unknown,
+        displayValueForUnit?: BioageUnitDisplayValue
+    ): object | null {
         const canonicalNumber = toFiniteBiomarkerNumber(canonicalValue);
         const select = document.getElementById(`${inputId}Unit`);
-        if (canonicalNumber === null || !select) return null;
+        if (canonicalNumber === null || !(select instanceof HTMLSelectElement)) return null;
 
-        const placeholders = {};
-        Array.from(select.options || []).forEach(option => {
+        const placeholderEntries: Array<[string, string]> = [];
+        Array.from(select.options).forEach((option: HTMLOptionElement) => {
             const unitText = normalizeUnitText(option.textContent);
             if (!unitText) return;
 
@@ -144,19 +242,19 @@
                     : canonicalNumber * optionValue;
             const formatted = formatBiomarkerPlaceholderValue(displayValue);
             if (formatted !== null) {
-                placeholders[unitText] = formatted;
+                placeholderEntries.push([unitText, formatted]);
             }
         });
 
-        return Object.keys(placeholders).length ? placeholders : null;
+        return placeholderEntries.length ? Object.fromEntries(placeholderEntries) : null;
     }
 
-    function readSubmittedPlaceholder(input, unitText) {
+    function readSubmittedPlaceholder(input: HTMLInputElement, unitText: string): string | null {
         if (!input?.dataset?.bioageSubmittedPlaceholders) return null;
 
         try {
-            const placeholders = JSON.parse(input.dataset.bioageSubmittedPlaceholders);
-            const value = placeholders?.[unitText];
+            const placeholders: unknown = JSON.parse(input.dataset.bioageSubmittedPlaceholders);
+            const value = isObject(placeholders) ? Reflect.get(placeholders, unitText) : undefined;
             return typeof value === 'string' && value !== '' ? value : null;
         } catch (_) {
             delete input.dataset.bioageSubmittedPlaceholders;
@@ -164,10 +262,10 @@
         }
     }
 
-    function cleanSubmittedPlaceholderMap(placeholdersByUnit) {
-        if (!placeholdersByUnit || typeof placeholdersByUnit !== 'object' || Array.isArray(placeholdersByUnit)) return null;
+    function cleanSubmittedPlaceholderMap(placeholdersByUnit: unknown): object | null {
+        if (!isObject(placeholdersByUnit)) return null;
 
-        const cleaned = {};
+        const cleanedEntries: Array<[string, string]> = [];
         Object.entries(placeholdersByUnit).forEach(([unitText, value]) => {
             const normalizedUnitText = normalizeUnitText(unitText);
             const formatted = typeof value === 'string' && value.trim()
@@ -175,18 +273,19 @@
                 : formatBiomarkerPlaceholderValue(value);
 
             if (normalizedUnitText && formatted !== null) {
-                cleaned[normalizedUnitText] = formatted;
+                cleanedEntries.push([normalizedUnitText, formatted]);
             }
         });
 
-        return Object.keys(cleaned).length ? cleaned : null;
+        return cleanedEntries.length ? Object.fromEntries(cleanedEntries) : null;
     }
 
-    function setSubmittedBiomarkerPlaceholders(placeholdersByInputId) {
-        const assignedIds = new Set();
-        Object.entries(placeholdersByInputId || {}).forEach(([inputId, placeholdersByUnit]) => {
+    function setSubmittedBiomarkerPlaceholders(placeholdersByInputId: unknown): void {
+        const assignedIds = new Set<string>();
+        const placeholderEntries = isObject(placeholdersByInputId) ? Object.entries(placeholdersByInputId) : [];
+        placeholderEntries.forEach(([inputId, placeholdersByUnit]) => {
             const input = document.getElementById(inputId);
-            if (!input) return;
+            if (!(input instanceof HTMLInputElement)) return;
 
             const cleaned = cleanSubmittedPlaceholderMap(placeholdersByUnit);
             if (cleaned) {
@@ -199,7 +298,7 @@
             updateBiomarkerExamplePlaceholder(input);
         });
 
-        document.querySelectorAll('input[data-bioage-submitted-placeholders]').forEach(input => {
+        document.querySelectorAll<HTMLInputElement>('input[data-bioage-submitted-placeholders]').forEach(input => {
             if (assignedIds.has(input.id)) return;
 
             delete input.dataset.bioageSubmittedPlaceholders;
@@ -207,9 +306,9 @@
         });
     }
 
-    const biomarkerComparisonBindings = new Map();
+    const biomarkerComparisonBindings = new Map<string, { getState: BioageBiomarkerComparisonGetter }>();
 
-    function formatBiomarkerComparisonDelta(value) {
+    function formatBiomarkerComparisonDelta(value: unknown): string | null {
         const number = toFiniteBiomarkerNumber(value);
         if (number === null) return null;
 
@@ -220,8 +319,8 @@
             : Number(abs.toFixed(1)).toString();
     }
 
-    function ensureBiomarkerComparisonChip(input) {
-        let chip = input.parentElement?.querySelector(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
+    function ensureBiomarkerComparisonChip(input: HTMLInputElement): HTMLSpanElement {
+        let chip = input.parentElement?.querySelector<HTMLSpanElement>(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
         if (chip) return chip;
 
         chip = document.createElement('span');
@@ -232,9 +331,9 @@
         return chip;
     }
 
-    function hideBiomarkerComparison(input) {
+    function hideBiomarkerComparison(input: HTMLInputElement): void {
         input.classList.remove('bioage-input-has-comparison');
-        const chip = input.parentElement?.querySelector(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
+        const chip = input.parentElement?.querySelector<HTMLSpanElement>(`.bioage-input-comparison-chip[data-bioage-comparison-for="${input.id}"]`);
         if (chip) {
             chip.hidden = true;
             chip.textContent = '';
@@ -244,7 +343,11 @@
         }
     }
 
-    function setBiomarkerComparisonChipContent(chip, text, direction) {
+    function setBiomarkerComparisonChipContent(
+        chip: HTMLSpanElement,
+        text: string,
+        direction: 'down' | 'up' | null
+    ): void {
         chip.replaceChildren();
         if (!direction) {
             chip.textContent = text;
@@ -262,12 +365,12 @@
         chip.append(icon, label);
     }
 
-    function updateBiomarkerComparison(inputId) {
+    function updateBiomarkerComparison(inputId: string): void {
         const input = document.getElementById(inputId);
         const binding = biomarkerComparisonBindings.get(inputId);
-        if (!input || !binding || typeof binding.getState !== 'function') return;
+        if (!(input instanceof HTMLInputElement) || !binding) return;
 
-        let state = null;
+        let state: BioageBiomarkerComparisonState | null | undefined = null;
         try {
             state = binding.getState(input);
         } catch (_) {
@@ -317,9 +420,9 @@
         input.classList.add('bioage-input-has-comparison');
     }
 
-    function bindBiomarkerComparison(inputId, getState) {
+    function bindBiomarkerComparison(inputId: string, getState: BioageBiomarkerComparisonGetter): void {
         const input = document.getElementById(inputId);
-        if (!input || typeof getState !== 'function') return;
+        if (!(input instanceof HTMLInputElement)) return;
 
         biomarkerComparisonBindings.set(inputId, { getState });
         ensureBiomarkerComparisonChip(input);
@@ -329,7 +432,7 @@
             input.addEventListener('input', () => updateBiomarkerComparison(inputId));
 
             const unitSelect = document.getElementById(`${inputId}Unit`);
-            if (unitSelect) {
+            if (unitSelect instanceof HTMLSelectElement) {
                 unitSelect.addEventListener('change', () => updateBiomarkerComparison(inputId));
             }
         }
@@ -337,28 +440,35 @@
         updateBiomarkerComparison(inputId);
     }
 
-    function getBiomarkerInputForUnitSelect(select) {
+    function getBiomarkerInputForUnitSelect(select: Element | null | undefined): HTMLInputElement | null {
         if (!select || !select.id || !select.id.endsWith('Unit')) return null;
 
         const input = document.getElementById(select.id.slice(0, -4));
-        return input && input.matches('input[type="number"]') ? input : null;
+        return input instanceof HTMLInputElement && input.matches('input[type="number"]') ? input : null;
     }
 
-    function updateBiomarkerExamplePlaceholder(selectOrInput) {
-        const select = selectOrInput?.matches?.('select')
+    function updateBiomarkerExamplePlaceholder(selectOrInput: Element | null | undefined): void {
+        const selectCandidate = selectOrInput?.matches('select')
             ? selectOrInput
             : document.getElementById(`${selectOrInput?.id || ''}Unit`);
-        const input = selectOrInput?.matches?.('input[type="number"]')
+        const select = selectCandidate instanceof HTMLSelectElement ? selectCandidate : null;
+        const inputCandidate = selectOrInput?.matches('input[type="number"]')
             ? selectOrInput
             : getBiomarkerInputForUnitSelect(select);
+        const input = inputCandidate instanceof HTMLInputElement ? inputCandidate : null;
 
         if (!select || !input) return;
 
-        const examplesByUnit = biomarkerExamplePlaceholders[input.id];
+        const examplesByUnit = Object.hasOwn(biomarkerExamplePlaceholders, input.id)
+            ? biomarkerExamplePlaceholders[input.id as keyof typeof biomarkerExamplePlaceholders]
+            : undefined;
         const selectedOption = select.options[select.selectedIndex];
         const unitText = normalizeUnitText(selectedOption?.textContent);
         const submittedExample = readSubmittedPlaceholder(input, unitText);
-        const example = submittedExample ?? examplesByUnit?.[unitText];
+        const candidateExample = submittedExample ?? (examplesByUnit && Object.hasOwn(examplesByUnit, unitText)
+            ? Reflect.get(examplesByUnit, unitText)
+            : undefined);
+        const example = typeof candidateExample === 'string' ? candidateExample : null;
 
         if (example) {
             input.placeholder = example;
@@ -367,9 +477,9 @@
         }
     }
 
-    function syncBiomarkerExamplePlaceholders(root) {
+    function syncBiomarkerExamplePlaceholders(root?: ParentNode | null): void {
         const scope = root || document;
-        scope.querySelectorAll('.biomarker-card-content .input-group select[id$="Unit"]').forEach(select => {
+        scope.querySelectorAll<HTMLSelectElement>('.biomarker-card-content .input-group select[id$="Unit"]').forEach(select => {
             updateBiomarkerExamplePlaceholder(select);
 
             if (select.dataset.bioageExamplePlaceholderBound === 'true') return;
@@ -379,42 +489,46 @@
         });
     }
 
-    function isUpdateMode(search) {
+    function isUpdateMode(search?: string): boolean {
         return new URLSearchParams(search || window.location.search).get('update') === '1';
     }
 
-    function getBackDestination(isUpdate) {
+    function getBackDestination(isUpdate: boolean): '/dashboard' | '/join' {
         return isUpdate ? '/dashboard' : '/join';
     }
 
-    function navigateBack(isUpdate) {
+    function navigateBack(isUpdate: boolean): void {
         window.navigateToFlowDestination(getBackDestination(isUpdate));
     }
 
-    function resetUpdateModeScroll() {
+    function resetUpdateModeScroll(): void {
         const reset = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
         reset();
         window.requestAnimationFrame(() => {
             reset();
-            window.LwcFlowActionDock?.refresh?.();
+            getFlowActionDock()?.refresh?.();
         });
     }
 
-    function isValidSelectedAthlete(value) {
-        return value
-            && typeof value === 'object'
-            && !Array.isArray(value)
-            && typeof value.Name === 'string'
-            && value.Name.trim()
-            && hasSelectedAthleteDateOfBirth(value.DateOfBirth);
+    function getFlowActionDock(): LwcFlowActionDockApi | undefined {
+        return Reflect.get(window, 'LwcFlowActionDock') as LwcFlowActionDockApi | undefined;
     }
 
-    function hasSelectedAthleteDateOfBirth(value) {
-        if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    function isValidSelectedAthlete(value: unknown): value is BioageSelectedAthlete {
+        if (!isObject(value)) return false;
+        const name = Reflect.get(value, 'Name');
+        const dateOfBirth = Reflect.get(value, 'DateOfBirth');
+        return typeof name === 'string'
+            && name.trim().length > 0
+            && hasSelectedAthleteDateOfBirth(dateOfBirth);
+    }
 
-        const year = toSelectedAthleteDatePart(value.Year, 1, 9999);
-        const month = toSelectedAthleteDatePart(value.Month, 1, 12);
-        const day = toSelectedAthleteDatePart(value.Day, 1, 31);
+    function hasSelectedAthleteDateOfBirth(value: unknown): value is BioageSelectedAthleteDateOfBirth {
+        if (!isObject(value)) return false;
+
+        const year = toSelectedAthleteDatePart(Reflect.get(value, 'Year'), 1, 9999);
+        const month = toSelectedAthleteDatePart(Reflect.get(value, 'Month'), 1, 12);
+        const day = toSelectedAthleteDatePart(Reflect.get(value, 'Day'), 1, 31);
 
         if (year === null || month === null || day === null) return false;
 
@@ -426,18 +540,18 @@
             && date.getUTCDate() === day;
     }
 
-    function toSelectedAthleteDatePart(value, min, max) {
+    function toSelectedAthleteDatePart(value: unknown, min: number, max: number): number | null {
         if (typeof value === 'boolean' || value === null || value === undefined) return null;
 
-        const number = typeof value === 'string' && value.trim()
+        const number: unknown = typeof value === 'string' && value.trim()
             ? Number(value)
             : value;
-        return Number.isInteger(number) && number >= min && number <= max
+        return typeof number === 'number' && Number.isInteger(number) && number >= min && number <= max
             ? number
             : null;
     }
 
-    function readSelectedAthlete(getItem) {
+    function readSelectedAthlete(getItem?: BioageStorageGetter): unknown {
         const readItem = typeof getItem === 'function' ? getItem : getSessionItem;
         try {
             const selectedAthleteJson = readItem('selectedAthlete');
@@ -447,21 +561,21 @@
         }
     }
 
-    function redirectMissingSelectedAthlete(removeItem) {
+    function redirectMissingSelectedAthlete(removeItem?: BioageStorageRemover): void {
         const remove = typeof removeItem === 'function' ? removeItem : removeSessionItem;
         remove('selectedAthlete');
         remove('tempAthlete');
         window.location.replace('/select-athlete');
     }
 
-    function clearStoredBiomarkerHandoff(removeItem) {
+    function clearStoredBiomarkerHandoff(removeItem?: BioageStorageRemover): void {
         const remove = typeof removeItem === 'function' ? removeItem : removeSessionItem;
         remove('biomarkerData');
         remove('chronoPhenoDifference');
         remove('chronoBortzDifference');
     }
 
-    function updateCalculateButton() {
+    function updateCalculateButton(): void {
         const calculateButton = document.querySelector('.bioage-calculate-button');
         const nextButton = document.getElementById('continueButton');
         if (!calculateButton || !nextButton) return;
@@ -477,15 +591,15 @@
         syncBioageResultActions();
     }
 
-    function syncBioageResultActions() {
+    function syncBioageResultActions(): void {
         const nextButton = document.getElementById('continueButton');
-        const resultActions = nextButton?.closest('.flow-action-stack');
+        const resultActions = nextButton?.closest<HTMLElement>('.flow-action-stack');
         if (!nextButton || !resultActions || !document.body) return;
 
         const hasResult = nextButton.classList.contains('show');
         document.body.classList.toggle('bioage-result-ready', hasResult);
         resultActions.hidden = !hasResult;
-        window.LwcFlowActionDock?.refreshNow?.();
+        getFlowActionDock()?.refreshNow?.();
 
         if (hasResult) {
             scheduleBioageResultReveal(getShownBioageResultElement());
@@ -500,11 +614,11 @@
     let lastBioageResultActionsVisible = false;
     let resultRevealFrame = 0;
 
-    function getShownBioageResultElement() {
-        return document.querySelector('#phenoAgeResult.show, #bortzAgeResult.show');
+    function getShownBioageResultElement(): HTMLElement | null {
+        return document.querySelector<HTMLElement>('#phenoAgeResult.show, #bortzAgeResult.show');
     }
 
-    function isRenderedElement(element) {
+    function isRenderedElement(element: HTMLElement | null): element is HTMLElement {
         if (!element) return false;
 
         const rect = element.getBoundingClientRect();
@@ -515,15 +629,15 @@
             && style.visibility !== 'hidden';
     }
 
-    function getCssPixelValue(element, propertyName) {
+    function getCssPixelValue(element: Element, propertyName: string): number {
         const value = parseFloat(window.getComputedStyle(element).getPropertyValue(propertyName));
         return Number.isFinite(value) ? value : 0;
     }
 
-    function getVisualViewportBounds() {
+    function getVisualViewportBounds(): { top: number; bottom: number; height: number } {
         const visualViewport = window.visualViewport;
-        const top = Number.isFinite(visualViewport?.offsetTop) ? visualViewport.offsetTop : 0;
-        const height = Number.isFinite(visualViewport?.height)
+        const top = visualViewport && Number.isFinite(visualViewport.offsetTop) ? visualViewport.offsetTop : 0;
+        const height = visualViewport && Number.isFinite(visualViewport.height)
             ? visualViewport.height
             : window.innerHeight;
 
@@ -534,7 +648,7 @@
         };
     }
 
-    function getBioageResultViewportBounds() {
+    function getBioageResultViewportBounds(): { top: number; bottom: number; height: number } {
         const rootStyle = window.getComputedStyle(document.documentElement);
         const scrollPaddingTop = parseFloat(rootStyle.scrollPaddingTop);
         const reservedTop = Number.isFinite(scrollPaddingTop) ? scrollPaddingTop : 52;
@@ -551,7 +665,7 @@
         };
     }
 
-    function isBioageResultComfortablyVisible(resultElement) {
+    function isBioageResultComfortablyVisible(resultElement: HTMLElement): boolean {
         const rect = resultElement.getBoundingClientRect();
         const viewportBounds = getBioageResultViewportBounds();
 
@@ -559,7 +673,7 @@
             && rect.bottom <= viewportBounds.bottom;
     }
 
-    function getBioageResultRevealScrollTop(resultElement) {
+    function getBioageResultRevealScrollTop(resultElement: HTMLElement): number {
         const rect = resultElement.getBoundingClientRect();
         const viewportBounds = getBioageResultViewportBounds();
         const targetTop = rect.height >= viewportBounds.height
@@ -569,10 +683,13 @@
         return Math.max(0, window.scrollY + rect.top - targetTop);
     }
 
-    function revealBioageResult(resultElement, revealOptions = {}) {
+    function revealBioageResult(
+        resultElement: HTMLElement | null,
+        revealOptions: BioageResultRevealOptions = {}
+    ): void {
         if (!resultElement) return;
 
-        window.LwcFlowActionDock?.refreshNow?.();
+        getFlowActionDock()?.refreshNow?.();
 
         if (isBioageResultComfortablyVisible(resultElement)) return;
 
@@ -582,10 +699,10 @@
             behavior: prefersReducedMotion || revealOptions.instant ? 'auto' : 'smooth',
         });
 
-        window.setTimeout(() => window.LwcFlowActionDock?.refresh?.(), prefersReducedMotion ? 0 : 360);
+        window.setTimeout(() => getFlowActionDock()?.refresh?.(), prefersReducedMotion ? 0 : 360);
     }
 
-    function clearScheduledBioageResultReveals() {
+    function clearScheduledBioageResultReveals(): void {
         if (resultRevealFrame) {
             window.cancelAnimationFrame(resultRevealFrame);
             resultRevealFrame = 0;
@@ -593,11 +710,11 @@
 
     }
 
-    function scheduleBioageResultReveal(resultElement) {
+    function scheduleBioageResultReveal(resultElement: HTMLElement | null): void {
         if (!resultElement) return;
         clearScheduledBioageResultReveals();
 
-        const revealIfCurrent = (instant = false) => {
+        const revealIfCurrent = (instant = false): void => {
             if (!isRenderedElement(resultElement)) return;
             if (getShownBioageResultElement() !== resultElement) return;
 
@@ -612,7 +729,7 @@
         });
     }
 
-    function syncBioageResultVisibility() {
+    function syncBioageResultVisibility(): void {
         const resultElement = getShownBioageResultElement();
         const hasShownResult = !!resultElement;
 
@@ -627,7 +744,7 @@
         lastBioageResultShown = hasShownResult;
     }
 
-    function bindBioageResultActions() {
+    function bindBioageResultActions(): void {
         const nextButton = document.getElementById('continueButton');
         if (!nextButton) return;
 
@@ -650,8 +767,8 @@
 
     }
 
-    function hideUpdateModeStepNavigation() {
-        const wizardNav = document.querySelector('.lwc-wizard-nav');
+    function hideUpdateModeStepNavigation(): void {
+        const wizardNav = document.querySelector<HTMLElement>('.lwc-wizard-nav');
         if (wizardNav) wizardNav.hidden = true;
     }
 

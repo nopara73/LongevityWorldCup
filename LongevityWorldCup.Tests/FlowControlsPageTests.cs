@@ -1,3 +1,4 @@
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -305,15 +306,13 @@ public sealed class FlowControlsPageTests
     }
 
     [Fact]
-    public async Task PlayMenuBackButton_UsesExplicitRouteDestination()
+    public void PlayMenuBackButton_UsesExplicitRouteDestination()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        var playMenuSource = ReadFrontendSource("play-menu.ts");
 
-        var playMenu = await client.GetStringAsync("/js/play-menu.js");
-
-        Assert.Contains("document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);", playMenu);
-        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", playMenu);
+        Assert.Contains("const joinTrackBackButton = document.getElementById('joinTrackBackBtn');", playMenuSource);
+        Assert.Contains("joinTrackBackButton.addEventListener('click', navigateToStartPanel);", playMenuSource);
+        Assert.DoesNotContain("onclick=\"window.goBackOrHome()\"", playMenuSource);
     }
 
     [Theory]
@@ -350,4 +349,5 @@ public sealed class FlowControlsPageTests
         Assert.Contains(buttonClass, html);
         Assert.Contains("flow-action__label", html);
     }
+
 }

@@ -10,9 +10,8 @@ public sealed class ProDiscountScriptTests
         var script = File.ReadAllText(Path.Combine(
             FindRepoRoot(),
             "LongevityWorldCup.Website",
-            "wwwroot",
-            "js",
-            "pro-discounts.js"));
+            "Frontend",
+            "pro-discounts.ts"));
 
         var markerStart = script.IndexOf("function hasPerfectGuessMarker()", StringComparison.Ordinal);
         var setterStart = script.IndexOf("function setPerfectGuessMarker()", markerStart, StringComparison.Ordinal);
@@ -22,7 +21,7 @@ public sealed class ProDiscountScriptTests
 
         var markerBody = script[markerStart..setterStart];
 
-        Assert.Contains("const hasExact = Object.values(allGuesses).some(g => g && g.exact === true);", markerBody);
+        Assert.Contains("const hasExact = Object.values(allGuesses).some(g => isRecord(g) && g.exact === true);", markerBody);
         Assert.Contains("if (hasExact) {", markerBody);
         Assert.Contains("setPerfectGuessMarker();", markerBody);
         Assert.Contains("return true;", markerBody);

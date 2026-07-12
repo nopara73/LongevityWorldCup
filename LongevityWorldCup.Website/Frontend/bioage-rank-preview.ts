@@ -1,22 +1,165 @@
+type BioageRankClock = 'bortz' | 'pheno';
+
+interface BioageRankPreviewOptions {
+    clock?: BioageRankClock;
+    ageReduction: unknown;
+    dateOfBirth: Date;
+}
+
+interface BioageRankPreviewApi {
+    render: (targetId: string, options: BioageRankPreviewOptions | null | undefined) => Promise<void>;
+    clear: (targetId: string) => void;
+}
+
+interface RankPreviewTrackOptions {
+    component: string;
+    step: string;
+    outcome: string;
+    metadata: { clock: BioageRankClock };
+}
+
+declare global {
+    interface Window {
+        LwcBioAgeRankPreview: BioageRankPreviewApi;
+    }
+}
+
 (function () {
+    interface AthleteDateOfBirth {
+        Year: number;
+        Month: number;
+        Day: number;
+    }
+
+    interface AthleteSource {
+        AthleteSlug?: string;
+        Name?: string;
+        DisplayName?: string;
+        ProfilePicThumb?: string;
+        ProfilePicLeaderboardThumb?: string;
+        ProfilePic?: string;
+        DateOfBirth: AthleteDateOfBirth;
+        Biomarkers: unknown[];
+    }
+
+    interface PhenoBiomarkerSet {
+        Date: string;
+        Wbc1000cellsuL: number;
+        LymPc: number;
+        McvFL: number;
+        RdwPc: number;
+        AlbGL: number;
+        AlpUL: number;
+        CreatUmolL: number;
+        GluMmolL: number;
+        CrpMgL: number;
+    }
+
+    interface BortzBiomarkerSet extends PhenoBiomarkerSet {
+        UreaMmolL: number;
+        CholesterolMmolL: number;
+        CystatinCMgL: number;
+        Hba1cMmolMol: number;
+        GgtUL: number;
+        Rbc10e12L: number;
+        MonocytePc: number;
+        NeutrophilPc: number;
+        AltUL: number;
+        ShbgNmolL: number;
+        VitaminDNmolL: number;
+        MchPg: number;
+        ApoA1GL: number;
+    }
+
+    interface RankRow {
+        slug?: string;
+        name: string;
+        displayName: string;
+        profilePicThumb?: string;
+        dateOfBirth: Date;
+        ageReduction: number | null;
+        bortzAgeReduction: number | null;
+        isYou?: boolean;
+    }
+
+    interface AgeSummary {
+        ageReduction: number;
+    }
+
+    interface BiologicalAgeClock {
+        calculatePhenoAge?: (values: number[]) => number;
+        calculateBortzAge?: (chronologicalAge: number, values: number[]) => number;
+    }
+
+    function isObject(value: unknown): value is object {
+        return typeof value === 'object' && value !== null && !Array.isArray(value);
+    }
+
+    function getOptionalString(value: object, property: string): string | undefined {
+        const candidate = Reflect.get(value, property);
+        return typeof candidate === 'string' ? candidate : undefined;
+    }
+
+    function isAthleteDateOfBirth(value: unknown): value is AthleteDateOfBirth {
+        if (!isObject(value)) return false;
+        return ['Year', 'Month', 'Day'].every(function (property) {
+            return typeof Reflect.get(value, property) === 'number';
+        });
+    }
+
+    function toAthleteSource(value: unknown): AthleteSource | null {
+        if (!isObject(value)) return null;
+        const dateOfBirth = Reflect.get(value, 'DateOfBirth');
+        const biomarkers = Reflect.get(value, 'Biomarkers');
+        if (!isAthleteDateOfBirth(dateOfBirth) || !Array.isArray(biomarkers)) return null;
+
+        const athlete: AthleteSource = { DateOfBirth: dateOfBirth, Biomarkers: biomarkers };
+        const optionalProperties = [
+            'AthleteSlug',
+            'Name',
+            'DisplayName',
+            'ProfilePicThumb',
+            'ProfilePicLeaderboardThumb',
+            'ProfilePic'
+        ] as const;
+        optionalProperties.forEach(function (property) {
+            const candidate = getOptionalString(value, property);
+            if (candidate !== undefined) athlete[property] = candidate;
+        });
+        return athlete;
+    }
+
+    function hasFiniteProperties(value: object, properties: readonly string[]): boolean {
+        return properties.every(function (property) {
+            return Number.isFinite(Reflect.get(value, property));
+        });
+    }
+
     'use strict';
 
     var athletePlaceholderImage = '/assets/content-images/headshot.webp';
-    var sharedAthletesPromise = null;
-    var targetRenderTokens = Object.create(null);
+    var sharedAthletesPromise: Promise<unknown[]> | null = null;
+    var targetRenderTokens = new Map<string, number>();
 
-    function advanceTargetRenderToken(targetId) {
-        var nextToken = (targetRenderTokens[targetId] || 0) + 1;
-        targetRenderTokens[targetId] = nextToken;
+    function advanceTargetRenderToken(targetId: string): number {
+        var nextToken = (targetRenderTokens.get(targetId) || 0) + 1;
+        targetRenderTokens.set(targetId, nextToken);
         return nextToken;
     }
 
-    function isCurrentTargetRenderToken(targetId, token) {
-        return targetRenderTokens[targetId] === token;
+    function isCurrentTargetRenderToken(targetId: string, token: number): boolean {
+        return targetRenderTokens.get(targetId) === token;
     }
 
-    function getSharedAthletes() {
-        if (window.getSharedAthletes) return window.getSharedAthletes();
+    function getSharedAthletes(): Promise<unknown[]> {
+        var sharedLoader = Reflect.get(window, 'getSharedAthletes');
+        if (typeof sharedLoader === 'function') {
+            const loaded: unknown = Reflect.apply(sharedLoader, window, []);
+            return Promise.resolve(loaded).then(function (payload: unknown) {
+                if (!Array.isArray(payload)) throw new TypeError('Athlete response was not an array.');
+                return payload;
+            });
+        }
         if (!sharedAthletesPromise) {
             sharedAthletesPromise = fetch('/api/data/athletes', {
                 cache: 'no-store',
@@ -24,6 +167,10 @@
             })
                 .then(function (response) {
                     return response.ok ? response.json() : Promise.reject(response.status);
+                })
+                .then(function (payload: unknown) {
+                    if (!Array.isArray(payload)) throw new TypeError('Athlete response was not an array.');
+                    return payload;
                 })
                 .catch(function (error) {
                     sharedAthletesPromise = null;
@@ -33,54 +180,29 @@
         return sharedAthletesPromise;
     }
 
-    function isCompletePhenoBiomarkerSet(set) {
-        if (!set || !set.Date) return false;
-        var values = [
-            set.Wbc1000cellsuL,
-            set.LymPc,
-            set.McvFL,
-            set.RdwPc,
-            set.AlbGL,
-            set.AlpUL,
-            set.CreatUmolL,
-            set.GluMmolL,
-            set.CrpMgL
+    function isCompletePhenoBiomarkerSet(set: unknown): set is PhenoBiomarkerSet {
+        if (!isObject(set) || !Reflect.get(set, 'Date')) return false;
+        var properties = [
+            'Wbc1000cellsuL', 'LymPc', 'McvFL', 'RdwPc', 'AlbGL',
+            'AlpUL', 'CreatUmolL', 'GluMmolL', 'CrpMgL'
         ];
-        return values.every(Number.isFinite) && set.CrpMgL > 0;
+        return hasFiniteProperties(set, properties) && Number(Reflect.get(set, 'CrpMgL')) > 0;
     }
 
-    function isCompleteBortzBiomarkerSet(set) {
-        if (!set || !set.Date) return false;
-        var values = [
-            set.AlbGL,
-            set.AlpUL,
-            set.UreaMmolL,
-            set.CholesterolMmolL,
-            set.CreatUmolL,
-            set.CystatinCMgL,
-            set.Hba1cMmolMol,
-            set.CrpMgL,
-            set.GgtUL,
-            set.Rbc10e12L,
-            set.McvFL,
-            set.RdwPc,
-            set.Wbc1000cellsuL,
-            set.MonocytePc,
-            set.NeutrophilPc,
-            set.LymPc,
-            set.AltUL,
-            set.ShbgNmolL,
-            set.VitaminDNmolL,
-            set.GluMmolL,
-            set.MchPg,
-            set.ApoA1GL
+    function isCompleteBortzBiomarkerSet(set: unknown): set is BortzBiomarkerSet {
+        if (!isCompletePhenoBiomarkerSet(set)) return false;
+        var properties = [
+            'UreaMmolL', 'CholesterolMmolL', 'CystatinCMgL', 'Hba1cMmolMol',
+            'GgtUL', 'Rbc10e12L', 'MonocytePc', 'NeutrophilPc', 'AltUL',
+            'ShbgNmolL', 'VitaminDNmolL', 'MchPg', 'ApoA1GL'
         ];
-        return values.every(Number.isFinite) && set.CrpMgL > 0;
+        return hasFiniteProperties(set, properties);
     }
 
-    function calculateAgeAtDate(dob, date) {
-        if (typeof window.calculateAgeAtDate === 'function') {
-            return window.calculateAgeAtDate(dob, date);
+    function calculateAgeAtDate(dob: Date, date: Date): number {
+        var sharedCalculator = Reflect.get(window, 'calculateAgeAtDate');
+        if (typeof sharedCalculator === 'function') {
+            return (sharedCalculator as (dob: Date, date: Date) => number).call(window, dob, date);
         }
 
         var age = date.getFullYear() - dob.getFullYear();
@@ -91,14 +213,15 @@
         return age;
     }
 
-    function getDisplayName(athlete) {
+    function getDisplayName(athlete: AthleteSource): string {
         return athlete && typeof athlete.DisplayName === 'string' && athlete.DisplayName.trim()
             ? athlete.DisplayName.trim()
             : athlete && typeof athlete.Name === 'string' ? athlete.Name : '';
     }
 
-    function mapAthlete(athlete) {
-        if (!athlete || !athlete.DateOfBirth || !Array.isArray(athlete.Biomarkers)) return null;
+    function mapAthlete(value: unknown): RankRow | null {
+        var athlete = toAthleteSource(value);
+        if (!athlete) return null;
         var dob = new Date(athlete.DateOfBirth.Year, athlete.DateOfBirth.Month - 1, athlete.DateOfBirth.Day);
         var displayName = getDisplayName(athlete);
         var phenoSummary = getPhenoSummary(athlete, dob);
@@ -117,12 +240,14 @@
         };
     }
 
-    function getPhenoSummary(athlete, dob) {
-        if (!window.PhenoAge || typeof window.PhenoAge.calculatePhenoAge !== 'function') return null;
+    function getPhenoSummary(athlete: AthleteSource, dob: Date): AgeSummary | null {
+        var clock = Reflect.get(window, 'PhenoAge') as BiologicalAgeClock | undefined;
+        const calculatePhenoAge = clock?.calculatePhenoAge;
+        if (typeof calculatePhenoAge !== 'function') return null;
 
         var bestAge = Infinity;
-        var bestChrono = null;
-        athlete.Biomarkers.forEach(function (entry) {
+        var bestChrono: number | null = null;
+        athlete.Biomarkers.forEach(function (entry: unknown) {
             if (!isCompletePhenoBiomarkerSet(entry)) return;
 
             var ageAtEntry = calculateAgeAtDate(dob, new Date(entry.Date));
@@ -140,24 +265,26 @@
             ];
             if (!values.every(Number.isFinite)) return;
 
-            var phenoAge = window.PhenoAge.calculatePhenoAge(values);
+            var phenoAge = calculatePhenoAge.call(clock, values);
             if (Number.isFinite(phenoAge) && phenoAge < bestAge) {
                 bestAge = phenoAge;
                 bestChrono = ageAtEntry;
             }
         });
 
-        return Number.isFinite(bestAge) && Number.isFinite(bestChrono)
+        return Number.isFinite(bestAge) && typeof bestChrono === 'number' && Number.isFinite(bestChrono)
             ? { ageReduction: bestAge - bestChrono }
             : null;
     }
 
-    function getBortzSummary(athlete, dob) {
-        if (!window.BortzAge || typeof window.BortzAge.calculateBortzAge !== 'function') return null;
+    function getBortzSummary(athlete: AthleteSource, dob: Date): AgeSummary | null {
+        var clock = Reflect.get(window, 'BortzAge') as BiologicalAgeClock | undefined;
+        const calculateBortzAge = clock?.calculateBortzAge;
+        if (typeof calculateBortzAge !== 'function') return null;
 
         var bestAge = Infinity;
-        var bestChrono = null;
-        athlete.Biomarkers.forEach(function (entry) {
+        var bestChrono: number | null = null;
+        athlete.Biomarkers.forEach(function (entry: unknown) {
             if (!isCompleteBortzBiomarkerSet(entry)) return;
 
             var ageAtEntry = calculateAgeAtDate(dob, new Date(entry.Date));
@@ -188,22 +315,25 @@
             ];
             if (!values.every(Number.isFinite)) return;
 
-            var bortzAge = window.BortzAge.calculateBortzAge(ageAtEntry, values);
+            var bortzAge = calculateBortzAge.call(clock, ageAtEntry, values);
             if (Number.isFinite(bortzAge) && bortzAge < bestAge) {
                 bestAge = bortzAge;
                 bestChrono = ageAtEntry;
             }
         });
 
-        return Number.isFinite(bestAge) && Number.isFinite(bestChrono)
+        return Number.isFinite(bestAge) && typeof bestChrono === 'number' && Number.isFinite(bestChrono)
             ? { ageReduction: bestAge - bestChrono }
             : null;
     }
 
-    function compareByClock(clock) {
-        return function (a, b) {
-            var aReduction = clock === 'bortz' ? a.bortzAgeReduction : a.ageReduction;
-            var bReduction = clock === 'bortz' ? b.bortzAgeReduction : b.ageReduction;
+    function compareByClock(clock: BioageRankClock): (a: RankRow, b: RankRow) => number {
+        return function (a: RankRow, b: RankRow): number {
+            var aReduction = getReduction(a, clock);
+            var bReduction = getReduction(b, clock);
+
+            if (aReduction === null) return bReduction === null ? 0 : 1;
+            if (bReduction === null) return -1;
 
             if (aReduction < bReduction) return -1;
             if (aReduction > bReduction) return 1;
@@ -215,27 +345,28 @@
         };
     }
 
-    function formatReduction(value, precision) {
-        if (!Number.isFinite(value)) return '';
+    function formatReduction(value: number | null, precision: number): string {
+        if (typeof value !== 'number' || !Number.isFinite(value)) return '';
         return (value > 0 ? '+' : '') + value.toFixed(precision) + 'y';
     }
 
-    function getReduction(row, clock) {
+    function getReduction(row: RankRow, clock: BioageRankClock): number | null {
         return clock === 'bortz' ? row.bortzAgeReduction : row.ageReduction;
     }
 
-    function chooseReductionPrecision(rows, clock) {
+    function chooseReductionPrecision(rows: RankRow[], clock: BioageRankClock): number {
         var values = rows
             .map(function (row) { return getReduction(row, clock); })
-            .filter(Number.isFinite);
+            .filter(function (value): value is number { return Number.isFinite(value); });
         var maxPrecision = 6;
 
         for (var precision = 1; precision <= maxPrecision; precision++) {
-            var buckets = Object.create(null);
-            var hasHiddenDifference = values.some(function (value) {
+            var buckets = new Map<string, number[]>();
+            var hasHiddenDifference = values.some(function (value: number) {
                 var key = value.toFixed(precision);
-                var bucket = buckets[key] || (buckets[key] = []);
-                var differs = bucket.some(function (existing) {
+                var bucket = buckets.get(key) || [];
+                if (!buckets.has(key)) buckets.set(key, bucket);
+                var differs = bucket.some(function (existing: number) {
                     return Math.abs(existing - value) > 1e-9;
                 });
                 bucket.push(value);
@@ -248,7 +379,7 @@
         return maxPrecision;
     }
 
-    function escapeHtml(text) {
+    function escapeHtml(text: unknown): string {
         return String(text)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -257,7 +388,7 @@
             .replace(/'/g, '&#39;');
     }
 
-    function ordinal(value) {
+    function ordinal(value: number): string {
         var n = Math.abs(Math.round(value));
         var mod100 = n % 100;
         if (mod100 >= 11 && mod100 <= 13) return n + 'th';
@@ -269,17 +400,17 @@
         }
     }
 
-    function initialsFromName(name) {
+    function initialsFromName(name: string): string {
         return String(name || '')
             .trim()
             .split(/\s+/)
             .filter(Boolean)
             .slice(0, 2)
-            .map(function (part) { return part.charAt(0).toUpperCase(); })
+            .map(function (part: string) { return part.charAt(0).toUpperCase(); })
             .join('') || '?';
     }
 
-    function buildAvatar(row) {
+    function buildAvatar(row: RankRow): string {
         if (row.isYou) {
             return '<span class="bioage-rank-row-avatar bioage-rank-row-avatar-placeholder" aria-hidden="true">' +
                 '<img src="' + athletePlaceholderImage + '" alt="" loading="lazy" decoding="async">' +
@@ -299,7 +430,7 @@
             '</span>';
     }
 
-    function buildNearbyRows(rows, youIndex, clock) {
+    function buildNearbyRows(rows: RankRow[], youIndex: number, clock: BioageRankClock): string {
         var start = Math.max(0, youIndex - 2);
         var end = Math.min(rows.length, youIndex + 3);
         var visibleRows = rows.slice(start, end);
@@ -307,6 +438,7 @@
         var html = '';
         for (var i = start; i < end; i++) {
             var row = rows[i];
+            if (!row) continue;
             var isYou = row.isYou;
             var reduction = getReduction(row, clock);
             var nameHtml = escapeHtml(isYou ? 'You' : row.displayName);
@@ -320,7 +452,14 @@
         return html;
     }
 
-    function buildHtml(clock, rank, rankedFieldSize, topPercent, rows, youIndex) {
+    function buildHtml(
+        clock: BioageRankClock,
+        rank: number,
+        rankedFieldSize: number,
+        topPercent: number,
+        rows: RankRow[],
+        youIndex: number
+    ): string {
         var title = clock === 'bortz' ? 'Hypothetical Bortz Age rank' : 'Hypothetical Pheno Age rank';
         var leagueName = clock === 'bortz' ? 'Bortz Age' : 'Pheno Age';
         return '<div class="bioage-rank-summary">' +
@@ -334,22 +473,26 @@
             '<div class="bioage-rank-neighbors">' + buildNearbyRows(rows, youIndex, clock) + '</div>';
     }
 
-    function trackRankPreview(eventName, clock, outcome) {
-        if (!window.LwcSiteStats || typeof window.LwcSiteStats.track !== 'function') return;
-        window.LwcSiteStats.track(eventName, {
+    function trackRankPreview(eventName: string, clock: BioageRankClock, outcome: string): void {
+        var tracker = Reflect.get(window, 'LwcSiteStats') as LwcSiteStatisticsApi | undefined;
+        if (!tracker || typeof tracker.track !== 'function') return;
+        tracker.track(eventName, {
             component: 'rank_preview',
             step: 'field_rank',
             outcome: outcome,
             metadata: { clock: clock }
-        });
+        } satisfies RankPreviewTrackOptions);
     }
 
-    function render(targetId, options) {
-        var target = document.getElementById(targetId);
-        if (!target || !options) return Promise.resolve();
+    function render(
+        targetId: string,
+        options: BioageRankPreviewOptions | null | undefined
+    ): Promise<void> {
+        const target = document.getElementById(targetId);
+        if (!(target instanceof HTMLElement) || !options) return Promise.resolve();
         var renderToken = advanceTargetRenderToken(targetId);
 
-        var clock = options.clock === 'bortz' ? 'bortz' : 'pheno';
+        var clock: BioageRankClock = options.clock === 'bortz' ? 'bortz' : 'pheno';
         var ageReduction = Number(options.ageReduction);
         if (!Number.isFinite(ageReduction) || !(options.dateOfBirth instanceof Date)) {
             target.hidden = true;
@@ -362,16 +505,18 @@
         trackRankPreview('rank_preview_requested', clock, 'requested');
 
         return getSharedAthletes()
-            .then(function (athletes) {
+            .then(function (athletes: unknown[]) {
                 if (!isCurrentTargetRenderToken(targetId, renderToken)) return;
 
-                var summaries = (athletes || []).map(mapAthlete).filter(Boolean);
-                var field = summaries.filter(function (athlete) {
+                var summaries = athletes.map(mapAthlete).filter(function (athlete): athlete is RankRow {
+                    return athlete !== null;
+                });
+                var field = summaries.filter(function (athlete: RankRow) {
                     var value = clock === 'bortz' ? athlete.bortzAgeReduction : athlete.ageReduction;
                     return Number.isFinite(value);
                 });
 
-                var you = {
+                var you: RankRow = {
                     name: 'You',
                     displayName: 'You',
                     dateOfBirth: options.dateOfBirth,
@@ -397,9 +542,9 @@
             });
     }
 
-    function clear(targetId) {
+    function clear(targetId: string): void {
         var target = document.getElementById(targetId);
-        if (!target) return;
+        if (!(target instanceof HTMLElement)) return;
         advanceTargetRenderToken(targetId);
         target.hidden = true;
         target.innerHTML = '';
@@ -410,3 +555,5 @@
         clear: clear
     };
 })();
+
+export {};

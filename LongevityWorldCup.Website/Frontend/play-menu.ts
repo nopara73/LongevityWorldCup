@@ -1,25 +1,58 @@
 (function () {
+    type PlayPanelName = 'start' | 'join' | 'selection' | 'dashboard';
+    type PlayHistoryMode = 'push' | 'replace' | null;
+
+    interface PlayRouteState {
+        route: '/play' | '/join' | '/select-athlete' | '/dashboard';
+        panelId: string;
+        isWide: boolean;
+    }
+
+    interface PlayUrlOptions {
+        preserveCurrentUrlParts?: boolean;
+    }
+
+    interface PlayPanelOptions extends PlayUrlOptions {
+        animate?: boolean;
+        historyMode?: PlayHistoryMode;
+    }
+
+    interface PlayIntroOptions {
+        restart?: boolean;
+    }
+
+    interface ResolvedPlayPanel {
+        panelName: PlayPanelName;
+        dashboardAthlete: PlayAthlete | null;
+        isRedirecting?: boolean;
+    }
+
+    interface PlayHistoryState {
+        playPanel: PlayPanelName;
+        previousPlayPanel: PlayPanelName | null;
+    }
+
     const storageErrorMessage = 'Browser storage is unavailable. Enable storage and try again.';
     const PLAY_START_INTRO_MS = 1900;
     const PLAY_PANEL_PREPARATION_TIMEOUT_MS = 8000;
-    let flow = null;
-    let athleteSelection = null;
-    let activePlayPanelName = null;
+    let flow: PlayAthleteFlowApi | null = null;
+    let athleteSelection: AthleteSelectionController | null = null;
+    let activePlayPanelName: PlayPanelName | null = null;
     let hasRenderedPlayPanel = false;
     let activePanelTransitionTimer = 0;
-    let activePanelTransitionElement = null;
+    let activePanelTransitionElement: HTMLElement | null = null;
     let playPanelTransitionRunId = 0;
     let playPanelPreparationRunId = 0;
     let playStartIntroTimer = 0;
     let playStartIntroRunId = 0;
-    const playRouteStates = Object.freeze({
+    const playRouteStates: Readonly<Record<PlayPanelName, Readonly<PlayRouteState>>> = Object.freeze({
         start: Object.freeze({ route: '/play', panelId: 'playStartPanel', isWide: false }),
         join: Object.freeze({ route: '/join', panelId: 'joinTrackPanel', isWide: true }),
         selection: Object.freeze({ route: '/select-athlete', panelId: 'athleteSelectionPanel', isWide: false }),
         dashboard: Object.freeze({ route: '/dashboard', panelId: 'athleteDashboardPanel', isWide: false })
     });
 
-    function getFlowReady() {
+    function getFlowReady(): Promise<PlayAthleteFlowApi> {
         return Promise.resolve(window.modulesReady || undefined)
             .catch(() => {})
             .then(() => {
@@ -29,15 +62,29 @@
             });
     }
 
-    function getPlayRouteState(panelName) {
-        return playRouteStates[panelName] || playRouteStates.start;
+    function requirePlayFlow(): PlayAthleteFlowApi {
+        if (!flow) throw new Error('Athlete flow module is not initialized.');
+        return flow;
     }
 
-    function getPlayRoute(panelName) {
+    function requireAthleteSelection(): AthleteSelectionController {
+        if (!athleteSelection) throw new Error('Athlete selection is not initialized.');
+        return athleteSelection;
+    }
+
+    function isPlayPanelName(value: unknown): value is PlayPanelName {
+        return value === 'start' || value === 'join' || value === 'selection' || value === 'dashboard';
+    }
+
+    function getPlayRouteState(panelName: PlayPanelName): Readonly<PlayRouteState> {
+        return playRouteStates[panelName];
+    }
+
+    function getPlayRoute(panelName: PlayPanelName): PlayRouteState['route'] {
         return getPlayRouteState(panelName).route;
     }
 
-    function getPlayPanelNameForPath(pathname = window.location.pathname) {
+    function getPlayPanelNameForPath(pathname = window.location.pathname): PlayPanelName {
         const path = pathname.toLowerCase();
         if (path === '/join') return 'join';
         if (path === '/select-athlete') return 'selection';
@@ -45,20 +92,23 @@
         return 'start';
     }
 
-    function getCurrentPlayPanelName() {
-        const statePanel = window.history && window.history.state && window.history.state.playPanel;
-        return activePlayPanelName || (playRouteStates[statePanel] ? statePanel : getPlayPanelNameForPath());
+    function getCurrentPlayPanelName(): PlayPanelName {
+        const historyState: unknown = window.history?.state;
+        const statePanel = historyState && typeof historyState === 'object'
+            ? Reflect.get(historyState, 'playPanel')
+            : null;
+        return activePlayPanelName || (isPlayPanelName(statePanel) ? statePanel : getPlayPanelNameForPath());
     }
 
-    function getAthleteSelectionPreviewReady() {
+    function getAthleteSelectionPreviewReady(): Promise<unknown> {
         return athleteSelection && typeof athleteSelection.getPreviewReady === 'function'
             ? athleteSelection.getPreviewReady()
             : Promise.resolve();
     }
 
-    function waitForPlayPanelPreparation(promise) {
+    function waitForPlayPanelPreparation(promise: PromiseLike<unknown> | unknown): Promise<unknown> {
         let timeoutId = 0;
-        const deadline = new Promise(resolve => {
+        const deadline = new Promise<void>(resolve => {
             timeoutId = window.setTimeout(resolve, PLAY_PANEL_PREPARATION_TIMEOUT_MS);
         });
 
@@ -66,7 +116,7 @@
             .finally(() => window.clearTimeout(timeoutId));
     }
 
-    function beginPlayPanelPreparation() {
+    function beginPlayPanelPreparation(): void {
         finishPlayStartIntro();
         document.documentElement.classList.remove('play-route-ready');
         document.body.classList.remove('play-start-active');
@@ -75,7 +125,7 @@
         window.LwcFlowActionDock?.refreshNow?.();
     }
 
-    function showSelectionPanelAfterPreviewReady(panelName, preparationRunId) {
+    function showSelectionPanelAfterPreviewReady(panelName: PlayPanelName, preparationRunId: number): void {
         waitForPlayPanelPreparation(getAthleteSelectionPreviewReady())
             .then(() => {
                 if (preparationRunId === playPanelPreparationRunId
@@ -85,27 +135,38 @@
             });
     }
 
-    function getPlayUrl(panelName, options = {}) {
+    function getPlayUrl(panelName: PlayPanelName, options: PlayUrlOptions = {}): string {
         const route = getPlayRoute(panelName);
         return options.preserveCurrentUrlParts
             ? `${route}${window.location.search}${window.location.hash}`
             : route;
     }
 
-    function createPlayHistoryState(panelName, previousPlayPanel = null) {
+    function createPlayHistoryState(
+        panelName: PlayPanelName,
+        previousPlayPanel: PlayPanelName | null = null
+    ): PlayHistoryState {
         return {
             playPanel: panelName,
-            previousPlayPanel: playRouteStates[previousPlayPanel] ? previousPlayPanel : null
+            previousPlayPanel: previousPlayPanel && isPlayPanelName(previousPlayPanel) ? previousPlayPanel : null
         };
     }
 
-    function setPlayHistory(panelName, historyMode, options = {}) {
+    function setPlayHistory(
+        panelName: PlayPanelName,
+        historyMode: PlayHistoryMode | undefined,
+        options: PlayUrlOptions = {}
+    ): void {
         if (!historyMode || !window.history) return;
 
         const route = getPlayUrl(panelName, options);
         const currentPath = window.location.pathname.toLowerCase();
         const currentPanelName = getCurrentPlayPanelName();
-        const currentPreviousPanel = window.history.state && window.history.state.previousPlayPanel;
+        const currentState: unknown = window.history.state;
+        const previousCandidate = currentState && typeof currentState === 'object'
+            ? Reflect.get(currentState, 'previousPlayPanel')
+            : null;
+        const currentPreviousPanel = isPlayPanelName(previousCandidate) ? previousCandidate : null;
         const nextPreviousPanel = historyMode === 'push' && currentPanelName !== panelName
             ? currentPanelName
             : currentPreviousPanel;
@@ -124,32 +185,32 @@
         }
     }
 
-    function prefersReducedPlayMotion() {
-        return window.matchMedia
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function prefersReducedPlayMotion(): boolean {
+        return Boolean(window.matchMedia
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     }
 
-    function finishPlayStartIntro() {
+    function finishPlayStartIntro(): void {
         playStartIntroRunId += 1;
         window.clearTimeout(playStartIntroTimer);
         playStartIntroTimer = 0;
         document.body.classList.remove('play-start-preintro', 'play-start-intro');
     }
 
-    function getPlayStartWatermarkReady() {
-        const watermark = document.querySelector('.play-logo-watermark');
+    function getPlayStartWatermarkReady(): Promise<unknown> {
+        const watermark = document.querySelector<HTMLImageElement>('.play-logo-watermark');
         if (!watermark || watermark.complete) return Promise.resolve();
         if (typeof watermark.decode === 'function') {
             return watermark.decode().catch(() => {});
         }
 
-        return new Promise(resolve => {
-            watermark.addEventListener('load', resolve, { once: true });
-            watermark.addEventListener('error', resolve, { once: true });
+        return new Promise<void>(resolve => {
+            watermark.addEventListener('load', () => resolve(), { once: true });
+            watermark.addEventListener('error', () => resolve(), { once: true });
         });
     }
 
-    function startPlayStartIntro(options = {}) {
+    function startPlayStartIntro(options: PlayIntroOptions = {}): void {
         if (!document.body.classList.contains('play-start-active')) {
             finishPlayStartIntro();
             return;
@@ -189,7 +250,7 @@
         });
     }
 
-    function completePlayPanelTransition(panelName, transitionRunId) {
+    function completePlayPanelTransition(panelName: PlayPanelName, transitionRunId: number): void {
         if (transitionRunId !== playPanelTransitionRunId) return;
         activePlayPanelName = panelName;
         hasRenderedPlayPanel = true;
@@ -202,9 +263,9 @@
         window.LwcFlowActionDock?.refreshNow?.();
     }
 
-    function showPanelByName(panelName, options = {}) {
+    function showPanelByName(panelName: PlayPanelName, options: PlayPanelOptions = {}): void {
         const state = getPlayRouteState(panelName);
-        const main = document.querySelector('.play-hub-main');
+        const main = document.querySelector<HTMLElement>('.play-hub-main');
         const targetPanel = document.getElementById(state.panelId);
         if (!main || !targetPanel) return;
 
@@ -221,11 +282,11 @@
         activePanelTransitionElement = null;
         document.documentElement.classList.remove('play-panel-transitioning');
 
-        const commitPanel = () => {
+        const commitPanel = (): void => {
             main.classList.toggle('play-hub-main--wide', state.isWide);
             document.body.classList.toggle('play-start-active', panelName === 'start');
             if (panelName !== 'start') finishPlayStartIntro();
-            document.querySelectorAll('.play-hub-panel').forEach(panel => {
+            document.querySelectorAll<HTMLElement>('.play-hub-panel').forEach(panel => {
                 panel.hidden = panel !== targetPanel;
             });
             activePlayPanelName = panelName;
@@ -251,7 +312,9 @@
         }, 180);
     }
 
-    function resolveRequestedPlayPanel(panelName) {
+    function resolveRequestedPlayPanel(panelName: PlayPanelName): ResolvedPlayPanel {
+        const flow = requirePlayFlow();
+        const athleteSelection = requireAthleteSelection();
         if (panelName !== 'dashboard') {
             return { panelName, dashboardAthlete: null };
         }
@@ -270,10 +333,12 @@
         return { panelName: 'dashboard', dashboardAthlete };
     }
 
-    function showPlayPanel(requestedPanelName, options = {}) {
+    function showPlayPanel(requestedPanelName: PlayPanelName, options: PlayPanelOptions = {}): void {
+        const flow = requirePlayFlow();
+        const athleteSelection = requireAthleteSelection();
         const preparationRunId = playPanelPreparationRunId + 1;
         playPanelPreparationRunId = preparationRunId;
-        const requested = playRouteStates[requestedPanelName] ? requestedPanelName : 'start';
+        const requested = isPlayPanelName(requestedPanelName) ? requestedPanelName : 'start';
         const resolved = resolveRequestedPlayPanel(requested);
         if (resolved.isRedirecting) return;
         const panelName = resolved.panelName;
@@ -312,12 +377,16 @@
         if (panelName === 'dashboard') {
             beginPlayPanelPreparation();
             const athlete = resolved.dashboardAthlete;
+            const dashboardTitle = document.getElementById('athleteDashboardTitle');
+            const dashboardPicture = document.getElementById('athleteDashboardPicture');
+            const dynamicActions = document.getElementById('athleteDashboardDynamicActions');
+            if (!athlete || !dashboardTitle || !dashboardPicture || !dynamicActions) return;
             const pictureReady = flow.renderAthleteDashboardHeader(athlete, {
-                titleElement: document.getElementById('athleteDashboardTitle'),
-                frameElement: document.getElementById('athleteDashboardPicture')
+                titleElement: dashboardTitle,
+                frameElement: dashboardPicture
             });
             const actionsReady = flow.renderDashboardActions(athlete, {
-                dynamicActionsElement: document.getElementById('athleteDashboardDynamicActions'),
+                dynamicActionsElement: dynamicActions,
                 discountElement: document.getElementById('athleteDashboardDiscounts')
             });
             waitForPlayPanelPreparation(Promise.allSettled([pictureReady, actionsReady])).then(() => {
@@ -333,11 +402,11 @@
         showPanelByName(panelName);
     }
 
-    function showPanelForCurrentUrl() {
+    function showPanelForCurrentUrl(): void {
         showPlayPanel(getPlayPanelNameForPath(), { historyMode: null });
     }
 
-    function initializePlayHistory() {
+    function initializePlayHistory(): void {
         if (!window.history) return;
 
         try {
@@ -354,8 +423,12 @@
         );
     }
 
-    function navigateToPreviousPlayPanel(fallbackPanelName) {
-        const previousPanelName = window.history && window.history.state && window.history.state.previousPlayPanel;
+    function navigateToPreviousPlayPanel(fallbackPanelName: PlayPanelName): void {
+        const historyState: unknown = window.history?.state;
+        const previousCandidate = historyState && typeof historyState === 'object'
+            ? Reflect.get(historyState, 'previousPlayPanel')
+            : null;
+        const previousPanelName = isPlayPanelName(previousCandidate) ? previousCandidate : null;
         if (previousPanelName === fallbackPanelName && window.history.length > 1) {
             window.history.back();
             return;
@@ -364,15 +437,15 @@
         showPlayPanel(fallbackPanelName, { historyMode: 'replace' });
     }
 
-    function navigateToStartPanel() {
+    function navigateToStartPanel(): void {
         navigateToPreviousPlayPanel('start');
     }
 
-    function navigateToSelectionPanel() {
+    function navigateToSelectionPanel(): void {
         navigateToPreviousPlayPanel('selection');
     }
 
-    function getCheckoutQuerySuffix() {
+    function getCheckoutQuerySuffix(): string {
         const params = new URLSearchParams();
         const freePassValue = window.getFreePassValue ? window.getFreePassValue() : null;
         const discountValue = window.getDiscountValue ? window.getDiscountValue() : null;
@@ -382,7 +455,8 @@
         return query ? `?${query}` : '';
     }
 
-    function startAmateurApplication(retryButton) {
+    function startAmateurApplication(retryButton: HTMLButtonElement): void {
+        const flow = requirePlayFlow();
         const stored = flow.setPendingPaymentOffer({
             source: 'join-game',
             offerType: 'amateur',
@@ -393,7 +467,8 @@
         window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;
     }
 
-    function startProApplication(retryButton) {
+    function startProApplication(retryButton: HTMLButtonElement): void {
+        const flow = requirePlayFlow();
         const result = window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
             ? window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false })
             : null;
@@ -408,7 +483,7 @@
         window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;
     }
 
-    function renderJoinFreePassPricing() {
+    function renderJoinFreePassPricing(): boolean {
         if (!window.hasFreePass || !window.hasFreePass()) return false;
 
         const amateurPrice = document.querySelector('.join-amateur-entry-cell .pro-new-price');
@@ -424,7 +499,8 @@
         return true;
     }
 
-    function renderJoinPricing() {
+    function renderJoinPricing(): void {
+        const flow = requirePlayFlow();
         if (renderJoinFreePassPricing()) return;
         if (!window.proDiscounts || typeof window.proDiscounts.buildDiscountBreakdown !== 'function') return;
 
@@ -457,18 +533,19 @@
         note.style.display = '';
     }
 
-    function promotePlayStartAction(button) {
+    function promotePlayStartAction(button: HTMLButtonElement): void {
         button.classList.remove('grey', 'flow-action--secondary');
         button.classList.add('green');
     }
 
-    function demotePlayStartAction(button) {
+    function demotePlayStartAction(button: HTMLButtonElement): void {
         button.classList.remove('green');
         button.classList.add('grey', 'flow-action--secondary');
     }
 
-    function initializePlayMenu() {
+    function initializePlayMenu(): void {
         getFlowReady().then(() => {
+            const flow = requirePlayFlow();
             if (window.captureFreePassFromUrl) {
                 window.captureFreePassFromUrl();
             }
@@ -476,21 +553,39 @@
                 window.captureDiscountFromUrl();
             }
 
+            const athleteInput = document.getElementById('playAthleteInput');
+            const athleteError = document.getElementById('playAthleteError');
+            const confirmAthleteButton = document.getElementById('playConfirmAthleteBtn');
+            const selectionTitle = document.getElementById('athleteSelectionTitle');
+            const selectionPicture = document.getElementById('athleteSelectionPicture');
+            if (!(athleteInput instanceof HTMLInputElement)
+                || !athleteError
+                || !(confirmAthleteButton instanceof HTMLButtonElement)
+                || !selectionTitle
+                || !selectionPicture) {
+                throw new Error('Athlete selection controls are missing.');
+            }
+
             athleteSelection = flow.createAthleteSelectionController({
-                input: document.getElementById('playAthleteInput'),
-                errorElement: document.getElementById('playAthleteError'),
-                confirmButton: document.getElementById('playConfirmAthleteBtn'),
-                titleElement: document.getElementById('athleteSelectionTitle'),
-                frameElement: document.getElementById('athleteSelectionPicture'),
+                input: athleteInput,
+                errorElement: athleteError,
+                confirmButton: confirmAthleteButton,
+                titleElement: selectionTitle,
+                frameElement: selectionPicture,
                 autocompleteRootSelector: '.play-autocomplete-container'
             }).bind();
 
             initializePlayHistory();
 
             const hasApp = flow.hasSubmittedApplication();
-            const container = document.querySelector('.play-menu-actions');
+            const container = document.querySelector<HTMLElement>('.play-menu-actions');
             const newBtn = document.getElementById('newGameBtn');
             const contBtn = document.getElementById('continueGameBtn');
+            if (!container
+                || !(newBtn instanceof HTMLButtonElement)
+                || !(contBtn instanceof HTMLButtonElement)) {
+                throw new Error('Play menu controls are missing.');
+            }
 
             if (hasApp) {
                 promotePlayStartAction(contBtn);
@@ -505,18 +600,37 @@
 
             newBtn.addEventListener('click', () => showPlayPanel('join', { historyMode: 'push' }));
             contBtn.addEventListener('click', () => showPlayPanel('selection', { historyMode: 'push' }));
-            document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);
-            document.getElementById('joinStartAmateurBtn').addEventListener('click', event => startAmateurApplication(event.currentTarget));
-            document.getElementById('joinMobileStartAmateurBtn').addEventListener('click', event => startAmateurApplication(event.currentTarget));
-            document.getElementById('joinGoProButton').addEventListener('click', event => startProApplication(event.currentTarget));
-            document.getElementById('joinMobileGoProButton').addEventListener('click', event => startProApplication(event.currentTarget));
-            document.getElementById('playSelectionBackBtn').addEventListener('click', navigateToStartPanel);
-            document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);
+            const joinTrackBackButton = document.getElementById('joinTrackBackBtn');
+            const joinStartAmateurButton = document.getElementById('joinStartAmateurBtn');
+            const joinMobileStartAmateurButton = document.getElementById('joinMobileStartAmateurBtn');
+            const joinGoProButton = document.getElementById('joinGoProButton');
+            const joinMobileGoProButton = document.getElementById('joinMobileGoProButton');
+            const selectionBackButton = document.getElementById('playSelectionBackBtn');
+            const dashboardBackButton = document.getElementById('playDashboardBackBtn');
+            if (!(joinTrackBackButton instanceof HTMLButtonElement)
+                || !(joinStartAmateurButton instanceof HTMLButtonElement)
+                || !(joinMobileStartAmateurButton instanceof HTMLButtonElement)
+                || !(joinGoProButton instanceof HTMLButtonElement)
+                || !(joinMobileGoProButton instanceof HTMLButtonElement)
+                || !(selectionBackButton instanceof HTMLButtonElement)
+                || !(dashboardBackButton instanceof HTMLButtonElement)) {
+                throw new Error('Play workflow buttons are missing.');
+            }
 
-            document.getElementById('playConfirmAthleteBtn').addEventListener('click', () => {
+            joinTrackBackButton.addEventListener('click', navigateToStartPanel);
+            joinStartAmateurButton.addEventListener('click', () => startAmateurApplication(joinStartAmateurButton));
+            joinMobileStartAmateurButton.addEventListener('click', () => startAmateurApplication(joinMobileStartAmateurButton));
+            joinGoProButton.addEventListener('click', () => startProApplication(joinGoProButton));
+            joinMobileGoProButton.addEventListener('click', () => startProApplication(joinMobileGoProButton));
+            selectionBackButton.addEventListener('click', navigateToStartPanel);
+            dashboardBackButton.addEventListener('click', navigateToSelectionPanel);
+
+            confirmAthleteButton.addEventListener('click', () => {
+                const flow = requirePlayFlow();
+                const athleteSelection = requireAthleteSelection();
                 const currentAthlete = athleteSelection.getCurrentAthlete();
                 if (!flow.persistSelectedAthlete(currentAthlete)) {
-                    customAlert(storageErrorMessage);
+                    window.customAlert(storageErrorMessage);
                     return;
                 }
                 showPlayPanel('dashboard', { historyMode: 'push' });
@@ -525,15 +639,15 @@
             [
                 newBtn,
                 contBtn,
-                document.getElementById('joinTrackBackBtn'),
-                document.getElementById('joinStartAmateurBtn'),
-                document.getElementById('joinMobileStartAmateurBtn'),
-                document.getElementById('joinGoProButton'),
-                document.getElementById('joinMobileGoProButton'),
-                document.getElementById('playSelectionBackBtn'),
-                document.getElementById('playDashboardBackBtn')
+                joinTrackBackButton,
+                joinStartAmateurButton,
+                joinMobileStartAmateurButton,
+                joinGoProButton,
+                joinMobileGoProButton,
+                selectionBackButton,
+                dashboardBackButton
             ].forEach(button => {
-                if (button) button.disabled = false;
+                button.disabled = false;
             });
             window.LwcFlowActionDock?.refreshNow?.();
 
@@ -550,3 +664,5 @@
         initializePlayMenu();
     }
 })();
+
+export {};

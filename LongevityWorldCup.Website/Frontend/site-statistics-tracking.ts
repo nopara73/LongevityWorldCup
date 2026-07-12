@@ -7,52 +7,95 @@
     const sessionHeader = "X-LWC-Stats-Session";
     const originalFetch = window.fetch ? window.fetch.bind(window) : null;
     const pageStartedAt = now();
-    const sentOnce = new Set();
-    const trackedPageViews = new Set();
-    const completedFields = new Set();
-    const touchedFields = new Set();
+    const sentOnce = new Set<string>();
+    const trackedPageViews = new Set<string>();
+    const completedFields = new Set<string>();
+    const touchedFields = new Set<string>();
     let lastRequiredProgress = -1;
     let lastCheckInKind = "scored";
 
-    function now() {
+    interface StoredFirstTouch {
+        landingRoute?: unknown;
+        firstReferrerDomain?: unknown;
+        firstSource?: unknown;
+        firstCampaign?: unknown;
+        firstUtmSource?: unknown;
+        firstUtmMedium?: unknown;
+        firstUtmCampaign?: unknown;
+        firstUtmTerm?: unknown;
+        firstUtmContent?: unknown;
+    }
+
+    interface EventBoardClickMetadata extends LwcSiteStatisticsMetadata {
+        targetKind: string;
+    }
+
+    interface ObservedFetch {
+        component: string;
+        step: string;
+        successEvent(response: Response): string | null;
+        failureEvent: string;
+    }
+
+    type RequiredCalculatorControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+    type FetchArguments = [input: RequestInfo | URL, init?: RequestInit];
+
+    function now(): number {
         return typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
     }
 
-    function safe(fn) {
+    function safe<TResult>(fn: () => TResult): TResult | null {
         try { return fn(); } catch (_) { return null; }
     }
 
-    function listen(target, type, handler, options) {
+    function listen<TEvent extends Event = Event>(
+        target: EventTarget | null,
+        type: string,
+        handler: (event: TEvent) => void,
+        options?: AddEventListenerOptions | boolean
+    ): void {
         if (!target || typeof target.addEventListener !== "function") return;
         safe(() => {
             target.addEventListener(type, event => {
-                safe(() => handler(event));
+                safe(() => handler(event as TEvent));
             }, options);
         });
     }
 
-    function getSessionId() {
+    function createSessionId(): string {
+        const uuid = safe(() => crypto.randomUUID());
+        if (uuid) return uuid;
+
+        const randomBytes = safe(() => crypto.getRandomValues(new Uint8Array(16)));
+        if (randomBytes) {
+            return Array.from(randomBytes, value => value.toString(16).padStart(2, "0")).join("");
+        }
+
+        return `${Date.now().toString(36)}-${Math.round(now() * 1000).toString(36)}`;
+    }
+
+    function getSessionId(): string {
         const existing = safe(() => sessionStorage.getItem(sessionKey));
         if (existing) return existing;
-        const id = safe(() => crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        const id = createSessionId();
         safe(() => sessionStorage.setItem(sessionKey, id));
         return id;
     }
 
-    function route() {
+    function route(): string {
         return `${window.location.pathname}${window.location.search || ""}`;
     }
 
-    function campaignValue(name) {
+    function campaignValue(name: string): string {
         const value = safe(() => new URLSearchParams(window.location.search).get(name)) || "";
         return safeToken(value, 96);
     }
 
-    function hasCampaignParams() {
+    function hasCampaignParams(): boolean {
         return !!(campaignValue("campaign") || campaignValue("utm_source") || campaignValue("utm_medium") || campaignValue("utm_campaign"));
     }
 
-    function flowFromPath() {
+    function flowFromPath(): string {
         const path = window.location.pathname.toLowerCase();
         if (path.includes("bortz-age") || path === "/bortz-age") return "bortz";
         if (path.includes("pheno-age") || path === "/pheno-age") return "pheno";
@@ -64,11 +107,11 @@
         return "site";
     }
 
-    function isReviewSource(value) {
+    function isReviewSource(value: string | null): boolean {
         return value === "proof-upload" || value === "edit-profile";
     }
 
-    function hasApplicationReviewContext() {
+    function hasApplicationReviewContext(): boolean {
         return !!safe(() => {
             const params = new URLSearchParams(window.location.search);
             return sessionStorage.getItem("pendingPaymentInvoice") ||
@@ -80,14 +123,14 @@
         });
     }
 
-    function deviceClass() {
+    function deviceClass(): string {
         const ua = navigator.userAgent || "";
         if (/ipad|tablet/i.test(ua)) return "tablet";
         if (/mobi|android|iphone/i.test(ua)) return "mobile";
         return "desktop";
     }
 
-    function browserFamily() {
+    function browserFamily(): string {
         const ua = navigator.userAgent || "";
         if (/Edg\//.test(ua)) return "Edge";
         if (/Chrome\//.test(ua)) return "Chrome";
@@ -96,18 +139,18 @@
         return "other";
     }
 
-    function referrerDomain() {
+    function referrerDomain(): string {
         return safe(() => document.referrer ? new URL(document.referrer).hostname.toLowerCase() : "") || "";
     }
 
-    function isInternalReferrer(host) {
+    function isInternalReferrer(host: string): boolean {
         if (!host) return false;
         const normalizedHost = String(host).toLowerCase().replace(/^www\./, "");
         const currentHost = safe(() => window.location.hostname.toLowerCase().replace(/^www\./, "")) || "";
         return normalizedHost === currentHost || normalizedHost === "longevityworldcup.com";
     }
 
-    function isEmailReferrer(host) {
+    function isEmailReferrer(host: string): boolean {
         if (!host) return false;
         const normalizedHost = String(host).toLowerCase();
         return normalizedHost === "com.google.android.gm"
@@ -116,7 +159,7 @@
             || /gmail|outlook|hotmail|protonmail|proton\.me|fastmail|icloud|mail\.yahoo|yahoomail/i.test(normalizedHost);
     }
 
-    function source() {
+    function source(): string {
         const host = referrerDomain();
         if (!host) return hasCampaignParams() ? "campaign" : "direct";
         if (isInternalReferrer(host)) return "internal";
@@ -126,11 +169,11 @@
         return "referral";
     }
 
-    function getFirstTouch() {
+    function getFirstTouch(): StoredFirstTouch {
         const existing = safe(() => sessionStorage.getItem(firstTouchKey));
         if (existing) {
-            const parsed = safe(() => JSON.parse(existing));
-            if (parsed && typeof parsed === "object") return parsed;
+            const parsed: unknown = safe(() => JSON.parse(existing));
+            if (parsed && typeof parsed === "object") return parsed as StoredFirstTouch;
         }
 
         const touch = {
@@ -148,7 +191,7 @@
         return touch;
     }
 
-    function track(eventName, options) {
+    function track(eventName: string | null, options?: LwcSiteStatisticsTrackOptions): void {
         safe(() => {
             if (!eventName || !originalFetch) return;
             const firstTouch = getFirstTouch();
@@ -189,60 +232,78 @@
         });
     }
 
-    function trackOnce(key, eventName, options) {
+    function trackOnce(key: string, eventName: string, options?: LwcSiteStatisticsTrackOptions): void {
         if (sentOnce.has(key)) return;
         sentOnce.add(key);
         track(eventName, options);
     }
 
-    function isIgnoredClientErrorMessage(message) {
+    function isIgnoredClientErrorMessage(message: unknown): boolean {
         message = String(message || "").trim();
         return message === "ResizeObserver loop completed with undelivered notifications." ||
             message === "ResizeObserver loop completed with undelivered notifications" ||
             message === "ResizeObserver loop limit exceeded";
     }
 
-    function isSameOriginFetch(input) {
-        const raw = safe(() => input && input.url ? input.url : input) || "";
+    function errorName(error: unknown, fallback: string): string {
+        if (typeof error !== "object" || error === null || !("name" in error)) return fallback;
+        return typeof error.name === "string" && error.name ? error.name : fallback;
+    }
+
+    function isSameOriginFetch(input: RequestInfo | URL): boolean {
+        const raw = safe(() => input instanceof Request ? input.url : input) || "";
         const parsed = safe(() => new URL(String(raw), window.location.href));
         return !!parsed && parsed.origin === window.location.origin && parsed.pathname.indexOf("/api/") === 0;
     }
 
-    function withStatsSessionHeader(args) {
-        if (!args || !args.length || typeof Headers === "undefined" || !isSameOriginFetch(args[0])) return args;
-        const init = args[1] ? Object.assign({}, args[1]) : {};
-        const headers = new Headers(init.headers || (typeof Request !== "undefined" && args[0] instanceof Request ? args[0].headers : undefined));
+    function withStatsSessionHeader(args: IArguments): IArguments | FetchArguments {
+        const input = args[0] as RequestInfo | URL;
+        const suppliedInit = args[1] as RequestInit | undefined;
+        if (!args.length || typeof Headers === "undefined" || !isSameOriginFetch(input)) {
+            return args;
+        }
+
+        const init: RequestInit = suppliedInit ? Object.assign({}, suppliedInit) : {};
+        const headers = new Headers(init.headers || (typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined));
         if (!headers.has(sessionHeader)) headers.set(sessionHeader, getSessionId());
         init.headers = headers;
 
-        if (typeof Request !== "undefined" && args[0] instanceof Request) {
-            return [new Request(args[0], init)];
+        if (typeof Request !== "undefined" && input instanceof Request) {
+            return [new Request(input, init)];
         }
 
-        return [args[0], init];
+        return [input, init];
     }
 
-    function fieldKey(el) {
-        return (el && (el.id || el.name || el.getAttribute("aria-label"))) || "unknown";
+    function fieldKey(el: EventTarget | null): string {
+        if (!el) return "unknown";
+        const element = el as Element & { id?: string; name?: string };
+        return element.id || element.name || element.getAttribute("aria-label") || "unknown";
     }
 
-    function safeFieldKey(el) {
+    function isRequiredCalculatorControl(target: EventTarget | null): target is RequiredCalculatorControl {
+        return target instanceof HTMLInputElement ||
+            target instanceof HTMLSelectElement ||
+            target instanceof HTMLTextAreaElement;
+    }
+
+    function safeFieldKey(el: EventTarget | null): string {
         const key = fieldKey(el);
         if (/email|name|token|note|why|media|link/i.test(key)) return "private_field";
         return key;
     }
 
-    function safeToken(value, maxLength) {
-        value = String(value || "").trim();
-        if (!value) return "";
-        if (/@|https?:\/\/|data:|secret|bearer|password|token/i.test(value)) return "";
-        return value
+    function safeToken(value: unknown, maxLength?: number): string {
+        const text = String(value || "").trim();
+        if (!text) return "";
+        if (/@|https?:\/\/|data:|secret|bearer|password|token/i.test(text)) return "";
+        return text
             .slice(0, maxLength || 96)
             .replace(/[^\w./:$ -]/g, "")
             .trim();
     }
 
-    function fileTypeBucket(file) {
+    function fileTypeBucket(file: File | null | undefined): string {
         const type = String(file && file.type || "").toLowerCase();
         const name = String(file && file.name || "").toLowerCase();
         if (type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
@@ -251,7 +312,7 @@
         return "unsupported";
     }
 
-    function fileSizeBucket(file) {
+    function fileSizeBucket(file: File | null | undefined): string {
         const size = Number(file && file.size);
         if (!Number.isFinite(size)) return "unknown";
         if (size < 500 * 1024) return "under_500kb";
@@ -261,7 +322,7 @@
         return "over_10mb";
     }
 
-    function countBucket(count) {
+    function countBucket(count: number): string {
         if (count <= 0) return "0";
         if (count <= 2) return "1_2";
         if (count <= 5) return "3_5";
@@ -270,7 +331,7 @@
         return "over_30";
     }
 
-    function amountBucket(raw) {
+    function amountBucket(raw: unknown): string {
         const value = Number(raw);
         if (!Number.isFinite(value)) return "unknown";
         if (value <= 0) return "$0";
@@ -281,7 +342,7 @@
         return "$1000_plus";
     }
 
-    function ageReductionBucketFromText(text) {
+    function ageReductionBucketFromText(text: string | null | undefined): string {
         const value = Number(String(text || "").replace(/[^\d+.-]/g, ""));
         if (!Number.isFinite(value)) return "unknown";
         const reduction = String(text || "").includes("-") ? Math.abs(value) : -value;
@@ -292,25 +353,25 @@
         return "20_plus";
     }
 
-    function pathLower() {
+    function pathLower(): string {
         return String(window.location.pathname || "/").toLowerCase();
     }
 
-    function queryValue(name) {
+    function queryValue(name: string): string {
         return safe(() => new URLSearchParams(window.location.search || "").get(name)) || "";
     }
 
-    function pathSegmentAfter(prefix) {
+    function pathSegmentAfter(prefix: string): string {
         const path = pathLower();
         if (!path.startsWith(prefix)) return "";
         return safeToken(decodeURIComponent(path.slice(prefix.length).split("/")[0] || ""), 64);
     }
 
-    function currentAthleteSlug() {
+    function currentAthleteSlug(): string {
         return pathSegmentAfter("/athlete/") || safeToken(queryValue("athlete"), 64);
     }
 
-    function currentLeagueSlug() {
+    function currentLeagueSlug(): string {
         const routeSlug = pathSegmentAfter("/league/");
         if (routeSlug) return routeSlug;
         const view = safeToken(queryValue("view"), 64);
@@ -320,19 +381,19 @@
         return pathLower() === "/leaderboard" ? "ultimate" : "";
     }
 
-    function isHomepagePath() {
+    function isHomepagePath(): boolean {
         const path = pathLower();
         return path === "/" || path === "/index.html";
     }
 
-    function isEventBoardPath() {
+    function isEventBoardPath(): boolean {
         const path = pathLower();
         return path === "/events" || path.includes("/event-board/");
     }
 
-    function eventBoardClickMetadata(target) {
-        const link = target && target.closest ? target.closest("a[href]") : null;
-        const row = target && target.closest ? target.closest("tr.main-row") : null;
+    function eventBoardClickMetadata(target: Element): EventBoardClickMetadata {
+        const link = target.closest<HTMLAnchorElement>("a[href]");
+        const row = target.closest<HTMLTableRowElement>("tr.main-row");
         const href = link ? String(link.getAttribute("href") || "") : "";
         let targetKind = "event";
         if (link && link.classList.contains("view-all")) targetKind = "view_all";
@@ -340,14 +401,14 @@
         else if (href.startsWith("/league/") || href.includes("view=") || href.includes("filters=")) targetKind = "league";
         else if (link) targetKind = "link";
 
-        const metadata = { targetKind };
+        const metadata: EventBoardClickMetadata = { targetKind };
         if (row && row.dataset.eventTypeName) metadata.eventType = safeToken(row.dataset.eventTypeName, 64);
         if (row && row.dataset.highlightSelection) metadata.highlightSelection = safeToken(row.dataset.highlightSelection, 64);
         if (row && row.dataset.primarySlug) metadata.primarySlug = safeToken(row.dataset.primarySlug, 64);
         return metadata;
     }
 
-    function trackPublicPageViews() {
+    function trackPublicPageViews(): void {
         if (isHomepagePath() && !currentAthleteSlug()) {
             const highlightsRoot = document.getElementById("events-root-index");
             if (highlightsRoot) {
@@ -385,7 +446,7 @@
         }
     }
 
-    function setupPageViews() {
+    function setupPageViews(): void {
         const pageViewKey = `${window.location.pathname.toLowerCase()}${window.location.search || ""}`;
         if (trackedPageViews.has(pageViewKey)) return;
         trackedPageViews.add(pageViewKey);
@@ -440,28 +501,28 @@
         track("site_page_viewed", { component: "site", outcome: "viewed" });
     }
 
-    function scheduleJoinPanelViewForCurrentRoute() {
-        const enqueue = typeof queueMicrotask === "function"
+    function scheduleJoinPanelViewForCurrentRoute(): void {
+        const enqueue: (callback: VoidFunction) => void = typeof queueMicrotask === "function"
             ? queueMicrotask
-            : callback => setTimeout(callback, 0);
+            : callback => { setTimeout(callback, 0); };
 
         enqueue(() => safe(trackJoinPanelViewForCurrentRoute));
     }
 
-    function trackJoinPanelViewForCurrentRoute() {
+    function trackJoinPanelViewForCurrentRoute(): void {
         if (window.location.pathname.toLowerCase() === "/join") {
             setupPageViews();
         }
     }
 
-    function setupSpaRouteTracking() {
+    function setupSpaRouteTracking(): void {
         if (!window.history) return;
 
-        ["pushState", "replaceState"].forEach(method => {
+        (["pushState", "replaceState"] as const).forEach(method => {
             const original = window.history[method];
             if (typeof original !== "function") return;
             window.history[method] = function () {
-                const result = original.apply(this, arguments);
+                const result = original.apply(this, arguments as unknown as Parameters<History["pushState"]>);
                 scheduleJoinPanelViewForCurrentRoute();
                 return result;
             };
@@ -470,24 +531,23 @@
         listen(window, "popstate", scheduleJoinPanelViewForCurrentRoute);
     }
 
-    function setupCalculatorTracking() {
+    function setupCalculatorTracking(): void {
         const form = document.getElementById("phenoAgeForm") || document.getElementById("bortzAgeForm");
         if (!form) return;
 
-        const required = Array.from(form.querySelectorAll("input[required], select[required], textarea[required]"));
+        const required = Array.from(form.querySelectorAll<RequiredCalculatorControl>("input[required], select[required], textarea[required]"));
 
-        function fieldHasRequiredValue(el) {
-            if (!el) return false;
-            if (el.type === "checkbox" || el.type === "radio") return !!el.checked;
+        function fieldHasRequiredValue(el: RequiredCalculatorControl): boolean {
+            if (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")) return el.checked;
             return String(el.value || "").trim().length > 0;
         }
 
-        function requiredProgressThreshold() {
+        function requiredProgressThreshold(): number {
             const pct = required.length ? Math.floor((completedFields.size / required.length) * 100) : 0;
             return pct >= 100 ? 100 : pct >= 75 ? 75 : pct >= 50 ? 50 : pct >= 25 ? 25 : 0;
         }
 
-        function recordRequiredProgress(source) {
+        function recordRequiredProgress(source: string): void {
             const threshold = requiredProgressThreshold();
             if (threshold <= lastRequiredProgress) return;
 
@@ -510,7 +570,7 @@
             }
         }
 
-        function recordFieldCompletion(el, source) {
+        function recordFieldCompletion(el: RequiredCalculatorControl, source: string): boolean {
             const key = safeFieldKey(el);
             if (!fieldHasRequiredValue(el) || completedFields.has(key)) return false;
 
@@ -524,7 +584,7 @@
             return true;
         }
 
-        function scanRequiredFields(source) {
+        function scanRequiredFields(source: string): void {
             let changed = false;
             required.forEach(el => {
                 if (recordFieldCompletion(el, source)) changed = true;
@@ -537,7 +597,7 @@
             track("calculator_started", { component: "calculator", outcome: "submitted" });
         }, true);
 
-        listen(form, "invalid", event => {
+        listen(form, "invalid", (event: Event) => {
             track("calculator_validation_failed", {
                 component: "calculator",
                 step: safeFieldKey(event.target),
@@ -546,8 +606,8 @@
             });
         }, true);
 
-        listen(form, "input", event => {
-            if (event && required.includes(event.target)) {
+        listen(form, "input", (event: Event) => {
+            if (isRequiredCalculatorControl(event.target) && required.includes(event.target)) {
                 recordFieldCompletion(event.target, "input");
                 recordRequiredProgress("input");
             }
@@ -616,12 +676,13 @@
         }
     }
 
-    function setupProofTracking() {
+    function setupProofTracking(): void {
         ["proofPicInput", "proofCameraInput", "profilePicInput", "profileCameraInput"].forEach(id => {
             const input = document.getElementById(id);
             if (!input) return;
+            const fileInput = input as HTMLInputElement;
             listen(input, "change", () => {
-                const files = Array.from(input.files || []);
+                const files = Array.from(fileInput.files || []);
                 const isProof = id.toLowerCase().includes("proof");
                 const first = files[0];
                 track(isProof ? "proof_files_selected" : "profile_picture_started", {
@@ -651,7 +712,7 @@
         }, { passive: true });
     }
 
-    function setupJoinGameTracking() {
+    function setupJoinGameTracking(): void {
         const amateur = document.getElementById("joinStartAmateurBtn") || document.querySelector("[onclick*='startAmateurApplication']");
         const pro = document.getElementById("joinGoProButton") || document.querySelector("[onclick*='startProApplication']");
         const challenge = document.getElementById("joinStartChallengeLink");
@@ -683,7 +744,7 @@
             });
         }, { passive: true });
 
-        document.querySelectorAll(".biomarker-disclosure, .play-join-biomarkers details").forEach(details => {
+        document.querySelectorAll<HTMLDetailsElement>(".biomarker-disclosure, .play-join-biomarkers details").forEach(details => {
             listen(details, "toggle", () => {
                 if (!details.open) return;
                 const isPro = !!details.closest(".track-card.pro, .play-join-card--pro");
@@ -698,13 +759,13 @@
         });
     }
 
-    function setupChallengeTracking() {
+    function setupChallengeTracking(): void {
         const signupForm = document.getElementById("lmxSignupForm");
         if (!signupForm) return;
 
-        listen(signupForm, "input", event => {
+        listen(signupForm, "input", (event: Event) => {
             const target = event.target;
-            if (!target) return;
+            if (!(target instanceof HTMLElement)) return;
             if (target.id === "lmxSignupEmail") {
                 trackOnce("challenge-signup-started", "challenge_signup_started", { component: "signup", outcome: "started" });
                 return;
@@ -715,7 +776,7 @@
             }
         }, { passive: true });
 
-        listen(signupForm, "invalid", event => {
+        listen(signupForm, "invalid", (event: Event) => {
             const key = safeFieldKey(event.target);
             track(key === "lmxSignupEmail" ? "challenge_email_validation_failed" : "challenge_signup_validation_failed", {
                 component: "signup",
@@ -729,7 +790,7 @@
             track("challenge_signup_submitted", { component: "signup", outcome: "submitted" });
         }, true);
 
-        document.querySelectorAll("[name='lmxSignupIdentity']").forEach(input => {
+        document.querySelectorAll<HTMLInputElement>("[name='lmxSignupIdentity']").forEach(input => {
             listen(input, "change", () => {
                 track("challenge_identity_selected", {
                     component: "signup",
@@ -740,9 +801,9 @@
             }, { passive: true });
         });
 
-        listen(document, "input", event => {
+        listen(document, "input", (event: Event) => {
             const target = event.target;
-            if (!target || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxBlockedCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
+            if (!(target instanceof HTMLInputElement) || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxBlockedCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
             const component = target.id === "lmxEditCommitmentAmount" ? "profile" : "commitment";
             trackOnce(`challenge-pledge-touched-${component}`, "challenge_pledge_touched", { component, step: "pledge", outcome: "touched" });
             if (target.value) {
@@ -755,9 +816,9 @@
             }
         }, { passive: true });
 
-        listen(document, "invalid", event => {
+        listen(document, "invalid", (event: Event) => {
             const target = event.target;
-            if (!target || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxBlockedCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
+            if (!(target instanceof HTMLInputElement) || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxBlockedCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
             track("challenge_pledge_validation_failed", {
                 component: target.id === "lmxEditCommitmentAmount" ? "profile" : "commitment",
                 step: safeFieldKey(target),
@@ -769,8 +830,10 @@
         listen(document.getElementById("lmxSignupAthlete"), "input", () => {
             trackOnce("challenge-athlete-search-started", "challenge_athlete_search_started", { component: "signup", step: "athlete_search", outcome: "started" });
         }, { passive: true });
-        listen(document, "mousedown", event => {
-            const option = event.target && event.target.closest ? event.target.closest("#lmxSignupAthlete-autocomplete-list .lmx-athlete-option") : null;
+        listen(document, "mousedown", (event: MouseEvent) => {
+            const option = event.target instanceof Element
+                ? event.target.closest("#lmxSignupAthlete-autocomplete-list .lmx-athlete-option")
+                : null;
             if (!option) return;
             track("challenge_athlete_search_result_selected", {
                 component: "signup",
@@ -788,10 +851,10 @@
             track("challenge_timezone_selected", { component: "signup", step: "timezone", outcome: "selected" });
         }, { passive: true });
 
-        listen(document, "submit", event => {
+        listen(document, "submit", (event: SubmitEvent) => {
             const form = event.target;
             if (!(form instanceof HTMLFormElement) || !form.classList.contains("lmx-checkin-card")) return;
-            const day = Number(form.dataset.day || form.querySelector("[name='challengeDay']")?.value);
+            const day = Number(form.dataset.day || form.querySelector<HTMLInputElement>("[name='challengeDay']")?.value);
             const practice = !!form.querySelector(".lmx-practice-note");
             lastCheckInKind = practice ? "practice" : "scored";
             track(practice ? "challenge_practice_checkin_started" : "challenge_scored_checkin_started", {
@@ -821,14 +884,14 @@
         }
     }
 
-    function setupPublicContentTracking() {
-        listen(document, "click", event => {
+    function setupPublicContentTracking(): void {
+        listen(document, "click", (event: MouseEvent) => {
             if (event.defaultPrevented) return;
             if (event.button !== undefined && event.button !== 0) return;
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
             const target = event.target;
-            if (!target || !target.closest) return;
+            if (!(target instanceof Element)) return;
 
             const homepageRoot = target.closest("#events-root-index");
             if (homepageRoot) {
@@ -856,17 +919,17 @@
         }, true);
     }
 
-    function setupFetchTracking() {
+    function setupFetchTracking(): void {
         if (!originalFetch) return;
 
         window.fetch = function () {
             const args = withStatsSessionHeader(arguments);
-            const url = safe(() => String(args[0] && args[0].url || args[0] || "")) || "";
+            const url = safe(() => String(args[0] instanceof Request ? args[0].url : args[0] || "")) || "";
             const started = now();
             const observed = safe(() => classifyFetch(url));
             let request;
             try {
-                request = originalFetch.apply(this, args);
+                request = originalFetch.apply(this, args as unknown as Parameters<typeof originalFetch>);
             } catch (error) {
                 safe(() => {
                     if (observed) {
@@ -874,7 +937,7 @@
                             component: observed.component,
                             step: observed.step,
                             outcome: "failed",
-                            errorCode: error && error.name ? error.name : "fetch_failed",
+                            errorCode: errorName(error, "fetch_failed"),
                             durationMs: Math.round(now() - started)
                         });
                     }
@@ -901,7 +964,7 @@
                         component: observed.component,
                         step: observed.step,
                         outcome: "failed",
-                        errorCode: error && error.name ? error.name : "network_failed",
+                        errorCode: errorName(error, "network_failed"),
                         durationMs: Math.round(now() - started)
                     });
                 });
@@ -910,14 +973,14 @@
         };
     }
 
-    function classifyFetch(url) {
+    function classifyFetch(url: string): ObservedFetch | null {
         if (!url || url.includes("/api/site-statistics/event")) return null;
         if (url.includes("/api/data/hypothetical-rank")) {
             track("rank_preview_requested", { component: "rank_preview", outcome: "requested" });
             return {
                 component: "rank_preview",
                 step: "hypothetical_rank",
-                successEvent: response => response.ok ? "rank_preview_rendered" : "rank_preview_failed",
+                successEvent: (response: Response) => response.ok ? "rank_preview_rendered" : "rank_preview_failed",
                 failureEvent: "rank_preview_failed"
             };
         }
@@ -925,7 +988,7 @@
             return {
                 component: "application",
                 step: "submit",
-                successEvent: response => response.ok ? null : "api_request_failed",
+                successEvent: (response: Response) => response.ok ? null : "api_request_failed",
                 failureEvent: "api_request_failed"
             };
         }
@@ -933,7 +996,7 @@
             return {
                 component: "application_review",
                 step: "payment_status",
-                successEvent: response => response.ok ? "payment_status_checked" : "payment_status_failed",
+                successEvent: (response: Response) => response.ok ? "payment_status_checked" : "payment_status_failed",
                 failureEvent: "payment_status_failed"
             };
         }
@@ -941,7 +1004,7 @@
             return {
                 component: "challenge",
                 step: "public_state",
-                successEvent: response => response.ok ? "challenge_public_state_loaded" : "api_request_failed",
+                successEvent: (response: Response) => response.ok ? "challenge_public_state_loaded" : "api_request_failed",
                 failureEvent: "api_request_failed"
             };
         }
@@ -949,7 +1012,7 @@
             return {
                 component: "signup",
                 step: "submit",
-                successEvent: response => response.ok ? null : "api_request_failed",
+                successEvent: (response: Response) => response.ok ? null : "api_request_failed",
                 failureEvent: "api_request_failed"
             };
         }
@@ -957,7 +1020,7 @@
             return {
                 component: "challenge",
                 step: "participant_state",
-                successEvent: response => response.ok ? "challenge_participant_state_loaded" : "challenge_participant_state_failed",
+                successEvent: (response: Response) => response.ok ? "challenge_participant_state_loaded" : "challenge_participant_state_failed",
                 failureEvent: "challenge_participant_state_failed"
             };
         }
@@ -965,7 +1028,7 @@
             return {
                 component: "checkin",
                 step: "submit",
-                successEvent: response => response.ok ? null : "api_request_failed",
+                successEvent: (response: Response) => response.ok ? null : "api_request_failed",
                 failureEvent: "api_request_failed"
             };
         }
@@ -973,7 +1036,7 @@
             return {
                 component: "commitment",
                 step: "status",
-                successEvent: response => response.ok ? null : "api_request_failed",
+                successEvent: (response: Response) => response.ok ? null : "api_request_failed",
                 failureEvent: "api_request_failed"
             };
         }
@@ -981,20 +1044,21 @@
             return {
                 component: "commitment",
                 step: "payment",
-                successEvent: response => response.ok ? null : "api_request_failed",
+                successEvent: (response: Response) => response.ok ? null : "api_request_failed",
                 failureEvent: "api_request_failed"
             };
         }
         return null;
     }
 
-    window.LwcSiteStats = {
+    const siteStatisticsApi: LwcSiteStatisticsApi = {
         track,
         amountBucket,
         fileSizeBucket,
         fileTypeBucket,
         countBucket
     };
+    Reflect.set(window, "LwcSiteStats", siteStatisticsApi);
 
     setupFetchTracking();
     setupSpaRouteTracking();
@@ -1006,7 +1070,7 @@
         safe(setupChallengeTracking);
         safe(setupPublicContentTracking);
     });
-    listen(window, "error", event => {
+    listen(window, "error", (event: ErrorEvent) => {
         const message = event && event.message ? String(event.message) : "";
         if (isIgnoredClientErrorMessage(message)) return;
         track("client_error_observed", {

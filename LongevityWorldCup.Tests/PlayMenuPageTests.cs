@@ -1,3 +1,4 @@
+using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -12,6 +13,7 @@ public sealed class PlayMenuPageTests
 
         var html = await client.GetStringAsync("/play/menu.html");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+        var flowSource = ReadFrontendSource("play-athlete-flow.ts");
         var playMenu = await client.GetStringAsync("/js/play-menu.js");
 
         Assert.Contains("/js/play-athlete-flow.js", html);
@@ -25,7 +27,7 @@ public sealed class PlayMenuPageTests
         Assert.Contains("return window[storageName].getItem(key);", flow);
         Assert.Contains("function hasSubmittedApplication()", flow);
         Assert.Contains("return getLocalItem(\"hasApplication\") === \"true\";", flow);
-        Assert.Contains("} catch (_) {", flow);
+        Assert.Contains("} catch (_) {", flowSource);
         Assert.Contains("return null;", flow);
         Assert.DoesNotContain("return localStorage.getItem('hasApplication') === 'true';", playMenu);
         Assert.DoesNotContain("const hasApp = localStorage.getItem('hasApplication') === 'true';", playMenu);
@@ -39,6 +41,7 @@ public sealed class PlayMenuPageTests
 
         var html = await client.GetStringAsync("/play/menu.html");
         var playMenu = await client.GetStringAsync("/js/play-menu.js");
+        var playMenuSource = ReadFrontendSource("play-menu.ts");
 
         Assert.Contains("id=\"continueGameBtn\" type=\"button\"", html);
         Assert.Contains("id=\"athleteSelectionPanel\"", html);
@@ -57,8 +60,10 @@ public sealed class PlayMenuPageTests
         Assert.Contains("function navigateToSelectionPanel()", playMenu);
         Assert.Contains("navigateToPreviousPlayPanel('start');", playMenu);
         Assert.Contains("navigateToPreviousPlayPanel('selection');", playMenu);
-        Assert.Contains("document.getElementById('playSelectionBackBtn').addEventListener('click', navigateToStartPanel);", playMenu);
-        Assert.Contains("document.getElementById('playDashboardBackBtn').addEventListener('click', navigateToSelectionPanel);", playMenu);
+        Assert.Contains("const selectionBackButton = document.getElementById('playSelectionBackBtn');", playMenuSource);
+        Assert.Contains("const dashboardBackButton = document.getElementById('playDashboardBackBtn');", playMenuSource);
+        Assert.Contains("selectionBackButton.addEventListener('click', navigateToStartPanel);", playMenuSource);
+        Assert.Contains("dashboardBackButton.addEventListener('click', navigateToSelectionPanel);", playMenuSource);
         Assert.DoesNotContain("addEventListener('click', returnToStartPanel)", playMenu);
         Assert.DoesNotContain("addEventListener('click', returnToSelectionPanel)", playMenu);
         Assert.DoesNotContain("onclick=\"window.location.href='/select-athlete'\"", html);
@@ -77,6 +82,7 @@ public sealed class PlayMenuPageTests
         var html = await client.GetStringAsync("/play/menu.html");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
         var playMenu = await client.GetStringAsync("/js/play-menu.js");
+        var playMenuSource = ReadFrontendSource("play-menu.ts");
 
         Assert.Contains("id=\"joinTrackPanel\"", html);
         Assert.Contains("class=\"options-container play-join-actions flow-action-stack\" data-flow-dock=\"auto\"", html);
@@ -94,11 +100,12 @@ public sealed class PlayMenuPageTests
         Assert.DoesNotContain("id=\"joinStartChallengeButton\"", html);
         Assert.DoesNotContain("Start challenge</span>", html);
         Assert.Contains("join: Object.freeze({ route: '/join', panelId: 'joinTrackPanel', isWide: true })", playMenu);
-        Assert.Contains("if (path === '/join') return 'join';", playMenu);
+        Assert.Contains("if (path === '/join') return 'join';", playMenuSource);
         Assert.Contains("newBtn.addEventListener('click', () => showPlayPanel('join', { historyMode: 'push' }));", playMenu);
-        Assert.Contains("document.getElementById('joinTrackBackBtn').addEventListener('click', navigateToStartPanel);", playMenu);
-        Assert.Contains("document.getElementById('joinMobileStartAmateurBtn').addEventListener('click', event => startAmateurApplication(event.currentTarget));", playMenu);
-        Assert.Contains("document.getElementById('joinMobileGoProButton').addEventListener('click', event => startProApplication(event.currentTarget));", playMenu);
+        Assert.Contains("const joinTrackBackButton = document.getElementById('joinTrackBackBtn');", playMenuSource);
+        Assert.Contains("joinTrackBackButton.addEventListener('click', navigateToStartPanel);", playMenuSource);
+        Assert.Contains("joinMobileStartAmateurButton.addEventListener('click', () => startAmateurApplication(joinMobileStartAmateurButton));", playMenuSource);
+        Assert.Contains("joinMobileGoProButton.addEventListener('click', () => startProApplication(joinMobileGoProButton));", playMenuSource);
         Assert.DoesNotContain("onclick=\"window.location.href='/join'\"", html);
         Assert.Contains("flow.setPendingPaymentOffer({", playMenu);
         Assert.Contains("source: 'join-game'", playMenu);
@@ -188,6 +195,7 @@ public sealed class PlayMenuPageTests
         var html = await client.GetStringAsync("/play/menu.html");
         var css = await client.GetStringAsync("/css/play-athlete-flow.css");
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+        var flowSource = ReadFrontendSource("play-athlete-flow.ts");
 
         Assert.Contains("/css/play-athlete-flow.css", html);
         Assert.Contains("id=\"athleteSelectionPicture\" class=\"athlete-picture-frame\"", html);
@@ -212,7 +220,7 @@ public sealed class PlayMenuPageTests
         Assert.Contains("&& shouldUseDefaultForLoadedAthleteImage(image)", flow);
         Assert.Contains("scheduleCompletedImageInspection();", flow);
         Assert.Contains("if (!hasCompleted && image.complete)", flow);
-        Assert.Contains("image.decode().catch(() => {}).then(inspectCompletedImage);", flow);
+        Assert.Contains("image.decode().catch(() => {}).then(inspectCompletedImage);", flowSource);
         Assert.Contains("const inspectLoadedImage = watchAthleteImageLoad(image, finishImageSwap);", flow);
         Assert.Contains("frame.appendChild(image);", flow);
         Assert.Contains("currentMedia.classList.add(\"is-exiting\");", flow);
@@ -227,16 +235,17 @@ public sealed class PlayMenuPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
-        var playMenu = await client.GetStringAsync("/js/play-menu.js");
-        var scriptSelectionBranch = playMenu.IndexOf("if (panelName === 'selection')", StringComparison.Ordinal);
-        var hydrate = playMenu.IndexOf("const hydratedStoredAthlete = athleteSelection.hydrateStoredAthleteSelection();", scriptSelectionBranch, StringComparison.Ordinal);
-        var pendingSavedSelection = playMenu.IndexOf("if (!hydratedStoredAthlete && athleteSelection.hasPendingSavedSelection())", hydrate, StringComparison.Ordinal);
-        var preloadSavedSelection = playMenu.IndexOf("athleteSelection.loadAthletes({ savedSelectionTransition: false })", pendingSavedSelection, StringComparison.Ordinal);
-        var delayedShowPanel = playMenu.IndexOf(".then(() => showSelectionPanelAfterPreviewReady(panelName, preparationRunId));", preloadSavedSelection, StringComparison.Ordinal);
-        var hydratedLoad = playMenu.IndexOf("athleteSelection.loadAthletes().catch(() => {});", delayedShowPanel, StringComparison.Ordinal);
-        var hydratedReadyGuard = playMenu.IndexOf("if (hydratedStoredAthlete)", hydratedLoad, StringComparison.Ordinal);
-        var hydratedReadyShow = playMenu.IndexOf("showSelectionPanelAfterPreviewReady(panelName, preparationRunId);", hydratedReadyGuard, StringComparison.Ordinal);
-        var fallbackShow = playMenu.IndexOf("showPanelByName(panelName, { animate: false });", hydratedReadyShow, StringComparison.Ordinal);
+        var playMenuSource = ReadFrontendSource("play-menu.ts");
+        var flowSource = ReadFrontendSource("play-athlete-flow.ts");
+        var scriptSelectionBranch = playMenuSource.IndexOf("if (panelName === 'selection')", StringComparison.Ordinal);
+        var hydrate = playMenuSource.IndexOf("const hydratedStoredAthlete = athleteSelection.hydrateStoredAthleteSelection();", scriptSelectionBranch, StringComparison.Ordinal);
+        var pendingSavedSelection = playMenuSource.IndexOf("if (!hydratedStoredAthlete && athleteSelection.hasPendingSavedSelection())", hydrate, StringComparison.Ordinal);
+        var preloadSavedSelection = playMenuSource.IndexOf("athleteSelection.loadAthletes({ savedSelectionTransition: false })", pendingSavedSelection, StringComparison.Ordinal);
+        var delayedShowPanel = playMenuSource.IndexOf(".then(() => showSelectionPanelAfterPreviewReady(panelName, preparationRunId));", preloadSavedSelection, StringComparison.Ordinal);
+        var hydratedLoad = playMenuSource.IndexOf("athleteSelection.loadAthletes().catch(() => {});", delayedShowPanel, StringComparison.Ordinal);
+        var hydratedReadyGuard = playMenuSource.IndexOf("if (hydratedStoredAthlete)", hydratedLoad, StringComparison.Ordinal);
+        var hydratedReadyShow = playMenuSource.IndexOf("showSelectionPanelAfterPreviewReady(panelName, preparationRunId);", hydratedReadyGuard, StringComparison.Ordinal);
+        var fallbackShow = playMenuSource.IndexOf("showPanelByName(panelName, { animate: false });", hydratedReadyShow, StringComparison.Ordinal);
 
         Assert.True(scriptSelectionBranch >= 0);
         Assert.True(hydrate > scriptSelectionBranch);
@@ -248,19 +257,19 @@ public sealed class PlayMenuPageTests
         Assert.True(hydratedReadyShow > hydratedReadyGuard);
         Assert.True(fallbackShow > hydratedReadyShow);
         Assert.Contains("id=\"athleteSelectionPanel\"", html);
-        Assert.Contains("flow.createAthleteSelectionController({", playMenu);
-        Assert.Contains("function showSelectionPanelAfterPreviewReady(panelName, preparationRunId)", playMenu);
-        Assert.Contains("getAthleteSelectionPreviewReady()", playMenu);
-        Assert.Contains("function beginPlayPanelPreparation()", playMenu);
-        Assert.Contains("const PLAY_PANEL_PREPARATION_TIMEOUT_MS = 8000;", playMenu);
-        Assert.Contains("function waitForPlayPanelPreparation(promise)", playMenu);
-        Assert.Contains("Promise.race([Promise.resolve(promise).catch(() => {}), deadline])", playMenu);
-        Assert.Contains("document.body.classList.add('play-route-hydrating');", playMenu);
-        Assert.Contains("document.body.setAttribute('aria-busy', 'true');", playMenu);
-        Assert.Contains("document.body.removeAttribute('aria-busy');", playMenu);
-        Assert.Contains("const dashboardAthlete = athleteSelection.getCurrentAthlete()", playMenu);
-        Assert.Contains("|| flow.getStoredSelectedAthlete();", playMenu);
-        Assert.Contains("hasPendingSavedSelection: () => Boolean(getSavedSelectedAthleteName()) && !currentAthlete", await client.GetStringAsync("/js/play-athlete-flow.js"));
+        Assert.Contains("flow.createAthleteSelectionController({", playMenuSource);
+        Assert.Contains("function showSelectionPanelAfterPreviewReady(", playMenuSource);
+        Assert.Contains("getAthleteSelectionPreviewReady()", playMenuSource);
+        Assert.Contains("function beginPlayPanelPreparation()", playMenuSource);
+        Assert.Contains("const PLAY_PANEL_PREPARATION_TIMEOUT_MS = 8000;", playMenuSource);
+        Assert.Contains("function waitForPlayPanelPreparation(", playMenuSource);
+        Assert.Contains("Promise.race([Promise.resolve(promise).catch(() => {}), deadline])", playMenuSource);
+        Assert.Contains("document.body.classList.add('play-route-hydrating');", playMenuSource);
+        Assert.Contains("document.body.setAttribute('aria-busy', 'true');", playMenuSource);
+        Assert.Contains("document.body.removeAttribute('aria-busy');", playMenuSource);
+        Assert.Contains("const dashboardAthlete = athleteSelection.getCurrentAthlete()", playMenuSource);
+        Assert.Contains("|| flow.getStoredSelectedAthlete();", playMenuSource);
+        Assert.Contains("hasPendingSavedSelection: () => Boolean(getSavedSelectedAthleteName()) && !currentAthlete", flowSource);
     }
 
     [Fact]
@@ -317,4 +326,5 @@ public sealed class PlayMenuPageTests
         Assert.Contains("overflow-wrap: anywhere;", css);
         Assert.Contains("pro-discount-breakdown--with-badges", flow);
     }
+
 }
