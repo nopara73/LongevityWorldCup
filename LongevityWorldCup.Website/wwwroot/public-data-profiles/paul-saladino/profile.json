@@ -1,0 +1,57 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Paul Saladino",
+  "Biomarkers": [
+    {
+      "Date": "2024-02-26",
+      "AgeYears": 46.66,
+      "AlbGL": 47,
+      "CreatUmolL": 114.92,
+      "GluMmolL": 4.9395,
+      "CrpMgL": 0.6,
+      "LymPc": 36,
+      "McvFL": 86,
+      "RdwPc": 13.1,
+      "AlpUL": 76,
+      "Wbc1000cellsuL": 5.7,
+      "SourceIds": [
+        "official-video-2024"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-11",
+    "IdentitySourceIds": [
+      "official-video-2024",
+      "official-episode-page"
+    ],
+    "Sources": [
+      {
+        "Id": "official-video-2024",
+        "Kind": "Bloodwork",
+        "Title": "Paul Saladino — Bloodwork Review: April 2024",
+        "Url": "https://www.youtube.com/watch?v=qigwrWJEo6Q",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true
+      },
+      {
+        "Id": "official-episode-page",
+        "Kind": "Identity",
+        "Title": "Paul Saladino MD — Bloodwork review: April 2024",
+        "Url": "https://www.paulsaladinomd.com/psmd-podcast/bloodwork-review-april-2024",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true,
+        "PreferredForDisplay": true
+      }
+    ],
+    "TranscriptionNotes": [
+      "The official video visibly presents the original six-page MDLab report. Its header identifies Paul Saladino and collection on 26 February 2024 at 08:30.",
+      "AgeYears is his age at the draw, calculated from the date of birth and collection date shown in the report and rounded to two decimals.",
+      "The CBC and fasting glucose/creatinine are visible around 13:20; albumin, alkaline phosphatase and hs-CRP are visible around 14:10–15:00.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

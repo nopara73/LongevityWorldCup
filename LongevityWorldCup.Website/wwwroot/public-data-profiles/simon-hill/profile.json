@@ -1,0 +1,63 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Simon Hill",
+  "Biomarkers": [
+    {
+      "Date": "2025-05-01",
+      "DatePrecision": "Month",
+      "AgeYears": 38.9,
+      "AlbGL": 45,
+      "CreatUmolL": 86.632,
+      "GluMmolL": 4.8285,
+      "CrpMgL": 0.2,
+      "LymPc": 45.2,
+      "McvFL": 89.6,
+      "RdwPc": 12.1,
+      "AlpUL": 64,
+      "Wbc1000cellsuL": 3.9,
+      "MeasurementQualifiers": {
+        "CrpMgL": "<"
+      },
+      "SourceIds": [
+        "function-health-episode-373",
+        "function-health-report-2025"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-12",
+    "IdentitySourceIds": [
+      "function-health-episode-373",
+      "function-health-report-2025"
+    ],
+    "Sources": [
+      {
+        "Id": "function-health-episode-373",
+        "Kind": "Bloodwork",
+        "Title": "The Proof with Simon Hill — My Biological Age (And the Surprising Thing I Found in My Bloodwork), Episode 373",
+        "Url": "https://www.youtube.com/watch?v=omoz2RiaaB0",
+        "AccessedOn": "2026-07-11",
+        "SelfPublishedBySubject": true
+      },
+      {
+        "Id": "function-health-report-2025",
+        "Kind": "Bloodwork",
+        "Title": "The Proof — Simon Hill's 2025 blood-test results",
+        "Url": "https://theproof.sgp1.cdn.digitaloceanspaces.com/wp-content/uploads/2025/07/23095432/TheProof_SimonHillsBlood-Test-Results_2025.pdf",
+        "AccessedOn": "2026-07-12",
+        "SelfPublishedBySubject": true,
+        "PreferredForDisplay": true
+      }
+    ],
+    "TranscriptionNotes": [
+      "The subject-published Function Health walkthrough and linked report visibly provide all nine stored biomarkers from the same May 2025 panel.",
+      "The dashboard directly displays a calendar age of 38.9 years and states that calendar age is based on the date of the lab visit. AgeYears is the displayed calendar age; it was not derived from the displayed biological-age difference.",
+      "The source identifies the lab visit at month precision as May 2025. The stored date uses 1 May 2025 only as the required representation of that month-precision source; no specimen day was inferred.",
+      "The source reports hs-CRP as below 0.2 mg/L. The stored value is the published assay limit and the less-than qualifier is preserved; it is not presented as an exact measured concentration.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

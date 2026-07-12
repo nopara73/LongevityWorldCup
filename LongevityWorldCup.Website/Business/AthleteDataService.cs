@@ -54,7 +54,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private const int LeaderboardThumbQuality = 84;
     private const int CrowdAgeLeaderboardMinimumGuessCount = 100;
 
-    private JsonArray _athletes = []; // Initialize to avoid nullability issue
+    // Approved athletes are the default capability. Open-data profiles are kept
+    // in a separate collection so rank/event/badge callers cannot include them
+    // accidentally by asking for the ordinary athlete snapshot.
+    private JsonArray _athletes = [];
+    private JsonArray _openDataProfiles = [];
 
     public JsonArray Athletes
     {
@@ -80,9 +84,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private readonly IWebHostEnvironment _env;
     private readonly EventDataService _eventDataService;
     private readonly FileSystemWatcher _athleteWatcher;
+    private readonly FileSystemWatcher _openDataProfileWatcher;
+    private readonly ILogger<AthleteDataService> _log;
     private readonly SemaphoreSlim _reloadLock = new(1, 1);
 
-    private CancellationTokenSource? _debounceCts;
+    private readonly object _debounceLock = new();
+    private CancellationTokenSource? _athleteDebounceCts;
+    private CancellationTokenSource? _openDataDebounceCts;
     private static readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(100);
 
     private const string DatabaseFileName = "LongevityWorldCup.db";
@@ -90,7 +98,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private readonly DatabaseManager _db;
 
     private readonly string _athletesRootDir;
-    private readonly string _profileThumbDir;
+    private readonly string _openDataProfilesRootDir;
+    private readonly string _athleteProfileThumbDir;
     private readonly object _pendingLock = new();
     private readonly HashSet<string> _pendingChangedSlugs = new(StringComparer.OrdinalIgnoreCase);
 
@@ -111,15 +120,28 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private readonly object _athletesJsonLock = new();
 
     public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService, DatabaseManager db)
+        : this(env, eventDataService, db, Microsoft.Extensions.Logging.Abstractions.NullLogger<AthleteDataService>.Instance)
+    {
+    }
+
+    public AthleteDataService(
+        IWebHostEnvironment env,
+        EventDataService eventDataService,
+        DatabaseManager db,
+        ILogger<AthleteDataService> log)
     {
         _env = env;
         _eventDataService = eventDataService;
         _db = db ?? throw new ArgumentNullException(nameof(db));
+        _log = log ?? throw new ArgumentNullException(nameof(log));
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
-        _profileThumbDir = Path.Combine(env.WebRootPath, "generated", "thumbs", "athletes");
-        Directory.CreateDirectory(_profileThumbDir);
+        _athletesRootDir = Path.Combine(env.WebRootPath, "athletes");
+        _openDataProfilesRootDir = Path.Combine(env.WebRootPath, "public-data-profiles");
+        Directory.CreateDirectory(_openDataProfilesRootDir);
+        _athleteProfileThumbDir = Path.Combine(env.WebRootPath, "generated", "thumbs", "athletes");
+        Directory.CreateDirectory(_athleteProfileThumbDir);
 
         _db.Run(sqlite =>
         {
@@ -248,7 +270,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         });
 
         // Initial load
-        LoadAthletesAsync().GetAwaiter().GetResult();
+        LoadInitialProfilesAsync().GetAwaiter().GetResult();
 
         var newlyJoined = EnsureDbRowsForNewAthletes();
 
@@ -285,20 +307,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
 
         // Watch the per-athlete folders recursively
-        var athletesDir = Path.Combine(env.WebRootPath, "athletes");
-        _athletesRootDir = athletesDir;
-        _athleteWatcher = new FileSystemWatcher(athletesDir)
-        {
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
-            Filter = "*.*"
-        };
-        _athleteWatcher.Changed += OnFsEvent;
-        _athleteWatcher.Created += OnFsEvent;
-        _athleteWatcher.Deleted += OnFsEvent;
-        _athleteWatcher.Renamed += OnFsRenamed;
-        _athleteWatcher.EnableRaisingEvents = true;
-        _athleteWatcher.Error += OnWatcherError;
+        _athleteWatcher = CreateProfileWatcher(_athletesRootDir, isOfficialAthleteRoot: true);
+        _openDataProfileWatcher = CreateProfileWatcher(_openDataProfilesRootDir, isOfficialAthleteRoot: false);
 
         // Build payload with current rank for each newcomer (after CurrentPlacement is hydrated)
         if (newlyJoined.Count > 0)
@@ -327,6 +337,33 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         _db.DatabaseChanged += OnDatabaseChanged;
 
         PushAthleteDirectoryToEvents();
+    }
+
+    private FileSystemWatcher CreateProfileWatcher(string root, bool isOfficialAthleteRoot)
+    {
+        var watcher = new FileSystemWatcher(root)
+        {
+            IncludeSubdirectories = true,
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite,
+            Filter = "*.*"
+        };
+        if (isOfficialAthleteRoot)
+        {
+            watcher.Changed += OnAthleteFsEvent;
+            watcher.Created += OnAthleteFsEvent;
+            watcher.Deleted += OnAthleteFsEvent;
+            watcher.Renamed += OnAthleteFsRenamed;
+        }
+        else
+        {
+            watcher.Changed += OnOpenDataFsEvent;
+            watcher.Created += OnOpenDataFsEvent;
+            watcher.Deleted += OnOpenDataFsEvent;
+            watcher.Renamed += OnOpenDataFsRenamed;
+        }
+        watcher.Error += OnWatcherError;
+        watcher.EnableRaisingEvents = true;
+        return watcher;
     }
 
     private static void TryAddAthletesColumn(SqliteConnection sqlite, string columnDefinition)
@@ -403,15 +440,258 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return result;
     }
 
-    private async Task LoadAthletesAsync()
+    private async Task LoadInitialProfilesAsync()
     {
-        // Build up a JsonArray by reading every athlete.json under wwwroot/athletes
-        var athletesRoot = new JsonArray();
-        var athletesDir = Path.Combine(_env.WebRootPath, "athletes");
-        var files = Directory.EnumerateFiles(athletesDir, "athlete.json", SearchOption.AllDirectories);
+        var athletesRoot = await LoadProfileRootAsync(
+            _athletesRootDir,
+            "athlete.json",
+            AthleteProfileType.Athlete,
+            "athletes");
+        _ = GetUniqueProfileSlugs(athletesRoot);
+
+        JsonArray openDataRoot;
+        try
+        {
+            openDataRoot = await LoadProfileRootAsync(
+                _openDataProfilesRootDir,
+                "profile.json",
+                AthleteProfileType.OpenData,
+                "public-data-profiles");
+
+            ValidateCombinedProfileIdentities(athletesRoot, openDataRoot);
+            AthleteProfilePolicy.ValidatePopulationCap(athletesRoot.Count, openDataRoot.Count);
+        }
+        catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
+        {
+            // OpenData is an optional display capability. A bad transcription on
+            // disk must never prevent approved applicants and competition data
+            // from loading during process startup. Repository integrity tests
+            // still reject invalid committed profiles before deployment.
+            _log.LogError(
+                ex,
+                "Rejected invalid OpenData profiles during startup; serving approved athletes without OpenData profiles.");
+            openDataRoot = [];
+        }
+
+        lock (_athletesJsonLock)
+        {
+            _athletes = athletesRoot;
+            _openDataProfiles = openDataRoot;
+        }
+    }
+
+    private async Task LoadOfficialAthletesAsync()
+    {
+        var athletesRoot = await LoadProfileRootAsync(
+            _athletesRootDir,
+            "athlete.json",
+            AthleteProfileType.Athlete,
+            "athletes");
+        _ = GetUniqueProfileSlugs(athletesRoot);
+
+        JsonArray openDataCandidates;
+        lock (_athletesJsonLock)
+            openDataCandidates = (JsonArray)_openDataProfiles.DeepClone();
+
+        try
+        {
+            var openDataFromDisk = await LoadProfileRootAsync(
+                _openDataProfilesRootDir,
+                "profile.json",
+                AthleteProfileType.OpenData,
+                "public-data-profiles");
+
+            // Validate the OpenData root on its own before reconciling it against
+            // the authoritative official-athlete snapshot. Official collisions
+            // and a temporary cap are handled by withholding display profiles;
+            // malformed or internally ambiguous OpenData retains the last good
+            // display snapshot instead.
+            ValidateCombinedProfileIdentities([], openDataFromDisk);
+            openDataCandidates = openDataFromDisk;
+        }
+        catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
+        {
+            _log.LogError(
+                ex,
+                "Could not re-read OpenData profiles during an official athlete refresh; reconciling the last valid OpenData snapshot instead.");
+        }
+
+        var reconciledOpenData = ReconcileOpenDataProfilesForOfficialSnapshot(
+            athletesRoot,
+            openDataCandidates);
+
+        lock (_athletesJsonLock)
+        {
+            _athletes = athletesRoot;
+            _openDataProfiles = reconciledOpenData;
+        }
+    }
+
+    private JsonArray ReconcileOpenDataProfilesForOfficialSnapshot(
+        JsonArray athletes,
+        JsonArray openDataCandidates)
+    {
+        var officialIdentities = GetProfileIdentityKeys(athletes);
+        var maximumOpenDataCount = athletes.Count / 9;
+        var retainedOpenData = new JsonArray();
+
+        foreach (var profile in openDataCandidates.OfType<JsonObject>())
+        {
+            var identities = GetProfileIdentityKeys(profile);
+            if (identities.Count == 0 || identities.Overlaps(officialIdentities))
+                continue;
+            if (retainedOpenData.Count >= maximumOpenDataCount)
+                break;
+
+            retainedOpenData.Add(profile.DeepClone());
+        }
+
+        ValidateCombinedProfileIdentities(athletes, retainedOpenData);
+        AthleteProfilePolicy.ValidatePopulationCap(athletes.Count, retainedOpenData.Count);
+
+        var withheldCount = openDataCandidates.Count - retainedOpenData.Count;
+        if (withheldCount > 0)
+        {
+            _log.LogWarning(
+                "Withheld {WithheldOpenDataProfileCount} OpenData profile(s) after an official athlete refresh to preserve applicant identity isolation and the 10% cap.",
+                withheldCount);
+        }
+
+        return retainedOpenData;
+    }
+
+    private async Task LoadOpenDataProfilesAsync()
+    {
+        var openDataRoot = await LoadProfileRootAsync(
+            _openDataProfilesRootDir,
+            "profile.json",
+            AthleteProfileType.OpenData,
+            "public-data-profiles");
+
+        lock (_athletesJsonLock)
+        {
+            ValidateCombinedProfileIdentities(_athletes, openDataRoot);
+            AthleteProfilePolicy.ValidatePopulationCap(_athletes.Count, openDataRoot.Count);
+            _openDataProfiles = openDataRoot;
+        }
+    }
+
+    internal static void ValidateCombinedProfileIdentities(JsonArray athletes, JsonArray openDataProfiles)
+    {
+        _ = GetUniqueProfileSlugs(athletes);
+        _ = GetUniqueProfileSlugs(openDataProfiles);
+
+        // Slugs, primary names, display names, and documented aliases all share
+        // one identity namespace. This prevents a display-only profile from
+        // impersonating an official athlete through a different field spelling.
+        var officialIdentities = GetProfileIdentityKeys(athletes);
+        var openDataIdentities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var profile in openDataProfiles.OfType<JsonObject>())
+        {
+            var primaryName = profile["Name"]?.GetValue<string>();
+            var identities = GetProfileIdentityKeys(profile);
+            if (string.IsNullOrWhiteSpace(primaryName) || identities.Count == 0)
+                throw new InvalidDataException("OpenData profile name cannot be empty.");
+            foreach (var identity in identities)
+            {
+                if (officialIdentities.Contains(identity))
+                {
+                    throw new InvalidDataException(
+                        $"OpenData profile '{primaryName.Trim()}' uses identity '{identity}', which is already an approved Longevity athlete.");
+                }
+
+                if (!openDataIdentities.Add(identity))
+                {
+                    throw new InvalidDataException(
+                        $"OpenData profile '{primaryName.Trim()}' uses duplicate identity '{identity}'.");
+                }
+            }
+        }
+    }
+
+    private static HashSet<string> GetProfileIdentityKeys(JsonArray profiles)
+    {
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var profile in profiles.OfType<JsonObject>())
+            identities.UnionWith(GetProfileIdentityKeys(profile));
+
+        return identities;
+    }
+
+    private static HashSet<string> GetProfileIdentityKeys(JsonObject profile)
+    {
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var propertyName in new[] { "AthleteSlug", "Name", "DisplayName" })
+        {
+            var identity = NormalizeProfileIdentity(profile[propertyName]?.GetValue<string>());
+            if (!string.IsNullOrWhiteSpace(identity))
+                identities.Add(identity);
+        }
+
+        if (profile[AthleteProfilePolicy.OpenDataMetadataPropertyName]?["Aliases"] is JsonArray aliases)
+        {
+            foreach (var aliasNode in aliases)
+            {
+                var alias = NormalizeProfileIdentity(aliasNode?.GetValue<string>());
+                if (!string.IsNullOrWhiteSpace(alias))
+                    identities.Add(alias);
+            }
+        }
+
+        return identities;
+    }
+
+    private static string NormalizeProfileIdentity(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        // Filesystem slugs use '-' or '_', while public names use spaces and
+        // punctuation. Compare a diacritic-insensitive alphanumeric key so those
+        // equivalent spellings cannot evade identity isolation.
+        var normalized = value.Normalize(NormalizationForm.FormD);
+        var key = new StringBuilder(normalized.Length);
+        foreach (var character in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
+                continue;
+            if (char.IsLetterOrDigit(character))
+                key.Append(char.ToLowerInvariant(character));
+        }
+
+        return key.ToString();
+    }
+
+    private static HashSet<string> GetUniqueProfileSlugs(JsonArray profiles)
+    {
+        var slugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var profile in profiles.OfType<JsonObject>())
+        {
+            var slug = profile["AthleteSlug"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(slug) || !slugs.Add(slug))
+                throw new InvalidDataException($"Duplicate or empty leaderboard profile slug '{slug}'.");
+        }
+
+        return slugs;
+    }
+
+    private async Task<JsonArray> LoadProfileRootAsync(
+        string rootDirectory,
+        string fileName,
+        AthleteProfileType expectedType,
+        string publicUrlSegment)
+    {
+        var result = new JsonArray();
+        var files = Directory
+            .EnumerateFiles(rootDirectory, fileName, SearchOption.AllDirectories)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase);
 
         foreach (var file in files)
         {
+            var folder = Path.GetDirectoryName(file)!;
+            if (expectedType == AthleteProfileType.OpenData)
+                ValidateOpenDataProfileFolder(folder, file);
+
             // retry read in case the file is mid-write
             string text = "";
             for (int i = 0; ; i++)
@@ -427,71 +707,118 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 }
             }
 
-            var athlete = JsonNode.Parse(text)!.AsObject();
+            JsonObject athlete;
+            try
+            {
+                athlete = JsonNode.Parse(text)?.AsObject()
+                    ?? throw new InvalidDataException($"Profile '{file}' is empty.");
+            }
+            catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+            {
+                throw new InvalidDataException($"Profile '{file}' is not a valid JSON object.", ex);
+            }
+
+            AthleteProfilePolicy.ValidateAndHydrate(athlete, expectedType, file);
 
             athlete["CrowdAge"] = 0;
             athlete["CrowdCount"] = 0;
             athlete["IsNew"] = false;
+            if (expectedType == AthleteProfileType.OpenData)
+            {
+                athlete["CurrentPlacement"] = null;
+                athlete["Placements"] = new JsonArray();
+                athlete["Badges"] = new JsonArray();
+            }
 
-            var folder = Path.GetDirectoryName(file)!; // e.g. "/.../wwwroot/athletes/michelle_franz-montan"
-            var folderName = Path.GetFileName(folder); // e.g. "michelle_franz-montan"
+            var folderName = Path.GetFileName(folder);
 
             // so we can look up this JsonObject later by slug
-            athlete["AthleteSlug"] = folderName.Replace('-', '_'); // e.g. "michelle_franz_montan"
+            athlete["AthleteSlug"] = folderName.Replace('-', '_');
 
-            // PROFILE PIC: look for "{key}.*" in that same folder
-            var pic = Directory
-                .EnumerateFiles(folder, $"{folderName}.*", SearchOption.TopDirectoryOnly)
-                .OrderByDescending(File.GetLastWriteTimeUtc)
-                .FirstOrDefault();
-            var profilePicUrl = pic is null
-                ? null
-                : BuildVersionedAthleteAssetUrl(folderName, Path.GetFileName(pic), File.GetLastWriteTimeUtc(pic).Ticks);
-            athlete["ProfilePic"] = profilePicUrl;
-            athlete["ProfilePicThumb"] = pic is null
-                ? profilePicUrl
-                : BuildOrGetProfileThumbUrl(
-                    sourceImagePath: pic,
-                    folderName: folderName,
-                    thumbSuffix: "_thumb_sm",
-                    sizePx: EventThumbSizePx,
-                    quality: EventThumbQuality) ?? profilePicUrl;
-            athlete["ProfilePicLeaderboardThumb"] = pic is null
-                ? profilePicUrl
-                : BuildOrGetProfileThumbUrl(
-                    sourceImagePath: pic,
-                    folderName: folderName,
-                    thumbSuffix: "_thumb_md",
-                    sizePx: LeaderboardThumbSizePx,
-                    quality: LeaderboardThumbQuality) ?? profilePicUrl;
+            if (expectedType == AthleteProfileType.Athlete)
+            {
+                // PROFILE PIC: look for "{key}.*" in that same folder
+                var pic = Directory
+                    .EnumerateFiles(folder, $"{folderName}.*", SearchOption.TopDirectoryOnly)
+                    .OrderByDescending(File.GetLastWriteTimeUtc)
+                    .FirstOrDefault();
+                var profilePicUrl = pic is null
+                    ? null
+                    : BuildVersionedProfileAssetUrl(publicUrlSegment, folderName, Path.GetFileName(pic), File.GetLastWriteTimeUtc(pic).Ticks);
+                athlete["ProfilePic"] = profilePicUrl;
+                athlete["ProfilePicThumb"] = pic is null
+                    ? profilePicUrl
+                    : BuildOrGetProfileThumbUrl(
+                        sourceImagePath: pic,
+                        folderName: folderName,
+                        thumbSuffix: "_thumb_sm",
+                        sizePx: EventThumbSizePx,
+                        quality: EventThumbQuality,
+                        thumbnailDirectory: _athleteProfileThumbDir,
+                        thumbnailUrlSegment: "generated/thumbs/athletes") ?? profilePicUrl;
+                athlete["ProfilePicLeaderboardThumb"] = pic is null
+                    ? profilePicUrl
+                    : BuildOrGetProfileThumbUrl(
+                        sourceImagePath: pic,
+                        folderName: folderName,
+                        thumbSuffix: "_thumb_md",
+                        sizePx: LeaderboardThumbSizePx,
+                        quality: LeaderboardThumbQuality,
+                        thumbnailDirectory: _athleteProfileThumbDir,
+                        thumbnailUrlSegment: "generated/thumbs/athletes") ?? profilePicUrl;
 
-            // PROOFS: look for proof_*.ext
-            var proofs = new JsonArray();
-            var proofFiles = Directory
-                .EnumerateFiles(folder, "proof_*.*", SearchOption.TopDirectoryOnly)
-                .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
-            foreach (var p in proofFiles)
-                proofs.Add(BuildVersionedAthleteAssetUrl(folderName, Path.GetFileName(p), File.GetLastWriteTimeUtc(p).Ticks));
-            athlete["Proofs"] = proofs;
+                // PROOFS: look for proof_*.ext
+                var proofs = new JsonArray();
+                var proofFiles = Directory
+                    .EnumerateFiles(folder, "proof_*.*", SearchOption.TopDirectoryOnly)
+                    .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
+                foreach (var p in proofFiles)
+                    proofs.Add(BuildVersionedProfileAssetUrl(publicUrlSegment, folderName, Path.GetFileName(p), File.GetLastWriteTimeUtc(p).Ticks));
+                athlete["Proofs"] = proofs;
+            }
 
             CanonicalizeIsoDatesInPlace(athlete);
-            athletesRoot.Add(athlete);
+            result.Add(athlete);
         }
 
-        lock (_athletesJsonLock) _athletes = athletesRoot;
+        return result;
     }
 
-    private static string BuildVersionedAthleteAssetUrl(string folderName, string fileName, long version)
-        => $"/athletes/{folderName}/{fileName}?v={version}";
+    private static void ValidateOpenDataProfileFolder(string folder, string profilePath)
+    {
+        var expectedProfilePath = Path.GetFullPath(profilePath);
+        var unexpectedEntry = Directory
+            .EnumerateFileSystemEntries(folder, "*", SearchOption.TopDirectoryOnly)
+            .FirstOrDefault(entry => !string.Equals(
+                Path.GetFullPath(entry),
+                expectedProfilePath,
+                StringComparison.OrdinalIgnoreCase));
+        if (unexpectedEntry is null)
+            return;
 
-    private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName, string thumbSuffix, int sizePx, int quality)
+        throw new InvalidDataException(
+            $"OpenData profile folder '{folder}' may contain only profile.json. " +
+            $"Unexpected local asset or entry '{Path.GetFileName(unexpectedEntry)}'.");
+    }
+
+    private static string BuildVersionedProfileAssetUrl(string rootSegment, string folderName, string fileName, long version)
+        => $"/{rootSegment}/{folderName}/{fileName}?v={version}";
+
+    private static string? BuildOrGetProfileThumbUrl(
+        string sourceImagePath,
+        string folderName,
+        string thumbSuffix,
+        int sizePx,
+        int quality,
+        string thumbnailDirectory,
+        string thumbnailUrlSegment)
     {
         if (string.IsNullOrWhiteSpace(sourceImagePath) || !File.Exists(sourceImagePath))
             return null;
 
         var sourceInfo = new FileInfo(sourceImagePath);
         var thumbFileName = $"{folderName}{thumbSuffix}.webp";
-        var thumbPath = Path.Combine(_profileThumbDir, thumbFileName);
+        var thumbPath = Path.Combine(thumbnailDirectory, thumbFileName);
         if (string.IsNullOrWhiteSpace(thumbPath))
             return null;
 
@@ -524,7 +851,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 });
             }
 
-            return $"/generated/thumbs/athletes/{thumbFileName}?v={sourceInfo.LastWriteTimeUtc.Ticks}";
+            return $"/{thumbnailUrlSegment}/{thumbFileName}?v={sourceInfo.LastWriteTimeUtc.Ticks}";
         }
         catch
         {
@@ -532,11 +859,28 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
     }
 
-    private void DebounceReload()
+    private void DebounceAthleteReload() => DebounceReload(isOfficialAthleteRoot: true);
+
+    private void DebounceOpenDataReload() => DebounceReload(isOfficialAthleteRoot: false);
+
+    private void DebounceReload(bool isOfficialAthleteRoot)
     {
-        _debounceCts?.Cancel();
-        _debounceCts = new CancellationTokenSource();
-        var token = _debounceCts.Token;
+        var cts = new CancellationTokenSource();
+        lock (_debounceLock)
+        {
+            if (isOfficialAthleteRoot)
+            {
+                _athleteDebounceCts?.Cancel();
+                _athleteDebounceCts = cts;
+            }
+            else
+            {
+                _openDataDebounceCts?.Cancel();
+                _openDataDebounceCts = cts;
+            }
+        }
+
+        var token = cts.Token;
 
         _ = Task.Run(async () =>
         {
@@ -544,10 +888,38 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             {
                 await Task.Delay(_debounceInterval, token);
                 if (!token.IsCancellationRequested)
-                    await OnSourceChangedAsync(this, null);
+                {
+                    if (isOfficialAthleteRoot)
+                        await OnAthleteSourceChangedAsync();
+                    else
+                        await OnOpenDataSourceChangedAsync();
+                }
             }
             catch (TaskCanceledException)
             {
+            }
+            catch (Exception ex)
+            {
+                // The source-specific reload boundaries normally handle these
+                // recoverable failures. Keep this outer guard so an unexpected
+                // future load failure is still observed and logged instead of
+                // leaving a fire-and-forget task faulted silently.
+                _log.LogError(
+                    ex,
+                    "Profile reload task failed for {ProfileRoot}; retaining the last valid snapshot.",
+                    isOfficialAthleteRoot ? _athletesRootDir : _openDataProfilesRootDir);
+            }
+            finally
+            {
+                lock (_debounceLock)
+                {
+                    if (isOfficialAthleteRoot && ReferenceEquals(_athleteDebounceCts, cts))
+                        _athleteDebounceCts = null;
+                    else if (!isOfficialAthleteRoot && ReferenceEquals(_openDataDebounceCts, cts))
+                        _openDataDebounceCts = null;
+                }
+
+                cts.Dispose();
             }
         }, CancellationToken.None);
     }
@@ -614,14 +986,14 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
     }
 
-    private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
+    internal async Task OnAthleteSourceChangedAsync()
     {
         var notify = false;
 
         await _reloadLock.WaitAsync();
         try
         {
-            await LoadAthletesAsync();
+            await LoadOfficialAthletesAsync();
 
             var newlyJoined = EnsureDbRowsForNewAthletes();
 
@@ -665,6 +1037,13 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
             notify = true;
         }
+        catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
+        {
+            _log.LogError(
+                ex,
+                "Official athlete reload failed; retaining the last valid official athlete snapshot.");
+            return;
+        }
         finally
         {
             _reloadLock.Release();
@@ -677,16 +1056,76 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
     }
 
+    internal async Task OnOpenDataSourceChangedAsync()
+    {
+        await _reloadLock.WaitAsync();
+        try
+        {
+            await LoadOpenDataProfilesAsync();
+        }
+        catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
+        {
+            _log.LogError(
+                ex,
+                "OpenData profile reload failed; retaining the last valid OpenData snapshot.");
+        }
+        finally
+        {
+            _reloadLock.Release();
+        }
+    }
+
+    private static bool IsRecoverableProfileReloadException(Exception exception) =>
+        exception is InvalidDataException
+            or IOException
+            or UnauthorizedAccessException
+            or JsonException
+            or InvalidOperationException
+            or FormatException
+            or ArgumentException
+            or NotSupportedException
+            or SqliteException;
+
     /// <summary>
     /// Fired if the FileSystemWatcher’s internal buffer overflows or another error occurs.
     /// </summary>
-    private void OnWatcherError(object sender, ErrorEventArgs e)
+    internal void OnWatcherError(object sender, ErrorEventArgs e)
     {
-        // Example: log and restart the watcher
         var watcher = (FileSystemWatcher)sender;
 
-        watcher.EnableRaisingEvents = false;
-        watcher.EnableRaisingEvents = true;
+        _log.LogError(e.GetException(), "Profile file watcher failed for {ProfileRoot}; restarting it.", watcher.Path);
+
+        try
+        {
+            watcher.EnableRaisingEvents = false;
+            watcher.EnableRaisingEvents = true;
+        }
+        catch (Exception ex) when (IsRecoverableProfileReloadException(ex))
+        {
+            _log.LogError(ex, "Could not restart profile file watcher for {ProfileRoot}.", watcher.Path);
+        }
+        finally
+        {
+            // A watcher error means one or more changes may already have been
+            // dropped. A reset alone cannot recover them, so reconcile the full
+            // affected root from disk after the watcher is restarted.
+            var watcherRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(watcher.Path));
+            var officialRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(_athletesRootDir));
+            var openDataRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(_openDataProfilesRootDir));
+
+            if (string.Equals(watcherRoot, officialRoot, StringComparison.OrdinalIgnoreCase))
+                DebounceAthleteReload();
+            else if (string.Equals(watcherRoot, openDataRoot, StringComparison.OrdinalIgnoreCase))
+                DebounceOpenDataReload();
+            else
+            {
+                _log.LogWarning(
+                    "Profile watcher error came from unrecognized root {ProfileRoot}; reconciling both profile roots.",
+                    watcher.Path);
+                DebounceAthleteReload();
+                DebounceOpenDataReload();
+            }
+        }
     }
 
     private static int ExtractNumber(string fileNameWithoutExtension)
@@ -700,8 +1139,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     /// <summary>
     /// Adds a timestamped age guess for the given athleteSlug, updates
     /// that athlete’s CrowdAge (median) and CrowdCount in the loaded JSON.
+    /// Returns false when the slug is not an approved athlete at the atomic
+    /// membership-and-write boundary.
     /// </summary>
-    public void AddAgeGuess(string athleteSlug, int ageGuess)
+    public bool AddAgeGuess(string athleteSlug, int ageGuess)
     {
         int cnt;
         double median;
@@ -709,6 +1150,22 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         _reloadLock.Wait();
         try
         {
+            // Membership and persistence share the reload lock. A controller-level
+            // check alone is insufficient because an official profile can disappear
+            // (and a formerly colliding OpenData profile can become visible) while a
+            // request is in flight. Stale database rows are intentionally retained,
+            // so never use row existence as proof of current athlete membership.
+            lock (_athletesJsonLock)
+            {
+                var isCurrentOfficialAthlete = _athletes.OfType<JsonObject>().Any(profile =>
+                    string.Equals(
+                        profile["AthleteSlug"]?.GetValue<string>(),
+                        athleteSlug,
+                        StringComparison.OrdinalIgnoreCase));
+                if (!isCurrentOfficialAthlete)
+                    return false;
+            }
+
             cnt = 0;
             median = 0;
 
@@ -785,6 +1242,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         PushAthleteDirectoryToEvents();
         AthletesChanged?.Invoke();
+        return true;
     }
 
     /// <summary>
@@ -2120,12 +2578,77 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             return (JsonArray)_athletes.DeepClone();
     }
 
+    public JsonArray GetLeaderboardProfilesSnapshot()
+    {
+        lock (_athletesJsonLock)
+        {
+            var profiles = new JsonArray();
+            foreach (var profile in _athletes)
+                profiles.Add(profile?.DeepClone());
+            foreach (var profile in _openDataProfiles.OfType<JsonObject>())
+                profiles.Add(AthleteProfilePolicy.CreatePublicOpenDataProjection(profile));
+            return profiles;
+        }
+    }
+
+    public JsonArray GetOpenDataProfilesSnapshot()
+    {
+        lock (_athletesJsonLock)
+            return (JsonArray)_openDataProfiles.DeepClone();
+    }
+
+    public AthleteProfileCounts GetProfileCounts()
+    {
+        lock (_athletesJsonLock)
+        {
+            return new AthleteProfileCounts(
+                _athletes.Count,
+                _openDataProfiles.Count,
+                checked(_athletes.Count + _openDataProfiles.Count));
+        }
+    }
+
+    public bool IsOfficialAthleteSlug(string? athleteSlug)
+    {
+        if (string.IsNullOrWhiteSpace(athleteSlug))
+            return false;
+
+        lock (_athletesJsonLock)
+        {
+            return _athletes.OfType<JsonObject>().Any(profile =>
+                string.Equals(
+                    profile["AthleteSlug"]?.GetValue<string>(),
+                    athleteSlug,
+                    StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    public bool IsOpenDataProfileSlug(string? profileSlug)
+    {
+        if (string.IsNullOrWhiteSpace(profileSlug))
+            return false;
+
+        lock (_athletesJsonLock)
+        {
+            return _openDataProfiles.OfType<JsonObject>().Any(profile =>
+                string.Equals(
+                    profile["AthleteSlug"]?.GetValue<string>(),
+                    profileSlug,
+                    StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
     public void Dispose()
     {
         _db.DatabaseChanged -= OnDatabaseChanged;
         _athleteWatcher.Dispose();
+        _openDataProfileWatcher.Dispose();
+        lock (_debounceLock)
+        {
+            _athleteDebounceCts?.Cancel();
+            _openDataDebounceCts?.Cancel();
+        }
         _reloadLock.Dispose();
-        _debounceCts?.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -2193,17 +2716,27 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return map;
     }
 
-    private void OnFsEvent(object? sender, FileSystemEventArgs e)
+    private void OnAthleteFsEvent(object? sender, FileSystemEventArgs e)
     {
         TryRecordChangedSlug(e.FullPath);
-        DebounceReload();
+        DebounceAthleteReload();
     }
 
-    private void OnFsRenamed(object? sender, RenamedEventArgs e)
+    private void OnAthleteFsRenamed(object? sender, RenamedEventArgs e)
     {
         TryRecordChangedSlug(e.OldFullPath);
         TryRecordChangedSlug(e.FullPath);
-        DebounceReload();
+        DebounceAthleteReload();
+    }
+
+    private void OnOpenDataFsEvent(object? sender, FileSystemEventArgs e)
+    {
+        DebounceOpenDataReload();
+    }
+
+    private void OnOpenDataFsRenamed(object? sender, RenamedEventArgs e)
+    {
+        DebounceOpenDataReload();
     }
 
     private void TryRecordChangedSlug(string path)

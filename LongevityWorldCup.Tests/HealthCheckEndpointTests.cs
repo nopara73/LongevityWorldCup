@@ -27,6 +27,12 @@ public sealed class HealthCheckEndpointTests
             .EnumerateArray()
             .Single(check => check.GetProperty("name").GetString() == "website");
         Assert.Equal("Healthy", websiteCheck.GetProperty("status").GetString());
-        Assert.True(websiteCheck.GetProperty("data").GetProperty("athleteCount").GetInt32() > 0);
+        var data = websiteCheck.GetProperty("data");
+        Assert.True(data.GetProperty("athleteCount").GetInt32() > 0);
+        Assert.Equal(data.GetProperty("athleteCount").GetInt32(), data.GetProperty("officialAthleteCount").GetInt32());
+        Assert.True(data.GetProperty("openDataProfileCount").GetInt32() >= 0);
+        Assert.Equal(
+            data.GetProperty("officialAthleteCount").GetInt32() + data.GetProperty("openDataProfileCount").GetInt32(),
+            data.GetProperty("leaderboardProfileCount").GetInt32());
     }
 }

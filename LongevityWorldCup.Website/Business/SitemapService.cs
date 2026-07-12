@@ -4,7 +4,9 @@ using System.Xml.Linq;
 
 namespace LongevityWorldCup.Website.Business;
 
-public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWebHostEnvironment env)
+public sealed class SitemapService(
+    LeaderboardFactsService leaderboardFacts,
+    IWebHostEnvironment env)
 {
     private const string SiteBaseUrl = "https://longevityworldcup.com";
     private static readonly XNamespace SitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
@@ -54,7 +56,9 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
     {
         var webRoot = env.WebRootPath;
         var athletesLastModifiedBySlug = GetAthleteJsonLastModifiedBySlug(webRoot);
-        var leaderboardLastModified = MaxUtc(athletesLastModifiedBySlug.Values) ?? DateTime.UtcNow.Date;
+        var openDataLastModifiedBySlug = GetOpenDataJsonLastModifiedBySlug(webRoot);
+        var leaderboardLastModified = MaxUtc(
+            athletesLastModifiedBySlug.Values.Concat(openDataLastModifiedBySlug.Values)) ?? DateTime.UtcNow.Date;
 
         var entries = new List<SitemapUrlEntry>();
         foreach (var route in StaticRoutes)
@@ -93,7 +97,9 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
         var webRoot = env.WebRootPath;
         var normalizedPath = NormalizePath(path);
         var athletesLastModifiedBySlug = GetAthleteJsonLastModifiedBySlug(webRoot);
-        var leaderboardLastModified = MaxUtc(athletesLastModifiedBySlug.Values) ?? DateTime.UtcNow.Date;
+        var openDataLastModifiedBySlug = GetOpenDataJsonLastModifiedBySlug(webRoot);
+        var leaderboardLastModified = MaxUtc(
+            athletesLastModifiedBySlug.Values.Concat(openDataLastModifiedBySlug.Values)) ?? DateTime.UtcNow.Date;
 
         var staticRoute = StaticRoutes.FirstOrDefault(route =>
             string.Equals(NormalizePath(route.Path), normalizedPath, StringComparison.OrdinalIgnoreCase));
@@ -118,6 +124,15 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
             {
                 return athleteLastModified;
             }
+
+            return leaderboardLastModified;
+        }
+
+        if (normalizedPath.StartsWith("/public-data/", StringComparison.OrdinalIgnoreCase))
+        {
+            var slug = normalizedPath["/public-data/".Length..].Replace('-', '_');
+            if (openDataLastModifiedBySlug.TryGetValue(slug, out var profileLastModified))
+                return profileLastModified;
 
             return leaderboardLastModified;
         }
@@ -154,15 +169,24 @@ public sealed class SitemapService(LeaderboardFactsService leaderboardFacts, IWe
     }
 
     private static Dictionary<string, DateTime> GetAthleteJsonLastModifiedBySlug(string webRoot)
+        => GetProfileJsonLastModifiedBySlug(webRoot, "athletes", "athlete.json");
+
+    private static Dictionary<string, DateTime> GetOpenDataJsonLastModifiedBySlug(string webRoot)
+        => GetProfileJsonLastModifiedBySlug(webRoot, "public-data-profiles", "profile.json");
+
+    private static Dictionary<string, DateTime> GetProfileJsonLastModifiedBySlug(
+        string webRoot,
+        string rootFolder,
+        string profileFileName)
     {
         var result = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
-        var athletesDir = Path.Combine(webRoot, "athletes");
-        if (!Directory.Exists(athletesDir))
+        var profilesDirectory = Path.Combine(webRoot, rootFolder);
+        if (!Directory.Exists(profilesDirectory))
         {
             return result;
         }
 
-        foreach (var file in Directory.EnumerateFiles(athletesDir, "athlete.json", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(profilesDirectory, profileFileName, SearchOption.AllDirectories))
         {
             var folderName = Path.GetFileName(Path.GetDirectoryName(file) ?? "");
             if (string.IsNullOrWhiteSpace(folderName))
