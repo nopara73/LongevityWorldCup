@@ -11,7 +11,8 @@ Add a profile only when all of these are true:
 3. The source cleanly publishes all nine pheno age inputs from one draw or one clearly unified laboratory panel: albumin, creatinine, glucose, CRP, lymphocyte percentage, MCV, RDW-CV, alkaline phosphatase, and WBC.
 4. The specimen date—or, when one unified report contains the complete panel but prints no unified specimen date, the report date—and the subject's age at that source date are supportable. Set `DateBasis` honestly so a report date is never presented as a draw date. Never persist or republish an exact date of birth.
 5. A neutral explanation of why the subject is broadly notable fits within 280 characters and cites at least one linked `Identity` source.
-6. Every transcription, conversion, qualifier, date choice, and identity variant is documented. Ambiguous candidates are rejected rather than estimated into completeness.
+6. A redistributable portrait is available under a verified license. Its author, Commons or equivalent source page, original asset URL, license name and URL, and any crop or resize are documented and shown with the image.
+7. Every transcription, conversion, qualifier, date choice, and identity variant is documented. Ambiguous candidates are rejected rather than estimated into completeness.
 
 Inclusion is an editorial reference decision, not participation or endorsement. Every visible profile provides its sources and a correction/removal route.
 
@@ -21,13 +22,16 @@ Store one record at:
 
 ```text
 LongevityWorldCup.Website/wwwroot/public-data-profiles/<kebab-case-slug>/profile.json
+LongevityWorldCup.Website/wwwroot/public-data-profiles/<kebab-case-slug>/portrait.webp
 ```
 
-The file must declare `"ProfileType": "OpenData"`, `OpenData.SubjectDidNotApply: true`, a review date, sourced `OpenData.Notability` context, identity source IDs, and one or more HTTPS sources. Every biomarker record must cite a subject-authorized `Bloodwork` source. A source's `SubjectAuthorization.Kind` is either `SelfPublished` or `ExplicitlyAuthorized`; the latter also requires `EvidenceUrl` and `EvidenceNote`. `OpenData.Notability.SourceIds` must reference linked `Identity` sources. Use `OpenData.Aliases` for documented public identity variants so future athlete applications cannot silently create a duplicate identity. `PreferredForDisplay` may select at most one source for the card's source action.
+The file must declare `"ProfileType": "OpenData"`, `OpenData.SubjectDidNotApply: true`, a review date, sourced `OpenData.Notability` context, required licensed `OpenData.Portrait` provenance, identity source IDs, and one or more HTTPS sources. Every biomarker record must cite a subject-authorized `Bloodwork` source. A source's `SubjectAuthorization.Kind` is either `SelfPublished` or `ExplicitlyAuthorized`; the latter also requires `EvidenceUrl` and `EvidenceNote`. `OpenData.Notability.SourceIds` must reference linked `Identity` sources. Use `OpenData.Aliases` for documented public identity variants so future athlete applications cannot silently create a duplicate identity. `PreferredForDisplay` may select at most one source for the card's source action.
 
 The schema is closed: do not add ad hoc fields. Validation rejects unknown properties at every structured depth, and the combined API reconstructs an allowlisted public projection rather than serializing the stored object. This is a privacy boundary as well as a data-quality rule.
 
-Each profile folder is manifest-only and may contain only `profile.json`. Do not store profile pictures, proof files, source downloads, or other local assets there; the entire `/public-data-profiles/` static namespace is intentionally unavailable over HTTP.
+Each profile folder contains exactly `profile.json` and one normalized `portrait.webp`: a square 640×640 WebP with stripped metadata and bounded file size. Do not add proof files, source downloads, or any other local asset. The entire `/public-data-profiles/` static namespace remains unavailable over HTTP; the application serves a portrait only through the validated, versioned `/public-data/<slug>/portrait` route for a profile that survived schema, identity, and population reconciliation. Athlete `ProfilePic` fields remain forbidden.
+
+`OpenData.Portrait` records the portrait's `SourcePageUrl`, `OriginalUrl`, `Author`, `LicenseName`, `LicenseUrl`, and `EditNote`. These fields are photograph provenance, not bloodwork authorization and not subject identity sources. Download and normalize the licensed image instead of hotlinking it. When cropping, resizing, or converting, say so in `EditNote`; retain the original license, including share-alike terms, and render a visible author/license/modification credit on both the card and modal.
 
 Canonical units are:
 
@@ -71,4 +75,4 @@ Run at least:
 dotnet test LongevityWorldCup.Tests/LongevityWorldCup.Tests.csproj --filter "AthleteProfilePolicyTests|OpenDataProfileFolderIntegrityTests|LeaderboardProfileApiTests|OpenDataProfileUiTests|OpenDataProfileBrowserTests"
 ```
 
-The folder-integrity test validates every committed record, provenance, aliases, identities, and the population cap. Browser coverage verifies the separate unranked presentation, direct route, provenance, focus behavior, and suppression of competition-only UI.
+The folder-integrity test validates every committed record, licensed 640×640 WebP portrait, provenance, aliases, identities, and the population cap. Browser coverage verifies the separate unranked presentation, portrait attribution, compact disclosure, direct route, provenance, focus behavior, and suppression of competition-only UI.

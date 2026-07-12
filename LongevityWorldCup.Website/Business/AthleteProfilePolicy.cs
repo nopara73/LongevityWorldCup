@@ -43,6 +43,7 @@ public static class AthleteProfilePolicy
         "ReviewedAt",
         "Aliases",
         "Notability",
+        "Portrait",
         "IdentitySourceIds",
         "Sources",
         "TranscriptionNotes"
@@ -59,6 +60,19 @@ public static class AthleteProfilePolicy
 
     private static readonly HashSet<string> OpenDataNotabilityFieldSet =
         new(OpenDataNotabilityFields, StringComparer.Ordinal);
+
+    private static readonly string[] PersistedOpenDataPortraitFields =
+    [
+        "SourcePageUrl",
+        "OriginalUrl",
+        "Author",
+        "LicenseName",
+        "LicenseUrl",
+        "EditNote"
+    ];
+
+    private static readonly HashSet<string> PersistedOpenDataPortraitFieldSet =
+        new(PersistedOpenDataPortraitFields, StringComparer.Ordinal);
 
     private static readonly string[] OpenDataSourceFields =
     [
@@ -106,6 +120,9 @@ public static class AthleteProfilePolicy
         "ProfilePic",
         "ProfilePicThumb",
         "ProfilePicLeaderboardThumb",
+        OpenDataPortraitAssetUrlPropertyName,
+        OpenDataPortraitAssetPathPropertyName,
+        OpenDataPortraitVersionPropertyName,
         "Proofs",
         "LowestPhenoAge",
         "LowestBortzAge",
@@ -167,6 +184,10 @@ public static class AthleteProfilePolicy
     public const string AthleteProfileTypeName = "Athlete";
     public const string OpenDataProfileTypeName = "OpenData";
     public const string OpenDataMetadataPropertyName = "OpenData";
+    public const string OpenDataPortraitPropertyName = "Portrait";
+    public const string OpenDataPortraitAssetUrlPropertyName = "AssetUrl";
+    internal const string OpenDataPortraitAssetPathPropertyName = "OpenDataPortraitAssetPath";
+    internal const string OpenDataPortraitVersionPropertyName = "OpenDataPortraitVersion";
 
     public static AthleteProfileType GetProfileType(JsonObject profile)
     {
@@ -253,6 +274,23 @@ public static class AthleteProfilePolicy
                             if (notability["SourceIds"] is JsonArray sourceIds)
                                 projectedNotability["SourceIds"] = ProjectScalarArray(sourceIds);
                             projectedMetadata[propertyName] = projectedNotability;
+                        }
+                        break;
+
+                    case OpenDataPortraitPropertyName:
+                        if (metadata[propertyName] is JsonObject portrait)
+                        {
+                            var projectedPortrait = ProjectJsonValues(
+                                portrait,
+                                PersistedOpenDataPortraitFields);
+                            if (portrait[OpenDataPortraitAssetUrlPropertyName] is JsonValue assetUrlValue &&
+                                assetUrlValue.TryGetValue<string>(out var assetUrl) &&
+                                IsSafeGeneratedPortraitAssetUrl(profile, assetUrl))
+                            {
+                                projectedPortrait[OpenDataPortraitAssetUrlPropertyName] = assetUrl;
+                            }
+
+                            projectedMetadata[propertyName] = projectedPortrait;
                         }
                         break;
 
@@ -393,6 +431,7 @@ public static class AthleteProfilePolicy
             sourcePath);
 
         ValidateAliases(profile, metadata, sourcePath);
+        ValidatePortraitMetadata(metadata, sourcePath);
 
         if (metadata["SubjectDidNotApply"] is not JsonValue didNotApplyValue ||
             !didNotApplyValue.TryGetValue<bool>(out var subjectDidNotApply) ||
@@ -679,6 +718,46 @@ public static class AthleteProfilePolicy
         }
     }
 
+    private static void ValidatePortraitMetadata(JsonObject metadata, string sourcePath)
+    {
+        if (metadata[OpenDataPortraitPropertyName] is not JsonObject portrait)
+            throw Invalid(sourcePath, "OpenData.Portrait must be an object.");
+
+        ValidateAllowedProperties(
+            portrait,
+            PersistedOpenDataPortraitFieldSet,
+            "OpenData.Portrait",
+            sourcePath);
+
+        ValidateConciseHttpsUrl(
+            portrait["SourcePageUrl"],
+            "OpenData.Portrait.SourcePageUrl",
+            sourcePath);
+        ValidateConciseHttpsUrl(
+            portrait["OriginalUrl"],
+            "OpenData.Portrait.OriginalUrl",
+            sourcePath);
+        _ = RequiredConciseString(
+            portrait["Author"],
+            "OpenData.Portrait.Author",
+            sourcePath,
+            maximumLength: 200);
+        _ = RequiredConciseString(
+            portrait["LicenseName"],
+            "OpenData.Portrait.LicenseName",
+            sourcePath,
+            maximumLength: 200);
+        ValidateConciseHttpsUrl(
+            portrait["LicenseUrl"],
+            "OpenData.Portrait.LicenseUrl",
+            sourcePath);
+        _ = RequiredConciseString(
+            portrait["EditNote"],
+            "OpenData.Portrait.EditNote",
+            sourcePath,
+            maximumLength: 280);
+    }
+
     private static void ValidateAliases(JsonObject profile, JsonObject metadata, string sourcePath)
     {
         var primaryName = RequiredString(profile["Name"], "Name", sourcePath);
@@ -758,6 +837,23 @@ public static class AthleteProfilePolicy
         }
 
         throw Invalid(sourcePath, $"{field} must be a non-empty string.");
+    }
+
+    private static string RequiredConciseString(
+        JsonNode? node,
+        string field,
+        string sourcePath,
+        int maximumLength)
+    {
+        var value = RequiredString(node, field, sourcePath);
+        if (value.Length > maximumLength)
+        {
+            throw Invalid(
+                sourcePath,
+                $"{field} must contain at most {maximumLength} characters for concise public attribution.");
+        }
+
+        return value;
     }
 
     private static void ValidateAllowedProperties(
@@ -877,6 +973,38 @@ public static class AthleteProfilePolicy
         {
             throw Invalid(sourcePath, $"{field} must be an absolute HTTPS URL.");
         }
+    }
+
+    private static void ValidateConciseHttpsUrl(JsonNode? node, string field, string sourcePath)
+    {
+        var value = RequiredConciseString(node, field, sourcePath, maximumLength: 2048);
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var url) ||
+            !string.Equals(url.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            throw Invalid(sourcePath, $"{field} must be an absolute HTTPS URL.");
+        }
+    }
+
+    private static bool IsSafeGeneratedPortraitAssetUrl(JsonObject profile, string assetUrl)
+    {
+        if (profile["AthleteSlug"] is not JsonValue slugValue ||
+            !slugValue.TryGetValue<string>(out var slug) ||
+            string.IsNullOrWhiteSpace(slug))
+        {
+            return false;
+        }
+
+        var publicSlug = Uri.EscapeDataString(slug.Replace('_', '-'));
+        var prefix = $"/public-data/{publicSlug}/portrait?v=";
+        if (!assetUrl.StartsWith(prefix, StringComparison.Ordinal))
+            return false;
+
+        var version = assetUrl[prefix.Length..];
+        return version.Length == 64 &&
+               version.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f') &&
+               profile[OpenDataPortraitVersionPropertyName] is JsonValue versionValue &&
+               versionValue.TryGetValue<string>(out var hydratedVersion) &&
+               string.Equals(version, hydratedVersion, StringComparison.Ordinal);
     }
 
     private static double ValidateRequiredBiomarkerNumber(

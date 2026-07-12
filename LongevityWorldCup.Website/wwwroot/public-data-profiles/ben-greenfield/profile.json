@@ -25,6 +25,14 @@
   "OpenData": {
     "SubjectDidNotApply": true,
     "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Ben_Greenfield_speaking_at_the_Health_Optimization_Summit.jpg",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/51/Ben_Greenfield_speaking_at_the_Health_Optimization_Summit.jpg",
+      "Author": "Maja Smiejkowska (TAterPARsOLI)",
+      "LicenseName": "CC BY-SA 4.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
     "Notability": {
       "Summary": "Endurance athlete, New York Times bestselling fitness author, human-performance coach and long-running health and biohacking podcaster.",
       "SourceIds": [

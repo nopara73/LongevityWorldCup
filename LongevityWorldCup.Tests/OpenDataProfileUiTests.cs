@@ -27,21 +27,24 @@ public sealed class OpenDataProfileUiTests
     public void FullLeaderboard_UsesASeparateUnrankedPublicDataSection()
     {
         var html = ReadLeaderboardPartial();
-        const string disclosure = "These reference profiles use bloodwork the subjects made public. The subjects did not apply to the Longevity World Cup, are not Longevity athletes, and never affect rankings, awards, or prizes; inclusion does not imply endorsement.";
+        const string compactExplainer = "Unranked references from bloodwork the subjects made public. Not World Cup athletes, applicants, or endorsements; never affect rankings or prizes.";
 
         Assert.Contains("id=\"openDataProfilesSection\"", html);
         Assert.Contains("aria-labelledby=\"openDataProfilesTitle\"", html);
         Assert.Contains("PUBLIC DATA · UNRANKED", html);
-        Assert.Contains(disclosure, html);
-        Assert.Contains("Request a correction or removal", html);
+        Assert.Contains(compactExplainer, html);
+        Assert.Contains(">Corrections</a>", html);
         Assert.Contains("normalizedPath.toLowerCase() === '/leaderboard'", html);
         Assert.Contains("sort((a, b) => a.displayName.localeCompare", html);
         Assert.Contains("metricLabel.textContent = 'Reference Pheno difference';", html);
         Assert.Contains("formulaNote.textContent = 'Pheno Age − age at published panel';", html);
+        Assert.Contains("portrait.className = 'open-data-card-portrait';", html);
+        Assert.Contains("portrait.alt = `Portrait of ${profile.displayName}`;", html);
+        Assert.Contains("portrait.loading = 'lazy';", html);
+        Assert.Contains("populateOpenDataPhotoCredit(photoCredit, profile.portrait);", html);
         Assert.Contains("summary.className = 'open-data-card-summary';", html);
         Assert.Contains("summary.textContent = profile.notabilitySummary;", html);
         Assert.Contains("id=\"openDataNotabilitySummary\"", html);
-        Assert.Contains("fa-solid fa-database", html);
         Assert.Contains("renderOpenDataProfiles();", html);
         Assert.DoesNotContain("remainingAthletes = athleteResults.concat(openDataProfiles)", html);
     }
@@ -73,11 +76,15 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("id=\"openDataProfileDisclosure\"", html);
         Assert.Contains("role=\"note\"", html);
         Assert.Contains("id=\"openDataStickyToken\"", html);
+        Assert.Contains("id=\"openDataModalPhotoCredit\"", html);
         Assert.Contains("modalContent.classList.toggle('open-data-profile', isOpenData);", html);
-        Assert.Contains("detailsModal.setAttribute('aria-describedby', 'openDataProfileDisclosure');", html);
+        Assert.Contains("detailsModal.setAttribute('aria-describedby', 'openDataNotabilitySummary openDataProfileDisclosure');", html);
         Assert.Contains("'Close public-data profile'", html);
         Assert.Contains("resetModalForLoading(athleteSlug, openDataProfile)", html);
         Assert.Contains("populateOpenDataModal(fullAthleteData, athleteData);", html);
+        Assert.Contains("profilePic.src = profileData.portrait.assetUrl;", html);
+        Assert.Contains("profilePic.alt = `Portrait of ${displayName}`;", html);
+        Assert.Contains("populateOpenDataPhotoCredit(photoCredit, profileData.portrait);", html);
         Assert.Contains("gmaCard.hidden = openDataProfile;", html);
         Assert.Contains("chronologicalAgeLabel: 'Age at published panel:'", html);
         Assert.Contains("lowestPhenoAgeLabel: 'Reference Pheno Age:'", html);
@@ -88,6 +95,12 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("requestAnimationFrame(() => closeBtn?.focus());", html);
         Assert.Contains("returnFocusTo.isConnected", html);
         Assert.DoesNotContain(".open-data-sticky-token{ display:none !important; }", html);
+        Assert.DoesNotContain("#detailsModal .modal-content.open-data-profile #modalProfilePic,", html);
+
+        var summary = html.IndexOf("id=\"openDataNotabilitySummary\"", StringComparison.Ordinal);
+        var disclosure = html.IndexOf("id=\"openDataProfileDisclosure\"", StringComparison.Ordinal);
+        Assert.True(summary >= 0 && disclosure > summary,
+            "The who-they-are summary should lead, with the compact policy disclosure secondary.");
 
         foreach (var selector in new[]
                  {

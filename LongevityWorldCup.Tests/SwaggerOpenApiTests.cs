@@ -188,9 +188,24 @@ public sealed class SwaggerOpenApiTests
         var openDataProperties = schemas.GetProperty("PublicOpenDataMetadataApiDocument").GetProperty("properties");
         Assert.True(openDataProperties.TryGetProperty("IdentitySourceIds", out _));
         Assert.True(openDataProperties.TryGetProperty("Notability", out _));
+        Assert.True(openDataProperties.TryGetProperty("Portrait", out _));
         var notabilityProperties = schemas.GetProperty("PublicOpenDataNotabilityApiDocument").GetProperty("properties");
         Assert.True(notabilityProperties.TryGetProperty("Summary", out _));
         Assert.True(notabilityProperties.TryGetProperty("SourceIds", out _));
+        var portraitProperties = schemas.GetProperty("PublicOpenDataPortraitApiDocument").GetProperty("properties");
+        foreach (var property in new[]
+                 {
+                     "SourcePageUrl",
+                     "OriginalUrl",
+                     "Author",
+                     "LicenseName",
+                     "LicenseUrl",
+                     "EditNote",
+                     "AssetUrl"
+                 })
+        {
+            Assert.True(portraitProperties.TryGetProperty(property, out _));
+        }
         var sourceProperties = schemas.GetProperty("PublicOpenDataSourceApiDocument").GetProperty("properties");
         Assert.True(sourceProperties.TryGetProperty("PreferredForDisplay", out _));
         Assert.True(sourceProperties.TryGetProperty("SubjectAuthorization", out _));

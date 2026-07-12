@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -42,6 +43,11 @@ public sealed class OpenDataProfileBrowserTests
         Assert.Equal("/public-data/ben-greenfield", new Uri(page.Url).AbsolutePath);
         Assert.Equal("Ben Greenfield", await page.Locator("#athleteName").InnerTextAsync());
         Assert.True(await page.Locator("#openDataProfileDisclosure").IsVisibleAsync());
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('#modalProfilePic')?.naturalWidth > 0");
+        Assert.True(await page.Locator("#modalProfilePic").IsVisibleAsync());
+        Assert.Equal("Portrait of Ben Greenfield", await page.Locator("#modalProfilePic").GetAttributeAsync("alt"));
+        Assert.Contains("CC BY-SA 4.0", await page.Locator("#openDataModalPhotoCredit").InnerTextAsync());
         Assert.Equal("noindex, follow", await page.Locator("meta[name='robots']").GetAttributeAsync("content"));
         Assert.Contains("/public-data/ben-greenfield", await page.Locator("link[rel='canonical']").GetAttributeAsync("href") ?? "");
         Assert.Empty(errors);
@@ -105,6 +111,13 @@ public sealed class OpenDataProfileBrowserTests
                 ContentType = "application/json",
                 Body = LeaderboardProfilesJson
             }));
+        await context.RouteAsync("**/public-data/public-browser-subject/portrait*", route =>
+            route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "image/webp",
+                Path = GetCommittedPortraitPath()
+            }));
 
         var page = await context.NewPageAsync();
         var errors = new List<string>();
@@ -144,7 +157,16 @@ public sealed class OpenDataProfileBrowserTests
         Assert.Equal(
             "A globally recognized public figure with an established body of work.",
             await publicDataCard.Locator(".open-data-card-summary").InnerTextAsync());
-        Assert.Contains("never affect rankings, awards, or prizes", await page.Locator("#openDataProfilesSection .open-data-explainer").InnerTextAsync());
+        Assert.Contains("never affect rankings or prizes", await page.Locator("#openDataProfilesSection .open-data-explainer").InnerTextAsync());
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('.open-data-card-portrait')?.naturalWidth > 0");
+        Assert.Equal("Portrait of Public Browser Subject", await publicDataCard.Locator(".open-data-card-portrait").GetAttributeAsync("alt"));
+        Assert.Contains("CC BY 4.0", await publicDataCard.Locator(".open-data-photo-credit").InnerTextAsync());
+        await page.SetViewportSizeAsync(390, 844);
+        Assert.True(await publicDataCard.Locator(".open-data-photo-credit").EvaluateAsync<bool>(
+            "element => element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight && getComputedStyle(element).whiteSpace !== 'nowrap'"),
+            "The complete portrait credit should wrap without clipping at the mobile breakpoint.");
+        await page.SetViewportSizeAsync(1280, 900);
         Assert.Equal("Reference Pheno difference", await publicDataCard.Locator(".open-data-card-metric-label").TextContentAsync());
         Assert.Equal(
             new[] { "Pheno Age − age at published panel", "Uses a published assay boundary" },
@@ -167,6 +189,8 @@ public sealed class OpenDataProfileBrowserTests
         await page.Locator("#detailsModal .modal-content.open-data-profile").WaitForAsync();
         await page.Locator("#publicDataSourceList > li").First.WaitForAsync(
             new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 60_000 });
+        await page.WaitForURLAsync("**/public-data/public-browser-subject");
+        await page.WaitForTimeoutAsync(700); // Let the pending 400 ms filter debounce finish.
 
         Assert.Equal(
             "/public-data/public-browser-subject",
@@ -177,17 +201,24 @@ public sealed class OpenDataProfileBrowserTests
             "A globally recognized public figure with an established body of work.",
             await page.Locator("#openDataNotabilitySummary").InnerTextAsync());
         var disclosure = await page.Locator("#openDataProfileDisclosure").InnerTextAsync();
-        Assert.Contains("did not apply to the Longevity World Cup", disclosure);
-        Assert.Contains("inclusion does not imply endorsement", disclosure);
-        Assert.Contains("Request a correction or removal", disclosure);
-        Assert.Equal("openDataProfileDisclosure", await page.Locator("#detailsModal").GetAttributeAsync("aria-describedby"));
+        Assert.Contains("Did not apply or join", disclosure);
+        Assert.Contains("inclusion is not endorsement", disclosure);
+        Assert.Contains("Corrections", disclosure);
+        Assert.DoesNotContain("globally recognized public figure", disclosure);
+        Assert.Equal("openDataNotabilitySummary openDataProfileDisclosure", await page.Locator("#detailsModal").GetAttributeAsync("aria-describedby"));
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('#modalProfilePic')?.naturalWidth > 0");
+        Assert.True(await page.Locator("#modalProfilePic").IsVisibleAsync());
+        Assert.Equal("Portrait of Public Browser Subject", await page.Locator("#modalProfilePic").GetAttributeAsync("alt"));
+        Assert.Contains("Browser Photographer", await page.Locator("#openDataModalPhotoCredit").InnerTextAsync());
+        Assert.Contains("cropped", await page.Locator("#openDataModalPhotoCredit").InnerTextAsync());
         Assert.Equal("Close public-data profile", await page.Locator("#closeAthleteDetailsModal").GetAttributeAsync("aria-label"));
         Assert.Equal("Age at published panel:", await page.Locator("#chronologicalAgeLabel").InnerTextAsync());
         Assert.Equal("47.7", await page.Locator("#chronologicalAge").InnerTextAsync());
         Assert.Equal("Reference Pheno Age:", await page.Locator("#lowestPhenoAgeLabel").InnerTextAsync());
         Assert.False(await page.Locator("#paceOfAgingContainer").IsVisibleAsync());
         Assert.True(await page.Locator("#openDataQualifierNotice").IsVisibleAsync());
-        Assert.Contains("not presented as an exact measurement", await page.Locator("#openDataQualifierNotice").InnerTextAsync());
+        Assert.Contains("not an exact measurement", await page.Locator("#openDataQualifierNotice").InnerTextAsync());
         await page.Locator("#publicDataSources").ScrollIntoViewIfNeededAsync();
         Assert.True(await page.Locator("#publicDataSources").IsVisibleAsync());
         await page.Locator("#modalStickyHeader.visible").WaitForAsync();
@@ -262,6 +293,7 @@ public sealed class OpenDataProfileBrowserTests
             "open-data-profile",
             await page.Locator("#detailsModal .modal-content").GetAttributeAsync("class") ?? string.Empty);
         Assert.False(await page.Locator("#publicDataSources").IsVisibleAsync());
+        Assert.False(await page.Locator("#openDataModalPhotoCredit").IsVisibleAsync());
         Assert.True(await page.Locator("#detailsModal .official-profile-only").First.IsVisibleAsync());
 
         Assert.Empty(errors);
@@ -324,6 +356,15 @@ public sealed class OpenDataProfileBrowserTests
             "OpenData": {
               "SubjectDidNotApply": true,
               "ReviewedAt": "2026-07-10",
+              "Portrait": {
+                "SourcePageUrl": "https://example.com/photo-source",
+                "OriginalUrl": "https://example.com/photo-original.webp",
+                "Author": "Browser Photographer",
+                "LicenseName": "CC BY 4.0",
+                "LicenseUrl": "https://creativecommons.org/licenses/by/4.0",
+                "EditNote": "Cropped, resized and converted to WebP for display.",
+                "AssetUrl": "/public-data/public-browser-subject/portrait?v=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              },
               "Aliases": ["Published Browser Alias"],
               "IdentitySourceIds": ["bloodwork-1"],
               "Sources": [
@@ -358,4 +399,18 @@ public sealed class OpenDataProfileBrowserTests
           }
         ]
         """;
+
+    private static string GetCommittedPortraitPath([CallerFilePath] string sourceFilePath = "")
+    {
+        var testsDirectory = Path.GetDirectoryName(sourceFilePath)
+            ?? throw new InvalidOperationException("Could not locate the tests directory.");
+        return Path.GetFullPath(Path.Combine(
+            testsDirectory,
+            "..",
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "public-data-profiles",
+            "andrew-tate",
+            "portrait.webp"));
+    }
 }

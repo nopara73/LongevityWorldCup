@@ -25,6 +25,14 @@
   "OpenData": {
     "SubjectDidNotApply": true,
     "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Bryan_Johnson_2026.jpg",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/75/Bryan_Johnson_2026.jpg",
+      "Author": "M Robertson",
+      "LicenseName": "CC BY 4.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by/4.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
     "Notability": {
       "Summary": "Technology entrepreneur who founded Braintree, Kernel and Project Blueprint, the highly publicized quantified-self longevity program.",
       "SourceIds": [

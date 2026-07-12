@@ -23,6 +23,14 @@
   "OpenData": {
     "SubjectDidNotApply": true,
     "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:George_Church.jpg",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/47/George_Church.jpg",
+      "Author": "Heyytessa",
+      "LicenseName": "CC BY-SA 4.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
     "Notability": {
       "Summary": "Harvard–MIT geneticist who helped initiate the Human Genome Project and founded the Personal Genome Project, with pioneering work in DNA sequencing, gene editing and synthetic biology.",
       "SourceIds": [
