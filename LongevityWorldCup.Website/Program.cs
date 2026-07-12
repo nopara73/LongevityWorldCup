@@ -431,16 +431,9 @@ namespace LongevityWorldCup.Website
 
             app.UseMiddleware<EventBoardRedirectMiddleware>();
 
-            // Register the custom HTML injection middleware
-            app.UseMiddleware<HtmlInjectionMiddleware>();
-
-            app.UseMiddleware<SitemapMiddleware>();
-
-            // Register the tracking parameter stripper middleware
-            app.UseMiddleware<TrackingParamStripperMiddleware>();
-
-            // Profile manifests are data-service inputs, not public static assets. Serving them
-            // directly would bypass validation, the OpenData population cap, and identity checks.
+            // Profile manifests are data-service inputs, not public static assets. Keep this
+            // guard ahead of HTML injection as well as static files so an accidental .html
+            // source/export cannot bypass validation, population caps, or identity checks.
             app.Use(async (context, next) =>
             {
                 var path = context.Request.Path.Value ?? "";
@@ -457,6 +450,14 @@ namespace LongevityWorldCup.Website
 
                 await next();
             });
+
+            // Register the custom HTML injection middleware
+            app.UseMiddleware<HtmlInjectionMiddleware>();
+
+            app.UseMiddleware<SitemapMiddleware>();
+
+            // Register the tracking parameter stripper middleware
+            app.UseMiddleware<TrackingParamStripperMiddleware>();
 
             // Enable default file serving (index.html) and static file serving
             app.UseDefaultFiles();  // Serve default files like index.html

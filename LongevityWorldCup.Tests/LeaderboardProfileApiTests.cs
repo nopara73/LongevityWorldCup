@@ -229,6 +229,7 @@ public sealed class LeaderboardProfileApiTests
     [InlineData("/PUBLIC-DATA-PROFILES/open-data-profile/PROFILE.JSON?v=untrusted")]
     [InlineData("/public-data-profiles/open-data-profile/proof_private.txt?v=untrusted")]
     [InlineData("/public-data-profiles/open-data-profile/portrait.png")]
+    [InlineData("/public-data-profiles/open-data-profile/source.html")]
     public async Task RawOpenDataProfileNamespace_IsNeverServedAsStaticFiles(string path)
     {
         using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
@@ -391,6 +392,7 @@ public sealed class LeaderboardProfileApiTests
     [Theory]
     [InlineData("proof_1.txt")]
     [InlineData("open-data-profile.png")]
+    [InlineData("source.html")]
     public async Task OpenDataFolderAssets_AreRejectedAndNeverEnumeratedByTheCombinedApi(string fileName)
     {
         using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
