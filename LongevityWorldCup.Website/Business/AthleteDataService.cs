@@ -676,6 +676,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 var text = await ReadProfileTextWithRetryAsync(file);
                 var profile = JsonNode.Parse(text)?.AsObject()
                     ?? throw new InvalidDataException($"Profile '{file}' is empty.");
+                AthleteProfilePolicy.ValidateAndHydrate(
+                    profile,
+                    AthleteProfileType.Athlete,
+                    file);
                 var folderName = Path.GetFileName(Path.GetDirectoryName(file)!);
                 profile["AthleteSlug"] = folderName.Replace('-', '_');
                 identities.UnionWith(GetProfileIdentityKeys(profile));
