@@ -504,11 +504,6 @@ public sealed class PlayAthleteFlowBrowserTests
 
         await context.AddInitScriptAsync(
             """
-            const nativeSetTimeout = window.setTimeout.bind(window);
-            window.setTimeout = (handler, delay, ...args) => nativeSetTimeout(
-                handler,
-                delay === 120 ? 700 : delay,
-                ...args);
             window.localStorage.setItem('selectedAthleteName', 'Browser Api Athlete');
             window.localStorage.setItem('hasApplication', 'true');
             """);
@@ -572,10 +567,38 @@ public sealed class PlayAthleteFlowBrowserTests
                     && !image.classList.contains('athlete-picture-placeholder');
             }
             """);
+        var dockedWhenRefreshed = await page.Locator(".play-athlete-actions").EvaluateAsync<bool>(
+            """
+            async element => {
+                window.LwcFlowActionDock?.refreshNow?.();
+                const docked = element.classList.contains('flow-action-stack--docked');
+                await new Promise(resolve => {
+                    requestAnimationFrame(() => requestAnimationFrame(resolve));
+                });
+                return docked;
+            }
+            """);
+        Assert.True(dockedWhenRefreshed, "Selection actions should dock as soon as the saved-athlete panel is ready.");
+        await page.WaitForFunctionAsync(
+            """
+            () => {
+                const element = document.querySelector('.play-athlete-actions');
+                if (!element
+                    || !element.classList.contains('flow-action-stack--docked')
+                    || element.classList.contains('flow-action-stack--dock-entering')
+                    || element.getAnimations().some(animation =>
+                        animation.playState === 'pending' || animation.playState === 'running')) {
+                    return false;
+                }
+                const rect = element.getBoundingClientRect();
+                return rect.top >= -1 && rect.bottom <= window.innerHeight + 1;
+            }
+            """,
+            null,
+            new PageWaitForFunctionOptions { Timeout = 5_000 });
         var actionLayout = await page.Locator(".play-athlete-actions").EvaluateAsync<ActionStackTransitionLayout>(
             """
             element => {
-                window.LwcFlowActionDock?.refreshNow?.();
                 const rect = element.getBoundingClientRect();
                 return {
                     Docked: element.classList.contains('flow-action-stack--docked'),
