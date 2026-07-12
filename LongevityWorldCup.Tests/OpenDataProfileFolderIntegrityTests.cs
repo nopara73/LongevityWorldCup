@@ -19,13 +19,14 @@ public sealed class OpenDataProfileFolderIntegrityTests
         var athleteSlugs = athletePaths
             .Select(path => Path.GetFileName(Path.GetDirectoryName(path)))
             .Where(slug => !string.IsNullOrWhiteSpace(slug))
-            .Select(slug => slug!.Replace('-', '_'))
+            .Select(slug => AthleteDataService.NormalizeProfileIdentity(slug))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var athleteNames = athletePaths
-            .SelectMany(path => GetProfileIdentityNames(
-                JsonNode.Parse(File.ReadAllText(path))?.AsObject()))
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var athleteIdentities = new HashSet<string>(athleteSlugs, StringComparer.OrdinalIgnoreCase);
+        foreach (var athletePath in athletePaths)
+        {
+            athleteIdentities.UnionWith(GetProfileIdentityKeys(
+                JsonNode.Parse(File.ReadAllText(athletePath))?.AsObject()));
+        }
 
         if (!Directory.Exists(openDataRoot))
         {
@@ -39,11 +40,9 @@ public sealed class OpenDataProfileFolderIntegrityTests
         foreach (var folder in Directory.GetDirectories(openDataRoot))
         {
             var folderName = Path.GetFileName(folder);
-            var slug = folderName.Replace('-', '_');
+            var slug = AthleteDataService.NormalizeProfileIdentity(folderName);
             if (!openDataSlugs.Add(slug))
                 issues.Add($"{folderName}: duplicate normalized OpenData slug");
-            if (athleteSlugs.Contains(slug))
-                issues.Add($"{folderName}: slug collides with an approved athlete");
 
             var profilePath = Path.Combine(folder, "profile.json");
             if (!File.Exists(profilePath))
@@ -70,12 +69,14 @@ public sealed class OpenDataProfileFolderIntegrityTests
                     ?? throw new InvalidDataException("profile.json is empty");
                 AthleteProfilePolicy.ValidateAndHydrate(profile, AthleteProfileType.OpenData, profilePath);
 
-                var primaryName = NormalizeProfileIdentity(profile["Name"]?.GetValue<string>());
-                foreach (var identity in GetProfileIdentityNames(profile))
+                var primaryName = profile["Name"]?.GetValue<string>()?.Trim();
+                var profileIdentities = GetProfileIdentityKeys(profile);
+                profileIdentities.Add(slug);
+                foreach (var identity in profileIdentities)
                 {
                     if (!openDataNames.Add(identity))
                         issues.Add($"{folderName}: duplicate OpenData identity '{identity}'");
-                    if (athleteNames.Contains(identity))
+                    if (athleteIdentities.Contains(identity))
                     {
                         issues.Add(
                             $"{folderName}: profile '{primaryName}' uses identity '{identity}', which is already an approved athlete");
@@ -122,30 +123,31 @@ public sealed class OpenDataProfileFolderIntegrityTests
             string.Join(Environment.NewLine, issues.OrderBy(issue => issue, StringComparer.Ordinal)));
     }
 
-    private static string NormalizeProfileIdentity(string? value) =>
-        string.Join(' ', (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-
-    private static IEnumerable<string> GetProfileIdentityNames(JsonObject? profile)
+    private static HashSet<string> GetProfileIdentityKeys(JsonObject? profile)
     {
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (profile is null)
-            yield break;
+            return identities;
 
         foreach (var propertyName in new[] { "Name", "DisplayName" })
         {
-            var identity = NormalizeProfileIdentity(profile[propertyName]?.GetValue<string>());
+            var identity = AthleteDataService.NormalizeProfileIdentity(
+                profile[propertyName]?.GetValue<string>());
             if (!string.IsNullOrWhiteSpace(identity))
-                yield return identity;
+                identities.Add(identity);
         }
 
         if (profile["OpenData"]?["Aliases"] is not JsonArray aliases)
-            yield break;
+            return identities;
 
         foreach (var aliasNode in aliases)
         {
-            var alias = NormalizeProfileIdentity(aliasNode?.GetValue<string>());
+            var alias = AthleteDataService.NormalizeProfileIdentity(aliasNode?.GetValue<string>());
             if (!string.IsNullOrWhiteSpace(alias))
-                yield return alias;
+                identities.Add(alias);
         }
+
+        return identities;
     }
 
     private static string FindRepoRoot([CallerFilePath] string sourceFilePath = "")
