@@ -38,17 +38,67 @@ Use the printed commit for `verified_sha` in the server commands. Do not combine
 ### Step By Step
 ```sh
 sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y
+set -eu
 
 verified_sha="<exact commit printed while preparing the artifact>"
 frontend_stage="/tmp/longevityworldcup-frontend-${verified_sha}"
 deploy_source="$(mktemp -d)"
 publish_output="$(mktemp -d)"
+publish_root="/var/www/LongevityWorldCup/publish"
+rollback_output="${publish_root}.rollback-${verified_sha}"
+failed_output="${publish_root}.failed-${verified_sha}"
+source_manifest="$frontend_stage/source-js.sha256"
+published_manifest="$frontend_stage/published-js.sha256"
+live_manifest="$frontend_stage/live-js.sha256"
 service_stopped=0
+deploy_started=0
+deploy_succeeded=0
+frontend_manifest() {
+  root="$1"
+  (
+    cd "$root"
+    find . -type f -name '*.js' -print0 \
+      | LC_ALL=C sort -z \
+      | xargs -0 -r sha256sum
+  )
+}
+sudo_frontend_manifest() {
+  root="$1"
+  sudo sh -c '
+    set -eu
+    cd "$1"
+    find . -type f -name "*.js" -print0 \
+      | LC_ALL=C sort -z \
+      | xargs -0 -r sha256sum
+  ' sh "$root"
+}
 cleanup() {
+  status=$?
+  trap - EXIT
+  if [ "$deploy_started" -eq 1 ] && [ "$deploy_succeeded" -ne 1 ] && [ -d "$rollback_output" ]; then
+    echo "Deployment failed; restoring the previous published release."
+    if [ "$service_stopped" -eq 0 ]; then
+      sudo systemctl stop longevityworldcup.service || true
+      service_stopped=1
+    fi
+    sudo rm -rf "$failed_output" || true
+    if sudo mv "$publish_root" "$failed_output" && sudo mv "$rollback_output" "$publish_root"; then
+      sudo rm -rf "$failed_output" || true
+    else
+      echo "Automatic release rollback failed; attempting to restore the interrupted release path." >&2
+      if [ ! -d "$publish_root" ] && [ -d "$failed_output" ]; then
+        sudo mv "$failed_output" "$publish_root" || true
+      fi
+    fi
+  fi
   if [ "$service_stopped" -eq 1 ]; then
     sudo systemctl start longevityworldcup.service || true
   fi
+  if [ "$deploy_started" -eq 0 ] || [ "$deploy_succeeded" -eq 1 ]; then
+    sudo rm -rf "$rollback_output" "$failed_output" || true
+  fi
   rm -rf "$frontend_stage" "$deploy_source" "$publish_output"
+  exit "$status"
 }
 trap cleanup EXIT
 
@@ -78,14 +128,21 @@ tar -xzf "$frontend_stage/frontend-assets.tar.gz" \
   --no-same-permissions \
   -C "$deploy_source/LongevityWorldCup.Website/wwwroot"
 
+frontend_manifest "$deploy_source/LongevityWorldCup.Website/wwwroot/js" > "$source_manifest"
+test -s "$source_manifest"
 dotnet publish "$deploy_source/LongevityWorldCup.Website/LongevityWorldCup.Website.csproj" --configuration Release --output "$publish_output" -p:BuildFrontend=false
-source_scripts="$(find "$deploy_source/LongevityWorldCup.Website/wwwroot/js" -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort)"
-published_scripts="$(find "$publish_output/wwwroot/js" -maxdepth 1 -type f -name '*.js' -printf '%f\n' | sort)"
-test -n "$source_scripts"
-test "$source_scripts" = "$published_scripts"
+frontend_manifest "$publish_output/wwwroot/js" > "$published_manifest"
+if ! cmp -s "$source_manifest" "$published_manifest"; then
+  echo "Published frontend assets differ from the verified artifact." >&2
+  diff -u "$source_manifest" "$published_manifest" || true
+  exit 1
+fi
 
 sudo systemctl stop longevityworldcup.service
 service_stopped=1
+sudo rm -rf "$rollback_output" "$failed_output"
+sudo cp -al "$publish_root" "$rollback_output"
+deploy_started=1
 sudo rsync -a --checksum --no-owner --no-group \
   --exclude='/config.json' \
   --exclude='/config.json.bak*' \
@@ -98,6 +155,12 @@ sudo rsync -a --checksum --delete --no-owner --no-group \
   "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
 sudo rsync -a --checksum --delete --no-owner --no-group \
   "$publish_output/wwwroot/js"/ /var/www/LongevityWorldCup/publish/wwwroot/js/
+sudo_frontend_manifest "$publish_root/wwwroot/js" > "$live_manifest"
+if ! cmp -s "$published_manifest" "$live_manifest"; then
+  echo "Live frontend assets differ from the verified published assets." >&2
+  diff -u "$published_manifest" "$live_manifest" || true
+  exit 1
+fi
 sudo mkdir -p /var/www/LongevityWorldCup/publish/wwwroot/generated
 sudo chown -R www-data:www-data /var/www/LongevityWorldCup/publish/wwwroot/generated
 sudo find /var/www/LongevityWorldCup/publish/wwwroot/generated -type d -exec chmod 755 {} \;
@@ -124,20 +187,33 @@ done
 grep -q '"status":"Healthy"' "$health_body"
 rm -f "$health_body"
 
+downloaded_script="$frontend_stage/deployed-script.js"
 for script_path in "$publish_output"/wwwroot/js/*.js; do
   curl -fsS --max-time 10 \
     "https://www.longevityworldcup.com/js/$(basename "$script_path")?v=$verified_sha" \
-    -o /dev/null
+    -o "$downloaded_script"
+  expected_hash="$(sha256sum "$script_path")"
+  expected_hash="${expected_hash%% *}"
+  actual_hash="$(sha256sum "$downloaded_script")"
+  actual_hash="${actual_hash%% *}"
+  if [ "$expected_hash" != "$actual_hash" ]; then
+    echo "Deployed script content differs from the verified artifact: $(basename "$script_path")" >&2
+    exit 1
+  fi
 done
+rm -f "$downloaded_script"
 
 git status --short
 
 sudo systemctl status longevityworldcup.service
+deploy_succeeded=1
 ```
 
 Publish from the temporary source, not from `~/LongevityWorldCup`. The website build regenerates documentation HTML during publish, and publishing from the checkout can dirty tracked files and break the next pull or deploy.
 
 The production host intentionally does not need Node.js. Generated `wwwroot/js` files are ignored rather than committed. The automatic deploy runner builds and verifies them, packages an exact-commit artifact, checks its checksum after transfer, and injects it into the temporary source before publishing with `BuildFrontend=false`.
+
+Before changing the live publish tree, deployment stops the service and creates a same-filesystem hard-link snapshot. A failed sync, health check, or byte-for-byte script probe restores that prior release before restarting the service. Every master push schedules the workflow; stale runs skip only when a newer run exists, so an otherwise ignored documentation or test commit cannot strand an earlier website change undeployed.
 
 Configure the repository's `SSH_FINGERPRINT` Actions secret with the production host-key fingerprint to enforce host verification for both artifact transfer and remote deployment. The workflow remains compatible with the existing secret set when it is absent, but then host identity is not pinned.
 

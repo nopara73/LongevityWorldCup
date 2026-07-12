@@ -1530,7 +1530,8 @@
             if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
 
             try {
-                return window.addActiveDiscountMetadataToPaymentOffer(offer);
+                const adjustedOffer = window.addActiveDiscountMetadataToPaymentOffer(offer);
+                return isUsablePaymentOffer(adjustedOffer) ? adjustedOffer : null;
             } catch (_) {
                 return null;
             }
@@ -1606,7 +1607,7 @@
                     serializedPaymentOffer = null;
                 }
                 if (!serializedPaymentOffer) {
-                    customAlert('Payment details could not be saved. Enable browser storage and try again.')
+                    customAlert('Payment details could not be prepared. Refresh the page and try again.')
                         .then(() => document.getElementById('continueButton')?.focus());
                     return false;
                 }

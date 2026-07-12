@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <TypeScriptSource Include="Frontend\*.ts" />
+    <NestedFrontendRuntimeSource Include="Frontend\**\*.ts"
+                                 Exclude="Frontend\*.ts;Frontend\**\*.d.ts" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,6 +57,11 @@
           Outputs="node_modules/typescript/bin/tsc">
     <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
           Command="npm ci --ignore-scripts --no-audit --no-fund" />
+  </Target>
+
+  <Target Name="ValidateFrontendSourceLayout" BeforeTargets="BeforeBuild">
+    <Error Condition="'@(NestedFrontendRuntimeSource)' != ''"
+           Text="Runtime TypeScript entry points must stay directly under Frontend so every emitted script remains independently versioned: @(NestedFrontendRuntimeSource, ', ')." />
   </Target>
 
   <Target Name="CompileTypeScript"
