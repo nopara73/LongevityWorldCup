@@ -718,6 +718,130 @@ public sealed class LeaderboardProfileApiTests
     }
 
     [Fact]
+    public async Task OfficialReload_OpenDataRootFailureDoesNotRepublishStaleOpenDataSnapshot()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var profiles = factory.Services.GetRequiredService<AthleteDataService>();
+        GetProfileWatcher(profiles, officialRoot: true).EnableRaisingEvents = false;
+        GetProfileWatcher(profiles, officialRoot: false).EnableRaisingEvents = false;
+
+        using (var initial = await ReadJsonAsync(client, "/api/data/leaderboard-profiles"))
+            Assert.Equal(1, CountProfileType(initial, "OpenData"));
+
+        fixture.DeleteOpenDataProfilesRoot();
+        fixture.UpdateOfficialAthleteName(1, "Official Athlete After OpenData Failure");
+
+        await profiles.OnAthleteSourceChangedAsync();
+
+        using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.Contains(
+            combined.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("Name").GetString() == "Official Athlete After OpenData Failure");
+        Assert.Equal(0, CountProfileType(combined, "OpenData"));
+
+        fixture.UpdateOpenDataProfileName(1, "Recovered OpenData Profile");
+        await profiles.OnOpenDataSourceChangedAsync();
+
+        using var recovered = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.Equal(1, CountProfileType(recovered, "OpenData"));
+        Assert.Contains(
+            recovered.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("Name").GetString() == "Recovered OpenData Profile");
+    }
+
+    [Fact]
+    public async Task OpenDataReload_OpenDataRootFailurePreservesUnchangedLastGoodSnapshot()
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var profiles = factory.Services.GetRequiredService<AthleteDataService>();
+        GetProfileWatcher(profiles, officialRoot: true).EnableRaisingEvents = false;
+        GetProfileWatcher(profiles, officialRoot: false).EnableRaisingEvents = false;
+
+        using (var initial = await ReadJsonAsync(client, "/api/data/leaderboard-profiles"))
+            Assert.Equal(1, CountProfileType(initial, "OpenData"));
+
+        fixture.DeleteOpenDataProfilesRoot();
+        await profiles.OnOpenDataSourceChangedAsync();
+
+        using var retained = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.Equal(9, CountProfileType(retained, "Athlete"));
+        Assert.Equal(1, CountProfileType(retained, "OpenData"));
+        Assert.Contains(
+            retained.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("Name").GetString() == "Open Data Profile");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task TransientOpenDataRead_ReconcilesReadableAndDeletedProfiles(bool officialRefresh)
+    {
+        using var fixture = new ProfileWebRootFixture(athleteCount: 27, openDataCount: 3);
+        using var factory = fixture.CreateFactory();
+        using var client = factory.CreateClient();
+        var profiles = factory.Services.GetRequiredService<AthleteDataService>();
+        GetProfileWatcher(profiles, officialRoot: true).EnableRaisingEvents = false;
+        GetProfileWatcher(profiles, officialRoot: false).EnableRaisingEvents = false;
+
+        using (var initial = await ReadJsonAsync(client, "/api/data/leaderboard-profiles"))
+            Assert.Equal(3, CountProfileType(initial, "OpenData"));
+
+        fixture.DeleteOpenDataProfile(1);
+        fixture.UpdateOpenDataProfileName(2, "Corrected OpenData Profile");
+        fixture.UpdateOpenDataProfileName(3, "Corrected Locked OpenData Profile");
+        if (officialRefresh)
+            fixture.UpdateOfficialAthleteName(1, "Official Athlete During Partial OpenData Read");
+
+        using (File.Open(fixture.GetOpenDataProfilePath(3), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            if (officialRefresh)
+                await profiles.OnAthleteSourceChangedAsync();
+            else
+                await profiles.OnOpenDataSourceChangedAsync();
+
+            using var combined = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+            Assert.Equal(27, CountProfileType(combined, "Athlete"));
+            Assert.Equal(2, CountProfileType(combined, "OpenData"));
+            Assert.DoesNotContain(
+                combined.RootElement.EnumerateArray(),
+                profile => profile.GetProperty("Name").GetString() == "Open Data Profile");
+            Assert.Contains(
+                combined.RootElement.EnumerateArray(),
+                profile => profile.GetProperty("Name").GetString() == "Corrected OpenData Profile");
+            Assert.Contains(
+                combined.RootElement.EnumerateArray(),
+                profile => profile.GetProperty("Name").GetString() == "Open Data Profile 3");
+            Assert.DoesNotContain(
+                combined.RootElement.EnumerateArray(),
+                profile => profile.GetProperty("Name").GetString() == "Corrected Locked OpenData Profile");
+            if (officialRefresh)
+            {
+                Assert.Contains(
+                    combined.RootElement.EnumerateArray(),
+                    profile => profile.GetProperty("Name").GetString() == "Official Athlete During Partial OpenData Read");
+            }
+        }
+
+        if (officialRefresh)
+            await profiles.OnAthleteSourceChangedAsync();
+        else
+            await profiles.OnOpenDataSourceChangedAsync();
+
+        using var recovered = await ReadJsonAsync(client, "/api/data/leaderboard-profiles");
+        Assert.Equal(2, CountProfileType(recovered, "OpenData"));
+        Assert.Contains(
+            recovered.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("Name").GetString() == "Corrected Locked OpenData Profile");
+        Assert.DoesNotContain(
+            recovered.RootElement.EnumerateArray(),
+            profile => profile.GetProperty("Name").GetString() == "Open Data Profile 3");
+    }
+
+    [Fact]
     public async Task OfficialReloadFailureAfterProfileRead_RestoresTheLastFullyHydratedSnapshot()
     {
         using var fixture = new ProfileWebRootFixture(athleteCount: 9, openDataCount: 1);
@@ -895,6 +1019,7 @@ public sealed class LeaderboardProfileApiTests
         public void UpdateOpenDataProfileName(int index, string name)
         {
             var slug = index == 1 ? "open-data-profile" : $"open-data-profile-{index}";
+            Directory.CreateDirectory(Path.Combine(_root, "public-data-profiles", slug));
             File.WriteAllText(
                 Path.Combine(_root, "public-data-profiles", slug, "profile.json"),
                 OpenDataProfileJson(index, name));
@@ -961,6 +1086,15 @@ public sealed class LeaderboardProfileApiTests
         {
             var slug = index == 1 ? "open-data-profile" : $"open-data-profile-{index}";
             return Path.Combine(_root, "public-data-profiles", slug, "profile.json");
+        }
+
+        public void DeleteOpenDataProfilesRoot() =>
+            Directory.Delete(Path.Combine(_root, "public-data-profiles"), recursive: true);
+
+        public void DeleteOpenDataProfile(int index)
+        {
+            var slug = index == 1 ? "open-data-profile" : $"open-data-profile-{index}";
+            Directory.Delete(Path.Combine(_root, "public-data-profiles", slug), recursive: true);
         }
 
         public void DeleteOfficialAthletes(int firstIndex, int lastIndex)
