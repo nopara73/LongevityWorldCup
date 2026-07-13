@@ -5357,11 +5357,7 @@
                 const flagRouteState = getFlagRouteState(window.location.pathname);
                 const initialProfileRoute = getInitialProfileRoute();
                 if (initialProfileRoute.slug) {
-                    const normalizedAthlete = window.slugifyName(initialProfileRoute.slug, false);
-                    const athleteData = getAthleteData(normalizedAthlete, initialProfileRoute.profileType);
-                    if (athleteData) {
-                        fetchFullAthleteData(normalizedAthlete, athleteData);
-                    } else {
+                    if (!openProfileModalForRoute(initialProfileRoute)) {
                         // Redirect to the .NET 404 endpoint
                         window.location.href = '/error/404';
                     }
@@ -5464,8 +5460,8 @@
             });
     };
 
-    function shouldShowOpenDataProfilesSection() {
-        const normalizedPath = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    function shouldShowOpenDataProfilesSection(pathname) {
+        const normalizedPath = (pathname || window.location.pathname || '/').replace(/\/+$/, '') || '/';
         return normalizedPath.toLowerCase() === '/leaderboard';
     }
 
@@ -5641,12 +5637,12 @@
         const status = document.getElementById('openDataProfilesStatus');
         if (!section || !grid || !empty || !status) return;
 
-        const shouldRender = shouldShowOpenDataProfilesSection() && openDataProfiles.length > 0;
-        section.hidden = !shouldRender;
+        const hasProfiles = shouldShowOpenDataLeaderboardRows() && openDataProfiles.length > 0;
+        section.hidden = true;
         grid.innerHTML = '';
         empty.hidden = true;
         status.textContent = '';
-        if (!shouldRender) return;
+        if (!hasProfiles) return;
 
         const fragment = document.createDocumentFragment();
         openDataProfiles.forEach(profile => {
@@ -5757,11 +5753,22 @@
         filterOpenDataProfiles([]);
     }
 
-    function filterOpenDataProfiles(searchTerms) {
+    function filterOpenDataProfiles(searchTerms, pathname) {
         const section = document.getElementById('openDataProfilesSection');
-        if (!section || section.hidden) return 0;
+        if (!section) return 0;
         const terms = Array.isArray(searchTerms) ? searchTerms : [];
         const cards = Array.from(section.querySelectorAll('.open-data-card'));
+        const shouldShow = cards.length > 0 && shouldShowOpenDataProfilesSection(pathname);
+        section.hidden = !shouldShow;
+
+        const empty = document.getElementById('openDataProfilesEmpty');
+        const status = document.getElementById('openDataProfilesStatus');
+        if (!shouldShow) {
+            if (empty) empty.hidden = true;
+            if (status) status.textContent = '';
+            return 0;
+        }
+
         let visibleCount = 0;
         cards.forEach(card => {
             const searchText = card.dataset.searchText || '';
@@ -5770,8 +5777,6 @@
             if (matches) visibleCount++;
         });
 
-        const empty = document.getElementById('openDataProfilesEmpty');
-        const status = document.getElementById('openDataProfilesStatus');
         if (empty) empty.hidden = visibleCount !== 0;
         if (status) {
             status.textContent = terms.length === 0
@@ -6001,6 +6006,7 @@
     let savedBodyBackground = '';
     let currentAthleteModalRequestId = 0;
     let modalReturnFocusTo = null;
+    let modalCloseTimer = 0;
     const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
 
     window.ensureChartJs = window.ensureChartJs || function () {
@@ -6094,6 +6100,11 @@
     function resetModalForLoading(athleteSlug, isOpenData) {
         ensureAthleteModalDeferredSections();
         closeAthleteShareMenu();
+        if (modalCloseTimer) {
+            window.clearTimeout(modalCloseTimer);
+            modalCloseTimer = 0;
+            modal.classList.remove('fade-out');
+        }
         setOpenDataModalState(false);
         if (isOpenData) setOpenDataModalState(true);
 
@@ -6154,9 +6165,9 @@
                 ? document.activeElement
                 : null;
             modal.style.display = "block";
-            lockBodyScroll();
             requestAnimationFrame(() => closeBtn?.focus());
         }
+        lockBodyScroll();
 
         return modalContent;
     }
@@ -6447,7 +6458,9 @@
         
         modal.classList.add('fade-out');
         restoreBodyScroll();
-        setTimeout(() => {
+        if (modalCloseTimer) window.clearTimeout(modalCloseTimer);
+        modalCloseTimer = window.setTimeout(() => {
+            modalCloseTimer = 0;
             modal.style.display = "none";
             modal.classList.remove('fade-out');
             
@@ -6806,7 +6819,6 @@
         const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
         const uniqueSearchTerms = [...new Set(searchTerms)];
-        filterOpenDataProfiles(uniqueSearchTerms);
 
         const showAll = uniqueSearchTerms.length === 0;
         const visibleOpenDataProfiles = shouldShowOpenDataLeaderboardRows() && !athleteOnlyFiltersActive
@@ -7080,10 +7092,6 @@
                 window.highlightText(athleteNameElement, uniqueSearchTerms);
             }
         });
-        document.querySelectorAll('.open-data-card:not([hidden]) .open-data-card-name').forEach(nameElement => {
-            window.highlightText(nameElement, uniqueSearchTerms);
-        });
-
         // Update the counts in the filter sections
         updateFilterCounts(unslicedFilteredAthletes);
 
@@ -7159,6 +7167,14 @@
         } else if (url.pathname !== `/league/${currentLeaderboardView}`) {
             url.searchParams.set('view', currentLeaderboardView);
         }
+
+        // The detailed reference cards belong only to the full /leaderboard page.
+        // Reconcile against the URL this filter pass is about to publish so soft
+        // view changes render the same state as a direct load or refresh.
+        filterOpenDataProfiles(uniqueSearchTerms, url.pathname);
+        document.querySelectorAll('.open-data-card:not([hidden]) .open-data-card-name').forEach(nameElement => {
+            window.highlightText(nameElement, uniqueSearchTerms);
+        });
 
         const profileRouteIsOpen = /^\/(?:athlete|public-data)\/[^/]+\/?$/.test(window.location.pathname);
         if (profileRouteIsOpen) {
@@ -7853,6 +7869,15 @@
         return athleteResults.find(matches) || openDataProfiles.find(matches);
     }
 
+    function openProfileModalForRoute(profileRoute, options) {
+        if (!profileRoute || !profileRoute.slug) return false;
+        const normalizedProfile = window.slugifyName(profileRoute.slug, false);
+        const profileData = getAthleteData(normalizedProfile, profileRoute.profileType);
+        if (!profileData) return false;
+        fetchFullAthleteData(normalizedProfile, profileData, options);
+        return true;
+    }
+
     window.openAthleteModalBySlug = function (athleteSlug, options) {
         const normalizedSlug = getCanonicalProfileRouteSlug(athleteSlug);
         const athleteData = athleteResults.concat(openDataProfiles).find(athlete => {
@@ -7871,7 +7896,8 @@
     };
 
     function getAthletelessURL() {
-        const url = new URL(window.location.href.replace(/\/(?:athlete|public-data)\/[^/]+\/?$/, ''));
+        const url = new URL(window.location.href);
+        url.pathname = url.pathname.replace(/\/(?:athlete|public-data)\/[^/]+\/?$/, '') || '/';
         url.searchParams.delete('athlete');
         url.searchParams.delete('publicData');
         url.searchParams.delete('guessmyage');
@@ -7879,7 +7905,8 @@
     }
 
     function getLeaguelessURL() {
-        const url = new URL(window.location.href.replace(/\/(?:league|flag)\/[^/]+\/?$/, ''));
+        const url = getAthletelessURL();
+        url.pathname = url.pathname.replace(/\/(?:league|flag)\/[^/]+\/?$/, '') || '/';
         return url;
     }
 
@@ -8217,7 +8244,18 @@
                     originalAthletelessURL = getAthletelessURL();
                 }
                 const profilePath = openDataProfile ? `/public-data/${athleteSlug}` : `/athlete/${athleteSlug}`;
-                history.pushState({ modal: 'details', athlete: athleteSlug, profileType: athleteData.profileType }, "", profilePath);
+                const profileState = { modal: 'details', athlete: athleteSlug, profileType: athleteData.profileType };
+                const routeBeforeOpen = getInitialProfileRoute();
+                const alreadyOnThisTypedProfile = /^\/(?:athlete|public-data)\/[^/]+\/?$/.test(pathnameBeforeOpen) &&
+                    routeBeforeOpen.profileType === athleteData.profileType &&
+                    getCanonicalProfileRouteSlug(routeBeforeOpen.slug) === athleteSlug;
+                if (alreadyOnThisTypedProfile) {
+                    // Direct links and Forward navigation already own this history
+                    // entry. Normalize casing/query parameters without duplicating it.
+                    history.replaceState(profileState, "", profilePath);
+                } else {
+                    history.pushState(profileState, "", profilePath);
+                }
 
                 // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
 
@@ -8513,12 +8551,14 @@
         const profilePic = document.getElementById('modalProfilePic');
         const notabilitySummary = document.getElementById('openDataNotabilitySummary');
         const hypotheticalSummary = document.getElementById('openDataHypotheticalSummary');
+        const qualifierNotice = document.getElementById('openDataQualifierNotice');
         const photoCredit = document.getElementById('openDataModalPhotoCredit');
         if (disclosure) disclosure.hidden = !isOpenData;
         if (stickyToken) stickyToken.hidden = !isOpenData;
         if (databaseAvatar) databaseAvatar.hidden = !isOpenData;
         if (notabilitySummary) notabilitySummary.hidden = !isOpenData;
         if (hypotheticalSummary) hypotheticalSummary.hidden = !isOpenData;
+        if (!isOpenData && qualifierNotice) qualifierNotice.hidden = true;
         if (profilePic) {
             profilePic.hidden = isOpenData;
             profilePic.onerror = null;
@@ -9516,8 +9556,24 @@
         });
     }
 
-    // Ensure modal history cleanup
-    window.addEventListener('popstate', function (event) {
+    // Keep typed profile routes and modal state synchronized in both directions.
+    window.addEventListener('popstate', function () {
+        const enlargedPortrait = document.querySelector('.enlarged-portrait.show');
+        if (enlargedPortrait) {
+            closeOpenComponents();
+            return;
+        }
+
+        const profileRoute = getInitialProfileRoute();
+        if (profileRoute.slug && openProfileModalForRoute(profileRoute)) {
+            return;
+        }
+
+        // Prevent a slower profile fetch from reopening a route the visitor left.
+        currentAthleteModalRequestId++;
+        // Escape intentionally closes the share menu before the profile modal;
+        // browser history must reconcile the whole route in one transition.
+        closeAthleteShareMenu();
         closeOpenComponents();
     });
 

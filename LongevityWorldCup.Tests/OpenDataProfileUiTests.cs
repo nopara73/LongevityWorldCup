@@ -53,6 +53,7 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("id=\"openDataHypotheticalSummary\"", html);
         Assert.Contains("renderOpenDataProfiles();", html);
         Assert.Contains("renderOpenDataLeaderboardRows();", html);
+        Assert.Contains("const shouldShow = cards.length > 0 && shouldShowOpenDataProfilesSection(pathname);", html);
         Assert.DoesNotContain("remainingAthletes = athleteResults.concat(openDataProfiles)", html);
     }
 
@@ -101,7 +102,7 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("sourceLink.rel = 'noopener noreferrer external';", html);
         Assert.Contains("sourceLink.setAttribute('aria-label'", html);
         Assert.Contains("source.kind === 'Bloodwork' && source.subjectAuthorization", html);
-        Assert.Contains("filterOpenDataProfiles(uniqueSearchTerms);", html);
+        Assert.Contains("filterOpenDataProfiles(uniqueSearchTerms, url.pathname);", html);
         Assert.Contains("...profile.aliases", html);
         Assert.Contains("const matches = terms.length === 0 || terms.every(term => searchText.includes(term));", html);
         Assert.DoesNotContain("filterOpenDataProfiles(selectedDivisions", html);
@@ -135,6 +136,7 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("if (event.key === 'Tab')", html);
         Assert.Contains("requestAnimationFrame(() => closeBtn?.focus());", html);
         Assert.Contains("returnFocusTo.isConnected", html);
+        Assert.Contains("if (!isOpenData && qualifierNotice) qualifierNotice.hidden = true;", html);
         Assert.DoesNotContain(".open-data-sticky-token{ display:none !important; }", html);
         Assert.DoesNotContain("#detailsModal .modal-content.open-data-profile #modalProfilePic,", html);
 
@@ -180,13 +182,16 @@ public sealed class OpenDataProfileUiTests
         Assert.Contains("record.SourceIds", html);
         Assert.Contains("const route = isOpenData ? 'public-data' : 'athlete';", html);
         Assert.Contains("const profilePath = openDataProfile ? `/public-data/${athleteSlug}` : `/athlete/${athleteSlug}`;", html);
-        Assert.Contains("history.pushState({ modal: 'details', athlete: athleteSlug, profileType: athleteData.profileType }, \"\", profilePath);", html);
+        Assert.Contains("function getLeaguelessURL() {\n        const url = getAthletelessURL();", html);
+        Assert.Contains("history.pushState(profileState, \"\", profilePath);", html);
+        Assert.Contains("history.replaceState(profileState, \"\", profilePath);", html);
+        Assert.Contains("profileRoute.slug && openProfileModalForRoute(profileRoute)", html);
         Assert.Contains("/^\\/(athlete|public-data)\\/([^/]+)\\/?$/i", html);
         Assert.Contains("function getInitialProfileRoute()", html);
         Assert.Contains("return { slug: publicDataParam, profileType: 'OpenData' };", html);
         Assert.Contains("return { slug: athleteParam, profileType: 'Athlete' };", html);
         Assert.Contains("An explicit /athlete/ or /public-data/ route is authoritative.", html);
-        Assert.Contains("getAthleteData(normalizedAthlete, initialProfileRoute.profileType)", html);
+        Assert.Contains("getAthleteData(normalizedProfile, profileRoute.profileType)", html);
         Assert.Contains("if (profileType === 'Athlete') return athleteResults.find(matches);", html);
         Assert.Contains("if (profileType === 'OpenData') return openDataProfiles.find(matches);", html);
         Assert.Contains("function getCanonicalProfileRouteSlug(value)", html);

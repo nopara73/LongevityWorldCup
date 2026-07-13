@@ -53,6 +53,14 @@ public sealed class OpenDataProfileBrowserTests
         Assert.Contains("/public-data/ben-greenfield", await page.Locator("link[rel='canonical']").GetAttributeAsync("href") ?? "");
         Assert.Empty(errors);
 
+        await page.Keyboard.PressAsync("Escape");
+        await page.Locator("#detailsModal").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 30_000 });
+        Assert.Equal("/", new Uri(page.Url).AbsolutePath);
+        await page.GoBackAsync();
+        await page.WaitForTimeoutAsync(500);
+        Assert.NotEqual("/public-data/ben-greenfield", new Uri(page.Url).AbsolutePath);
+
         await page.GotoAsync(
             "/public-data/ben-greenfield?athlete=siim-land",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -138,6 +146,7 @@ public sealed class OpenDataProfileBrowserTests
         };
 
         await page.GotoAsync("/leaderboard", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var publicDataSection = page.Locator("#openDataProfilesSection");
         var publicDataCards = page.Locator("#openDataProfilesGrid .open-data-card");
         var publicDataCard = page.Locator("#openDataProfilesGrid .open-data-card[data-profile-slug='public_browser_subject']");
         try
@@ -186,6 +195,7 @@ public sealed class OpenDataProfileBrowserTests
         Assert.Contains("rgba(124, 58, 237", await publicDataRow.EvaluateAsync<string>(
             "row => getComputedStyle(row).backgroundImage"));
         Assert.Equal(3, await publicDataCards.CountAsync());
+        Assert.True(await publicDataSection.IsVisibleAsync());
         Assert.Equal(1, await publicDataCard.CountAsync());
         Assert.Equal("PUBLIC DATA · DID NOT APPLY", await publicDataCard.Locator(".open-data-token").InnerTextAsync());
         Assert.Equal(
@@ -319,6 +329,29 @@ public sealed class OpenDataProfileBrowserTests
                 $"Competition-only UI remained visible for selector {selector}.");
         }
 
+        await page.Locator("#shareAthleteProfile").ClickAsync();
+        await page.Locator("#athleteShareMenu").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        await page.EvaluateAsync("() => history.back()");
+        await page.WaitForFunctionAsync("() => window.location.pathname === '/leaderboard'");
+        await page.Locator("#detailsModal").WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 30_000 });
+        await page.EvaluateAsync("() => history.forward()");
+        await page.WaitForURLAsync("**/public-data/public-browser-subject");
+        await page.Locator("#detailsModal .modal-content.open-data-profile").WaitForAsync();
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('#athleteName')?.textContent === 'Public Browser Subject'");
+        Assert.True(await page.Locator("#openDataProfileDisclosure").IsVisibleAsync());
+
+        // A rapid Back/Forward pair must cancel the pending close animation
+        // instead of letting its timer hide the newly restored profile.
+        await page.EvaluateAsync("() => history.back()");
+        await page.WaitForFunctionAsync("() => window.location.pathname === '/leaderboard'");
+        await page.EvaluateAsync("() => history.forward()");
+        await page.WaitForURLAsync("**/public-data/public-browser-subject");
+        await page.WaitForTimeoutAsync(600);
+        Assert.True(await page.Locator("#detailsModal .modal-content.open-data-profile").IsVisibleAsync());
+
         await page.Keyboard.PressAsync("Escape");
         await page.Locator("#detailsModal").WaitForAsync(
             new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 30_000 });
@@ -332,28 +365,38 @@ public sealed class OpenDataProfileBrowserTests
 
         await page.Locator("label[for='view-pheno']").ClickAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('#view-pheno')?.checked === true");
+        await page.WaitForURLAsync("**/league/pheno*");
         await publicDataRow.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        Assert.False(await publicDataSection.IsVisibleAsync());
         Assert.Equal("#3", await publicDataRow.Locator(".open-data-hypothetical-number").InnerTextAsync());
         Assert.Equal(new[] { "1", "2", "3", "4" }, await officialRows.Locator(".rank").AllTextContentsAsync());
         Assert.Contains("official ranks stay unchanged", await page.Locator("#rankingExplanation").InnerTextAsync());
 
         await page.Locator("label[for='view-bortz']").ClickAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('#view-bortz')?.checked === true");
+        await page.WaitForURLAsync("**/league/bortz*");
         await page.WaitForFunctionAsync("() => document.querySelector('.open-data-leaderboard-row')?.hidden === true");
         Assert.False(await publicDataRow.IsVisibleAsync());
+        Assert.False(await publicDataSection.IsVisibleAsync());
 
         await page.Locator("label[for='view-ultimate']").ClickAsync();
         await page.WaitForFunctionAsync("() => document.querySelector('#view-ultimate')?.checked === true");
+        await page.WaitForURLAsync("**/leaderboard*");
         await publicDataRow.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        Assert.True(await publicDataSection.IsVisibleAsync());
 
         var divisionFilter = page.Locator("input[name='division'][value='Open']");
         await divisionFilter.EvaluateAsync(
             "input => { input.checked = true; input.dispatchEvent(new Event('change', { bubbles: true })); }");
+        await page.WaitForURLAsync("**/league/open*");
         await page.WaitForFunctionAsync("() => document.querySelector('.open-data-leaderboard-row')?.hidden === true");
         Assert.False(await publicDataRow.IsVisibleAsync());
+        Assert.False(await publicDataSection.IsVisibleAsync());
         await divisionFilter.EvaluateAsync(
             "input => { input.checked = false; input.dispatchEvent(new Event('change', { bubbles: true })); }");
+        await page.WaitForURLAsync("**/leaderboard*");
         await publicDataRow.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        Assert.True(await publicDataSection.IsVisibleAsync());
 
         await page.EvaluateAsync("() => localStorage.setItem('gmaSkipAll', 'true')");
         await page.Locator(".leaderboard table tbody tr[data-athlete-name='Official Browser Athlete']").ClickAsync();
@@ -370,12 +413,14 @@ public sealed class OpenDataProfileBrowserTests
             await page.Locator("#detailsModal .modal-content").GetAttributeAsync("class") ?? string.Empty);
         Assert.False(await page.Locator("#publicDataSources").IsVisibleAsync());
         Assert.False(await page.Locator("#openDataModalPhotoCredit").IsVisibleAsync());
+        Assert.False(await page.Locator("#openDataQualifierNotice").IsVisibleAsync());
         Assert.True(await page.Locator("#detailsModal .official-profile-only").First.IsVisibleAsync());
 
         await page.Keyboard.PressAsync("Escape");
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator(".podium-item[data-athlete-name='Official Older Athlete']").WaitForAsync();
         Assert.Equal(0, await page.Locator(".open-data-leaderboard-row").CountAsync());
+        Assert.Equal(0, await page.Locator("#openDataProfilesGrid .open-data-card").CountAsync());
 
         Assert.Empty(errors);
     }
