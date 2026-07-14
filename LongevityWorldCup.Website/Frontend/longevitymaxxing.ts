@@ -1702,7 +1702,7 @@
                         <label for="lmxPledgeCommitmentAmount">Pledge</label>
                         <div class="lmx-money-input">
                             <span aria-hidden="true">$</span>
-                            <input id="lmxPledgeCommitmentAmount" type="text" inputmode="decimal" required placeholder="300" aria-describedby="lmxPledgeCommitmentHelp">
+                            <input id="lmxPledgeCommitmentAmount" type="text" inputmode="decimal" required placeholder="100" aria-describedby="lmxPledgeCommitmentHelp">
                         </div>
                     </div>
                     <button class="lmx-button secondary" type="submit">
@@ -1738,7 +1738,7 @@
                         <label for="lmxBlockedCommitmentAmount">Pledge</label>
                         <div class="lmx-money-input">
                             <span aria-hidden="true">$</span>
-                            <input id="lmxBlockedCommitmentAmount" type="text" inputmode="decimal" required placeholder="300" aria-describedby="lmxBlockedCommitmentHelp">
+                            <input id="lmxBlockedCommitmentAmount" type="text" inputmode="decimal" required placeholder="100" aria-describedby="lmxBlockedCommitmentHelp">
                         </div>
                     </div>
                     <button class="lmx-button" type="submit">
