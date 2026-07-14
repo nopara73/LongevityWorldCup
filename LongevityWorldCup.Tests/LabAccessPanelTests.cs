@@ -1,3 +1,4 @@
+using Microsoft.Playwright;
 using System.Runtime.CompilerServices;
 using Xunit;
 
@@ -21,7 +22,20 @@ public sealed class LabAccessPanelTests
         Assert.Contains("REQUEST_COUNTRY_CODE", html);
         Assert.Contains("getBrowserLocaleGeo", html);
         Assert.Contains("Pacific/Auckland", html);
-        Assert.Contains("match[1] === 'NZ' || match[1] === 'US'", html);
+        Assert.Contains("match[1] === 'NZ' || match[1] === 'AU' || match[1] === 'US'", html);
+    }
+
+    [Fact]
+    public void BortzPageShowsAustralianPanelForEligibleVisitors()
+    {
+        var html = File.ReadAllText(GetPagePath("bortz-age.html"));
+
+        Assert.Contains("https://merch.longevityworldcup.com/product/ultimate-league-test-package-australia/", html);
+        Assert.Contains("This Australian panel covers the biomarkers for bortz age.", html);
+        Assert.Contains("Open Australian panel", html);
+        Assert.Contains("country === 'AU'", html);
+        Assert.Contains("timeZone.startsWith('Australia/')", html);
+        Assert.Contains("match[1] === 'AU'", html);
     }
 
     [Fact]
@@ -55,6 +69,19 @@ public sealed class LabAccessPanelTests
         Assert.Contains("match[1] === 'NZ'", html);
     }
 
+    [Fact]
+    public void PhenoPageShowsAustralianPanelForEligibleVisitors()
+    {
+        var html = File.ReadAllText(GetPagePath("pheno-age.html"));
+
+        Assert.Contains("https://merch.longevityworldcup.com/product/phenoage-league-test-package-australia/", html);
+        Assert.Contains("This Australian panel covers the biomarkers for pheno age.", html);
+        Assert.Contains("Open Australian panel", html);
+        Assert.Contains("country === 'AU'", html);
+        Assert.Contains("timeZone.startsWith('Australia/')", html);
+        Assert.Contains("match[1] === 'AU'", html);
+    }
+
     [Theory]
     [InlineData("/pheno-age")]
     [InlineData("/bortz-age")]
@@ -68,6 +95,67 @@ public sealed class LabAccessPanelTests
 
         Assert.Contains("const REQUEST_COUNTRY_CODE = 'NZ';", html);
         Assert.DoesNotContain("{{REQUEST_COUNTRY_CODE}}", html);
+    }
+
+    [Theory]
+    [InlineData("/pheno-age")]
+    [InlineData("/bortz-age")]
+    public async Task RenderedBioagePagesUseAustralianCloudflareCountryHeaderForLabAccess(string path)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("CF-IPCountry", "AU");
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Contains("const REQUEST_COUNTRY_CODE = 'AU';", html);
+        Assert.DoesNotContain("{{REQUEST_COUNTRY_CODE}}", html);
+    }
+
+    [Theory]
+    [InlineData(
+        "/pheno-age?labGeo=AU",
+        "https://merch.longevityworldcup.com/product/phenoage-league-test-package-australia/",
+        "This Australian panel covers the biomarkers for pheno age.")]
+    [InlineData(
+        "/bortz-age?labGeo=AU",
+        "https://merch.longevityworldcup.com/product/ultimate-league-test-package-australia/",
+        "This Australian panel covers the biomarkers for bortz age.")]
+    public async Task AustralianLabPreviewShowsTheMatchingPanel(
+        string path,
+        string expectedHref,
+        string expectedDescription)
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-HU"
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+        var panel = page.Locator(".lab-access-panel");
+        await panel.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+
+        Assert.Contains(expectedDescription, await panel.InnerTextAsync());
+        Assert.Equal(expectedHref, await panel.Locator(".lab-access-link").GetAttributeAsync("href"));
+        Assert.Empty(errors);
     }
 
     [Fact]
