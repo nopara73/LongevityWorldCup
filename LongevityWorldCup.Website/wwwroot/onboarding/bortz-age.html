@@ -1657,6 +1657,11 @@
                     href: 'https://merch.longevityworldcup.com/product/ultimate-league-test-package-new-zealand/',
                     linkLabel: 'Open New Zealand panel',
                     descriptionHtml: 'This New Zealand panel covers the biomarkers for bortz age. Created by <a href="/athlete/klaus-townsend" target="_blank" rel="noopener noreferrer">Klaus Townsend</a>. It also includes 40% off the entry fee.'
+                },
+                AU: {
+                    href: 'https://merch.longevityworldcup.com/product/ultimate-league-test-package-australia/',
+                    linkLabel: 'Open Australian panel',
+                    descriptionHtml: 'This Australian panel covers the biomarkers for bortz age. Created by <a href="/athlete/klaus-townsend" target="_blank" rel="noopener noreferrer">Klaus Townsend</a>.'
                 }
             };
 
@@ -1677,6 +1682,7 @@
                 const isUnknownUsRegion = country === 'US' && !region;
                 const isEligible = !!config && (
                     country === 'NZ' ||
+                    country === 'AU' ||
                     (hasKnownUsRegion && !blockedStates.has(region)) ||
                     (isUnknownUsRegion && allowUnknownUsRegion)
                 );
@@ -1712,6 +1718,9 @@
                     if (timeZone === 'Pacific/Auckland' || timeZone === 'Pacific/Chatham') {
                         return { countryCode: 'NZ', regionCode: '' };
                     }
+                    if (timeZone && timeZone.startsWith('Australia/')) {
+                        return { countryCode: 'AU', regionCode: '' };
+                    }
                     if (timeZone === 'Pacific/Honolulu') {
                         return { countryCode: 'US', regionCode: 'HI' };
                     }
@@ -1733,7 +1742,7 @@
 
                 for (const language of languages) {
                     const match = String(language || '').trim().toUpperCase().match(/[-_]([A-Z]{2})(?:\b|$)/);
-                    if (match && (match[1] === 'NZ' || match[1] === 'US')) {
+                    if (match && (match[1] === 'NZ' || match[1] === 'AU' || match[1] === 'US')) {
                         return { countryCode: match[1], regionCode: '' };
                     }
                 }
