@@ -1,0 +1,28 @@
+{
+  "Name": "Nika",
+  "DisplayName": null,
+  "MediaContact": "@shelizhanka",
+  "DateOfBirth": {
+    "Year": 1993,
+    "Month": 1,
+    "Day": 15
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-13",
+      "AlbGL": 45,
+      "CreatUmolL": 76,
+      "GluMmolL": 4.88,
+      "CrpMgL": 0.6,
+      "LymPc": 38.1,
+      "McvFL": 82,
+      "RdwPc": 13,
+      "AlpUL": 65,
+      "Wbc1000cellsuL": 5.27
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Poland",
+  "Why": "The will to be my best self for as long as possible",
+  "PersonalLink": null
+}
