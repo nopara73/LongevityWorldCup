@@ -641,14 +641,14 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("window.location.href = checkoutLink;", javascript);
         Assert.Contains("function sanitizeCommitmentAmountInput", javascript);
         Assert.Contains("<span aria-hidden=\"true\">$</span>", javascript);
-        Assert.Contains("placeholder=\"300\"", javascript);
+        Assert.Contains("placeholder=\"100\"", javascript);
         var html = await client.GetStringAsync("/longevitymaxxing");
         Assert.DoesNotContain("id=\"lmxSignupCommitmentAmount\"", html);
         Assert.Contains("id=\"lmxEditCommitmentAmount\"", html);
         Assert.Contains("<span aria-hidden=\"true\">$</span>", html);
-        Assert.Contains("placeholder=\"300\"", html);
-        Assert.DoesNotContain("placeholder=\"$300\"", html);
-        Assert.DoesNotContain("placeholder=\"$300\"", javascript);
+        Assert.Contains("placeholder=\"100\"", html);
+        Assert.DoesNotContain("placeholder=\"$100\"", html);
+        Assert.DoesNotContain("placeholder=\"$100\"", javascript);
         Assert.Contains("id=\"lmxCommitmentPanel\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("id=\"lmxParticipantNotice\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("class=\"lmx-dashboard-scroll\"", javascript);
