@@ -299,6 +299,17 @@
                     </span>
                 </div>
             </div>
+            <nav id="lmxWeekPager" class="lmx-week-pager lmx-hidden" aria-label="Leaderboard history" hidden>
+                <button id="lmxWeekOlder" type="button" aria-label="Show previous two weeks" aria-controls="lmxBoard" disabled>
+                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    <span>Older</span>
+                </button>
+                <span id="lmxWeekLabel" class="lmx-week-label" aria-live="polite">Latest days</span>
+                <button id="lmxWeekNewer" type="button" aria-label="Show next two weeks" aria-controls="lmxBoard" disabled>
+                    <span>Newer</span>
+                    <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                </button>
+            </nav>
             <div class="lmx-board-scroll">
                 <div id="lmxBoard" class="lmx-board" role="table" aria-label="Longevitymaxxing leaderboard"></div>
             </div>

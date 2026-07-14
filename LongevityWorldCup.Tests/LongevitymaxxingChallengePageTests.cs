@@ -679,8 +679,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("board.className = publicViewer ? \"lmx-board public\" : \"lmx-board\";", javascript);
         Assert.Contains("lmx-cell-strip", javascript);
         Assert.Contains("const leaderboardRows = splitLeaderboardRows(state);", javascript);
-        Assert.Contains("emptyBoardRow(dayCount, leaderboardRows.inactive.length)", javascript);
-        Assert.Contains("emptyRosterRow(dayCount, leaderboardRows.inactive.length)", javascript);
+        Assert.Contains("emptyBoardRow(visibleDays, leaderboardRows.inactive.length)", javascript);
+        Assert.Contains("emptyRosterRow(visibleDays, leaderboardRows.inactive.length)", javascript);
         Assert.Contains("No active participants", javascript);
         Assert.DoesNotContain("inactive participant${hiddenInactiveCount === 1 ? \" is\" : \"s are\"} hidden", javascript);
         Assert.Contains("id=\"lmxInactiveToggle\" class=\"lmx-inactive-toggle lmx-hidden\"", html);
@@ -688,7 +688,13 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-inactive-toggle", css);
         Assert.DoesNotContain("fa-users-slash", javascript);
         Assert.Contains("const LEADERBOARD_SCORING_WINDOW_DAYS = 14;", javascript);
+        Assert.Contains("const MOBILE_LEADERBOARD_QUERY = \"(max-width: 760px)\";", javascript);
         Assert.Contains("function leaderboardScoringWindowDays", javascript);
+        Assert.Contains("function leaderboardDayWindow", javascript);
+        Assert.Contains("Math.ceil(allDays.length / LEADERBOARD_SCORING_WINDOW_DAYS)", javascript);
+        Assert.Contains("days: allDays.slice(start, end)", javascript);
+        Assert.Contains("function changeLeaderboardPage", javascript);
+        Assert.Contains("function updateLeaderboardPager", javascript);
         Assert.Contains("const visibleDays = cells.length || state.durationDays || 14;", javascript);
         Assert.Contains("`${checkedCells.length}/${scoringWindowDays} days`", javascript);
         Assert.DoesNotContain("emptyBoardRow(dayCount, publicViewer)", javascript);
@@ -698,7 +704,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("aria-label=\"Rank ${rankNumber}\"", javascript);
         Assert.Contains(".lmx-rank", css);
         Assert.Contains("data-day=\"${escAttr(cell.challengeDay)}\"", javascript);
-        Assert.Contains("data-day=\"${index + 1}\"", javascript);
+        Assert.Contains("const cells = visibleDays.map(day =>", javascript);
+        Assert.Contains("data-day=\"${escAttr(day.challengeDay)}\"", javascript);
         Assert.Contains("function setBoardDayColumns", javascript);
         Assert.Contains("--lmx-day-columns", javascript);
         Assert.Contains("repeat(${count}, 2.55rem)", javascript);
@@ -726,6 +733,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-board-row:not(.header):nth-child(even) > .lmx-number", css);
         Assert.Contains(".lmx-cell[data-day]::before", css);
         Assert.Contains("content: attr(data-day);", css);
+        Assert.Contains("id=\"lmxWeekPager\" class=\"lmx-week-pager lmx-hidden\"", html);
+        Assert.Contains("aria-label=\"Show previous two weeks\"", html);
+        Assert.Contains("aria-label=\"Show next two weeks\"", html);
+        Assert.Contains(".lmx-week-pager button:focus-visible", css);
+        Assert.Contains("min-height: 2.75rem;", css);
         Assert.DoesNotContain("S/E/N/V dots show habit gaps", javascript);
         Assert.Contains("function scoredDayCellHtml", javascript);
         Assert.Contains("function practiceDayCellHtml", javascript);

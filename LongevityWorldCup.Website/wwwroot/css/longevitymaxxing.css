@@ -2471,6 +2471,10 @@ body.lmx-quote-open {
     scroll-margin-top: 4.5rem;
 }
 
+.lmx-week-pager {
+    display: none;
+}
+
 .lmx-board-header {
     display: flex;
     justify-content: space-between;
@@ -3203,6 +3207,67 @@ body.lmx-quote-open {
 
     .lmx-board-wrap {
         scroll-margin-top: 7.25rem;
+    }
+
+    .lmx-week-pager {
+        display: grid;
+        grid-template-columns: minmax(4.75rem, auto) minmax(0, 1fr) minmax(4.75rem, auto);
+        gap: 0.35rem;
+        align-items: stretch;
+        margin: 0.7rem 0.55rem 0;
+        padding: 0.28rem;
+        border: 1px solid rgba(15, 23, 42, 0.09);
+        border-radius: 12px;
+        background: #f1f5f9;
+    }
+
+    .lmx-week-pager button {
+        min-height: 2.75rem;
+        padding: 0 0.65rem;
+        border: 1px solid rgba(15, 23, 42, 0.10);
+        border-radius: 9px;
+        background: #ffffff;
+        color: #334155;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.42rem;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 850;
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+
+    .lmx-week-pager button:not(:disabled):hover {
+        border-color: rgba(0, 188, 212, 0.48);
+        color: #0f172a;
+        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
+    }
+
+    .lmx-week-pager button:focus-visible {
+        outline: 3px solid rgba(0, 188, 212, 0.25);
+        outline-offset: 2px;
+    }
+
+    .lmx-week-pager button:disabled {
+        opacity: 0.42;
+        cursor: default;
+        box-shadow: none;
+    }
+
+    .lmx-week-label {
+        min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #0f172a;
+        font-family: Orbitron, Roboto, sans-serif;
+        font-size: 0.76rem;
+        font-weight: 800;
+        line-height: 1.2;
+        text-align: center;
     }
 
     .lmx-board-scroll {
