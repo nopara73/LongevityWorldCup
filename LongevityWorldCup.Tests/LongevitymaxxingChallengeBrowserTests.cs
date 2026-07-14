@@ -7,6 +7,62 @@ namespace LongevityWorldCup.Tests;
 public sealed class LongevitymaxxingChallengeBrowserTests
 {
     [Fact]
+    public async Task Leaderboard_UsesTwoWeekPagerOnMobileAndKeepsFullDesktopTimeline()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var publicStateJson = JsonSerializer.Serialize(BuildPublicState());
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, publicStateJson));
+
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#lmxWeekPager:not([hidden])").WaitForAsync();
+
+        var cells = page.Locator(".lmx-board-row:not(.header) .lmx-cell");
+        Assert.Equal(14, await cells.CountAsync());
+        Assert.Equal("9", await cells.First.GetAttributeAsync("data-day"));
+        Assert.Equal("22", await cells.Last.GetAttributeAsync("data-day"));
+        Assert.Equal("Days 9\u201322", await page.Locator("#lmxWeekLabel").TextContentAsync());
+        Assert.False(await page.Locator("#lmxWeekOlder").IsDisabledAsync());
+        Assert.True(await page.Locator("#lmxWeekNewer").IsDisabledAsync());
+
+        await page.Locator("#lmxWeekOlder").ClickAsync();
+
+        Assert.Equal(8, await cells.CountAsync());
+        Assert.Equal("1", await cells.First.GetAttributeAsync("data-day"));
+        Assert.Equal("8", await cells.Last.GetAttributeAsync("data-day"));
+        Assert.Equal("Days 1\u20138", await page.Locator("#lmxWeekLabel").TextContentAsync());
+        Assert.True(await page.Locator("#lmxWeekOlder").IsDisabledAsync());
+        Assert.False(await page.Locator("#lmxWeekNewer").IsDisabledAsync());
+
+        await page.SetViewportSizeAsync(1200, 900);
+        await page.WaitForFunctionAsync("() => document.querySelectorAll('.lmx-board-row:not(.header) .lmx-cell').length === 22");
+
+        Assert.Equal(22, await cells.CountAsync());
+        Assert.True(await page.Locator("#lmxWeekPager").IsHiddenAsync());
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task CheckInForm_ShowsLatestPublicRemarksUnderSave()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -163,7 +219,19 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                     checkedInDays = 21,
                     totalPoints = 168,
                     currentStreak = 21,
-                    cells = Array.Empty<object>(),
+                    cells = Enumerable.Range(1, 22)
+                        .Select(day => new
+                        {
+                            challengeDay = day,
+                            checkedIn = false,
+                            score = (int?)null,
+                            countsForScore = day != 1,
+                            sleep = (int?)null,
+                            exercise = (int?)null,
+                            nutrition = (int?)null,
+                            vices = (int?)null
+                        })
+                        .ToArray(),
                     badges = Array.Empty<string>(),
                     latestCheckInAtUtc = "2026-06-28T07:00:00Z",
                     challengeEmailsStopped = false,

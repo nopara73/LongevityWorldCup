@@ -221,6 +221,13 @@
         longLabel: string;
     }
 
+    interface LeaderboardDayWindow {
+        days: DaySummary[];
+        pageIndex: number;
+        pageCount: number;
+        mobile: boolean;
+    }
+
     interface DashboardCategory {
         key: HabitKey;
         label: string;
@@ -453,6 +460,7 @@
     const RECENT_REMARK_LIMIT = 3;
     const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const LEADERBOARD_SCORING_WINDOW_DAYS = 14;
+    const MOBILE_LEADERBOARD_QUERY = "(max-width: 760px)";
     const COMMITMENT_PAYMENT_POLL_DELAYS_MS = [2500, 5000, 8000, 12000];
     const QUESTIONS: readonly ChallengeQuestion[] = [
         { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you set yourself up for good sleep last night?" },
@@ -616,6 +624,8 @@
     let quoteAthleteResults: QuoteAthlete[] = [];
     let boardScrollObserver: ResizeObserver | null = null;
     let boardScrollObservedElement: Element | null = null;
+    let mobileLeaderboardMedia: MediaQueryList | null = null;
+    let mobileLeaderboardPage = 0;
     let dashboardScrollObserver: ResizeObserver | null = null;
     let dashboardScrollObservedElement: Element | null = null;
     let participantActiveTab: ParticipantTab | null = null;
@@ -717,6 +727,7 @@
         initTimeZonePickers();
         renderQuestionPreview();
         wireForms();
+        wireLeaderboardPager();
         wireAccessTabs();
         initAthleteSelectors();
         wireIdentityControls();
@@ -835,6 +846,30 @@
         editTimeZone.addEventListener("change", () => {
             if (participantState) renderParticipantCalls(participantState.calls || [], participantState.public.callSelectionClosesAtUtc);
         });
+    }
+
+    function wireLeaderboardPager(): void {
+        const olderButton = optionalElement("lmxWeekOlder", HTMLButtonElement);
+        const newerButton = optionalElement("lmxWeekNewer", HTMLButtonElement);
+
+        olderButton?.addEventListener("click", () => changeLeaderboardPage(1));
+        newerButton?.addEventListener("click", () => changeLeaderboardPage(-1));
+
+        mobileLeaderboardMedia = window.matchMedia(MOBILE_LEADERBOARD_QUERY);
+        mobileLeaderboardMedia.addEventListener("change", () => {
+            mobileLeaderboardPage = 0;
+            const state = participantState?.public || publicState;
+            if (state) renderBoard(state);
+        });
+    }
+
+    function changeLeaderboardPage(delta: number): void {
+        const state = participantState?.public || publicState;
+        if (!state) return;
+
+        const dayWindow = leaderboardDayWindow(state);
+        mobileLeaderboardPage = Math.max(0, Math.min(dayWindow.pageCount - 1, dayWindow.pageIndex + delta));
+        renderBoard(state);
     }
 
     function wireAccessTabs() {
@@ -2102,25 +2137,30 @@
 
     function renderBoard(state: PublicState): void {
         const board = requiredElement("lmxBoard", HTMLElement);
+        const dayWindow = leaderboardDayWindow(state);
+        updateLeaderboardPager(dayWindow);
         if (isPreStartSignup(state)) {
-            renderRosterBoard(board, state);
+            renderRosterBoard(board, state, dayWindow.days);
             return;
         }
 
         const publicViewer = !participantState;
         board.className = publicViewer ? "lmx-board public" : "lmx-board";
-        const dayCount = (state.days || []).length || state.durationDays || 14;
+        const visibleDays = dayWindow.days;
+        const dayCount = visibleDays.length;
         setBoardDayColumns(board, dayCount, false);
         updateInactiveToggle(state);
-        const dayHeaders = (state.days || []).map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
+        const dayHeaders = visibleDays.map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
         const leaderboardRows = splitLeaderboardRows(state);
         const rows = leaderboardRows.visible.map((row, index) => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
             const participant = participantNameHtml(row, name, index + 1);
-            const cells = (row.cells || []).map(cell => {
-                if (!cell.checkedIn) return `<div class="lmx-cell empty" data-day="${escAttr(cell.challengeDay)}" title="Day ${cell.challengeDay}"></div>`;
+            const cellsByDay = new Map((row.cells || []).map(cell => [cell.challengeDay, cell]));
+            const cells = visibleDays.map(day => {
+                const cell = cellsByDay.get(day.challengeDay);
+                if (!cell || !cell.checkedIn) return `<div class="lmx-cell empty" data-day="${escAttr(day.challengeDay)}" title="Day ${day.challengeDay}"></div>`;
                 if (cell.countsForScore === false) {
                     return practiceDayCellHtml(cell);
                 }
@@ -2137,7 +2177,7 @@
             <div class="lmx-name lmx-sticky-heading" role="columnheader">Participant</div>
             <div class="lmx-number lmx-sticky-heading" role="columnheader">Score</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyBoardRow(dayCount, leaderboardRows.inactive.length)}`;
+        </div>${rows || emptyBoardRow(visibleDays, leaderboardRows.inactive.length)}`;
     }
 
     function practiceDayCellHtml(cell: DayCell): string {
@@ -2215,19 +2255,19 @@
         return "lmx-habit-mark missed";
     }
 
-    function renderRosterBoard(board: HTMLElement, state: PublicState): void {
+    function renderRosterBoard(board: HTMLElement, state: PublicState, visibleDays: DaySummary[]): void {
         board.className = "lmx-board roster";
-        const dayCount = (state.days || []).length || state.durationDays || 14;
+        const dayCount = visibleDays.length;
         setBoardDayColumns(board, dayCount, true);
         updateInactiveToggle(state);
-        const dayHeaders = (state.days || []).map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
+        const dayHeaders = visibleDays.map(day => `<div class="lmx-cell">${day.challengeDay}</div>`).join("");
         const leaderboardRows = splitLeaderboardRows(state);
         const rows = leaderboardRows.visible.map((row, index) => {
             const name = row.athleteUrl
                 ? `<a href="${escAttr(row.athleteUrl)}">${esc(row.displayName)}</a>`
                 : `<span>${esc(row.displayName)}</span>`;
             const participant = participantNameHtml(row, name, index + 1);
-            const cells = (row.cells || state.days || []).map(cell => `<div class="lmx-cell empty" data-day="${escAttr(cell.challengeDay)}" title="Day ${cell.challengeDay}"></div>`).join("");
+            const cells = visibleDays.map(day => `<div class="lmx-cell empty" data-day="${escAttr(day.challengeDay)}" title="Day ${day.challengeDay}"></div>`).join("");
             return `<div class="lmx-board-row lmx-roster-row${row.challengeInactive ? " inactive" : ""}" role="row">
                 <div class="lmx-name" role="cell">${participant}</div>
                 <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${cells}</div>
@@ -2237,7 +2277,48 @@
         board.innerHTML = `<div class="lmx-board-row lmx-roster-row header" role="row">
             <div class="lmx-name lmx-sticky-heading" role="columnheader">Participant</div>
             <div class="lmx-cell-strip lmx-header-days" role="presentation">${dayHeaders}</div>
-        </div>${rows || emptyRosterRow(dayCount, leaderboardRows.inactive.length)}`;
+        </div>${rows || emptyRosterRow(visibleDays, leaderboardRows.inactive.length)}`;
+    }
+
+    function leaderboardDayWindow(state: PublicState): LeaderboardDayWindow {
+        const configuredDays = state.days || [];
+        const allDays = configuredDays.length
+            ? configuredDays
+            : Array.from({ length: Math.max(1, Math.trunc(Number(state.durationDays) || LEADERBOARD_SCORING_WINDOW_DAYS)) }, (_, index) => ({
+                challengeDay: index + 1,
+                date: ""
+            }));
+        const mobile = mobileLeaderboardMedia?.matches ?? window.matchMedia(MOBILE_LEADERBOARD_QUERY).matches;
+        const pageCount = mobile ? Math.max(1, Math.ceil(allDays.length / LEADERBOARD_SCORING_WINDOW_DAYS)) : 1;
+        const pageIndex = mobile ? Math.max(0, Math.min(pageCount - 1, mobileLeaderboardPage)) : 0;
+
+        if (!mobile || pageCount === 1) {
+            return { days: allDays, pageIndex, pageCount, mobile };
+        }
+
+        const end = allDays.length - (pageIndex * LEADERBOARD_SCORING_WINDOW_DAYS);
+        const start = Math.max(0, end - LEADERBOARD_SCORING_WINDOW_DAYS);
+        return { days: allDays.slice(start, end), pageIndex, pageCount, mobile };
+    }
+
+    function updateLeaderboardPager(dayWindow: LeaderboardDayWindow): void {
+        const pager = document.getElementById("lmxWeekPager");
+        const olderButton = optionalElement("lmxWeekOlder", HTMLButtonElement);
+        const newerButton = optionalElement("lmxWeekNewer", HTMLButtonElement);
+        const label = document.getElementById("lmxWeekLabel");
+        if (!pager || !olderButton || !newerButton || !label) return;
+
+        const visible = dayWindow.mobile && dayWindow.pageCount > 1;
+        pager.classList.toggle("lmx-hidden", !visible);
+        pager.toggleAttribute("hidden", !visible);
+
+        const firstDay = dayWindow.days[0]?.challengeDay || 1;
+        const lastDay = dayWindow.days[dayWindow.days.length - 1]?.challengeDay || firstDay;
+        label.textContent = firstDay === lastDay ? `Day ${firstDay}` : `Days ${firstDay}\u2013${lastDay}`;
+        label.setAttribute("aria-label", firstDay === lastDay ? `Day ${firstDay}` : `Days ${firstDay} through ${lastDay}`);
+
+        olderButton.disabled = !visible || dayWindow.pageIndex >= dayWindow.pageCount - 1;
+        newerButton.disabled = !visible || dayWindow.pageIndex === 0;
     }
 
     function setBoardDayColumns(board: HTMLElement, dayCount: number, rosterMode: boolean): void {
@@ -2351,7 +2432,7 @@
         }
     }
 
-    function emptyBoardRow(durationDays: number, hiddenInactiveCount: number): string {
+    function emptyBoardRow(days: DaySummary[], hiddenInactiveCount: number): string {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
         const scoreLabel = hasHiddenInactive ? "No active score" : "No score yet";
@@ -2360,18 +2441,18 @@
                 <span class="lmx-empty-name">${esc(message)}</span>
             </div>
             <div class="lmx-number lmx-empty-score" role="cell" data-label="Score" aria-label="${escAttr(scoreLabel)}">-</div>
-            <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${Array.from({ length: durationDays }, (_, index) => `<div class="lmx-cell empty" data-day="${index + 1}"></div>`).join("")}</div>
+            <div class="lmx-cell-strip" role="cell" aria-label="Daily scores">${days.map(day => `<div class="lmx-cell empty" data-day="${escAttr(day.challengeDay)}"></div>`).join("")}</div>
         </div>`;
     }
 
-    function emptyRosterRow(durationDays: number, hiddenInactiveCount: number): string {
+    function emptyRosterRow(days: DaySummary[], hiddenInactiveCount: number): string {
         const hasHiddenInactive = hiddenInactiveCount > 0 && !showInactiveLeaderboard;
         const message = hasHiddenInactive ? "No active participants" : "No one has joined yet";
         return `<div class="lmx-board-row lmx-roster-row" role="row">
             <div class="lmx-name" role="cell">
                 <span class="lmx-empty-name">${esc(message)}</span>
             </div>
-            <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${Array.from({ length: durationDays }, (_, index) => `<div class="lmx-cell empty" data-day="${index + 1}"></div>`).join("")}</div>
+            <div class="lmx-cell-strip" role="cell" aria-label="Challenge days">${days.map(day => `<div class="lmx-cell empty" data-day="${escAttr(day.challengeDay)}"></div>`).join("")}</div>
         </div>`;
     }
 
