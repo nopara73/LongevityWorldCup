@@ -607,10 +607,12 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("setAttribute(\"aria-invalid\", \"true\")", javascript);
         Assert.Contains("Payment confirmed. You're unlocked.", javascript);
         Assert.Contains("Redeem yourself", javascript);
-        Assert.Contains(": \"Make a pledge\";", javascript);
+        Assert.DoesNotContain(": \"Make a pledge\";", javascript);
         Assert.DoesNotContain("Make a pledge to continue", javascript);
         Assert.Contains("<strong>Set a real stake</strong>", javascript);
-        Assert.Contains("Fall below your recent average and either pay it or stop. Choose an amount that would hurt.", javascript);
+        Assert.DoesNotContain("needs-amount", javascript);
+        Assert.DoesNotContain("lmxBlockedCommitmentAmount", javascript);
+        Assert.DoesNotContain("Choose an amount that would hurt.", javascript);
         Assert.Contains("Make a pledge", javascript);
         Assert.Contains("Fall below your recent average and either pay it or stop longevitymaxxing. You can keep checking in without a pledge.", javascript);
         Assert.Contains("data-commitment-prompt=\"optional\"", javascript);
@@ -645,6 +647,9 @@ public sealed class LongevitymaxxingChallengePageTests
         var html = await client.GetStringAsync("/longevitymaxxing");
         Assert.DoesNotContain("id=\"lmxSignupCommitmentAmount\"", html);
         Assert.Contains("id=\"lmxEditCommitmentAmount\"", html);
+        Assert.Contains("Set a real stake. Fall below your recent average and either pay it or stop longevitymaxxing.", html);
+        Assert.DoesNotContain("You can keep checking in without a pledge.", html);
+        Assert.DoesNotContain("Choose an amount that would hurt.", html);
         Assert.Contains("<span aria-hidden=\"true\">$</span>", html);
         Assert.Contains("placeholder=\"100\"", html);
         Assert.DoesNotContain("placeholder=\"$100\"", html);

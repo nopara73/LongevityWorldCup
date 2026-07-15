@@ -1518,9 +1518,7 @@
         const name = participant.displayName || "participant";
         const commitment = participantState?.commitment;
         if (commitment?.blocksParticipant) {
-            return commitment.status === "due"
-                ? `Commitment due, ${name}`
-                : "Make a pledge";
+            return `Commitment due, ${name}`;
         }
         if (activeTab === "profile") return `Profile, ${name}`;
         if (activeTab === "home") {
@@ -1756,37 +1754,6 @@
 
         if (!commitment.blocksParticipant) {
             panel.innerHTML = "";
-            return;
-        }
-
-        if (commitment.status === "needs-amount") {
-            panel.innerHTML = `
-                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card setup" data-commitment-block="true">
-                    <div class="lmx-commitment-main">
-                        <i class="fas fa-lock" aria-hidden="true"></i>
-                        <div>
-                            <strong>Set a real stake</strong>
-                            <span id="lmxBlockedCommitmentHelp">Fall below your recent average and either pay it or stop. Choose an amount that would hurt.</span>
-                        </div>
-                    </div>
-                    <div class="lmx-field">
-                        <label for="lmxBlockedCommitmentAmount">Pledge</label>
-                        <div class="lmx-money-input">
-                            <span aria-hidden="true">$</span>
-                            <input id="lmxBlockedCommitmentAmount" type="text" inputmode="decimal" required placeholder="100" aria-describedby="lmxBlockedCommitmentHelp">
-                        </div>
-                    </div>
-                    <button class="lmx-button" type="submit">
-                        <i class="fas fa-pen-nib" aria-hidden="true"></i>
-                        Make a pledge
-                    </button>
-                    <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
-                </form>`;
-            panel.querySelector("form")?.addEventListener("submit", event => {
-                event.preventDefault();
-                saveCommitmentAmountFromPanel("lmxBlockedCommitmentAmount", panel.querySelector<HTMLButtonElement>("button[type='submit']"), "Commitment amount saved. You can continue.");
-            });
-            wireCommitmentAmountValidation("lmxBlockedCommitmentAmount");
             return;
         }
 
