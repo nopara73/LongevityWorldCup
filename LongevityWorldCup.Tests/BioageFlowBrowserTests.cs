@@ -5,6 +5,43 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class BioageFlowBrowserTests
 {
+    [Fact]
+    public async Task BortzAgeCalculator_ConfiguredCapsPlateauInRawLaboratoryUnits()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US"
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/bortz-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => typeof window.BortzAge?.calculateFeatureContribution === 'function'");
+
+        var failures = await page.EvaluateAsync<string[]>(
+            """
+            () => window.BortzAge.features
+                .filter(feature => feature.cap !== undefined && feature.capMode !== undefined)
+                .flatMap(feature => {
+                    const beyondCap = feature.capMode === 'floor' ? feature.cap / 2 : feature.cap * 2;
+                    const atCap = window.BortzAge.calculateFeatureContribution(feature.cap, feature);
+                    const beyond = window.BortzAge.calculateFeatureContribution(beyondCap, feature);
+                    return Number.isFinite(atCap) && Math.abs(atCap - beyond) < 1e-12
+                        ? []
+                        : [feature.id];
+                })
+            """);
+
+        Assert.Empty(failures);
+    }
+
     [Theory]
     [InlineData("/pheno-age?update=1", "Glucose", "#glucose", "#glucoseUnit", "18.016", "94", "1", "5.2")]
     [InlineData("/bortz-age?update=1", "Hemoglobin A1c (HbA1c)", "#hba1c", "#hba1cUnit", "0.0915", "5.4", "1", "35")]
