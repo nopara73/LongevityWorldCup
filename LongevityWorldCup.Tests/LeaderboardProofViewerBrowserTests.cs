@@ -6,7 +6,7 @@ namespace LongevityWorldCup.Tests;
 public sealed class LeaderboardProofViewerBrowserTests
 {
     [Fact]
-    public async Task ProofViewer_NavigatesWithButtonsAndKeyboardAndRestoresCurrentProofFocus()
+    public async Task ProofViewer_StopsAtEndsAndRestoresCurrentProofFocus()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -64,6 +64,12 @@ public sealed class LeaderboardProofViewerBrowserTests
         Assert.True(await IsFocusedAsync(closeButton));
         await AssertTouchTargetAsync(previousButton);
         await AssertTouchTargetAsync(nextButton);
+        Assert.False(await previousButton.IsEnabledAsync());
+        Assert.True(await nextButton.IsEnabledAsync());
+
+        await page.Keyboard.PressAsync("ArrowLeft");
+        Assert.Equal("Proof 1 of 3", await position.InnerTextAsync());
+        Assert.Contains("/proof_1.webp", await viewer.Locator("img").GetAttributeAsync("src"));
 
         await page.Keyboard.PressAsync("ArrowRight");
         Assert.Equal("Proof 2 of 3", await position.InnerTextAsync());
@@ -71,15 +77,18 @@ public sealed class LeaderboardProofViewerBrowserTests
 
         await page.Keyboard.PressAsync("End");
         Assert.Equal("Proof 3 of 3", await position.InnerTextAsync());
+        Assert.True(await previousButton.IsEnabledAsync());
+        Assert.False(await nextButton.IsEnabledAsync());
 
         await page.Keyboard.PressAsync("ArrowRight");
-        Assert.Equal("Proof 1 of 3", await position.InnerTextAsync());
-
-        await previousButton.ClickAsync();
         Assert.Equal("Proof 3 of 3", await position.InnerTextAsync());
         Assert.Contains("/proof_3.webp", await viewer.Locator("img").GetAttributeAsync("src"));
 
-        await nextButton.FocusAsync();
+        await previousButton.ClickAsync();
+        Assert.Equal("Proof 2 of 3", await position.InnerTextAsync());
+
+        await page.Keyboard.PressAsync("End");
+        await previousButton.FocusAsync();
         await page.Keyboard.PressAsync("Tab");
         Assert.True(await IsFocusedAsync(closeButton));
 
