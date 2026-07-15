@@ -1,0 +1,28 @@
+{
+  "Name": "Christopher Yamba",
+  "DisplayName": null,
+  "MediaContact": "dna2c@yambacode.com",
+  "DateOfBirth": {
+    "Year": 1977,
+    "Month": 1,
+    "Day": 27
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-07-13",
+      "AlbGL": 43,
+      "CreatUmolL": 78,
+      "GluMmolL": 5.4,
+      "CrpMgL": 0.2,
+      "LymPc": 36.17,
+      "McvFL": 92,
+      "RdwPc": 12.5,
+      "AlpUL": 89.98,
+      "Wbc1000cellsuL": 4.7
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Sweden",
+  "Why": "To manifest my vision and to create and invent. The recursive nature of self improvement and search for meaning. To understand and get insight..",
+  "PersonalLink": null
+}
