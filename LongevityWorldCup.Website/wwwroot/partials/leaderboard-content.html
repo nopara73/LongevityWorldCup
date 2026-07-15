@@ -1637,6 +1637,60 @@
     }
     .enlarged-portrait .close-btn:hover{ color:var(--light-text-color); background:rgba(0,0,0,.9); transform:scale(1.1); }
     .enlarged-portrait .close-btn:focus-visible{ color:var(--light-text-color); background:rgba(0,0,0,.9); outline:3px solid rgba(0,188,212,.68); outline-offset:3px; }
+    .enlarged-portrait .image-nav{
+        position:absolute;
+        top:50%;
+        width:48px;
+        height:48px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding:0 0 .15rem;
+        border:1px solid rgba(246,244,237,.26);
+        border-radius:50%;
+        color:rgba(255,255,255,.92);
+        background:rgba(12,14,14,.78);
+        box-shadow:0 10px 28px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.08);
+        font:inherit;
+        font-size:2.2rem;
+        line-height:1;
+        cursor:pointer;
+        transform:translateY(-50%);
+        transition:color .2s, background-color .2s, transform .2s;
+        z-index:1;
+    }
+    .enlarged-portrait .image-nav--previous{ left:max(16px, env(safe-area-inset-left)); }
+    .enlarged-portrait .image-nav--next{ right:max(16px, env(safe-area-inset-right)); }
+    .enlarged-portrait .image-nav:hover{
+        color:var(--light-text-color);
+        background:rgba(0,0,0,.9);
+        transform:translateY(-50%) scale(1.08);
+    }
+    .enlarged-portrait .image-nav:focus-visible{
+        color:var(--light-text-color);
+        background:rgba(0,0,0,.9);
+        outline:3px solid rgba(0,188,212,.68);
+        outline-offset:3px;
+    }
+    .enlarged-portrait .image-position{
+        position:absolute;
+        bottom:max(16px, env(safe-area-inset-bottom));
+        left:50%;
+        padding:.4rem .7rem;
+        border:1px solid rgba(246,244,237,.2);
+        border-radius:999px;
+        color:rgba(255,255,255,.92);
+        background:rgba(12,14,14,.78);
+        box-shadow:0 10px 24px rgba(0,0,0,.3);
+        font-size:.9rem;
+        font-variant-numeric:tabular-nums;
+        line-height:1;
+        pointer-events:none;
+        transform:translateX(-50%);
+        z-index:1;
+    }
+    .enlarged-portrait .image-nav[hidden],
+    .enlarged-portrait .image-position[hidden]{ display:none; }
     .enlarged-portrait img{
         width:auto;
         height:auto;
@@ -2868,6 +2922,9 @@
     <div class="enlarged-portrait" role="dialog" aria-modal="true" aria-label="Enlarged image">
         <img src="" alt="" loading="lazy">
         <button type="button" class="close-btn" aria-label="Close enlarged image">&times;</button>
+        <button type="button" class="image-nav image-nav--previous" aria-label="Previous proof" hidden>&lsaquo;</button>
+        <button type="button" class="image-nav image-nav--next" aria-label="Next proof" hidden>&rsaquo;</button>
+        <span class="image-position" aria-live="polite" aria-atomic="true" hidden></span>
     </div>
 </template>
 
@@ -4792,16 +4849,74 @@
         });
     }
 
+    function updateEnlargedImage(enlargedElem, index) {
+        const galleryImages = enlargedElem.galleryImages;
+        if (!Array.isArray(galleryImages) || galleryImages.length === 0) return;
+
+        const imageCount = galleryImages.length;
+        const normalizedIndex = ((index % imageCount) + imageCount) % imageCount;
+        const sourceImage = galleryImages[normalizedIndex];
+        const img = enlargedElem.querySelector('img');
+        const previousButton = enlargedElem.querySelector('.image-nav--previous');
+        const nextButton = enlargedElem.querySelector('.image-nav--next');
+        const position = enlargedElem.querySelector('.image-position');
+        const isProofGallery = enlargedElem.isProofGallery;
+        const canNavigate = isProofGallery && imageCount > 1;
+
+        enlargedElem.currentImageIndex = normalizedIndex;
+        enlargedElem.returnFocusTo = sourceImage;
+        img.src = sourceImage.dataset.fullSrc || sourceImage.src;
+        img.alt = sourceImage.alt;
+
+        previousButton.hidden = !canNavigate;
+        nextButton.hidden = !canNavigate;
+        position.hidden = !canNavigate;
+        if (!canNavigate) {
+            enlargedElem.setAttribute('aria-label', 'Enlarged image');
+            return;
+        }
+
+        const previousIndex = (normalizedIndex - 1 + imageCount) % imageCount;
+        const nextIndex = (normalizedIndex + 1) % imageCount;
+        previousButton.setAttribute('aria-label', `Previous proof (${previousIndex + 1} of ${imageCount})`);
+        nextButton.setAttribute('aria-label', `Next proof (${nextIndex + 1} of ${imageCount})`);
+        position.textContent = `Proof ${normalizedIndex + 1} of ${imageCount}`;
+        enlargedElem.setAttribute('aria-label', `Proof image ${normalizedIndex + 1} of ${imageCount}`);
+    }
+
+    function navigateEnlargedImage(enlargedElem, offset) {
+        if (!enlargedElem.isProofGallery || enlargedElem.galleryImages.length < 2) return;
+        updateEnlargedImage(enlargedElem, enlargedElem.currentImageIndex + offset);
+    }
+
+    function trapEnlargedViewFocus(enlargedElem, event) {
+        if (event.key !== 'Tab') return;
+
+        const focusableControls = Array.from(enlargedElem.querySelectorAll('button:not([hidden])'));
+        if (focusableControls.length === 0) return;
+
+        const firstControl = focusableControls[0];
+        const lastControl = focusableControls[focusableControls.length - 1];
+        if (event.shiftKey && document.activeElement === firstControl) {
+            event.preventDefault();
+            lastControl.focus();
+        } else if (!event.shiftKey && document.activeElement === lastControl) {
+            event.preventDefault();
+            firstControl.focus();
+        }
+    }
+
     function openEnlargedView(imgElement) {
         // Retrieve and clone the template content
         const template = document.getElementById("enlargedPortraitTemplate");
         const clone = template.content.firstElementChild.cloneNode(true);
-        clone.returnFocusTo = document.activeElement;
-
-        // Set the image source and alt attributes based on the clicked image
-        const img = clone.querySelector("img");
-        img.src = imgElement.dataset.fullSrc || imgElement.src;
-        img.alt = imgElement.alt;
+        const proofGallery = imgElement.closest('.proofs-gallery');
+        clone.isProofGallery = Boolean(proofGallery);
+        clone.galleryImages = proofGallery
+            ? Array.from(proofGallery.querySelectorAll('.proof-item img'))
+            : [imgElement];
+        const initialIndex = Math.max(0, clone.galleryImages.indexOf(imgElement));
+        updateEnlargedImage(clone, initialIndex);
 
         // Append the cloned element to the document (it will be added where it fits in your DOM structure)
         document.body.appendChild(clone);
@@ -4817,6 +4932,55 @@
         closeButton.addEventListener('click', () => {
             closeEnlargedView(clone);
         });
+
+        clone.querySelector('.image-nav--previous').addEventListener('click', () => {
+            navigateEnlargedImage(clone, -1);
+        });
+        clone.querySelector('.image-nav--next').addEventListener('click', () => {
+            navigateEnlargedImage(clone, 1);
+        });
+
+        clone.addEventListener('keydown', event => {
+            trapEnlargedViewFocus(clone, event);
+            if (!clone.isProofGallery || clone.galleryImages.length < 2) return;
+
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                navigateEnlargedImage(clone, -1);
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                navigateEnlargedImage(clone, 1);
+            } else if (event.key === 'Home') {
+                event.preventDefault();
+                updateEnlargedImage(clone, 0);
+            } else if (event.key === 'End') {
+                event.preventDefault();
+                updateEnlargedImage(clone, clone.galleryImages.length - 1);
+            }
+        });
+
+        let touchStart = null;
+        clone.addEventListener('touchstart', event => {
+            if (event.touches.length !== 1) return;
+            touchStart = {
+                x: event.touches[0].clientX,
+                y: event.touches[0].clientY
+            };
+        }, { passive: true });
+        clone.addEventListener('touchend', event => {
+            if (!touchStart) return;
+            const completedTouch = event.changedTouches[0];
+            const startingTouch = touchStart;
+            touchStart = null;
+            if (!completedTouch) return;
+            const horizontalDistance = completedTouch.clientX - startingTouch.x;
+            const verticalDistance = completedTouch.clientY - startingTouch.y;
+            if (Math.abs(horizontalDistance) < 50 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
+            navigateEnlargedImage(clone, horizontalDistance > 0 ? -1 : 1);
+        }, { passive: true });
+        clone.addEventListener('touchcancel', () => {
+            touchStart = null;
+        }, { passive: true });
 
         // Add event listener to close the view when clicking outside the image
         clone.addEventListener('click', (e) => {
