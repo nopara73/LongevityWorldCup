@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Globalization;
 using System.Text.Json;
 using Xunit;
 
@@ -122,6 +123,109 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.Empty(errors);
     }
 
+    [Fact]
+    public async Task CheckInGarden_UsesEstablishedGrowthDamageWithSeedlingStartAndBoundedProceduralPlants()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+        object participantResponse = BuildParticipantState();
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, JsonSerializer.Serialize(participantResponse)));
+
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator(".lmx-growth-control").First.WaitForAsync();
+
+        Assert.Equal(4, await page.Locator(".lmx-plant").CountAsync());
+        Assert.Equal("760", await page.Locator(".lmx-question[data-key='sleep'] .lmx-plant").GetAttributeAsync("data-yes-count"));
+        Assert.Equal("903", await page.Locator(".lmx-question[data-key='nutrition'] .lmx-plant").GetAttributeAsync("data-no-count"));
+        foreach (var plant in await page.Locator(".lmx-plant").AllAsync())
+        {
+            Assert.Equal(64, await plant.Locator(".lmx-plant-leaf").CountAsync());
+            Assert.Equal(64, await plant.Locator(".lmx-plant-branch").CountAsync());
+            Assert.Equal(12, await plant.Locator(".lmx-plant-bud").CountAsync());
+        }
+        Assert.Equal(0, await page.Locator(".lmx-plant figcaption").CountAsync());
+        Assert.Equal(0, await page.Locator(".lmx-lever-kicker").CountAsync());
+        Assert.Equal("55", await page.Locator(".lmx-question[data-key='sleep'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
+        Assert.Equal("24", await page.Locator(".lmx-question[data-key='exercise'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
+        Assert.Equal("0", await page.Locator(".lmx-question[data-key='nutrition'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
+        Assert.Equal("64", await page.Locator(".lmx-question[data-key='vices'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
+        Assert.Equal(55, await page.Locator(".lmx-question[data-key='sleep'] .lmx-plant-leaf.active").CountAsync());
+        Assert.Equal(24, await page.Locator(".lmx-question[data-key='exercise'] .lmx-plant-leaf.active").CountAsync());
+        Assert.Equal(0, await page.Locator(".lmx-question[data-key='nutrition'] .lmx-plant-leaf.active").CountAsync());
+        Assert.Equal(64, await page.Locator(".lmx-question[data-key='vices'] .lmx-plant-leaf.active").CountAsync());
+
+        var sleep = page.Locator(".lmx-question[data-key='sleep'] .lmx-lever-input");
+        var nutrition = page.Locator(".lmx-question[data-key='nutrition'] .lmx-lever-input");
+        var vices = page.Locator(".lmx-question[data-key='vices'] .lmx-lever-input");
+        await sleep.FocusAsync();
+        await sleep.PressAsync("ArrowLeft");
+        var damagedSleepPlant = page.Locator(".lmx-question[data-key='sleep'] .lmx-plant");
+        var establishedDamageVitality = double.Parse(
+            (await damagedSleepPlant.GetAttributeAsync("data-vitality"))!,
+            CultureInfo.InvariantCulture);
+        Assert.Equal(0.559d, establishedDamageVitality, 4);
+        Assert.Equal("34", await damagedSleepPlant.GetAttributeAsync("data-leaf-count"));
+        await sleep.PressAsync("ArrowRight");
+        await sleep.PressAsync("ArrowRight");
+        await nutrition.FocusAsync();
+        await nutrition.PressAsync("ArrowLeft");
+        await vices.FocusAsync();
+        await vices.PressAsync("ArrowRight");
+
+        Assert.Equal("2", await page.Locator(".lmx-question[data-key='sleep'] .lmx-plant").GetAttributeAsync("data-preview"));
+        Assert.Equal("0", await page.Locator(".lmx-question[data-key='nutrition'] .lmx-plant").GetAttributeAsync("data-preview"));
+        Assert.Equal("2", await page.Locator(".lmx-question[data-key='vices'] .lmx-plant").GetAttributeAsync("data-preview"));
+        Assert.Contains("1000 saved check-ins", await page.Locator(".lmx-question[data-key='vices'] .lmx-plant").GetAttributeAsync("aria-label"));
+        Assert.Equal("903", await page.Locator(".lmx-question[data-key='nutrition'] .lmx-plant").GetAttributeAsync("data-no-count"));
+
+        participantResponse = BuildParticipantState(emptyGarden: true);
+        await page.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator(".lmx-growth-control").First.WaitForAsync();
+
+        var newSleep = page.Locator(".lmx-question[data-key='sleep'] .lmx-lever-input");
+        var newSleepPlant = page.Locator(".lmx-question[data-key='sleep'] .lmx-plant");
+        Assert.Equal("0.0000", await newSleepPlant.GetAttributeAsync("data-vitality"));
+        Assert.Contains("--lmx-plant-scale: 0.1800", await newSleepPlant.GetAttributeAsync("style"));
+        await newSleep.FocusAsync();
+        await newSleep.PressAsync("ArrowLeft");
+        var firstNoVitality = double.Parse(
+            (await newSleepPlant.GetAttributeAsync("data-vitality"))!,
+            CultureInfo.InvariantCulture);
+        Assert.Equal(0d, firstNoVitality, 4);
+        Assert.Equal("0", await newSleepPlant.GetAttributeAsync("data-leaf-count"));
+        await newSleep.PressAsync("ArrowRight");
+        await newSleep.PressAsync("ArrowRight");
+        var firstYesVitality = double.Parse(
+            (await newSleepPlant.GetAttributeAsync("data-vitality"))!,
+            CultureInfo.InvariantCulture);
+        Assert.Equal(0.025d, firstYesVitality, 4);
+        Assert.Equal("0", await newSleepPlant.GetAttributeAsync("data-leaf-count"));
+        Assert.Contains("--lmx-plant-scale: 0.2005", await newSleepPlant.GetAttributeAsync("style"));
+        Assert.Empty(errors);
+    }
+
     private static Task FulfillJsonAsync(IRoute route, string body)
         => route.FulfillAsync(new RouteFulfillOptions
         {
@@ -130,7 +234,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             Body = body
         });
 
-    private static object BuildParticipantState()
+    private static object BuildParticipantState(bool emptyGarden = false)
         => new
         {
             @public = BuildPublicState(),
@@ -186,8 +290,28 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 averagePoints = 8m,
                 neededPoints = 7,
                 text = ""
-            }
+            },
+            garden = BuildGardenState(emptyGarden)
         };
+
+    private static object BuildGardenState(bool emptyGarden)
+        => emptyGarden
+            ? new
+            {
+                checkedInDays = 0,
+                sleep = new { yesCount = 0, noCount = 0, vitality = 0d },
+                exercise = new { yesCount = 0, noCount = 0, vitality = 0d },
+                nutrition = new { yesCount = 0, noCount = 0, vitality = 0d },
+                vices = new { yesCount = 0, noCount = 0, vitality = 0d }
+            }
+            : new
+            {
+                checkedInDays = 1000,
+                sleep = new { yesCount = 760, noCount = 86, vitality = 0.86d },
+                exercise = new { yesCount = 300, noCount = 314, vitality = 0.4d },
+                nutrition = new { yesCount = 30, noCount = 903, vitality = 0.025d },
+                vices = new { yesCount = 1000, noCount = 0, vitality = 0.999d }
+            };
 
     private static object BuildPublicState()
         => new

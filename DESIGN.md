@@ -31,3 +31,5 @@ This file records durable UI decisions for Longevity World Cup. Keep it short: a
 - Badges are compact visual tokens. Keep badge groups predictable and avoid hover behavior that turns them into unstable or overly tall content.
 
 - Mobile modal content should prefer readable stacked sections over preserving desktop columns; avoid nested scrolling when stacked content can use the modal's main scroll.
+
+- Long-running progress visuals should consume aggregate state and render a bounded number of elements. Do not create one image or DOM node per historical event when a challenge or activity can continue indefinitely.

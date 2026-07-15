@@ -2986,7 +2986,7 @@ body.lmx-quote-open {
 }
 
 .lmx-checkin-switcher button:focus-visible,
-.lmx-segmented button:focus-visible {
+.lmx-lever-input:focus-visible {
     outline: 3px solid rgba(0, 188, 212, 0.32);
     outline-offset: 2px;
 }
@@ -3006,7 +3006,8 @@ body.lmx-quote-open {
 }
 
 .lmx-checkin-card > .lmx-button {
-    justify-self: start;
+    width: 100%;
+    justify-self: stretch;
     margin-top: 0.5rem;
 }
 
@@ -3080,40 +3081,366 @@ body.lmx-quote-open {
 }
 
 .lmx-question {
+    --lmx-habit-accent: #7c3aed;
+    --lmx-habit-deep: #4c1d95;
+    --lmx-habit-soft: 124, 58, 237;
     display: grid;
-    gap: 0.45rem;
-    margin: 0.8rem 0;
+    gap: 0.55rem;
+    margin: 0.65rem 0;
+    padding: 0.7rem;
+    border: 1px solid rgba(var(--lmx-habit-soft), 0.15);
+    border-radius: 13px;
+    background:
+        radial-gradient(circle at 0 0, rgba(var(--lmx-habit-soft), 0.07), transparent 34%),
+        #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.lmx-question[data-key="exercise"] {
+    --lmx-habit-accent: #ea580c;
+    --lmx-habit-deep: #9a3412;
+    --lmx-habit-soft: 234, 88, 12;
+}
+
+.lmx-question[data-key="nutrition"] {
+    --lmx-habit-accent: #16a34a;
+    --lmx-habit-deep: #166534;
+    --lmx-habit-soft: 22, 163, 74;
+}
+
+.lmx-question[data-key="vices"] {
+    --lmx-habit-accent: #0284c7;
+    --lmx-habit-deep: #075985;
+    --lmx-habit-soft: 2, 132, 199;
 }
 
 .lmx-question-label {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
-    color: #1e293b;
-    font-weight: 800;
+    gap: 0.6rem;
+    color: #0f172a;
+    font-weight: 900;
+    line-height: 1.35;
 }
 
-.lmx-segmented {
+.lmx-question-label i,
+.lmx-question-icon {
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: rgba(var(--lmx-habit-soft), 0.12);
+    color: var(--lmx-habit-deep);
+    box-shadow: inset 0 0 0 1px rgba(var(--lmx-habit-soft), 0.1);
+}
+
+.lmx-question-icon svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.lmx-question-icon .filled {
+    fill: currentColor;
+    stroke: none;
+}
+
+.lmx-growth-control {
+    display: grid;
+    grid-template-columns: minmax(7.2rem, 8.2rem) minmax(13rem, 1fr);
+    gap: 0.35rem;
+    align-items: center;
+    padding: 0;
+}
+
+.lmx-plant {
+    --lmx-plant-scale: 0.75;
+    --lmx-plant-stem-width: 3;
+    min-width: 0;
+    min-height: 8.1rem;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: 0;
+}
+
+.lmx-plant-visual {
+    width: min(100%, 8rem);
+    height: auto;
+    overflow: visible;
+    filter: drop-shadow(0 5px 5px rgba(15, 23, 42, 0.12));
+}
+
+.lmx-plant-aura {
+    fill: rgba(var(--lmx-habit-soft), 0.12);
+    opacity: var(--lmx-canopy-opacity);
+    transition: opacity 220ms ease;
+}
+
+.lmx-plant-shadow {
+    fill: rgba(15, 23, 42, 0.14);
+}
+
+.lmx-plant-growth {
+    transform: scaleY(var(--lmx-plant-scale));
+    transform-box: fill-box;
+    transform-origin: center bottom;
+    transition: transform 320ms cubic-bezier(.2, .75, .2, 1), filter 220ms ease;
+}
+
+.lmx-plant-stem {
+    fill: none;
+    stroke: var(--lmx-habit-deep);
+    stroke-width: var(--lmx-plant-stem-width);
+    stroke-linecap: round;
+    opacity: var(--lmx-trunk-opacity, 1);
+    transition: stroke 220ms ease, opacity 220ms ease;
+}
+
+.lmx-plant-node {
+    opacity: var(--lmx-node-opacity, 0);
+    transition: opacity 200ms ease;
+}
+
+.lmx-plant-branch {
+    fill: none;
+    stroke: var(--lmx-habit-deep);
+    stroke-width: 1.15;
+    stroke-linecap: round;
+    opacity: 0.72;
+}
+
+.lmx-plant-leaf {
+    fill: var(--lmx-habit-accent);
+    stroke: var(--lmx-habit-deep);
+    stroke-width: 0.55;
+    transition: fill 220ms ease, stroke 220ms ease;
+}
+
+.lmx-plant-leaf.light {
+    fill: color-mix(in srgb, var(--lmx-habit-accent) 72%, #ffffff);
+}
+
+.lmx-plant-leaf-vein {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.52);
+    stroke-width: 0.45;
+    stroke-linecap: round;
+}
+
+.lmx-plant-bud {
+    opacity: var(--lmx-bud-opacity, 0);
+    transition: opacity 220ms ease, transform 260ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.lmx-plant-bud-petal {
+    fill: #ffffff;
+    stroke: var(--lmx-habit-accent);
+    stroke-width: 0.75;
+}
+
+.lmx-plant-bud-center {
+    fill: var(--lmx-habit-accent);
+}
+
+.lmx-plant[data-vitality-band="struggling"] .lmx-plant-growth {
+    filter: saturate(0.62);
+}
+
+.lmx-plant[data-vitality-band="thriving"] .lmx-plant-aura {
+    filter: drop-shadow(0 0 5px rgba(var(--lmx-habit-soft), 0.2));
+}
+
+.lmx-plant-soil {
+    fill: #513322;
+    stroke: #2f1d14;
+    stroke-width: 1;
+}
+
+.lmx-plant-pot {
+    stroke: #64748b;
+    stroke-width: 1.2;
+}
+
+.lmx-plant-pot-band {
+    fill: var(--lmx-habit-accent);
+    opacity: 0.72;
+}
+
+.lmx-plant-pot-shine {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.82);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+}
+
+.lmx-plant-pot-rim {
+    fill: #f8fafc;
+    stroke: #64748b;
+    stroke-width: 1.2;
+}
+
+.lmx-lever {
+    --lmx-lever-progress: 50%;
+    min-width: 0;
+    padding: 0.2rem 0.7rem 0.25rem;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 12px;
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(226, 232, 240, 0.8)),
+        #e2e8f0;
+    box-shadow:
+        inset 0 1px 0 #ffffff,
+        inset 0 -1px 0 rgba(15, 23, 42, 0.07);
+}
+
+.lmx-lever[data-value="0"] {
+    --lmx-lever-progress: 0%;
+}
+
+.lmx-lever[data-value="2"] {
+    --lmx-lever-progress: 100%;
+}
+
+.lmx-lever-control {
+    position: relative;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+}
+
+.lmx-lever-control::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    left: 0;
+    top: 50%;
+    width: var(--lmx-lever-progress);
+    height: 0.32rem;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--lmx-habit-deep), var(--lmx-habit-accent));
+    box-shadow: 0 0 8px rgba(var(--lmx-habit-soft), 0.3);
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.lmx-lever-rail {
+    position: absolute;
+    z-index: 0;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 0.68rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: center;
+    border: 1px solid #64748b;
+    border-radius: 999px;
+    background: linear-gradient(#475569, #0f172a 55%, #64748b);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55), 0 1px 0 #ffffff;
+    transform: translateY(-50%);
+}
+
+.lmx-lever-rail i {
+    position: relative;
+    z-index: 3;
+    width: 0.48rem;
+    height: 0.48rem;
+    justify-self: center;
+    border: 1px solid #64748b;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #94a3b8 45%, #334155 100%);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.65);
+}
+
+.lmx-lever-input {
+    position: relative;
+    z-index: 4;
+    width: 100%;
+    height: 2.9rem;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    cursor: grab;
+}
+
+.lmx-lever-input:active {
+    cursor: grabbing;
+}
+
+.lmx-lever-input::-webkit-slider-runnable-track {
+    height: 0.68rem;
+    background: transparent;
+}
+
+.lmx-lever-input::-webkit-slider-thumb {
+    width: 2.45rem;
+    height: 2.45rem;
+    margin-top: -0.88rem;
+    border: 2px solid #475569;
+    border-radius: 50%;
+    -webkit-appearance: none;
+    appearance: none;
+    background:
+        repeating-linear-gradient(90deg, transparent 0 4px, rgba(15, 23, 42, 0.12) 4px 5px),
+        linear-gradient(145deg, #ffffff 4%, #cbd5e1 46%, #64748b 100%);
+    box-shadow:
+        0 0 0 3px rgba(var(--lmx-habit-soft), 0.19),
+        0 4px 7px rgba(15, 23, 42, 0.34),
+        inset 0 1px 1px #ffffff;
+}
+
+.lmx-lever-input::-moz-range-track {
+    height: 0.68rem;
+    background: transparent;
+}
+
+.lmx-lever-input::-moz-range-thumb {
+    width: 2.45rem;
+    height: 2.45rem;
+    border: 2px solid #475569;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #ffffff 4%, #cbd5e1 46%, #64748b 100%);
+    box-shadow: 0 0 0 3px rgba(var(--lmx-habit-soft), 0.19), 0 4px 7px rgba(15, 23, 42, 0.34);
+}
+
+.lmx-lever-labels {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.35rem;
+    margin-top: -0.2rem;
 }
 
-.lmx-segmented button {
-    min-height: 44px;
-    border: 1px solid rgba(15, 23, 42, 0.14);
+.lmx-lever-label {
+    min-height: 2.45rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
     border-radius: 8px;
-    background: #f8fafc;
-    color: #334155;
-    font: inherit;
-    font-weight: 800;
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 900;
+    text-align: center;
     cursor: pointer;
+    transition: color 140ms ease, background 140ms ease;
 }
 
-.lmx-segmented button[aria-pressed="true"] {
-    background: #0f172a;
-    color: #ffffff;
-    border-color: #0f172a;
+.lmx-lever-label:hover {
+    background: rgba(255, 255, 255, 0.62);
+    color: #334155;
+}
+
+.lmx-lever-label.selected {
+    background: rgba(var(--lmx-habit-soft), 0.1);
+    color: var(--lmx-habit-deep);
 }
 
 .lmx-notes {
@@ -3583,8 +3910,29 @@ body.lmx-quote-open {
         grid-template-columns: 1fr;
     }
 
-    .lmx-segmented {
-        grid-template-columns: 1fr;
+    .lmx-question {
+        gap: 0.5rem;
+        padding: 0.65rem;
+    }
+
+    .lmx-growth-control {
+        grid-template-columns: minmax(6.25rem, 7.15rem) minmax(0, 1fr);
+        gap: 0.3rem;
+        padding: 0;
+    }
+
+    .lmx-plant {
+        min-height: 8rem;
+    }
+
+    .lmx-lever {
+        padding-inline: 0.65rem;
+    }
+
+    .lmx-lever-label {
+        min-height: 2.45rem;
+        padding-inline: 0.1rem;
+        font-size: 0.74rem;
     }
 
     .lmx-checkin-card > .lmx-button {
@@ -3604,6 +3952,14 @@ body.lmx-quote-open {
     .lmx-life-strip {
         grid-template-columns: 1fr;
     }
+
+    .lmx-growth-control {
+        grid-template-columns: 5.75rem minmax(0, 1fr);
+    }
+
+    .lmx-lever {
+        padding-inline: 0.5rem;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3614,5 +3970,14 @@ body.lmx-quote-open {
     .lmx-button:hover:not(:disabled),
     .lmx-button:active:not(:disabled) {
         transform: none;
+    }
+
+    .lmx-plant-aura,
+    .lmx-plant-growth,
+    .lmx-plant-node,
+    .lmx-plant-leaf,
+    .lmx-plant-bud,
+    .lmx-lever-label {
+        transition: none;
     }
 }
