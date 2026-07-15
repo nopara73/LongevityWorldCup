@@ -192,6 +192,26 @@
         text: string;
     }
 
+    interface GardenHabitState {
+        yesCount: number;
+        noCount: number;
+        vitality: number;
+    }
+
+    interface GardenState {
+        checkedInDays: number;
+        sleep: GardenHabitState;
+        exercise: GardenHabitState;
+        nutrition: GardenHabitState;
+        vices: GardenHabitState;
+    }
+
+    interface PlantProjection {
+        yesCount: number;
+        noCount: number;
+        vitality: number;
+    }
+
     interface ParticipantState {
         public: PublicState;
         participant: ParticipantSummary;
@@ -200,6 +220,7 @@
         calls: ParticipantCall[];
         commitment: CommitmentState;
         trendGuidance: CommitmentTrendGuidance;
+        garden: GardenState;
     }
 
     interface SignupResult {
@@ -455,9 +476,13 @@
         { label: "Somewhat", value: 1 },
         { label: "Yes", value: 2 }
     ];
-    const SAVED_CHECKIN_TEXT = "Saved. You can edit this check-in today.";
+    const SAVED_CHECKIN_TEXT = "Saved.";
     const MAX_NOTE_PHOTOS = 4;
     const RECENT_REMARK_LIMIT = 3;
+    const PLANT_LEAF_CAPACITY = 64;
+    const PLANT_BUD_CAPACITY = 12;
+    const PLANT_YES_GROWTH_RATE = 0.025;
+    const PLANT_NO_RETENTION_RATE = 0.65;
     const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const LEADERBOARD_SCORING_WINDOW_DAYS = 14;
     const MOBILE_LEADERBOARD_QUERY = "(max-width: 760px)";
@@ -1665,7 +1690,7 @@
                 button.setAttribute("tabindex", locked ? "-1" : (isActive ? "0" : "-1"));
                 button.toggleAttribute("disabled", locked);
                 button.setAttribute("aria-disabled", locked ? "true" : "false");
-                button.title = locked ? "Save today's check-in first." : "";
+                button.title = locked ? "Save the due check-in first." : "";
                 button.hidden = false;
             }
             if (panel) {
@@ -2442,13 +2467,25 @@
                 renderCheckIns(orderedDays, containerId, recentRemarks);
             });
         });
-        container.querySelectorAll<HTMLButtonElement>(".lmx-segmented button").forEach(button => {
-            button.addEventListener("click", () => {
-                const group = button.closest(".lmx-segmented");
-                group?.querySelectorAll("button").forEach(item => item.setAttribute("aria-pressed", "false"));
-                button.setAttribute("aria-pressed", "true");
-                const form = button.closest("form");
+        container.querySelectorAll<HTMLInputElement>(".lmx-lever-input").forEach(input => {
+            const update = () => {
+                const question = input.closest<HTMLElement>(".lmx-question");
+                if (question) syncGrowthControl(question, clampHabitValue(Number(input.value)));
+                const form = input.closest<HTMLFormElement>("form");
                 if (form) updateCheckInSaveState(form);
+            };
+            input.addEventListener("input", update);
+            input.addEventListener("change", update);
+            update();
+        });
+        container.querySelectorAll<HTMLElement>(".lmx-lever-label[data-value]").forEach(label => {
+            label.addEventListener("click", () => {
+                const lever = label.closest<HTMLElement>(".lmx-lever");
+                const input = lever?.querySelector<HTMLInputElement>(".lmx-lever-input");
+                if (!input) return;
+                input.value = String(clampHabitValue(Number(label.dataset.value)));
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+                input.focus({ preventScroll: true });
             });
         });
         container.querySelectorAll<HTMLFormElement>("form").forEach(form => {
@@ -2502,6 +2539,16 @@
         </div>`;
     }
 
+    function habitQuestionIconHtml(key: HabitKey): string {
+        const icon = {
+            sleep: `<path class="filled" d="M15.2 2.8a8.8 8.8 0 1 0 6 13.9A9.5 9.5 0 0 1 15.2 2.8Z"></path>`,
+            exercise: `<path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"></path>`,
+            nutrition: `<path d="M4 12h16c0 5-3.6 8-8 8s-8-3-8-8Z"></path><path d="M13 10c.5-4 3.2-6 7-6-.4 3.8-2.6 6-7 6Zm0 0-2.5-3"></path>`,
+            vices: `<path d="M12 3 20 6v5c0 5-3.2 8.3-8 10-4.8-1.7-8-5-8-10V6l8-3Z"></path><path d="m9 12 2 2 4-5"></path>`
+        }[key];
+        return `<span class="lmx-question-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${icon}</svg></span>`;
+    }
+
     function checkInCardHtml(day: EligibleDay, recentRemarks: ParticipantNote[]): string {
         const existing: Partial<CheckInDraft> = day.existing || {};
         const saved = savedDays.has(day.challengeDay);
@@ -2514,11 +2561,23 @@
             : "";
         const photoSlotsLeft = Math.max(0, MAX_NOTE_PHOTOS - savedImages.length);
         const questions = QUESTIONS.map(q => {
-            const current = typeof existing[q.key] === "number" ? existing[q.key] : 1;
-            const buttons = ANSWERS.map(answer => `<button type="button" data-value="${answer.value}" aria-pressed="${answer.value === current ? "true" : "false"}">${answer.label}</button>`).join("");
+            const savedValue = existing[q.key];
+            const originalValue = typeof savedValue === "number" ? clampHabitValue(savedValue) : null;
+            const current = typeof savedValue === "number" ? savedValue : 1;
+            const evidence = lifetimeHabitEvidence(q.key);
+            const labels = ANSWERS.map(answer => `<span class="lmx-lever-label${answer.value === current ? " selected" : ""}" data-value="${answer.value}">${answer.label}</span>`).join("");
             return `<div class="lmx-question" data-key="${q.key}">
-                <div class="lmx-question-label"><i class="fas ${q.icon}" aria-hidden="true"></i><span>${q.text}</span></div>
-                <div class="lmx-segmented">${buttons}</div>
+                <div class="lmx-question-label">${habitQuestionIconHtml(q.key)}<span>${q.text}</span></div>
+                <div class="lmx-growth-control">
+                    ${habitPlantHtml(q, evidence, current, originalValue, day.challengeDay)}
+                    <div class="lmx-lever" data-value="${current}">
+                        <div class="lmx-lever-control">
+                            <span class="lmx-lever-rail" aria-hidden="true"><i></i><i></i><i></i></span>
+                            <input class="lmx-lever-input" type="range" min="0" max="2" step="1" value="${current}" aria-label="${escAttr(q.text)}" aria-valuetext="${escAttr(answerLabel(current))}">
+                        </div>
+                        <div class="lmx-lever-labels" aria-hidden="true">${labels}</div>
+                    </div>
+                </div>
             </div>`;
         }).join("");
 
@@ -2554,6 +2613,302 @@
             <div class="lmx-status${saved || day.existing ? " success" : ""}">${saved || day.existing ? SAVED_CHECKIN_TEXT : ""}</div>
             ${recentRemarksHtml(recentRemarks)}
         </form>`;
+    }
+
+    function lifetimeHabitEvidence(key: HabitKey): GardenHabitState {
+        const garden = participantState?.garden;
+        const direct = garden?.[key];
+        if (direct && Number.isFinite(direct.yesCount) && Number.isFinite(direct.noCount)) {
+            const yesCount = Math.max(0, Math.trunc(Number(direct.yesCount)));
+            const noCount = Math.max(0, Math.trunc(Number(direct.noCount)));
+            const vitality = Math.max(0, Math.min(1, Number(direct.vitality) || 0));
+            return { yesCount, noCount, vitality };
+        }
+
+        const participantId = participantState?.participant?.id;
+        const row = participantState?.public?.leaderboard?.find(item => item.participantId === participantId);
+        const values = (row?.cells || [])
+            .filter(cell => cell.checkedIn && typeof cell[key] === "number")
+            .map(cell => clampHabitValue(cell[key]));
+        const yesCount = values.filter(value => value === 2).length;
+        const noCount = values.filter(value => value === 0).length;
+        const vitality = values.reduce((current, value) => applyGardenAnswer(current, value), 0);
+        return { yesCount, noCount, vitality };
+    }
+
+    function gardenCheckedInDays(): number {
+        const direct = Number(participantState?.garden?.checkedInDays);
+        if (Number.isFinite(direct)) return Math.max(0, Math.trunc(direct));
+
+        const participantId = participantState?.participant?.id;
+        const row = participantState?.public?.leaderboard?.find(item => item.participantId === participantId);
+        return (row?.cells || []).filter(cell => cell.checkedIn).length;
+    }
+
+    function answerLabel(value: number): string {
+        return ANSWERS.find(answer => answer.value === clampHabitValue(value))?.label || "Somewhat";
+    }
+
+    function applyGardenAnswer(vitality: number, answer: number): number {
+        const current = Math.max(0, Math.min(1, Number(vitality) || 0));
+        const value = clampHabitValue(answer);
+        if (value === 2) return current + ((1 - current) * PLANT_YES_GROWTH_RATE);
+        if (value === 0) return current * PLANT_NO_RETENTION_RATE;
+        return current;
+    }
+
+    function reverseGardenAnswer(vitality: number, answer: number): number {
+        const current = Math.max(0, Math.min(1, Number(vitality) || 0));
+        const value = clampHabitValue(answer);
+        if (value === 2) {
+            return Math.max(0, Math.min(1, (current - PLANT_YES_GROWTH_RATE) / (1 - PLANT_YES_GROWTH_RATE)));
+        }
+        if (value === 0) return Math.max(0, Math.min(1, current / PLANT_NO_RETENTION_RATE));
+        return current;
+    }
+
+    function projectedHistoryPlantState(key: HabitKey, challengeDay: number, preview: number): PlantProjection | null {
+        const participantId = participantState?.participant?.id;
+        const row = participantState?.public?.leaderboard?.find(item => item.participantId === participantId);
+        if (!row) return null;
+
+        const checkedCells = (row.cells || []).filter(cell => cell.checkedIn);
+        if (checkedCells.length !== gardenCheckedInDays()) return null;
+
+        const values = checkedCells.map(cell => ({
+            challengeDay: cell.challengeDay,
+            value: clampHabitValue(Number(cell[key] ?? 1))
+        }));
+        const existing = values.find(item => item.challengeDay === challengeDay);
+        if (existing) existing.value = clampHabitValue(preview);
+        else values.push({ challengeDay, value: clampHabitValue(preview) });
+        values.sort((left, right) => left.challengeDay - right.challengeDay);
+
+        let yesCount = 0;
+        let noCount = 0;
+        let vitality = 0;
+        values.forEach(item => {
+            if (item.value === 2) yesCount++;
+            if (item.value === 0) noCount++;
+            vitality = applyGardenAnswer(vitality, item.value);
+        });
+        return { yesCount, noCount, vitality };
+    }
+
+    function projectedPlantState(
+        evidence: GardenHabitState,
+        preview: number,
+        originalValue: number | null,
+        key: HabitKey,
+        challengeDay: number
+    ): PlantProjection {
+        const historyProjection = projectedHistoryPlantState(key, challengeDay, preview);
+        if (historyProjection) return historyProjection;
+
+        let yesCount = evidence.yesCount;
+        let noCount = evidence.noCount;
+        if (originalValue === 2) yesCount = Math.max(0, yesCount - 1);
+        if (originalValue === 0) noCount = Math.max(0, noCount - 1);
+
+        const baseVitality = originalValue === null
+            ? evidence.vitality
+            : reverseGardenAnswer(evidence.vitality, originalValue);
+
+        const current = clampHabitValue(preview);
+        if (current === 2) yesCount++;
+        if (current === 0) noCount++;
+        return { yesCount, noCount, vitality: applyGardenAnswer(baseVitality, current) };
+    }
+
+    function activeLeafCount(vitality: number): number {
+        return Math.max(0, Math.min(PLANT_LEAF_CAPACITY, Math.ceil(plantFoliageProgress(vitality) * PLANT_LEAF_CAPACITY)));
+    }
+
+    function plantFoliageProgress(vitality: number): number {
+        const current = Math.max(0, Math.min(1, Number(vitality) || 0));
+        return Math.max(0, Math.min(1, (current - 0.06) / 0.94));
+    }
+
+    function plantPairPosition(rank: number): number {
+        let value = Math.max(0, Math.min(31, Math.trunc(rank)));
+        let reversed = 0;
+        for (let bit = 0; bit < 5; bit++) {
+            reversed = (reversed << 1) | (value & 1);
+            value >>= 1;
+        }
+        return (reversed + 15) % 32;
+    }
+
+    function plantGrowthRank(nodeIndex: number): number {
+        const pair = Math.floor(nodeIndex / 2);
+        const sideRank = nodeIndex % 2;
+        for (let rank = 0; rank < 32; rank++) {
+            if (plantPairPosition(rank) === pair) return (rank * 2) + sideRank;
+        }
+        return nodeIndex;
+    }
+
+    function plantNodeOpacity(vitality: number, growthRank: number): number {
+        return Math.max(0, Math.min(1, (plantFoliageProgress(vitality) * PLANT_LEAF_CAPACITY) - growthRank));
+    }
+
+    function plantBudOpacity(vitality: number, budIndex: number): number {
+        const threshold = 0.72 + ((budIndex / PLANT_BUD_CAPACITY) * 0.24);
+        return Math.max(0, Math.min(1, (vitality - threshold) / 0.035));
+    }
+
+    function vitalityBand(vitality: number): "struggling" | "steady" | "thriving" {
+        if (vitality < 0.34) return "struggling";
+        if (vitality < 0.67) return "steady";
+        return "thriving";
+    }
+
+    function syncGrowthControl(question: HTMLElement, value: number): void {
+        const current = clampHabitValue(value);
+        const lever = question.querySelector<HTMLElement>(".lmx-lever");
+        const plant = question.querySelector<HTMLElement>(".lmx-plant");
+        const input = question.querySelector<HTMLInputElement>(".lmx-lever-input");
+        if (lever) lever.dataset.value = String(current);
+        if (plant) {
+            const key = question.dataset.key as HabitKey;
+            const challengeDay = Math.max(1, Math.trunc(Number(plant.dataset.challengeDay) || 1));
+            const yesCount = Math.max(0, Math.trunc(Number(plant.dataset.yesCount) || 0));
+            const noCount = Math.max(0, Math.trunc(Number(plant.dataset.noCount) || 0));
+            const baseVitality = Math.max(0, Math.min(1, Number(plant.dataset.baseVitality) || 0));
+            const originalText = plant.dataset.originalValue;
+            const originalValue = originalText === undefined || originalText === ""
+                ? null
+                : clampHabitValue(Number(originalText));
+            const projection = projectedPlantState(
+                { yesCount, noCount, vitality: baseVitality },
+                current,
+                originalValue,
+                key,
+                challengeDay);
+            plant.dataset.preview = String(current);
+            plant.dataset.vitality = projection.vitality.toFixed(4);
+            plant.dataset.vitalityBand = vitalityBand(projection.vitality);
+            plant.dataset.projectedYes = String(projection.yesCount);
+            plant.dataset.projectedNo = String(projection.noCount);
+            plant.dataset.leafCount = String(activeLeafCount(projection.vitality));
+            plant.style.setProperty("--lmx-plant-vitality", projection.vitality.toFixed(4));
+            plant.style.setProperty("--lmx-plant-scale", (0.18 + (projection.vitality * 0.82)).toFixed(4));
+            plant.style.setProperty("--lmx-trunk-opacity", (0.16 + (projection.vitality * 0.84)).toFixed(4));
+            plant.style.setProperty("--lmx-canopy-opacity", (0.02 + (projection.vitality * 0.23)).toFixed(4));
+            plant.querySelectorAll<SVGGElement>(".lmx-plant-node").forEach(node => {
+                const growthRank = Math.max(0, Math.trunc(Number(node.dataset.growthRank) || 0));
+                const opacity = plantNodeOpacity(projection.vitality, growthRank);
+                node.style.setProperty("--lmx-node-opacity", opacity.toFixed(4));
+                node.classList.toggle("active", opacity > 0);
+                node.querySelector<SVGElement>(".lmx-plant-leaf")?.classList.toggle("active", opacity > 0);
+            });
+            plant.querySelectorAll<SVGGElement>(".lmx-plant-bud").forEach(bud => {
+                const budIndex = Math.max(0, Math.trunc(Number(bud.dataset.budIndex) || 0));
+                bud.style.setProperty("--lmx-bud-opacity", plantBudOpacity(projection.vitality, budIndex).toFixed(4));
+            });
+            const title = QUESTIONS.find(item => item.key === key)?.title || "Habit";
+            plant.setAttribute("aria-label", plantAriaLabel(title, projection, current));
+        }
+        if (input) input.setAttribute("aria-valuetext", answerLabel(current));
+        question.querySelectorAll<HTMLElement>(".lmx-lever-label[data-value]").forEach(label => {
+            label.classList.toggle("selected", Number(label.dataset.value) === current);
+        });
+    }
+
+    function habitPlantHtml(
+        question: ChallengeQuestion,
+        evidence: GardenHabitState,
+        preview: number,
+        originalValue: number | null,
+        challengeDay: number
+    ): string {
+        const projection = projectedPlantState(evidence, preview, originalValue, question.key, challengeDay);
+        const leafCount = activeLeafCount(projection.vitality);
+        const seed = QUESTIONS.findIndex(item => item.key === question.key) * 17 + 11;
+        const species = {
+            sleep: { height: 73, spread: 14, leafWidth: 3.2, leafLength: 8.2, leafRise: 0.55, bend: -2, stemWidth: 2.2 },
+            exercise: { height: 64, spread: 17, leafWidth: 5.2, leafLength: 9.5, leafRise: 0.08, bend: 4, stemWidth: 3.5 },
+            nutrition: { height: 72, spread: 19, leafWidth: 6.2, leafLength: 11.5, leafRise: 0.38, bend: -4, stemWidth: 3.1 },
+            vices: { height: 68, spread: 16, leafWidth: 4.1, leafLength: 8.5, leafRise: 0.28, bend: 5, stemWidth: 2.7 }
+        }[question.key];
+        const nodes = Array.from({ length: PLANT_LEAF_CAPACITY }, (_, index) => {
+            const pairIndex = Math.floor(index / 2);
+            const tier = Math.floor(pairIndex / 2);
+            const cluster = pairIndex % 2;
+            const progress = (tier + 1) / 17;
+            const side = index % 2 === 0 ? -1 : 1;
+            const stemX = 60 + (species.bend * progress) + (side * cluster * 1.2) + (Math.sin((tier + seed) * 0.74) * 1.1);
+            const stemY = 88 - (progress * species.height) + (cluster * 2.8);
+            const branchLength = (5 + (((pairIndex * 13) + seed) % species.spread))
+                * (cluster ? 0.62 : 1)
+                * (0.7 + (progress * 0.3));
+            const baseX = stemX + (side * branchLength);
+            const baseY = stemY - 1 - (((pairIndex * 7) + seed) % 2);
+            const leafLength = species.leafLength * (cluster ? 0.84 : 1) * (0.84 + (progress * 0.16));
+            const leafWidth = species.leafWidth * (cluster ? 0.88 : 1) * (0.82 + ((((pairIndex * 5) + seed) % 5) * 0.045));
+            const tipX = baseX + (side * leafLength);
+            const tipY = baseY - (leafLength * species.leafRise) - ((((pairIndex * 3) + seed) % 3) * 0.45);
+            const branch = `M${stemX.toFixed(1)} ${stemY.toFixed(1)} Q${(stemX + (side * branchLength * 0.42)).toFixed(1)} ${(stemY - 2.5).toFixed(1)} ${baseX.toFixed(1)} ${baseY.toFixed(1)}`;
+            const leaf = `M${baseX.toFixed(1)} ${baseY.toFixed(1)} C${(baseX + (side * leafLength * 0.28)).toFixed(1)} ${(baseY - leafWidth).toFixed(1)} ${(tipX - (side * leafLength * 0.18)).toFixed(1)} ${(tipY - (leafWidth * 0.58)).toFixed(1)} ${tipX.toFixed(1)} ${tipY.toFixed(1)} C${(tipX - (side * leafLength * 0.14)).toFixed(1)} ${(tipY + (leafWidth * 0.72)).toFixed(1)} ${(baseX + (side * leafLength * 0.22)).toFixed(1)} ${(baseY + (leafWidth * 0.54)).toFixed(1)} ${baseX.toFixed(1)} ${baseY.toFixed(1)} Z`;
+            const leafClass = index % 4 === 0 ? "lmx-plant-leaf light" : "lmx-plant-leaf";
+            const growthRank = plantGrowthRank(index);
+            const opacity = plantNodeOpacity(projection.vitality, growthRank);
+            return `<g class="lmx-plant-node${opacity > 0 ? " active" : ""}" data-growth-rank="${growthRank}" style="--lmx-node-opacity: ${opacity.toFixed(4)}">
+                <path class="lmx-plant-branch" d="${branch}"></path>
+                <path class="${leafClass}${opacity > 0 ? " active" : ""}" d="${leaf}"></path>
+                <path class="lmx-plant-leaf-vein" d="M${baseX.toFixed(1)} ${baseY.toFixed(1)} L${tipX.toFixed(1)} ${tipY.toFixed(1)}"></path>
+            </g>`;
+        }).join("");
+        const plantId = `lmx-plant-${question.key}-${challengeDay}`;
+        const buds = Array.from({ length: PLANT_BUD_CAPACITY }, (_, index) => {
+            const row = Math.floor(index / 2);
+            const side = index % 2 === 0 ? -1 : 1;
+            const x = 60 + (side * (9 + ((row % 3) * 9))) + (species.bend * (1 - (row / 12)));
+            const y = 21 + (row * 9) + (((index + seed) % 3) * 1.4);
+            const opacity = plantBudOpacity(projection.vitality, index);
+            return `<g class="lmx-plant-bud" data-bud-index="${index}" style="--lmx-bud-opacity: ${opacity.toFixed(4)}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})">
+                <circle class="lmx-plant-bud-petal" cx="-2.2" cy="0" r="2.3"></circle>
+                <circle class="lmx-plant-bud-petal" cx="2.2" cy="0" r="2.3"></circle>
+                <circle class="lmx-plant-bud-petal" cx="0" cy="-2.1" r="2.3"></circle>
+                <circle class="lmx-plant-bud-center" cx="0" cy="0" r="1.5"></circle>
+            </g>`;
+        }).join("");
+        const originalAttribute = originalValue === null ? "" : String(originalValue);
+        const vitality = projection.vitality.toFixed(4);
+
+        return `<figure id="${plantId}" class="lmx-plant" data-challenge-day="${challengeDay}" data-yes-count="${evidence.yesCount}" data-no-count="${evidence.noCount}" data-base-vitality="${evidence.vitality.toFixed(4)}" data-original-value="${originalAttribute}" data-projected-yes="${projection.yesCount}" data-projected-no="${projection.noCount}" data-preview="${preview}" data-vitality="${vitality}" data-vitality-band="${vitalityBand(projection.vitality)}" data-leaf-count="${leafCount}" style="--lmx-plant-vitality: ${vitality}; --lmx-plant-scale: ${(0.18 + (projection.vitality * 0.82)).toFixed(4)}; --lmx-trunk-opacity: ${(0.16 + (projection.vitality * 0.84)).toFixed(4)}; --lmx-canopy-opacity: ${(0.02 + (projection.vitality * 0.23)).toFixed(4)}; --lmx-plant-stem-width: ${species.stemWidth}" role="img" aria-label="${escAttr(plantAriaLabel(question.title, projection, preview))}">
+            <svg class="lmx-plant-visual" viewBox="0 0 120 128" aria-hidden="true" focusable="false">
+                <defs>
+                    <linearGradient id="${plantId}-pot" x1="0" x2="1" y1="0" y2="1">
+                        <stop offset="0" stop-color="#ffffff"></stop>
+                        <stop offset="0.48" stop-color="#dbe3ec"></stop>
+                        <stop offset="1" stop-color="#94a3b8"></stop>
+                    </linearGradient>
+                </defs>
+                <ellipse class="lmx-plant-aura" cx="60" cy="61" rx="37" ry="42"></ellipse>
+                <ellipse class="lmx-plant-shadow" cx="60" cy="119" rx="38" ry="5"></ellipse>
+                <g class="lmx-plant-growth">
+                    <path class="lmx-plant-stem" d="M60 93 C${(58 + species.bend).toFixed(1)} 72 ${(63 + species.bend).toFixed(1)} 44 ${(60 + species.bend).toFixed(1)} 16"></path>
+                    ${nodes}
+                    ${buds}
+                </g>
+                <ellipse class="lmx-plant-soil" cx="60" cy="91" rx="31" ry="8"></ellipse>
+                <path class="lmx-plant-pot" d="M29 91 H91 L85 118 Q60 126 35 118 Z" fill="url(#${plantId}-pot)"></path>
+                <path class="lmx-plant-pot-band" d="M32 102 Q60 108 88 102 L87 108 Q60 114 33 108 Z"></path>
+                <path class="lmx-plant-pot-shine" d="M39 96 Q37 107 41 116"></path>
+                <path class="lmx-plant-pot-rim" d="M27 88 Q60 80 93 88 V96 Q60 104 27 96 Z"></path>
+            </svg>
+        </figure>`;
+    }
+
+    function plantAriaLabel(title: string, projection: PlantProjection, preview: number): string {
+        const current = clampHabitValue(preview);
+        const previewText = current === 2
+            ? "The selected Yes previews added growth."
+            : current === 0
+                ? "The selected No previews lost growth."
+                : "The selected Somewhat keeps the plant steady.";
+        return `${title} plant vitality ${Math.round(projection.vitality * 100)} percent from ${gardenCheckedInDays()} saved check-ins. ${previewText}`;
     }
 
     function recentPublicRemarks(state: ParticipantState): ParticipantNote[] {
@@ -2948,8 +3303,8 @@
 
     function collectCheckInDraft(form: HTMLFormElement): CheckInFormDraft {
         const readHabit = (key: HabitKey): number => {
-            const pressed = form.querySelector<HTMLButtonElement>(`.lmx-question[data-key="${key}"] button[aria-pressed="true"]`);
-            return Number(pressed ? pressed.dataset.value : 1);
+            const input = form.querySelector<HTMLInputElement>(`.lmx-question[data-key="${key}"] .lmx-lever-input`);
+            return clampHabitValue(Number(input?.value ?? 1));
         };
         const draft: CheckInFormDraft = {
             note: form.querySelector<HTMLTextAreaElement>("textarea")?.value.trim() || "",
@@ -4452,12 +4807,27 @@
             isNullableNumber(value.averagePoints) && isNullableNumber(value.neededPoints) && typeof value.text === "string";
     }
 
+    function isGardenHabitState(value: unknown): value is GardenHabitState {
+        return hasProperties(value, "yesCount", "noCount", "vitality") &&
+            typeof value.yesCount === "number" && Number.isInteger(value.yesCount) && value.yesCount >= 0 &&
+            typeof value.noCount === "number" && Number.isInteger(value.noCount) && value.noCount >= 0 &&
+            typeof value.vitality === "number" && Number.isFinite(value.vitality) &&
+            value.vitality >= 0 && value.vitality <= 1;
+    }
+
+    function isGardenState(value: unknown): value is GardenState {
+        return hasProperties(value, "checkedInDays", "sleep", "exercise", "nutrition", "vices") &&
+            typeof value.checkedInDays === "number" && Number.isInteger(value.checkedInDays) && value.checkedInDays >= 0 &&
+            isGardenHabitState(value.sleep) && isGardenHabitState(value.exercise) &&
+            isGardenHabitState(value.nutrition) && isGardenHabitState(value.vices);
+    }
+
     function isParticipantState(value: unknown): value is ParticipantState {
-        return hasProperties(value, "public", "participant", "eligibleDays", "notes", "calls", "commitment", "trendGuidance") &&
+        return hasProperties(value, "public", "participant", "eligibleDays", "notes", "calls", "commitment", "trendGuidance", "garden") &&
             isPublicState(value.public) && isParticipantSummary(value.participant) &&
             isArrayOf(value.eligibleDays, isEligibleDay) && isArrayOf(value.notes, isParticipantNote) &&
             isArrayOf(value.calls, isParticipantCall) && isCommitmentState(value.commitment) &&
-            isCommitmentTrendGuidance(value.trendGuidance);
+            isCommitmentTrendGuidance(value.trendGuidance) && isGardenState(value.garden);
     }
 
     function isSignupResult(value: unknown): value is SignupResult {

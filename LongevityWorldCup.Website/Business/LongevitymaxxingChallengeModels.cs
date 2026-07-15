@@ -50,7 +50,32 @@ public sealed record LongevitymaxxingParticipantState(
     IReadOnlyList<LongevitymaxxingParticipantNote> Notes,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls,
     LongevitymaxxingCommitmentState Commitment,
-    LongevitymaxxingCommitmentTrendGuidance TrendGuidance);
+    LongevitymaxxingCommitmentTrendGuidance TrendGuidance,
+    LongevitymaxxingGardenState Garden);
+
+public sealed record LongevitymaxxingGardenState(
+    int CheckedInDays,
+    LongevitymaxxingGardenHabitState Sleep,
+    LongevitymaxxingGardenHabitState Exercise,
+    LongevitymaxxingGardenHabitState Nutrition,
+    LongevitymaxxingGardenHabitState Vices);
+
+public sealed record LongevitymaxxingGardenHabitState(int YesCount, int NoCount, double Vitality)
+{
+    public const double YesGrowthRate = 0.025d;
+    public const double NoRetentionRate = 0.65d;
+
+    public static double ApplyAnswer(double vitality, int answer)
+    {
+        var current = Math.Clamp(vitality, 0d, 1d);
+        return answer switch
+        {
+            2 => current + ((1d - current) * YesGrowthRate),
+            0 => current * NoRetentionRate,
+            _ => current
+        };
+    }
+}
 
 public sealed record LongevitymaxxingSignupResult(string Message);
 

@@ -361,7 +361,37 @@ public sealed class LongevitymaxxingChallengeService
             GetParticipantNotes(publicOnly: false),
             BuildParticipantCalls(settings),
             BuildCommitmentState(participant, byDay, eligibleDays, now),
-            BuildCommitmentTrendGuidance(settings, participant, byDay, now));
+            BuildCommitmentTrendGuidance(settings, participant, byDay, now),
+            BuildGardenState(byDay));
+    }
+
+    private static LongevitymaxxingGardenState BuildGardenState(IReadOnlyDictionary<int, CheckInRecord> byDay)
+    {
+        var ordered = byDay.OrderBy(pair => pair.Key).Select(pair => pair.Value).ToArray();
+        return new LongevitymaxxingGardenState(
+            ordered.Length,
+            BuildGardenHabitState(ordered.Select(checkIn => checkIn.Sleep)),
+            BuildGardenHabitState(ordered.Select(checkIn => checkIn.Exercise)),
+            BuildGardenHabitState(ordered.Select(checkIn => checkIn.Nutrition)),
+            BuildGardenHabitState(ordered.Select(checkIn => checkIn.Vices)));
+    }
+
+    private static LongevitymaxxingGardenHabitState BuildGardenHabitState(IEnumerable<int> values)
+    {
+        var yesCount = 0;
+        var noCount = 0;
+        var vitality = 0d;
+        foreach (var value in values)
+        {
+            if (value == 2)
+                yesCount++;
+            else if (value == 0)
+                noCount++;
+
+            vitality = LongevitymaxxingGardenHabitState.ApplyAnswer(vitality, value);
+        }
+
+        return new LongevitymaxxingGardenHabitState(yesCount, noCount, vitality);
     }
 
     public async Task<LongevitymaxxingSignupResult> ResendAccessLinkAsync(string email, DateTimeOffset? nowUtc = null, CancellationToken ct = default)

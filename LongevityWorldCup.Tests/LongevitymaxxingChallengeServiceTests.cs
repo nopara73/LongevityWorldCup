@@ -18,6 +18,68 @@ namespace LongevityWorldCup.Tests;
 public sealed class LongevitymaxxingChallengeServiceTests
 {
     [Fact]
+    public void GardenVitality_StartsAsSeedlingAndNoDamageScalesWithEstablishedGrowth()
+    {
+        static double ApplyRepeatedly(double vitality, int answer, int count)
+            => Enumerable.Range(0, count).Aggregate(
+                vitality,
+                (current, _) => LongevitymaxxingGardenHabitState.ApplyAnswer(current, answer));
+
+        var firstYes = LongevitymaxxingGardenHabitState.ApplyAnswer(0d, 2);
+        var ninetyNinthYes = ApplyRepeatedly(0d, 2, 99);
+        var hundredthYes = LongevitymaxxingGardenHabitState.ApplyAnswer(ninetyNinthYes, 2);
+        var mature = ApplyRepeatedly(0d, 2, 100);
+        var firstNoAfterMaturity = LongevitymaxxingGardenHabitState.ApplyAnswer(mature, 0);
+        var secondNoAfterMaturity = LongevitymaxxingGardenHabitState.ApplyAnswer(firstNoAfterMaturity, 0);
+        var recovered = ApplyRepeatedly(firstNoAfterMaturity, 2, 20);
+
+        Assert.Equal(0.025d, firstYes, 10);
+        Assert.Equal(0d, LongevitymaxxingGardenHabitState.ApplyAnswer(0d, 0), 10);
+        Assert.True(mature > 0.9d);
+        Assert.True(firstYes > hundredthYes - ninetyNinthYes);
+        Assert.True(mature - firstNoAfterMaturity > firstYes);
+        Assert.True(firstNoAfterMaturity - secondNoAfterMaturity < mature - firstNoAfterMaturity);
+        Assert.True(recovered > firstNoAfterMaturity);
+        Assert.Equal(mature, LongevitymaxxingGardenHabitState.ApplyAnswer(mature, 1), 10);
+    }
+
+    [Fact]
+    public async Task ParticipantGardenAggregatesLifetimeYesAndNoEvidenceAcrossCheckIns()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("garden@example.com", "Garden Gia");
+
+        var first = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access, 1, 2, 1, 0, 2, null),
+            DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
+
+        Assert.Equal(
+            new LongevitymaxxingGardenState(
+                1,
+                new LongevitymaxxingGardenHabitState(1, 0, 0.025d),
+                new LongevitymaxxingGardenHabitState(0, 0, 0d),
+                new LongevitymaxxingGardenHabitState(0, 1, 0d),
+                new LongevitymaxxingGardenHabitState(1, 0, 0.025d)),
+            first.Garden);
+        Assert.Equal(0.025d, first.Garden.Sleep.Vitality, 10);
+        Assert.Equal(0d, first.Garden.Exercise.Vitality, 10);
+        Assert.Equal(0d, first.Garden.Nutrition.Vitality, 10);
+
+        var second = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(access, 2, 1, 2, 2, 0, null),
+            DateTimeOffset.Parse("2026-06-10T08:05:00Z"));
+
+        Assert.Equal(
+            new LongevitymaxxingGardenState(
+                2,
+                new LongevitymaxxingGardenHabitState(1, 0, 0.025d),
+                new LongevitymaxxingGardenHabitState(1, 0, 0.025d),
+                new LongevitymaxxingGardenHabitState(1, 1, 0.025d),
+                new LongevitymaxxingGardenHabitState(1, 1, 0.01625d)),
+            second.Garden);
+    }
+
+    [Fact]
     public async Task SignupRequiresConfirmationBeforePublicRosterAndSubscribesNewsletterOnConfirm()
     {
         using var fixture = TestChallengeFixture.Create();
