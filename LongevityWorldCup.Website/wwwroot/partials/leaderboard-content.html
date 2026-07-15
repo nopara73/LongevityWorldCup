@@ -1661,7 +1661,7 @@
     }
     .enlarged-portrait .image-nav--previous{ left:max(16px, env(safe-area-inset-left)); }
     .enlarged-portrait .image-nav--next{ right:max(16px, env(safe-area-inset-right)); }
-    .enlarged-portrait .image-nav:hover{
+    .enlarged-portrait .image-nav:not(:disabled):hover{
         color:var(--light-text-color);
         background:rgba(0,0,0,.9);
         transform:translateY(-50%) scale(1.08);
@@ -1671,6 +1671,10 @@
         background:rgba(0,0,0,.9);
         outline:3px solid rgba(0,188,212,.68);
         outline-offset:3px;
+    }
+    .enlarged-portrait .image-nav:disabled{
+        opacity:.35;
+        cursor:default;
     }
     .enlarged-portrait .image-position{
         position:absolute;
@@ -4854,8 +4858,8 @@
         if (!Array.isArray(galleryImages) || galleryImages.length === 0) return;
 
         const imageCount = galleryImages.length;
-        const normalizedIndex = ((index % imageCount) + imageCount) % imageCount;
-        const sourceImage = galleryImages[normalizedIndex];
+        const boundedIndex = Math.min(Math.max(index, 0), imageCount - 1);
+        const sourceImage = galleryImages[boundedIndex];
         const img = enlargedElem.querySelector('img');
         const previousButton = enlargedElem.querySelector('.image-nav--previous');
         const nextButton = enlargedElem.querySelector('.image-nav--next');
@@ -4863,36 +4867,42 @@
         const isProofGallery = enlargedElem.isProofGallery;
         const canNavigate = isProofGallery && imageCount > 1;
 
-        enlargedElem.currentImageIndex = normalizedIndex;
+        enlargedElem.currentImageIndex = boundedIndex;
         enlargedElem.returnFocusTo = sourceImage;
         img.src = sourceImage.dataset.fullSrc || sourceImage.src;
         img.alt = sourceImage.alt;
 
         previousButton.hidden = !canNavigate;
         nextButton.hidden = !canNavigate;
+        previousButton.disabled = !canNavigate || boundedIndex === 0;
+        nextButton.disabled = !canNavigate || boundedIndex === imageCount - 1;
         position.hidden = !canNavigate;
         if (!canNavigate) {
             enlargedElem.setAttribute('aria-label', 'Enlarged image');
             return;
         }
 
-        const previousIndex = (normalizedIndex - 1 + imageCount) % imageCount;
-        const nextIndex = (normalizedIndex + 1) % imageCount;
-        previousButton.setAttribute('aria-label', `Previous proof (${previousIndex + 1} of ${imageCount})`);
-        nextButton.setAttribute('aria-label', `Next proof (${nextIndex + 1} of ${imageCount})`);
-        position.textContent = `Proof ${normalizedIndex + 1} of ${imageCount}`;
-        enlargedElem.setAttribute('aria-label', `Proof image ${normalizedIndex + 1} of ${imageCount}`);
+        previousButton.setAttribute(
+            'aria-label',
+            boundedIndex > 0 ? `Previous proof (${boundedIndex} of ${imageCount})` : 'Previous proof');
+        nextButton.setAttribute(
+            'aria-label',
+            boundedIndex < imageCount - 1 ? `Next proof (${boundedIndex + 2} of ${imageCount})` : 'Next proof');
+        position.textContent = `Proof ${boundedIndex + 1} of ${imageCount}`;
+        enlargedElem.setAttribute('aria-label', `Proof image ${boundedIndex + 1} of ${imageCount}`);
     }
 
     function navigateEnlargedImage(enlargedElem, offset) {
         if (!enlargedElem.isProofGallery || enlargedElem.galleryImages.length < 2) return;
-        updateEnlargedImage(enlargedElem, enlargedElem.currentImageIndex + offset);
+        const targetIndex = enlargedElem.currentImageIndex + offset;
+        if (targetIndex < 0 || targetIndex >= enlargedElem.galleryImages.length) return;
+        updateEnlargedImage(enlargedElem, targetIndex);
     }
 
     function trapEnlargedViewFocus(enlargedElem, event) {
         if (event.key !== 'Tab') return;
 
-        const focusableControls = Array.from(enlargedElem.querySelectorAll('button:not([hidden])'));
+        const focusableControls = Array.from(enlargedElem.querySelectorAll('button:not([hidden]):not(:disabled)'));
         if (focusableControls.length === 0) return;
 
         const firstControl = focusableControls[0];
