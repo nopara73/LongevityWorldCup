@@ -41,6 +41,25 @@ public sealed class LeaderboardInteractionAccessibilityTests
     }
 
     [Fact]
+    public void ProofImageViewer_SupportsAccessibleSequentialNavigation()
+    {
+        var html = File.ReadAllText(GetLeaderboardPartialPath());
+
+        Assert.Contains("class=\"image-nav image-nav--previous\" aria-label=\"Previous proof\" hidden", html);
+        Assert.Contains("class=\"image-nav image-nav--next\" aria-label=\"Next proof\" hidden", html);
+        Assert.Contains("class=\"image-position\" aria-live=\"polite\" aria-atomic=\"true\" hidden", html);
+        Assert.Contains("const normalizedIndex = ((index % imageCount) + imageCount) % imageCount;", html);
+        Assert.Contains("if (event.key === 'ArrowLeft')", html);
+        Assert.Contains("} else if (event.key === 'ArrowRight')", html);
+        Assert.Contains("} else if (event.key === 'Home')", html);
+        Assert.Contains("} else if (event.key === 'End')", html);
+        Assert.Contains("trapEnlargedViewFocus(clone, event);", html);
+        Assert.Contains("navigateEnlargedImage(clone, horizontalDistance > 0 ? -1 : 1);", html);
+        Assert.Contains("enlargedElem.returnFocusTo = sourceImage;", html);
+        Assert.Contains(".enlarged-portrait .image-nav:focus-visible", html);
+    }
+
+    [Fact]
     public void AthleteDetailsModal_UsesNativeCloseButtons()
     {
         var html = File.ReadAllText(GetLeaderboardPartialPath());
