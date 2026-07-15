@@ -389,7 +389,7 @@ public sealed class LongevitymaxxingChallengeService
         var timeZoneId = NormalizeTimeZone(request.TimeZoneId);
         var commitmentAmountUsd = request.CommitmentAmountUsd is null
             ? participant.CommitmentAmountUsd
-            : NormalizeCommitmentAmount(request.CommitmentAmountUsd);
+            : NormalizeCommitmentAmount(request.CommitmentAmountUsd.Value);
         if (GetActivePaymentObligation(participant.Id) is not null)
             throw new InvalidOperationException("Pay the commitment due or fix the triggering check-in before editing your profile.");
         EnsureParticipantIdentityUnchanged(participant, request);
@@ -3642,12 +3642,9 @@ public sealed class LongevitymaxxingChallengeService
         return false;
     }
 
-    private static decimal NormalizeCommitmentAmount(decimal? amount)
+    private static decimal NormalizeCommitmentAmount(decimal amount)
     {
-        if (amount is null)
-            throw new InvalidOperationException("Configure an amount that'd hurt.");
-
-        var rounded = decimal.Round(amount.Value, 2, MidpointRounding.AwayFromZero);
+        var rounded = decimal.Round(amount, 2, MidpointRounding.AwayFromZero);
         if (rounded < MinimumCommitmentAmountUsd)
             throw new InvalidOperationException("Commitment amount must be at least USD 1.");
 
@@ -3655,7 +3652,7 @@ public sealed class LongevitymaxxingChallengeService
     }
 
     private static decimal? NormalizeOptionalCommitmentAmount(decimal? amount)
-        => amount is null ? null : NormalizeCommitmentAmount(amount);
+        => amount is null ? null : NormalizeCommitmentAmount(amount.Value);
 
     private static string NormalizeToken(string token)
     {

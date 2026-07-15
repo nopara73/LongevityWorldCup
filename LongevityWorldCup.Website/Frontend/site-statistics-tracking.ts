@@ -840,7 +840,7 @@
 
         listen(document, "input", (event: Event) => {
             const target = event.target;
-            if (!(target instanceof HTMLInputElement) || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxBlockedCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
+            if (!(target instanceof HTMLInputElement) || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
             const component = target.id === "lmxEditCommitmentAmount" ? "profile" : "commitment";
             trackOnce(`challenge-pledge-touched-${component}`, "challenge_pledge_touched", { component, step: "pledge", outcome: "touched" });
             if (target.value) {
@@ -855,7 +855,7 @@
 
         listen(document, "invalid", (event: Event) => {
             const target = event.target;
-            if (!(target instanceof HTMLInputElement) || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxBlockedCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
+            if (!(target instanceof HTMLInputElement) || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
             track("challenge_pledge_validation_failed", {
                 component: target.id === "lmxEditCommitmentAmount" ? "profile" : "commitment",
                 step: safeFieldKey(target),
