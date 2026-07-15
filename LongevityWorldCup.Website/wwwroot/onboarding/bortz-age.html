@@ -2076,15 +2076,7 @@
             const feature = window.BortzAge?.features?.[featureIndex];
             if (!feature) return NaN;
 
-            let x = value;
-            if (feature.isLog) {
-                if (x <= 0) return NaN;
-                x = Math.log(x);
-            }
-            if (feature.capMode === 'floor') x = Math.max(x, feature.cap);
-            else if (feature.capMode === 'ceiling') x = Math.min(x, feature.cap);
-
-            return (x - feature.mean) * feature.baaCoeff * 10;
+            return window.BortzAge.calculateFeatureContribution(value, feature) * 10;
         }
 
         function getPhenoWbcScore(value) {

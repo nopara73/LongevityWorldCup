@@ -39,6 +39,7 @@ interface BortzAgeApi {
     readonly features: readonly BortzFeature[];
     readonly biomarkers: readonly BortzFeature[];
     parseInput(value: unknown): number;
+    calculateFeatureContribution(rawValue: number, feature: BortzFeature): number;
     calculateBAA(values: readonly number[] | null | undefined): number;
     calculateBortzAgeFromBAA(chronologicalAgeYears: number, baa: number): number;
     calculateBortzAge(rawValuesInFeatureOrder: readonly number[] | null | undefined): number;

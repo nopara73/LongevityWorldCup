@@ -1339,19 +1339,9 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
             var x = values[idx];
             if (!double.IsFinite(x)) return null;
 
-            if (f.IsLog)
-            {
-                if (x <= 0) return null;
-                x = Math.Log(x);
-            }
-
-            if (f.Cap.HasValue)
-            {
-                if (f.CapMode == BortzAgeHelper.CapMode.Floor) x = Math.Max(x, f.Cap.Value);
-                else if (f.CapMode == BortzAgeHelper.CapMode.Ceiling) x = Math.Min(x, f.Cap.Value);
-            }
-
-            sum += (x - f.Mean) * f.BaaCoeff;
+            var contribution = BortzAgeHelper.CalculateFeatureContribution(x, f);
+            if (!double.IsFinite(contribution)) return null;
+            sum += contribution;
         }
 
         return sum * 10d;

@@ -41,6 +41,15 @@ function applyCap(value: number, feature: BortzFeature): number {
     return Math.min(value, feature.cap);
 }
 
+function calculateFeatureContribution(rawValue: number, feature: BortzFeature): number {
+    if (!Number.isFinite(rawValue) || (feature.isLog && rawValue <= 0)) return Number.NaN;
+
+    let modelValue = applyCap(rawValue, feature);
+    if (feature.isLog) modelValue = Math.log(modelValue);
+
+    return (modelValue - feature.mean) * feature.baaCoeff;
+}
+
 function currentBortzAgeApi(): BortzAgeApi {
     return window.BortzAge ?? api;
 }
@@ -52,16 +61,12 @@ function calculateBAA(values: readonly number[] | null | undefined): number {
     let sum = 0;
     for (let index = 0; index < activeFeatures.length; index++) {
         const feature = activeFeatures[index];
-        let value = values[index];
+        const value = values[index];
         if (feature === undefined || value === undefined) return Number.NaN;
 
-        if (feature.isLog) {
-            if (value <= 0) return Number.NaN;
-            value = Math.log(value);
-        }
-
-        value = applyCap(value, feature);
-        sum += (value - feature.mean) * feature.baaCoeff;
+        const contribution = calculateFeatureContribution(value, feature);
+        if (!Number.isFinite(contribution)) return Number.NaN;
+        sum += contribution;
     }
 
     return sum * 10;
@@ -107,6 +112,7 @@ const api: BortzAgeApi = {
     // Backward compatibility for form code that expects `biomarkers`.
     biomarkers: features,
     parseInput,
+    calculateFeatureContribution,
     calculateBAA,
     calculateBortzAgeFromBAA,
     calculateBortzAge

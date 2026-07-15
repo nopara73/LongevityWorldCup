@@ -51,6 +51,22 @@ namespace LongevityWorldCup.Website.Tools
                 _ => value
             };
 
+        /// <summary>
+        /// Calculate one model contribution from a raw laboratory value. Caps are expressed in the
+        /// raw units documented by <see cref="Features"/> and therefore apply before an optional log transform.
+        /// </summary>
+        public static double CalculateFeatureContribution(double rawValue, BortzFeature feature)
+        {
+            if (!double.IsFinite(rawValue) || feature.IsLog && rawValue <= 0)
+                return double.NaN;
+
+            var modelValue = ApplyCap(rawValue, feature);
+            if (feature.IsLog)
+                modelValue = Math.Log(modelValue);
+
+            return (modelValue - feature.Mean) * feature.BaaCoeff;
+        }
+
         public static double ParseInput(string? value)
         {
             if (string.IsNullOrWhiteSpace(value)) return double.NaN;
@@ -87,14 +103,10 @@ namespace LongevityWorldCup.Website.Tools
             for (int i = 0; i < Features.Length; i++)
             {
                 var f = Features[i];
-                double x = values[i];
-                if (f.IsLog && x > 0)
-                    x = Math.Log(x);
-                else if (f.IsLog && x <= 0)
+                var contribution = CalculateFeatureContribution(values[i], f);
+                if (!double.IsFinite(contribution))
                     return double.NaN;
-                x = ApplyCap(x, f);
-                double centered = x - f.Mean;
-                sum += centered * f.BaaCoeff;
+                sum += contribution;
             }
             return sum * 10;
         }

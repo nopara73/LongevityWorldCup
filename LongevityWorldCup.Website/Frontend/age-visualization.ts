@@ -94,13 +94,6 @@
         16: 'U/L', 17: 'nmol/L', 18: 'nmol/L', 19: 'mmol/L', 20: 'pg', 21: 'g/L'
     };
 
-    function applyBortzCap(value: number, f: BortzFeature): number {
-        if (!f.capMode || f.cap === undefined) return value;
-        if (f.capMode === 'floor') return Math.max(value, f.cap);
-        if (f.capMode === 'ceiling') return Math.min(value, f.cap);
-        return value;
-    }
-
     /** Bortz domain contribution (sum of (x-mean)*coeff for indices in that domain, excluding controversial biomarkers). Lower = better. */
     function getBortzDomainContribution(
         values: readonly number[],
@@ -117,12 +110,9 @@
             var f = bortzAge.features[idx];
             var x = values[idx];
             if (!f || x === undefined) return NaN;
-            if (f.isLog) {
-                if (x <= 0) return NaN;
-                x = Math.log(x);
-            }
-            x = applyBortzCap(x, f);
-            sum += (x - f.mean) * f.baaCoeff;
+            var contribution = bortzAge.calculateFeatureContribution(x, f);
+            if (!Number.isFinite(contribution)) return NaN;
+            sum += contribution;
         }
         return sum * 10;
     }
