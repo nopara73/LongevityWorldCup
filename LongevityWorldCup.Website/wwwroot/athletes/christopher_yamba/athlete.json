@@ -1,7 +1,7 @@
 {
   "Name": "Christopher Yamba",
   "DisplayName": null,
-  "MediaContact": "dna2c@yambacode.com",
+  "MediaContact": "https://www.yambacode.com",
   "DateOfBirth": {
     "Year": 1977,
     "Month": 1,
@@ -24,5 +24,5 @@
   "Division": "Men's",
   "Flag": "Sweden",
   "Why": "To manifest my vision and to create and invent. The recursive nature of self improvement and search for meaning. To understand and get insight..",
-  "PersonalLink": null
+  "PersonalLink": "https://www.dna2c.com"
 }
