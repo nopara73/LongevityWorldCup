@@ -1,154 +1,169 @@
 <style>
-    /* Footer Styles */
     .footer {
-        background: var(--background-color);
-        color: var(--light-text-color);
-        padding: 1.75rem 0 1.6rem;
-        margin-top: 4rem;
-        position: relative;
         width: 100%;
         clear: both;
-        box-shadow: 0px -3px 10px rgba(0, 0, 0, 0.3); /* Adds depth to footer */
+        margin-top: 1.5rem;
+        padding: 2rem 0 1.75rem;
+        border-top: 1px solid var(--footer-edge-color, rgba(67, 238, 131, 0.24));
+        background: var(--footer-background, var(--lwc-scoreboard-chrome, #07100c));
+        color: var(--footer-text-color, var(--light-text-color, #f2f7f4));
+        position: relative;
     }
-
-    .footer-link {
-        color: var(--light-text-color);
-        text-decoration: none;
-        padding: 0.5rem 0.65rem;
-        border-radius: 8px;
-        transition: transform 0.3s ease-out, color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
-        display: flex;
-        align-items: center;
-        min-height: 2.75rem;
-        box-sizing: border-box;
-        width: 100%;
-        will-change: transform;
-        font-weight: 400;
-        font-size: 0.95rem;
-        letter-spacing: 0.005em;
-    }
-
-        .footer-link:hover {
-            color: var(--primary-color);
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateX(4px);
-        }
-
-        .footer-link:focus-visible {
-            color: var(--primary-color);
-            background: rgba(0, 188, 212, 0.12);
-            outline: 2px solid rgba(0, 188, 212, 0.72);
-            outline-offset: 3px;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-        }
-
-        .footer-link i {
-            width: 1.25rem;
-            margin-right: 0.75rem;
-            text-align: center;
-            font-size: 1.125rem;
-        }
 
     .footer-container {
-        max-width: 1200px;
+        width: min(100%, 58rem);
         margin: 0 auto;
-        padding: 0 1.5rem;
+        padding: 0 clamp(0.75rem, 4vw, 2rem);
+        box-sizing: border-box;
         display: grid;
-        grid-template-columns: repeat(2, minmax(8.5rem, max-content));
-        column-gap: clamp(4rem, 16vw, 13rem);
-        justify-content: center;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: clamp(0.75rem, 5vw, 4rem);
         align-items: start;
-        margin-bottom: 0;
     }
 
     .footer-column {
+        min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 0.05rem;
-        margin: 0;
-        align-items: flex-start;
+        gap: 0.125rem;
     }
 
-    @media (max-width: 768px) {
+    .footer-heading {
+        margin: 0 0 0.5rem;
+        padding: 0 0.625rem;
+        color: var(--footer-heading-color, var(--footer-accent-color, #43ee83));
+        font-family: var(--body-font-family, "Roboto", Arial, sans-serif);
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1.25;
+        letter-spacing: 0.11em;
+        text-align: left;
+        text-transform: uppercase;
+    }
+
+    .footer-link {
+        width: 100%;
+        min-width: 0;
+        min-height: 2.75rem;
+        padding: 0.5rem 0.625rem;
+        border: 1px solid transparent;
+        border-radius: var(--control-radius, 8px);
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        color: var(--footer-text-color, var(--light-text-color, #f2f7f4));
+        font-family: var(--body-font-family, "Roboto", Arial, sans-serif);
+        font-size: 0.95rem;
+        font-weight: 500;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+        text-decoration: none;
+        transition: color 0.16s ease, background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .footer-link:hover {
+        border-color: var(--footer-hover-edge-color, rgba(67, 238, 131, 0.3));
+        background: var(--footer-hover-background, rgba(67, 238, 131, 0.09));
+        color: var(--footer-hover-color, #ffffff);
+    }
+
+    .footer-link:focus-visible {
+        border-color: var(--footer-focus-color, var(--footer-accent-color, #43ee83));
+        background: var(--footer-focus-background, rgba(67, 238, 131, 0.12));
+        color: var(--footer-focus-text-color, #ffffff);
+        outline: 3px solid var(--footer-focus-color, var(--footer-accent-color, #43ee83));
+        outline-offset: 2px;
+        box-shadow: 0 0 0 1px var(--footer-background, var(--lwc-scoreboard-chrome, #07100c));
+    }
+
+    .footer-link i {
+        width: 1.25rem;
+        margin-right: 0.625rem;
+        flex: 0 0 1.25rem;
+        color: var(--footer-icon-color, var(--footer-accent-color, #43ee83));
+        font-size: 1rem;
+        text-align: center;
+    }
+
+    @media (max-width: 480px) {
         .footer {
-            padding: 1.65rem 0 1.35rem;
+            padding: 1.6rem 0 1.4rem;
         }
 
         .footer-container {
-            margin-bottom: 0;
-            padding: 0 2.5rem;
-            column-gap: clamp(2rem, 9vw, 3.25rem);
+            padding-inline: 0.75rem;
+            gap: 0.625rem;
+        }
+
+        .footer-heading {
+            padding-inline: 0.5rem;
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
         }
 
         .footer-link {
-            padding: 0.5rem 0.55rem;
-        }
-    }
-
-    @media (max-width: 375px) {
-        .footer-container {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            padding: 0 1rem;
-            column-gap: 1rem;
-        }
-
-        .footer-column {
-            margin: 0;
-        }
-
-        .footer-link {
-            padding-inline: 0.45rem;
-            font-size: 0.9rem;
+            padding-inline: 0.5rem;
+            font-size: 0.875rem;
         }
 
         .footer-link i {
-            width: 1.1rem;
-            margin-right: 0.55rem;
+            width: 1.125rem;
+            margin-right: 0.45rem;
+            flex-basis: 1.125rem;
+            font-size: 0.95rem;
         }
     }
 </style>
 
-<footer class="footer" style="margin-top: 1.5rem;">
-    <div class="footer-container">
-        <div class="footer-column">
-            <a href="https://merch.longevityworldcup.com/" target="_blank" rel="noopener" class="footer-link" aria-label="Shop Longevity World Cup merchandise">
-                <i class="fas fa-store"></i> Merch
-            </a>
-            <a href="https://github.com/nopara73/LongevityWorldCup/" target="_blank" rel="noopener" class="footer-link" aria-label="Visit Longevity World&nbsp;Cup GitHub repository">
-                <i class="fab fa-github"></i> GitHub
-            </a>
-            <a href="/history" class="footer-link" aria-label="Read the history of Longevity as a Sport">
-                <i class="fas fa-book-open"></i> History
+<footer class="footer">
+    <nav class="footer-container" aria-label="Footer navigation">
+        <section class="footer-column" aria-labelledby="footer-competition-heading">
+            <h2 id="footer-competition-heading" class="footer-heading">Competition</h2>
+            <a href="/about" class="footer-link">
+                <i class="fas fa-circle-info" aria-hidden="true"></i> About
             </a>
             <a href="/ruleset" class="footer-link" aria-label="Review the ruleset for Longevity World&nbsp;Cup">
-                <i class="fas fa-balance-scale"></i> Ruleset
+                <i class="fas fa-balance-scale" aria-hidden="true"></i> Ruleset
+            </a>
+            <a href="/history" class="footer-link" aria-label="Read the history of Longevity as a Sport">
+                <i class="fas fa-book-open" aria-hidden="true"></i> History
+            </a>
+            <a href="/media" class="footer-link">
+                <i class="fas fa-photo-film" aria-hidden="true"></i> Media
             </a>
             <a href="mailto:hi@longevityworldcup.com" class="footer-link" aria-label="Contact Longevity World&nbsp;Cup via email">
-                <i class="fas fa-envelope"></i> Contact
+                <i class="fas fa-envelope" aria-hidden="true"></i> Contact
+            </a>
+            <a href="https://github.com/nopara73/LongevityWorldCup/" target="_blank" rel="noopener" class="footer-link" aria-label="Visit Longevity World&nbsp;Cup GitHub repository">
+                <i class="fab fa-github" aria-hidden="true"></i> GitHub
+            </a>
+        </section>
+        <section class="footer-column" aria-labelledby="footer-community-heading">
+            <h2 id="footer-community-heading" class="footer-heading">Community</h2>
+            <a href="https://merch.longevityworldcup.com/" target="_blank" rel="noopener" class="footer-link" aria-label="Shop Longevity World Cup merchandise">
+                <i class="fas fa-store" aria-hidden="true"></i> Merch
             </a>
             <a href="https://www.youtube.com/playlist?list=PL4nqc85w185sO4i7eR3oUO_lMmlJ2K1cL" target="_blank" rel="noopener" class="footer-link" aria-label="Listen to Immortal Combat podcast on YouTube">
-                <i class="fas fa-podcast"></i> Podcast
+                <i class="fas fa-podcast" aria-hidden="true"></i> Podcast
             </a>
-        </div>
-        <div class="footer-column">
             <a href="https://x.com/LongevityWorldC" target="_blank" rel="noopener" class="footer-link" aria-label="Follow Longevity World Cup on X">
-                <i class="fab fa-twitter"></i> X
+                <i class="fab fa-twitter" aria-hidden="true"></i> X
             </a>
             <a href="https://www.reddit.com/r/LongevityWorldCup/" target="_blank" rel="noopener" class="footer-link" aria-label="Join the Longevity World Cup subreddit">
-                <i class="fab fa-reddit"></i> Reddit
+                <i class="fab fa-reddit" aria-hidden="true"></i> Reddit
             </a>
             <a href="https://www.tiktok.com/@nopara73" target="_blank" rel="noopener" class="footer-link" aria-label="Follow the Longevity World Cup on TikTok">
-                <i class="fab fa-tiktok"></i> TikTok
+                <i class="fab fa-tiktok" aria-hidden="true"></i> TikTok
             </a>
             <a href="https://www.threads.com/@longevityworldcup" target="_blank" rel="noopener" class="footer-link" aria-label="Follow Longevity World Cup on Threads">
-                <i class="fa-brands fa-threads"></i> Threads
+                <i class="fa-brands fa-threads" aria-hidden="true"></i> Threads
             </a>
             <a href="https://www.youtube.com/@longevityworldcup" target="_blank" rel="noopener" class="footer-link" aria-label="Visit Longevity World Cup on YouTube">
-                <i class="fab fa-youtube"></i> YouTube
+                <i class="fab fa-youtube" aria-hidden="true"></i> YouTube
             </a>
             <a href="https://www.instagram.com/LongevityWorldCup/" target="_blank" rel="noopener" class="footer-link" aria-label="Follow the Longevity World Cup on Instagram">
-                <i class="fab fa-instagram"></i> Instagram
+                <i class="fab fa-instagram" aria-hidden="true"></i> Instagram
             </a>
-        </div>
-    </div>
+        </section>
+    </nav>
 </footer>

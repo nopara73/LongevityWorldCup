@@ -136,37 +136,508 @@
                 transition: transform 0.2s ease, color 0.2s ease; /* Smooth transition for both color and size */
             }
 
-        .game-description {
-            text-align: center;
-            margin: 0 auto 1.1rem;
-            line-height: 1.55;
-            color: #334155;
-            font-size: clamp(1.02rem, 1.3vw, 1.08rem);
-            font-weight: 400;
-            letter-spacing: 0.005em;
-            max-width: 43em;
-            padding: 0 1rem;
+        .homepage-page {
+            --homepage-chrome: var(--lwc-scoreboard-chrome, #07100c);
+            --homepage-live: var(--lwc-live-green, #43ee83);
         }
 
-        .game-description strong {
-            font-weight: 600;
-            color: #1f2937;
+        .homepage-page > header {
+            padding: 0.75rem 0 0.95rem;
+            background:
+                radial-gradient(circle at 50% -70%, rgba(67, 238, 131, 0.15), transparent 52%),
+                linear-gradient(120deg, #050806, #1a211d);
+            box-shadow: none;
         }
 
-        .game-description a {
-            color: inherit;
-            font-weight: inherit;
-            text-decoration: none;
-            border-radius: 3px;
+        .homepage-page > header .header-link > .main-logo-image {
+            width: clamp(58px, 6vw, 68px);
+            margin-bottom: 0.35rem;
         }
 
-        .game-description a:hover,
-        .game-description a:focus-visible {
-            color: var(--primary-color);
-            text-decoration: underline;
-            text-decoration-thickness: 0.08em;
-            text-underline-offset: 0.16em;
+        .homepage-page > header .bannertext {
+            font-size: clamp(1.75rem, 2.8vw, 2rem);
+        }
+
+        .homepage-page > header .tagline {
+            display: none;
+        }
+
+        .homepage-page > header .join-game {
+            min-height: 44px;
+            margin-top: 0.72rem;
+            padding: 0.72rem 1.55rem;
+            background: var(--homepage-live);
+            color: #07100c;
+            font-weight: 700;
+            box-shadow: 0 0 0 1px rgba(67, 238, 131, 0.45), 0 10px 28px rgba(0, 0, 0, 0.26);
+            animation: none;
+        }
+
+        .homepage-page > header .join-game:hover,
+        .homepage-page > header .join-game:focus-visible {
+            background: #72f4a2;
+            color: #030604;
+            transform: translateY(-1px);
+            box-shadow: 0 0 0 3px rgba(67, 238, 131, 0.2), 0 12px 30px rgba(0, 0, 0, 0.32);
             outline: none;
+        }
+
+        .homepage-page main {
+            margin-top: 1rem;
+        }
+
+        .homepage-scoreboard {
+            position: relative;
+            max-width: 1140px;
+            margin: 0 auto 1.35rem;
+            overflow: hidden;
+            color: #f6f8f6;
+            background:
+                radial-gradient(circle at 82% 16%, rgba(67, 238, 131, 0.14), transparent 34%),
+                linear-gradient(135deg, var(--homepage-chrome), #101713 72%, #152019);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            box-shadow: 0 18px 45px rgba(6, 13, 9, 0.2);
+            isolation: isolate;
+        }
+
+        .homepage-scoreboard::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.24;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: linear-gradient(90deg, #000, transparent 78%);
+        }
+
+        .homepage-scoreboard-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.16fr) minmax(300px, 0.84fr);
+            gap: clamp(1.5rem, 4vw, 3.4rem);
+            align-items: center;
+            padding: clamp(1.6rem, 3.7vw, 3rem);
+        }
+
+        .homepage-scoreboard-intro {
+            min-width: 0;
+        }
+
+        .homepage-scoreboard-kicker {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            margin: 0 0 0.75rem;
+            color: #9ef6bf;
+            font-size: 0.77rem;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .homepage-scoreboard-kicker span {
+            width: 0.52rem;
+            height: 0.52rem;
+            flex: 0 0 auto;
+            border-radius: 50%;
+            background: var(--homepage-live);
+            box-shadow: 0 0 0 4px rgba(67, 238, 131, 0.12);
+        }
+
+        .homepage-scoreboard h1 {
+            max-width: 12em;
+            margin: 0;
+            padding: 0;
+            color: #ffffff;
+            font-size: clamp(2.15rem, 4vw, 3.45rem);
+            font-weight: 700;
+            line-height: 0.98;
+            letter-spacing: -0.035em;
+            text-align: left;
+            text-shadow: none;
+            text-wrap: balance;
+        }
+
+        .homepage-scoreboard-lede {
+            max-width: 38rem;
+            margin: 1rem 0 0;
+            color: #cbd6cf;
+            font-size: clamp(0.96rem, 1.25vw, 1.06rem);
+            line-height: 1.55;
+        }
+
+        .homepage-scoreboard-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem 1.1rem;
+            align-items: center;
+            margin-top: 1.15rem;
+        }
+
+        .homepage-scoreboard-action,
+        .homepage-scoreboard-rules,
+        .homepage-scoreboard-unavailable-link {
+            min-height: 44px;
+            box-sizing: border-box;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            border-radius: 999px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .homepage-scoreboard-action {
+            padding: 0.68rem 1rem;
+            border: 1px solid rgba(67, 238, 131, 0.48);
+            background: rgba(67, 238, 131, 0.1);
+            color: #baf9d0;
+        }
+
+        .homepage-scoreboard-rules {
+            padding: 0.68rem 0.35rem;
+            color: #dce5df;
+        }
+
+        .homepage-scoreboard-action:hover,
+        .homepage-scoreboard-action:focus-visible,
+        .homepage-scoreboard-unavailable-link:hover,
+        .homepage-scoreboard-unavailable-link:focus-visible {
+            border-color: var(--homepage-live);
+            background: rgba(67, 238, 131, 0.17);
+            color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(67, 238, 131, 0.14);
+            transform: translateY(-1px);
+            outline: none;
+        }
+
+        .homepage-scoreboard-rules:hover,
+        .homepage-scoreboard-rules:focus-visible {
+            color: #ffffff;
+            text-decoration: underline;
+            text-underline-offset: 0.2em;
+            outline: 2px solid rgba(67, 238, 131, 0.55);
+            outline-offset: 3px;
+        }
+
+        .homepage-scoreboard-record {
+            min-width: 0;
+            padding: clamp(1.15rem, 2.6vw, 1.65rem);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 14px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 14px 35px rgba(0, 0, 0, 0.18);
+        }
+
+        .homepage-scoreboard-record-label,
+        .homepage-scoreboard-score-label {
+            display: block;
+            color: #91a198;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .homepage-scoreboard-leader {
+            display: inline-flex;
+            align-items: center;
+            max-width: 100%;
+            min-height: 44px;
+            margin-top: 0.25rem;
+            color: #ffffff;
+            font-size: clamp(1.12rem, 2vw, 1.35rem);
+            font-weight: 700;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+            text-decoration: none;
+        }
+
+        .homepage-scoreboard-leader:hover {
+            color: var(--homepage-live);
+            text-decoration: underline;
+            text-underline-offset: 0.18em;
+        }
+
+        .homepage-scoreboard-leader:focus-visible {
+            border-radius: 4px;
+            color: var(--homepage-live);
+            text-decoration: underline;
+            text-underline-offset: 0.18em;
+            outline: 2px solid var(--homepage-live);
+            outline-offset: 3px;
+        }
+
+        .homepage-scoreboard-score {
+            display: flex;
+            align-items: baseline;
+            gap: 0.55rem;
+            margin-top: 0.75rem;
+            color: var(--homepage-live);
+            line-height: 1;
+        }
+
+        .homepage-scoreboard-score-value {
+            font-family: 'Orbitron', 'Roboto', sans-serif;
+            font-size: clamp(2.25rem, 5vw, 3.75rem);
+            font-weight: 700;
+            letter-spacing: -0.055em;
+        }
+
+        .homepage-scoreboard-score-unit {
+            max-width: 6.5rem;
+            color: #c9f8d9;
+            font-size: 0.86rem;
+            font-weight: 700;
+            line-height: 1.15;
+        }
+
+        .homepage-scoreboard-score.is-pending .homepage-scoreboard-score-value {
+            font-family: 'Roboto', sans-serif;
+            font-size: 1.35rem;
+            letter-spacing: 0;
+        }
+
+        .homepage-scoreboard-score-label {
+            margin-top: 0.35rem;
+        }
+
+        .homepage-scoreboard-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.55rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .homepage-scoreboard-metric {
+            min-width: 0;
+        }
+
+        .homepage-scoreboard-metric strong,
+        .homepage-scoreboard-metric span {
+            display: block;
+        }
+
+        .homepage-scoreboard-metric strong {
+            color: #ffffff;
+            font-family: 'Orbitron', 'Roboto', sans-serif;
+            font-size: 1.15rem;
+            line-height: 1.15;
+        }
+
+        .homepage-scoreboard-metric span {
+            margin-top: 0.18rem;
+            color: #9eada4;
+            font-size: 0.69rem;
+            line-height: 1.2;
+        }
+
+        .homepage-scoreboard-record.is-unavailable {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            min-height: 180px;
+        }
+
+        .homepage-scoreboard-unavailable-title {
+            margin-top: 0.65rem;
+            color: #ffffff;
+            font-size: 1.4rem;
+        }
+
+        .homepage-scoreboard-unavailable-copy {
+            margin-top: 0.55rem;
+            color: #b8c5bd;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .homepage-scoreboard-unavailable-link {
+            margin-top: 0.85rem;
+            padding: 0.62rem 0.9rem;
+            border: 1px solid rgba(67, 238, 131, 0.4);
+            color: #baf9d0;
+        }
+
+        .homepage-scoreboard-proofline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem 1.4rem;
+            align-items: center;
+            padding: 0.78rem clamp(1.6rem, 3.7vw, 3rem);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.13);
+            color: #9faca4;
+            font-size: 0.74rem;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        .homepage-scoreboard-proofline span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.42rem;
+        }
+
+        .homepage-scoreboard-proofline i {
+            color: #75e99e;
+        }
+
+        .homepage-standings-anchor {
+            height: 1px;
+            scroll-margin-top: 70px;
+        }
+
+        @media (max-width: 760px) {
+            .homepage-scoreboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1.35rem;
+            }
+
+            .homepage-scoreboard h1 {
+                max-width: 15em;
+                font-size: clamp(1.85rem, 8vw, 2.35rem);
+                line-height: 1.02;
+            }
+
+            .homepage-scoreboard-lede {
+                margin-top: 0.8rem;
+            }
+
+            .homepage-scoreboard-actions {
+                margin-top: 0.85rem;
+            }
+
+            .homepage-scoreboard-record {
+                padding: 1rem;
+            }
+
+            .homepage-scoreboard-score-value {
+                font-size: clamp(2.15rem, 12vw, 3rem);
+            }
+
+            .homepage-scoreboard-proofline {
+                justify-content: space-between;
+                gap: 0.55rem;
+                padding: 0.7rem 1.35rem;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .homepage-page > header {
+                padding: 0.56rem 0 0.68rem;
+            }
+
+            .homepage-page > header .header-link > .main-logo-image {
+                width: 54px;
+                margin-bottom: 0.25rem;
+            }
+
+            .homepage-page > header .bannertext {
+                font-size: 1.68rem;
+                line-height: 1.04;
+            }
+
+            .homepage-page > header .join-game {
+                margin-top: 0.58rem;
+                padding: 0.66rem 1.3rem;
+                font-size: 1rem;
+            }
+
+            .homepage-page main {
+                margin-top: 0.4rem;
+                padding-inline: 0.7rem;
+            }
+
+            .homepage-scoreboard {
+                margin-bottom: 1rem;
+                border-radius: 15px;
+            }
+
+            .homepage-scoreboard-grid {
+                gap: 0.8rem;
+                padding: 0.98rem 1.05rem;
+            }
+
+            .homepage-scoreboard-kicker {
+                margin-bottom: 0.55rem;
+                font-size: 0.68rem;
+            }
+
+            .homepage-scoreboard h1 {
+                font-size: 1.65rem;
+            }
+
+            .homepage-scoreboard-lede {
+                margin-top: 0.65rem;
+                font-size: 0.87rem;
+                line-height: 1.42;
+            }
+
+            .homepage-scoreboard-actions {
+                gap: 0.45rem 0.8rem;
+                margin-top: 0.68rem;
+            }
+
+            .homepage-scoreboard-action,
+            .homepage-scoreboard-rules {
+                font-size: 0.82rem;
+            }
+
+            .homepage-scoreboard-record {
+                padding: 0.88rem;
+            }
+
+            .homepage-scoreboard-leader {
+                margin-top: 0.15rem;
+                font-size: 1rem;
+            }
+
+            .homepage-scoreboard-score {
+                margin-top: 0.45rem;
+            }
+
+            .homepage-scoreboard-score-value {
+                font-size: 2rem;
+            }
+
+            .homepage-scoreboard-score-unit {
+                font-size: 0.74rem;
+            }
+
+            .homepage-scoreboard-metrics {
+                gap: 0.4rem;
+                margin-top: 0.7rem;
+                padding-top: 0.7rem;
+            }
+
+            .homepage-scoreboard-metric strong {
+                font-size: 0.96rem;
+            }
+
+            .homepage-scoreboard-metric span {
+                font-size: 0.62rem;
+            }
+
+            .homepage-scoreboard-proofline {
+                justify-content: flex-start;
+                gap: 0.38rem 0.85rem;
+                padding: 0.56rem 1.05rem;
+                font-size: 0.65rem;
+            }
         }
 
         /* Common container for sections */
@@ -1181,12 +1652,6 @@
         }
 
         @media (max-width: 576px) {
-            .game-description {
-                margin-bottom: 1.05rem;
-                padding: 0 1.35rem;
-                line-height: 1.5;
-            }
-
             .lwc-highlights-countdown-wrapper {
                 margin-top: 1.25rem;
                 gap: 1.2rem;
@@ -1688,14 +2153,12 @@
 
     </style>
 </head>
-<body>
+<body class="homepage-page">
     <!--HEADER-->
     <main>
-        <h1 class="visually-hidden">Longevity World Cup</h1>
-        <p class="game-description">
-            Too old for your sport? Not <a href="/about">this&nbsp;one</a>. Reverse&nbsp;your&nbsp;age and <strong>rise&nbsp;on&nbsp;the&nbsp;leaderboard!</strong>
-        </p>
+        <!--HOMEPAGE-SCOREBOARD-->
 
+        <div id="live-standings" class="homepage-standings-anchor" aria-hidden="true"></div>
         <!--LEADERBOARD-CONTENT-->
         <div class="full-rankings-action">
             <button id="viewAllAthletesBtn" onclick="window.location.href = window.getFullLeaderboardUrlWithCurrentState ? window.getFullLeaderboardUrlWithCurrentState() : '/leaderboard'" class="rankings-btn" aria-label="View all athletes on the leaderboard">
