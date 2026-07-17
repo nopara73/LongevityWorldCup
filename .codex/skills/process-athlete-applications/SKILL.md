@@ -9,6 +9,7 @@ description: Review and process Longevity World Cup athlete submission emails fr
 
 - Read `UBIQUITOUS_LANGUAGE.md` before judging applications, results, rankings, athlete onboarding, badges, Events, or competition copy.
 - Use Gmail connector tools when available. If Gmail tools are not loaded, search for them with `tool_search` before using browser workarounds.
+- Use the Gmail connector for discovery, reading, thread context, draft scaffolding, and attachment metadata. Use the Codex in-app Browser as the authoritative surface for sender-aware drafts because the Gmail connector cannot select a send-as `From` address. Do not use the Browser for ZIP downloads.
 - For Gmail ZIP attachments, do not use Chrome, Computer Use, the Gmail web UI, visible attachment controls, attachment URLs, or browser downloads. Use the raw Gmail attachment downloader bundled in this skill. If that path fails, diagnose or fix that path and stop with the blocker; do not invent a browser fallback.
 - When invoked without additional instructions, process all unprocessed athlete submissions by scanning unread Gmail submission candidates until none remain or human direction is required.
 - Never mark Gmail submission messages read, remove `UNREAD`, add `UNREAD`, archive, trash, or otherwise change Gmail labels/state. The user marks submission emails manually. Reading/searching messages and creating draft replies is allowed; label mutation is not.
@@ -120,6 +121,8 @@ Search Gmail broadly enough to catch separate threads:
 Read all likely related threads, including sent replies and old follow-ups. If results are numerous, narrow by the identity anchors above, but still summarize what was searched and why excluded hits were not relevant.
 
 Carry forward facts from earlier messages: prior missing-proof requests, promised corrections, alternate contact addresses, payment explanations, previous submissions, prior rejection reasons, and any human decisions. If related history contradicts the current submission, mark the decision as needs human judgment unless the contradiction is clearly resolved in later messages.
+
+Also record the `From` address used in prior direct human replies to this requester. Use that sender history when choosing the sender for the new draft; do not treat automated notifications as prior human correspondence.
 
 ## Existing Athlete Security Verification
 
@@ -257,6 +260,28 @@ Mark the submission blocked and prepare a draft reply when any of these are true
 
 For obvious issues, draft the email directly. For uncertain medical/unit interpretation issues, explain the uncertainty in the summary and wait for the human decision.
 
+## Choose And Save The Draft Sender
+
+Choose the draft's `From` address in this order:
+
+1. Preserve the direct route of the latest athlete/requester-authored inbound message:
+   - When it was addressed directly to `hi@longevityworldcup.com`, reply from `hi@longevityworldcup.com`.
+   - When it was addressed directly to `adam.ficsor73@gmail.com`, reply from `adam.ficsor73@gmail.com`.
+   - When it was addressed directly to `adam@longevityworldcup.com`, reply from `adam@longevityworldcup.com`.
+2. When the direct recipient is another address or is ambiguous, inspect related sent history. Reuse the sender from the most recent direct human exchange with this requester among `hi@longevityworldcup.com`, `adam.ficsor73@gmail.com`, and `adam@longevityworldcup.com`. Prefer a continuing two-way conversation over an older or automated message.
+3. When no useful direct route or prior human correspondence exists, use `adam@longevityworldcup.com`.
+4. An explicit sender instruction from the user overrides this hierarchy.
+
+Use this draft workflow:
+
+1. Check active Gmail drafts for the same thread or recipient before creating anything.
+2. When replying to an existing message, use the Gmail connector to create the threaded draft scaffold with `reply_message_id`. This preserves the thread, but its initial sender is not authoritative.
+3. Open that draft from Gmail's Drafts view in the Codex in-app Browser under the `adam.ficsor73@gmail.com` Google profile. Identify the profile by its displayed account email; do not assume a fixed `/u/0` or `/u/1` index. Do not open the source Inbox message merely to reach the draft.
+4. Expand the draft headers, select the `From` address chosen above, and confirm the recipient, subject, and body. Save and close the draft; never click Send before explicit approval.
+5. Verify the saved draft with Gmail `list_drafts`, including the exact `From` address. Verify that the source submission still has `UNREAD`; do not add or remove labels to repair state.
+
+If the Adam Google profile is not signed in, the required send-as address is unavailable, or the saved draft reports the wrong `From`, stop and report the blocker. Do not leave a draft from the wrong sender as if it were ready.
+
 ## Draft Replies
 
 Draft replies in Gmail, do not send them before approval.
@@ -330,11 +355,11 @@ In Gmail's rich-text editor, hyperlink only the visible words `TumbleBit Slack` 
 
 Stop after review and present a summary before any send/commit/push. Include:
 
-For an existing-athlete security-verification-only draft, keep the summary short: athlete name/profile, Gmail thread/message id, recipient, exact draft text or existing draft id, and `No ZIP downloaded, no files inspected or changed, no ledger written, Gmail labels untouched.` Do not include JSON highlights, proof checklist, files changed, or folder-open status for this fast path.
+For an existing-athlete security-verification-only draft, keep the summary short: athlete name/profile, Gmail thread/message id, recipient, selected `From` address and why it was chosen, exact draft text or existing draft id, and `No ZIP downloaded, no files inspected or changed, no ledger written, Gmail labels untouched.` Do not include JSON highlights, proof checklist, files changed, or folder-open status for this fast path.
 
 - Recommended decision: approve, block, or needs human judgment.
 - Athlete folder path and public profile URL. Folder keys use underscores; profile URLs use hyphens.
-- Gmail thread/message used and whether a draft reply was created.
+- Gmail thread/message used, whether a draft reply was created, and the verified `From` address.
 - Related email history reviewed: search anchors used, additional threads found, alternate requester addresses, and relevant prior context.
 - Processed ledger: whether this was new, reprocessed because of newer email, or explicitly overridden by the user.
 - Existing-athlete security verification: draft created, skipped with cited evidence, pending athlete reply, or explicitly overridden by the user.
@@ -358,6 +383,6 @@ Only after the user approves:
 2. Stage only the accepted athlete files and any intentional supporting changes.
 3. Commit with a short message such as `Add {Name} athlete` or `Update {Name} athlete results`.
 4. Push `origin master` only when on `master` and the user approved pushing. If not on `master`, ask before switching or pushing.
-5. Send the approved Gmail reply in the original thread with the athlete link.
+5. Recheck the approved draft's `From` address, then send it in the original thread with the athlete link.
 6. Leave Gmail unread/read labels and other message labels unchanged; the user marks submission emails manually.
 7. Report the commit hash, pushed branch, profile URL, email-send status, and confirmation that Gmail labels were left untouched.
