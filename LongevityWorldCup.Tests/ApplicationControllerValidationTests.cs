@@ -736,13 +736,17 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, false, "https://pay.example.test/invoice", false]);
+        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, false, "https://pay.example.test/invoice", false, "https://slack.example.test/invite"]);
 
         Assert.NotNull(body);
-        Assert.Contains("Hi Athlete Ada,", body);
+        Assert.Contains("Hey Athlete Ada,", body);
         Assert.Contains("result upload and proof", body);
         Assert.Contains("update your athlete profile", body);
         Assert.Contains("https://pay.example.test/invoice", body);
+        Assert.Contains("Questions, concerns, or signs of aging? Reply to this email.", body);
+        Assert.Contains("Want to hang out with other longevity athletes?", body);
+        Assert.Contains("https://slack.example.test/invite", body);
+        Assert.DoesNotContain("Questions or corrections?", body);
         Assert.DoesNotContain("could not create the payment page automatically", body);
         Assert.DoesNotContain("application, which usually takes a day or two", body);
     }
@@ -752,7 +756,7 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, false, null, true]);
+        var body = (string?)method!.Invoke(null, ["Athlete Ada", true, false, null, true, "https://slack.example.test/invite"]);
 
         Assert.NotNull(body);
         Assert.Contains("result upload and proof", body);
@@ -766,12 +770,14 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Athlete Ada", false, true, null, true]);
+        var body = (string?)method!.Invoke(null, ["Athlete Ada", false, true, null, true, "https://slack.example.test/invite"]);
 
         Assert.NotNull(body);
-        Assert.Contains("Hi Athlete Ada,", body);
+        Assert.Contains("Hey Athlete Ada,", body);
         Assert.Contains("profile change request", body);
         Assert.Contains("update your athlete profile", body);
+        Assert.Contains("Questions, concerns, or signs of aging? Reply to this email.", body);
+        Assert.Contains("https://slack.example.test/invite", body);
         Assert.DoesNotContain("result upload and proof", body);
         Assert.DoesNotContain("application, which usually takes a day or two", body);
         Assert.DoesNotContain("could not create the payment page automatically", body);
@@ -782,11 +788,13 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, false, null, false]);
+        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, false, null, false, "https://slack.example.test/invite"]);
 
         Assert.NotNull(body);
-        Assert.Contains("Hi Applicant Ada,", body);
+        Assert.Contains("Hey Applicant Ada,", body);
         Assert.Contains("application, which usually takes a day or two", body);
+        Assert.Contains("Questions, concerns, or signs of aging? Reply to this email.", body);
+        Assert.Contains("https://slack.example.test/invite", body);
         Assert.DoesNotContain("result upload and proof", body);
     }
 
@@ -795,12 +803,45 @@ public sealed class ApplicationControllerValidationTests
     {
         var method = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
 
-        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, false, null, true]);
+        var body = (string?)method!.Invoke(null, ["Applicant Ada", false, false, null, true, "https://slack.example.test/invite"]);
 
         Assert.NotNull(body);
         Assert.Contains("application, which usually takes a day or two", body);
         Assert.Contains("Your application also has a payment step, but we could not create the payment page automatically.", body);
         Assert.DoesNotContain("If you were not redirected automatically", body);
+    }
+
+    [Fact]
+    public void SubmissionConfirmationHtmlBody_UsesLinkedSlackTextWithoutVisibleRawUrl()
+    {
+        var buildTextMethod = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
+        var buildHtmlMethod = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationHtmlBody", BindingFlags.Static | BindingFlags.NonPublic);
+        const string slackInviteUrl = "https://slack.example.test/invite";
+        var textBody = (string?)buildTextMethod!.Invoke(null, ["Athlete Ada", true, false, null, false, slackInviteUrl]);
+
+        var htmlBody = (string?)buildHtmlMethod!.Invoke(null, [textBody!, slackInviteUrl]);
+
+        Assert.NotNull(htmlBody);
+        Assert.Contains($"href=\"{slackInviteUrl}\"", htmlBody);
+        Assert.Contains(">TumbleBit Slack</a>!", htmlBody);
+        Assert.DoesNotContain($">{slackInviteUrl}</a>", htmlBody);
+        Assert.DoesNotContain($"<br />\n{slackInviteUrl}", htmlBody);
+        Assert.Contains("Hey Athlete Ada,", htmlBody);
+    }
+
+    [Fact]
+    public void SubmissionConfirmationHtmlBody_EncodesApplicantSuppliedText()
+    {
+        var buildTextMethod = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationBody", BindingFlags.Static | BindingFlags.NonPublic);
+        var buildHtmlMethod = typeof(ApplicationController).GetMethod("BuildSubmissionConfirmationHtmlBody", BindingFlags.Static | BindingFlags.NonPublic);
+        const string slackInviteUrl = "https://slack.example.test/invite";
+        var textBody = (string?)buildTextMethod!.Invoke(null, ["Athlete <Ada & Co>", true, false, null, false, slackInviteUrl]);
+
+        var htmlBody = (string?)buildHtmlMethod!.Invoke(null, [textBody!, slackInviteUrl]);
+
+        Assert.NotNull(htmlBody);
+        Assert.Contains("Hey Athlete &lt;Ada &amp; Co&gt;,", htmlBody);
+        Assert.DoesNotContain("Hey Athlete <Ada & Co>,", htmlBody);
     }
 
     [Fact]
