@@ -283,21 +283,48 @@ Common `{specific issue}` examples:
 - `I could not safely censor {identifier type} without hiding the proof values needed for verification. Please upload a censored version.`
 - `The submission still shows a payment due, and I do not see a payment confirmation yet. Please complete the payment or reply if you believe it was already paid.`
 
-When accepted and the user approves finalization, send a welcome/update reply:
+When accepted and the user approves finalization, send a welcome/update reply. If you changed any athlete-submitted information during review, include a `Changes I made during the review:` section before the profile link. Use one short bullet per change, explaining what the athlete submitted and what was ultimately stored; include the original and corrected values or units when relevant.
+
+List only changes the athlete should know about. Do not mention routine processing, proof-file redaction, filenames, internal implementation details, or the normal addition of an accepted result. Never invent a change. When no corrections were made, omit the heading and the entire section.
+
+Examples:
+
+- `Your glucose was submitted as 90 mmol/L, but the proof shows 90 mg/dL, so I stored it as 5.0 mmol/L.`
+- `I corrected your Instagram handle from @oldvalue to @correctvalue.`
+
+For an accepted full application, use:
 
 ```text
-Hi {name},
+Hey {name},
 
-Your Longevity World Cup profile is live:
-{profileUrl}
+I'm Adam, the founder of LWC. I reviewed your application and it looks good to me.
 
-Welcome to the Longevity World Cup. Please reply if you spot anything that needs a correction.
+{Include the Changes I made during the review section here only when required by the preceding instructions.}
 
-Best,
-Longevity World Cup
+Your athlete profile: {profileUrl}
+
+Please reply if you spot anything that needs a correction.
+
+Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
 ```
 
-For result uploads or profile updates, replace the welcome sentence with `Your Longevity World Cup profile has been updated.`
+For an accepted result upload or profile update, use:
+
+```text
+Hey {name},
+
+Your Longevity World Cup profile has been updated.
+
+{Include the Changes I made during the review section here only when required by the preceding instructions.}
+
+Your athlete profile: {profileUrl}
+
+Please reply if you spot anything that needs a correction.
+
+Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
+```
+
+In Gmail's rich-text editor, hyperlink only the visible words `TumbleBit Slack` in the final sentence to `https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ`. Do not paste the full Slack URL into the visible email body. Keep the Slack invitation as the final paragraph, with no signature after it.
 
 ## Human Approval Summary
 
