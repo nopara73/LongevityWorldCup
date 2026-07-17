@@ -1,0 +1,28 @@
+{
+  "Name": "Eszter Bederna",
+  "DisplayName": null,
+  "MediaContact": "bedernaeszter@gmail.com",
+  "DateOfBirth": {
+    "Year": 1982,
+    "Month": 11,
+    "Day": 3
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-04-10",
+      "AlbGL": 44,
+      "CreatUmolL": 60,
+      "GluMmolL": 4.9,
+      "CrpMgL": 1.4,
+      "LymPc": 29.8,
+      "McvFL": 91,
+      "RdwPc": 12.7,
+      "AlpUL": 67,
+      "Wbc1000cellsuL": 7.7
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Magyarország",
+  "Why": "Minél hosszabb és egészségesebb élet a kislányommal :)",
+  "PersonalLink": null
+}
