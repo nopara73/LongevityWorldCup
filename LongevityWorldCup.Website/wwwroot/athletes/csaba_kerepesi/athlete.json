@@ -1,0 +1,28 @@
+{
+  "Name": "Csaba Kerepesi",
+  "DisplayName": null,
+  "MediaContact": "kerepesi@sztaki.hu",
+  "DateOfBirth": {
+    "Year": 1983,
+    "Month": 8,
+    "Day": 12
+  },
+  "Biomarkers": [
+    {
+      "Date": "2022-02-09",
+      "AlbGL": 47.9,
+      "CreatUmolL": 80,
+      "GluMmolL": 4.28,
+      "CrpMgL": 3.9,
+      "LymPc": 41,
+      "McvFL": 92,
+      "RdwPc": 11.7,
+      "AlpUL": 75,
+      "Wbc1000cellsuL": 7.14
+    }
+  ],
+  "Division": "Open",
+  "Flag": "SZTAKI BioAgeAI",
+  "Why": "I am just curious about biohacking.",
+  "PersonalLink": "https://kerepesi.web.elte.hu/"
+}
