@@ -1446,6 +1446,23 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task StoppingCommunityCallEmailsKeepsDailyChallengeRemindersEnabled()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        await fixture.ConfirmParticipantAsync("call-opt-out@example.com", "Call Opt Out");
+
+        var callReminder = Assert.Single(
+            fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
+
+        fixture.Service.StopCommunityCallEmails(
+            callReminder.StopToken,
+            DateTimeOffset.Parse("2026-06-06T06:36:00Z"));
+
+        Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:37:00Z")));
+        Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T08:05:00Z")));
+    }
+
+    [Fact]
     public void CallAnnouncementCandidatesUseOneHourWindowAndSendOncePerCall()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -1508,13 +1525,16 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var content = SmtpLongevitymaxxingEmailSender.BuildCallReminderEmailContent(
             reminder,
             fixture.Service.BuildAccessUrl(reminder.AccessToken),
-            fixture.Service.BuildStopUrl(reminder.StopToken));
+            fixture.Service.BuildCommunityCallStopUrl(reminder.StopToken));
 
         Assert.Contains("Call link:\nhttps://meet.example.test", content.TextBody);
         Assert.Contains("The Longevitymaxxing Community call starts", content.TextBody);
         Assert.Contains("2026-06-07 08:30 (Europe/Budapest)", content.TextBody);
         Assert.Equal("Longevitymaxxing Community call reminder", content.Subject);
         Assert.Contains("Participant page:\nhttps://example.test/longevitymaxxing?", content.TextBody);
+        Assert.Contains("Stop community call emails: https://example.test/longevitymaxxing?stop=", content.TextBody);
+        Assert.Contains("&scope=community-call", content.TextBody);
+        Assert.DoesNotContain("Stop challenge emails:", content.TextBody);
         Assert.DoesNotContain("2026-06-08 06:30 UTC", content.TextBody);
         Assert.DoesNotContain("UTC+02:00", content.TextBody);
         Assert.DoesNotContain("Full call schedule:", content.TextBody);
