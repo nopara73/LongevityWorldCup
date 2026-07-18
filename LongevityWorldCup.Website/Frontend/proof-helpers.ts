@@ -266,7 +266,7 @@ window.setupProofUploadHTML = function (
         quality: 0.88,
         targetMaxBytes: 1.5 * 1024 * 1024
     };
-    const maxProofImages = 35;
+    const maxProofImages = 37;
 
     ensurePdfJsReady().catch(() => {});
 
