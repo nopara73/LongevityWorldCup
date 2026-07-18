@@ -1,0 +1,41 @@
+{
+  "Name": "Patrick Ruff",
+  "DisplayName": null,
+  "MediaContact": "@pat_ruff",
+  "DateOfBirth": {
+    "Year": 1985,
+    "Month": 3,
+    "Day": 8
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-07-08",
+      "AlbGL": 51,
+      "CreatUmolL": 105.31,
+      "GluMmolL": 4.44,
+      "CrpMgL": 0.4,
+      "LymPc": 21.5,
+      "McvFL": 90.4,
+      "RdwPc": 12.4,
+      "AlpUL": 88,
+      "Wbc1000cellsuL": 6.3,
+      "NeutrophilPc": 71,
+      "MonocytePc": 6.1,
+      "Rbc10e12L": 5.44,
+      "MchPg": 29,
+      "UreaMmolL": 8.57,
+      "CystatinCMgL": 0.84,
+      "Hba1cMmolMol": 34.43,
+      "CholesterolMmolL": 4.6,
+      "ApoA1GL": 1.66,
+      "AltUL": 15,
+      "GgtUL": 16,
+      "ShbgNmolL": 44,
+      "VitaminDNmolL": 345
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "United States",
+  "Why": "My ego, my love of progress, my hope for the future",
+  "PersonalLink": "https://www.patrickruff.com"
+}
