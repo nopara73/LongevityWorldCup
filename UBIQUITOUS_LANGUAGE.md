@@ -30,3 +30,4 @@ Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age 
 ## Longevitymaxxing Challenge
 
 - Public community-call social announcements are social-only Custom Events queued about one hour before each selected call; they may include the public video call URL, but never participant access or stop links.
+- Community-call reminder emails have their own opt-out; stopping them does not stop daily Challenge emails.

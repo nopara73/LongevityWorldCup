@@ -11,7 +11,7 @@ public interface ILongevitymaxxingEmailSender
     Task SendConfirmationAsync(string email, string displayName, string confirmationUrl, CancellationToken ct = default);
     Task SendAccessLinkAsync(string email, string displayName, string accessUrl, CancellationToken ct = default);
     Task SendDailyReminderAsync(LongevitymaxxingReminderCandidate reminder, string checkInUrl, string stopUrl, CancellationToken ct = default);
-    Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopUrl, CancellationToken ct = default);
+    Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopCommunityCallUrl, CancellationToken ct = default);
     Task SendChallengeStartAsync(LongevitymaxxingChallengeStartCandidate start, string challengeUrl, string stopUrl, CancellationToken ct = default);
 }
 
@@ -50,9 +50,9 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         return SendAsync(reminder.Email, reminder.DisplayName, content.Subject, content.TextBody, ct, content.Attachments);
     }
 
-    public Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopUrl, CancellationToken ct = default)
+    public Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopCommunityCallUrl, CancellationToken ct = default)
     {
-        var content = BuildCallReminderEmailContent(reminder, challengeUrl, stopUrl);
+        var content = BuildCallReminderEmailContent(reminder, challengeUrl, stopCommunityCallUrl);
         return SendAsync(reminder.Email, reminder.DisplayName, content.Subject, content.TextBody, ct, content.Attachments);
     }
 
@@ -126,7 +126,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
     internal static LongevitymaxxingEmailContent BuildCallReminderEmailContent(
         LongevitymaxxingCallReminderCandidate reminder,
         string challengeUrl,
-        string stopUrl)
+        string stopCommunityCallUrl)
     {
         var localStartsAt = FormatInParticipantTimeZone(reminder.StartsAtUtc, reminder.TimeZoneId);
         var link = string.IsNullOrWhiteSpace(reminder.VideoCallUrl)
@@ -139,7 +139,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             $"The Longevitymaxxing {callLabel} starts at {localStartsAt}.\n" +
             $"{link}\n\n" +
             $"Participant page:\n{challengeUrl}\n\n" +
-            $"Stop challenge emails: {stopUrl}\n\n" +
+            $"Stop community call emails: {stopCommunityCallUrl}\n\n" +
             "Longevity World Cup";
 
         return new LongevitymaxxingEmailContent(

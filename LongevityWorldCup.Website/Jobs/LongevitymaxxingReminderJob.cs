@@ -71,7 +71,7 @@ public sealed class LongevitymaxxingReminderJob(
                 await _email.SendCallReminderAsync(
                     reminder,
                     _challenge.BuildAccessUrl(reminder.AccessToken),
-                    _challenge.BuildStopUrl(reminder.StopToken),
+                    _challenge.BuildCommunityCallStopUrl(reminder.StopToken),
                     cancellationToken).ConfigureAwait(false);
                 _challenge.MarkCallReminderSent(reminder.ParticipantId, reminder.CallKey, reminder.ReminderKind, now);
             }

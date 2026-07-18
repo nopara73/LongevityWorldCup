@@ -208,6 +208,20 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         }
     }
 
+    [HttpPost("stop-community-call-emails")]
+    public IActionResult StopCommunityCallEmails([FromBody] LongevitymaxxingTokenRequest request)
+    {
+        try
+        {
+            _challenge.StopCommunityCallEmails(request.Token);
+            return Ok(new { message = "Community call emails stopped." });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
     private static bool IsClientError(Exception ex)
         => ex is InvalidOperationException or ArgumentException;
 }
