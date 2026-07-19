@@ -390,7 +390,8 @@ public sealed class BioageStoredBiomarkerTests
     {
         var html = File.ReadAllText(GetPagePath(fileName));
 
-        Assert.Contains("yearsTextElement.textContent = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);", html);
+        Assert.Contains("yearsTextElement.textContent = `${yearsDelta}years`;", html);
+        Assert.DoesNotContain("🚀", html);
         Assert.Contains("document.getElementById('mainInstructions').textContent = 'Submit your latest test results. All fields are required and must be from the same day.';", html);
         Assert.DoesNotContain("yearsTextElement.innerHTML =", html);
         Assert.DoesNotContain("document.getElementById('mainInstructions').innerHTML = 'Submit your latest test results. All fields are required and must be from the same day.';", html);

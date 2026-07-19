@@ -37,44 +37,48 @@
             text-align: center;
         }
 
-        .proof-upload-visual .illustration {
-            width: min(100%, 408px);
-            max-width: 408px;
-            border: 1px solid rgba(15, 23, 42, 0.24);
-            margin-bottom: 0;
-            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+        .proof-upload-symbol {
+            width: 96px;
+            height: 96px;
+            margin-inline: auto;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--surface-muted);
+            color: var(--primary-color-hover);
             box-sizing: border-box;
+        }
+
+        .proof-upload-symbol i {
+            font-size: 2.75rem;
         }
 
         .proof-upload-copy {
             width: min(100%, 408px);
             max-width: 408px;
             margin: 0 auto;
-            padding: 0.9rem 1.05rem 0.35rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
-            border-bottom: 0;
-            border-radius: 8px 8px 0 0;
-            background: rgba(248, 250, 252, 0.92);
+            padding: 0;
+            border: 0;
+            background: transparent;
             box-sizing: border-box;
-            color: #334155;
+            color: var(--lwc-ink, #334155);
             line-height: 1.45;
-            text-align: center;
+            text-align: left;
         }
 
         .proof-upload-copy.smaller-text {
             width: min(100%, 408px);
             max-width: 408px;
             margin: 0 auto 1.35rem;
-            padding: 0.35rem 1.05rem 0.9rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
-            border-top: 0;
-            border-radius: 0 0 8px 8px;
-            background: rgba(248, 250, 252, 0.92);
+            padding: 0;
+            border: 0;
+            background: transparent;
             box-sizing: border-box;
-            color: #475569;
+            color: var(--lwc-muted, #475569);
             font-size: 0.9rem;
             line-height: 1.45;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+            box-shadow: none;
         }
 
         .proof-upload-copy:empty,
@@ -104,17 +108,17 @@
         }
 
         .proof-upload-final-actions .back-button {
-            background: #fff;
-            border: 1px solid rgba(96, 125, 139, 0.16);
-            color: #526d7a;
+            background: var(--lwc-surface-muted, #fff);
+            border: 1px solid var(--lwc-border, rgba(96, 125, 139, 0.16));
+            color: var(--lwc-ink, #526d7a);
             font-weight: 600;
             margin-left: 0;
-            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+            box-shadow: none;
         }
 
         .proof-upload-primary-action .option-button {
             font-weight: 700;
-            box-shadow: 0 6px 12px rgba(15, 23, 42, 0.14);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
         }
 
         .proof-upload-primary-action .camera-capture-action {
@@ -127,7 +131,7 @@
             justify-content: center;
             gap: 0.65rem;
             min-height: 1.25rem;
-            color: #64748b;
+            color: var(--lwc-muted, #526373);
             font-size: 0.85rem;
             font-weight: 700;
             line-height: 1;
@@ -139,21 +143,17 @@
             content: "";
             height: 1px;
             flex: 1 1 auto;
-            background: rgba(100, 116, 139, 0.22);
+            background: var(--lwc-border, rgba(100, 116, 139, 0.22));
         }
 
         .proof-upload-primary-action .option-button i {
             margin-right: 0.45rem;
         }
 
-        .proof-upload-primary-action .option-button.green {
-            box-shadow: 0 6px 12px rgba(46, 125, 50, 0.18);
-        }
-
         .proof-upload-final-actions .option-button:disabled {
-            background: #eef2f7 !important;
-            border: 1px solid rgba(100, 116, 139, 0.14);
-            color: #64748b;
+            background: var(--lwc-surface-muted, #eef2f7) !important;
+            border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.14));
+            color: var(--lwc-muted, #526373);
             box-shadow: none !important;
             cursor: not-allowed;
             opacity: 1;
@@ -161,9 +161,9 @@
         }
 
         .proof-upload-final-actions .option-button:disabled:hover {
-            background: #eef2f7 !important;
-            border-color: rgba(100, 116, 139, 0.14);
-            color: #64748b;
+            background: var(--lwc-surface-muted, #eef2f7) !important;
+            border-color: var(--lwc-border, rgba(100, 116, 139, 0.14));
+            color: var(--lwc-muted, #526373);
             box-shadow: none !important;
             transform: none;
         }
@@ -190,12 +190,12 @@
                 min-height: 42px;
                 margin: 0 0 0.75rem;
                 padding: 0.6rem 0.85rem;
-                border: 1px solid rgba(22, 163, 74, 0.22);
+                border: 1px solid var(--lwc-success, rgba(22, 163, 74, 0.35));
                 border-radius: 8px;
-                background: rgba(240, 253, 244, 0.94);
-                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 1px 2px rgba(15, 23, 42, 0.04);
+                background: var(--lwc-success-soft, rgba(240, 253, 244, 0.94));
+                box-shadow: none;
                 box-sizing: border-box;
-                color: #166534;
+                color: var(--lwc-ink, #166534);
                 font-weight: 700;
                 line-height: 1.25;
             }
@@ -205,10 +205,10 @@
                 display: block !important;
                 margin: 0 !important;
                 padding: 0.45rem;
-                border: 1px solid rgba(15, 23, 42, 0.14);
+                border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
                 border-radius: 8px;
-                background: #fff;
-                box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+                background: var(--lwc-surface, #fff);
+                box-shadow: none;
                 overflow: hidden;
             }
 
@@ -223,7 +223,7 @@
                 max-width: 100% !important;
                 border: 0 !important;
                 border-radius: 6px;
-                background: #f8fafc;
+                background: var(--lwc-surface-muted, #f8fafc);
                 object-fit: contain;
             }
 
@@ -250,22 +250,22 @@
             max-width: 408px;
             margin: 1.25rem auto 1.35rem;
             padding: 0.9rem 1.05rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
+            box-shadow: none;
             box-sizing: border-box;
-            color: #222;
+            color: var(--lwc-ink, #222);
         }
 
         #biomarker-checklist h4 {
             margin: 0 0 0.35rem !important;
-            color: #111827;
+            color: var(--lwc-ink, #111827);
         }
 
         #biomarker-checklist p {
             margin: 0 !important;
-            color: #334155;
+            color: var(--lwc-muted, #526373);
             line-height: 1.35;
         }
 
@@ -582,13 +582,9 @@
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="proof-upload-main">
-        <h1 id="character-title" class="proof-upload-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
+        <h1 id="character-title" class="proof-upload-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Upload proofs and results</h1>
         <div class="proof-upload-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
-            <picture>
-                <source srcset="../assets/content-images/proof.webp" type="image/webp">
-                <source srcset="../assets/content-images/proof.jpg" type="image/jpeg">
-                <img src="../assets/content-images/proof.jpg" alt="Illustration of uploading lab proof documents" class="illustration" loading="lazy">
-            </picture>
+            <div class="proof-upload-symbol" aria-hidden="true"><i class="fas fa-file-medical"></i></div>
         </div>
         <p id="mainProofInstructions" class="proof-upload-copy" data-aos="fade" data-aos-duration="700" data-aos-delay="350"></p>
         <p id="subProofInstructions" class="proof-upload-copy smaller-text" data-aos="fade" data-aos-duration="700" data-aos-delay="400"></p>
@@ -596,7 +592,7 @@
         <div class="options-container proof-upload-primary-action flow-action-stack" data-aos="fade" data-aos-duration="700" data-aos-delay="450">
             <input type="file" id="proofPicInput" accept="image/*,application/pdf,.heic,.heif,.pdf" style="display: none;" multiple>
             <input type="file" id="proofCameraInput" accept="image/*,.heic,.heif" capture="environment" style="display: none;">
-            <button type="button" id="takeProofPhotoButton" class="option-button green flow-action camera-capture-action">
+            <button type="button" id="takeProofPhotoButton" class="option-button flow-action flow-action--secondary camera-capture-action">
                 <span class="flow-action__label">Take proof photo</span><i class="fa fa-camera" aria-hidden="true"></i>
             </button>
             <span class="upload-choice-divider" aria-hidden="true">or</span>

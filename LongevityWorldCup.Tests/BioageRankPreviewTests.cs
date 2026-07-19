@@ -64,4 +64,20 @@ public sealed class BioageRankPreviewTests
         Assert.Contains("calculateBortzAge.call(clock, ageAtEntry, values)", source);
     }
 
+    [Fact]
+    public async Task RankPreview_LoadingAndFailureStates_AreAnnouncedAndRetryable()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var source = await GetFrontendTypeScriptAsync(client, "bioage-rank-preview.ts");
+
+        Assert.Contains("target.setAttribute('aria-busy', 'true');", source);
+        Assert.Contains("loading.textContent = 'Calculating rank...';", source);
+        Assert.Contains("recovery.setAttribute('role', 'alert');", source);
+        Assert.Contains("retryButton.type = 'button';", source);
+        Assert.Contains("retryButton.className = 'bioage-rank-retry';", source);
+        Assert.Contains("void render(targetId, options);", source);
+    }
+
 }

@@ -1,27 +1,12 @@
-const divisionIcons: Readonly<Record<string, string>> = {
-    "men's": "💪",
-    "women's": "👠",
-    open: "🦾"
-};
-
-const leagueTrackIcons: Readonly<Record<string, string>> = {
-    amateur: "🎓",
-    professional: "🏆"
-};
-
-const generationIcons: Readonly<Record<string, string>> = {
-    "silent generation": "📻",
-    "baby boomers": "📺",
-    "gen x": "🖥️",
-    millennials: "💻",
-    "gen z": "📱",
-    "gen alpha": "🚀"
-};
-
 const divisionFontAwesomeIcons: Readonly<Record<string, string>> = {
     "men's": "fa-mars",
     "women's": "fa-venus",
     open: "fa-robot"
+};
+
+const leagueTrackFontAwesomeIcons: Readonly<Record<string, string>> = {
+    amateur: "fa-user-graduate",
+    professional: "fa-trophy"
 };
 
 const generationFontAwesomeIcons: Readonly<Record<string, string>> = {
@@ -37,20 +22,12 @@ function lookupIcon(icons: Readonly<Record<string, string>>, value: string): str
     return icons[value.toLowerCase()] ?? "";
 }
 
-window.TryGetDivisionIcon = function (division: string): string {
-    return lookupIcon(divisionIcons, division);
-};
-
-window.TryGetLeagueTrackIcon = function (leagueTrack: string | null | undefined): string {
-    return lookupIcon(leagueTrackIcons, leagueTrack || "");
-};
-
-window.TryGetGenerationIcon = function (generation: string): string {
-    return lookupIcon(generationIcons, generation);
-};
-
 window.TryGetDivisionFaIcon = function (division: string): string {
     return lookupIcon(divisionFontAwesomeIcons, division);
+};
+
+window.TryGetLeagueTrackFaIcon = function (leagueTrack: string | null | undefined): string {
+    return lookupIcon(leagueTrackFontAwesomeIcons, leagueTrack || "");
 };
 
 window.TryGetGenerationFaIcon = function (generation: string): string {

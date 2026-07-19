@@ -111,7 +111,7 @@ public sealed class ProofUploadBrowserTests
             """);
 
         await AssertPrimaryProofActionAsync(uploadButton);
-        await AssertPrimaryProofActionAsync(cameraButton);
+        await AssertSecondaryProofActionAsync(cameraButton);
         Assert.Empty(errors);
     }
 

@@ -163,9 +163,10 @@ public sealed class FlowControlsPageTests
 
         Assert.Contains(".option-button.flow-action.back-button,", css);
         Assert.Contains(".option-button.flow-action.flow-action--secondary {", css);
-        Assert.Contains("background: #f8fafc;", css);
-        Assert.Contains("border: 1px solid rgba(96, 125, 139, 0.16);", css);
-        Assert.Contains("color: #526d7a;", css);
+        Assert.Contains("background: var(--lwc-surface-muted, var(--surface-muted, #eef2f5));", css);
+        Assert.Contains("border: 1px solid var(--lwc-border, var(--border-color, #d7e0e6));", css);
+        Assert.Contains("color: var(--lwc-ink, #405261);", css);
+        Assert.Contains("box-shadow: none;", css);
         Assert.Contains(".option-button.flow-action.back-button:hover,", css);
         Assert.Contains(".option-button.flow-action.flow-action--secondary:hover", css);
         Assert.DoesNotContain(".option-button.flow-action.grey", css);
@@ -288,6 +289,8 @@ public sealed class FlowControlsPageTests
         Assert.DoesNotContain("play-word-pop", css);
         Assert.DoesNotContain("play-wordmark-sheen", css);
         Assert.DoesNotContain("play-dock-bloom", css);
+        Assert.DoesNotContain("border-radius: 22px", css);
+        Assert.DoesNotContain("border-radius: 999px", css);
     }
 
     [Fact]

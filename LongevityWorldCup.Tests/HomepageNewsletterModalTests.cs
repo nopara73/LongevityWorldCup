@@ -14,7 +14,7 @@ public sealed class HomepageNewsletterModalTests
             "wwwroot",
             "index.html"));
 
-        Assert.Contains("<label for=\"emailInput\" class=\"visually-hidden\">Email address</label>", indexHtml);
+        Assert.Contains("<label for=\"emailInput\" class=\"shared-email-label\">Email address</label>", indexHtml);
         Assert.Contains("id=\"emailInput\" class=\"shared-email-input\" placeholder=\"athlete@example.com\" autocomplete=\"email\"", indexHtml);
     }
 

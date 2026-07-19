@@ -484,6 +484,29 @@ declare global {
         } satisfies RankPreviewTrackOptions);
     }
 
+    function renderLoadError(
+        target: HTMLElement,
+        targetId: string,
+        options: BioageRankPreviewOptions
+    ): void {
+        const recovery = document.createElement('div');
+        const message = document.createElement('p');
+        const retryButton = document.createElement('button');
+
+        recovery.className = 'bioage-rank-error';
+        recovery.setAttribute('role', 'alert');
+        message.textContent = 'Rank preview could not load.';
+        retryButton.type = 'button';
+        retryButton.className = 'bioage-rank-retry';
+        retryButton.textContent = 'Retry';
+        retryButton.addEventListener('click', function () {
+            void render(targetId, options);
+        });
+
+        recovery.append(message, retryButton);
+        target.replaceChildren(recovery);
+    }
+
     function render(
         targetId: string,
         options: BioageRankPreviewOptions | null | undefined
@@ -501,7 +524,13 @@ declare global {
         }
 
         target.hidden = false;
-        target.innerHTML = '<div class="bioage-rank-loading">Calculating rank...</div>';
+        target.setAttribute('role', 'status');
+        target.setAttribute('aria-atomic', 'true');
+        target.setAttribute('aria-busy', 'true');
+        const loading = document.createElement('div');
+        loading.className = 'bioage-rank-loading';
+        loading.textContent = 'Calculating rank...';
+        target.replaceChildren(loading);
         trackRankPreview('rank_preview_requested', clock, 'requested');
 
         return getSharedAthletes()
@@ -532,12 +561,14 @@ declare global {
                 var rankedFieldSize = rows.length;
                 var topPercent = Math.max(1, Math.ceil(rank / rankedFieldSize * 100));
                 target.innerHTML = buildHtml(clock, rank, rankedFieldSize, topPercent, rows, youIndex);
+                target.setAttribute('aria-busy', 'false');
             })
             .catch(function () {
                 if (!isCurrentTargetRenderToken(targetId, renderToken)) return;
 
-                target.hidden = true;
-                target.innerHTML = '';
+                target.hidden = false;
+                target.setAttribute('aria-busy', 'false');
+                renderLoadError(target, targetId, options);
                 trackRankPreview('rank_preview_failed', clock, 'failed');
             });
     }
@@ -548,6 +579,7 @@ declare global {
         advanceTargetRenderToken(targetId);
         target.hidden = true;
         target.innerHTML = '';
+        target.removeAttribute('aria-busy');
     }
 
     window.LwcBioAgeRankPreview = {
