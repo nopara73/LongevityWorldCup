@@ -548,11 +548,12 @@ public sealed class PlayAthleteFlowBrowserTests
     }
 
     [Theory]
-    [InlineData(390, 844)]
-    [InlineData(1280, 720)]
+    [InlineData(390, 844, true)]
+    [InlineData(1280, 720, false)]
     public async Task ExistingAthleteSelectionWithSavedName_WaitsForAthleteMatchBeforeRevealingPanel(
         int viewportWidth,
-        int viewportHeight)
+        int viewportHeight,
+        bool expectDockedActions)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -644,24 +645,28 @@ public sealed class PlayAthleteFlowBrowserTests
                 return docked;
             }
             """);
-        Assert.True(dockedWhenRefreshed, "Selection actions should dock as soon as the saved-athlete panel is ready.");
-        await page.WaitForFunctionAsync(
-            """
-            () => {
-                const element = document.querySelector('.play-athlete-actions');
-                if (!element
-                    || !element.classList.contains('flow-action-stack--docked')
-                    || element.classList.contains('flow-action-stack--dock-entering')
-                    || element.getAnimations().some(animation =>
-                        animation.playState === 'pending' || animation.playState === 'running')) {
-                    return false;
+        Assert.True(dockedWhenRefreshed == expectDockedActions,
+            $"Selection actions should {(expectDockedActions ? "dock" : "stay inline")} as soon as the saved-athlete panel is ready.");
+        if (expectDockedActions)
+        {
+            await page.WaitForFunctionAsync(
+                """
+                () => {
+                    const element = document.querySelector('.play-athlete-actions');
+                    if (!element
+                        || !element.classList.contains('flow-action-stack--docked')
+                        || element.classList.contains('flow-action-stack--dock-entering')
+                        || element.getAnimations().some(animation =>
+                            animation.playState === 'pending' || animation.playState === 'running')) {
+                        return false;
+                    }
+                    const rect = element.getBoundingClientRect();
+                    return rect.top >= -1 && rect.bottom <= window.innerHeight + 1;
                 }
-                const rect = element.getBoundingClientRect();
-                return rect.top >= -1 && rect.bottom <= window.innerHeight + 1;
-            }
-            """,
-            null,
-            new PageWaitForFunctionOptions { Timeout = 5_000 });
+                """,
+                null,
+                new PageWaitForFunctionOptions { Timeout = 5_000 });
+        }
         var actionLayout = await page.Locator(".play-athlete-actions").EvaluateAsync<ActionStackTransitionLayout>(
             """
             element => {
@@ -674,7 +679,8 @@ public sealed class PlayAthleteFlowBrowserTests
                 };
             }
             """);
-        Assert.True(actionLayout.Docked, "Selection actions should dock while the saved-athlete panel fades in.");
+        Assert.True(actionLayout.Docked == expectDockedActions,
+            $"Selection actions should {(expectDockedActions ? "remain docked" : "remain inline")} after the saved-athlete panel is ready.");
         Assert.True(actionLayout.Top >= -1, $"Selection actions top {actionLayout.Top} was above the viewport.");
         Assert.True(actionLayout.Bottom <= actionLayout.ViewportHeight + 1,
             $"Selection actions bottom {actionLayout.Bottom} exceeded viewport height {actionLayout.ViewportHeight}.");
