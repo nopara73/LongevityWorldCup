@@ -39,6 +39,28 @@
             font-size: 0.85em;
         }
 
+        .application-review-visual {
+            width: min(100%, 360px);
+            margin: 0 auto 1.35rem;
+        }
+
+        .application-review-visual picture {
+            display: block;
+        }
+
+        .application-review-visual .illustration {
+            display: block;
+            width: 100%;
+            max-width: none;
+            height: auto;
+            margin: 0;
+            border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.24));
+            border-radius: var(--lwc-radius-md, 8px);
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-sizing: border-box;
+            object-fit: contain;
+        }
+
         .application-review-copy {
             max-width: 62ch;
             margin: 0.8rem auto 0;
@@ -109,6 +131,11 @@
                 vertical-align: 0.04em;
             }
 
+            .application-review-visual {
+                width: min(100%, 280px);
+                margin-bottom: 0.95rem;
+            }
+
             .application-review-copy {
                 margin-top: 0.65rem;
                 font-size: 0.95rem;
@@ -155,6 +182,11 @@
                 line-height: 1.05;
             }
 
+            .application-review-visual {
+                width: min(100%, 280px);
+                margin-bottom: 0.7rem;
+            }
+
             .application-review-copy.primary {
                 margin-top: 0.6rem;
                 padding: 0.68rem 0.95rem;
@@ -183,6 +215,11 @@
             .application-review-title {
                 margin-bottom: 0.6rem;
                 font-size: 2rem;
+            }
+
+            .application-review-visual {
+                width: min(100%, 262px);
+                margin-bottom: 0.65rem;
             }
 
             .application-review-copy.primary {
@@ -214,6 +251,13 @@
             <h1 id="appReviewTitle" class="application-review-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                 <span id="appReviewText">Application review</span> <i class="fas fa-rocket" aria-hidden="true"></i>
             </h1>
+            <div class="application-review-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="250">
+                <picture>
+                    <source srcset="{{ASSET_BEAN_WAITING_WEBP}}" type="image/webp">
+                    <source srcset="{{ASSET_BEAN_WAITING_PNG}}" type="image/png">
+                    <img src="{{ASSET_BEAN_WAITING_PNG}}" alt="Mr Bean waiting patiently for the review" class="illustration" width="860" height="721" loading="lazy" decoding="async">
+                </picture>
+            </div>
             <p class="application-review-copy primary" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
                 We're reviewing <span id="whatAreWeReviewing">your application</span>, which may take a day or two. Afterwards we'll contact you at <span id="contactEmailPlaceholder" class="application-review-highlight">
                     [insert contact email address here]

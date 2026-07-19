@@ -970,7 +970,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("@container (min-width: 12.5rem)", css);
         Assert.Contains(".lmx-ops-tile.community-calls .lmx-ops-label-long", css);
         Assert.DoesNotContain("Optional weekly community calls", javascript);
-        Assert.Contains("grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr));", css);
+        Assert.Contains("grid-template-columns: repeat(4, minmax(0, 1fr));", css);
+        Assert.Contains("@media (max-width: 620px)", css);
         Assert.Contains("@media (max-width: 360px)", css);
         Assert.DoesNotContain(".lmx-life-strip span:last-child", css);
         Assert.Contains(".lmx-question-preview-label i", css);
