@@ -3958,7 +3958,15 @@ body.lmx-quote-open {
     }
 
     .lmx-life-strip {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.25rem;
+        padding: 0.35rem;
+    }
+
+    .lmx-life-strip span {
+        padding-inline: 0.3rem;
+        gap: 0.2rem;
+        font-size: 0.75rem;
     }
 
     .lmx-growth-control {
