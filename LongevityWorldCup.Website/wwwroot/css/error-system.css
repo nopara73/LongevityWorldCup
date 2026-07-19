@@ -17,7 +17,7 @@ body {
 }
 
 .error-card {
-    width: min(100%, 680px);
+    width: min(100%, 800px);
     border: 1px solid var(--error-border);
     border-radius: 12px;
     background: var(--error-surface);
@@ -52,14 +52,31 @@ body {
 }
 
 .visual {
-    display: none;
+    display: block;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--error-border);
+    border-radius: 8px;
+    background: var(--error-surface-muted);
+}
+
+.visual img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2 / 3;
+    object-fit: contain;
+    object-position: center;
 }
 
 .card-body {
-    display: block;
-    max-width: 58ch;
-    margin-inline: auto;
-    padding: clamp(1.5rem, 5vw, 3rem);
+    display: grid;
+    grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1.25rem, 4vw, 2rem);
+    max-width: none;
+    margin: 0;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
 }
 
 h1 {
@@ -103,6 +120,17 @@ button:focus-visible {
     outline-offset: 3px;
 }
 
+@media (max-width: 700px) {
+    .card-body {
+        grid-template-columns: 1fr;
+    }
+
+    .visual {
+        width: min(100%, 10.5rem);
+        justify-self: center;
+    }
+}
+
 @media (max-width: 480px) {
     .card-bar {
         min-height: 56px;
@@ -133,6 +161,36 @@ button:focus-visible {
     h1 {
         font-size: 2rem;
         white-space: normal;
+    }
+}
+
+@media (min-width: 560px) and (max-width: 700px) and (max-height: 480px) {
+    body {
+        place-items: center;
+        padding: 0.75rem;
+    }
+
+    .error-card {
+        width: min(100%, 640px);
+    }
+
+    .card-body {
+        grid-template-columns: minmax(110px, 140px) minmax(0, 1fr);
+        gap: 1rem;
+        padding: 0.9rem 1rem;
+    }
+
+    .visual {
+        width: 100%;
+    }
+
+    .visual img {
+        aspect-ratio: 4 / 3;
+    }
+
+    h1 {
+        font-size: clamp(2rem, 7vw, 3rem);
+        white-space: nowrap;
     }
 }
 

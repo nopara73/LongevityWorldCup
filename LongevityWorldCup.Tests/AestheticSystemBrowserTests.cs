@@ -396,6 +396,54 @@ public sealed class AestheticSystemBrowserTests
     }
 
     [Fact]
+    public async Task FallbackErrorArtwork_DecodesAndRemainsVisibleAcrossResponsiveLayouts()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await LaunchBrowserAsync(playwright);
+        await using var context = await NewContextAsync(
+            browser,
+            app,
+            new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 1280, Height = 800 }
+            });
+        var page = await context.NewPageAsync();
+        var viewports = new[]
+        {
+            new ViewportSize { Width = 1280, Height = 800 },
+            new ViewportSize { Width = 390, Height = 844 },
+            new ViewportSize { Width = 640, Height = 390 }
+        };
+
+        foreach (var viewport in viewports)
+        {
+            await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
+            foreach (var path in new[] { "/error/502.html", "/error/503.html", "/error/504.html" })
+            {
+                await NavigateAndSettleAsync(page, path);
+                await page.WaitForFunctionAsync(
+                    "() => { const image = document.querySelector('.visual img'); return image?.complete && image.naturalWidth > 0; }");
+
+                var artwork = page.Locator(".visual img");
+                var bounds = await artwork.BoundingBoxAsync();
+                Assert.NotNull(bounds);
+                Assert.True(
+                    await artwork.EvaluateAsync<bool>(
+                        "image => image.complete && image.naturalWidth > 0 && getComputedStyle(image).display !== 'none' && getComputedStyle(image).visibility !== 'hidden'"),
+                    $"{path} artwork did not decode visibly at {viewport.Width}x{viewport.Height}.");
+                Assert.True(
+                    bounds.Width >= 90 && bounds.Height >= 90,
+                    $"{path} artwork collapsed to {bounds.Width}x{bounds.Height}px at {viewport.Width}x{viewport.Height}.");
+                Assert.True(
+                    await page.EvaluateAsync<bool>(
+                        "() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) <= window.innerWidth + 1"),
+                    $"{path} overflowed horizontally at {viewport.Width}x{viewport.Height}.");
+            }
+        }
+    }
+
+    [Fact]
     public async Task ResponsiveMediaInventory_MatchesAtAndCrossesEveryDeclaredViewportBoundary()
     {
         var mediaInventory = GetResponsiveMediaInventory()
@@ -840,16 +888,28 @@ public sealed class AestheticSystemBrowserTests
                     <div id="state-loading" class="lmx-status" role="status" aria-busy="true">Loading current standings…</div>
                     <div id="state-success" class="lmx-status success" role="status">Application saved successfully.</div>
                     <div id="state-error" class="lmx-status error" role="alert">Application could not be saved. Review the highlighted field.</div>`;
-                (document.querySelector('main') || document.body).append(probe);
+                (document.querySelector('main') || document.body).prepend(probe);
+            }
+            """);
+        await page.EvaluateAsync(
+            """
+            async () => {
+                await (document.fonts?.ready || Promise.resolve());
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
             }
             """);
 
         const string measurementScript =
             """
-            async (element, stateName) => {
-                await (document.fonts?.ready || Promise.resolve());
-                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-                await Promise.all(element.getAnimations().map(animation => animation.finished.catch(() => {})));
+            (element, stateName) => {
+                element.getAnimations().forEach(animation => {
+                    try {
+                        animation.finish();
+                    } catch (_) {
+                        // Infinite or already-idle animations cannot be finished and do not
+                        // affect the finite interaction-state transitions measured here.
+                    }
+                });
 
                 const parseColor = value => {
                     const parts = (value || '').match(/[\d.]+/g)?.map(Number) || [];
@@ -916,7 +976,7 @@ public sealed class AestheticSystemBrowserTests
                 }
 
                 const hasText = element.textContent.trim().length > 0 || element.value?.trim().length > 0;
-                const semanticCues = {
+                const stateEvidence = {
                     default: hasText,
                     hover: element.matches(':hover'),
                     focus: document.activeElement === element,
@@ -938,7 +998,7 @@ public sealed class AestheticSystemBrowserTests
                     BackgroundColor: style.backgroundColor,
                     EffectiveOuterBackgroundColor: `rgb(${Math.round(outerBackground.r)}, ${Math.round(outerBackground.g)}, ${Math.round(outerBackground.b)})`,
                     BorderColor: style.borderTopColor,
-                    HasSemanticCue: semanticCues[stateName] === true
+                    HasStateEvidence: stateEvidence[stateName] === true
                 };
             }
             """;
@@ -951,11 +1011,13 @@ public sealed class AestheticSystemBrowserTests
 
         var action = page.Locator("#state-action");
         await CaptureAsync("default", action);
-        await action.HoverAsync();
-        await CaptureAsync("hover", action);
-
         var actionBox = await action.BoundingBoxAsync();
         Assert.NotNull(actionBox);
+        await page.Mouse.MoveAsync(actionBox.X + actionBox.Width / 2, actionBox.Y + actionBox.Height / 2);
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('state-action')?.matches(':hover') === true");
+        await CaptureAsync("hover", action);
+
         await page.Mouse.MoveAsync(actionBox.X + actionBox.Width / 2, actionBox.Y + actionBox.Height / 2);
         await page.Mouse.DownAsync();
         try
@@ -995,7 +1057,9 @@ public sealed class AestheticSystemBrowserTests
                 state.TextContrast >= minimumTextContrast,
                 $"{mode} {state.Name} text contrast was {state.TextContrast:F2}:1; " +
                 $"expected at least {minimumTextContrast:F1}:1.");
-            Assert.True(state.HasSemanticCue, $"{mode} {state.Name} had no programmatic or textual state cue.");
+            Assert.True(
+                state.HasStateEvidence,
+                $"{mode} {state.Name} state was not active or semantically exposed when measured.");
 
             // Disabled controls are exempt from WCAG contrast requirements, but their
             // text is still measured above so the intentionally muted state remains legible.
@@ -1866,7 +1930,7 @@ public sealed class AestheticSystemBrowserTests
         public string BackgroundColor { get; set; } = "";
         public string EffectiveOuterBackgroundColor { get; set; } = "";
         public string BorderColor { get; set; } = "";
-        public bool HasSemanticCue { get; set; }
+        public bool HasStateEvidence { get; set; }
     }
 
     private sealed class ExtremeContentDiagnostics

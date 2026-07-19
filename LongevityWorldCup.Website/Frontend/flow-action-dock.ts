@@ -117,6 +117,13 @@ interface FlowActionDockApi {
         });
     }
 
+    function setPlaceholderHeight(state: DockState, height: number): void {
+        const heightValue = `${Math.ceil(height)}px`;
+        if (state.placeholder.style.height !== heightValue) {
+            state.placeholder.style.height = heightValue;
+        }
+    }
+
     function registerElement(element: Element): void {
         if (!(element instanceof HTMLElement)) return;
         if (states.has(element)) return;
@@ -187,7 +194,7 @@ interface FlowActionDockApi {
         const rect = element.getBoundingClientRect();
         state.inlineHeight = rect.height || element.offsetHeight || state.inlineHeight;
         state.placeholder.hidden = false;
-        state.placeholder.style.height = `${Math.ceil(state.inlineHeight)}px`;
+        setPlaceholderHeight(state, state.inlineHeight);
 
         ensureSubmitButtonFormOwnership(element);
         document.body.appendChild(element);
@@ -257,7 +264,7 @@ interface FlowActionDockApi {
 
             updateActionLayoutState(element);
             const measuredHeight = element.getBoundingClientRect().height || element.offsetHeight;
-            state.placeholder.style.height = `${Math.ceil(measuredHeight)}px`;
+            setPlaceholderHeight(state, state.inlineHeight || measuredHeight);
             dockedHeight = Math.max(dockedHeight, measuredHeight);
             hasDockedElement = true;
         });

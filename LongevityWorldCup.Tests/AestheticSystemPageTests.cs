@@ -56,7 +56,7 @@ public sealed class AestheticSystemPageTests
     }
 
     [Fact]
-    public async Task TaskPages_UsePurposefulIconographyAndReadableCopyInsteadOfDecorativeRasterArt()
+    public async Task TaskPages_UsePurposefulVisualsAndReadableCopy()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -67,8 +67,9 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("class=\"proof-upload-symbol\"", proofs);
         Assert.Contains("fa-file-medical", proofs);
         Assert.DoesNotContain("content-images/proof", proofs);
-        Assert.DoesNotContain("application-review-visual", review);
-        Assert.DoesNotContain("bean-waiting", review);
+        Assert.Contains("class=\"application-review-visual\"", review);
+        Assert.Contains("bean-waiting.webp?v=", review);
+        Assert.Contains("alt=\"Mr Bean waiting patiently for the review\"", review);
         Assert.Contains(".proof-upload-copy", proofs);
         Assert.Contains("text-align: left;", proofs);
     }
@@ -222,16 +223,17 @@ public sealed class AestheticSystemPageTests
     [InlineData("/error/502.html")]
     [InlineData("/error/503.html")]
     [InlineData("/error/504.html")]
-    public async Task FallbackErrors_KeepRecoveryContentCompactAndCacheSafe(string path)
+    public async Task FallbackErrors_KeepRecoveryContentCompactHumorousAndCacheSafe(string path)
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
 
-        Assert.Contains("/css/error-system.css?v=20260718-2", html);
-        Assert.DoesNotContain("class=\"visual\"", html);
-        Assert.DoesNotContain("/error/herold.png", html);
+        Assert.Contains("/css/error-system.css?v=20260719-1", html);
+        Assert.Contains("<figure class=\"visual\">", html);
+        Assert.Contains("src=\"/error/herold.png\"", html);
+        Assert.Contains("alt=\"Herold waiting through a temporary outage\" width=\"1024\" height=\"1536\"", html);
         Assert.Contains(">Try again</button>", html);
     }
 

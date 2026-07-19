@@ -361,6 +361,8 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_HEADSHOT_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.webp"))
                 .Replace("{{ASSET_HEADSHOT_JPEG}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.jpg"))
                 .Replace("{{ASSET_JUST_TRACK_IT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/content-images/JustTrackIt.jpg"))
+                .Replace("{{ASSET_BEAN_WAITING_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/bean-waiting.webp"))
+                .Replace("{{ASSET_BEAN_WAITING_PNG}}", _assetVersionProvider.AppendVersion("/assets/content-images/bean-waiting.png"))
                 .Replace("{{ASSET_TROLLFACE}}", _assetVersionProvider.AppendVersion("/assets/content-images/trollface.png"));
         }
 

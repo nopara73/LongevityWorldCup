@@ -38,6 +38,23 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator("#lmxWeekPager:not([hidden])").WaitForAsync();
 
+        var compatibilityChips = page.Locator("#lmxLifeStrip span");
+        Assert.Equal(4, await compatibilityChips.CountAsync());
+        var mobileChipTops = await compatibilityChips.EvaluateAllAsync<double[]>(
+            "chips => chips.map(chip => chip.getBoundingClientRect().top)");
+        var mobileRowCounts = mobileChipTops
+            .GroupBy(top => Math.Round(top))
+            .Select(row => row.Count())
+            .OrderBy(count => count)
+            .ToArray();
+        Assert.Equal(new[] { 2, 2 }, mobileRowCounts);
+        Assert.DoesNotContain(
+            true,
+            await compatibilityChips.EvaluateAllAsync<bool[]>(
+                "chips => chips.map(chip => chip.scrollWidth > chip.clientWidth + 1 || chip.scrollHeight > chip.clientHeight + 1)"));
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"),
+            "Compatibility labels introduce horizontal overflow on phone layouts.");
+
         var cells = page.Locator(".lmx-board-row:not(.header) .lmx-cell");
         Assert.Equal(14, await cells.CountAsync());
         Assert.Equal("9", await cells.First.GetAttributeAsync("data-day"));
@@ -55,11 +72,23 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.True(await page.Locator("#lmxWeekOlder").IsDisabledAsync());
         Assert.False(await page.Locator("#lmxWeekNewer").IsDisabledAsync());
 
-        await page.SetViewportSizeAsync(1200, 900);
+        await page.SetViewportSizeAsync(1024, 900);
         await page.WaitForFunctionAsync("() => document.querySelectorAll('.lmx-board-row:not(.header) .lmx-cell').length === 22");
 
         Assert.Equal(22, await cells.CountAsync());
         Assert.True(await page.Locator("#lmxWeekPager").IsHiddenAsync());
+        foreach (var desktopWidth in new[] { 1024, 1081, 1200 })
+        {
+            await page.SetViewportSizeAsync(desktopWidth, 900);
+            var desktopChipLayout = await compatibilityChips.EvaluateAllAsync<double[][]>(
+                "chips => chips.map(chip => { const rect = chip.getBoundingClientRect(); return [rect.top, chip.scrollWidth, chip.clientWidth, chip.scrollHeight, chip.clientHeight]; })");
+            var desktopChipTops = desktopChipLayout.Select(values => values[0]).ToArray();
+            Assert.True(desktopChipTops.Max() - desktopChipTops.Min() <= 1,
+                $"Compatibility labels should share one desktop row at {desktopWidth}px, but their top offsets were {string.Join(", ", desktopChipTops)}.");
+            Assert.DoesNotContain(
+                desktopChipLayout,
+                values => values[1] > values[2] + 1 || values[3] > values[4] + 1);
+        }
         Assert.Empty(errors);
     }
 
