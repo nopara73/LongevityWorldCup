@@ -2732,7 +2732,7 @@
             animatedAgeElement.classList.add(ageCategory);
 
             const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
-            yearsTextElement.textContent = `${yearsDelta}years`;
+            yearsTextElement.textContent = `${yearsDelta}years${ageDiff < 0 ? ' 🚀' : ''}`;
 
             // Show Pheno Age when computed (WBC provided)
             const phenoAgeRowEl = document.getElementById('phenoAgeRow');

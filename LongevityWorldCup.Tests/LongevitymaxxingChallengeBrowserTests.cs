@@ -40,20 +40,27 @@ public sealed class LongevitymaxxingChallengeBrowserTests
 
         var compatibilityChips = page.Locator("#lmxLifeStrip span");
         Assert.Equal(4, await compatibilityChips.CountAsync());
-        var mobileChipTops = await compatibilityChips.EvaluateAllAsync<double[]>(
-            "chips => chips.map(chip => chip.getBoundingClientRect().top)");
-        var mobileRowCounts = mobileChipTops
-            .GroupBy(top => Math.Round(top))
-            .Select(row => row.Count())
-            .OrderBy(count => count)
-            .ToArray();
-        Assert.Equal(new[] { 2, 2 }, mobileRowCounts);
-        Assert.DoesNotContain(
-            true,
-            await compatibilityChips.EvaluateAllAsync<bool[]>(
-                "chips => chips.map(chip => chip.scrollWidth > chip.clientWidth + 1 || chip.scrollHeight > chip.clientHeight + 1)"));
-        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"),
-            "Compatibility labels introduce horizontal overflow on phone layouts.");
+        foreach (var mobileViewport in new[] { (Width: 390, Height: 844), (Width: 360, Height: 800) })
+        {
+            await page.SetViewportSizeAsync(mobileViewport.Width, mobileViewport.Height);
+            var mobileChipLayout = await compatibilityChips.EvaluateAllAsync<double[][]>(
+                "chips => chips.map(chip => { const rect = chip.getBoundingClientRect(); return [rect.top, chip.scrollWidth, chip.clientWidth, chip.scrollHeight, chip.clientHeight]; })");
+            var mobileRowCounts = mobileChipLayout
+                .GroupBy(values => Math.Round(values[0]))
+                .Select(row => row.Count())
+                .OrderBy(count => count)
+                .ToArray();
+            Assert.Equal(new[] { 2, 2 }, mobileRowCounts);
+            Assert.DoesNotContain(
+                mobileChipLayout,
+                values => values[1] > values[2] + 1 || values[3] > values[4] + 1);
+            Assert.DoesNotContain(
+                await compatibilityChips.EvaluateAllAsync<double[]>(
+                    "chips => chips.map(chip => parseFloat(getComputedStyle(chip).fontSize))"),
+                fontSize => fontSize < 12);
+            Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= window.innerWidth"),
+                $"Compatibility labels introduce horizontal overflow at {mobileViewport.Width}x{mobileViewport.Height}.");
+        }
 
         var cells = page.Locator(".lmx-board-row:not(.header) .lmx-cell");
         Assert.Equal(14, await cells.CountAsync());
