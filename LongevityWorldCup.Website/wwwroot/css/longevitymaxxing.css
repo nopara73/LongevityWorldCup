@@ -922,7 +922,7 @@
     color: #334155;
     font-weight: 850;
     cursor: pointer;
-    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
 .lmx-identity-options input {
@@ -1168,7 +1168,7 @@
     border: 1px solid rgba(15, 23, 42, 0.14);
     border-radius: 8px;
     background: #ffffff;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
 .lmx-athlete-search:focus-within {
@@ -1728,7 +1728,7 @@
     color: #ffffff;
     box-shadow: 0 6px 14px rgba(20, 184, 166, 0.22);
     text-decoration: none;
-    transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease, border-color 140ms ease;
+    transition: transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
 .lmx-button i {
@@ -3181,7 +3181,7 @@ body.lmx-quote-open {
 .lmx-plant-aura {
     fill: rgba(var(--lmx-habit-soft), 0.12);
     opacity: var(--lmx-canopy-opacity);
-    transition: opacity 220ms ease;
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
 .lmx-plant-shadow {
@@ -3192,7 +3192,7 @@ body.lmx-quote-open {
     transform: scaleY(var(--lmx-plant-scale));
     transform-box: fill-box;
     transform-origin: center bottom;
-    transition: transform 320ms cubic-bezier(.2, .75, .2, 1), filter 220ms ease;
+    transition: transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), filter var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
 .lmx-plant-stem {
@@ -3201,12 +3201,12 @@ body.lmx-quote-open {
     stroke-width: var(--lmx-plant-stem-width);
     stroke-linecap: round;
     opacity: var(--lmx-trunk-opacity, 1);
-    transition: stroke 220ms ease, opacity 220ms ease;
+    transition: stroke var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
 .lmx-plant-node {
     opacity: var(--lmx-node-opacity, 0);
-    transition: opacity 200ms ease;
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
 .lmx-plant-branch {
@@ -3221,7 +3221,7 @@ body.lmx-quote-open {
     fill: var(--lmx-habit-accent);
     stroke: var(--lmx-habit-deep);
     stroke-width: 0.55;
-    transition: fill 220ms ease, stroke 220ms ease;
+    transition: fill var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), stroke var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
 .lmx-plant-leaf.light {
@@ -3237,7 +3237,7 @@ body.lmx-quote-open {
 
 .lmx-plant-bud {
     opacity: var(--lmx-bud-opacity, 0);
-    transition: opacity 220ms ease, transform 260ms cubic-bezier(.2, .8, .2, 1);
+    transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
 }
 
 .lmx-plant-bud-petal {
@@ -3430,7 +3430,7 @@ body.lmx-quote-open {
     font-weight: 900;
     text-align: center;
     cursor: pointer;
-    transition: color 140ms ease, background 140ms ease;
+    transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
 .lmx-lever-label:hover {

@@ -15,8 +15,9 @@
             padding: 1rem 1.25rem;
             box-sizing: border-box;
             border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            background: #f8f9fa;
+            border: 1px solid var(--lwc-border, #d7e0e6);
+            background: var(--lwc-surface-muted, #f8f9fa);
+            color: var(--lwc-ink, #17212b);
             font-size: 0.95rem;
             text-align: center;
             overflow-wrap: break-word;
@@ -29,11 +30,11 @@
             padding: 1.1rem 1.15rem 1rem;
             box-sizing: border-box;
             border-radius: 8px;
-            border: 1px solid rgba(0, 188, 212, 0.22);
-            background: linear-gradient(180deg, #ffffff, #f8feff);
-            color: #2d3748;
+            border: 1px solid var(--lwc-border, rgba(0, 188, 212, 0.22));
+            background: var(--lwc-surface, #ffffff);
+            color: var(--lwc-ink, #2d3748);
             text-align: center;
-            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+            box-shadow: none;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -54,7 +55,7 @@
         }
 
         .lab-access-panel a:not(.option-button) {
-            color: #0f7f90;
+            color: var(--lwc-accent-hover, #0f7f90);
             font-weight: 700;
             text-decoration: none;
         }
@@ -72,23 +73,23 @@
             margin: 0.75rem auto 0;
             padding: 0.45rem 0.85rem;
             box-sizing: border-box;
-            border: 1px solid rgba(0, 188, 212, 0.28);
+            border: 1px solid var(--lwc-border, rgba(0, 188, 212, 0.28));
             border-radius: 8px;
-            background: #fff;
-            color: #0f7f90;
+            background: var(--lwc-surface, #fff);
+            color: var(--lwc-accent-hover, #0f7f90);
             font-size: 0.95rem;
             font-weight: 700;
             line-height: 1.2;
             text-decoration: none;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: none;
+            transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .lab-access-link:hover {
             border-color: rgba(0, 188, 212, 0.48);
-            background: #f8feff;
-            color: #096978;
-            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
+            background: var(--lwc-accent-soft, #f8feff);
+            color: var(--lwc-accent-hover, #096978);
+            box-shadow: none;
         }
 
         .lab-access-panel[hidden] {
@@ -119,7 +120,8 @@
 
             .lab-access-panel h2 {
                 font-size: 0.95rem;
-                white-space: nowrap;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
 
             .lab-access-panel p {
@@ -134,7 +136,9 @@
                 margin: 0;
                 padding: 0.38rem 0.7rem;
                 font-size: 0.86rem;
-                white-space: nowrap;
+                white-space: normal;
+                overflow-wrap: anywhere;
+                text-align: center;
             }
         }
 
@@ -176,25 +180,24 @@
 
         .privacy-note {
             font-size: 0.9rem;
-            color: #4a5568;
+            color: var(--lwc-muted, #4a5568);
             line-height: 1.45;
             margin: 0.65rem 0 0;
         }
 
-        /* Initial state: hidden and rotated to the left */
+        /* Initial state: hidden until the result is available. */
         #continueButton {
             opacity: 0;
-            transform-origin: left;
-            transform: rotate(-90deg);
+            transform: none;
             overflow: hidden;
-            transition: opacity 0.6s ease, transform 0.6s ease;
+            transition: opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             pointer-events: none; /* Prevents the button from capturing mouse events */
         }
 
             /* Final state: fully visible and upright */
             #continueButton.show {
                 opacity: 1;
-                transform: rotate(0);
+                transform: none;
                 pointer-events: auto; /* Restores mouse events when visible */
             }
 
@@ -215,7 +218,7 @@
                 margin-top: 0;
                 margin-left: 0;
                 padding: 0.5rem;
-                border: 1px solid #ccc;
+            border: 1px solid var(--lwc-border-strong, #71808d);
                 border-radius: 4px;
                 width: auto;
                 min-width: var(--unit-select-min-width, auto); /* Placeholder variable for dynamic width */
@@ -246,24 +249,25 @@
             }
 
         .bioage-input-comparison-chip {
-            position: absolute;
-            top: 0.58rem;
-            right: 0.55rem;
+            position: static;
+            align-self: flex-end;
             display: inline-flex;
             align-items: center;
             gap: 0.22rem;
-            max-width: min(42%, 7rem);
+            max-width: 100%;
+            margin-top: 0.35rem;
             padding: 0.16rem 0.42rem;
-            border: 1px solid rgba(100, 116, 139, 0.22);
+            border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.22));
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.88);
-            color: #64748b;
+            background: var(--lwc-surface, rgba(255, 255, 255, 0.88));
+            color: var(--lwc-muted, #526373);
             font-size: 0.73rem;
             font-weight: 600;
             line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            overflow-wrap: anywhere;
             pointer-events: none;
             z-index: 1;
         }
@@ -282,20 +286,20 @@
 
             .bioage-input-comparison-chip__text {
                 min-width: 0;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                overflow: visible;
+                text-overflow: clip;
             }
 
             .bioage-input-comparison-chip.is-improved {
-                border-color: rgba(47, 125, 90, 0.24);
-                background: rgba(240, 253, 244, 0.9);
-                color: #2f7d5a;
+                border-color: var(--lwc-success, rgba(47, 125, 90, 0.35));
+                background: var(--lwc-success-soft, rgba(240, 253, 244, 0.9));
+                color: var(--lwc-success, #2f7d5a);
             }
 
             .bioage-input-comparison-chip.is-regressed {
-                border-color: rgba(155, 74, 74, 0.22);
-                background: rgba(254, 242, 242, 0.9);
-                color: #9b4a4a;
+                border-color: var(--lwc-danger, rgba(155, 74, 74, 0.35));
+                background: var(--lwc-danger-soft, rgba(254, 242, 242, 0.9));
+                color: var(--lwc-danger, #9b4a4a);
             }
 
         @media (max-width: 420px) {
@@ -304,7 +308,7 @@
             }
 
             .bioage-input-comparison-chip {
-                max-width: 5.9rem;
+                max-width: 100%;
                 font-size: 0.68rem;
             }
         }
@@ -326,11 +330,11 @@
             max-width: 580px;
             padding: 1.5rem;
             color: var(--dark-text-color);
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            box-shadow: none;
             border-radius: 8px;
             font-size: 1.5rem;
             opacity: 0;
-            transition: opacity 1s;
+            transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
             position: relative;
             overflow: hidden;
         }
@@ -350,32 +354,6 @@
             opacity: 1;
         }
 
-        /* Elegant animated background gradient */
-        #phenoAgeResult::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 200%;
-            height: 200%;
-            transform: translate(-50%, -50%);
-            background: radial-gradient(circle at 30% 30%, rgba(0, 188, 212, 0.08) 0%, rgba(76, 175, 80, 0.04) 40%, transparent 70%);
-            animation: bioAgeBgPulse 12s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        @keyframes bioAgeBgPulse {
-            0%, 100% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 0.4;
-            }
-            50% {
-                transform: translate(calc(-50% + 5%), calc(-50% + 5%)) scale(1.1);
-                opacity: 0.7;
-            }
-        }
-
         #validAgeInput {
             position: relative;
             z-index: 1;
@@ -384,12 +362,12 @@
         /* Label text styling */
         #validAgeInput > div:first-child {
             font-size: 0.875rem;
-            color: #64748b;
+            color: var(--lwc-muted, #526373);
             text-align: center;
             margin-bottom: 1.5rem;
             opacity: 0;
-            transform: translateY(15px);
-            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s;
+            transform: translateY(4px);
+            transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
             font-weight: 600;
             letter-spacing: 0;
             text-transform: uppercase;
@@ -417,17 +395,15 @@
             font-weight: 800;
             text-align: center;
             display: block;
-            color: #00bcd4;
-            background: linear-gradient(135deg, #00bcd4 0%, #4CAF50 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--lwc-accent, #087685);
+            background: none;
+            -webkit-text-fill-color: currentColor;
             text-shadow: none;
             line-height: 1;
             letter-spacing: 0;
             opacity: 0;
-            transform: scale(0.4) translateY(30px);
-            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s;
+            transform: translateY(4px);
+            transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
             position: relative;
             z-index: 1;
             font-family: 'Roboto', sans-serif;
@@ -435,110 +411,37 @@
 
         #phenoAgeResult.show #animatedAge {
             opacity: 1;
-            transform: scale(1) translateY(0);
-        }
-
-        /* Subtle glow effect for the number */
-        #animatedAge::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 140%;
-            height: 140%;
-            background: radial-gradient(circle, rgba(0, 188, 212, 0.15) 0%, rgba(76, 175, 80, 0.1) 50%, transparent 75%);
-            border-radius: 50%;
-            z-index: -1;
-            opacity: 0;
-            animation: bioAgeGlow 3s ease-in-out infinite;
-            filter: blur(20px);
-        }
-
-        @keyframes bioAgeGlow {
-            0%, 100% {
-                opacity: 0.3;
-                transform: translate(-50%, -50%) scale(0.9);
-            }
-            50% {
-                opacity: 0.6;
-                transform: translate(-50%, -50%) scale(1.1);
-            }
-        }
-
-        /* Pulse animation when counting */
-        #animatedAge.counting {
-            animation: bioAgePulse 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        @keyframes bioAgePulse {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.03);
-            }
-            100% {
-                transform: scale(1);
-            }
-        }
-
-        /* Final reveal animation */
-        #animatedAge.final-reveal {
-            animation: bioAgeFinalReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        @keyframes bioAgeFinalReveal {
-            0% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.12);
-            }
-            100% {
-                transform: scale(1);
-            }
+            transform: translateY(0);
         }
 
         /* Color variations based on performance */
         #animatedAge.age-excellent {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        #animatedAge.age-excellent::after {
-            background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, rgba(39, 174, 96, 0.1) 50%, transparent 75%);
+            background: none;
+            color: var(--lwc-success, #1f7a38);
+            -webkit-text-fill-color: currentColor;
         }
 
         #animatedAge.age-good {
-            background: linear-gradient(135deg, #00bcd4 0%, #4CAF50 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            background: none;
+            color: var(--lwc-accent, #087685);
+            -webkit-text-fill-color: currentColor;
         }
 
         #animatedAge.age-average {
-            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        #animatedAge.age-average::after {
-            background: radial-gradient(circle, rgba(255, 152, 0, 0.15) 0%, rgba(245, 124, 0, 0.1) 50%, transparent 75%);
+            background: none;
+            color: var(--lwc-warning, #9a6700);
+            -webkit-text-fill-color: currentColor;
         }
 
         /* Years text styling */
         #yearsText {
             font-size: 1.25rem;
-            color: #64748b;
+            color: var(--lwc-muted, #526373);
             text-align: center;
             margin-top: 1rem;
             opacity: 0;
-            transform: translateY(15px);
-            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.5s;
+            transform: translateY(4px);
+            transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
             font-weight: 500;
             letter-spacing: 0;
         }
@@ -610,15 +513,7 @@
             #validAgeInput > div:first-child,
             #yearsText {
                 animation: none !important;
-                transition: opacity 0.3s ease !important;
-            }
-
-            #phenoAgeResult::before {
-                animation: none !important;
-            }
-
-            #animatedAge::after {
-                animation: none !important;
+                transition: none !important;
             }
         }
 
@@ -635,14 +530,14 @@
             justify-content: space-between;
             gap: 0.85rem;
             padding: 0.65rem 0.75rem;
-            border: 1px solid rgba(148, 163, 184, 0.24);
+            border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.24));
             border-radius: 8px;
-            background: #fff;
+            background: var(--lwc-surface, #fff);
         }
 
             .label-toggle-group label {
                 font-size: 1rem;
-                color: #333;
+                color: var(--lwc-ink, #333);
             }
 
         .negative-toggle {
@@ -673,8 +568,8 @@
             left: 0;
             right: 0;
             bottom: 6px;
-            background-color: #ccc;
-            transition: 0.4s;
+            background-color: var(--lwc-border-strong, #71808d);
+            transition: background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
             border-radius: 999px;
         }
 
@@ -685,8 +580,8 @@
                 width: 24px;
                 left: 4px;
                 bottom: 4px;
-                background-color: white;
-                transition: 0.4s;
+                background-color: var(--lwc-surface, white);
+            transition: background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
                 border-radius: 50%;
             }
 
@@ -695,7 +590,7 @@
         }
 
         .toggle-label input:checked + .slider {
-            background-color: #f4a6a6; /* Pale red */
+            background-color: var(--lwc-danger, #b4233b);
         }
 
             .toggle-label input:checked + .slider:before {
@@ -704,30 +599,30 @@
 
         .bioageform-toggle-text {
             font-size: 1rem;
-            color: #2d3748;
+            color: var(--lwc-ink, #2d3748);
             font-weight: 600;
             line-height: 1.3;
         }
 
         /* Mini-card container */
         .biomarker-card {
-            border: 1px solid rgba(148, 163, 184, 0.32);
+            border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.32));
             border-radius: 10px;
             margin-bottom: 0.9rem;
             overflow: hidden;
-            background: #fff;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            background: var(--lwc-surface, #fff);
+            box-shadow: none;
+            transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
             .biomarker-card.active {
                 border-color: rgba(0, 188, 212, 0.38);
-                box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+                box-shadow: none;
             }
 
         /* Header bar */
         .biomarker-card-header {
-            background: linear-gradient(180deg, #ffffff, #f8fafc);
+            background: var(--lwc-surface, #ffffff);
             padding: 0.78rem 1rem;
             min-height: 48px;
             box-sizing: border-box;
@@ -736,14 +631,14 @@
             justify-content: space-between;
             align-items: center;
             gap: 0.75rem;
-            color: #2d3748;
+            color: var(--lwc-ink, #2d3748);
             font-weight: 600;
             line-height: 1.25;
-            transition: background-color 0.2s ease, color 0.2s ease;
+            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
             .biomarker-card-header:hover {
-                background: #f1f5f9;
+                background: var(--lwc-surface-muted, #f1f5f9);
             }
 
             .biomarker-card-header:focus-visible {
@@ -752,8 +647,8 @@
             }
 
             .biomarker-card.active .biomarker-card-header {
-                background: #f8feff;
-                color: #1f2937;
+                background: var(--lwc-accent-soft, #f8feff);
+                color: var(--lwc-ink, #1f2937);
             }
 
         /* Toggle icon */
@@ -765,18 +660,18 @@
             width: 26px;
             height: 26px;
             border-radius: 999px;
-            background: rgba(0, 188, 212, 0.1);
-            color: #2d3748;
+            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.1));
+            color: var(--lwc-ink, #2d3748);
             font-weight: bold;
             font-size: 1.1rem;
             line-height: 1;
-            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .biomarker-card.active .toggle-icon {
-            background: var(--primary-color);
-            color: #fff;
-            box-shadow: 0 2px 6px rgba(0, 188, 212, 0.26);
+            background: var(--lwc-accent, var(--primary-color));
+            color: var(--lwc-on-accent, #ffffff);
+            box-shadow: none;
         }
 
         /* Hidden content by default */
@@ -784,12 +679,12 @@
             max-height: 0;
             overflow: hidden;
             padding: 0 1rem; /* keep horizontal padding */
-            transition: max-height 0.3s ease, padding 0.3s ease, border-color 0.2s ease, background-color 0.2s ease;
+            transition: max-height var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .biomarker-card.active .biomarker-card-content {
             border-top: 1px solid rgba(148, 163, 184, 0.24);
-            background: #fbfdff;
+            background: var(--lwc-surface-muted, #fbfdff);
             max-height: none !important;
             padding: 0.75rem 1rem !important;
         }
@@ -854,7 +749,7 @@
             display: none;
             opacity: 0;
             transform: translateX(24px);
-            transition: opacity .35s ease, transform .35s ease;
+            transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
         }
 
             .lwc-step.lwc-step--active {
@@ -884,7 +779,7 @@
             border-radius: 50%;
             border: 0;
             background: transparent;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .lwc-dot::before {
@@ -895,7 +790,7 @@
             border-radius: 50%;
             border: 2px solid #b8bec5;
             background: transparent;
-            transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         @media (hover: hover) and (pointer: fine) {
@@ -914,8 +809,8 @@
         }
 
         .lwc-dot.lwc-dot--on::before {
-            background: #4CAF50;
-            border-color: #4CAF50;
+            background: var(--lwc-success, #1f7a38);
+            border-color: var(--lwc-success, #1f7a38);
             transform: scale(1.08);
         }
 
@@ -1271,9 +1166,9 @@
                 </div>
                 <div id="yearsText">years</div>
             </div>
-            <div id="ensureCorrectInputSuggestion" style="display: none; font-size: 1rem; color: #8B0000; background-color: #FAD2D2; padding: 0.5rem; text-align: center; border-radius: 5px; margin-top: 10px;">
+            <div id="ensureCorrectInputSuggestion" class="bioage-inline-notice" role="alert" aria-live="assertive" style="display: none;">
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
-                <i class="fas fa-ambulance"></i> <i class="fas fa-hospital"></i> <i class="fas fa-clinic-medical"></i>
+                <i class="fas fa-ambulance" aria-hidden="true"></i> <i class="fas fa-hospital" aria-hidden="true"></i> <i class="fas fa-clinic-medical" aria-hidden="true"></i>
             </div>
             <div id="phenoAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
         </div>
@@ -1983,8 +1878,6 @@
             }
         }
 
-        let isFirstTimeAnimation = true; // Flag to control the first-time animation
-
         function calculateResult() {
             syncFilledBiomarkersForNewApplication(['wbc', 'lymphocyte', 'mcv', 'rcdw', 'albumin', 'ap', 'creatinine', 'glucose', 'crp']);
 
@@ -2171,10 +2064,9 @@
                 history.replaceState({}, '', base + (search ? '?' + search : '') + hash);
             })();
 
-            // Setting up the animated counter effect
+            // Present the complete result immediately; motion must never gate the next action.
             const animatedAgeElement = document.getElementById('animatedAge');
             const yearsTextElement = document.getElementById('yearsText');
-            let displayAge = 0;
             
             // Determine age category for color coding
             const ageDiff = phenoAge - chronologicalAgeAtTimeOfTest;
@@ -2194,88 +2086,17 @@
                 }
             }
             
-            if (isFirstTimeAnimation) {
-                // Set the flag to false after the first run
-                isFirstTimeAnimation = false;
+            resultElement.classList.add('show');
+            animatedAgeElement.innerText = phenoAge.toFixed(1);
+            animatedAgeElement.classList.remove('age-excellent', 'age-good', 'age-average');
+            animatedAgeElement.classList.add(ageCategory);
 
-                setTimeout(() => {
-                    // Trigger the card reveal animation
-                    resultElement.classList.add('show');
-                    
-                    // Calculate animation speed - smooth and not too fast
-                    const animationDuration = Math.min(Math.max(phenoAge * 25, 800), 2500);
-                    const stepCount = Math.ceil(phenoAge);
-                    const stepInterval = Math.max(animationDuration / stepCount, 15);
-                    const incrementPerStep = phenoAge / stepCount;
-                    
-                    let currentStep = 0;
-                    const ageCounter = setInterval(() => {
-                        currentStep++;
-                        displayAge = Math.min(incrementPerStep * currentStep, phenoAge);
-                        animatedAgeElement.innerText = displayAge.toFixed(1);
-                        
-                        // Subtle pulse effect during counting (only every few steps to avoid jank)
-                        if (currentStep % 3 === 0) {
-                            animatedAgeElement.classList.add('counting');
-                            setTimeout(() => {
-                                animatedAgeElement.classList.remove('counting');
-                            }, 250);
-                        }
-                        
-                        if (displayAge >= phenoAge) {
-                            clearInterval(ageCounter);
-                            
-                            // Set final age value with decimal precision
-                            animatedAgeElement.innerText = phenoAge.toFixed(1);
-                            
-                            // Remove any existing age category classes before adding the new one
-                            animatedAgeElement.classList.remove('age-excellent', 'age-good', 'age-average');
-                            
-                            // Add color category and final reveal animation
-                            animatedAgeElement.classList.add(ageCategory);
-                            animatedAgeElement.classList.add('final-reveal');
-                            
-                            // Remove final reveal class after animation completes
-                            setTimeout(() => {
-                                animatedAgeElement.classList.remove('final-reveal');
-                            }, 800);
-                            
-                            // Update years text with year reduction/increase and celebratory emoji if bio age is better
-                            const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
-                            yearsTextElement.textContent = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
-                            renderPhenoRankPreview();
+            const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
+            yearsTextElement.textContent = `${yearsDelta}years`;
+            renderPhenoRankPreview();
 
-                            // Show the Next button after a brief delay
-                            setTimeout(() => {
-                                document.getElementById('continueButton').classList.add('show');
-                                updateCalculateButton();
-                            }, 500);
-                        }
-                    }, stepInterval);
-                }, 150);
-            } else {
-                setTimeout(() => {
-                    // Trigger the card reveal animation
-                    resultElement.classList.add('show');
-                    
-                    // Direct update without animation
-                    animatedAgeElement.innerText = phenoAge.toFixed(1);
-                    
-                    // Remove any existing age category classes before adding the new one
-                    animatedAgeElement.classList.remove('age-excellent', 'age-good', 'age-average');
-                    animatedAgeElement.classList.add(ageCategory);
-                    
-                    const yearsDelta = ageDiff < 0 ? `- ${Math.abs(ageDiff).toFixed(1)} ` : (ageDiff > 0 ? `+ ${ageDiff.toFixed(1)} ` : '');
-                    yearsTextElement.textContent = yearsDelta + (ageDiff < 0 ? `years 🚀` : `years`);
-                    renderPhenoRankPreview();
-
-                    // Show the Next button
-                    setTimeout(() => {
-                        document.getElementById('continueButton').classList.add('show');
-                        updateCalculateButton();
-                    }, 400);
-                }, 100);
-            }
+            document.getElementById('continueButton').classList.add('show');
+            updateCalculateButton();
 
             isResultCalculated = true;
         }

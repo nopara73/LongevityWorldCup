@@ -47,7 +47,7 @@
     z-index: -1;
     background:
         linear-gradient(135deg, rgba(0, 188, 212, 0.22), transparent 34%),
-        linear-gradient(315deg, rgba(255, 64, 129, 0.16), transparent 42%);
+        linear-gradient(315deg, rgba(8, 118, 133, 0.16), transparent 42%);
 }
 
 .helstab-hero-content {
@@ -113,13 +113,14 @@
     line-height: 1.1;
     text-decoration: none;
     cursor: pointer;
-    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background-color 140ms ease;
+    transition: transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
 .helstab-button.primary {
-    background: #78da3b;
-    border-color: #78da3b;
-    box-shadow: 0 8px 22px rgba(120, 218, 59, 0.28);
+    background: var(--lwc-accent, #087685);
+    border-color: var(--lwc-accent, #087685);
+    color: var(--lwc-on-accent, #ffffff);
+    box-shadow: none;
 }
 
 .helstab-button.secondary {
@@ -276,12 +277,19 @@
     padding: 1rem;
 }
 
-.helstab-signal i {
+.helstab-icon {
+    width: 1em;
+    height: 1em;
+    display: block;
+    flex: 0 0 auto;
+    fill: currentColor;
+}
+
+.helstab-signal .helstab-icon {
     width: 2.4rem;
     height: 2.4rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    padding: 0.48rem;
+    box-sizing: border-box;
     border-radius: 8px;
     background: #101820;
     color: #00bcd4;
@@ -320,8 +328,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    background: #ff4081;
-    color: #ffffff;
+    background: var(--lwc-accent, #087685);
+    color: var(--lwc-on-accent, #ffffff);
     font-weight: 900;
 }
 
@@ -420,10 +428,10 @@
     justify-content: flex-start;
 }
 
-.helstab-pay-row i {
+.helstab-pay-row .helstab-icon {
     width: 1.5rem;
+    height: 1.5rem;
     color: #00a2b8;
-    text-align: center;
 }
 
 .helstab-pay-row span {

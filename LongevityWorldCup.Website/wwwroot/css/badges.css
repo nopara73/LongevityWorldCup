@@ -19,7 +19,7 @@
     color:#fff!important;
     margin-left:0;
     box-shadow:0 1px 2px rgba(0,0,0,.18);
-    transition:transform .2s ease,filter .2s ease,box-shadow .2s ease
+    transition:filter var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease)
 }
 .badge-class::after{
     content:"";
@@ -55,9 +55,9 @@
 .badge-class.badge-family-utility{border-radius:9px}
 .badge-class.badge-overflow-count{background:linear-gradient(135deg,#f8fbfc,#dfe9ec)!important;border:1px solid rgba(0,188,212,.42)!important;color:var(--primary-color)!important;font-size:.78rem;font-weight:800;letter-spacing:.01em;box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 2px 4px rgba(0,0,0,.16)}
 .badge-class.badge-overflow-count::after{display:none}
-.badge-class:hover{transform:scale(1.08)}
-a.badge-class:hover,.badge-class.badge-clickable:hover,.badge-class[data-clickable="true"]:hover,.modal-badge-item>a.badge-class:hover{transform:scale(1.2);animation:shadowPulse 1s ease-in-out 1 forwards}
-a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-class[data-clickable="true"]:focus-visible,.modal-badge-item>a.badge-class:focus-visible{transform:scale(1.2);animation:shadowPulse 1s ease-in-out 1 forwards;outline:none}
+.badge-class:hover{filter:brightness(1.06)}
+a.badge-class:hover,.badge-class.badge-clickable:hover,.badge-class[data-clickable="true"]:hover,.modal-badge-item>a.badge-class:hover{transform:none;animation:none;box-shadow:0 3px 8px rgba(0,0,0,.26)}
+a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-class[data-clickable="true"]:focus-visible,.modal-badge-item>a.badge-class:focus-visible{transform:none;animation:none;outline:3px solid var(--lwc-accent-bright, #19c3d1);outline-offset:3px}
 .modal-badge-strip{display:flex;flex-wrap:wrap;justify-content:center;gap:.25rem;margin:.5rem 0 1rem}
 .modal-badge-strip .badge-class{width:70px;height:70px;font-size:2rem;margin:.4rem}
 .modal-badge-strip .badge-class i{font-size:.78em}
@@ -117,16 +117,12 @@ a.badge-class:focus-visible,.badge-class.badge-clickable:focus-visible,.badge-cl
 #detailsModal .badge-class.badge-clickable:focus-visible,
 #detailsModal .badge-class[data-clickable="true"]:focus-visible,
 #detailsModal .modal-badge-item>a.badge-class:focus-visible{
+    outline:3px solid var(--lwc-accent-bright, #19c3d1);
+    outline-offset:3px;
     box-shadow:0 0 0 3px rgba(246,244,237,.28),0 10px 22px rgba(0,0,0,.32);
 }
 .badge-class{cursor:default!important}
 a.badge-class,.badge-class.badge-clickable,.badge-class[data-clickable="true"],.modal-badge-item>a.badge-class{cursor:pointer!important}
-
-@keyframes shadowPulse{
-    0%{box-shadow:0 0 4px rgba(0,0,0,.3)}
-    50%{box-shadow:0 0 10px rgba(0,0,0,.6)}
-    100%{box-shadow:0 0 4px rgba(0,0,0,.3)}
-}
 
 @media (max-width:768px){
     #detailsModal .modal-badge-strip{

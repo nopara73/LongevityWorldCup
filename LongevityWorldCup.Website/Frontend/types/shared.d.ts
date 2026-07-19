@@ -334,10 +334,8 @@ interface HTMLElement {
 interface Window {
     PhenoAge?: PhenoAgeApi;
     BortzAge?: BortzAgeApi;
-    TryGetDivisionIcon?: ((division: string) => string) | undefined;
-    TryGetLeagueTrackIcon?: ((leagueTrack: string | null | undefined) => string) | undefined;
-    TryGetGenerationIcon?: ((generation: string) => string) | undefined;
     TryGetDivisionFaIcon?: ((division: string) => string) | undefined;
+    TryGetLeagueTrackFaIcon?: ((leagueTrack: string | null | undefined) => string) | undefined;
     TryGetGenerationFaIcon?: ((generation: string) => string) | undefined;
     LwcFlags?: LwcFlagsApi;
     CustomEventMarkup?: CustomEventMarkupApi;
@@ -353,7 +351,6 @@ interface Window {
     compareAthleteRankBortzImprovement(a: RankedAthlete, b: RankedAthlete): number;
     compareAthleteRankCrowdAge(a: RankedAthlete, b: RankedAthlete): number;
     getGeneration(birthYear: number): string;
-    getRankText(rank: number): string;
     showWithDelay(element: HTMLElement): void;
     calculateAgeAtDate(birthDate: Date, atDate: Date): number;
     calculateCompletedYearsAtDate(birthDate: Date, atDate: Date): number;

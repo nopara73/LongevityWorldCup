@@ -382,13 +382,12 @@ public sealed class FlowActionDockBrowserTests
     }
 
     [Theory]
-    [InlineData(390, 844, 190)]
-    [InlineData(1280, 720, 220)]
-    [InlineData(1366, 768, 235)]
+    [InlineData(390, 844)]
+    [InlineData(1280, 720)]
+    [InlineData(1366, 768)]
     public async Task ReviewPage_KeepsHomeActionWithReviewPanel(
         int viewportWidth,
-        int viewportHeight,
-        double minIllustrationHeight)
+        int viewportHeight)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -408,14 +407,13 @@ public sealed class FlowActionDockBrowserTests
         var errors = CapturePageErrors(page);
 
         await page.GotoAsync("/review", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => document.querySelector('.application-review-visual img')?.complete");
+        await page.WaitForSelectorAsync(".application-review-copy.primary");
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
         await page.WaitForTimeoutAsync(850);
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
         await ExpectActionStackInViewportAsync(page, ".application-review-actions");
 
         var titleRect = await ReadElementRectAsync(page, ".application-review-title");
-        var illustrationRect = await ReadElementRectAsync(page, ".application-review-visual img");
         var primaryCopyRect = await ReadElementRectAsync(page, ".application-review-copy.primary");
         var actionRect = await ReadElementRectAsync(page, ".application-review-actions");
         var actionDocked = await HasDockClassAsync(page, ".application-review-actions");
@@ -435,8 +433,7 @@ public sealed class FlowActionDockBrowserTests
 
         Assert.True(titleRect.Top >= 0,
             $"Review title starts above the viewport: {titleRect.Top}px.");
-        Assert.True(illustrationRect.Height >= minIllustrationHeight,
-            $"Review illustration was over-compressed: {illustrationRect.Height}px < {minIllustrationHeight}px.");
+        Assert.Equal(0, await page.Locator(".application-review-visual, .application-review-panel img").CountAsync());
         Assert.True(primaryCopyRect.Bottom <= actionRect.Top - 8,
             $"Review primary message is too close to the Home action: copy bottom {primaryCopyRect.Bottom}px, action top {actionRect.Top}px.");
         Assert.NotEmpty(visibleSecondaryCopies);
@@ -1018,14 +1015,13 @@ public sealed class FlowActionDockBrowserTests
     }
 
     [Theory]
-    [InlineData(844, 390, 32, 70)]
-    [InlineData(768, 1024, 38, 240)]
-    [InlineData(1280, 720, 36, 240)]
+    [InlineData(844, 390, 32)]
+    [InlineData(768, 1024, 38)]
+    [InlineData(1280, 720, 36)]
     public async Task ProofUpload_FirstViewportUsesFormScaleTitleAndShowsUploadAction(
         int viewportWidth,
         int viewportHeight,
-        double maxTitleFontSize,
-        double minIllustrationHeight)
+        double maxTitleFontSize)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -1061,7 +1057,7 @@ public sealed class FlowActionDockBrowserTests
         await page.WaitForFunctionAsync(
             """
             () => document.querySelector('#character-title')?.textContent.trim() === 'Browser Test Athlete'
-                && document.querySelector('.proof-upload-visual img')?.complete
+                && document.querySelector('.proof-upload-symbol .fa-file-medical')
                 && document.querySelector('#uploadProofButton')?.getAttribute('data-listener') === 'true'
             """);
 
@@ -1069,7 +1065,7 @@ public sealed class FlowActionDockBrowserTests
             """
             () => {
                 const title = document.querySelector('#character-title');
-                const image = document.querySelector('.proof-upload-visual img');
+                const illustration = document.querySelector('.proof-upload-symbol');
                 const uploadButton = document.querySelector('#uploadProofButton');
                 const rectOf = element => {
                     const rect = element.getBoundingClientRect();
@@ -1086,7 +1082,7 @@ public sealed class FlowActionDockBrowserTests
                 return {
                     TitleFontSize: parseFloat(getComputedStyle(title).fontSize),
                     Title: rectOf(title),
-                    Illustration: rectOf(image),
+                    Illustration: rectOf(illustration),
                     UploadButton: rectOf(uploadButton),
                     ViewportHeight: window.innerHeight
                 };
@@ -1095,8 +1091,8 @@ public sealed class FlowActionDockBrowserTests
 
         Assert.True(layout.TitleFontSize <= maxTitleFontSize,
             $"Proof upload title fell back to oversized global h1 sizing: {layout.TitleFontSize}px > {maxTitleFontSize}px.");
-        Assert.True(layout.Illustration.Height >= minIllustrationHeight,
-            $"Proof upload illustration was over-compressed: {layout.Illustration.Height}px < {minIllustrationHeight}px.");
+        Assert.InRange(layout.Illustration.Height, 80, 104);
+        Assert.Equal(0, await page.Locator(".proof-upload-visual img").CountAsync());
         Assert.True(layout.UploadButton.Bottom <= layout.ViewportHeight - 8,
             $"Upload proofs action is cut off in the first viewport: bottom {layout.UploadButton.Bottom}px, viewport {layout.ViewportHeight}px.");
         Assert.Empty(errors);
@@ -2456,7 +2452,9 @@ public sealed class FlowActionDockBrowserTests
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1366, Height = 768 }
+            // Keep the desktop width while constraining height enough to exercise the dock.
+            // At 768px the compact form and both actions now fit fully inline by design.
+            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 

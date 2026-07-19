@@ -194,13 +194,13 @@
                     <picture>
                         <source srcset="{{ASSET_HEADSHOT_WEBP}}" type="image/webp">
                         <source srcset="{{ASSET_HEADSHOT_JPEG}}" type="image/jpeg">
-                        <img src="{{ASSET_HEADSHOT_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" loading="eager" decoding="async">
+                        <img src="{{ASSET_HEADSHOT_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" width="1024" height="768" loading="eager" decoding="async">
                     </picture>
                 </div>
             </div>
             <div class="play-autocomplete-wrapper">
                 <div class="play-autocomplete-container">
-                    <label for="playAthleteInput" class="visually-hidden">Athlete name</label>
+                    <label for="playAthleteInput" class="field-label">Athlete name</label>
                     <input type="text"
                            id="playAthleteInput"
                            name="athlete"
@@ -211,7 +211,7 @@
                            autocapitalize="none"
                            spellcheck="false"
                            placeholder="Start typing your athlete name...">
-                    <span id="playAthleteError" class="error-message" aria-live="polite"></span>
+                    <div id="playAthleteError" class="error-message" role="status" aria-live="polite" aria-atomic="true"></div>
                 </div>
             </div>
             <div class="options-container play-athlete-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-unless="body.play-route-hydrating">
@@ -231,7 +231,7 @@
                     <picture>
                         <source srcset="{{ASSET_HEADSHOT_WEBP}}" type="image/webp">
                         <source srcset="{{ASSET_HEADSHOT_JPEG}}" type="image/jpeg">
-                        <img src="{{ASSET_HEADSHOT_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" loading="eager" decoding="async">
+                        <img src="{{ASSET_HEADSHOT_JPEG}}" alt="Headshot" class="illustration athlete-picture-placeholder" width="1024" height="768" loading="eager" decoding="async">
                     </picture>
                 </div>
             </div>

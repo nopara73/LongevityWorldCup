@@ -1,6 +1,6 @@
 <style>
     :root{
-        --row-fade-duration:.24s;
+        --row-fade-duration:var(--lwc-duration-normal, 220ms);
         --row-stagger-step:24ms;
         --row-stagger-group-size:8;
         --row-delay:0ms;
@@ -33,12 +33,12 @@
         to{opacity:1;transform:translateY(0)}
     }
 
-    .fade-in-board{animation:fadeInBoard .42s ease-in-out both}
+    .fade-in-board{animation:fadeInBoard var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both}
     .row-appear{opacity:.82;transform:translateY(4px)}
     .row-appear.is-visible{
         opacity:1;
         transform:translateY(0);
-        transition:opacity var(--row-fade-duration) ease,transform var(--row-fade-duration) ease;
+        transition:opacity var(--row-fade-duration) var(--lwc-ease, ease),transform var(--row-fade-duration) var(--lwc-ease, ease);
         transition-delay:var(--row-delay,0ms)
     }
 
@@ -72,6 +72,53 @@
     }
 
     .events-skeleton-row td{ cursor:default; }
+
+    .events-status{
+        position:absolute;
+        width:1px;
+        height:1px;
+        padding:0;
+        margin:-1px;
+        overflow:hidden;
+        clip:rect(0,0,0,0);
+        white-space:nowrap;
+        border:0;
+    }
+
+    .events-recovery{
+        display:flex;
+        flex-wrap:wrap;
+        align-items:center;
+        justify-content:center;
+        gap:.75rem;
+        min-height:88px;
+        padding:1rem;
+        color:var(--events-text);
+        text-align:center;
+    }
+    .events-recovery p{ margin:0; }
+    .events-retry-button{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-height:44px;
+        padding:.55rem 1rem;
+        border:1px solid var(--events-header-action);
+        border-radius:8px;
+        background:var(--card-bg);
+        color:var(--events-header-action);
+        font:inherit;
+        font-weight:700;
+        cursor:pointer;
+    }
+    .events-retry-button:hover,
+    .events-retry-button:focus-visible{
+        background:var(--surface-muted, #eef2f5);
+    }
+    .events-retry-button:focus-visible{
+        outline:3px solid var(--primary-color-bright, #19c3d1);
+        outline-offset:2px;
+    }
 
     .events-skeleton-row:hover{
         transform:none !important;
@@ -219,7 +266,6 @@
     .events-board.athlete-scroll td.event-message .event-message-cell *{
         white-space:normal;
     }
-    .events-board.athlete-scroll td.event-message .event-message-cell .name-and-rank,
     .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
     .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
     .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
@@ -251,18 +297,18 @@
     }
     .view-all:hover,
     .view-all:focus{
-        color:#055563;
+        color:var(--lwc-accent-hover, #055563);
         text-decoration-color:currentColor;
     }
     .view-all:focus-visible{
-        outline:2px solid rgba(6,116,135,.45);
+        outline:3px solid currentColor;
         outline-offset:3px;
         border-radius:4px;
     }
 
     .events-board table tbody tr{
         height:auto;
-        transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease;
+        transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         cursor:default;
         background-color:var(--zebra-odd);
         box-shadow:inset 0 -1px 0 var(--events-border)
@@ -278,20 +324,20 @@
         transform:translateY(-1px);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
         background-color:var(--events-hover-bg);
-        transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
+        transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease)
     }
 
     .events-board table tbody tr.custom-event-row.is-open:hover + tr.custom-event-details,
     .events-board table tbody tr.custom-event-details:hover{
         transform:translateY(-1px);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
-        transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
+        transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease)
     }
     .events-board table tbody tr.custom-event-row:has(+ tr.custom-event-details:hover){
         transform:translateY(-1px);
         box-shadow:0 4px 10px rgba(0,0,0,.08);
         background-color:var(--events-hover-bg);
-        transition:transform .25s ease,box-shadow .25s ease,background-color .25s ease
+        transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease)
     }
     .events-board table tbody tr.custom-event-row.is-open:hover,
     .events-board table tbody tr.custom-event-row.is-open.group-hover,
@@ -326,7 +372,7 @@
 
     .avatar,.avatar-fallback{
         width:24px;height:24px;aspect-ratio:1/1;border-radius:50%;overflow:hidden;
-        border:2px solid var(--secondary-color,#ff4f87);
+        border:2px solid var(--secondary-color,#087685);
         box-shadow:0 1px 3px rgba(0,0,0,.12);
         background:#eef3f7
     }
@@ -347,7 +393,7 @@
         margin:-6px;
     }
     .avatar,
-    .avatar-fallback{transition:transform .15s ease,box-shadow .15s ease;will-change:transform}
+    .avatar-fallback{transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);will-change:transform}
     .avatar-link:hover .avatar,
     .avatar-link:focus .avatar,
     .avatar-link:hover .avatar-fallback,
@@ -396,14 +442,14 @@
     }
 
     .event-message a{color:var(--primary-color);text-decoration:underline;cursor:pointer;overflow-wrap:anywhere;word-break:break-word}
-    .events-board td.event-message .event-message-cell a{overflow-wrap:normal;word-break:normal}
+    .events-board td.event-message .event-message-cell a{overflow-wrap:anywhere;word-break:break-word}
     .event-message a:hover,
-    .event-message a:focus{color:var(--secondary-color,#ff4f87);text-decoration-color:var(--secondary-color,#ff4f87)}
+    .event-message a:focus{color:var(--secondary-color,#087685);text-decoration-color:var(--secondary-color,#087685)}
     .event-message .athlete-name-text{color:var(--primary-color);text-decoration:none;cursor:default}
     .event-message .event-inline-text{min-width:0;white-space:normal}
     .events-board .event-measurement,
     .events-board .event-measurement *{white-space:nowrap!important}
-    .name-and-rank{display:inline-block;vertical-align:baseline;white-space:nowrap}
+    .name-and-rank{display:inline;vertical-align:baseline;white-space:normal;overflow-wrap:anywhere}
     .name-and-rank .rank-badge{padding-left:.15rem}
     .event-message .rank-badge{display:inline-flex;align-items:baseline;gap:.15rem;white-space:nowrap}
     .event-message .rank-icon{margin-left:.2rem}
@@ -452,7 +498,6 @@
         text-decoration-color:var(--events-muted);
     }
 
-    .events-board td.event-message .event-message-cell .name-and-rank,
     .events-board td.event-message .event-message-cell .rank-badge,
     .events-board td.event-message .event-message-cell .badge-class,
     .events-board td.event-message .event-message-cell .badge-chip,
@@ -461,7 +506,7 @@
         white-space:nowrap;
     }
 
-    .donation-amount{color:var(--secondary-color,#ff4f87);font-weight:700}
+    .donation-amount{color:var(--secondary-color,#087685);font-weight:700}
     .age-years-accent{color:#4caf50;font-weight:700}
     .donation-gift-avatar{
         width:24px;height:24px;border-radius:50%;
@@ -480,8 +525,8 @@
         display:grid;place-items:center;line-height:0
     }
     .milestone-people-avatar i{color:#fff!important;display:block;font-size:.95rem;line-height:1}
-    .milestone-count{color:var(--secondary-color,#ff4f87);font-weight:700}
-    .count-accent{color:var(--secondary-color,#ff4f87);font-weight:700}
+    .milestone-count{color:var(--secondary-color,#087685);font-weight:700}
+    .count-accent{color:var(--secondary-color,#087685);font-weight:700}
 
     .badge-list{display:flex;flex-wrap:wrap;gap:.35rem}
     .badge-chip{
@@ -521,14 +566,14 @@
     .events-board .badge-class.badge-family-pace{border-radius:8px}
     .events-board .badge-class.badge-family-utility{border-radius:6px}
     .events-board .badge-class.badge-overflow-count{
-        background:linear-gradient(135deg,#f8fbfc,#dfe9ec)!important;
-        border:1px solid rgba(0,188,212,.42)!important;
-        color:var(--primary-color)!important;
+        background:var(--lwc-surface-muted, #eef2f5)!important;
+        border:1px solid var(--lwc-border-strong, #71808d)!important;
+        color:var(--lwc-accent-hover, var(--primary-color))!important;
         font-size:.72rem;
         font-weight:800;
         letter-spacing:.01em;
         text-decoration:none;
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 2px 4px rgba(0,0,0,.12);
+        box-shadow:none;
     }
     .events-board .badge-class.badge-overflow-count::after{display:none}
     .events-board a.badge-class.badge-overflow-count:hover,
@@ -563,7 +608,7 @@
     .events-board .badge-with-from{display:inline-flex;align-items:center;align-self:center;position:relative;white-space:normal}
     .events-board .badge-with-from .badge-from{
         max-width:0;opacity:0;overflow:hidden;white-space:nowrap;margin-left:0;
-        transition:max-width .25s ease,opacity .25s ease,margin-left .25s ease
+        transition:max-width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),margin-left var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease)
     }
     .events-board .badge-with-from:hover .badge-from{max-width:260px;opacity:1;margin-left:.35rem}
     .events-board .badge-with-from.show-from .badge-from{max-width:260px;opacity:1;margin-left:.35rem}
@@ -612,7 +657,7 @@
 
     .events-board table tbody tr.custom-event-row:not(.custom-event-no-details) td.event-message .event-message-cell{
         position:relative;
-        padding-right:34px;
+        padding-right:50px;
     }
 
     .events-board table tbody tr.custom-event-row td.event-message .event-message-cell::-webkit-scrollbar{
@@ -646,8 +691,8 @@
         align-items:center;
         justify-content:center;
 
-        width:28px;
-        height:28px;
+        width:44px;
+        height:44px;
         margin:0;
         padding:0;
 
@@ -680,7 +725,7 @@
         top:50%;
         transform:translate(-50%,-50%) rotate(0deg);
         transform-origin:50% 50%;
-        transition:transform .18s ease;
+        transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         font-size:12px;
         line-height:1;
     }
@@ -688,7 +733,7 @@
         transform:translate(-50%,-50%) rotate(180deg);
     }
 
-    .events-board tbody tr.custom-event-row{cursor:pointer}
+    .events-board tbody tr.custom-event-row{cursor:default}
     .events-board tbody tr.custom-event-row.custom-event-no-details{cursor:default}
 
     @media (prefers-reduced-motion:reduce){
@@ -703,9 +748,9 @@
         overflow:hidden;
         will-change:max-height,opacity,padding;
         transition:
-                max-height .34s cubic-bezier(.2,.85,.2,1),
-                padding .34s cubic-bezier(.2,.85,.2,1),
-                opacity .18s linear .16s;
+                max-height var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+                padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+                opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
     .events-board tbody tr.custom-event-row.is-open + tr.custom-event-details .custom-event-content{
@@ -713,9 +758,9 @@
         max-height:1400px;
         opacity:1;
         transition:
-                max-height .34s cubic-bezier(.2,.85,.2,1),
-                padding .34s cubic-bezier(.2,.85,.2,1),
-                opacity .18s linear;
+                max-height var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+                padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+                opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
     .details-cell{padding:10px 20px;background:var(--details-bg);border-top:1px solid var(--events-border)}
@@ -732,7 +777,7 @@
         .col-avatar{width:28px}
         .avatar,.avatar-fallback{width:22px;height:22px;border-width:2px}
         .event-message{font-size:.95rem}
-        .col-date{font-size:.72rem;opacity:1;color:#64748b;padding-left:6px}
+        .col-date{font-size:.72rem;opacity:1;color:var(--events-muted);padding-left:6px}
         .events-board table tbody tr:hover{transform:none;box-shadow:0 4px 10px rgba(0,0,0,.08)}
         .events-board td.event-message{align-items:center;align-content:center}
 
@@ -777,7 +822,6 @@
         .events-board:not(.athlete-scroll) td.event-message .event-message-cell *{
             white-space:normal;
         }
-        .events-board:not(.athlete-scroll) td.event-message .event-message-cell .name-and-rank,
         .events-board:not(.athlete-scroll) td.event-message .event-message-cell .rank-badge,
         .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-class,
         .events-board:not(.athlete-scroll) td.event-message .event-message-cell .badge-chip,
@@ -813,7 +857,6 @@
         .events-board.athlete-scroll td.event-message .event-message-cell *{
             white-space:normal;
         }
-        .events-board.athlete-scroll td.event-message .event-message-cell .name-and-rank,
         .events-board.athlete-scroll td.event-message .event-message-cell .rank-badge,
         .events-board.athlete-scroll td.event-message .event-message-cell .badge-class,
         .events-board.athlete-scroll td.event-message .event-message-cell .badge-chip,
@@ -879,9 +922,92 @@
             padding-bottom:.28rem;
         }
     }
+
+    /* Shared-system alignment: a quiet event log with one action accent. */
+    :root {
+        --events-muted: #52606d;
+        --events-border: #d7e0e6;
+        --events-hover-bg: #f6fbfc;
+        --events-header-bg: #e7f7f8;
+        --events-header-ink: #075f6b;
+        --events-header-action: #087685;
+    }
+
+    .events-board {
+        border: 1px solid var(--events-border);
+        border-radius: var(--radius-lg, 12px);
+        background: var(--card-bg);
+        box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,.08));
+    }
+
+    .events-board thead th {
+        border-color: var(--events-border);
+        background: var(--events-header-bg);
+        color: var(--events-header-ink);
+    }
+
+    .events-board table tbody tr,
+    .events-board table tbody tr:hover,
+    .events-board table tbody tr:focus-within {
+        border-color: var(--events-border);
+        box-shadow: none;
+        transform: none;
+    }
+
+    .events-board table tbody tr:hover,
+    .events-board table tbody tr:focus-within {
+        background: var(--events-hover-bg);
+    }
+
+    .col-date {
+        color: var(--events-muted);
+        opacity: 1;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .avatar-link:hover .avatar,
+    .avatar-link:hover .avatar-fallback,
+    .avatar-link:focus .avatar,
+    .avatar-link:focus .avatar-fallback {
+        box-shadow: none;
+        transform: none;
+    }
+
+    .custom-event-expander,
+    .events-retry-button {
+        border-radius: var(--radius-md, 8px);
+        box-shadow: none;
+    }
+
+    .events-retry-button:hover,
+    .events-retry-button:focus-visible {
+        background: var(--surface-muted, #eef2f5);
+    }
+
+    .event-message-cell,
+    .avatar-fallback,
+    .events-board .badge-class--event-count {
+        font-weight: 700;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --events-text: #e6edf3;
+            --events-muted: #aebdca;
+            --events-border: #42515e;
+            --details-bg: #18353c;
+            --zebra-even: #17212b;
+            --zebra-odd: #101820;
+            --events-hover-bg: #1a3037;
+            --events-header-bg: #18353c;
+            --events-header-ink: #a9edf0;
+            --events-header-action: #5bd5dd;
+        }
+    }
 </style>
 
 <div id="events-root" class="events-board" aria-busy="true">
+    <div id="eventsStatus" class="events-status" role="status" aria-live="polite" aria-atomic="true">Loading events...</div>
     <table id="eventsTable">
         <colgroup>
             <col class="events-col-avatar">
@@ -977,6 +1103,11 @@
         function setEventsLoadingState(preserveExistingRows=false){
             const root = document.getElementById('events-root');
             if (root) root.setAttribute('aria-busy', 'true');
+            const status = document.getElementById('eventsStatus');
+            if (status) {
+                status.setAttribute('role', 'status');
+                status.textContent = 'Loading events...';
+            }
 
             const tbody = document.querySelector('#eventsTable tbody');
             if (!tbody) return;
@@ -984,9 +1115,36 @@
             tbody.innerHTML = buildEventSkeletonRows();
         }
 
-        function clearEventsLoadingState(){
+        function clearEventsLoadingState(message='Events loaded.'){
             const root = document.getElementById('events-root');
             if (root) root.setAttribute('aria-busy', 'false');
+            const status = document.getElementById('eventsStatus');
+            if (status) status.textContent = message;
+        }
+
+        function renderEventsLoadError(retry){
+            const tbody = document.querySelector('#eventsTable tbody');
+            if (!tbody) return;
+
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            const recovery = document.createElement('div');
+            const message = document.createElement('p');
+            const retryButton = document.createElement('button');
+
+            cell.colSpan = 3;
+            recovery.className = 'events-recovery';
+            recovery.setAttribute('role', 'alert');
+            message.textContent = 'Events could not load.';
+            retryButton.type = 'button';
+            retryButton.className = 'events-retry-button';
+            retryButton.textContent = 'Retry';
+            retryButton.addEventListener('click', retry);
+
+            recovery.append(message, retryButton);
+            cell.appendChild(recovery);
+            row.appendChild(cell);
+            tbody.replaceChildren(row);
         }
 
         const MILESTONE_COPY = {
@@ -1387,10 +1545,10 @@
                 if(url){
                     const isPodcast=String(label||'').trim().toLowerCase()==='podcast';
                     const targetAttrs=isPodcast?' target="_blank" rel="noopener"':'';
-                    const accessibleLabel=isPodcast?'Open podcast':'Open league';
-                    return `<a class="badge-class ${familyClass} badge-clickable" href="${esc(url)}"${targetAttrs} aria-label="${accessibleLabel}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></a>`;
+                    const accessibleLabel=isPodcast?`${tip}. Open podcast`:`${tip}. Open league`;
+                    return `<a class="badge-class ${familyClass} badge-clickable" href="${esc(url)}"${targetAttrs} aria-label="${esc(accessibleLabel)}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}" aria-hidden="true"></i></a>`;
                 }
-                return `<span class="badge-class ${familyClass}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}"></i></span>`;
+                return `<span class="badge-class ${familyClass} badge-explained" tabindex="0" aria-label="${esc(tip)}" title="${esc(tip)}" style="${style}"><i class="fa ${icon}" aria-hidden="true"></i></span>`;
             }catch(e){
                 return `<span class="badge-chip"><strong>${esc(String(label))}</strong></span>`;
             }
@@ -1975,7 +2133,7 @@
                     const takenText = Number.isFinite(taken) ? ordinal(taken) : "?";
                     const iconHtml  = Number.isFinite(taken) ? podiumIcon(taken) : "";
                     const takenHtml = Number.isFinite(taken)
-                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(takenText)}</strong>${iconHtml}</span>`
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #087685)">${esc(takenText)}</strong>${iconHtml}</span>`
                         : esc(takenText);
 
                     if(r.newRankDirection === "lost"){
@@ -2017,7 +2175,7 @@
                     const placeText = placeN ? ordinal(placeN) : "?";
                     const placeIconHtml = placeN ? podiumIcon(placeN) : "";
                     const placeHtml = placeN
-                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #087685)">${esc(placeText)}</strong>${placeIconHtml}</span>`
                         : esc(placeText);
 
                     const seasonN = Number.isFinite(r.seasonId) ? r.seasonId : null;
@@ -2046,7 +2204,7 @@
                     const placeText = placeN ? ordinal(placeN) : "";
                     const placeIconHtml = placeN ? podiumIcon(placeN) : "";
                     const placeHtml = placeN
-                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #ff4f87)">${esc(placeText)}</strong>${placeIconHtml}</span>`
+                        ? `<span class="rank-badge"><strong style="color: var(--secondary-color, #087685)">${esc(placeText)}</strong>${placeIconHtml}</span>`
                         : "";
 
                     const checkedIn = Number.isFinite(r.checkedInDays) ? r.checkedInDays : null;
@@ -2156,12 +2314,6 @@
                             toggleOpen();
                         });
                     }
-
-                    tr.addEventListener("click", (ev) => {
-                        const t = ev.target;
-                        if (t && t.closest && (t.closest("a") || t.closest(".custom-event-expander"))) return;
-                        toggleOpen();
-                    });
 
                     frag.appendChild(detailsTr);
                 }
@@ -2678,11 +2830,14 @@
                 if(mode === "highlights"){
                     window.__homepageLastRenderIds = currentRowIds;
                 }
-                clearEventsLoadingState();
+                clearEventsLoadingState(rows.length ? 'Events loaded.' : 'No events yet.');
             }).catch(()=>{
-                clearEventsLoadingState();
-                const tbody=document.querySelector("#eventsTable tbody");
-                if(tbody) tbody.innerHTML=`<tr><td colspan="3">Failed to load events</td></tr>`;
+                clearEventsLoadingState('Events could not load.');
+                const status = document.getElementById('eventsStatus');
+                if (status) status.setAttribute('role', 'alert');
+                renderEventsLoadError(() => {
+                    window.loadEventsTable(maxRows, showViewAll, athleteId, linkNames, options);
+                });
             });
         };
 

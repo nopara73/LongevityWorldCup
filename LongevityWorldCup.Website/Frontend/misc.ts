@@ -278,18 +278,6 @@ window.getGeneration = function (birthYear) {
     }
 }
 
-window.getRankText = function (rank) {
-    let rankText = ` (#${rank})`;
-    if (rank === 1) {
-        rankText = "🥇"; // Gold medal for 1st place
-    } else if (rank === 2) {
-        rankText = "🥈"; // Silver medal for 2nd place
-    } else if (rank === 3) {
-        rankText = "🥉"; // Bronze medal for 3rd place
-    }
-    return rankText;
-}
-
 window.showWithDelay = function (element) {
     element.style.display = ''; // Remove display: none to make it visible
     element.classList.add('fade-in'); // Start fade-in transition

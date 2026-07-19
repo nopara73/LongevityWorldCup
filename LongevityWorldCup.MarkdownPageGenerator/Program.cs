@@ -84,16 +84,26 @@ static string BuildContentsNav(string documentHtml, string sourceUrl)
     {
         return $"""
         <nav class="documentation-nav" aria-label="Document navigation">
-            <a class="documentation-source-link" href="{source}" target="_blank" rel="noopener">Source Markdown</a>
+            <button type="button" class="documentation-nav-toggle" aria-expanded="false" aria-controls="documentation-nav-links">
+                <span>On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="documentation-nav-links" id="documentation-nav-links">
+                <a class="documentation-source-link" href="{source}" target="_blank" rel="noopener">Source Markdown</a>
+            </div>
         </nav>
 """;
     }
 
     return $$"""
         <nav class="documentation-nav" aria-label="Document navigation">
-            <div class="documentation-nav-title">Contents</div>
+            <button type="button" class="documentation-nav-toggle" aria-expanded="false" aria-controls="documentation-nav-links">
+                <span>On this page</span><span class="documentation-nav-toggle-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="documentation-nav-links" id="documentation-nav-links">
+                <div class="documentation-nav-title">Contents</div>
 {{string.Join(Environment.NewLine, links)}}
-            <a class="documentation-source-link" href="{{source}}" target="_blank" rel="noopener">Source Markdown</a>
+                <a class="documentation-source-link" href="{{source}}" target="_blank" rel="noopener">Source Markdown</a>
+            </div>
         </nav>
 """;
 }
@@ -208,26 +218,36 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             display: grid;
             gap: 0.2rem;
             padding: 0.85rem 0.7rem 0.95rem;
-            border-left: 3px solid var(--primary-color);
+            border-left: 3px solid var(--lwc-accent, var(--primary-color));
             border-radius: 0 8px 8px 0;
-            background: rgba(255, 255, 255, 0.48);
-            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+            background: var(--lwc-surface-muted, #eef2f5);
+            box-shadow: none;
         }
 
         .documentation-nav-title {
             margin: 0 0 0.35rem;
             padding: 0 0.45rem;
-            color: #334155;
+            color: var(--lwc-muted, #526373);
             font-size: 0.78rem;
             font-weight: 700;
             text-transform: uppercase;
+        }
+
+        .documentation-nav-toggle {
+            display: none;
+        }
+
+        .documentation-nav-links {
+            display: grid;
+            gap: 0.2rem;
+            min-width: 0;
         }
 
         .documentation-nav a {
             display: block;
             padding: 0.38rem 0.45rem;
             border-radius: 6px;
-            color: #334155;
+            color: var(--lwc-ink, #334155);
             font-size: 0.92rem;
             line-height: 1.25;
             text-decoration: none;
@@ -237,15 +257,15 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             margin-left: 0.55rem;
             padding-top: 0.28rem;
             padding-bottom: 0.28rem;
-            color: #506176;
+            color: var(--lwc-muted, #506176);
             font-size: 0.86rem;
         }
 
         .documentation-nav a:hover,
         .documentation-nav a:focus-visible,
         .documentation-nav a.is-active {
-            background: rgba(0, 188, 212, 0.12);
-            color: #047888;
+            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
+            color: var(--lwc-accent-hover, #047888);
             outline: none;
         }
 
@@ -256,18 +276,18 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-nav .documentation-source-link {
             margin-top: 0.65rem;
             padding-top: 0.75rem;
-            border-top: 1px solid rgba(15, 23, 42, 0.1);
-            color: var(--primary-color);
+            border-top: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
+            color: var(--lwc-accent, var(--primary-color));
             font-weight: 700;
         }
 
         .documentation-document {
             box-sizing: border-box;
             padding: clamp(1.35rem, 3vw, 2.2rem);
-            border: 1px solid rgba(15, 23, 42, 0.08);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.08));
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.56);
-            color: #233142;
+            background: var(--lwc-surface, #ffffff);
+            color: var(--lwc-ink, #233142);
             font-size: 1.04rem;
             line-height: 1.7;
             overflow-wrap: break-word;
@@ -277,7 +297,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-document h2,
         .documentation-document h3,
         .documentation-document h4 {
-            color: #1f2b3a;
+            color: var(--lwc-ink, #1f2b3a);
             line-height: 1.16;
             overflow-wrap: anywhere;
         }
@@ -285,7 +305,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-document h1 {
             margin: 0 0 1.25rem;
             padding: 0 0 1rem;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
             text-align: left;
             font-size: clamp(2.1rem, 4vw, 2.85rem);
             letter-spacing: 0;
@@ -295,7 +315,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         .documentation-document h2 {
             margin: 2.45rem 0 0.85rem;
             padding-top: 1.05rem;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            border-top: 1px solid var(--lwc-border, rgba(0, 0, 0, 0.08));
             text-align: left;
             font-size: clamp(1.55rem, 3vw, 2rem);
             text-shadow: none;
@@ -329,7 +349,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         }
 
         .documentation-document a {
-            color: var(--primary-color);
+            color: var(--lwc-accent, var(--primary-color));
             font-weight: 700;
             text-decoration-thickness: 0.08em;
             text-underline-offset: 0.14em;
@@ -337,7 +357,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
         .documentation-document a:hover,
         .documentation-document a:focus-visible {
-            color: #008fa1;
+            color: var(--lwc-accent-hover, #008fa1);
         }
 
         .documentation-document img {
@@ -352,10 +372,10 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             height: auto;
             object-fit: contain;
             margin: 1.45rem auto 1.8rem;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.82);
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.82));
+            box-shadow: none;
         }
 
         .documentation-document table {
@@ -364,30 +384,30 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             margin: 1.25rem 0 1.5rem;
             overflow-x: auto;
             border-collapse: collapse;
-            background: rgba(255, 255, 255, 0.64);
+            background: var(--lwc-surface, #ffffff);
             border-radius: 8px;
         }
 
         .documentation-document th,
         .documentation-document td {
             padding: 0.62rem 0.75rem;
-            border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+            border-bottom: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
             text-align: left;
             vertical-align: top;
             white-space: nowrap;
         }
 
         .documentation-document th {
-            color: #111827;
-            background: rgba(0, 188, 212, 0.1);
+            color: var(--lwc-ink, #111827);
+            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.1));
             font-weight: 700;
         }
 
         .documentation-source {
             margin: 2.25rem 0 0;
             padding-top: 1rem;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
-            color: #506176;
+            border-top: 1px solid var(--lwc-border, rgba(0, 0, 0, 0.08));
+            color: var(--lwc-muted, #506176);
             font-size: 0.95rem;
             text-align: left;
         }
@@ -395,21 +415,64 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
         @media (max-width: 900px) {
             .documentation-page {
                 display: block;
-                margin: 2rem auto 3rem;
+                margin: 1rem auto 3rem;
                 padding: 0 1rem;
             }
 
             .documentation-nav {
                 position: static;
-                display: flex;
-                flex-wrap: wrap;
-                gap: 0.35rem;
-                align-items: center;
-                margin: 0 0 1rem;
-                padding: 0.6rem;
+                display: block;
+                margin: 0 0 0.75rem;
+                padding: 0.35rem;
                 border-left: 0;
-                border-top: 3px solid var(--primary-color);
+                border-top: 3px solid var(--lwc-accent, var(--primary-color));
                 border-radius: 0 0 8px 8px;
+            }
+
+            .documentation-nav-toggle {
+                box-sizing: border-box;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                min-height: 44px;
+                padding: 0.6rem 0.75rem;
+                border: 1px solid var(--lwc-border-strong, #71808d);
+                border-radius: 6px;
+                background: var(--lwc-surface, #ffffff);
+                color: var(--lwc-ink, #334155);
+                font: inherit;
+                font-weight: 700;
+                line-height: 1.25;
+                text-align: left;
+                cursor: pointer;
+            }
+
+            .documentation-nav-toggle:hover {
+                border-color: var(--lwc-accent, var(--primary-color));
+                background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
+            }
+
+            .documentation-nav-toggle:focus-visible {
+                outline: 3px solid var(--lwc-accent-bright, #19c3d1);
+                outline-offset: 2px;
+            }
+
+            .documentation-nav-toggle-icon {
+                font-size: 1.25rem;
+                line-height: 1;
+            }
+
+            .documentation-nav-links {
+                display: none;
+                max-height: min(65svh, 30rem);
+                margin-top: 0.35rem;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+            }
+
+            .documentation-nav.is-open .documentation-nav-links {
+                display: grid;
             }
 
             .documentation-nav-title {
@@ -418,22 +481,28 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
 
             .documentation-nav a {
                 box-sizing: border-box;
-                flex: 0 1 auto;
+                display: flex;
+                align-items: center;
+                width: 100%;
                 max-width: 100%;
-                background: rgba(255, 255, 255, 0.58);
+                min-height: 44px;
+                padding: 0.6rem 0.75rem;
+                background: var(--lwc-surface, #ffffff);
                 white-space: normal;
                 overflow-wrap: anywhere;
             }
 
             .documentation-nav .documentation-nav-level-3 {
-                margin-left: 0;
+                width: calc(100% - 0.75rem);
+                margin-left: 0.75rem;
+                border-left: 2px solid var(--lwc-border, #d7e0e6);
                 font-size: 0.9rem;
             }
 
             .documentation-nav .documentation-source-link {
-                margin-top: 0;
-                padding-top: 0.38rem;
-                border-top: 0;
+                margin-top: 0.35rem;
+                padding-top: 0.6rem;
+                border-top: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.1));
             }
         }
 
@@ -480,9 +549,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 grid-template-columns: auto minmax(0, 1fr);
                 gap: 0.35rem 0.7rem;
                 padding: 0.62rem 0.7rem;
-                border: 1px solid rgba(148, 163, 184, 0.28);
+                border: 1px solid var(--lwc-border, rgba(148, 163, 184, 0.28));
                 border-radius: 8px;
-                background: rgba(248, 250, 252, 0.78);
+                background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.78));
             }
 
             .documentation-document tbody td {
@@ -498,14 +567,14 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 grid-template-columns: auto minmax(0, 1fr);
                 gap: 0.35rem;
                 align-items: baseline;
-                color: #334155;
+                color: var(--lwc-ink, #334155);
                 font-size: 0.86rem;
                 line-height: 1.28;
             }
 
             .documentation-document tbody td::before {
                 content: attr(data-label);
-                color: #64748b;
+                color: var(--lwc-muted, #526373);
                 font-size: 0.68rem;
                 font-weight: 800;
                 text-transform: uppercase;
@@ -557,6 +626,25 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
     <script>
         history.replaceState({}, "", "{{canonicalPath}}" + (window.location.search || "") + (window.location.hash || ""));
         document.addEventListener("DOMContentLoaded", () => {
+            const documentationNav = document.querySelector(".documentation-nav");
+            const documentationNavToggle = documentationNav?.querySelector(".documentation-nav-toggle");
+            const setDocumentationNavOpen = open => {
+                if (!documentationNav || !documentationNavToggle) {
+                    return;
+                }
+
+                documentationNav.classList.toggle("is-open", open);
+                documentationNavToggle.setAttribute("aria-expanded", String(open));
+                const icon = documentationNavToggle.querySelector(".documentation-nav-toggle-icon");
+                if (icon) {
+                    icon.textContent = open ? "−" : "+";
+                }
+            };
+
+            documentationNavToggle?.addEventListener("click", () => {
+                setDocumentationNavOpen(documentationNavToggle.getAttribute("aria-expanded") !== "true");
+            });
+
             const navLinks = Array.from(document.querySelectorAll(".documentation-nav a[href^='#']"));
             const headings = navLinks
                 .map(link => document.getElementById(decodeURIComponent(link.getAttribute("href").slice(1))))
@@ -592,6 +680,9 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                     window.scrollTo({ top, behavior: reducedMotion ? "auto" : "smooth" });
                     history.pushState(null, "", link.getAttribute("href"));
                     setActive(target.id);
+                    if (window.matchMedia("(max-width: 900px)").matches) {
+                        setDocumentationNavOpen(false);
+                    }
 
                     target.setAttribute("tabindex", "-1");
                     target.focus({ preventScroll: true });

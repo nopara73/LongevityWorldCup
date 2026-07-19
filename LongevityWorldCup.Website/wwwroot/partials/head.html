@@ -49,11 +49,6 @@
 
 {{OPTIONAL_HEAD_SCRIPTS}}
 
-<!-- AOS CSS -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet">
-<!-- AOS JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js" defer></script>
-
 <link rel="stylesheet" href="{{ASSET_BADGES_CSS}}">
 <link rel="stylesheet" href="{{ASSET_MOBILE_ROUGHNESS_CSS}}">
 <link rel="stylesheet" href="{{ASSET_FLOW_CONTROLS_CSS}}">
@@ -293,33 +288,6 @@ Must appear before any other script that attaches DOMContentLoaded listeners.
     })();
 </script>
 
-<!--
-Monkey-patch DOMContentLoaded to automatically refresh AOS animations
-as soon as the DOM is ready. Ensures any [data-aos] elements already
-in view will animate without manual calls.
-Must appear before any other script that initializes or relies on AOS.
--->
-<script>
-    (function () {
-        const origAdd = document.addEventListener.bind(document);
-        document.addEventListener = function (type, listener, options) {
-            if (type === 'DOMContentLoaded') {
-                origAdd('DOMContentLoaded', event => {
-                    try {
-                        listener.call(this, event);
-                    } finally {
-                        if (window.AOS && typeof AOS.refresh === 'function') {
-                            AOS.refresh();
-                        }
-                    }
-                }, options);
-            } else {
-                origAdd(type, listener, options);
-            }
-        };
-    })();
-</script>
-
 {{MODULES_BOOTSTRAP}}
 
 <!-- Structured Data -->
@@ -357,16 +325,4 @@ Must appear before any other script that initializes or relies on AOS.
         window.addEventListener('load', loadGoogleTag, { once: true });
         window.setTimeout(loadGoogleTag, 3000);
     })();
-</script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        AOS.init({
-            duration: 800, // Animation duration in milliseconds
-            easing: 'ease-in-out', // Easing function
-            once: true, // Whether animation should happen only once while scrolling down
-            offset: 50, // Reduced offset to trigger animations earlier
-            disable: window.matchMedia('(prefers-reduced-motion: reduce)').matches, // Respect user preference
-        });
-    });
 </script>

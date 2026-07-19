@@ -91,6 +91,8 @@ namespace LongevityWorldCup.Website.Middleware
                 {
                     // Read the main HTML file
                     var bodyContent = await File.ReadAllTextAsync(filePath);
+                    var usesSharedHead = bodyContent.Contains("<!--HEAD-->", StringComparison.Ordinal);
+                    var optsIntoSharedAestheticSystem = bodyContent.Contains("<!--AESTHETIC-SYSTEM-->", StringComparison.Ordinal);
 
                     // Read the header and footer files
                     var head = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "head.html"));
@@ -153,7 +155,12 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"))
                         .Replace("{{REQUEST_COUNTRY_CODE}}", GetRequestCountryCode(context));
                     bodyContent = ApplySharedCssPlaceholders(ApplySharedAssetPlaceholders(bodyContent));
+                    bodyContent = bodyContent.Replace("<!--AESTHETIC-SYSTEM-->", string.Empty, StringComparison.Ordinal);
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
+                    if (usesSharedHead || optsIntoSharedAestheticSystem)
+                    {
+                        bodyContent = InjectAestheticSystemStylesheet(bodyContent);
+                    }
 
                     if (ShouldRemoveJoinGameButtons(path))
                     {
@@ -364,6 +371,19 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_FLOW_CONTROLS_CSS}}", _assetVersionProvider.AppendVersion("/css/flow-controls.css"))
                 .Replace("{{ASSET_PLAY_MENU_CSS}}", _assetVersionProvider.AppendVersion("/css/play-menu.css"))
                 .Replace("{{ASSET_PLAY_ATHLETE_FLOW_CSS}}", _assetVersionProvider.AppendVersion("/css/play-athlete-flow.css"));
+        }
+
+        private string InjectAestheticSystemStylesheet(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var stylesheet = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, stylesheet);
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)

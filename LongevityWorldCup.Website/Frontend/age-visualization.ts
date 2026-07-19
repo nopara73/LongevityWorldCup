@@ -267,6 +267,17 @@
     var radarChartInstance: RadarChartInstance | null = null;
     var radarResizeObserver: ResizeObserver | null = null;
     var radarResizeFrame = 0;
+    const RADAR_ANIMATION_DURATION_MS = 220;
+
+    function getRadarAnimationDuration(): number {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+            return RADAR_ANIMATION_DURATION_MS;
+        }
+
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 0
+            : RADAR_ANIMATION_DURATION_MS;
+    }
 
     function scheduleRadarResize() {
         if (radarResizeFrame) return;
@@ -516,7 +527,7 @@
                         angleLines: { color: radarGridColor, lineWidth: 1 }
                     }
                 },
-                animation: { duration: 500 },
+                animation: { duration: getRadarAnimationDuration() },
                 hover: { mode: 'nearest' }
             }
         });
