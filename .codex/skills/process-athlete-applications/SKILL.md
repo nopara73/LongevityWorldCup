@@ -286,6 +286,8 @@ If the Adam Google profile is not signed in, the required send-as address is una
 
 Draft replies in Gmail, do not send them before approval.
 
+Before drafting, read the latest direct exchange with the athlete and continue that conversation naturally. Treat the templates below as starting points, not scripts. If Adam and the athlete have already exchanged messages, do not reintroduce Adam or write as though this is the first contact. Briefly acknowledge the athlete's latest relevant action—such as sending requested proof or a correction—using only details present in the thread.
+
 When blocked, keep the message concise and specific:
 
 ```text
@@ -317,12 +319,28 @@ Examples:
 - `Your glucose was submitted as 90 mmol/L, but the proof shows 90 mg/dL, so I stored it as 5.0 mmol/L.`
 - `I corrected your Instagram handle from @oldvalue to @correctvalue.`
 
-For an accepted full application, use:
+For an accepted full application on first contact, use:
 
 ```text
 Hey {name},
 
 I'm Adam, the founder of LWC. I reviewed your application and it looks good to me.
+
+{Include the Changes I made during the review section here only when required by the preceding instructions.}
+
+Your athlete profile: {profileUrl}
+
+Please reply if you spot anything that needs a correction.
+
+Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
+```
+
+For an accepted full application after the athlete supplied a requested item or correction, adapt the acknowledgment to the actual exchange. For example:
+
+```text
+Hey {name},
+
+Thanks for sending {the requested item}. I reviewed {the complete report/the update}, and your application looks good to me.
 
 {Include the Changes I made during the review section here only when required by the preceding instructions.}
 
