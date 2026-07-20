@@ -1056,8 +1056,8 @@
             height: 44px;
         }
 
-        header[role="banner"] .join-game-middle,
-        header[role="banner"] .join-game-end {
+        header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+        header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
             display: inline-block;
         }
     }
@@ -1120,8 +1120,8 @@
         letter-spacing: 0.025em;
     }
 
-    :where(body.home-page) header[role="banner"] .join-game-middle,
-    :where(body.home-page) header[role="banner"] .join-game-end {
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) .join-game-end {
         display: inline-block;
     }
 
@@ -1280,6 +1280,8 @@
     </button>
     <button onclick="window.location.assign('/play')" class="join-game scrolled-button" aria-label="Play the game" style="display: none;">
         <strong>PLAY</strong>
+        <span class="join-game-middle" style="font-size: 1rem;">THE</span>
+        <strong class="join-game-end">GAME</strong>
     </button>
     <div id="custom-alert" role="alertdialog" aria-modal="true" aria-labelledby="custom-alert-title" aria-describedby="custom-alert-message" hidden>
         <div class="custom-alert-panel" tabindex="-1">
@@ -1330,18 +1332,17 @@
     function handleScroll(scrollPos) {
         const compactLandscape = window.matchMedia('(max-width: 932px) and (max-height: 480px) and (orientation: landscape)').matches;
         const mainJoinButtonVisible = joinGameBtn && window.getComputedStyle(joinGameBtn).display !== 'none';
-
-        if (scrolledJoinButton && scrollPos > 100 && (mainJoinButtonVisible || compactLandscape)) {
-            scrolledJoinButton.style.display = 'inline-flex';
-        } else if (scrolledJoinButton) {
-            scrolledJoinButton.style.display = 'none';
-        }
         const mainHeader = document.querySelector('header[role="banner"]');
         const stickyHeader = document.getElementById('site-sticky-header');
         /* Show when scroll header would completely cover the main header: main header is entirely under the sticky bar. Sticky height when visible; fallback 52 if not yet measured. */
         const stickyHeight = (stickyHeader && stickyHeader.offsetHeight) || 52;
         const threshold = mainHeader ? Math.max(0, mainHeader.offsetHeight - stickyHeight) : -1;
         const willBeVisible = mainHeader && stickyHeader ? scrollPos >= threshold : false;
+        if (scrolledJoinButton && willBeVisible && (mainJoinButtonVisible || compactLandscape)) {
+            scrolledJoinButton.style.display = 'inline-flex';
+        } else if (scrolledJoinButton) {
+            scrolledJoinButton.style.display = 'none';
+        }
         if (mainHeader && stickyHeader) {
             if (willBeVisible) {
                 stickyHeader.classList.add('visible');
