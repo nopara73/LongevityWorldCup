@@ -6,7 +6,7 @@ namespace LongevityWorldCup.Tests;
 public sealed class GuessMyAgeBrowserTests
 {
     [Fact]
-    public async Task GuessSubmission_PreservesEasterEggAndPersistsOnlyAcceptedGuesses()
+    public async Task GuessSubmission_PreservesEasterEggAndCompletesFilteredAndAcceptedGuesses()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -34,8 +34,7 @@ public sealed class GuessMyAgeBrowserTests
                 {
                     Status = 200,
                     ContentType = "application/json",
-                    Headers = new Dictionary<string, string> { ["Retry-After"] = "30" },
-                    Body = """{"crowdAge":0,"crowdCount":0,"actualAge":40,"guessAccepted":false}"""
+                    Body = """{"crowdAge":39,"crowdCount":12,"actualAge":41,"guessAccepted":false}"""
                 });
                 return;
             }
@@ -108,7 +107,7 @@ public sealed class GuessMyAgeBrowserTests
         Assert.True(containment.PageScrollWidth <= containment.PageClientWidth);
 
         await range.EvaluateAsync(
-            "range => { range.value = '50'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+            "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
         try
         {
             await submit.ClickAsync();
@@ -122,32 +121,117 @@ public sealed class GuessMyAgeBrowserTests
         {
             releaseFirstGuess.TrySetResult(true);
         }
-        await page.WaitForFunctionAsync("() => document.getElementById('gmaStatus')?.textContent.includes('30 seconds')");
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaStatus')?.textContent.includes('Actual age: 41')");
 
         Assert.Equal(1, guessRequests);
         Assert.False(await trollNote.IsVisibleAsync());
-        Assert.Contains("not accepted", await status.InnerTextAsync(), StringComparison.OrdinalIgnoreCase);
-        Assert.True(await range.IsEnabledAsync());
-        Assert.True(await page.Locator("#guessAgeContainer .gma-actions").IsVisibleAsync());
-        Assert.False(await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<bool>("element => element.inert"));
+        Assert.DoesNotContain("not accepted", await status.InnerTextAsync(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("You guessed older — oof.", await status.InnerTextAsync());
+        Assert.False(await range.IsEnabledAsync());
+        Assert.True(await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<bool>("element => element.inert"));
+        Assert.False(await page.Locator("#guessAgeContainer .gma-actions").IsVisibleAsync());
+        Assert.Equal("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
+        Assert.Equal("0", await page.Locator("#gmaBubble").EvaluateAsync<string>("element => getComputedStyle(element).opacity"));
         Assert.True(await page.EvaluateAsync<bool>(
-            "() => !JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['history-test']"));
-        Assert.Equal(0, await page.Locator(".gma-pop-banner").CountAsync());
+            """
+            () => {
+                const heading = document.querySelector('#guessAgeContainer .chrono-age-heading').getBoundingClientRect();
+                const status = document.getElementById('gmaStatus').getBoundingClientRect();
+                return status.top >= heading.bottom - 0.5;
+            }
+            """));
+        await page.WaitForFunctionAsync(
+            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['history-test']?.value === 54");
+        Assert.True(await page.EvaluateAsync<bool>(
+            """
+            () => {
+                const guess = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['history-test'];
+                return guess?.value === 54 && guess.first === false && guess.exact === false;
+            }
+            """));
+        await page.WaitForFunctionAsync("() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");
+
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modalContent = document.querySelector('#detailsModal .modal-content');
+                modalContent.dataset.athleteSlug = 'accepted-history-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await range.EvaluateAsync(
+            "range => { range.value = '50'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
 
         await submit.ClickAsync();
         await page.GetByText("First accepted guess!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
         Assert.Contains("You guessed older — oof.", await status.InnerTextAsync());
         await page.WaitForFunctionAsync(
-            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['history-test']?.first === true");
+            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['accepted-history-test']?.first === true");
 
         Assert.Equal(2, guessRequests);
         Assert.True(await page.EvaluateAsync<bool>(
             """
             () => {
-                const guess = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['history-test'];
+                const guess = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['accepted-history-test'];
                 return guess?.value === 50 && guess.first === true && guess.exact === false;
             }
             """));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_RequestFailureRestoresRetryableControls()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 503,
+            ContentType = "application/json",
+            Body = "{}"
+        }));
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'failed-history-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+
+        var range = page.Locator("#gmaRange");
+        var submit = page.Locator("#guessAgeContainer .gma-btn--primary");
+        await range.EvaluateAsync(
+            "range => { range.value = '50'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await submit.ClickAsync();
+        await page.GetByText("We could not submit your guess. Please try again.", new PageGetByTextOptions { Exact = true }).WaitForAsync();
+
+        Assert.True(await range.IsEnabledAsync());
+        Assert.True(await submit.IsEnabledAsync());
+        Assert.False(await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<bool>("element => element.inert"));
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => !JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['failed-history-test']"));
+        Assert.Equal(0, await page.Locator("#gmaRealBubble").CountAsync());
         Assert.Empty(errors);
     }
 
