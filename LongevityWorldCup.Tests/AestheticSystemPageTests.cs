@@ -92,11 +92,14 @@ public sealed class AestheticSystemPageTests
         using var client = factory.CreateClient();
 
         var proofs = await client.GetStringAsync("/proofs");
+        var application = await client.GetStringAsync("/apply");
         var review = await client.GetStringAsync("/review");
 
         Assert.Contains("class=\"proof-upload-symbol\"", proofs);
         Assert.Contains("fa-file-medical", proofs);
         Assert.DoesNotContain("content-images/proof", proofs);
+        Assert.Contains("id=\"onboardingProofSymbol\" class=\"proof-upload-symbol\"", application);
+        Assert.DoesNotContain("updateIllustration(\"proof\"", application);
         Assert.Contains("class=\"application-review-visual\"", review);
         Assert.Contains("bean-waiting.webp?v=", review);
         Assert.Contains("alt=\"Mr Bean waiting patiently for the review\"", review);

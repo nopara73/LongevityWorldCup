@@ -135,6 +135,27 @@ video {
     max-width: 100%;
 }
 
+.proof-upload-symbol {
+    width: 96px;
+    height: 96px;
+    margin-inline: auto;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--lwc-border, #d7e0e6);
+    border-radius: var(--lwc-radius-lg, 12px);
+    background: var(--lwc-surface-muted, #eef2f5);
+    color: var(--lwc-accent-hover, #065d68);
+    box-sizing: border-box;
+}
+
+.proof-upload-symbol[hidden] {
+    display: none;
+}
+
+.proof-upload-symbol i {
+    font-size: 2.75rem;
+}
+
 [class^="lmx-"],
 [class*=" lmx-"] {
     font-family: 'Roboto', system-ui, sans-serif;

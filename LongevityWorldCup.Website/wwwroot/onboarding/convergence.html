@@ -597,6 +597,7 @@
                     <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
                     <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
                 </picture>
+                <div id="onboardingProofSymbol" class="proof-upload-symbol" aria-hidden="true" hidden><i class="fas fa-file-medical"></i></div>
                 <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
@@ -1384,6 +1385,8 @@
             const illustrationImage = document.getElementById('illustrationImage');
             const illustrationPicture = document.getElementById('illustrationPicture');
             illustrationPicture.style.display = '';
+            const proofUploadSymbol = document.getElementById('onboardingProofSymbol');
+            proofUploadSymbol.hidden = true;
             const profileImage = document.getElementById('profileImage');
             profileImage.style.display = 'none';
             const webpSource = illustrationPicture.querySelector('source[type="image/webp"]');
@@ -1533,11 +1536,11 @@
                 case 5:
                     // Stage 5: Don't Trust, Verify
                     document.querySelector('h1').innerHTML = "4/b. Don't trust, verify";
-                    updateIllustration("proof", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Proof image";
-                    illustrationImage.loading = "lazy";
+                    illustrationPicture.style.display = 'none';
+                    proofUploadSymbol.hidden = false;
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
+                    updateSubProgress(4);
 
                     illustrationImage.classList.remove('clickable');
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
