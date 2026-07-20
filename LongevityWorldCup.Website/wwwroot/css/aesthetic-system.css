@@ -454,6 +454,17 @@ button:active,
     background-color: var(--lwc-accent-hover);
 }
 
+/* The homepage still has a container-level `background` shorthand. Match its
+   element-plus-class specificity and set the complete fill so removing that
+   legacy gradient cannot leave white Subscribe text on a transparent button. */
+button.enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--lwc-accent);
+}
+
+button.enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]):hover {
+    background: var(--lwc-accent-hover);
+}
+
 .back-button,
 .flow-action--secondary {
     border: 1px solid var(--lwc-border);

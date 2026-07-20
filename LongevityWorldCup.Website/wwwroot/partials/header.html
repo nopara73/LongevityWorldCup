@@ -122,6 +122,9 @@
 
     .main-logo-image {
         filter: invert(100%);
+        aspect-ratio: 1 / 1;
+        object-fit: contain;
+        flex-shrink: 0;
     }
 
     .header-link {
@@ -798,31 +801,6 @@
         }
     }
 
-    @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
-        header {
-            padding-top: 0.45rem;
-            padding-bottom: 0.55rem;
-        }
-
-        .header-link > .main-logo-image {
-            width: 44px;
-            margin-bottom: 0.25rem;
-        }
-
-        .bannertext {
-            font-size: 1.45rem;
-            line-height: 1.02;
-        }
-
-        .tagline {
-            display: none;
-        }
-
-        .join-game:not(.scrolled-button) {
-            display: none;
-        }
-    }
-
     /* Shared visual system: compact competition chrome, calm surfaces, and stable controls. */
     :root {
         /* Legacy pages referenced a magenta secondary accent decoratively. The
@@ -1068,6 +1046,154 @@
             right: max(var(--space-3), env(safe-area-inset-right, 0px));
             padding-inline: var(--space-3);
         }
+    }
+
+    /* Mid-width phones have room for the complete brand/action pair. Keep the
+       smallest layout below this threshold abbreviated so neither can collide. */
+    @media (min-width: 440px) and (max-width: 640px) {
+        header[role="banner"] .header-link > .main-logo-image {
+            width: 44px;
+            height: 44px;
+        }
+
+        header[role="banner"] .join-game-middle,
+        header[role="banner"] .join-game-end {
+            display: inline-block;
+        }
+    }
+
+    /* The homepage is the competition's front door, so its primary action keeps
+       the full hero hierarchy. Task and documentation routes retain the compact
+       shared header above. */
+    :where(body.home-page) header[role="banner"] {
+        box-sizing: border-box;
+        min-height: clamp(220px, 26vw, 280px);
+        padding: clamp(var(--space-5), 3vw, var(--space-6));
+        flex-direction: column;
+        justify-content: center;
+        gap: var(--space-4);
+        background: linear-gradient(120deg, #0b1117 0%, #2d3942 100%);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.24);
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link {
+        max-width: calc(100% - 2rem);
+        min-height: 0;
+        flex: 0 1 auto;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+        width: clamp(72px, 8vw, 88px);
+        height: auto;
+        margin: 0 0 var(--space-2);
+        object-fit: contain;
+    }
+
+    :where(body.home-page) header[role="banner"] .bannertext {
+        max-width: 100%;
+        padding: 0;
+        overflow: visible;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        line-height: 1.05;
+        text-overflow: clip;
+        white-space: nowrap;
+    }
+
+    :where(body.home-page) header[role="banner"] .tagline {
+        display: block;
+        margin: var(--space-1) 0 0;
+        color: #d9e2ea;
+        font-size: 1rem;
+        line-height: 1.2;
+    }
+
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) {
+        position: relative;
+        right: auto;
+        display: inline-flex;
+        min-height: 52px;
+        max-width: calc(100% - 2rem);
+        padding: 0.8rem 1.8rem;
+        font-size: 1.05rem;
+        letter-spacing: 0.025em;
+    }
+
+    :where(body.home-page) header[role="banner"] .join-game-middle,
+    :where(body.home-page) header[role="banner"] .join-game-end {
+        display: inline-block;
+    }
+
+    @media (max-width: 640px) and (min-height: 481px) {
+        :where(body.home-page) header[role="banner"] {
+            min-height: 240px;
+            padding: var(--space-4);
+        }
+
+        :where(body.home-page) header[role="banner"] .header-link > .main-logo-image {
+            width: 72px;
+            height: auto;
+        }
+
+        :where(body.home-page) header[role="banner"] .bannertext {
+            font-size: clamp(1.75rem, 8vw, 2.15rem);
+        }
+
+        :where(body.home-page) header[role="banner"] .tagline {
+            font-size: 0.95rem;
+        }
+    }
+
+    @media (max-width: 932px) and (max-height: 480px) and (orientation: landscape) {
+        header[role="banner"] {
+            min-height: 72px;
+            padding: max(var(--space-2), env(safe-area-inset-top, 0px)) max(var(--space-3), env(safe-area-inset-right, 0px)) var(--space-2) max(var(--space-3), env(safe-area-inset-left, 0px));
+            flex-direction: row;
+            justify-content: flex-start;
+            gap: var(--space-3);
+        }
+
+        header[role="banner"] .header-link {
+            max-width: none;
+            min-width: 0;
+            min-height: 44px;
+            flex: 1 1 auto;
+            flex-direction: row;
+            justify-content: flex-start;
+            gap: var(--space-2);
+        }
+
+        header[role="banner"] .header-link > .main-logo-image {
+            width: 44px;
+            height: auto;
+            margin: 0;
+        }
+
+        header[role="banner"] .bannertext {
+            min-width: 0;
+            overflow: hidden;
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            line-height: 1.05;
+            text-overflow: ellipsis;
+        }
+
+        header[role="banner"] .tagline {
+            display: none;
+        }
+
+        header[role="banner"] .join-game:not(.scrolled-button) {
+            position: static;
+            right: auto;
+            display: inline-flex;
+            flex: 0 0 auto;
+            min-height: 44px;
+            max-width: none;
+            padding: 0.65rem var(--space-3);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
     }
 
     @media (prefers-color-scheme: dark) {
