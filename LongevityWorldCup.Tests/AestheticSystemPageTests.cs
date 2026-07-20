@@ -278,6 +278,20 @@ public sealed class AestheticSystemPageTests
         Assert.DoesNotContain("window.location.href = 'https://www.youtube.com", html);
     }
 
+    [Fact]
+    public async Task HungarianChrome_LocalizesTheSharedFooterColumnHeadings()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/helstab-kihivas");
+
+        Assert.Contains(">Felfedezés<", html);
+        Assert.Contains(">Kövess minket<", html);
+        Assert.DoesNotContain(">Explore<", html);
+        Assert.DoesNotContain(">Follow<", html);
+    }
+
     [Theory]
     [InlineData("/error/502.html")]
     [InlineData("/error/503.html")]

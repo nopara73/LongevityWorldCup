@@ -4860,6 +4860,7 @@
                                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
                                         podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
                                         podiumItem.setAttribute('data-athlete-name', athlete.name);
+                                        attachAthleteContainerClickListener(podiumItem);
 
                                     });
 
@@ -4983,14 +4984,14 @@
                         row.classList.add('extra-athlete');
                     }
 
+                    row.id = `rank-${athlete.rank}`;
+                    tableBody.appendChild(row);
+                    attachAthleteContainerClickListener(row);
                     attachAthleteNameClickListeners();
                     addClickListenerToImages('#modalProfilePic', function () {
                         openEnlargedView(this);
                     }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
                     addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
-
-                    row.id = `rank-${athlete.rank}`;
-                    tableBody.appendChild(row);
                 });
                 scheduleLeaderboardTableHeightSync();
                 setLeaderboardStatus('Leaderboard loaded.');
@@ -5263,6 +5264,24 @@
     function activateAthleteName(event) {
         event.stopPropagation();
         handleAthleteNameClick(event);
+    }
+
+    function activateAthleteContainer(event) {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+
+        // Preserve the generous row/card hit area from the original leaderboard while
+        // allowing every nested control to keep its own behavior.
+        if (target.closest('a, button, input, select, textarea, [role="button"]')) return;
+        if (target.closest('.badge-class, .portrait, .podium-portrait')) return;
+
+        handleAthleteNameClick(event);
+    }
+
+    function attachAthleteContainerClickListener(container) {
+        if (!container || container.dataset.athleteContainerClickListener === 'true') return;
+        container.addEventListener('click', activateAthleteContainer);
+        container.dataset.athleteContainerClickListener = 'true';
     }
 
     function attachAthleteNameClickListeners() {

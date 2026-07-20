@@ -328,6 +328,8 @@ namespace LongevityWorldCup.Website.Middleware
         private static string LocalizeHungarianFooter(string html)
         {
             return html
+                .Replace(">Explore<", ">Felfedezés<")
+                .Replace(">Follow<", ">Kövess minket<")
                 .Replace("Shop Longevity World Cup merchandise", "Hosszúéletesítési Világbajnokság bolt")
                 .Replace("Visit Longevity World&nbsp;Cup GitHub repository", "Hosszúéletesítési Világbajnokság GitHub tároló")
                 .Replace("Read the history of Longevity as a Sport", "A hosszúélet mint sport története")
