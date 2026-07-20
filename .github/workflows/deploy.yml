@@ -169,14 +169,20 @@ jobs:
             git clean -fd
             test "$(git rev-parse HEAD)" = "$verified_sha"
 
-            dotnet_version="$(dotnet --version)"
+            git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
+            if ! dotnet_version="$(cd "$deploy_source" && dotnet --version 2>&1)"; then
+              echo "The production host cannot resolve the SDK required by global.json:" >&2
+              echo "$dotnet_version" >&2
+              echo "Installed SDKs:" >&2
+              (cd /tmp && dotnet --list-sdks) >&2
+              exit 1
+            fi
             dotnet_major="${dotnet_version%%.*}"
             if [ "$dotnet_major" != "10" ]; then
               echo "Expected .NET SDK 10.x on production server, found $dotnet_version."
               exit 1
             fi
 
-            git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
             tar -xzf "$frontend_stage/frontend-assets.tar.gz" \
               --no-same-owner \
               --no-same-permissions \
