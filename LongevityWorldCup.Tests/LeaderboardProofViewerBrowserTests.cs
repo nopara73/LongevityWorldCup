@@ -108,11 +108,37 @@ public sealed class LeaderboardProofViewerBrowserTests
         Assert.True(mobileLayout.StageScrollHeight >= mobileLayout.StageClientHeight);
         Assert.False(mobileLayout.NavigationOverlapsStage);
         Assert.True(await IsFocusedAsync(closeButton));
+
+        // Freeze the viewer at the production entrance scale so every viewer
+        // control remains a valid touch target throughout the motion.
+        await viewer.EvaluateAsync(
+            """
+            element => {
+                const entryScale = getComputedStyle(element)
+                    .getPropertyValue('--image-viewer-entry-scale')
+                    .trim();
+                if (!entryScale) throw new Error('Missing image viewer entry scale.');
+                element.style.transition = 'none';
+                element.style.transform = `scale(${entryScale})`;
+                void element.offsetWidth;
+            }
+            """);
+        await AssertTouchTargetAsync(closeButton);
         await AssertTouchTargetAsync(previousButton);
         await AssertTouchTargetAsync(nextButton);
         await AssertTouchTargetAsync(zoomOutButton);
         await AssertTouchTargetAsync(zoomInButton);
         await AssertTouchTargetAsync(fitButton);
+        await viewer.EvaluateAsync(
+            """
+            element => {
+                element.style.removeProperty('transition');
+                element.style.removeProperty('transform');
+                void element.offsetWidth;
+            }
+            """);
+        Assert.True(await viewer.EvaluateAsync<bool>(
+            "element => !element.style.transition && !element.style.transform"));
         Assert.False(await previousButton.IsEnabledAsync());
         Assert.True(await nextButton.IsEnabledAsync());
 
