@@ -93,6 +93,17 @@ public sealed class ProofUploadBrowserTests
         Assert.Contains("Albumin", await page.Locator("#biomarker-checklist").InnerTextAsync());
         Assert.Contains("Glucose", await page.Locator("#biomarker-checklist").InnerTextAsync());
         Assert.True(await page.Locator("#nextButton").IsEnabledAsync());
+        Assert.True(await page.Locator("#onboardingProofSymbol").IsVisibleAsync());
+        Assert.False(await page.Locator("#illustrationPicture").IsVisibleAsync());
+
+        await page.Locator("#nextButton").ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "5. Final details" }).WaitForAsync();
+        await page.Locator("#backButton").ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = "4/b. Don't trust, verify" }).WaitForAsync();
+        Assert.Equal("stage active", await page.Locator("#subStage4").GetAttributeAsync("class"));
+        Assert.Equal("stage", await page.Locator("#subStage5").GetAttributeAsync("class"));
+        Assert.True(await page.Locator("#onboardingProofSymbol").IsVisibleAsync());
+        Assert.False(await page.Locator("#illustrationPicture").IsVisibleAsync());
 
         var uploadButton = page.Locator("#uploadProofButton");
         var cameraButton = page.Locator("#takeProofPhotoButton");
