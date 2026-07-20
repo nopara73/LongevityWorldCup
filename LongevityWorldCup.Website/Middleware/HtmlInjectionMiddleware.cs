@@ -153,7 +153,8 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{ASSET_MARTIN_HELSTAB_PROFILE_IMAGE}}", _assetVersionProvider.AppendVersion("/athletes/martin_helstab/martin_helstab.webp"))
                         .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
                         .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"))
-                        .Replace("{{REQUEST_COUNTRY_CODE}}", GetRequestCountryCode(context));
+                        .Replace("{{REQUEST_COUNTRY_CODE}}", GetRequestCountryCode(context))
+                        .Replace("{{BODY_CLASS_ATTRIBUTE}}", IsHomepageRequest(context) ? " class=\"home-page\"" : string.Empty);
                     bodyContent = ApplySharedCssPlaceholders(ApplySharedAssetPlaceholders(bodyContent));
                     bodyContent = bodyContent.Replace("<!--AESTHETIC-SYSTEM-->", string.Empty, StringComparison.Ordinal);
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
@@ -274,6 +275,12 @@ namespace LongevityWorldCup.Website.Middleware
                 ? countryCode
                 : string.Empty;
         }
+
+        private static bool IsHomepageRequest(HttpContext context)
+            => string.Equals(GetRequestCanonicalPath(context), "/", StringComparison.Ordinal)
+               && !context.Request.Query.ContainsKey("athlete")
+               && !context.Request.Query.ContainsKey("filters")
+               && !context.Request.Query.ContainsKey("view");
 
         private static bool ShouldUseHungarianChrome(HttpContext context)
             => IsHungarianPage(GetRequestCanonicalPath(context));

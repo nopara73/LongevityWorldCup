@@ -5,6 +5,30 @@ namespace LongevityWorldCup.Tests;
 public sealed class AestheticSystemPageTests
 {
     [Theory]
+    [InlineData("/", true)]
+    [InlineData("/league/pheno", false)]
+    [InlineData("/flag/hu", false)]
+    [InlineData("/athlete/nonexistent-athlete", false)]
+    [InlineData("/?view=pheno", false)]
+    public async Task HomepageHeroClass_IsLimitedToTheActualHomepage(string path, bool expectsHomepageHero)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.DoesNotContain("{{BODY_CLASS_ATTRIBUTE}}", html, StringComparison.Ordinal);
+        if (expectsHomepageHero)
+        {
+            Assert.Contains("<body class=\"home-page\">", html, StringComparison.Ordinal);
+        }
+        else
+        {
+            Assert.DoesNotContain("class=\"home-page\"", html, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
     [InlineData("/")]
     [InlineData("/leaderboard")]
     [InlineData("/events")]

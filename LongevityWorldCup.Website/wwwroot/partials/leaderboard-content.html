@@ -795,7 +795,7 @@
     /* =========================
        7) Podium cards
        ========================= */
-    .podium{ display:flex; justify-content:center; align-items:flex-end; margin-bottom:1.2rem; }
+    .podium{ display:flex; justify-content:center; align-items:stretch; margin-bottom:1.2rem; }
     .podium-item{
         --podium-prize-panel-height: 82px;
         --podium-portrait-size: 112px;
@@ -808,9 +808,9 @@
         transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); box-shadow:0 10px 20px rgba(0,0,0,.2);
     }
     .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
-    .podium-item.first{ --podium-portrait-size: 116px; order:2; height:340px; }
-    .podium-item.second{ --podium-portrait-size: 102px; order:1; height:322px; }
-    .podium-item.third{ --podium-portrait-size: 92px; order:3; height:306px; }
+    .podium-item.first{ --podium-portrait-size: 116px; order:2; min-height:340px; margin-top:0; }
+    .podium-item.second{ --podium-portrait-size: 102px; order:1; min-height:322px; margin-top:18px; }
+    .podium-item.third{ --podium-portrait-size: 92px; order:3; min-height:306px; margin-top:34px; }
 
     .podium-item-lower{
         position:absolute; bottom:0; width:100%; min-height:var(--podium-prize-panel-height); padding:10px 0; border-radius:0 0 15px 15px;
@@ -2032,6 +2032,9 @@
         .podium-item.first{ --podium-portrait-size: 142px; order:1; height:auto; min-height:386px; }
         .podium-item.second{ --podium-portrait-size: 124px; order:2; height:auto; min-height:366px; }
         .podium-item.third{ --podium-portrait-size: 110px; order:3; height:auto; min-height:348px; }
+        .podium-item.first,
+        .podium-item.second,
+        .podium-item.third{ margin-top:0; }
         .podium-item .podium-portrait,
         .podium-item .rank-change{ margin:.65rem 0 .55rem; }
         .podium-item .name-row{ justify-content:center; }
