@@ -1,0 +1,86 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "George Church",
+  "Biomarkers": [
+    {
+      "Date": "2010-11-01",
+      "DateBasis": "Report",
+      "AgeYears": 56,
+      "AlbGL": 43,
+      "CreatUmolL": 76.024,
+      "GluMmolL": 5.106,
+      "CrpMgL": 0.8,
+      "LymPc": 19.5,
+      "McvFL": 97,
+      "RdwPc": 13.1,
+      "AlpUL": 64,
+      "Wbc1000cellsuL": 5.5,
+      "SourceIds": [
+        "pgp-health-records-2010"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:George_Church.jpg",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/4/47/George_Church.jpg",
+      "Author": "Heyytessa",
+      "LicenseName": "CC BY-SA 4.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
+    "Notability": {
+      "Summary": "Harvard–MIT geneticist who helped initiate the Human Genome Project and founded the Personal Genome Project, with pioneering work in DNA sequencing, gene editing and synthetic biology.",
+      "SourceIds": [
+        "harvard-biography"
+      ]
+    },
+    "Aliases": [
+      "George M. Church",
+      "George Church, Ph.D."
+    ],
+    "IdentitySourceIds": [
+      "pgp-public-profile",
+      "pgp-health-records-2010"
+    ],
+    "Sources": [
+      {
+        "Id": "pgp-health-records-2010",
+        "Kind": "Bloodwork",
+        "Title": "George Church — participant-uploaded Health records 2010",
+        "Url": "https://my.pgp-hms.org/user_file/download/536",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        },
+        "PreferredForDisplay": true
+      },
+      {
+        "Id": "pgp-public-profile",
+        "Kind": "Identity",
+        "Title": "George Church — Harvard Personal Genome Project public profile (hu43860C)",
+        "Url": "https://my.pgp-hms.org/profile/hu43860C",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
+      },
+      {
+        "Id": "harvard-biography",
+        "Kind": "Identity",
+        "Title": "Harvard Wyss Institute — George Church biography",
+        "Url": "https://wyss.harvard.edu/team/core-faculty/george-church/",
+        "AccessedOn": "2026-07-12"
+      }
+    ],
+    "TranscriptionNotes": [
+      "The Harvard Personal Genome Project profile identifies George M. Church and labels Health records 2010 as a participant upload; the linked Wyss Institute biography identifies him as George Church, Ph.D. Both source-backed variants are recorded as aliases for collision protection. The uploaded clinical note identifies him as 56 years old; no exact date of birth is stored here.",
+      "The signed 1 November 2010 annual-physical note presents the comprehensive metabolic panel, cardio CRP and CBC together. The CBC is marked as ordered for 28 October, but the source does not print one specimen-collection date for every component. Date therefore stores the published report date with DateBasis='Report'; it is not presented as a draw date.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

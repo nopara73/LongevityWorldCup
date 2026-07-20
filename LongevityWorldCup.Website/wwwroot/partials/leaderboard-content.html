@@ -13,6 +13,11 @@
         --tier-amateur-bg-even: rgba(59, 130, 246, 0.11);
         --tier-amateur-border: 4px solid rgba(37, 99, 235, 0.45);
         --tier-amateur-hover: rgba(59, 130, 246, 0.12);
+        /* Public-data comparison rows: violet is reserved for non-competing references. */
+        --open-data-row-bg: linear-gradient(90deg, rgba(124,58,237,.10), rgba(124,58,237,.045));
+        --open-data-row-hover: linear-gradient(90deg, rgba(124,58,237,.15), rgba(124,58,237,.075));
+        --open-data-row-edge: rgba(109,40,217,.72);
+        --open-data-row-ink: #5b21b6;
     }
 
     /* =========================
@@ -80,6 +85,510 @@
         display:flex; align-items:flex-start; background-color:var(--card-bg);
         min-height:var(--leaderboard-table-height);
         border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1); overflow:clip; flex-grow:1;
+    }
+
+    .open-data-profiles{
+        width:min(1120px, calc(100% - 2rem));
+        margin:2.5rem auto 1rem;
+        padding:1.1rem;
+        box-sizing:border-box;
+        border:1px solid rgba(71,85,105,.34);
+        border-radius:18px;
+        background:
+            linear-gradient(135deg, rgba(148,163,184,.11), rgba(255,255,255,.62)),
+            repeating-linear-gradient(-45deg, rgba(71,85,105,.025) 0, rgba(71,85,105,.025) 8px, transparent 8px, transparent 16px);
+        box-shadow:0 12px 30px rgba(15,23,42,.08);
+        color:var(--dark-text-color);
+    }
+    .open-data-profiles[hidden]{ display:none !important; }
+    .open-data-profiles-header{
+        display:flex;
+        align-items:baseline;
+        flex-wrap:wrap;
+        gap:.25rem .75rem;
+    }
+    .open-data-profiles h2{
+        margin:0;
+        color:var(--dark-text-color);
+        font-size:clamp(1.15rem, 2vw, 1.45rem);
+    }
+    .open-data-explainer{
+        margin:0;
+        color:#475569;
+        line-height:1.4;
+        font-size:.8rem;
+        flex:1 1 470px;
+    }
+    .open-data-explainer a{
+        color:#334155;
+        font-weight:700;
+        text-underline-offset:2px;
+    }
+    .open-data-explainer a:focus-visible{
+        outline:3px solid rgba(71,85,105,.32);
+        outline-offset:3px;
+        border-radius:3px;
+    }
+    .open-data-token{
+        display:inline-flex;
+        align-items:center;
+        width:max-content;
+        max-width:100%;
+        padding:.34rem .58rem;
+        border:1px solid rgba(71,85,105,.48);
+        border-radius:999px;
+        background:rgba(248,250,252,.9);
+        color:#334155;
+        font-size:.68rem;
+        font-weight:800;
+        letter-spacing:.085em;
+        line-height:1.15;
+        text-transform:uppercase;
+    }
+    .leaderboard table tbody tr.open-data-leaderboard-row,
+    .leaderboard table tbody tr.open-data-leaderboard-row:nth-child(even){
+        background:var(--open-data-row-bg);
+        box-shadow:inset 4px 0 0 var(--open-data-row-edge);
+    }
+    .leaderboard table tbody tr.open-data-leaderboard-row:hover,
+    .leaderboard table tbody tr.open-data-leaderboard-row:focus-within{
+        background:var(--open-data-row-hover);
+        box-shadow:inset 4px 0 0 var(--open-data-row-edge), 0 5px 14px rgba(76,29,149,.12);
+    }
+    .open-data-hypothetical-rank{
+        display:inline-flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        color:var(--open-data-row-ink);
+        font-variant-numeric:tabular-nums;
+        font-weight:800;
+        line-height:1;
+    }
+    .open-data-hypothetical-prefix{
+        font-size:.55rem;
+        letter-spacing:.08em;
+        text-transform:uppercase;
+    }
+    .open-data-hypothetical-number{ margin-top:.16rem; font-size:1rem; }
+    .open-data-row-identity{
+        display:inline-flex;
+        min-width:0;
+        flex-direction:column;
+        align-items:flex-start;
+        gap:.18rem;
+    }
+    .open-data-row-name{
+        max-width:100%;
+        margin:0;
+        padding:0;
+        border:0;
+        background:transparent;
+        color:var(--open-data-row-ink);
+        font:inherit;
+        font-weight:700;
+        text-align:left;
+        cursor:pointer;
+    }
+    .open-data-row-name:hover{ text-decoration:underline; text-underline-offset:2px; }
+    .open-data-row-name:focus-visible{
+        border-radius:4px;
+        outline:3px solid rgba(109,40,217,.28);
+        outline-offset:3px;
+    }
+    .open-data-row-token{
+        display:inline-flex;
+        width:max-content;
+        max-width:100%;
+        padding:.2rem .42rem;
+        border:1px solid rgba(109,40,217,.32);
+        border-radius:999px;
+        background:rgba(245,243,255,.86);
+        color:#5b21b6;
+        font-size:.55rem;
+        font-weight:800;
+        letter-spacing:.055em;
+        line-height:1.2;
+        text-transform:uppercase;
+    }
+    .open-data-leaderboard-row .portrait{
+        border-color:#7c3aed;
+        box-shadow:0 0 0 2px rgba(124,58,237,.13);
+    }
+    .open-data-leaderboard-row .age-reduction{ color:var(--open-data-row-ink); }
+    .open-data-row-empty{ color:#6d28d9; font-weight:700; }
+    .open-data-grid{
+        display:grid;
+        grid-template-columns:repeat(auto-fit, minmax(min(100%, 285px), 1fr));
+        gap:1rem;
+        margin-top:.9rem;
+    }
+    .open-data-card{
+        display:flex;
+        flex-direction:column;
+        min-width:0;
+        padding:.85rem;
+        border:1px solid rgba(71,85,105,.3);
+        border-radius:15px;
+        background:rgba(255,255,255,.78);
+        box-shadow:0 6px 18px rgba(15,23,42,.07);
+    }
+    .open-data-card[hidden]{ display:none !important; }
+    .open-data-card-media{
+        position:relative;
+        min-height:0;
+        aspect-ratio:16 / 9;
+        margin:0 0 .8rem;
+        overflow:hidden;
+        border:1px solid rgba(71,85,105,.32);
+        border-radius:12px;
+        background:linear-gradient(145deg, #f8fafc, #e2e8f0);
+    }
+    .open-data-card-portrait,
+    .open-data-card-portrait-fallback{
+        position:absolute;
+        inset:0;
+        width:100%;
+        height:100%;
+    }
+    .open-data-card-portrait{
+        display:block;
+        object-fit:cover;
+    }
+    .open-data-card-portrait-fallback{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color:#475569;
+        font-size:2rem;
+    }
+    .open-data-card-media .open-data-token{
+        position:absolute;
+        top:.55rem;
+        left:.55rem;
+        z-index:2;
+        background:rgba(248,250,252,.94);
+        box-shadow:0 2px 8px rgba(15,23,42,.16);
+    }
+    .open-data-photo-credit{
+        position:absolute;
+        right:.45rem;
+        bottom:.45rem;
+        z-index:2;
+        max-width:calc(100% - .9rem);
+        padding:.26rem .42rem;
+        overflow:hidden;
+        border-radius:7px;
+        background:rgba(15,23,42,.8);
+        color:#f8fafc;
+        font-size:.58rem;
+        line-height:1.25;
+        overflow-wrap:anywhere;
+        text-align:right;
+        white-space:normal;
+    }
+    .open-data-photo-credit a{
+        color:inherit;
+        font-weight:700;
+        text-decoration-color:rgba(248,250,252,.7);
+        text-underline-offset:2px;
+    }
+    .open-data-photo-credit a:focus-visible{
+        outline:2px solid #fff;
+        outline-offset:2px;
+        border-radius:2px;
+    }
+    .open-data-card-heading{
+        margin:0 0 .35rem;
+    }
+    .open-data-card-name{
+        margin:0;
+        overflow-wrap:anywhere;
+        color:var(--dark-text-color);
+        font-size:1rem;
+        line-height:1.3;
+    }
+    .open-data-card-summary{
+        margin:0 0 1rem;
+        color:#475569;
+        font-size:.83rem;
+        line-height:1.5;
+    }
+    .open-data-card-metric{
+        display:grid;
+        gap:.2rem;
+        margin:0 0 1rem;
+        padding:.75rem;
+        border-left:3px solid #64748b;
+        background:rgba(241,245,249,.82);
+    }
+    .open-data-card-metric-note{
+        color:#64748b;
+        font-size:.72rem;
+        font-weight:650;
+        line-height:1.35;
+    }
+    .open-data-card-hypothetical{
+        margin-top:.2rem;
+        color:#5b21b6;
+        font-size:.75rem;
+        font-weight:800;
+        line-height:1.35;
+    }
+    .open-data-card-metric-label{
+        color:#64748b;
+        font-size:.72rem;
+        font-weight:700;
+        letter-spacing:.04em;
+        text-transform:uppercase;
+    }
+    .open-data-card-metric-value{
+        color:#1e293b;
+        font-size:1.15rem;
+        font-weight:800;
+        font-variant-numeric:tabular-nums;
+    }
+    .open-data-card-actions{
+        display:flex;
+        flex-wrap:wrap;
+        gap:.55rem;
+        margin-top:auto;
+    }
+    .open-data-card-action{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:.4rem;
+        min-height:44px;
+        box-sizing:border-box;
+        padding:.62rem .78rem;
+        border:1px solid rgba(71,85,105,.44);
+        border-radius:10px;
+        color:#334155;
+        background:#fff;
+        font:inherit;
+        font-size:.82rem;
+        font-weight:700;
+        text-decoration:none;
+        cursor:pointer;
+    }
+    .open-data-card-action:hover,
+    .open-data-card-action:focus-visible{
+        color:#0f172a;
+        border-color:#334155;
+        background:#f8fafc;
+        outline:none;
+        box-shadow:0 0 0 3px rgba(100,116,139,.2);
+    }
+    .open-data-empty{
+        margin:1rem 0 0;
+        padding:.8rem 1rem;
+        border-radius:12px;
+        background:rgba(255,255,255,.7);
+        color:#475569;
+    }
+
+    .open-data-profile-disclosure{
+        width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:.38rem .55rem;
+        margin:.1rem auto .75rem;
+        padding:.5rem .65rem;
+        border:1px solid rgba(246,244,237,.28);
+        border-radius:12px;
+        background:rgba(246,244,237,.06);
+        color:var(--athlete-modal-text);
+        text-align:center;
+        font-size:.76rem;
+        line-height:1.35;
+    }
+    .open-data-profile-disclosure[hidden],
+    .open-data-modal-summary[hidden],
+    .open-data-modal-hypothetical[hidden],
+    .open-data-modal-photo-credit[hidden],
+    .open-data-modal-avatar[hidden],
+    .open-data-sticky-token[hidden]{ display:none !important; }
+    .open-data-profile-disclosure .open-data-token{ flex:0 0 auto; }
+    .open-data-profile-disclosure p{ margin:0; color:var(--athlete-modal-muted); }
+    .open-data-modal-summary{
+        width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        margin:.1rem auto .65rem;
+        color:var(--athlete-modal-text);
+        font-size:1rem;
+        font-weight:650;
+        line-height:1.5;
+        text-align:center;
+        text-wrap:balance;
+    }
+    .open-data-modal-hypothetical{
+        width:max-content;
+        max-width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        margin:0 auto .65rem;
+        padding:.4rem .65rem;
+        border:1px solid rgba(196,181,253,.5);
+        border-radius:999px;
+        background:rgba(124,58,237,.09);
+        color:#ddd6fe;
+        font-size:.76rem;
+        font-weight:750;
+        line-height:1.35;
+        text-align:center;
+    }
+    .open-data-modal-photo-credit{
+        width:min(100%, var(--athlete-modal-section-width));
+        margin:-.15rem auto .45rem;
+        color:var(--athlete-modal-muted);
+        font-size:.66rem;
+        line-height:1.35;
+        text-align:center;
+    }
+    .open-data-qualifier-notice{
+        width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        margin:0 auto .8rem;
+        padding:.45rem .65rem;
+        border-radius:10px;
+        background:rgba(246,244,237,.06);
+        color:var(--athlete-modal-muted);
+        font-size:.72rem;
+        line-height:1.4;
+        text-align:left;
+    }
+    .open-data-profile-disclosure a,
+    .open-data-modal-photo-credit a{
+        color:var(--athlete-modal-link);
+        font-weight:700;
+        text-underline-offset:2px;
+    }
+    .open-data-profile-disclosure a:focus-visible,
+    .open-data-modal-photo-credit a:focus-visible{
+        outline:3px solid var(--athlete-modal-cream);
+        outline-offset:3px;
+        border-radius:3px;
+    }
+    .open-data-modal-avatar{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        width:168px;
+        height:168px;
+        border:1px solid rgba(71,85,105,.38);
+        border-radius:50%;
+        background:linear-gradient(145deg, #f8fafc, #e2e8f0);
+        color:#475569;
+        box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+        font-size:3rem;
+    }
+    .open-data-sticky-token{
+        flex:0 0 auto;
+        margin-left:.5rem;
+        padding:.28rem .48rem;
+        font-size:.58rem;
+    }
+    #detailsModal .modal-content.open-data-profile .pro-badge,
+    #detailsModal .modal-content.open-data-profile .sticky-pro-badge,
+    #detailsModal .modal-content.open-data-profile #modalBadgeStrip,
+    #detailsModal .modal-content.open-data-profile #athleteBio,
+    #detailsModal .modal-content.open-data-profile #guessAgeContainer,
+    #detailsModal .modal-content.open-data-profile #ageVisualization,
+    #detailsModal .modal-content.open-data-profile .official-profile-only,
+    #detailsModal .modal-content.open-data-profile .rank-annotation,
+    #detailsModal .modal-content.open-data-profile .events-embed,
+    #detailsModal .modal-content.open-data-profile .proofs-section,
+    #detailsModal .modal-content.open-data-profile #personalLink,
+    #detailsModal .modal-content.open-data-profile #mediaContact{
+        display:none !important;
+    }
+    #detailsModal .public-data-sources{
+        width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        margin-top:1.25rem;
+        padding:1rem;
+        border:1px solid var(--athlete-modal-border);
+        border-radius:18px;
+        background:var(--athlete-modal-card);
+        color:var(--athlete-modal-text);
+    }
+    #detailsModal .public-data-sources[hidden]{ display:none !important; }
+    #detailsModal .public-data-sources h3{ margin:.1rem 0 .8rem; }
+    #detailsModal .public-data-source-list{
+        display:grid;
+        gap:.7rem;
+        margin:0;
+        padding:0;
+        list-style:none;
+    }
+    #detailsModal .public-data-source-item{
+        padding:.75rem;
+        border:1px solid var(--athlete-modal-border);
+        border-radius:13px;
+        background:rgba(8,10,10,.2);
+    }
+    #detailsModal .public-data-source-link{
+        display:inline-flex;
+        align-items:flex-start;
+        gap:.45rem;
+        color:var(--athlete-modal-link);
+        font-weight:700;
+        line-height:1.4;
+    }
+    #detailsModal .public-data-source-link:focus-visible{
+        outline:2px solid var(--athlete-modal-cream);
+        outline-offset:3px;
+        border-radius:4px;
+    }
+    #detailsModal .public-data-source-meta,
+    #detailsModal .public-data-transcription-notes,
+    #detailsModal .public-data-reviewed{
+        margin:.35rem 0 0;
+        color:var(--athlete-modal-muted);
+        font-size:.82rem;
+        line-height:1.5;
+    }
+    #detailsModal .public-data-transcription-notes{
+        margin-top:.85rem;
+        padding-top:.8rem;
+        border-top:1px solid var(--athlete-modal-border);
+        white-space:pre-wrap;
+    }
+
+    @media (max-width: 640px){
+        .open-data-profiles{ width:calc(100% - 1rem); margin-top:1.5rem; padding:1rem; }
+        .open-data-grid{ grid-template-columns:1fr; }
+        .open-data-card-media{ aspect-ratio:3 / 2; }
+        .open-data-card-actions{ display:grid; grid-template-columns:1fr; }
+        .open-data-card-action{ width:100%; }
+        .open-data-modal-avatar{ width:136px; height:136px; font-size:2.4rem; }
+        .open-data-sticky-token{
+            display:inline-flex;
+            max-width:none;
+            margin-left:.2rem;
+            padding:.24rem .36rem;
+            font-size:.48rem;
+            letter-spacing:.055em;
+            white-space:nowrap;
+        }
+        .open-data-row-token{
+            padding:.18rem .32rem;
+            font-size:.48rem;
+            letter-spacing:.035em;
+            white-space:normal;
+        }
+    }
+
+    @media (forced-colors: active){
+        .leaderboard table tbody tr.open-data-leaderboard-row{
+            border-left:4px solid Highlight;
+            box-shadow:none;
+        }
+        .open-data-row-token{ border:1px solid Highlight; }
+        .open-data-leaderboard-row .portrait{ border-color:Highlight; }
     }
 
     @keyframes skeletonShimmer{
@@ -506,6 +1015,14 @@
     }
     .ranking-explanation.is-visible{ display:block; }
     .ranking-explanation strong{ color:var(--primary-color); }
+    .open-data-rank-key{
+        display:block;
+        margin-top:.3rem;
+        color:#64748b;
+        font-size:.78rem;
+        line-height:1.35;
+    }
+    .open-data-rank-key strong{ color:#6d28d9; }
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
@@ -2755,6 +3272,16 @@
             </table>
         </div>
 
+        <section id="openDataProfilesSection" class="open-data-profiles" aria-labelledby="openDataProfilesTitle" hidden>
+            <div class="open-data-profiles-header">
+                <h2 id="openDataProfilesTitle">Public-data profiles</h2>
+                <p class="open-data-explainer">Non-competing references from bloodwork the subjects made public. Their hypothetical positions are independent comparisons; they never change official ranks or prizes. <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Corrections</a>.</p>
+            </div>
+            <div id="openDataProfilesGrid" class="open-data-grid"></div>
+            <p id="openDataProfilesEmpty" class="open-data-empty" hidden>No public-data profiles match this search.</p>
+            <p id="openDataProfilesStatus" class="visually-hidden" aria-live="polite"></p>
+        </section>
+
         <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="athleteName">
             <div class="modal-content">
                 <div class="modal-sticky-header" id="modalStickyHeader">
@@ -2762,6 +3289,7 @@
                     <div class="sticky-header-left">
                         <span class="sticky-athlete-name" id="stickyAthleteName"></span>
                         <span class="sticky-pro-badge" id="stickyProBadge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
+                        <span id="openDataStickyToken" class="open-data-token open-data-sticky-token" hidden>PUBLIC DATA · DID NOT APPLY</span>
                     </div>
                     <button class="sticky-close-btn" id="stickyCloseBtn" aria-label="Close athlete details">&times;</button>
                 </div>
@@ -2774,9 +3302,19 @@
                              alt="Athlete profile picture"
                              class="illustration"
                              loading="lazy" />
+                        <span id="openDataModalAvatar" class="open-data-modal-avatar" aria-label="Public database profile" role="img" hidden><i class="fa-solid fa-database" aria-hidden="true"></i></span>
                         <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
                     </span>
+                    <p id="openDataModalPhotoCredit" class="open-data-modal-photo-credit" hidden></p>
                     <h2 id="athleteName"></h2>
+                    <p id="openDataNotabilitySummary" class="open-data-modal-summary" hidden></p>
+                    <p id="openDataHypotheticalSummary" class="open-data-modal-hypothetical" hidden></p>
+
+                    <div id="openDataProfileDisclosure" class="open-data-profile-disclosure" role="note" hidden>
+                        <span class="open-data-token">PUBLIC DATA · DID NOT APPLY</span>
+                        <p>Hypothetical positions are comparisons only · cannot affect official ranks, awards, or prizes · inclusion is not endorsement. <a href="mailto:hi@longevityworldcup.com?subject=Public-data%20profile%20correction%20or%20removal">Corrections</a>.</p>
+                    </div>
+                    <p id="openDataQualifierNotice" class="open-data-qualifier-notice" hidden>A source reports an assay boundary (such as “&lt;0.2”); the reference calculation uses that published boundary, not an exact measurement.</p>
 
                     <!--GUESS-MY-AGE-->
 
@@ -2786,25 +3324,25 @@
                     <div class="athlete-info" id="athlete-stats">
                         <table class="athlete-info-table">
                             <tbody>
-                            <tr>
+                            <tr class="official-profile-only">
                                 <th scope="row"><strong>Best rank:</strong></th>
                                 <td><span id="athleteRank"></span></td>
                             </tr>
-                            <tr>
+                            <tr class="official-profile-only">
                                 <th scope="row"><strong>Division:</strong></th>
                                 <td><span id="athleteDivision"></span></td>
                             </tr>
-                            <tr>
+                            <tr class="official-profile-only">
                                 <th scope="row"><strong>Generation:</strong></th>
                                 <td><span id="athleteGeneration"></span></td>
                             </tr>
-                            <tr>
+                            <tr class="official-profile-only">
                                 <th scope="row"><strong>Flag:</strong></th>
                                 <td><span id="athleteFlag"></span></td>
                             </tr>
                             <tr>
-                                <th scope="row"><strong>Chronological age:</strong></th>
-                                <td><span id="chronologicalAge"></span> <span class="unit">years old</span></td>
+                                <th scope="row"><strong id="chronologicalAgeLabel">Chronological age:</strong></th>
+                                <td><span id="chronologicalAge"></span> <span id="chronologicalAgeUnit" class="unit">years old</span></td>
                             </tr>
                             <tr class="athlete-info-divider-row" role="presentation" aria-hidden="true">
                                 <td colspan="2"><span class="athlete-info-divider"></span></td>
@@ -2825,24 +3363,24 @@
                             </tr>
 
                             <tr id="lowestBortzAgeContainer" style="display:none;">
-                                <th scope="row"><strong>Lowest Bortz Age:</strong></th>
+                                <th scope="row"><strong id="lowestBortzAgeLabel">Lowest Bortz Age:</strong></th>
                                 <td><span id="lowestBortzAge"></span> <span class="unit">years</span></td>
                             </tr>
 
                             <tr id="lowestPhenoAgeContainer">
-                                <th scope="row"><strong>Lowest Pheno Age:</strong></th>
-                                <td><span id="lowestPhenoAge"></span> <span class="unit">years</span> <span class="detail-muted">(rank: <span id="lowestPhenoAgeRank" class="detail-value"></span>)</span></td>
+                                <th scope="row"><strong id="lowestPhenoAgeLabel">Lowest Pheno Age:</strong></th>
+                                <td><span id="lowestPhenoAge"></span> <span class="unit">years</span> <span class="rank-annotation"><span class="detail-muted">(rank: <span id="lowestPhenoAgeRank" class="detail-value"></span>)</span></span></td>
                             </tr>
 
 
                             <tr id="bortzPaceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
                                 <th scope="row"><strong>Bortz pace of aging:</strong></th>
-                                <td><span id="bortzPaceOfAging"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="bortzPaceOfAgingRank" class="detail-value"></span>)</span></td>
+                                <td><span id="bortzPaceOfAging"></span> <span class="unit">years per year</span> <span class="rank-annotation"><span class="detail-muted">(rank: <span id="bortzPaceOfAgingRank" class="detail-value"></span>)</span></span></td>
                             </tr>
 
                             <tr id="paceOfAgingContainer" title="Derived from the lowest biological age of the season" style="display:none;">
                                 <th scope="row"><strong>Pheno pace of aging:</strong></th>
-                                <td><span id="paceOfAging"></span> <span class="unit">years per year</span> <span class="detail-muted">(rank: <span id="paceOfAgingRank" class="detail-value"></span>)</span></td>
+                                <td><span id="paceOfAging"></span> <span class="unit">years per year</span> <span class="rank-annotation"><span class="detail-muted">(rank: <span id="paceOfAgingRank" class="detail-value"></span>)</span></span></td>
                             </tr>
 
                             <tr id="bortzAgeReductionContainer" title="Derived from the lowest biological age of the season" style="display:none;">
@@ -2910,6 +3448,13 @@
         <canvas id="biomarkerChart" style="width: 100%; height: 300px;"></canvas>
     </div>
 
+    <section class="public-data-sources" id="publicDataSources" aria-labelledby="publicDataSourcesTitle" hidden>
+        <h3 id="publicDataSourcesTitle">Public sources</h3>
+        <p id="publicDataReviewed" class="public-data-reviewed"></p>
+        <ul id="publicDataSourceList" class="public-data-source-list"></ul>
+        <p id="publicDataTranscriptionNotes" class="public-data-transcription-notes" hidden></p>
+    </section>
+
     <div class="events-embed" style="margin-top:16px">
         <iframe id="events-frame" title="Events" loading="lazy" style="width:100%;border:0;display:block;height:1px;"></iframe>
     </div>
@@ -2955,6 +3500,7 @@
 
 <script>
     let athleteResults = [];
+    let openDataProfiles = [];
     let athletesOrderedByPace;
     let athletesOrderedByBortzPace;
     let athletesOrderedByPhenoAgeReduction;
@@ -3629,6 +4175,249 @@
         return values.every(Number.isFinite) && entry.CrpMgL > 0;
     }
 
+    function isOfficialAthleteProfile(profile) {
+        return profile && profile.ProfileType === 'Athlete';
+    }
+
+    function isOpenDataProfile(profile) {
+        return profile && profile.ProfileType === 'OpenData';
+    }
+
+    function getCanonicalProfileRouteSlug(value) {
+        // AthleteSlug is service-canonicalized with underscores, while public
+        // profile routes use kebab case. Normalize the separator before the
+        // shared slugifier so `ben_greenfield` cannot collapse to
+        // `/public-data/bengreenfield` and break reloadable deep links.
+        return window.slugifyName(String(value || '').replace(/_/g, '-'), true);
+    }
+
+    function getSafePublicDataUrl(value) {
+        if (typeof value !== 'string' || !value.trim()) return '';
+        try {
+            const url = new URL(value.trim());
+            return url.protocol === 'https:' ? url.toString() : '';
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function getSafePublicDataPortraitUrl(value, expectedSlug) {
+        if (typeof value !== 'string' || !value.trim()) return '';
+        try {
+            const url = new URL(value.trim(), window.location.origin);
+            const validPath = /^\/public-data\/[a-z0-9]+(?:-[a-z0-9]+)*\/portrait$/i.test(url.pathname);
+            const validVersion = /^\?v=[a-f0-9]{64}$/.test(url.search);
+            const expectedPath = `/public-data/${getCanonicalProfileRouteSlug(expectedSlug)}/portrait`;
+            if (url.origin !== window.location.origin || !validPath || !validVersion ||
+                url.pathname.toLowerCase() !== expectedPath.toLowerCase()) return '';
+            return `${url.pathname}${url.search}`;
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function buildOpenDataPortrait(value, expectedSlug) {
+        if (!value || typeof value !== 'object') return null;
+        const portrait = {
+            assetUrl: getSafePublicDataPortraitUrl(value.AssetUrl, expectedSlug),
+            sourcePageUrl: getSafePublicDataUrl(value.SourcePageUrl),
+            originalUrl: getSafePublicDataUrl(value.OriginalUrl),
+            author: typeof value.Author === 'string' ? value.Author.trim() : '',
+            licenseName: typeof value.LicenseName === 'string' ? value.LicenseName.trim() : '',
+            licenseUrl: getSafePublicDataUrl(value.LicenseUrl),
+            editNote: typeof value.EditNote === 'string' ? value.EditNote.trim() : ''
+        };
+        return portrait.assetUrl && portrait.sourcePageUrl && portrait.originalUrl &&
+            portrait.author && portrait.licenseName && portrait.licenseUrl && portrait.editNote
+            ? portrait
+            : null;
+    }
+
+    function populateOpenDataPhotoCredit(element, portrait) {
+        if (!element) return;
+        element.replaceChildren();
+        if (!portrait) {
+            element.hidden = true;
+            return;
+        }
+
+        const authorLink = document.createElement('a');
+        authorLink.href = portrait.sourcePageUrl;
+        authorLink.target = '_blank';
+        authorLink.rel = 'noopener noreferrer external';
+        authorLink.textContent = portrait.author;
+        authorLink.setAttribute('aria-label', `Photo source by ${portrait.author} (opens in a new tab)`);
+
+        const licenseLink = document.createElement('a');
+        licenseLink.href = portrait.licenseUrl;
+        licenseLink.target = '_blank';
+        licenseLink.rel = 'noopener noreferrer external';
+        licenseLink.textContent = portrait.licenseName;
+        licenseLink.setAttribute('aria-label', `${portrait.licenseName} license (opens in a new tab)`);
+
+        element.append('Photo: ', authorLink, ' · ', licenseLink, ' · cropped');
+        element.title = portrait.editNote;
+        element.hidden = false;
+    }
+
+    function getOpenDataTranscriptionNotes(value) {
+        if (!Array.isArray(value)) return [];
+        return value
+            .map(note => typeof note === 'string' ? note.trim() : '')
+            .filter(Boolean);
+    }
+
+    function getProfileAgeAtBiomarker(profile, entry) {
+        if (!profile || !entry) return null;
+        if (isOpenDataProfile(profile)) {
+            const publishedAge = Number(entry.AgeYears);
+            return Number.isFinite(publishedAge) && publishedAge > 0 ? publishedAge : null;
+        }
+        if (!profile.DateOfBirth || !entry.Date) return null;
+        const dob = new Date(
+            profile.DateOfBirth.Year,
+            profile.DateOfBirth.Month - 1,
+            profile.DateOfBirth.Day
+        );
+        return window.calculateAgeAtDate(dob, new Date(entry.Date));
+    }
+
+    function getOpenDataSubjectAuthorization(source) {
+        const authorization = source && source.SubjectAuthorization;
+        if (!authorization || typeof authorization !== 'object') return null;
+
+        const kind = typeof authorization.Kind === 'string' ? authorization.Kind.trim() : '';
+        if (kind === 'SelfPublished') {
+            return { kind, evidenceUrl: '', evidenceNote: '' };
+        }
+
+        if (kind !== 'ExplicitlyAuthorized') return null;
+        const evidenceUrl = getSafePublicDataUrl(authorization.EvidenceUrl);
+        const evidenceNote = typeof authorization.EvidenceNote === 'string'
+            ? authorization.EvidenceNote.trim()
+            : '';
+        return evidenceUrl && evidenceNote ? { kind, evidenceUrl, evidenceNote } : null;
+    }
+
+    function recordReferencesAuthorizedBloodwork(entry, authorizedBloodworkIds) {
+        return entry && Array.isArray(entry.SourceIds) &&
+            entry.SourceIds.some(sourceId => authorizedBloodworkIds.has(String(sourceId)));
+    }
+
+    function calculateOpenDataPhenoSummary(profile, authorizedBloodworkIds) {
+        if (!window.PhenoAge || typeof window.PhenoAge.calculatePhenoAge !== 'function') return null;
+        let lowestAge = Infinity;
+        let chronologicalAge = null;
+
+        (Array.isArray(profile.Biomarkers) ? profile.Biomarkers : []).forEach(entry => {
+            if (!entry || !entry.Date || !isCompleteBiomarkerSet(entry) ||
+                !recordReferencesAuthorizedBloodwork(entry, authorizedBloodworkIds)) return;
+            const ageAtEntry = getProfileAgeAtBiomarker(profile, entry);
+            const values = [
+                ageAtEntry,
+                entry.AlbGL,
+                entry.CreatUmolL,
+                entry.GluMmolL,
+                Math.log(entry.CrpMgL / 10),
+                entry.Wbc1000cellsuL,
+                entry.LymPc,
+                entry.McvFL,
+                entry.RdwPc,
+                entry.AlpUL
+            ];
+            if (!values.every(Number.isFinite)) return;
+            const phenoAge = window.PhenoAge.calculatePhenoAge(values);
+            if (Number.isFinite(phenoAge) && phenoAge < lowestAge) {
+                lowestAge = phenoAge;
+                chronologicalAge = ageAtEntry;
+            }
+        });
+
+        if (!Number.isFinite(lowestAge) || !Number.isFinite(chronologicalAge)) return null;
+        return {
+            lowestAge,
+            chronologicalAge,
+            ageReduction: lowestAge - chronologicalAge,
+            ageReductionPercent: (1 - lowestAge / chronologicalAge) * 100
+        };
+    }
+
+    function buildOpenDataProfile(profile) {
+        const provenance = profile && profile.OpenData;
+        if (!profile || !Array.isArray(profile.Biomarkers) || !provenance || provenance.SubjectDidNotApply !== true) {
+            console.warn('Skipped invalid public-data profile.', profile && profile.AthleteSlug);
+            return null;
+        }
+
+        const sources = (Array.isArray(provenance.Sources) ? provenance.Sources : [])
+            .map(source => ({
+                id: source && source.Id ? String(source.Id) : '',
+                kind: source && source.Kind ? String(source.Kind) : '',
+                title: source && source.Title ? String(source.Title).trim() : 'Public bloodwork source',
+                url: getSafePublicDataUrl(source && source.Url),
+                accessedOn: source && source.AccessedOn ? String(source.AccessedOn) : '',
+                subjectAuthorization: getOpenDataSubjectAuthorization(source),
+                preferredForDisplay: source && source.PreferredForDisplay === true
+            }))
+            .filter(source => source.url);
+        if (sources.length === 0 || !sources.some(source => source.kind === 'Bloodwork' && source.subjectAuthorization)) {
+            console.warn('Skipped public-data profile without valid subject-authorized HTTPS bloodwork.', profile.AthleteSlug);
+            return null;
+        }
+
+        const notabilitySummary = provenance.Notability && typeof provenance.Notability.Summary === 'string'
+            ? provenance.Notability.Summary.trim()
+            : '';
+        if (!notabilitySummary) {
+            console.warn('Skipped public-data profile without sourced notability context.', profile.AthleteSlug);
+            return null;
+        }
+
+        const portrait = buildOpenDataPortrait(provenance.Portrait, profile.AthleteSlug);
+        if (!portrait) {
+            console.warn('Skipped public-data profile without a valid licensed portrait.', profile.AthleteSlug);
+            return null;
+        }
+
+        const authorizedBloodworkIds = new Set(sources
+            .filter(source => source.kind === 'Bloodwork' && source.subjectAuthorization)
+            .map(source => source.id));
+        const displayName = profile.DisplayName && profile.DisplayName.trim()
+            ? profile.DisplayName.trim()
+            : profile.Name;
+        const pheno = calculateOpenDataPhenoSummary(profile, authorizedBloodworkIds);
+        const hasMeasurementQualifiers = profile.Biomarkers.some(record =>
+            record && record.MeasurementQualifiers &&
+            Object.keys(record.MeasurementQualifiers).length > 0);
+        const aliases = (Array.isArray(provenance.Aliases) ? provenance.Aliases : [])
+            .map(alias => typeof alias === 'string' ? alias.trim() : '')
+            .filter(Boolean);
+
+        return {
+            profileType: 'OpenData',
+            athleteSlug: String(profile.AthleteSlug || '').trim(),
+            name: profile.Name,
+            displayName,
+            dateOfBirth: null,
+            chronologicalAge: pheno ? pheno.chronologicalAge : null,
+            lowestPhenoAge: pheno ? pheno.lowestAge : null,
+            chronoAtLowestPhenoAge: pheno ? pheno.chronologicalAge : null,
+            ageReduction: pheno ? pheno.ageReduction : null,
+            ageReductionPercent: pheno ? pheno.ageReductionPercent : null,
+            lowestBortzAge: null,
+            chronoAtLowestBortzAge: null,
+            bortzAgeReduction: null,
+            bortzAgeReductionPercent: null,
+            sources,
+            aliases,
+            reviewedAt: provenance.ReviewedAt ? String(provenance.ReviewedAt) : '',
+            transcriptionNotes: getOpenDataTranscriptionNotes(provenance.TranscriptionNotes),
+            notabilitySummary,
+            portrait,
+            hasMeasurementQualifiers
+        };
+    }
+
     function ensureRankChangeWrapper(imgEl) {
         let wrapper = imgEl.closest('.rank-change');
         if (!wrapper) {
@@ -3800,24 +4589,31 @@
         maxAthletesGlobal = maxAthletes;
         setLeaderboardLoadingState(includePodium, maxAthletes);
 
-        window.getSharedAthletes = window.getSharedAthletes || function(){
-            if(!window.__sharedAthletesRequest){
-                window.__sharedAthletesRequest = fetch('/api/data/athletes')
+        window.getSharedLeaderboardProfiles = window.getSharedLeaderboardProfiles || function(){
+            if(!window.__sharedLeaderboardProfilesRequest){
+                window.__sharedLeaderboardProfilesRequest = fetch('/api/data/leaderboard-profiles')
                     .then(response => response.ok ? response.json() : Promise.reject(response.status))
                     .catch(error => {
-                        window.__sharedAthletesRequest = null;
+                        window.__sharedLeaderboardProfilesRequest = null;
                         throw error;
                     });
             }
-            return window.__sharedAthletesRequest;
+            return window.__sharedLeaderboardProfilesRequest;
         };
 
-        window.getSharedAthletes()
-            .then(athletes => {
+        window.getSharedLeaderboardProfiles()
+            .then(profiles => {
+                const officialAthleteProfiles = (Array.isArray(profiles) ? profiles : []).filter(isOfficialAthleteProfile);
+                openDataProfiles = (Array.isArray(profiles) ? profiles : [])
+                    .filter(isOpenDataProfile)
+                    .map(buildOpenDataProfile)
+                    .filter(Boolean)
+                    .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
+
                 // Array to store athletes with their lowest PhenoAge and age reduction
                 var viewAllAthletesBtn = document.getElementById('viewAllAthletesBtn');
                 if (viewAllAthletesBtn) {
-                    updateViewAllAthletesButton(athletes.length);
+                    updateViewAllAthletesButton(officialAthleteProfiles.length);
                 }
                 const nowForCrowdAgeUtc = new Date();
                 const crowdAgeAsOfUtcDate = new Date(
@@ -3825,7 +4621,7 @@
                     nowForCrowdAgeUtc.getUTCMonth(),
                     nowForCrowdAgeUtc.getUTCDate()
                 );
-                athleteResults = athletes.map(athlete => {
+                athleteResults = officialAthleteProfiles.map(athlete => {
                     // Calculate the chronological age from the athlete's DateOfBirth
                     const dob = new Date(
                         athlete.DateOfBirth.Year,
@@ -4174,6 +4970,8 @@
                     const canonicalFlag = getCanonicalFlagName(rawFlag);
 
                     return {
+                        profileType: 'Athlete',
+                        athleteSlug: athlete.AthleteSlug,
                         name: athlete.Name,
                         displayName: displayName,
                         mediaContact: athlete.MediaContact,
@@ -4599,6 +5397,8 @@
                     row.id = `rank-${athlete.rank}`;
                     tableBody.appendChild(row);
                 });
+                renderOpenDataProfiles();
+                const renderedOpenDataRowCount = renderOpenDataLeaderboardRows();
                 scheduleLeaderboardTableHeightSync();
 
                 const hash = window.location.hash;
@@ -4616,13 +5416,9 @@
                 // At the end of the athlete fetch block in LoadLeaderboard, after athleteResults has been populated:
                 const leagueRouteState = getLeagueRouteState(window.location.pathname);
                 const flagRouteState = getFlagRouteState(window.location.pathname);
-                const athleteParam = getInitialAthleteSlug();
-                if (athleteParam) {
-                    const normalizedAthlete = window.slugifyName(athleteParam, false);
-                    const athleteData = getAthleteData(normalizedAthlete);
-                    if (athleteData) {
-                        fetchFullAthleteData(normalizedAthlete, athleteData);
-                    } else {
+                const initialProfileRoute = getInitialProfileRoute();
+                if (initialProfileRoute.slug) {
+                    if (!openProfileModalForRoute(initialProfileRoute)) {
                         // Redirect to the .NET 404 endpoint
                         window.location.href = '/error/404';
                     }
@@ -4695,6 +5491,10 @@
                     }
                 }
 
+                if (renderedOpenDataRowCount > 0) {
+                    performFilter();
+                }
+
                 // Pick up dynamically inserted [data-aos] nodes
                 if (window.AOS && typeof AOS.refreshHard === 'function') {
                     AOS.refreshHard();
@@ -4720,6 +5520,332 @@
                 console.error('Error fetching athletes:', error);
             });
     };
+
+    function shouldShowOpenDataProfilesSection(pathname) {
+        const normalizedPath = (pathname || window.location.pathname || '/').replace(/\/+$/, '') || '/';
+        return normalizedPath.toLowerCase() === '/leaderboard';
+    }
+
+    function shouldShowOpenDataLeaderboardRows() {
+        return !includePodiumGlobal && !Number.isFinite(maxAthletesGlobal);
+    }
+
+    function getOpenDataSearchText(profile) {
+        return window.normalizeString([
+            profile.name,
+            profile.displayName,
+            profile.notabilitySummary,
+            ...profile.aliases,
+            ...profile.transcriptionNotes,
+            ...profile.sources.flatMap(source => [source.title, source.kind])
+        ].filter(Boolean).join(' ').toLowerCase());
+    }
+
+    function getOpenDataMetricForView(profile, view) {
+        if (!profile || (view !== 'ultimate' && view !== 'pheno')) return null;
+        return Number.isFinite(profile.ageReduction) ? profile.ageReduction : null;
+    }
+
+    function getOpenDataHypotheticalRank(profile, view) {
+        const referenceMetric = getOpenDataMetricForView(profile, view);
+        if (!Number.isFinite(referenceMetric)) return null;
+
+        let officialAheadOrTied = 0;
+
+        athleteResults.forEach(athlete => {
+            const athleteHasBortz = Number.isFinite(athlete.bortzAgeReduction);
+            if (view === 'ultimate') {
+                if (athleteHasBortz) {
+                    officialAheadOrTied++;
+                    return;
+                }
+
+                if (Number.isFinite(athlete.ageReduction) && athlete.ageReduction <= referenceMetric) {
+                    officialAheadOrTied++;
+                }
+                return;
+            }
+
+            if (view === 'pheno' && Number.isFinite(athlete.ageReduction) && athlete.ageReduction <= referenceMetric) {
+                officialAheadOrTied++;
+            }
+        });
+
+        // Exact-score ties stay behind every official athlete because OpenData deliberately omits exact DOB.
+        return officialAheadOrTied + 1;
+    }
+
+    function getOpenDataHypotheticalSummary(profile) {
+        const summary = [];
+        const ultimateRank = getOpenDataHypotheticalRank(profile, 'ultimate');
+        const phenoRank = getOpenDataHypotheticalRank(profile, 'pheno');
+        if (Number.isFinite(ultimateRank)) summary.push(`Ultimate #${ultimateRank}`);
+        if (Number.isFinite(phenoRank)) summary.push(`Pheno #${phenoRank}`);
+        return summary.length > 0 ? `Hypothetical ${summary.join(' · ')}` : '';
+    }
+
+    function getPreferredOpenDataSource(profile) {
+        return profile.sources.find(source => source.preferredForDisplay) ||
+            profile.sources.find(source => source.kind === 'Bloodwork' && source.subjectAuthorization) ||
+            profile.sources[0] || null;
+    }
+
+    function updateOpenDataLeaderboardRow(row, profile, view, hypotheticalRank) {
+        const rankCell = row.querySelector('.rank-td');
+        const rankNumber = row.querySelector('.open-data-hypothetical-number');
+        const metricCell = row.querySelector('.age-reduction-td');
+        const metric = row.querySelector('.age-reduction');
+        const metricValue = getOpenDataMetricForView(profile, view);
+        const viewLabel = 'Pheno';
+
+        row.dataset.hypotheticalRank = String(hypotheticalRank);
+        if (rankNumber) rankNumber.textContent = `#${hypotheticalRank}`;
+        if (rankCell) {
+            rankCell.setAttribute(
+                'aria-label',
+                `Hypothetical position ${hypotheticalRank}; official athlete ranks are unchanged.`);
+            rankCell.title = 'Compared independently with official athletes; official athlete ranks stay unchanged.';
+        }
+        if (metricCell) metricCell.setAttribute('data-label', `Reference ${viewLabel}`);
+        if (metric) metric.textContent = formatReferenceCalculation(metricValue);
+    }
+
+    function renderOpenDataLeaderboardRows() {
+        const tableBody = document.querySelector('.leaderboard table tbody');
+        if (!tableBody) return 0;
+
+        tableBody.querySelectorAll('.open-data-leaderboard-row').forEach(row => row.remove());
+        if (!shouldShowOpenDataLeaderboardRows()) return 0;
+
+        const template = document.getElementById('leaderboardRowTemplate');
+        const fragment = document.createDocumentFragment();
+        let renderedCount = 0;
+
+        openDataProfiles.forEach(profile => {
+            const hypotheticalRank = getOpenDataHypotheticalRank(profile, 'ultimate');
+            if (!Number.isFinite(hypotheticalRank)) return;
+
+            const row = template.content.firstElementChild.cloneNode(true);
+            row.className = 'open-data-leaderboard-row';
+            row.id = `public-data-row-${profile.athleteSlug}`;
+            row.dataset.athleteName = profile.name;
+            row.dataset.profileSlug = profile.athleteSlug;
+            row.dataset.profileType = 'OpenData';
+            row.dataset.searchText = getOpenDataSearchText(profile);
+            row.hidden = true;
+            row.style.display = 'none';
+
+            const rank = row.querySelector('.rank');
+            rank.className = 'open-data-hypothetical-rank';
+            rank.innerHTML = '<span class="open-data-hypothetical-prefix">HYP.</span><span class="open-data-hypothetical-number"></span>';
+
+            const athleteCell = row.querySelector('.athlete-td');
+            athleteCell.querySelector('.pro-badge')?.remove();
+            athleteCell.querySelector('.badge-section')?.remove();
+            const portrait = athleteCell.querySelector('img.portrait');
+            portrait.src = profile.portrait.assetUrl;
+            portrait.alt = `Portrait of ${profile.displayName}`;
+            wirePortraitFallback(portrait);
+
+            const originalName = athleteCell.querySelector('.athlete-name');
+            const identity = document.createElement('span');
+            identity.className = 'open-data-row-identity';
+            const nameButton = document.createElement('button');
+            nameButton.type = 'button';
+            nameButton.className = 'athlete-name open-data-row-name';
+            nameButton.innerHTML = formatAthleteNameForMobile(profile.displayName);
+            nameButton.setAttribute('aria-label', `View public-data profile for ${profile.displayName}`);
+            nameButton.addEventListener('click', event => {
+                event.stopPropagation();
+                fetchFullAthleteData(profile.name, profile);
+            });
+            const token = document.createElement('span');
+            token.className = 'open-data-row-token';
+            token.textContent = 'PUBLIC DATA · DID NOT APPLY';
+            identity.append(nameButton, token);
+            originalName.replaceWith(identity);
+
+            const sponsorCell = row.querySelector('.sponsor-td');
+            sponsorCell.innerHTML = '<span class="open-data-row-empty" aria-hidden="true">—</span><span class="visually-hidden">Sponsor: not applicable for a non-competing public-data profile.</span>';
+
+            const mediaCell = row.querySelector('.media-contact-td');
+            mediaCell.innerHTML = '<span class="open-data-row-empty" aria-hidden="true">—</span><span class="visually-hidden">Media contact: not provided for this public-data profile.</span>';
+
+            updateOpenDataLeaderboardRow(row, profile, 'ultimate', hypotheticalRank);
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', event => {
+                if (event.target.closest('a, button')) return;
+                fetchFullAthleteData(profile.name, profile);
+            });
+            fragment.appendChild(row);
+            renderedCount++;
+        });
+
+        tableBody.appendChild(fragment);
+        return renderedCount;
+    }
+
+    function formatReferenceCalculation(value) {
+        if (!Number.isFinite(value)) return 'Not available';
+        const prefix = value > 0 ? '+' : '';
+        return `${prefix}${value.toFixed(1)} years`;
+    }
+
+    function renderOpenDataProfiles() {
+        const section = document.getElementById('openDataProfilesSection');
+        const grid = document.getElementById('openDataProfilesGrid');
+        const empty = document.getElementById('openDataProfilesEmpty');
+        const status = document.getElementById('openDataProfilesStatus');
+        if (!section || !grid || !empty || !status) return;
+
+        const hasProfiles = shouldShowOpenDataLeaderboardRows() && openDataProfiles.length > 0;
+        section.hidden = true;
+        grid.innerHTML = '';
+        empty.hidden = true;
+        status.textContent = '';
+        if (!hasProfiles) return;
+
+        const fragment = document.createDocumentFragment();
+        openDataProfiles.forEach(profile => {
+            const card = document.createElement('article');
+            card.className = 'open-data-card';
+            card.dataset.athleteName = profile.name;
+            card.dataset.profileSlug = profile.athleteSlug;
+            card.dataset.searchText = getOpenDataSearchText(profile);
+
+            const media = document.createElement('figure');
+            media.className = 'open-data-card-media';
+            const portrait = document.createElement('img');
+            portrait.className = 'open-data-card-portrait';
+            portrait.src = profile.portrait.assetUrl;
+            portrait.alt = `Portrait of ${profile.displayName}`;
+            portrait.loading = 'lazy';
+            portrait.decoding = 'async';
+            const portraitFallback = document.createElement('span');
+            portraitFallback.className = 'open-data-card-portrait-fallback';
+            portraitFallback.setAttribute('aria-hidden', 'true');
+            portraitFallback.hidden = true;
+            portraitFallback.innerHTML = '<i class="fa-solid fa-database"></i>';
+            portrait.addEventListener('error', () => {
+                portrait.hidden = true;
+                portraitFallback.hidden = false;
+            }, { once: true });
+
+            const token = document.createElement('span');
+            token.className = 'open-data-token';
+            token.textContent = 'PUBLIC DATA · DID NOT APPLY';
+            const photoCredit = document.createElement('figcaption');
+            photoCredit.className = 'open-data-photo-credit';
+            populateOpenDataPhotoCredit(photoCredit, profile.portrait);
+            media.append(portrait, portraitFallback, token, photoCredit);
+            card.appendChild(media);
+
+            const heading = document.createElement('div');
+            heading.className = 'open-data-card-heading';
+            const name = document.createElement('h3');
+            name.className = 'open-data-card-name';
+            name.textContent = profile.displayName;
+            heading.appendChild(name);
+            card.appendChild(heading);
+
+            const summary = document.createElement('p');
+            summary.className = 'open-data-card-summary';
+            summary.textContent = profile.notabilitySummary;
+            card.appendChild(summary);
+
+            const metric = document.createElement('div');
+            metric.className = 'open-data-card-metric';
+            const metricLabel = document.createElement('span');
+            metricLabel.className = 'open-data-card-metric-label';
+            metricLabel.textContent = 'Reference Pheno difference';
+            const metricValue = document.createElement('span');
+            metricValue.className = 'open-data-card-metric-value';
+            metricValue.textContent = formatReferenceCalculation(profile.ageReduction);
+            const formulaNote = document.createElement('span');
+            formulaNote.className = 'open-data-card-metric-note';
+            formulaNote.textContent = 'Pheno Age − age at published panel';
+            metric.append(metricLabel, metricValue, formulaNote);
+            const hypotheticalSummary = getOpenDataHypotheticalSummary(profile);
+            if (hypotheticalSummary) {
+                const hypothetical = document.createElement('span');
+                hypothetical.className = 'open-data-card-hypothetical';
+                hypothetical.textContent = hypotheticalSummary;
+                metric.appendChild(hypothetical);
+                const hypotheticalNote = document.createElement('span');
+                hypotheticalNote.className = 'open-data-card-metric-note';
+                hypotheticalNote.textContent = 'Independent comparison; official ranks stay unchanged';
+                metric.appendChild(hypotheticalNote);
+            }
+            if (profile.hasMeasurementQualifiers) {
+                const qualifierNote = document.createElement('span');
+                qualifierNote.className = 'open-data-card-metric-note';
+                qualifierNote.textContent = 'Uses a published assay boundary';
+                metric.appendChild(qualifierNote);
+            }
+            card.appendChild(metric);
+
+            const actions = document.createElement('div');
+            actions.className = 'open-data-card-actions';
+            const openButton = document.createElement('button');
+            openButton.type = 'button';
+            openButton.className = 'open-data-card-action open-data-card-open';
+            openButton.innerHTML = '<i class="fa-solid fa-database" aria-hidden="true"></i> View public data';
+            openButton.setAttribute('aria-label', `View public-data profile for ${profile.displayName}`);
+            openButton.addEventListener('click', () => fetchFullAthleteData(profile.name, profile));
+            actions.appendChild(openButton);
+
+            const firstSource = getPreferredOpenDataSource(profile);
+            if (firstSource) {
+                const sourceLink = document.createElement('a');
+                sourceLink.className = 'open-data-card-action open-data-card-source';
+                sourceLink.href = firstSource.url;
+                sourceLink.target = '_blank';
+                sourceLink.rel = 'noopener noreferrer external';
+                sourceLink.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i> Source';
+                sourceLink.setAttribute('aria-label', `Open public source for ${profile.displayName} in a new tab`);
+                actions.appendChild(sourceLink);
+            }
+
+            card.appendChild(actions);
+            fragment.appendChild(card);
+        });
+
+        grid.appendChild(fragment);
+        filterOpenDataProfiles([]);
+    }
+
+    function filterOpenDataProfiles(searchTerms, pathname) {
+        const section = document.getElementById('openDataProfilesSection');
+        if (!section) return 0;
+        const terms = Array.isArray(searchTerms) ? searchTerms : [];
+        const cards = Array.from(section.querySelectorAll('.open-data-card'));
+        const shouldShow = cards.length > 0 && shouldShowOpenDataProfilesSection(pathname);
+        section.hidden = !shouldShow;
+
+        const empty = document.getElementById('openDataProfilesEmpty');
+        const status = document.getElementById('openDataProfilesStatus');
+        if (!shouldShow) {
+            if (empty) empty.hidden = true;
+            if (status) status.textContent = '';
+            return 0;
+        }
+
+        let visibleCount = 0;
+        cards.forEach(card => {
+            const searchText = card.dataset.searchText || '';
+            const matches = terms.length === 0 || terms.every(term => searchText.includes(term));
+            card.hidden = !matches;
+            if (matches) visibleCount++;
+        });
+
+        if (empty) empty.hidden = visibleCount !== 0;
+        if (status) {
+            status.textContent = terms.length === 0
+                ? `${visibleCount} public-data profiles shown.`
+                : `${visibleCount} public-data profiles match this search.`;
+        }
+        return visibleCount;
+    }
 
     function buildPodiumSkeletonHtml() {
         return `
@@ -5053,6 +6179,8 @@
     let savedBodyScroll = 0;
     let savedBodyBackground = '';
     let currentAthleteModalRequestId = 0;
+    let modalReturnFocusTo = null;
+    let modalCloseTimer = 0;
     const chartJsSrc = 'https://cdn.jsdelivr.net/npm/chart.js';
 
     window.ensureChartJs = window.ensureChartJs || function () {
@@ -5143,9 +6271,16 @@
         window.biomarkerChartResizeFrame = 0;
     }
 
-    function resetModalForLoading(athleteSlug) {
+    function resetModalForLoading(athleteSlug, isOpenData) {
         ensureAthleteModalDeferredSections();
         closeAthleteShareMenu();
+        if (modalCloseTimer) {
+            window.clearTimeout(modalCloseTimer);
+            modalCloseTimer = 0;
+            modal.classList.remove('fade-out');
+        }
+        setOpenDataModalState(false);
+        if (isOpenData) setOpenDataModalState(true);
 
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return null;
@@ -5167,13 +6302,17 @@
         const profilePic = document.getElementById('modalProfilePic');
         if (profilePic) {
             profilePic.removeAttribute('src');
-            profilePic.alt = 'Loading athlete profile picture';
+            profilePic.alt = isOpenData ? '' : 'Loading athlete profile picture';
         }
 
         const modalBadgeStrip = document.getElementById('modalBadgeStrip');
         if (modalBadgeStrip) modalBadgeStrip.innerHTML = '';
         const athleteBio = document.getElementById('athleteBio');
         if (athleteBio) athleteBio.textContent = '';
+        const openDataNotabilitySummary = document.getElementById('openDataNotabilitySummary');
+        if (openDataNotabilitySummary) openDataNotabilitySummary.textContent = '';
+        const openDataHypotheticalSummary = document.getElementById('openDataHypotheticalSummary');
+        if (openDataHypotheticalSummary) openDataHypotheticalSummary.textContent = '';
         const personalLinkElement = document.getElementById('personalLink');
         if (personalLinkElement) personalLinkElement.style.display = 'none';
         const mediaContactElement = document.getElementById('mediaContact');
@@ -5196,9 +6335,13 @@
         }
 
         if (modal.style.display !== "block") {
+            modalReturnFocusTo = document.activeElement instanceof HTMLElement
+                ? document.activeElement
+                : null;
             modal.style.display = "block";
-            lockBodyScroll();
+            requestAnimationFrame(() => closeBtn?.focus());
         }
+        lockBodyScroll();
 
         return modalContent;
     }
@@ -5363,6 +6506,37 @@
             
             const modalContent = document.querySelector('.modal-content');
             if (!modalContent) return;
+
+            if (event.key === 'Tab') {
+                const focusableElements = Array.from(modal.querySelectorAll(
+                    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                )).filter(element =>
+                    element instanceof HTMLElement &&
+                    !element.hidden &&
+                    element.getAttribute('aria-hidden') !== 'true' &&
+                    element.offsetParent !== null &&
+                    getComputedStyle(element).visibility !== 'hidden');
+
+                if (focusableElements.length === 0) {
+                    event.preventDefault();
+                    return;
+                }
+
+                const firstFocusable = focusableElements[0];
+                const lastFocusable = focusableElements[focusableElements.length - 1];
+                if (!modal.contains(document.activeElement)) {
+                    event.preventDefault();
+                    firstFocusable.focus();
+                } else if (event.shiftKey && document.activeElement === firstFocusable) {
+                    event.preventDefault();
+                    lastFocusable.focus();
+                } else if (!event.shiftKey && document.activeElement === lastFocusable) {
+                    event.preventDefault();
+                    firstFocusable.focus();
+                }
+                return;
+            }
+
             if (modalContent.classList.contains('guess-mode')) return;
 
             // Home key - scroll to top
@@ -5458,7 +6632,9 @@
         
         modal.classList.add('fade-out');
         restoreBodyScroll();
-        setTimeout(() => {
+        if (modalCloseTimer) window.clearTimeout(modalCloseTimer);
+        modalCloseTimer = window.setTimeout(() => {
+            modalCloseTimer = 0;
             modal.style.display = "none";
             modal.classList.remove('fade-out');
             
@@ -5471,6 +6647,12 @@
             history.replaceState({}, "", originalAthletelessURL);
 
             resetPageTitle();
+
+            const returnFocusTo = modalReturnFocusTo;
+            modalReturnFocusTo = null;
+            if (returnFocusTo && returnFocusTo.isConnected && typeof returnFocusTo.focus === 'function') {
+                returnFocusTo.focus();
+            }
         }, 400);
     }
 
@@ -5719,7 +6901,8 @@
         const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
         syncAgingClockFilters(currentLeaderboardView);
         updateActiveFilterSections();
-        updateRankingExplanation(currentLeaderboardView);
+        const athleteOnlyFiltersActive = selectedDivisions.length > 0 || selectedFlags.length > 0 ||
+            selectedGenerations.length > 0 || selectedExclusiveLeagues.length > 0 || leagueTrackFilterActive;
 
         const hasBortz = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
         const hasCrowdAge = (a) => a.crowdCount >= CROWD_AGE_LEADERBOARD_MINIMUM_GUESS_COUNT && Number.isFinite(a.crowdAgeReduction);
@@ -5803,12 +6986,24 @@
         } else {
             baseList = athleteResults; // ultimate: already in rank order
         }
+        baseList.forEach((athlete, index) => {
+            athlete.viewRank = index + 1;
+        });
 
         const query = window.normalizeString(document.getElementById('athleteSearch').value.trim().toLowerCase());
         const searchTerms = query.split(/\s+/).filter(term => term.length > 0);
         const uniqueSearchTerms = [...new Set(searchTerms)];
 
         const showAll = uniqueSearchTerms.length === 0;
+        const visibleOpenDataProfiles = shouldShowOpenDataLeaderboardRows() && !athleteOnlyFiltersActive
+            ? openDataProfiles.filter(profile => {
+                const hypotheticalRank = getOpenDataHypotheticalRank(profile, currentLeaderboardView);
+                if (!Number.isFinite(hypotheticalRank)) return false;
+                const searchText = getOpenDataSearchText(profile);
+                return showAll || uniqueSearchTerms.every(term => searchText.includes(term));
+            })
+            : [];
+        updateRankingExplanation(currentLeaderboardView, visibleOpenDataProfiles.length > 0);
 
         const athleteBadgeTextByName = new Map();
         document.querySelectorAll('.leaderboard table tbody tr[data-athlete-name]').forEach(row => {
@@ -5908,9 +7103,11 @@
                 athlete.filteredRank = index + 1;
             });
         } else {
-            // Keep original ranks
+            // Search keeps each view's global official rank; OpenData rows never participate in it.
             filteredAthletes.forEach(athlete => {
-                athlete.filteredRank = athlete.rank;
+                athlete.filteredRank = currentLeaderboardView === 'ultimate'
+                    ? athlete.rank
+                    : athlete.viewRank;
             });
         }
 
@@ -5918,6 +7115,7 @@
         const tableRows = document.querySelectorAll('.leaderboard table tbody tr');
         tableRows.forEach(row => {
             row.style.display = 'none';
+            if (row.classList.contains('open-data-leaderboard-row')) row.hidden = true;
         });
         const tierSeparatorRow = document.querySelector('.leaderboard table tbody tr.tier-separator');
 
@@ -5959,6 +7157,19 @@
             }
         });
 
+        visibleOpenDataProfiles.forEach(profile => {
+            const row = Array.from(tableRows).find(candidate =>
+                candidate.classList.contains('open-data-leaderboard-row') &&
+                candidate.dataset.profileSlug === profile.athleteSlug);
+            const hypotheticalRank = getOpenDataHypotheticalRank(profile, currentLeaderboardView);
+            if (!row || !Number.isFinite(hypotheticalRank)) return;
+
+            row.hidden = false;
+            row.style.display = '';
+            updateOpenDataLeaderboardRow(row, profile, currentLeaderboardView, hypotheticalRank);
+            window.showWithDelay(row);
+        });
+
         const hidePodiumRowsInTable = includePodiumGlobal && selectedDivisions.length === 0 && selectedFlags.length === 0 && selectedGenerations.length === 0 && selectedExclusiveLeagues.length === 0 &&
             !leagueTrackFilterActive && currentLeaderboardView === 'ultimate' && uniqueSearchTerms.length === 0;
         const tableVisibleAthletes = hidePodiumRowsInTable
@@ -5968,15 +7179,50 @@
             markAthletesSkippedForGuessMyAgeIfUnset(tableVisibleAthletes);
         }
 
-        // Show tier separator when both pro and amateur rows are visible in the table (first amateur after at least one pro); hide for clock views.
-        // Use tableVisibleAthletes order (not DOM order) so homepage podium rows do not keep the separator alive after their table rows are hidden.
+        // Compose official and display-only reference rows without ever adding references to the ranked field.
+        const tableBody = document.querySelector('.leaderboard table tbody');
+        const allRows = Array.from(tableBody.querySelectorAll('tr'));
+        const officialEntries = tableVisibleAthletes.map((athlete, officialIndex) => ({
+            athlete,
+            profile: null,
+            isReference: false,
+            isProComparable: Number.isFinite(athlete.bortzAgeReduction),
+            sortRank: athlete.viewRank,
+            metric: getMetricValueForView(athlete),
+            stableIndex: officialIndex,
+            row: allRows.find(row =>
+                !row.classList.contains('open-data-leaderboard-row') &&
+                row.getAttribute('data-athlete-name') === athlete.name)
+        })).filter(entry => entry.row);
+        const referenceEntries = visibleOpenDataProfiles.map(profile => ({
+            athlete: null,
+            profile,
+            isReference: true,
+            isProComparable: Number.isFinite(profile.bortzAgeReduction),
+            sortRank: getOpenDataHypotheticalRank(profile, currentLeaderboardView),
+            metric: getOpenDataMetricForView(profile, currentLeaderboardView),
+            stableIndex: Number.MAX_SAFE_INTEGER,
+            row: allRows.find(row =>
+                row.classList.contains('open-data-leaderboard-row') &&
+                row.dataset.profileSlug === profile.athleteSlug)
+        })).filter(entry => entry.row && Number.isFinite(entry.sortRank));
+        const visibleEntries = officialEntries.concat(referenceEntries).sort((a, b) => {
+            if (a.sortRank !== b.sortRank) return a.sortRank - b.sortRank;
+            if (a.isReference !== b.isReference) return a.isReference ? -1 : 1;
+            if (a.isReference && b.isReference) {
+                if (a.metric !== b.metric) return a.metric - b.metric;
+                return a.profile.displayName.localeCompare(b.profile.displayName, undefined, { sensitivity: 'base' });
+            }
+            return a.stableIndex - b.stableIndex;
+        });
+
+        // Show the official Pro/Amateur boundary around the mixed presentation; references do not join either track.
         if (tierSeparatorRow) {
             let separatorShouldShow = false;
             if (currentLeaderboardView === 'ultimate') {
-                const isPro = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
                 let sawPro = false;
-                for (const a of tableVisibleAthletes) {
-                    if (isPro(a)) sawPro = true;
+                for (const entry of visibleEntries) {
+                    if (entry.isProComparable) sawPro = true;
                     else if (sawPro) {
                         separatorShouldShow = true;
                         break;
@@ -5986,15 +7232,12 @@
             tierSeparatorRow.style.display = separatorShouldShow ? '' : 'none';
         }
 
-        // Reorder tbody so visible rows match the athletes actually shown in the table.
-        const tableBody = document.querySelector('.leaderboard table tbody');
-        const allRows = Array.from(tableBody.querySelectorAll('tr'));
-        const visibleOrdered = tableVisibleAthletes.map(a => allRows.find(r => r.getAttribute('data-athlete-name') === a.name)).filter(Boolean);
+        // Reorder tbody so reference rows occupy their counterfactual slot while official rank cells remain untouched.
+        const visibleOrdered = visibleEntries.map(entry => entry.row);
         const separator = allRows.find(r => r.classList.contains('tier-separator'));
         const hiddenRows = allRows.filter(r => r !== separator && !visibleOrdered.includes(r));
         const fragment = document.createDocumentFragment();
-        const isProForOrder = (a) => a.bortzAgeReduction != null && Number.isFinite(a.bortzAgeReduction);
-        const firstAmateurIndex = tableVisibleAthletes.findIndex(a => !isProForOrder(a));
+        const firstAmateurIndex = visibleEntries.findIndex(entry => !entry.isProComparable);
         const separatorVisible = tierSeparatorRow && tierSeparatorRow.style.display !== 'none';
         if (separator && separatorVisible && firstAmateurIndex > 0 && firstAmateurIndex < visibleOrdered.length) {
             visibleOrdered.slice(0, firstAmateurIndex).forEach(r => fragment.appendChild(r));
@@ -6011,19 +7254,18 @@
         window.removeAllHighlights();
 
         // Highlight search terms
+        const visibleOpenDataNames = new Set(visibleOpenDataProfiles.map(profile => profile.name));
         document.querySelectorAll('.athlete-name').forEach(athleteNameElement => {
             const athleteNameText = athleteNameElement.textContent;
             const athleteOwner = athleteNameElement.closest('[data-athlete-name]');
             const athleteKey = athleteOwner ? athleteOwner.getAttribute('data-athlete-name') : null;
 
-            // Check if the athlete is in filteredAthletes
-            const athleteInFiltered = filteredAthletes.some(athlete => athlete.name === (athleteKey || athleteNameText));
-            const athleteInFilteredByDisplayedText = filteredAthletes.some(athlete => athlete.name === athleteNameText);
-            if (athleteInFiltered) {
+            const isVisibleProfile = filteredAthletes.some(athlete => athlete.name === (athleteKey || athleteNameText)) ||
+                visibleOpenDataNames.has(athleteKey || athleteNameText);
+            if (isVisibleProfile) {
                 window.highlightText(athleteNameElement, uniqueSearchTerms);
             }
         });
-
         // Update the counts in the filter sections
         updateFilterCounts(unslicedFilteredAthletes);
 
@@ -6100,10 +7342,27 @@
             url.searchParams.set('view', currentLeaderboardView);
         }
 
-        history.replaceState({}, "", url.toString());
+        // The detailed reference cards belong only to the full /leaderboard page.
+        // Reconcile against the URL this filter pass is about to publish so soft
+        // view changes render the same state as a direct load or refresh.
+        filterOpenDataProfiles(uniqueSearchTerms, url.pathname);
+        document.querySelectorAll('.open-data-card:not([hidden]) .open-data-card-name').forEach(nameElement => {
+            window.highlightText(nameElement, uniqueSearchTerms);
+        });
+
+        const profileRouteIsOpen = /^\/(?:athlete|public-data)\/[^/]+\/?$/.test(window.location.pathname);
+        if (profileRouteIsOpen) {
+            // A pending search/filter debounce may finish after a profile modal
+            // has already pushed its canonical route. Keep that typed route in
+            // the address bar, but remember the updated leaderboard URL so the
+            // modal closes back to the current filters instead of stale state.
+            originalAthletelessURL = url;
+        } else {
+            history.replaceState({}, "", url.toString());
+        }
     }
 
-    function updateRankingExplanation(currentLeaderboardView) {
+    function updateRankingExplanation(currentLeaderboardView, showOpenDataRankKey) {
         const explanation = document.getElementById('rankingExplanation');
         if (!explanation) return;
 
@@ -6117,8 +7376,11 @@
         };
 
         const html = explanations[currentLeaderboardView] || '';
-        explanation.innerHTML = html;
-        explanation.classList.toggle('is-visible', html.length > 0);
+        const openDataRankKey = showOpenDataRankKey
+            ? '<span class="open-data-rank-key"><strong>Hyp.</strong> marks independent public-data comparisons; official ranks stay unchanged.</span>'
+            : '';
+        explanation.innerHTML = html + openDataRankKey;
+        explanation.classList.toggle('is-visible', html.length > 0 || openDataRankKey.length > 0);
     }
 
     function updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView) {
@@ -6766,19 +8028,37 @@
     }
 
     function getAthleteRow(element) {
-        return element.closest('tr') || element.closest('.podium-item');
+        return element.closest('tr') || element.closest('.podium-item') || element.closest('.open-data-card');
     }
 
-    function getAthleteData(athleteNameText) {
-        return athleteResults.find(athlete => window.slugifyName(athlete.name) === window.slugifyName(athleteNameText));
+    function getAthleteData(athleteNameText, profileType) {
+        const normalized = window.slugifyName(athleteNameText || '');
+        const normalizedSlug = getCanonicalProfileRouteSlug(athleteNameText);
+        const matches = profile =>
+            window.slugifyName(profile.name) === normalized ||
+            window.slugifyName(profile.displayName || '') === normalized ||
+            getCanonicalProfileRouteSlug(profile.athleteSlug) === normalizedSlug;
+        if (profileType === 'Athlete') return athleteResults.find(matches);
+        if (profileType === 'OpenData') return openDataProfiles.find(matches);
+        return athleteResults.find(matches) || openDataProfiles.find(matches);
+    }
+
+    function openProfileModalForRoute(profileRoute, options) {
+        if (!profileRoute || !profileRoute.slug) return false;
+        const normalizedProfile = window.slugifyName(profileRoute.slug, false);
+        const profileData = getAthleteData(normalizedProfile, profileRoute.profileType);
+        if (!profileData) return false;
+        fetchFullAthleteData(normalizedProfile, profileData, options);
+        return true;
     }
 
     window.openAthleteModalBySlug = function (athleteSlug, options) {
-        const normalizedSlug = window.slugifyName(athleteSlug, true);
-        const athleteData = athleteResults.find(athlete => {
+        const normalizedSlug = getCanonicalProfileRouteSlug(athleteSlug);
+        const athleteData = athleteResults.concat(openDataProfiles).find(athlete => {
+            const storedSlug = getCanonicalProfileRouteSlug(athlete.athleteSlug);
             const nameSlug = window.slugifyName(athlete.name, true);
             const displayNameSlug = athlete.displayName ? window.slugifyName(athlete.displayName, true) : '';
-            return nameSlug === normalizedSlug || displayNameSlug === normalizedSlug;
+            return storedSlug === normalizedSlug || nameSlug === normalizedSlug || displayNameSlug === normalizedSlug;
         });
 
         if (!athleteData) {
@@ -6790,28 +8070,40 @@
     };
 
     function getAthletelessURL() {
-        const url = new URL(window.location.href.replace(/\/athlete\/[^/]+\/?$/, ''));
+        const url = new URL(window.location.href);
+        url.pathname = url.pathname.replace(/\/(?:athlete|public-data)\/[^/]+\/?$/, '') || '/';
         url.searchParams.delete('athlete');
+        url.searchParams.delete('publicData');
         url.searchParams.delete('guessmyage');
         return url;
     }
 
     function getLeaguelessURL() {
-        const url = new URL(window.location.href.replace(/\/(?:league|flag)\/[^/]+\/?$/, ''));
+        const url = getAthletelessURL();
+        url.pathname = url.pathname.replace(/\/(?:league|flag)\/[^/]+\/?$/, '') || '/';
         return url;
     }
 
     let originalAthletelessURL = getAthletelessURL();
     let originalLeaguelessURL = getLeaguelessURL();
 
-    function getInitialAthleteSlug() {
-        const athleteParam = new URLSearchParams(window.location.search).get('athlete');
-        if (athleteParam) {
-            return athleteParam;
+    function getInitialProfileRoute() {
+        const match = window.location.pathname.match(/^\/(athlete|public-data)\/([^/]+)\/?$/i);
+        if (match) {
+            return {
+                slug: decodeURIComponent(match[2]),
+                profileType: match[1].toLowerCase() === 'public-data' ? 'OpenData' : 'Athlete'
+            };
         }
 
-        const match = window.location.pathname.match(/^\/athlete\/([^/]+)\/?$/i);
-        return match ? decodeURIComponent(match[1]) : '';
+        // Legacy query routes remain supported only on an otherwise untyped
+        // path. An explicit /athlete/ or /public-data/ route is authoritative.
+        const params = new URLSearchParams(window.location.search);
+        const publicDataParam = params.get('publicData');
+        if (publicDataParam) return { slug: publicDataParam, profileType: 'OpenData' };
+        const athleteParam = params.get('athlete');
+        if (athleteParam) return { slug: athleteParam, profileType: 'Athlete' };
+        return { slug: '', profileType: null };
     }
 
     function getAthleteShareOrigin() {
@@ -6831,8 +8123,9 @@
         }
     }
 
-    function getCanonicalAthleteShareUrl(athleteSlug) {
-        return new URL(`/athlete/${encodeURIComponent(athleteSlug)}`, getAthleteShareOrigin()).toString();
+    function getCanonicalAthleteShareUrl(athleteSlug, isOpenData) {
+        const route = isOpenData ? 'public-data' : 'athlete';
+        return new URL(`/${route}/${encodeURIComponent(athleteSlug)}`, getAthleteShareOrigin()).toString();
     }
 
     function setShareButtonState(button, label, disabled) {
@@ -7011,20 +8304,26 @@
         requestAnimationFrame(() => keepAthleteShareMenuInView(menu));
     }
 
-    function configureAthleteShareButton(displayName, athleteSlug, ultimateRank) {
+    function configureAthleteShareButton(displayName, athleteSlug, ultimateRank, isOpenData) {
         const button = document.getElementById('shareAthleteProfile');
         if (!button || !athleteSlug) return;
 
-        const url = getCanonicalAthleteShareUrl(athleteSlug);
-        const title = `${displayName} | Longevity World Cup`;
-        const text = Number.isFinite(ultimateRank)
-            ? `${displayName} is ranked #${ultimateRank} in the Longevity World Cup.`
-            : `View ${displayName} in the Longevity World Cup.`;
+        const url = getCanonicalAthleteShareUrl(athleteSlug, isOpenData);
+        const title = isOpenData
+            ? `${displayName} public-data reference | Longevity World Cup`
+            : `${displayName} | Longevity World Cup`;
+        const text = isOpenData
+            ? `View the non-competing public-data reference for ${displayName}. The subject did not apply; hypothetical positions never change official Longevity World Cup ranks; inclusion is not endorsement.`
+            : Number.isFinite(ultimateRank)
+                ? `${displayName} is ranked #${ultimateRank} in the Longevity World Cup.`
+                : `View ${displayName} in the Longevity World Cup.`;
 
         button.dataset.shareUrl = url;
         button.dataset.shareTitle = title;
         button.dataset.shareText = text;
-        button.setAttribute('aria-label', `Share ${displayName}'s athlete profile`);
+        button.setAttribute('aria-label', isOpenData
+            ? `Share ${displayName}'s public-data reference profile`
+            : `Share ${displayName}'s athlete profile`);
         setShareButtonState(button, 'Share', false);
 
         button.onclick = async (event) => {
@@ -7058,38 +8357,51 @@
     });
 
     function fetchFullAthleteData(athleteNameText, athleteData, options) {
-        window.getSharedAthletes = window.getSharedAthletes || function(){
-            if(!window.__sharedAthletesRequest){
-                window.__sharedAthletesRequest = fetchWithTimeout('/api/data/athletes', {}, 10000)
+        window.getSharedLeaderboardProfiles = window.getSharedLeaderboardProfiles || function(){
+            if(!window.__sharedLeaderboardProfilesRequest){
+                window.__sharedLeaderboardProfilesRequest = fetchWithTimeout('/api/data/leaderboard-profiles', {}, 10000)
                     .then(response => response.ok ? response.json() : Promise.reject(response.status))
                     .catch(error => {
-                        window.__sharedAthletesRequest = null;
+                        window.__sharedLeaderboardProfilesRequest = null;
                         throw error;
                     });
             }
-            return window.__sharedAthletesRequest;
+            return window.__sharedLeaderboardProfilesRequest;
         };
 
-        const athleteSlug = window.slugifyName(athleteNameText, true);
+        const athleteSlug = getCanonicalProfileRouteSlug(athleteData.athleteSlug || athleteNameText);
+        const openDataProfile = athleteData.profileType === 'OpenData';
         const suppressGuessMyAge = !!(options && options.suppressGuessMyAge);
         const requestId = ++currentAthleteModalRequestId;
-        const modalContent = resetModalForLoading(athleteSlug);
+        const modalContent = resetModalForLoading(athleteSlug, openDataProfile);
 
-        window.getSharedAthletes()
-            .then(athletes => {
+        window.getSharedLeaderboardProfiles()
+            .then(profiles => {
                 if (requestId !== currentAthleteModalRequestId) return;
-                const fullAthleteData = athletes.find(a => window.slugifyName(a.Name) === window.slugifyName(athleteNameText));
+                const fullAthleteData = profiles.find(profile => {
+                    const storedSlug = getCanonicalProfileRouteSlug(profile.AthleteSlug);
+                    return storedSlug === athleteSlug || window.slugifyName(profile.Name) === window.slugifyName(athleteNameText);
+                });
                 if (!fullAthleteData) {
                     console.error('Full athlete data not found');
                     return;
                 }
 
-                const rankSummary = computeBestLeagueRank(athleteData);
+                const rankSummary = openDataProfile ? {
+                    ultimateRank: null,
+                    bestCandidate: null,
+                    bestLeagueRank: null,
+                    bestLeagueName: null,
+                    bestLeagueType: 'public-data'
+                } : computeBestLeagueRank(athleteData);
 
                 // Populate the modal with athlete data
                 populateModal(fullAthleteData, athleteData, rankSummary);
 
-                updatePageTitleForAthlete((fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name, rankSummary.ultimateRank);
+                updatePageTitleForAthlete(
+                    (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name,
+                    rankSummary.ultimateRank,
+                    openDataProfile);
 
                 // Age visualization (radar + center) and biomarker chart are created after modal is shown so canvases have layout dimensions.
                 const bioAge = (athleteData.lowestBortzAge != null && Number.isFinite(athleteData.lowestBortzAge))
@@ -7102,15 +8414,31 @@
                 // After populating the modal with athlete data but before showing it:
                 // Only update originalAthletelessURL when we're not already on an athlete URL, so a second open (e.g. URL sync with ?guessmyage=1) does not overwrite it with "/"
                 const pathnameBeforeOpen = window.location.pathname;
-                if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
+                if (!/^\/(?:athlete|public-data)\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
                     originalAthletelessURL = getAthletelessURL();
                 }
-                history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
+                const profilePath = openDataProfile ? `/public-data/${athleteSlug}` : `/athlete/${athleteSlug}`;
+                const profileState = { modal: 'details', athlete: athleteSlug, profileType: athleteData.profileType };
+                const routeBeforeOpen = getInitialProfileRoute();
+                const alreadyOnThisTypedProfile = /^\/(?:athlete|public-data)\/[^/]+\/?$/.test(pathnameBeforeOpen) &&
+                    routeBeforeOpen.profileType === athleteData.profileType &&
+                    getCanonicalProfileRouteSlug(routeBeforeOpen.slug) === athleteSlug;
+                if (alreadyOnThisTypedProfile) {
+                    // Direct links and Forward navigation already own this history
+                    // entry. Normalize casing/query parameters without duplicating it.
+                    history.replaceState(profileState, "", profilePath);
+                } else {
+                    history.pushState(profileState, "", profilePath);
+                }
 
                 // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
 
                 // Populate proofs gallery after deferred modal sections are available.
-                populateProofsGallery(fullAthleteData);
+                if (openDataProfile) {
+                    populatePublicDataSources(fullAthleteData);
+                } else {
+                    populateProofsGallery(fullAthleteData);
+                }
 
                 // Create biomarker chart after modal is visible so the canvas has non-zero dimensions (fixes chart sizing when created while modal was hidden).
                 requestAnimationFrame(function() {
@@ -7119,7 +8447,9 @@
                     window.ensureChartJs().then(function(chartLoaded) {
                         if (requestId !== currentAthleteModalRequestId) return;
 
-                        generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
+                        if (!openDataProfile) {
+                            generateAgeVisualization(bioAge, chronoAge, athleteData, athleteResults);
+                        }
                         if (chartLoaded) {
                             generateBiomarkerChart(fullAthleteData);
                         }
@@ -7164,7 +8494,9 @@
                 setupScrollToSectionNavigation(modalContent);
 
                 var frame = document.getElementById('events-frame');
-                if (frame) {
+                const eventsEmbed = frame ? frame.closest('.events-embed') : null;
+                if (eventsEmbed) eventsEmbed.hidden = openDataProfile;
+                if (frame && !openDataProfile) {
                     const frameSrc = `/event-board-embed.html?athlete=${encodeURIComponent(athleteSlug)}&rows=all&viewAll=false&linkNames=false&embed=1&theme=dark`;
                     frame.addEventListener('load', function () {
                         if (frame.dataset.expectedAthlete === athleteSlug) {
@@ -7178,61 +8510,69 @@
 
                 // always reset the Guess-My-Age UI first:
                 modalContent.classList.remove('guess-mode', 'gma-fast');
-                gmaCard.classList.remove('gma-done');
-                // read your guesses from localStorage
-                const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-                // check if the user has hit “Skip All”
-                const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
+                if (gmaCard) {
+                    gmaCard.hidden = openDataProfile;
+                    gmaCard.classList.remove('gma-done');
+                }
 
-                const seen = sessionStorage.getItem('gmaSeen');
-
-                if (suppressGuessMyAge) {
-                    markAthleteSkippedForGuessMyAge(athleteSlug);
-                    modalContent.classList.remove('guess-mode');
-                    gmaCard.classList.add('gma-done');
-                } else if (skipAll) {
-                    // user opted out globally
-                    modalContent.classList.remove('guess-mode');
-                    gmaCard.classList.add('gma-done');
-                } else if (allGuesses.hasOwnProperty(athleteSlug)) {
-                    // already guessed or skipped this athlete
-                    modalContent.classList.remove('guess-mode');
-                    gmaCard.classList.add('gma-done');
+                if (openDataProfile) {
+                    if (gmaCard) gmaCard.classList.add('gma-done');
                 } else {
-                    // first time on *this* athlete
-                    modalContent.classList.add('guess-mode');
-                    sessionStorage.setItem('gmaSeen', 'true');
-                }
+                    // read your guesses from localStorage
+                    const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+                    // check if the user has hit “Skip All”
+                    const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
+                    const seen = sessionStorage.getItem('gmaSeen');
 
-                const gmaSkipAllBtn = document.getElementById('gmaSkipAll');
-                if (gmaSkipAllBtn) {
-                    // reveal “Skip All” once they've skipped at least one athlete,
-                    // but hide it if they already chose skip-all
-                    if (!skipAll && Object.values(allGuesses).some(g => g.skipped)) {
-                        gmaSkipAllBtn.style.display = 'inline-block';
+                    if (suppressGuessMyAge) {
+                        markAthleteSkippedForGuessMyAge(athleteSlug);
+                        modalContent.classList.remove('guess-mode');
+                        gmaCard.classList.add('gma-done');
+                    } else if (skipAll) {
+                        // user opted out globally
+                        modalContent.classList.remove('guess-mode');
+                        gmaCard.classList.add('gma-done');
+                    } else if (allGuesses.hasOwnProperty(athleteSlug)) {
+                        // already guessed or skipped this athlete
+                        modalContent.classList.remove('guess-mode');
+                        gmaCard.classList.add('gma-done');
                     } else {
-                        gmaSkipAllBtn.style.display = 'none';
-                    }
-                }
-
-                // stash the slug for your submit/skip handler
-                modalContent.dataset.athleteSlug = athleteSlug;
-                updateYourGuess();
-
-                if (!suppressGuessMyAge) {
-                    if (seen) {
-                        modalContent.classList.add('gma-fast');
-                    } else {
+                        // first time on *this* athlete
+                        modalContent.classList.add('guess-mode');
                         sessionStorage.setItem('gmaSeen', 'true');
                     }
+
+                    const gmaSkipAllBtn = document.getElementById('gmaSkipAll');
+                    if (gmaSkipAllBtn) {
+                        // reveal “Skip All” once they've skipped at least one athlete,
+                        // but hide it if they already chose skip-all
+                        if (!skipAll && Object.values(allGuesses).some(g => g.skipped)) {
+                            gmaSkipAllBtn.style.display = 'inline-block';
+                        } else {
+                            gmaSkipAllBtn.style.display = 'none';
+                        }
+                    }
+
+                    updateYourGuess();
+
+                    if (!suppressGuessMyAge) {
+                        if (seen) {
+                            modalContent.classList.add('gma-fast');
+                        } else {
+                            sessionStorage.setItem('gmaSeen', 'true');
+                        }
+                    }
                 }
+
+                // stash the slug for profile-specific interactions
+                modalContent.dataset.athleteSlug = athleteSlug;
 
                 const bortzPaceOfAgingContainer = document.getElementById('bortzPaceOfAgingContainer');
                 const bortzPaceOfAgingValue =
                     (athleteData.lowestBortzAge && athleteData.chronoAtLowestBortzAge)
                         ? (athleteData.lowestBortzAge / athleteData.chronoAtLowestBortzAge)
                         : null;
-                if (Number.isFinite(bortzPaceOfAgingValue)) {
+                if (!openDataProfile && Number.isFinite(bortzPaceOfAgingValue)) {
                     document.getElementById('bortzPaceOfAging').textContent = bortzPaceOfAgingValue.toFixed(2);
                     bortzPaceOfAgingContainer.style.display = '';
                     const bortzPaceOfAgingRank = findAthleteIndexByName(athletesOrderedByBortzPace, athleteData.name) + 1;
@@ -7249,7 +8589,7 @@
                     (athleteData.lowestPhenoAge && athleteData.chronoAtLowestPhenoAge)
                         ? (athleteData.lowestPhenoAge / athleteData.chronoAtLowestPhenoAge)
                         : null;
-                if (Number.isFinite(paceOfAgingValue)) {
+                if (!openDataProfile && Number.isFinite(paceOfAgingValue)) {
                     document.getElementById('paceOfAging').textContent = paceOfAgingValue.toFixed(2);
                     paceOfAgingContainer.style.display = '';
 
@@ -7325,16 +8665,234 @@
         return Math.floor(athleteData.chronologicalAge);
     }
 
+    function configureProfileMetricLabels(isOpenData) {
+        const textById = isOpenData
+            ? {
+                chronologicalAgeLabel: 'Age at published panel:',
+                chronologicalAgeUnit: 'years',
+                lowestBortzAgeLabel: 'Reference Bortz Age:',
+                lowestPhenoAgeLabel: 'Reference Pheno Age:',
+                bortzAgeReductionAccelerationLabel: 'Reference Bortz difference:',
+                ageReductionAccelerationLabel: 'Reference Pheno difference:'
+            }
+            : {
+                chronologicalAgeLabel: 'Chronological age:',
+                chronologicalAgeUnit: 'years old',
+                lowestBortzAgeLabel: 'Lowest Bortz Age:',
+                lowestPhenoAgeLabel: 'Lowest Pheno Age:',
+                bortzAgeReductionAccelerationLabel: 'Bortz Age reduction:',
+                ageReductionAccelerationLabel: 'Pheno Age reduction:'
+            };
+        Object.entries(textById).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        });
+
+        ['bortzPaceOfAgingContainer', 'paceOfAgingContainer', 'bortzAgeReductionContainer', 'ageReductionContainer']
+            .forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.title = isOpenData
+                    ? 'Reference calculation from the cited published panel'
+                    : 'Derived from the lowest biological age of the season';
+            });
+    }
+
+    function setOpenDataModalState(isOpenData) {
+        configureProfileMetricLabels(isOpenData);
+        const detailsModal = document.getElementById('detailsModal');
+        const modalContent = document.querySelector('#detailsModal .modal-content');
+        if (modalContent) {
+            modalContent.classList.toggle('open-data-profile', isOpenData);
+            modalContent.dataset.profileType = isOpenData ? 'OpenData' : 'Athlete';
+        }
+        if (detailsModal) {
+            if (isOpenData) detailsModal.setAttribute('aria-describedby', 'openDataNotabilitySummary openDataHypotheticalSummary openDataProfileDisclosure');
+            else detailsModal.removeAttribute('aria-describedby');
+        }
+
+        ['closeAthleteDetailsModal', 'stickyCloseBtn'].forEach(id => {
+            const closeButton = document.getElementById(id);
+            if (closeButton) {
+                closeButton.setAttribute('aria-label', isOpenData
+                    ? 'Close public-data profile'
+                    : 'Close athlete details');
+            }
+        });
+
+        const disclosure = document.getElementById('openDataProfileDisclosure');
+        const stickyToken = document.getElementById('openDataStickyToken');
+        const databaseAvatar = document.getElementById('openDataModalAvatar');
+        const profilePic = document.getElementById('modalProfilePic');
+        const notabilitySummary = document.getElementById('openDataNotabilitySummary');
+        const hypotheticalSummary = document.getElementById('openDataHypotheticalSummary');
+        const qualifierNotice = document.getElementById('openDataQualifierNotice');
+        const photoCredit = document.getElementById('openDataModalPhotoCredit');
+        if (disclosure) disclosure.hidden = !isOpenData;
+        if (stickyToken) stickyToken.hidden = !isOpenData;
+        if (databaseAvatar) databaseAvatar.hidden = !isOpenData;
+        if (notabilitySummary) notabilitySummary.hidden = !isOpenData;
+        if (hypotheticalSummary) hypotheticalSummary.hidden = !isOpenData;
+        if (!isOpenData && qualifierNotice) qualifierNotice.hidden = true;
+        if (profilePic) {
+            profilePic.hidden = isOpenData;
+            profilePic.onerror = null;
+        }
+        if (!isOpenData && photoCredit) populateOpenDataPhotoCredit(photoCredit, null);
+
+        const publicSources = document.getElementById('publicDataSources');
+        const eventsEmbed = document.querySelector('#detailsModal .events-embed');
+        const proofsSection = document.querySelector('#detailsModal .proofs-section');
+        const ageVisualization = document.getElementById('ageVisualization');
+        const guessAgeContainer = document.getElementById('guessAgeContainer');
+        if (publicSources) publicSources.hidden = !isOpenData;
+        if (eventsEmbed) eventsEmbed.hidden = isOpenData;
+        if (proofsSection) proofsSection.hidden = isOpenData;
+        if (ageVisualization) ageVisualization.hidden = isOpenData;
+        if (guessAgeContainer) guessAgeContainer.hidden = isOpenData;
+
+        if (!isOpenData) {
+            const sourceList = document.getElementById('publicDataSourceList');
+            const reviewed = document.getElementById('publicDataReviewed');
+            const notes = document.getElementById('publicDataTranscriptionNotes');
+            if (sourceList) sourceList.innerHTML = '';
+            if (reviewed) reviewed.textContent = '';
+            if (notes) {
+                notes.textContent = '';
+                notes.hidden = true;
+            }
+        }
+    }
+
+    function populateOpenDataModal(fullProfile, profileData) {
+        setOpenDataModalState(true);
+        const displayName = fullProfile.DisplayName && fullProfile.DisplayName.trim()
+            ? fullProfile.DisplayName.trim()
+            : fullProfile.Name;
+        const routeSlug = getCanonicalProfileRouteSlug(profileData.athleteSlug || displayName);
+
+        const nameElement = document.getElementById('athleteName');
+        const stickyName = document.getElementById('stickyAthleteName');
+        if (nameElement) nameElement.textContent = displayName;
+        if (stickyName) stickyName.textContent = displayName;
+        configureAthleteShareButton(displayName, routeSlug, null, true);
+
+        const profilePic = document.getElementById('modalProfilePic');
+        const databaseAvatar = document.getElementById('openDataModalAvatar');
+        const photoCredit = document.getElementById('openDataModalPhotoCredit');
+        if (profilePic) {
+            profilePic.src = profileData.portrait.assetUrl;
+            profilePic.dataset.fullSrc = profileData.portrait.assetUrl;
+            profilePic.alt = `Portrait of ${displayName}`;
+            profilePic.loading = 'lazy';
+            profilePic.decoding = 'async';
+            profilePic.classList.remove('portrait-fallback');
+            profilePic.hidden = false;
+            profilePic.onerror = () => {
+                profilePic.hidden = true;
+                if (databaseAvatar) databaseAvatar.hidden = false;
+                populateOpenDataPhotoCredit(photoCredit, null);
+            };
+        }
+        if (databaseAvatar) databaseAvatar.hidden = true;
+        populateOpenDataPhotoCredit(photoCredit, profileData.portrait);
+        const athleteProfile = document.getElementById('athlete-profile');
+        const modalStickyHeader = document.getElementById('modalStickyHeader');
+        if (athleteProfile) athleteProfile.classList.remove('is-pro');
+        if (modalStickyHeader) modalStickyHeader.classList.remove('is-pro');
+
+        const athleteBio = document.getElementById('athleteBio');
+        const modalBadgeSection = document.getElementById('modalBadgeStrip');
+        const qualifierNotice = document.getElementById('openDataQualifierNotice');
+        const notabilitySummary = document.getElementById('openDataNotabilitySummary');
+        const hypotheticalSummary = document.getElementById('openDataHypotheticalSummary');
+        if (athleteBio) athleteBio.textContent = '';
+        if (modalBadgeSection) modalBadgeSection.innerHTML = '';
+        if (qualifierNotice) qualifierNotice.hidden = !profileData.hasMeasurementQualifiers;
+        if (notabilitySummary) {
+            notabilitySummary.textContent = profileData.notabilitySummary;
+            notabilitySummary.hidden = false;
+        }
+        if (hypotheticalSummary) {
+            const hypotheticalPositions = getOpenDataHypotheticalSummary(profileData);
+            hypotheticalSummary.textContent = hypotheticalPositions
+                ? `${hypotheticalPositions} · official ranks stay unchanged`
+                : '';
+            hypotheticalSummary.hidden = !hypotheticalPositions;
+        }
+
+        ['athleteRank', 'athleteDivision', 'athleteGeneration', 'athleteFlag', 'lowestPhenoAgeRank', 'paceOfAgingRank', 'bortzPaceOfAgingRank']
+            .forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = '';
+            });
+
+        const chronologicalAge = document.getElementById('chronologicalAge');
+        const publishedAge = Number.isFinite(profileData.chronoAtLowestPhenoAge)
+            ? profileData.chronoAtLowestPhenoAge
+            : profileData.chronoAtLowestBortzAge;
+        if (chronologicalAge) chronologicalAge.textContent = Number.isFinite(publishedAge)
+            ? publishedAge.toFixed(1)
+            : 'Not available';
+        const crowdAgeContainer = document.getElementById('crowdAgeContainer');
+        const yourGuessContainer = document.getElementById('yourGuessContainer');
+        if (crowdAgeContainer) crowdAgeContainer.style.display = 'none';
+        if (yourGuessContainer) yourGuessContainer.style.display = 'none';
+
+        const lowestBortzAgeContainer = document.getElementById('lowestBortzAgeContainer');
+        const lowestBortzAge = document.getElementById('lowestBortzAge');
+        if (lowestBortzAgeContainer) lowestBortzAgeContainer.style.display = Number.isFinite(profileData.lowestBortzAge) ? '' : 'none';
+        if (lowestBortzAge && Number.isFinite(profileData.lowestBortzAge)) lowestBortzAge.textContent = profileData.lowestBortzAge.toFixed(1);
+
+        const lowestPhenoAgeContainer = document.getElementById('lowestPhenoAgeContainer');
+        const lowestPhenoAge = document.getElementById('lowestPhenoAge');
+        if (lowestPhenoAgeContainer) lowestPhenoAgeContainer.style.display = Number.isFinite(profileData.lowestPhenoAge) ? '' : 'none';
+        if (lowestPhenoAge && Number.isFinite(profileData.lowestPhenoAge)) lowestPhenoAge.textContent = profileData.lowestPhenoAge.toFixed(1);
+
+        const bortzPaceContainer = document.getElementById('bortzPaceOfAgingContainer');
+        if (bortzPaceContainer) bortzPaceContainer.style.display = 'none';
+
+        const phenoPaceContainer = document.getElementById('paceOfAgingContainer');
+        if (phenoPaceContainer) phenoPaceContainer.style.display = 'none';
+
+        const bortzReductionContainer = document.getElementById('bortzAgeReductionContainer');
+        if (bortzReductionContainer) bortzReductionContainer.style.display = Number.isFinite(profileData.bortzAgeReduction) ? '' : 'none';
+        if (Number.isFinite(profileData.bortzAgeReduction)) {
+            document.getElementById('bortzAgeReductionAccelerationLabel').textContent = 'Reference Bortz difference:';
+            document.getElementById('bortzAgeReduction').textContent = `${profileData.bortzAgeReduction >= 0 ? '+' : ''}${profileData.bortzAgeReduction.toFixed(1)}`;
+            document.getElementById('bortzAgeReductionPercent').textContent = profileData.bortzAgeReductionPercent.toFixed(1);
+        }
+
+        const phenoReductionContainer = document.getElementById('ageReductionContainer');
+        if (phenoReductionContainer) phenoReductionContainer.style.display = Number.isFinite(profileData.ageReduction) ? '' : 'none';
+        if (Number.isFinite(profileData.ageReduction)) {
+            document.getElementById('ageReductionAccelerationLabel').textContent = 'Reference Pheno difference:';
+            document.getElementById('ageReduction').textContent = `${profileData.ageReduction >= 0 ? '+' : ''}${profileData.ageReduction.toFixed(1)}`;
+            document.getElementById('ageReductionPercent').textContent = profileData.ageReductionPercent.toFixed(1);
+        }
+
+        const personalLink = document.getElementById('personalLink');
+        const mediaContact = document.getElementById('mediaContact');
+        if (personalLink) personalLink.style.display = 'none';
+        if (mediaContact) mediaContact.style.display = 'none';
+        updateAthleteInfoGrouping();
+    }
+
     function populateModal(fullAthleteData, athleteData, rankSummary) {
+        if (athleteData.profileType === 'OpenData') {
+            populateOpenDataModal(fullAthleteData, athleteData);
+            return;
+        }
+
+        setOpenDataModalState(false);
         const ultimateRank = rankSummary ? rankSummary.ultimateRank : athleteData.rank;
         const modalDisplayName = (fullAthleteData.DisplayName && fullAthleteData.DisplayName.trim()) ? fullAthleteData.DisplayName.trim() : fullAthleteData.Name;
         const isPro = athleteData.bortzAgeReduction != null && Number.isFinite(athleteData.bortzAgeReduction);
-        const shareSlugSource = String(fullAthleteData.AthleteSlug || athleteData.athleteSlug || athleteData.slug || modalDisplayName).replace(/_/g, '-');
-        const shareAthleteSlug = window.slugifyName(shareSlugSource, true);
+        const shareSlugSource = fullAthleteData.AthleteSlug || athleteData.athleteSlug || athleteData.slug || modalDisplayName;
+        const shareAthleteSlug = getCanonicalProfileRouteSlug(shareSlugSource);
         const athleteNameWithRank = `${escapeHtml(modalDisplayName)}${getModalTitleRankMarkup(ultimateRank)}`;
         const athleteNameElement = document.getElementById('athleteName');
         athleteNameElement.innerHTML = athleteNameWithRank;
-        configureAthleteShareButton(modalDisplayName, shareAthleteSlug, ultimateRank);
+        configureAthleteShareButton(modalDisplayName, shareAthleteSlug, ultimateRank, false);
         
         // Set sticky header name - use the full content including rank badges/emojis
         const stickyAthleteName = document.getElementById('stickyAthleteName');
@@ -7486,11 +9044,6 @@
     function generateBiomarkerChart(fullAthleteData) {
         const biomarkerChartCtx = document.getElementById('biomarkerChart').getContext('2d');
         const biomarkerData = fullAthleteData.Biomarkers.sort((a, b) => new Date(a.Date) - new Date(b.Date));
-        const dob = new Date(
-            fullAthleteData.DateOfBirth.Year,
-            fullAthleteData.DateOfBirth.Month - 1,
-            fullAthleteData.DateOfBirth.Day
-        );
 
         const chartData = biomarkerData.filter(entry => entry && entry.Date && Object.entries(entry).some(([key, value]) =>
             key !== 'Date' && value != null && value !== '' && Number.isFinite(Number(value))
@@ -7502,14 +9055,13 @@
             return;
         }
 
-        const labels = chartData.map(entry => entry.Date);
+        const labels = chartData.map(formatBiomarkerDateLabel);
         const phenoAges = [];
         const bortzAges = [];
         const biomarkersRaw = initializeBiomarkersRaw();
 
         chartData.forEach(entry => {
-            const entryDate = new Date(entry.Date);
-            const chronoAgeAtEntry = window.calculateAgeAtDate(dob, entryDate);
+            const chronoAgeAtEntry = getProfileAgeAtBiomarker(fullAthleteData, entry);
 
             // Push in same order as bortz-age.html (WBC, Lymphocytes, Neutrophils, …)
             biomarkersRaw['WBC (10^3 cells/µL)'].push(entry.Wbc1000cellsuL != null ? entry.Wbc1000cellsuL : null);
@@ -7536,7 +9088,7 @@
             biomarkersRaw['Vitamin D (nmol/L)'].push(entry.VitaminDNmolL != null ? entry.VitaminDNmolL : null);
 
             let phenoAge = null;
-            if (isCompleteBiomarkerSet(entry)) {
+            if (Number.isFinite(chronoAgeAtEntry) && isCompleteBiomarkerSet(entry)) {
                 const biomarkerValues = prepareBiomarkerValues(entry, chronoAgeAtEntry);
                 const computed = window.PhenoAge.calculatePhenoAge(biomarkerValues);
                 if (Number.isFinite(computed)) phenoAge = computed.toFixed(1);
@@ -7545,7 +9097,7 @@
 
             // Bortz Age (when full Bortz set available)
             let bortzAge = null;
-            if (window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function' && isCompleteBortzBiomarkerSet(entry)) {
+            if (Number.isFinite(chronoAgeAtEntry) && window.BortzAge && typeof window.BortzAge.calculateBortzAge === 'function' && isCompleteBortzBiomarkerSet(entry)) {
                 const wbc = entry.Wbc1000cellsuL;
                 const monoCount = wbc * entry.MonocytePc / 100;
                 const neutCount = wbc * entry.NeutrophilPc / 100;
@@ -8003,6 +9555,140 @@
         };
     }
 
+    function formatPublicDataDate(value) {
+        if (typeof value !== 'string' || !value.trim()) return '';
+        const trimmed = value.trim();
+        const parsed = new Date(/^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? `${trimmed}T00:00:00Z` : trimmed);
+        if (!Number.isFinite(parsed.getTime())) return value.trim();
+        return new Intl.DateTimeFormat('en', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            timeZone: 'UTC'
+        }).format(parsed);
+    }
+
+    function formatBiomarkerDateLabel(entry) {
+        if (!entry || typeof entry.Date !== 'string') return '';
+        const value = entry.Date.trim();
+        if (entry.DatePrecision !== 'Month') return value;
+
+        const parsed = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00Z` : value);
+        if (!Number.isFinite(parsed.getTime())) return value;
+        return new Intl.DateTimeFormat('en', {
+            year: 'numeric',
+            month: 'short',
+            timeZone: 'UTC'
+        }).format(parsed);
+    }
+
+    function populatePublicDataSources(fullProfile) {
+        const section = document.getElementById('publicDataSources');
+        const list = document.getElementById('publicDataSourceList');
+        const reviewed = document.getElementById('publicDataReviewed');
+        const notes = document.getElementById('publicDataTranscriptionNotes');
+        if (!section || !list || !reviewed || !notes) return;
+
+        const provenance = fullProfile && fullProfile.OpenData ? fullProfile.OpenData : {};
+        const sources = Array.isArray(provenance.Sources) ? provenance.Sources : [];
+        const biomarkerRecords = Array.isArray(fullProfile && fullProfile.Biomarkers) ? fullProfile.Biomarkers : [];
+        const notabilitySourceIds = new Set(
+            provenance.Notability && Array.isArray(provenance.Notability.SourceIds)
+                ? provenance.Notability.SourceIds.map(String)
+                : []);
+        list.innerHTML = '';
+        section.hidden = false;
+
+        const reviewedDate = formatPublicDataDate(provenance.ReviewedAt || '');
+        const monthPrecisionCount = biomarkerRecords.filter(record => record && record.DatePrecision === 'Month').length;
+        const reportDateCount = biomarkerRecords.filter(record => record && record.DateBasis === 'Report').length;
+        const reviewedParts = [];
+        if (reviewedDate) reviewedParts.push(`Profile reviewed ${reviewedDate}.`);
+        if (monthPrecisionCount > 0) {
+            reviewedParts.push(`${monthPrecisionCount === 1 ? 'The published panel date has' : `${monthPrecisionCount} published panel dates have`} month precision; no day was inferred.`);
+        }
+        if (reportDateCount > 0) {
+            reviewedParts.push(reportDateCount === 1
+                ? 'One record uses the published report date because the source does not print a unified specimen date; it is not presented as a draw date.'
+                : `${reportDateCount} records use published report dates because their sources do not print unified specimen dates; they are not presented as draw dates.`);
+        }
+        reviewed.textContent = reviewedParts.join(' ');
+
+        sources.forEach((source, index) => {
+            const url = getSafePublicDataUrl(source && source.Url);
+            if (!url) return;
+
+            const item = document.createElement('li');
+            item.className = 'public-data-source-item';
+            const link = document.createElement('a');
+            link.className = 'public-data-source-link';
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer external';
+            const title = source && source.Title ? String(source.Title).trim() : `Public source ${index + 1}`;
+            link.textContent = title;
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid fa-arrow-up-right-from-square';
+            icon.setAttribute('aria-hidden', 'true');
+            link.appendChild(icon);
+            link.setAttribute('aria-label', `${title} (opens in a new tab)`);
+            item.appendChild(link);
+
+            const sourceId = source && source.Id ? String(source.Id) : '';
+            const citedRecordCount = sourceId
+                ? biomarkerRecords.filter(record => Array.isArray(record.SourceIds) && record.SourceIds.map(String).includes(sourceId)).length
+                : 0;
+            const subjectAuthorization = getOpenDataSubjectAuthorization(source);
+            const metaParts = [];
+            if (source && source.Kind) metaParts.push(String(source.Kind));
+            if (subjectAuthorization && subjectAuthorization.kind === 'SelfPublished') {
+                metaParts.push('Self-published by the subject');
+            } else if (subjectAuthorization && subjectAuthorization.kind === 'ExplicitlyAuthorized') {
+                metaParts.push('Publication explicitly authorized by the subject');
+            }
+            const accessedOn = formatPublicDataDate(source && source.AccessedOn ? String(source.AccessedOn) : '');
+            if (accessedOn) metaParts.push(`Accessed ${accessedOn}`);
+            if (citedRecordCount > 0) metaParts.push(`${citedRecordCount} cited biomarker ${citedRecordCount === 1 ? 'record' : 'records'}`);
+            if (sourceId && notabilitySourceIds.has(sourceId)) metaParts.push('Supports notability context');
+            if (metaParts.length > 0) {
+                const meta = document.createElement('p');
+                meta.className = 'public-data-source-meta';
+                meta.textContent = metaParts.join(' · ');
+                item.appendChild(meta);
+            }
+
+            if (subjectAuthorization && subjectAuthorization.kind === 'ExplicitlyAuthorized') {
+                const evidence = document.createElement('p');
+                evidence.className = 'public-data-source-meta';
+                evidence.appendChild(document.createTextNode(`${subjectAuthorization.evidenceNote} `));
+                const evidenceLink = document.createElement('a');
+                evidenceLink.className = 'public-data-source-link';
+                evidenceLink.href = subjectAuthorization.evidenceUrl;
+                evidenceLink.target = '_blank';
+                evidenceLink.rel = 'noopener noreferrer external';
+                evidenceLink.textContent = 'View authorization evidence';
+                evidenceLink.setAttribute('aria-label', 'View subject authorization evidence (opens in a new tab)');
+                evidence.appendChild(evidenceLink);
+                item.appendChild(evidence);
+            }
+
+            list.appendChild(item);
+        });
+
+        if (!list.children.length) {
+            const item = document.createElement('li');
+            item.className = 'public-data-source-item';
+            item.textContent = 'No valid public source link is available.';
+            list.appendChild(item);
+        }
+
+        const transcriptionNotes = getOpenDataTranscriptionNotes(provenance.TranscriptionNotes);
+        notes.textContent = transcriptionNotes.length > 0
+            ? `Transcription notes: ${transcriptionNotes.join(' ')}`
+            : '';
+        notes.hidden = transcriptionNotes.length === 0;
+    }
+
     function populateProofsGallery(fullAthleteData) {
         const proofsGallery = document.getElementById('proofsGallery');
         if (!proofsGallery) return;
@@ -8044,8 +9730,24 @@
         });
     }
 
-    // Ensure modal history cleanup
-    window.addEventListener('popstate', function (event) {
+    // Keep typed profile routes and modal state synchronized in both directions.
+    window.addEventListener('popstate', function () {
+        const enlargedPortrait = document.querySelector('.enlarged-portrait.show');
+        if (enlargedPortrait) {
+            closeOpenComponents();
+            return;
+        }
+
+        const profileRoute = getInitialProfileRoute();
+        if (profileRoute.slug && openProfileModalForRoute(profileRoute)) {
+            return;
+        }
+
+        // Prevent a slower profile fetch from reopening a route the visitor left.
+        currentAthleteModalRequestId++;
+        // Escape intentionally closes the share menu before the profile modal;
+        // browser history must reconcile the whole route in one transition.
+        closeAthleteShareMenu();
         closeOpenComponents();
     });
 
@@ -8348,8 +10050,10 @@
     }, false);
 
     // Updates the document title for the selected athlete.
-    function updatePageTitleForAthlete(athleteName, athleteRank) {
-        document.title = `${athleteName} (#${athleteRank}) - Longevity World Cup`;
+    function updatePageTitleForAthlete(athleteName, athleteRank, isOpenData) {
+        document.title = isOpenData
+            ? `${athleteName} public-data reference - Longevity World Cup`
+            : `${athleteName} (#${athleteRank}) - Longevity World Cup`;
     }
 
     // Resets the document title to the default when no athlete is selected.

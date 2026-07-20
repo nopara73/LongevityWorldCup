@@ -3,10 +3,12 @@
 ## Terms
 
 - **Longevity athlete**: approved participant with biological age data; **Applicant** is pre-approval.
+- **OpenData profile**: a non-competing reference profile for a public-facing person, transcribed from linked bloodwork the subject self-published or explicitly authorized for public release. The subject did not apply to or join the Longevity World Cup and is not a Longevity athlete.
 - **Track** is Pro or Amateur; **League** is a ranking view.
 - **Pro** means eligible bortz age track; **Amateur** is the non-bortz track.
 - **Ultimate League** is the primary overall leaderboard and ranks Pro before Amateur.
 - **Rank** is current computed order; **Placement** is stored or historical position.
+- **OpenData hypothetical rank** is a display-only, counterfactual position computed independently against the eligible Longevity athletes in a comparable leaderboard view. It is neither Rank nor Placement.
 - **Pheno Age**, **Bortz Age**, and **Crowd Age** are distinct clocks/views.
 - **Biological Age Difference** is biological age minus chronological age; lower is better. **Age Reduction** is the favorable public label.
 - **Effective Age Reduction** is the Ultimate League score: Bortz for Pro, otherwise pheno.
@@ -22,6 +24,17 @@
 ## Naming
 
 Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age reduction in prose. Keep `PhenoAge`, `BortzAge`, and `CrowdAge` for code, serialized fields, external names, or quoted legacy data. Do not collapse clock, calculator, and result.
+
+## OpenData profiles
+
+- OpenData subjects are editorially curated, unmistakably notable people: globally recognizable public figures or field-defining figures with broad recognition beyond a narrow niche. A complete panel alone does not justify inclusion. Eligibility requires either a publication by the subject or direct evidence that the subject explicitly authorized the publication and intentionally participated in the public release. Leaks, exposed patient portals, data-broker copies, and unsupported third-party reposts are ineligible. Inclusion is neither participation nor endorsement, and the UI must give these profiles clearly labeled, neutral reference treatment, visibly distinct from Longevity athletes, with source provenance and a correction/removal path.
+- OpenData profiles never receive ranks, placements, badges, prizes, crowd age guesses, athlete-count credit, or competition Events, and never affect those outcomes for Longevity athletes. Official ranks are fixed before any presentation-only OpenData merge; a hypothetical rank never consumes a rank number, changes the official field size, or displaces a Longevity athlete.
+- Each OpenData hypothetical rank is `1 +` the number of eligible Longevity athletes ahead in the selected view and ignores every other OpenData profile. Comparisons use the unrounded relevant age reduction; an official athlete wins an exact score tie because OpenData profiles do not publish or infer the exact date of birth needed for the competition tie-breaker. In Ultimate League, a pheno-only reference follows every Pro and is Amateur-comparable without becoming an Amateur athlete.
+- Hypothetical ranks currently appear only in comparable Ultimate and pheno age views because the validated OpenData schema accepts complete pheno panels only. OpenData rows stay out of bortz age, crowd age, improvement views, athlete-only league filters, and podium or prize presentation.
+- OpenData profiles may comprise at most 10% of all profiles shown with the leaderboard. Their normalized slug and every identity name (primary name plus documented public aliases) must not match any approved athlete slug, name, or display name, or any other OpenData slug or identity. Aliases exist for identity isolation and de-duplication, not as separate subjects.
+- Every OpenData profile includes a concise, neutral explanation of why the subject is broadly notable, backed by at least one linked identity source and shown on both the reference card and profile modal.
+- Every OpenData profile includes a locally served, license-verified portrait with visible author, license, and modification attribution. The portrait is shown on both the reference card and profile modal, but remains dedicated OpenData provenance rather than athlete `ProfilePic` state; the raw OpenData storage namespace stays unavailable over HTTP.
+- OpenData profiles do not republish exact dates of birth or persist athlete-only/service-controlled fields at any JSON depth. Every biomarker record carries the subject's finite age at the source-dated panel with no more than two decimal places, contains all nine pheno age inputs in canonical units, passes deliberately broad unit/transcription guardrails, produces a finite reference pheno age, and cites bloodwork that was self-published or explicitly authorized by the subject. Explicit authorization requires a direct HTTPS evidence link and a concise evidence note. `DateBasis=Collection` means the source date is a specimen date; `DateBasis=Report` is allowed only for one unified report that lacks a unified specimen date, and the UI must identify it as a report date. Month-only dates use explicit month precision and the canonical first of that month without presenting the day as published. Profile identity separately cites at least one self-published or explicitly authorized source.
 
 ## Events
 

@@ -108,7 +108,7 @@ public sealed class ProofUploadPageTests
         Assert.True(hideLoadingIndex > resetIndex);
 
         var catchBody = javascript[catchIndex..finallyIndex];
-        Assert.Contains("customAlert('Proof upload failed. Please try again with an image or PDF file.')\n                .then(() => focusProofRetryButton(retryButton));", catchBody);
+        Assert.Contains("window.customAlert('Proof upload failed. Please try again with an image or PDF file.')\n                .then(() => focusProofRetryButton(retryButton));", catchBody);
         Assert.DoesNotContain("error.message", catchBody);
     }
 
@@ -196,7 +196,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("const supportedFiles = selectedFiles.filter(file => isSupportedProofFile(file));", beforeLoading);
         Assert.Contains("if (supportedFiles.length === 0)", beforeLoading);
         Assert.Contains("if (input) input.value = \"\";", beforeLoading);
-        Assert.Contains("customAlert('Proof files must be images or PDFs.')\n                .then(() => focusProofRetryButton(retryButton));", beforeLoading);
+        Assert.Contains("window.customAlert('Proof files must be images or PDFs.')\n                .then(() => focusProofRetryButton(retryButton));", beforeLoading);
         Assert.Contains("return;", beforeLoading);
         Assert.Contains("if (isProofPdfFile(file))", javascript);
         Assert.DoesNotContain("if (file.type === 'application/pdf')", javascript);
@@ -223,7 +223,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("for (const file of supportedFiles)", processingBody);
         Assert.DoesNotContain("for (const file of selectedFiles)", processingBody);
         Assert.Contains("if (unsupportedFiles.length > 0)", processingBody);
-        Assert.Contains("customAlert('Some proof files were skipped because proof files must be images or PDFs.')\n                    .then(() => focusProofRetryButton(retryButton));", processingBody);
+        Assert.Contains("window.customAlert('Some proof files were skipped because proof files must be images or PDFs.')\n                    .then(() => focusProofRetryButton(retryButton));", processingBody);
     }
 
     [Fact]
@@ -251,7 +251,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);", processingBody);
         Assert.Contains("nextButton.disabled = true;", processingBody);
         Assert.Contains("if (failedFiles > 0)", javascript);
-        Assert.Contains("customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')\n                    .then(() => focusProofRetryButton(retryButton));", javascript);
+        Assert.Contains("window.customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')\n                    .then(() => focusProofRetryButton(retryButton));", javascript);
     }
 
     [Fact]

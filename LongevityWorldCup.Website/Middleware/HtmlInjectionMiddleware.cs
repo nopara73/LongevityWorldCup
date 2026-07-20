@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace LongevityWorldCup.Website.Middleware
 {
-    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, SitemapService sitemap, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
+    public class HtmlInjectionMiddleware(RequestDelegate next, AthleteOgImageService athleteOgImages, LeagueOgImageService leagueOgImages, PageOgImageService pageOgImages, AssetVersionProvider assetVersionProvider, LeaderboardFactsService leaderboardFacts, AthleteDataService athleteData, SitemapService sitemap, ILogger<HtmlInjectionMiddleware> logger, IWebHostEnvironment environment)
     {
         private readonly RequestDelegate _next = next;
         private readonly AthleteOgImageService _athleteOgImages = athleteOgImages;
@@ -15,6 +15,7 @@ namespace LongevityWorldCup.Website.Middleware
         private readonly PageOgImageService _pageOgImages = pageOgImages;
         private readonly AssetVersionProvider _assetVersionProvider = assetVersionProvider;
         private readonly LeaderboardFactsService _leaderboardFacts = leaderboardFacts;
+        private readonly AthleteDataService _athleteData = athleteData;
         private readonly SitemapService _sitemap = sitemap;
         private readonly ILogger<HtmlInjectionMiddleware> _logger = logger;
         private readonly string _webRootPath = ResolveWebRootPath(environment);
@@ -74,11 +75,12 @@ namespace LongevityWorldCup.Website.Middleware
         public async Task Invoke(HttpContext context)
         {
             var path = context.Request.Path.Value;
-            if (path == "/" || path?.EndsWith(".html") is true || IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path))
+            var isOpenDataRoute = IsKnownOpenDataRoute(path);
+            if (path == "/" || path?.EndsWith(".html") is true || IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path) || isOpenDataRoute)
             {
                 string filePath;
 
-                if (path == "/" || IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path))
+                if (path == "/" || IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path) || isOpenDataRoute)
                 {
                     filePath = Path.Combine(_webRootPath, "index.html");
                 }
@@ -410,7 +412,7 @@ $@"<script type=""module"">
 
         private static HeadAssetConfig GetHeadAssetConfig(string path)
         {
-            if (IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path))
+            if (IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path) || IsOpenDataRoute(path))
             {
                 return new HeadAssetConfig(
                     IncludeValidator: false,
@@ -563,6 +565,11 @@ $@"<script type=""module"">
         {
             var requestPath = GetRequestCanonicalPath(context);
             var baseSeo = GetBaseSeoMeta(requestPath);
+
+            if (TryGetOpenDataSeoMeta(context, baseSeo, out var openDataSeo))
+            {
+                return openDataSeo;
+            }
 
             if (TryGetAthleteSeoMeta(context, baseSeo, out var athleteSeo))
             {
@@ -846,6 +853,43 @@ $@"<script type=""module"">
             return true;
         }
 
+        private bool TryGetOpenDataSeoMeta(HttpContext context, SeoMeta baseSeo, out SeoMeta seo)
+        {
+            seo = baseSeo;
+            if (!TryResolveOpenDataSlug(context, baseSeo.CanonicalPath, out var rawSlug))
+                return false;
+
+            var normalizedSlug = rawSlug.Trim().Replace('-', '_');
+            var profile = _athleteData.GetOpenDataProfilesSnapshot()
+                .OfType<System.Text.Json.Nodes.JsonObject>()
+                .FirstOrDefault(candidate => string.Equals(
+                    candidate["AthleteSlug"]?.GetValue<string>(),
+                    normalizedSlug,
+                    StringComparison.OrdinalIgnoreCase));
+            if (profile is null)
+                return false;
+
+            var name = profile["DisplayName"]?.GetValue<string>() ?? profile["Name"]?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(name))
+                name = normalizedSlug.Replace('_', ' ');
+
+            var routeSlug = normalizedSlug.Replace('_', '-');
+            var canonicalPath = $"/public-data/{routeSlug}";
+            var canonicalUrl = $"{SiteBaseUrl}{canonicalPath}";
+            var description = $"Unranked public-data profile for {name}. {name} did not apply to or join the Longevity World Cup; calculations use linked bloodwork published online and do not affect competition results.";
+
+            seo = new SeoMeta(
+                canonicalPath,
+                description,
+                "noindex, follow",
+                canonicalUrl,
+                $"{name} | Public data, unranked | Longevity World Cup",
+                $"{name} — public data, unranked",
+                "",
+                BuildDefaultOgImageUrl());
+            return true;
+        }
+
         private bool TryGetLeagueSeoMeta(HttpContext context, out SeoMeta seo)
         {
             seo = null!;
@@ -965,6 +1009,26 @@ $@"<script type=""module"">
                    && path.Length > "/athlete/".Length;
         }
 
+        private static bool IsOpenDataRoute(string? path)
+        {
+            return !string.IsNullOrWhiteSpace(path)
+                   && path.StartsWith("/public-data/", StringComparison.OrdinalIgnoreCase)
+                   && path.Length > "/public-data/".Length;
+        }
+
+        private bool IsKnownOpenDataRoute(string? path)
+        {
+            if (!IsOpenDataRoute(path))
+                return false;
+
+            var rawSlug = path!["/public-data/".Length..].Trim('/');
+            if (string.IsNullOrWhiteSpace(rawSlug) || rawSlug.Contains('/'))
+                return false;
+
+            var normalizedSlug = rawSlug.Replace('-', '_');
+            return _athleteData.IsOpenDataProfileSlug(normalizedSlug);
+        }
+
         private static bool TryResolveAthleteSlug(HttpContext context, string canonicalPath, out string rawSlug)
         {
             rawSlug = "";
@@ -982,6 +1046,28 @@ $@"<script type=""module"">
             }
 
             rawSlug = athleteQuery.ToString();
+            return !string.IsNullOrWhiteSpace(rawSlug);
+        }
+
+        private static bool TryResolveOpenDataSlug(HttpContext context, string canonicalPath, out string rawSlug)
+        {
+            rawSlug = "";
+            const string routePrefix = "/public-data/";
+
+            if (canonicalPath.StartsWith(routePrefix, StringComparison.OrdinalIgnoreCase) &&
+                canonicalPath.Length > routePrefix.Length)
+            {
+                rawSlug = canonicalPath[routePrefix.Length..].Trim('/');
+                return !string.IsNullOrWhiteSpace(rawSlug);
+            }
+
+            if (!string.Equals(canonicalPath, "/", StringComparison.Ordinal) ||
+                !context.Request.Query.TryGetValue("publicData", out var profileQuery))
+            {
+                return false;
+            }
+
+            rawSlug = profileQuery.ToString();
             return !string.IsNullOrWhiteSpace(rawSlug);
         }
 

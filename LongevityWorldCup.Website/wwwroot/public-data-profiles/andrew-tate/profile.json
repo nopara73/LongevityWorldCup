@@ -1,0 +1,88 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Andrew Tate",
+  "Biomarkers": [
+    {
+      "Date": "2025-03-05",
+      "AgeYears": 38,
+      "AlbGL": 46,
+      "CreatUmolL": 112.268,
+      "GluMmolL": 4.218,
+      "CrpMgL": 5.07,
+      "LymPc": 21,
+      "McvFL": 87,
+      "RdwPc": 12.4,
+      "AlpUL": 72,
+      "Wbc1000cellsuL": 7.6,
+      "SourceIds": [
+        "mpmd-video-2025-05-14"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Andrew_Tate_-_James_Tamim_Upload_(Cropped_Wide_Portrait).png",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Andrew_Tate_-_James_Tamim_Upload_%28Cropped_Wide_Portrait%29.png",
+      "Author": "Anything Goes With James English",
+      "LicenseName": "CC BY 3.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by/3.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
+    "Aliases": [
+      "Cobra Tate"
+    ],
+    "Notability": {
+      "Summary": "Former professional kickboxer and globally prominent, highly controversial online personality with an audience of more than 10 million followers on X.",
+      "SourceIds": [
+        "ap-profile"
+      ]
+    },
+    "IdentitySourceIds": [
+      "official-substack-repost",
+      "mpmd-video-2025-05-14"
+    ],
+    "Sources": [
+      {
+        "Id": "mpmd-video-2025-05-14",
+        "Kind": "Bloodwork",
+        "Title": "More Plates More Dates — I Drug Tested Andrew Tate - Natty Or Not?",
+        "Url": "https://www.youtube.com/watch?v=2Za1Ua-n5kg",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "ExplicitlyAuthorized",
+          "EvidenceUrl": "https://substack.cobratate.com/p/i-drug-tested-andrew-tate-natty-or",
+          "EvidenceNote": "Andrew Tate republished the exact results release under the same title on his official Substack on 14 May 2025; the source video also shows him accepting and participating in the test and directing that the collection be filmed."
+        },
+        "PreferredForDisplay": true
+      },
+      {
+        "Id": "official-substack-repost",
+        "Kind": "Identity",
+        "Title": "Andrew Tate — official repost of I Drug Tested Andrew Tate - Natty Or Not?",
+        "Url": "https://substack.cobratate.com/p/i-drug-tested-andrew-tate-natty-or",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
+      },
+      {
+        "Id": "ap-profile",
+        "Kind": "Identity",
+        "Title": "Associated Press — What to know about the Tate brothers",
+        "Url": "https://apnews.com/article/3c8b56be5d99f9ed04045f4680e5f8c0",
+        "AccessedOn": "2026-07-12"
+      }
+    ],
+    "TranscriptionNotes": [
+      "The linked official Substack publishes under the identity Cobra Tate; that source-backed public identity is recorded as an alias for collision protection.",
+      "Andrew Tate republished the exact results release under the same title on his official Substack on 14 May 2025. In the source video at 10:30–10:47 he also explains his unrestricted testing challenge and accepts the test on camera; from 11:30 he participates in the filmed collection and directs the camera to show the vials. The bloodwork source is hosted by More Plates More Dates and is recorded as explicitly authorized, not self-published.",
+      "The Labcorp report shown at 1:03:59 identifies Andrew Tate and the fasting collection on 5 March 2025 at 08:10. The exact date of birth visible in the source is not stored; AgeYears preserves only his whole-year age at the draw.",
+      "The CBC values are visible at 1:03:59–1:04:24, the comprehensive metabolic panel at 1:05:59, and cardiac CRP at 1:47:54. All values come from the same dated Labcorp report.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

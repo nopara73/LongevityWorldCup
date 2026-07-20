@@ -11,6 +11,7 @@ public sealed class SwaggerOpenApiTests
     private static readonly string[] PublicPaths =
     [
         "/api/data/athletes",
+        "/api/data/leaderboard-profiles",
         "/api/data/flags",
         "/api/data/divisions",
         "/api/data/pheno-age",
@@ -156,6 +157,65 @@ public sealed class SwaggerOpenApiTests
     }
 
     [Fact]
+    public async Task SwaggerJson_DocumentsCombinedLeaderboardProfilesAndProvenance()
+    {
+        using var document = await LoadSwaggerDocumentAsync();
+        var root = document.RootElement;
+        var operation = root
+            .GetProperty("paths")
+            .GetProperty("/api/data/leaderboard-profiles")
+            .GetProperty("get");
+
+        Assert.Equal("listLeaderboardProfiles", operation.GetProperty("operationId").GetString());
+        Assert.Equal("List approved athletes and unranked open-data profiles", operation.GetProperty("summary").GetString());
+        Assert.Contains("did not apply", operation.GetProperty("description").GetString());
+        AssertSchemaReferences(
+            operation.GetProperty("responses").GetProperty("200").GetProperty("content").GetProperty("application/json").GetProperty("schema").GetProperty("items"),
+            "PublicAthleteApiDocument");
+
+        var example = operation.GetProperty("responses").GetProperty("200").GetProperty("content").GetProperty("application/json").GetProperty("example");
+        Assert.Contains(example.EnumerateArray(), row => row.GetProperty("ProfileType").GetString() == "OpenData");
+
+        var schemas = root.GetProperty("components").GetProperty("schemas");
+        Assert.True(schemas.GetProperty("PublicAthleteApiDocument").GetProperty("properties").TryGetProperty("ProfileType", out _));
+        Assert.True(schemas.GetProperty("PublicAthleteApiDocument").GetProperty("properties").TryGetProperty("OpenData", out _));
+        var biomarkerProperties = schemas.GetProperty("PublicBiomarkerRecordApiDocument").GetProperty("properties");
+        Assert.True(biomarkerProperties.TryGetProperty("SourceIds", out _));
+        Assert.True(biomarkerProperties.TryGetProperty("AgeYears", out _));
+        Assert.True(biomarkerProperties.TryGetProperty("DatePrecision", out _));
+        Assert.True(biomarkerProperties.TryGetProperty("DateBasis", out _));
+        Assert.True(biomarkerProperties.TryGetProperty("MeasurementQualifiers", out _));
+        var openDataProperties = schemas.GetProperty("PublicOpenDataMetadataApiDocument").GetProperty("properties");
+        Assert.True(openDataProperties.TryGetProperty("IdentitySourceIds", out _));
+        Assert.True(openDataProperties.TryGetProperty("Notability", out _));
+        Assert.True(openDataProperties.TryGetProperty("Portrait", out _));
+        var notabilityProperties = schemas.GetProperty("PublicOpenDataNotabilityApiDocument").GetProperty("properties");
+        Assert.True(notabilityProperties.TryGetProperty("Summary", out _));
+        Assert.True(notabilityProperties.TryGetProperty("SourceIds", out _));
+        var portraitProperties = schemas.GetProperty("PublicOpenDataPortraitApiDocument").GetProperty("properties");
+        foreach (var property in new[]
+                 {
+                     "SourcePageUrl",
+                     "OriginalUrl",
+                     "Author",
+                     "LicenseName",
+                     "LicenseUrl",
+                     "EditNote",
+                     "AssetUrl"
+                 })
+        {
+            Assert.True(portraitProperties.TryGetProperty(property, out _));
+        }
+        var sourceProperties = schemas.GetProperty("PublicOpenDataSourceApiDocument").GetProperty("properties");
+        Assert.True(sourceProperties.TryGetProperty("PreferredForDisplay", out _));
+        Assert.True(sourceProperties.TryGetProperty("SubjectAuthorization", out _));
+        var authorizationProperties = schemas.GetProperty("PublicOpenDataSubjectAuthorizationApiDocument").GetProperty("properties");
+        Assert.True(authorizationProperties.TryGetProperty("EvidenceUrl", out _));
+        Assert.True(authorizationProperties.TryGetProperty("EvidenceNote", out _));
+        Assert.Contains("provenance", schemas.GetProperty("PublicOpenDataMetadataApiDocument").GetProperty("description").GetString());
+    }
+
+    [Fact]
     public async Task SwaggerJson_DocumentsAllPublicOperationsWithDescriptionsAndExamples()
     {
         using var document = await LoadSwaggerDocumentAsync();
@@ -164,6 +224,7 @@ public sealed class SwaggerOpenApiTests
         AssertOperationDocumented(paths.GetProperty("/api/data/flags").GetProperty("get"), "listFlags", "List selectable flags");
         AssertOperationDocumented(paths.GetProperty("/api/data/divisions").GetProperty("get"), "listDivisions", "List competition divisions");
         AssertOperationDocumented(paths.GetProperty("/api/data/athletes").GetProperty("get"), "listAthletes", "List public longevity athlete data");
+        AssertOperationDocumented(paths.GetProperty("/api/data/leaderboard-profiles").GetProperty("get"), "listLeaderboardProfiles", "List approved athletes and unranked open-data profiles");
         AssertOperationDocumented(paths.GetProperty("/api/data/pheno-age").GetProperty("post"), "calculatePhenoAge", "Calculate Pheno Age");
         AssertOperationDocumented(paths.GetProperty("/api/data/bortz-age").GetProperty("post"), "calculateBortzAge", "Calculate Bortz Age");
         AssertOperationDocumented(paths.GetProperty("/api/data/hypothetical-rank").GetProperty("post"), "previewHypotheticalRank", "Preview a hypothetical Ultimate League rank");
@@ -219,7 +280,9 @@ public sealed class SwaggerOpenApiTests
             .GetProperty("PublicAthleteApiDocument");
         var athleteProperties = athleteSchema.GetProperty("properties");
 
-        Assert.Contains("hydrated public longevity athlete record", athleteSchema.GetProperty("description").GetString());
+        Assert.Contains("hydrated leaderboard profile", athleteSchema.GetProperty("description").GetString());
+        Assert.True(athleteProperties.TryGetProperty("ProfileType", out _));
+        Assert.True(athleteProperties.TryGetProperty("OpenData", out _));
         Assert.True(athleteProperties.TryGetProperty("Name", out _));
         Assert.True(athleteProperties.TryGetProperty("AthleteSlug", out _));
         Assert.True(athleteProperties.TryGetProperty("Biomarkers", out _));
@@ -231,6 +294,7 @@ public sealed class SwaggerOpenApiTests
             .GetProperty("schemas")
             .GetProperty("PublicBiomarkerRecordApiDocument");
         Assert.Contains("Pheno Age-only records", biomarkerSchema.GetProperty("description").GetString());
+        Assert.Contains("age at the source-dated panel", biomarkerSchema.GetProperty("description").GetString());
 
         var errorSchema = document.RootElement
             .GetProperty("components")

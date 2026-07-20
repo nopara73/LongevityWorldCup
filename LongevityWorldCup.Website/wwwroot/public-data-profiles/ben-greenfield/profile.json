@@ -1,0 +1,87 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Ben Greenfield",
+  "Biomarkers": [
+    {
+      "Date": "2014-04-23",
+      "AgeYears": 32.34,
+      "AlbGL": 48,
+      "CreatUmolL": 92.82,
+      "GluMmolL": 4.8285,
+      "CrpMgL": 0.2,
+      "LymPc": 28.9,
+      "McvFL": 93.9,
+      "RdwPc": 14.5,
+      "AlpUL": 30,
+      "Wbc1000cellsuL": 4.7,
+      "MeasurementQualifiers": {
+        "CrpMgL": "<"
+      },
+      "SourceIds": [
+        "wellnessfx-2014-04-23"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Ben_Greenfield_speaking_at_the_Health_Optimization_Summit.jpg",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/5/51/Ben_Greenfield_speaking_at_the_Health_Optimization_Summit.jpg",
+      "Author": "Maja Smiejkowska (TAterPARsOLI)",
+      "LicenseName": "CC BY-SA 4.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
+    "Notability": {
+      "Summary": "Endurance athlete, New York Times bestselling fitness author, human-performance coach and long-running health and biohacking podcaster.",
+      "SourceIds": [
+        "official-biography"
+      ]
+    },
+    "IdentitySourceIds": [
+      "wellnessfx-2014-04-23",
+      "official-age-source",
+      "official-biography"
+    ],
+    "Sources": [
+      {
+        "Id": "wellnessfx-2014-04-23",
+        "Kind": "Bloodwork",
+        "Title": "Ben Greenfield — WellnessFX results for the 23 April 2014 draw",
+        "Url": "https://bengreenfieldlife.com/wp-content/uploads/2014/05/BenGreenfield_WellnessFX2014.pdf",
+        "AccessedOn": "2026-07-11",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
+      },
+      {
+        "Id": "official-age-source",
+        "Kind": "Identity",
+        "Title": "Ben Greenfield — official Cardiometabolic Report supporting age at collection",
+        "Url": "https://bengreenfieldlife.com/wp-content/uploads/2020/10/Cardiometabolic-Report.pdf",
+        "AccessedOn": "2026-07-11",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
+      },
+      {
+        "Id": "official-biography",
+        "Kind": "Identity",
+        "Title": "Ben Greenfield — official biography",
+        "Url": "https://bengreenfieldlife.com/ben-greenfield/",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
+      }
+    ],
+    "TranscriptionNotes": [
+      "The source reports hs-CRP as below 0.2 mg/L. The stored value is the published assay limit, following the World Cup detection-limit rule; it is not presented as an exact measured concentration.",
+      "AgeYears is Ben Greenfield's age at the draw, calculated from the date of birth and collection date shown in his self-published reports and rounded to two decimals.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

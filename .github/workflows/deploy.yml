@@ -196,6 +196,7 @@ jobs:
               diff -u "$source_manifest" "$published_manifest" || true
               exit 1
             fi
+            mkdir -p "$publish_output/wwwroot/public-data-profiles"
 
             sudo systemctl stop longevityworldcup.service
             service_stopped=1
@@ -207,11 +208,14 @@ jobs:
               --exclude='/config.json.bak*' \
               --exclude='/AppData/***' \
               --exclude='/wwwroot/athletes/***' \
+              --exclude='/wwwroot/public-data-profiles/***' \
               --exclude='/wwwroot/generated/***' \
               --exclude='/wwwroot/js/***' \
               "$publish_output"/ /var/www/LongevityWorldCup/publish/
             sudo rsync -a --checksum --delete --no-owner --no-group \
               "$publish_output/wwwroot/athletes"/ /var/www/LongevityWorldCup/publish/wwwroot/athletes/
+            sudo rsync -a --checksum --delete --no-owner --no-group \
+              "$publish_output/wwwroot/public-data-profiles"/ /var/www/LongevityWorldCup/publish/wwwroot/public-data-profiles/
             sudo rsync -a --checksum --delete --no-owner --no-group \
               "$publish_output/wwwroot/js"/ /var/www/LongevityWorldCup/publish/wwwroot/js/
             sudo_frontend_manifest "$publish_root/wwwroot/js" > "$live_manifest"

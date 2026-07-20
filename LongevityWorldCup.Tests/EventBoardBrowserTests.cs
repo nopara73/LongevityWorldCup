@@ -33,7 +33,7 @@ public sealed class EventBoardBrowserTests
         page.PageError += (_, error) => errors.Add(error);
 
         await page.GotoAsync(
-            "/event-board-embed.html?athlete=majoros_gabor&rows=all&viewAll=false&linkNames=false&theme=dark",
+            "/event-board-embed.html?athlete=majoros_gabor&embed=1&rows=all&viewAll=false&linkNames=false&theme=dark",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForSelectorAsync("#eventsTable tbody tr.main-row .event-message-cell");
 

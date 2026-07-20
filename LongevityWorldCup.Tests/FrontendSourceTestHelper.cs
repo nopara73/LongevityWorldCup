@@ -8,7 +8,7 @@ internal static class FrontendSourceTestHelper
         string fileName,
         [CallerFilePath] string testFilePath = "")
     {
-        return File.ReadAllText(GetSourcePath(fileName, testFilePath));
+        return NormalizeLineEndings(File.ReadAllText(GetSourcePath(fileName, testFilePath)));
     }
 
     public static async Task<string> GetFrontendTypeScriptAsync(
@@ -17,8 +17,11 @@ internal static class FrontendSourceTestHelper
         [CallerFilePath] string testFilePath = "")
     {
         _ = await client.GetStringAsync($"/js/{Path.ChangeExtension(fileName, ".js")}");
-        return await File.ReadAllTextAsync(GetSourcePath(fileName, testFilePath));
+        return NormalizeLineEndings(await File.ReadAllTextAsync(GetSourcePath(fileName, testFilePath)));
     }
+
+    private static string NormalizeLineEndings(string source) =>
+        source.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
 
     private static string GetSourcePath(string fileName, string testFilePath)
     {

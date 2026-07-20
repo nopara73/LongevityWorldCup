@@ -54,7 +54,7 @@ namespace LongevityWorldCup.Website
                     Title = "Longevity World Cup Public API",
                     Version = "v1",
                     Description = """
-                        Public no-auth JSON endpoints for Longevity World Cup athlete, field, biological aging clock calculation, and rank-preview data.
+                        Public no-auth JSON endpoints for Longevity World Cup athlete, unranked open-data profile, field, biological aging clock calculation, and rank-preview data.
 
                         The documented endpoints are public data and biological aging clock calculation surfaces used by the website and external clients. They do not require API keys, OAuth, cookies, or other authentication.
                         """,
@@ -70,6 +70,7 @@ namespace LongevityWorldCup.Website
                         "GetFlags" => "listFlags",
                         "GetDivisions" => "listDivisions",
                         "GetAthletes" => "listAthletes",
+                        "GetLeaderboardProfiles" => "listLeaderboardProfiles",
                         "CalculatePhenoAge" => "calculatePhenoAge",
                         "CalculateBortzAge" => "calculateBortzAge",
                         "GetHypotheticalRank" => "previewHypotheticalRank",
@@ -429,6 +430,26 @@ namespace LongevityWorldCup.Website
             app.UseMiddleware<CleanPathMiddleware>();
 
             app.UseMiddleware<EventBoardRedirectMiddleware>();
+
+            // Profile manifests are data-service inputs, not public static assets. Keep this
+            // guard ahead of HTML injection as well as static files so an accidental .html
+            // source/export cannot bypass validation, population caps, or identity checks.
+            app.Use(async (context, next) =>
+            {
+                var path = context.Request.Path.Value ?? "";
+                if (path.Equals("/public-data-profiles", StringComparison.OrdinalIgnoreCase)
+                    || path.StartsWith("/public-data-profiles/", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    context.Response.ContentType = "text/plain; charset=utf-8";
+                    context.Response.Headers.CacheControl = "no-store";
+                    context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
+                    await context.Response.WriteAsync("Not found.");
+                    return;
+                }
+
+                await next();
+            });
 
             // Register the custom HTML injection middleware
             app.UseMiddleware<HtmlInjectionMiddleware>();

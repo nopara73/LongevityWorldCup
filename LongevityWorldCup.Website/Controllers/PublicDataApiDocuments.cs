@@ -3,14 +3,22 @@ using System.Text.Json.Serialization;
 namespace LongevityWorldCup.Website.Controllers;
 
 /// <summary>
-/// Public athlete record returned by the athlete snapshot endpoint.
+/// Public profile record returned by the athlete or combined leaderboard-profile endpoint.
 /// </summary>
 /// <remarks>
-/// This documents the stable public fields. The live JSON is produced from hydrated athlete data and can include additional public fields as the competition evolves.
+/// This documents the stable public fields. The live JSON is produced from hydrated approved-athlete data and validated OpenData transcriptions and can include additional public fields as the competition evolves.
 /// </remarks>
 public sealed class PublicAthleteApiDocument
 {
-    /// <summary>Original public athlete name.</summary>
+    /// <summary>`Athlete` for an approved applicant or `OpenData` for an unranked public-data profile.</summary>
+    [JsonPropertyName("ProfileType")]
+    public string? ProfileType { get; init; }
+
+    /// <summary>Required provenance and non-participation disclosure for OpenData profiles; absent for approved athletes.</summary>
+    [JsonPropertyName("OpenData")]
+    public PublicOpenDataMetadataApiDocument? OpenData { get; init; }
+
+    /// <summary>Original public profile name.</summary>
     [JsonPropertyName("Name")]
     public string? Name { get; init; }
 
@@ -22,11 +30,11 @@ public sealed class PublicAthleteApiDocument
     [JsonPropertyName("MediaContact")]
     public string? MediaContact { get; init; }
 
-    /// <summary>Date of birth used for chronological age calculations and ranking tie-breakers.</summary>
+    /// <summary>Date of birth supplied by an approved athlete. OpenData profiles omit this field and publish only age at each blood draw.</summary>
     [JsonPropertyName("DateOfBirth")]
     public PublicDateOfBirthApiDocument? DateOfBirth { get; init; }
 
-    /// <summary>Public biomarker records submitted by the athlete.</summary>
+    /// <summary>Public biomarker records submitted by an approved athlete or transcribed from the cited sources of an OpenData profile.</summary>
     [JsonPropertyName("Biomarkers")]
     public IReadOnlyList<PublicBiomarkerRecordApiDocument>? Biomarkers { get; init; }
 
@@ -118,13 +126,32 @@ public sealed class PublicDateOfBirthApiDocument
 }
 
 /// <summary>
-/// One public biomarker record from an athlete's submitted evidence.
+/// One public biomarker record from submitted athlete evidence or cited OpenData bloodwork.
 /// </summary>
 public sealed class PublicBiomarkerRecordApiDocument
 {
-    /// <summary>Measurement date in ISO date format.</summary>
+    /// <summary>Subject age in years at the source-dated panel. Required for OpenData records so exact date of birth is not republished.</summary>
+    [JsonPropertyName("AgeYears")]
+    public double? AgeYears { get; init; }
+
+    /// <summary>Source identifiers from the containing OpenData metadata that support this transcription.</summary>
+    [JsonPropertyName("SourceIds")]
+    public IReadOnlyList<string>? SourceIds { get; init; }
+
+    /// <summary>Source date in ISO format. DateBasis distinguishes collection dates from dated unified reports; month precision uses the first of the published month.</summary>
     [JsonPropertyName("Date")]
     public string? Date { get; init; }
+
+    /// <summary>Optional source precision for an OpenData panel date: Day or Month. Missing means day precision.</summary>
+    [JsonPropertyName("DatePrecision")]
+    public string? DatePrecision { get; init; }
+
+    /// <summary>
+    /// `Collection` when Date is the specimen date, or `Report` when the source dates only one unified laboratory report.
+    /// Absent values default to collection-date semantics.
+    /// </summary>
+    [JsonPropertyName("DateBasis")]
+    public string? DateBasis { get; init; }
 
     /// <summary>Albumin in g/L.</summary>
     [JsonPropertyName("AlbGL")]
@@ -213,6 +240,145 @@ public sealed class PublicBiomarkerRecordApiDocument
     /// <summary>White blood cell count in 1000 cells/uL.</summary>
     [JsonPropertyName("Wbc1000cellsuL")]
     public double? Wbc1000cellsuL { get; init; }
+
+    /// <summary>Optional detection-limit qualifiers keyed by biomarker field; values are &lt; or &gt;.</summary>
+    [JsonPropertyName("MeasurementQualifiers")]
+    public IReadOnlyDictionary<string, string>? MeasurementQualifiers { get; init; }
+}
+
+/// <summary>Disclosure and provenance attached only to an unranked OpenData profile.</summary>
+public sealed class PublicOpenDataMetadataApiDocument
+{
+    /// <summary>Always true: the subject did not apply to or join the competition.</summary>
+    [JsonPropertyName("SubjectDidNotApply")]
+    public bool SubjectDidNotApply { get; init; }
+
+    /// <summary>Optional public names used by the same subject, included solely to prevent duplicate or applicant-colliding profiles.</summary>
+    [JsonPropertyName("Aliases")]
+    public IReadOnlyList<string>? Aliases { get; init; }
+
+    /// <summary>Concise, sourced context explaining why this subject meets the public-notability bar.</summary>
+    [JsonPropertyName("Notability")]
+    public PublicOpenDataNotabilityApiDocument? Notability { get; init; }
+
+    /// <summary>Required licensed portrait attribution and the service-generated, versioned portrait URL.</summary>
+    [JsonPropertyName("Portrait")]
+    public PublicOpenDataPortraitApiDocument? Portrait { get; init; }
+
+    /// <summary>Date on which the transcription and its sources were last reviewed.</summary>
+    [JsonPropertyName("ReviewedAt")]
+    public string? ReviewedAt { get; init; }
+
+    /// <summary>Linked sources supporting the subject identity and transcribed bloodwork.</summary>
+    [JsonPropertyName("Sources")]
+    public IReadOnlyList<PublicOpenDataSourceApiDocument>? Sources { get; init; }
+
+    /// <summary>Source identifiers that establish the subject identity without relying on exact date-of-birth publication.</summary>
+    [JsonPropertyName("IdentitySourceIds")]
+    public IReadOnlyList<string>? IdentitySourceIds { get; init; }
+
+    /// <summary>Optional concise notes about unit conversion or transcription decisions.</summary>
+    [JsonPropertyName("TranscriptionNotes")]
+    public IReadOnlyList<string>? TranscriptionNotes { get; init; }
+}
+
+/// <summary>Sourced editorial context for an OpenData subject's broad notability.</summary>
+public sealed class PublicOpenDataNotabilityApiDocument
+{
+    /// <summary>Neutral public-facing explanation, limited to 280 characters.</summary>
+    [JsonPropertyName("Summary")]
+    public string? Summary { get; init; }
+
+    /// <summary>Identifiers of linked Identity sources that support the summary.</summary>
+    [JsonPropertyName("SourceIds")]
+    public IReadOnlyList<string>? SourceIds { get; init; }
+}
+
+/// <summary>Licensed portrait attribution for an OpenData subject.</summary>
+public sealed class PublicOpenDataPortraitApiDocument
+{
+    /// <summary>Absolute HTTPS page that publishes the portrait and its attribution or license context.</summary>
+    [JsonPropertyName("SourcePageUrl")]
+    public string? SourcePageUrl { get; init; }
+
+    /// <summary>Absolute HTTPS URL of the original image published by the source.</summary>
+    [JsonPropertyName("OriginalUrl")]
+    public string? OriginalUrl { get; init; }
+
+    /// <summary>Concise author or creator credit supplied by the source.</summary>
+    [JsonPropertyName("Author")]
+    public string? Author { get; init; }
+
+    /// <summary>Name of the license under which the portrait may be reused.</summary>
+    [JsonPropertyName("LicenseName")]
+    public string? LicenseName { get; init; }
+
+    /// <summary>Absolute HTTPS URL of the applicable license text.</summary>
+    [JsonPropertyName("LicenseUrl")]
+    public string? LicenseUrl { get; init; }
+
+    /// <summary>Concise disclosure of edits made to the locally served portrait.</summary>
+    [JsonPropertyName("EditNote")]
+    public string? EditNote { get; init; }
+
+    /// <summary>Service-generated, content-versioned local URL for the validated 640x640 WebP.</summary>
+    [JsonPropertyName("AssetUrl")]
+    public string? AssetUrl { get; init; }
+}
+
+/// <summary>One external source used by an OpenData profile.</summary>
+public sealed class PublicOpenDataSourceApiDocument
+{
+    /// <summary>Stable identifier referenced by biomarker records.</summary>
+    [JsonPropertyName("Id")]
+    public string? Id { get; init; }
+
+    /// <summary>Source kind: `Bloodwork` or `Identity`.</summary>
+    [JsonPropertyName("Kind")]
+    public string? Kind { get; init; }
+
+    /// <summary>Human-readable source title.</summary>
+    [JsonPropertyName("Title")]
+    public string? Title { get; init; }
+
+    /// <summary>Absolute HTTPS source URL.</summary>
+    [JsonPropertyName("Url")]
+    public string? Url { get; init; }
+
+    /// <summary>Date on which the source was checked.</summary>
+    [JsonPropertyName("AccessedOn")]
+    public string? AccessedOn { get; init; }
+
+    /// <summary>
+    /// How the subject authorized publication: either self-published or explicitly authorized with linked evidence.
+    /// At least one authorized Bloodwork source is required.
+    /// </summary>
+    [JsonPropertyName("SubjectAuthorization")]
+    public PublicOpenDataSubjectAuthorizationApiDocument? SubjectAuthorization { get; init; }
+
+    /// <summary>Whether this is the single source preferred for the profile's primary display link.</summary>
+    [JsonPropertyName("PreferredForDisplay")]
+    public bool? PreferredForDisplay { get; init; }
+}
+
+/// <summary>Evidence that an OpenData source was intentionally made public by its subject.</summary>
+public sealed class PublicOpenDataSubjectAuthorizationApiDocument
+{
+    /// <summary>Authorization kind: `SelfPublished` or `ExplicitlyAuthorized`.</summary>
+    [JsonPropertyName("Kind")]
+    public string? Kind { get; init; }
+
+    /// <summary>
+    /// Absolute HTTPS link to direct authorization evidence. Required only for `ExplicitlyAuthorized` sources.
+    /// </summary>
+    [JsonPropertyName("EvidenceUrl")]
+    public string? EvidenceUrl { get; init; }
+
+    /// <summary>
+    /// Concise explanation of the subject's explicit authorization. Required only for `ExplicitlyAuthorized` sources.
+    /// </summary>
+    [JsonPropertyName("EvidenceNote")]
+    public string? EvidenceNote { get; init; }
 }
 
 /// <summary>

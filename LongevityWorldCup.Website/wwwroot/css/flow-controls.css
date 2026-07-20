@@ -116,7 +116,6 @@ body.play-flow-route > main {
 .flow-action-stack.flow-action-stack--docked.flow-action-stack--dock-entering {
     opacity: 0;
     pointer-events: none;
-    transform: translateY(0.55rem) !important;
 }
 
 .flow-action-stack.flow-action-stack--docked .flow-action {

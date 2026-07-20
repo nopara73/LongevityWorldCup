@@ -1,0 +1,90 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Paul Saladino",
+  "Biomarkers": [
+    {
+      "Date": "2024-02-26",
+      "AgeYears": 46.66,
+      "AlbGL": 47,
+      "CreatUmolL": 114.92,
+      "GluMmolL": 4.9395,
+      "CrpMgL": 0.6,
+      "LymPc": 36,
+      "McvFL": 86,
+      "RdwPc": 13.1,
+      "AlpUL": 76,
+      "Wbc1000cellsuL": 5.7,
+      "SourceIds": [
+        "official-video-2024"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Paul_Saladino_(54234761210).jpg",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Paul_Saladino_%2854234761210%29.jpg",
+      "Author": "Gage Skidmore",
+      "LicenseName": "CC BY-SA 2.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by-sa/2.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
+    "Aliases": [
+      "Paul Saladino, MD"
+    ],
+    "Notability": {
+      "Summary": "Physician, author and podcaster known as a prominent and controversial advocate of animal-based and carnivore-style nutrition.",
+      "SourceIds": [
+        "official-biography"
+      ]
+    },
+    "IdentitySourceIds": [
+      "official-video-2024",
+      "official-episode-page",
+      "official-biography"
+    ],
+    "Sources": [
+      {
+        "Id": "official-video-2024",
+        "Kind": "Bloodwork",
+        "Title": "Paul Saladino — Bloodwork Review: April 2024",
+        "Url": "https://www.youtube.com/watch?v=qigwrWJEo6Q",
+        "AccessedOn": "2026-07-11",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
+      },
+      {
+        "Id": "official-episode-page",
+        "Kind": "Identity",
+        "Title": "Paul Saladino MD — Bloodwork review: April 2024",
+        "Url": "https://www.paulsaladinomd.com/psmd-podcast/bloodwork-review-april-2024",
+        "AccessedOn": "2026-07-11",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        },
+        "PreferredForDisplay": true
+      },
+      {
+        "Id": "official-biography",
+        "Kind": "Identity",
+        "Title": "Paul Saladino, MD — official biography",
+        "Url": "https://www.paulsaladinomd.com/about",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
+      }
+    ],
+    "TranscriptionNotes": [
+      "The linked official biography and episode page publish the identity Paul Saladino, MD; that source-backed variant is recorded as an alias for collision protection.",
+      "The official video visibly presents the original six-page MDLab report. Its header identifies Paul Saladino and collection on 26 February 2024 at 08:30.",
+      "AgeYears is his age at the draw, calculated from the date of birth and collection date shown in the report and rounded to two decimals.",
+      "The CBC and fasting glucose/creatinine are visible around 13:20; albumin, alkaline phosphatase and hs-CRP are visible around 14:10–15:00.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

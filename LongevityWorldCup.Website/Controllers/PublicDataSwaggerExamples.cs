@@ -44,11 +44,12 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
             case "/api/data/athletes":
                 operation.OperationId = "listAthletes";
                 operation.Summary = "List public longevity athlete data";
-                operation.Description = "Returns the hydrated public athlete snapshot used by the website. Records include profile fields, public biomarker records, crowd age fields, generated asset URLs, and computed badges. The response may gain additional public fields over time.";
+                operation.Description = "Returns approved applicants only. Records include profile fields, public biomarker records, crowd age fields, generated asset URLs, and computed badges. Unranked OpenData profiles are available only from the leaderboard-profiles endpoint.";
                 SetResponseDescription(operation, "200", "Current public athlete snapshot.");
                 SetResponseExample(operation, "200", """
                     [
                       {
+                        "ProfileType": "Athlete",
                         "Name": "Example Athlete",
                         "DisplayName": "Example Athlete",
                         "MediaContact": "https://example.com/example-athlete",
@@ -78,11 +79,91 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                         "CrowdCount": 128,
                         "IsNew": false,
                         "ProfilePic": "/athletes/example_athlete/example_athlete.webp?v=123",
-                        "ProfilePicThumb": "/generated/profile-thumbs/example_athlete_thumb_sm.webp?v=123",
-                        "ProfilePicLeaderboardThumb": "/generated/profile-thumbs/example_athlete_thumb_md.webp?v=123",
+                        "ProfilePicThumb": "/generated/thumbs/athletes/example_athlete_thumb_sm.webp?v=123",
+                        "ProfilePicLeaderboardThumb": "/generated/thumbs/athletes/example_athlete_thumb_md.webp?v=123",
                         "Proofs": [
                           "/athletes/example_athlete/proof_1.webp?v=123"
                         ],
+                        "Badges": []
+                      }
+                    ]
+                    """);
+                break;
+
+            case "/api/data/leaderboard-profiles":
+                operation.OperationId = "listLeaderboardProfiles";
+                operation.Summary = "List approved athletes and unranked open-data profiles";
+                operation.Description = "Returns the combined leaderboard display feed. ProfileType=Athlete records are approved applicants. ProfileType=OpenData records are capped, unranked transcriptions of complete nine-marker Pheno panels from linked bloodwork self-published or explicitly authorized by the subject; their subjects did not apply and do not participate in competition outcomes.";
+                SetResponseDescription(operation, "200", "Current combined leaderboard profile snapshot.");
+                SetResponseExample(operation, "200", """
+                    [
+                      {
+                        "ProfileType": "Athlete",
+                        "Name": "Example Athlete",
+                        "AthleteSlug": "example_athlete",
+                        "Biomarkers": []
+                      },
+                      {
+                        "ProfileType": "OpenData",
+                        "Name": "Example Public Figure",
+                        "AthleteSlug": "example_public_figure",
+                        "OpenData": {
+                          "SubjectDidNotApply": true,
+                          "ReviewedAt": "2026-07-11",
+                          "Aliases": ["Example Channel Name"],
+                          "Sources": [
+                            {
+                              "Id": "bloodwork-2026",
+                              "Kind": "Bloodwork",
+                              "Title": "Public bloodwork dashboard",
+                              "Url": "https://example.com/public-bloodwork",
+                              "AccessedOn": "2026-07-11",
+                              "SubjectAuthorization": {
+                                "Kind": "SelfPublished"
+                              }
+                            },
+                            {
+                              "Id": "official-biography",
+                              "Kind": "Identity",
+                              "Title": "Official biography",
+                              "Url": "https://example.com/biography",
+                              "AccessedOn": "2026-07-11"
+                            }
+                          ],
+                          "Notability": {
+                            "Summary": "A globally recognized public figure with an established body of work.",
+                            "SourceIds": ["official-biography"]
+                          },
+                          "Portrait": {
+                            "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Example_portrait.jpg",
+                            "OriginalUrl": "https://upload.wikimedia.org/example-portrait.jpg",
+                            "Author": "Example Photographer",
+                            "LicenseName": "CC BY 4.0",
+                            "LicenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+                            "EditNote": "Cropped to a square and converted to WebP.",
+                            "AssetUrl": "/public-data/example-public-figure/portrait?v=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                          },
+                          "IdentitySourceIds": ["bloodwork-2026"]
+                        },
+                        "Biomarkers": [
+                          {
+                            "Date": "2026-01-15",
+                            "DateBasis": "Collection",
+                            "AgeYears": 45.5,
+                            "SourceIds": ["bloodwork-2026"],
+                            "AlbGL": 46,
+                            "CreatUmolL": 80,
+                            "GluMmolL": 5.1,
+                            "CrpMgL": 0.4,
+                            "LymPc": 31,
+                            "McvFL": 89,
+                            "RdwPc": 12.3,
+                            "AlpUL": 58,
+                            "Wbc1000cellsuL": 5.2
+                          }
+                        ],
+                        "CurrentPlacement": null,
+                        "Placements": [],
                         "Badges": []
                       }
                     ]

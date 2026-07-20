@@ -1,0 +1,77 @@
+{
+  "ProfileType": "OpenData",
+  "Name": "Bryan Johnson",
+  "Biomarkers": [
+    {
+      "Date": "2025-04-01",
+      "AgeYears": 47,
+      "AlbGL": 48,
+      "CreatUmolL": 99.892,
+      "GluMmolL": 5.7165,
+      "CrpMgL": 0.15,
+      "LymPc": 32,
+      "McvFL": 101,
+      "RdwPc": 11.1,
+      "AlpUL": 73,
+      "Wbc1000cellsuL": 3.6,
+      "MeasurementQualifiers": {
+        "CrpMgL": "<"
+      },
+      "SourceIds": [
+        "labcorp-2025-04-01"
+      ]
+    }
+  ],
+  "OpenData": {
+    "SubjectDidNotApply": true,
+    "ReviewedAt": "2026-07-12",
+    "Portrait": {
+      "SourcePageUrl": "https://commons.wikimedia.org/wiki/File:Bryan_Johnson_2026.jpg",
+      "OriginalUrl": "https://upload.wikimedia.org/wikipedia/commons/7/75/Bryan_Johnson_2026.jpg",
+      "Author": "M Robertson",
+      "LicenseName": "CC BY 4.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by/4.0",
+      "EditNote": "Cropped, resized to 640×640 and converted to WebP for display."
+    },
+    "Notability": {
+      "Summary": "Technology entrepreneur who founded Braintree, Kernel and Project Blueprint, the highly publicized quantified-self longevity program.",
+      "SourceIds": [
+        "official-biography"
+      ]
+    },
+    "IdentitySourceIds": [
+      "labcorp-2025-04-01",
+      "official-biography"
+    ],
+    "Sources": [
+      {
+        "Id": "labcorp-2025-04-01",
+        "Kind": "Bloodwork",
+        "Title": "Bryan Johnson — full Labcorp results for the 1 April 2025 draw",
+        "Url": "https://twitter.com/bryan_johnson/status/1912215143846723703",
+        "AccessedOn": "2026-07-11",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        },
+        "PreferredForDisplay": true
+      },
+      {
+        "Id": "official-biography",
+        "Kind": "Identity",
+        "Title": "Bryan Johnson — official biography",
+        "Url": "https://www.bryanjohnson.com/about",
+        "AccessedOn": "2026-07-12",
+        "SubjectAuthorization": {
+          "Kind": "SelfPublished"
+        }
+      }
+    ],
+    "TranscriptionNotes": [
+      "The self-published report identifies Bryan Johnson, states age 47, and gives the single fasting collection date used here. The redacted date of birth was neither reconstructed nor stored.",
+      "The report gives cardiac C-reactive protein as below 0.15 mg/L. The stored value is the published assay limit, following the World Cup detection-limit rule; it is not presented as an exact measured concentration.",
+      "Albumin was converted from g/dL to g/L by multiplying by 10.",
+      "Creatinine was converted from mg/dL to µmol/L by multiplying by 88.4.",
+      "Glucose was converted from mg/dL to mmol/L by multiplying by 0.0555."
+    ]
+  }
+}

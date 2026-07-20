@@ -64,7 +64,9 @@ namespace LongevityWorldCup.Website.Controllers
         /// List public longevity athlete data.
         /// </summary>
         /// <remarks>
-        /// Returns the hydrated public athlete snapshot used by the website. Records include profile fields, public biomarker records, crowd age fields, generated asset URLs, and computed badges. The response may gain additional public fields over time.
+        /// Returns approved applicants only. Records include profile fields, public biomarker records,
+        /// crowd age fields, generated asset URLs, and computed badges. Unranked OpenData profiles are
+        /// available only from the leaderboard-profiles endpoint.
         /// </remarks>
         /// <response code="200">The current public athlete snapshot.</response>
         [HttpGet("athletes")]
@@ -73,6 +75,32 @@ namespace LongevityWorldCup.Website.Controllers
         public IActionResult GetAthletes()
         {
             var snapshot = _svc.GetAthletesSnapshot();
+            var eTag = PublicGetCacheHeaders.BuildWeakContentETag(snapshot.ToJsonString());
+
+            PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AthleteSnapshotCacheControl, PublicGetCacheHeaders.AthleteSnapshotMaxAgeSeconds, eTag);
+
+            if (PublicGetCacheHeaders.RequestHasMatchingETag(Request.Headers, eTag))
+                return StatusCode(StatusCodes.Status304NotModified);
+
+            return Ok(snapshot);
+        }
+
+        /// <summary>
+        /// List all leaderboard profiles, including clearly marked unranked open-data profiles.
+        /// </summary>
+        /// <remarks>
+        /// Returns approved Longevity athletes plus a capped set of OpenData profiles whose complete
+        /// nine-marker Pheno panels and age at the source-dated panel were transcribed from linked bloodwork self-published or explicitly authorized by the subject. DateBasis distinguishes specimen dates from dated unified reports, and month-only sources do not infer a day. OpenData subjects did not apply and never participate in
+        /// ranks, badges, placements, prizes, athlete counts, crowd age, or competition Events.
+        /// Inspect `ProfileType` and the `OpenData` provenance object before presenting a record.
+        /// </remarks>
+        /// <response code="200">The current combined leaderboard profile snapshot.</response>
+        [HttpGet("leaderboard-profiles")]
+        [ProducesResponseType(typeof(IReadOnlyList<PublicAthleteApiDocument>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status304NotModified)]
+        public IActionResult GetLeaderboardProfiles()
+        {
+            var snapshot = _svc.GetLeaderboardProfilesSnapshot();
             var eTag = PublicGetCacheHeaders.BuildWeakContentETag(snapshot.ToJsonString());
 
             PublicGetCacheHeaders.Apply(Response, PublicGetCacheHeaders.AthleteSnapshotCacheControl, PublicGetCacheHeaders.AthleteSnapshotMaxAgeSeconds, eTag);
