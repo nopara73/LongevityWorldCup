@@ -13,8 +13,10 @@ public sealed class HomepageLinkAccessibilityTests
         var homepage = await client.GetStringAsync("/");
         var about = await client.GetStringAsync("/about");
 
-        Assert.Contains("<a href=\"/about\">longevity&nbsp;leaderboards</a>. Reverse&nbsp;your&nbsp;age", homepage);
+        Assert.Matches(@"<p class=""game-description"">\s*<a href=""/about"">longevity&nbsp;leaderboards</a>\s*</p>", homepage);
         Assert.DoesNotContain("Too old for your sport?", homepage);
+        Assert.DoesNotContain("Reverse&nbsp;your&nbsp;age", homepage);
+        Assert.DoesNotContain("rise&nbsp;on&nbsp;the&nbsp;leaderboard!", homepage);
         Assert.DoesNotContain("<span class=\"tagline\">", homepage);
         Assert.Contains("<span class=\"tagline\">", about);
     }
