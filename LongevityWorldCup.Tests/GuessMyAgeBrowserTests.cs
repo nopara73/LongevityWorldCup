@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -5,6 +6,94 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class GuessMyAgeBrowserTests
 {
+    [Fact]
+    public async Task PatrickRoute_CompletesAFilteredGuessWithoutAddingItToCrowdAge()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var guessResponseBody = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var page = await context.NewPageAsync();
+        page.Response += async (_, response) =>
+        {
+            if (!response.Request.Method.Equals("POST", StringComparison.OrdinalIgnoreCase)
+                || !new Uri(response.Url).AbsolutePath.Equals("/api/Guess/athlete-age", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            try
+            {
+                guessResponseBody.TrySetResult(await response.TextAsync());
+            }
+            catch (Exception exception)
+            {
+                guessResponseBody.TrySetException(exception);
+            }
+        };
+
+        await page.GotoAsync(
+            "/athlete/patrick-ruff?guessmyage=1",
+            new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode') === true");
+
+        var today = DateTime.UtcNow.Date;
+        var birthday = new DateTime(today.Year, 3, 8, 0, 0, 0, DateTimeKind.Utc);
+        var actualAge = today.Year - 1985 - (today < birthday ? 1 : 0);
+        var filteredGuess = (int)Math.Floor(actualAge * 1.30) + 1;
+        Assert.InRange(filteredGuess, 10, 110);
+
+        var crowdCount = page.Locator("#crowdCount");
+        var crowdCountBefore = int.Parse(await crowdCount.InnerTextAsync());
+        var range = page.Locator("#gmaRange");
+        await range.EvaluateAsync(
+            "(element, value) => { element.value = String(value); element.dispatchEvent(new Event('input', { bubbles: true })); }",
+            filteredGuess);
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+
+        var responseBody = await guessResponseBody.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        using var responseJson = JsonDocument.Parse(responseBody);
+        var responseRoot = responseJson.RootElement;
+        Assert.False(responseRoot.GetProperty("guessAccepted").GetBoolean());
+        Assert.Equal(actualAge, responseRoot.GetProperty("actualAge").GetInt32());
+        Assert.Equal(crowdCountBefore, responseRoot.GetProperty("crowdCount").GetInt32());
+
+        var status = page.Locator("#gmaStatus");
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('gmaStatus')?.textContent?.includes('Actual age:') === true");
+        Assert.DoesNotContain("not accepted", await status.InnerTextAsync(), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(crowdCountBefore.ToString(), await crowdCount.InnerTextAsync());
+
+        await page.WaitForFunctionAsync(
+            "guess => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['patrick-ruff']?.value === guess",
+            filteredGuess);
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode') === false");
+        Assert.DoesNotContain("guessmyage", page.Url, StringComparison.OrdinalIgnoreCase);
+
+        await page.GotoAsync(
+            "/athlete/patrick-ruff",
+            new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('detailsModal')?.style.display === 'block' && !document.querySelector('#detailsModal .modal-content')?.classList.contains('is-loading')");
+        Assert.False(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('guess-mode')"));
+        Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
+            "element => element.classList.contains('gma-done')"));
+    }
+
     [Fact]
     public async Task GuessSubmission_PreservesEasterEggAndCompletesFilteredAndAcceptedGuesses()
     {

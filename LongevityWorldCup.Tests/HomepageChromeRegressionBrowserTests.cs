@@ -203,6 +203,31 @@ public sealed class HomepageChromeRegressionBrowserTests
     }
 
     [Fact]
+    public async Task StickyPlayAction_RemainsAWorkingRouteToTheGame()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app);
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(390, 844);
+        await page.GotoAsync("/history", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("window.scrollTo(0, Math.min(700, document.documentElement.scrollHeight - innerHeight))");
+        await SettleLayoutAsync(page);
+
+        var stickyAction = page.Locator("header[role=\"banner\"] .join-game.scrolled-button");
+        await stickyAction.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        Assert.Equal("PLAY", (await stickyAction.InnerTextAsync()).Trim());
+
+        await stickyAction.ClickAsync();
+        await page.WaitForURLAsync("**/play");
+        Assert.EndsWith("/play", new Uri(page.Url).AbsolutePath, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task NewsletterSubscribeAction_HasOpaqueHighContrastFillAcrossResponsiveLayouts()
     {
         await using var app = await BrowserTestApp.StartAsync();

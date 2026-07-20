@@ -733,7 +733,7 @@
         transform:translate(-50%,-50%) rotate(180deg);
     }
 
-    .events-board tbody tr.custom-event-row{cursor:default}
+    .events-board tbody tr.custom-event-row{cursor:pointer}
     .events-board tbody tr.custom-event-row.custom-event-no-details{cursor:default}
 
     @media (prefers-reduced-motion:reduce){
@@ -2314,6 +2314,12 @@
                             toggleOpen();
                         });
                     }
+
+                    tr.addEventListener("click", (ev) => {
+                        const target = ev.target;
+                        if (target && target.closest && target.closest("a, button, input, select, textarea")) return;
+                        toggleOpen();
+                    });
 
                     frag.appendChild(detailsTr);
                 }

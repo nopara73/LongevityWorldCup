@@ -6,6 +6,64 @@ namespace LongevityWorldCup.Tests;
 public sealed class LeaderboardPodiumBrowserTests
 {
     [Fact]
+    public async Task LeaderboardRowsAndPodiumCards_PreserveTheirBroadDetailsHitAreas()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1026, Height = 720 }
+        });
+        await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await RouteBitcoinDependenciesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('.podium-item:not(.podium-skeleton-item)').length === 3");
+        await page.WaitForSelectorAsync(
+            ".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name]:visible");
+
+        var visibleRows = page.Locator(".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name]:visible");
+        var visibleRowCount = await visibleRows.CountAsync();
+        Assert.True(visibleRowCount > 0);
+        var finalVisibleRow = visibleRows.Nth(visibleRowCount - 1);
+        var expectedName = (await finalVisibleRow.Locator(".athlete-name").InnerTextAsync()).Trim();
+
+        // The final cloned row used to miss its listeners because wiring happened before append.
+        await finalVisibleRow.Locator(".athlete-name").ClickAsync();
+        await AssertDetailsModalShowsAthleteAsync(page, expectedName);
+        await CloseDetailsModalAsync(page);
+
+        // Master treated neutral row chrome as a large hit area, not only the name control.
+        await finalVisibleRow.Locator(".rank").ClickAsync();
+        await AssertDetailsModalShowsAthleteAsync(page, expectedName);
+        await CloseDetailsModalAsync(page);
+
+        var podiumCards = page.Locator(".podium-item:not(.podium-skeleton-item)");
+        var podiumCount = await podiumCards.CountAsync();
+        Assert.Equal(3, podiumCount);
+        var firstPodiumCard = podiumCards.Nth(0);
+        var podiumName = (await firstPodiumCard.Locator(".athlete-name").InnerTextAsync()).Trim();
+
+        await firstPodiumCard.Locator(".podium-rank").ClickAsync();
+        await AssertDetailsModalShowsAthleteAsync(page, podiumName);
+        await CloseDetailsModalAsync(page);
+
+        // The prize panel remains a donation link and must not be swallowed by the card handler.
+        await firstPodiumCard.Locator(".podium-item-lower").ClickAsync();
+        await page.WaitForURLAsync("**/#donation-section");
+        Assert.False(await page.Locator("#detailsModal").IsVisibleAsync());
+    }
+
+    [Fact]
     public async Task PodiumContent_RemainsAboveThePrizePanelAcrossTheDesktopBoundary()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -104,6 +162,40 @@ public sealed class LeaderboardPodiumBrowserTests
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
         await page.EvaluateAsync(
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+    }
+
+    private static async Task RouteBitcoinDependenciesAsync(IBrowserContext context)
+    {
+        await context.RouteAsync("**/api/bitcoin/**", async route =>
+        {
+            var path = new Uri(route.Request.Url).AbsolutePath;
+            var body = path.EndsWith("/donation-address", StringComparison.OrdinalIgnoreCase)
+                ? """{"address":""}"""
+                : path.EndsWith("/btcusd", StringComparison.OrdinalIgnoreCase)
+                    ? """{"btcToUsdRate":0}"""
+                    : """{"totalReceivedSatoshis":0}""";
+
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = body
+            });
+        });
+    }
+
+    private static async Task AssertDetailsModalShowsAthleteAsync(IPage page, string expectedName)
+    {
+        await page.WaitForFunctionAsync(
+            "name => document.getElementById('detailsModal')?.style.display === 'block' && document.getElementById('athleteName')?.textContent?.includes(name)",
+            expectedName);
+    }
+
+    private static async Task CloseDetailsModalAsync(IPage page)
+    {
+        await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('detailsModal')?.style.display !== 'block'");
     }
 
     private static Task<PodiumLayout[]> MeasurePodiumAsync(IPage page) =>
