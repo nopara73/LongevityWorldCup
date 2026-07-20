@@ -27,11 +27,11 @@ jobs:
     steps:
     - uses: actions/checkout@v7
     - name: Setup .NET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.0.x
     - name: Setup Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
         node-version-file: .node-version
         cache: npm

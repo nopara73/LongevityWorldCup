@@ -115,14 +115,20 @@ git reset --hard "$verified_sha"
 git clean -fd
 test "$(git rev-parse HEAD)" = "$verified_sha"
 
-dotnet_version="$(dotnet --version)"
+git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
+if ! dotnet_version="$(cd "$deploy_source" && dotnet --version 2>&1)"; then
+  echo "The production host cannot resolve the SDK required by global.json:" >&2
+  echo "$dotnet_version" >&2
+  echo "Installed SDKs:" >&2
+  (cd /tmp && dotnet --list-sdks) >&2
+  exit 1
+fi
 dotnet_major="${dotnet_version%%.*}"
 if [ "$dotnet_major" != "10" ]; then
   echo "Expected .NET SDK 10.x on production server, found $dotnet_version."
   exit 1
 fi
 
-git ls-files -z | rsync -a --from0 --files-from=- ./ "$deploy_source"/
 tar -xzf "$frontend_stage/frontend-assets.tar.gz" \
   --no-same-owner \
   --no-same-permissions \
@@ -212,6 +218,8 @@ deploy_succeeded=1
 Publish from the temporary source, not from `~/LongevityWorldCup`. The website build regenerates documentation HTML during publish, and publishing from the checkout can dirty tracked files and break the next pull or deploy.
 
 The production host intentionally does not need Node.js. Generated `wwwroot/js` files are ignored rather than committed. The automatic deploy runner builds and verifies them, packages an exact-commit artifact, checks its checksum after transfer, and injects it into the temporary source before publishing with `BuildFrontend=false`.
+
+The production host must have an SDK compatible with the repository's `global.json`. When that pin advances, install the matching SDK before deployment. The deploy preflight resolves the SDK from the isolated source tree and prints both the resolution error and installed SDK list when the host is behind.
 
 Before changing the live publish tree, deployment stops the service and creates a same-filesystem hard-link snapshot. A failed sync, health check, or byte-for-byte script probe restores that prior release before restarting the service. Every master push schedules the workflow; stale runs skip only when a newer run exists, so an otherwise ignored documentation or test commit cannot strand an earlier website change undeployed.
 
