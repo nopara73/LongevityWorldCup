@@ -465,13 +465,13 @@ public sealed class HomepageChromeRegressionBrowserTests
         VisibleActionDiagnostics action)
     {
         Assert.Equal("Play the game", action.Name, ignoreCase: true);
-        if (viewport.Width > 640)
-        {
-            Assert.Equal("PLAY THE GAME", action.Text);
-        }
-        else if (action.IsScrolled)
+        if (action.IsScrolled)
         {
             Assert.Equal("PLAY", action.Text);
+        }
+        else if (viewport.Width > 640)
+        {
+            Assert.Equal("PLAY THE GAME", action.Text);
         }
         else
         {
