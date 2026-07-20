@@ -507,6 +507,13 @@ declare global {
         target.replaceChildren(recovery);
     }
 
+    function clearTargetAccessibilityState(target: HTMLElement): void {
+        target.removeAttribute('role');
+        target.removeAttribute('aria-atomic');
+        target.removeAttribute('aria-busy');
+        target.setAttribute('aria-live', 'polite');
+    }
+
     function render(
         targetId: string,
         options: BioageRankPreviewOptions | null | undefined
@@ -520,10 +527,12 @@ declare global {
         if (!Number.isFinite(ageReduction) || !(options.dateOfBirth instanceof Date)) {
             target.hidden = true;
             target.innerHTML = '';
+            clearTargetAccessibilityState(target);
             return Promise.resolve();
         }
 
         target.hidden = false;
+        target.setAttribute('aria-live', 'polite');
         target.setAttribute('role', 'status');
         target.setAttribute('aria-atomic', 'true');
         target.setAttribute('aria-busy', 'true');
@@ -567,6 +576,9 @@ declare global {
                 if (!isCurrentTargetRenderToken(targetId, renderToken)) return;
 
                 target.hidden = false;
+                target.removeAttribute('aria-live');
+                target.removeAttribute('role');
+                target.removeAttribute('aria-atomic');
                 target.setAttribute('aria-busy', 'false');
                 renderLoadError(target, targetId, options);
                 trackRankPreview('rank_preview_failed', clock, 'failed');
@@ -579,7 +591,7 @@ declare global {
         advanceTargetRenderToken(targetId);
         target.hidden = true;
         target.innerHTML = '';
-        target.removeAttribute('aria-busy');
+        clearTargetAccessibilityState(target);
     }
 
     window.LwcBioAgeRankPreview = {

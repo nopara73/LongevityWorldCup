@@ -382,12 +382,13 @@ public sealed class FlowActionDockBrowserTests
     }
 
     [Theory]
-    [InlineData(390, 844)]
-    [InlineData(1280, 720)]
-    [InlineData(1366, 768)]
+    [InlineData(390, 844, 190)]
+    [InlineData(1280, 720, 220)]
+    [InlineData(1366, 768, 235)]
     public async Task ReviewPage_KeepsHomeActionWithReviewPanel(
         int viewportWidth,
-        int viewportHeight)
+        int viewportHeight,
+        double minimumArtworkHeight)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -443,6 +444,13 @@ public sealed class FlowActionDockBrowserTests
             "Review joke artwork did not decode.");
         Assert.True(visualRect.Width > 0 && visualRect.Height > 0,
             $"Review joke artwork is not visibly rendered: {visualRect.Width}x{visualRect.Height}px.");
+        Assert.True(visualRect.Height + 0.5 >= minimumArtworkHeight,
+            $"Review joke artwork was over-compressed: {visualRect.Height}px < {minimumArtworkHeight}px.");
+        Assert.InRange(Math.Abs(visualRect.Width / visualRect.Height - 860d / 721d), 0, 0.02);
+        Assert.True(visualRect.Left >= 0 && visualRect.Right <= viewportWidth,
+            $"Review joke artwork escapes the viewport horizontally: {visualRect.Left}-{visualRect.Right}px in {viewportWidth}px.");
+        Assert.True(visualRect.Top >= 0 && visualRect.Bottom <= viewportHeight,
+            $"Review joke artwork escapes the viewport vertically: {visualRect.Top}-{visualRect.Bottom}px in {viewportHeight}px.");
         Assert.True(visualRect.Bottom <= primaryCopyRect.Top,
             $"Review joke artwork overlaps the primary message: artwork bottom {visualRect.Bottom}px, copy top {primaryCopyRect.Top}px.");
         Assert.True(primaryCopyRect.Bottom <= actionRect.Top - 8,

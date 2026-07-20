@@ -25,6 +25,12 @@ public sealed class AestheticSystemPageTests
 
         Assert.True(stylesheetIndex >= 0);
         Assert.True(closingHeadIndex > stylesheetIndex);
+        var stylesheetTagEnd = html.IndexOf('>', stylesheetIndex);
+        Assert.True(stylesheetTagEnd > stylesheetIndex);
+        var trailingHead = html[(stylesheetTagEnd + 1)..closingHeadIndex];
+        Assert.DoesNotContain("<style", trailingHead, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rel=\"stylesheet\"", trailingHead, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rel='stylesheet'", trailingHead, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("{{ASSET_AESTHETIC_SYSTEM_CSS}}", html);
     }
 
@@ -171,7 +177,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/about")]
     [InlineData("/history")]
     [InlineData("/ruleset")]
-    public async Task DocumentationPages_CollapseDeepMobileNavigationBehindLargeDisclosure(string path)
+    public async Task DocumentationPages_ProgressivelyEnhanceDeepMobileNavigation(string path)
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -181,8 +187,9 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("class=\"documentation-nav-toggle\" aria-expanded=\"false\"", html);
         Assert.Contains("aria-controls=\"documentation-nav-links\"", html);
         Assert.Contains("class=\"documentation-nav-links\" id=\"documentation-nav-links\"", html);
-        Assert.Contains(".documentation-nav.is-open .documentation-nav-links", html);
+        Assert.Contains(".documentation-nav.is-enhanced:not(.is-open) .documentation-nav-links", html);
         Assert.Contains("min-height: 44px;", html);
+        Assert.Contains("documentationNav.classList.add(\"is-enhanced\")", html);
         Assert.Contains("setDocumentationNavOpen", html);
     }
 
@@ -217,6 +224,28 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("#gmaRealBubble {", html);
         Assert.Contains("top: 0;", html);
         Assert.Contains("bottom: auto;", html);
+    }
+
+    [Fact]
+    public async Task GuessMyAge_PreservesPersonalityWithoutRestoringHeavyEffects()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/leaderboard");
+
+        Assert.Contains("/assets/content-images/trollface.png?v=", html);
+        Assert.Contains("claim your rickroll", html);
+        Assert.Contains("target=\"_blank\" rel=\"noopener noreferrer\"", html);
+        Assert.Contains("userGuess === +gmaRange.min || userGuess === +gmaRange.max", html);
+        Assert.Contains("result.guessAccepted !== true", html);
+        Assert.Contains("Right on the nose.", html);
+        Assert.Contains("You guessed younger — high five.", html);
+        Assert.Contains("You guessed older — oof.", html);
+        Assert.DoesNotContain("canvas-confetti", html);
+        Assert.DoesNotContain("spawnTimeIcons", html);
+        Assert.DoesNotContain("spawnConfetti", html);
+        Assert.DoesNotContain("window.location.href = 'https://www.youtube.com", html);
     }
 
     [Theory]

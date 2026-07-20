@@ -202,6 +202,8 @@ public sealed class AestheticSystemBrowserTests
                 return {
                     ReducedMotionMatches: matchMedia('(prefers-reduced-motion: reduce)').matches,
                     RootScrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
+                    FastDuration: getComputedStyle(document.documentElement).getPropertyValue('--lwc-duration-fast').trim(),
+                    NormalDuration: getComputedStyle(document.documentElement).getPropertyValue('--lwc-duration-normal').trim(),
                     LogoAnimationName: logo.animationName,
                     WordmarkAnimationName: wordmark.animationName,
                     ActionAnimationName: action.animationName
@@ -211,6 +213,8 @@ public sealed class AestheticSystemBrowserTests
 
         Assert.True(motion.ReducedMotionMatches);
         Assert.Equal("auto", motion.RootScrollBehavior);
+        Assert.Equal("140ms", motion.FastDuration);
+        Assert.Equal("220ms", motion.NormalDuration);
         Assert.Equal("none", motion.LogoAnimationName);
         Assert.Equal("none", motion.WordmarkAnimationName);
         Assert.Equal("none", motion.ActionAnimationName);
@@ -736,6 +740,32 @@ public sealed class AestheticSystemBrowserTests
         var nestedMargin = await page.Locator(".documentation-nav-level-3").First.EvaluateAsync<double>(
             "element => parseFloat(getComputedStyle(element).marginLeft)");
         Assert.True(nestedMargin >= 8, $"Nested documentation hierarchy lost its indent ({nestedMargin}px).");
+    }
+
+    [Fact]
+    public async Task MobileDocumentationNavigation_RemainsAvailableWithoutJavaScript()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await LaunchBrowserAsync(playwright);
+        await using var context = await NewContextAsync(
+            browser,
+            app,
+            new BrowserNewContextOptions
+            {
+                JavaScriptEnabled = false,
+                ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+            });
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync("/history", new PageGotoOptions { WaitUntil = WaitUntilState.Load });
+
+        Assert.False(await page.Locator(".documentation-nav-toggle").IsVisibleAsync());
+        Assert.True(await page.Locator(".documentation-nav-links").IsVisibleAsync());
+        Assert.True(await page.Locator(".documentation-source-link").IsVisibleAsync());
+        Assert.True(
+            await page.Locator(".documentation-nav-links a").CountAsync() > 8,
+            "History should expose its full document navigation when JavaScript is unavailable.");
     }
 
     [Fact]
@@ -2003,6 +2033,8 @@ public sealed class AestheticSystemBrowserTests
     {
         public bool ReducedMotionMatches { get; set; }
         public string RootScrollBehavior { get; set; } = "";
+        public string FastDuration { get; set; } = "";
+        public string NormalDuration { get; set; } = "";
         public string LogoAnimationName { get; set; } = "";
         public string WordmarkAnimationName { get; set; } = "";
         public string ActionAnimationName { get; set; } = "";
