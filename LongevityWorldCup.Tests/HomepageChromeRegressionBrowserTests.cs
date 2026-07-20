@@ -73,9 +73,12 @@ public sealed class HomepageChromeRegressionBrowserTests
         {
             foreach (var viewport in new[]
                      {
+                         new ViewportSize { Width = 320, Height = 720 },
+                         new ViewportSize { Width = 390, Height = 844 },
                          new ViewportSize { Width = 667, Height = 375 },
                          new ViewportSize { Width = 844, Height = 390 },
-                         new ViewportSize { Width = 900, Height = 450 }
+                         new ViewportSize { Width = 900, Height = 450 },
+                         new ViewportSize { Width = 1026, Height = 473 }
                      })
             {
                 await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
@@ -89,6 +92,19 @@ public sealed class HomepageChromeRegressionBrowserTests
                     $"{path} had no visible Play action at the top of {viewport.Width}x{viewport.Height}. " +
                     DescribeActions(atTopActions));
                 Assert.All(atTop, action => AssertActionInsideViewport(path, viewport, action));
+
+                await page.EvaluateAsync("window.scrollTo(0, Math.min(52, document.documentElement.scrollHeight - innerHeight))");
+                await SettleLayoutAsync(page);
+                var stickyHeaderVisible = await page.EvaluateAsync<bool>(
+                    "() => document.getElementById('site-sticky-header')?.classList.contains('visible') === true");
+                if (stickyHeaderVisible)
+                {
+                    var boundaryActions = await MeasurePlayActionsAsync(page);
+                    var stickyAction = Assert.Single(
+                        boundaryActions,
+                        action => action.Visible && action.IsScrolled);
+                    AssertActionInsideViewport(path, viewport, stickyAction);
+                }
 
                 await page.EvaluateAsync("window.scrollTo(0, Math.min(700, document.documentElement.scrollHeight - innerHeight))");
                 await SettleLayoutAsync(page);
@@ -320,9 +336,15 @@ public sealed class HomepageChromeRegressionBrowserTests
                 .map(action => {
                     const style = getComputedStyle(action);
                     const rect = action.getBoundingClientRect();
+                    const brand = action.classList.contains('scrolled-button')
+                        ? document.querySelector('.site-sticky-header-link')
+                        : document.querySelector('header[role="banner"] .header-link');
+                    const brandRect = brand?.getBoundingClientRect();
                     const background = style.backgroundColor.match(/[\d.]+/g)?.map(Number) ?? [];
                     return {
                         Name: action.getAttribute('aria-label'),
+                        Text: action.innerText.trim().replace(/\s+/g, ' '),
+                        IsScrolled: action.classList.contains('scrolled-button'),
                         Display: style.display,
                         Visibility: style.visibility,
                         Visible: style.display !== 'none' && style.visibility !== 'hidden'
@@ -335,6 +357,10 @@ public sealed class HomepageChromeRegressionBrowserTests
                         Bottom: rect.bottom,
                         Width: rect.width,
                         Height: rect.height,
+                        OverlapsBrand: brandRect
+                            ? rect.left < brandRect.right && rect.right > brandRect.left
+                                && rect.top < brandRect.bottom && rect.bottom > brandRect.top
+                            : false,
                         BackgroundAlpha: background[3] ?? 1
                     };
                 })
@@ -342,7 +368,7 @@ public sealed class HomepageChromeRegressionBrowserTests
 
     private static string DescribeActions(IEnumerable<VisibleActionDiagnostics> actions) =>
         string.Join("; ", actions.Select(action =>
-            $"{action.Name}: display={action.Display}, visibility={action.Visibility}, " +
+            $"{action.Name} ({action.Text}): display={action.Display}, visibility={action.Visibility}, " +
             $"rect={action.Left:F1},{action.Top:F1} {action.Width:F1}x{action.Height:F1}"));
 
     private static void AssertActionInsideViewport(
@@ -351,6 +377,18 @@ public sealed class HomepageChromeRegressionBrowserTests
         VisibleActionDiagnostics action)
     {
         Assert.Equal("Play the game", action.Name, ignoreCase: true);
+        if (viewport.Width > 640)
+        {
+            Assert.Equal("PLAY THE GAME", action.Text);
+        }
+        else if (action.IsScrolled)
+        {
+            Assert.Equal("PLAY", action.Text);
+        }
+        else
+        {
+            Assert.Contains(action.Text, new[] { "PLAY", "PLAY THE GAME" });
+        }
         Assert.True(action.Left >= -0.5 && action.Right <= viewport.Width + 0.5,
             $"{path} Play action left the viewport at {viewport.Width}x{viewport.Height}.");
         Assert.True(action.Top >= -0.5 && action.Bottom <= viewport.Height + 0.5,
@@ -358,6 +396,8 @@ public sealed class HomepageChromeRegressionBrowserTests
         Assert.True(action.Width >= 44 && action.Height >= 44,
             $"{path} Play action collapsed to {action.Width:F1}x{action.Height:F1}px at " +
             $"{viewport.Width}x{viewport.Height}.");
+        Assert.False(action.OverlapsBrand,
+            $"{path} Play action overlapped the brand at {viewport.Width}x{viewport.Height}.");
         Assert.True(action.BackgroundAlpha >= 0.99,
             $"{path} Play action lost its opaque fill at {viewport.Width}x{viewport.Height}.");
     }
@@ -381,6 +421,8 @@ public sealed class HomepageChromeRegressionBrowserTests
     private sealed class VisibleActionDiagnostics
     {
         public string Name { get; set; } = "";
+        public string Text { get; set; } = "";
+        public bool IsScrolled { get; set; }
         public string Display { get; set; } = "";
         public string Visibility { get; set; } = "";
         public bool Visible { get; set; }
@@ -390,6 +432,7 @@ public sealed class HomepageChromeRegressionBrowserTests
         public double Bottom { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+        public bool OverlapsBrand { get; set; }
         public double BackgroundAlpha { get; set; }
     }
 
