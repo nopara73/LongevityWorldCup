@@ -132,6 +132,7 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("<!--HEAD-->", head)
                         .Replace("<!--HEADER-->", ApplySharedAssetPlaceholders(header))
                         .Replace("<!--FOOTER-->", footer)
+                        .Replace("<!--HOMEPAGE-SCOREBOARD-->", BuildHomepageScoreboard(context))
                         .Replace("<!--MAIN-PROGRESS-BAR-->", progressBar)
                         .Replace("<!--SUB-PROGRESS-BAR-->", subProgressBar)
                         .Replace("<!--LEADERBOARD-CONTENT-->", leaderboardContent)
@@ -204,6 +205,24 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
                 .Replace("{{ASSET_PROOF_HELPERS_JS}}", _assetVersionProvider.AppendVersion("/js/proof-helpers.js"))
                 .Replace("{{ASSET_AGE_VISUALIZATION_JS}}", _assetVersionProvider.AppendVersion("/js/age-visualization.js"));
+        }
+
+        private string BuildHomepageScoreboard(HttpContext context)
+        {
+            if (!string.Equals(GetRequestCanonicalPath(context), "/", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                return HomepageScoreboardRenderer.Render(_leaderboardFacts.GetLeaderboardSnapshot());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Rendering the homepage live scoreboard failed; showing the truthful unavailable state.");
+                return HomepageScoreboardRenderer.RenderUnavailable();
+            }
         }
 
         private string ApplyLeaderboardRows(string html, HttpContext context)
@@ -319,9 +338,13 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("Visit Longevity World Cup on YouTube", "Hosszúéletesítési Világbajnokság a YouTube-on")
                 .Replace("Follow the Longevity World Cup on Instagram", "Hosszúéletesítési Világbajnokság az Instagramon")
                 .Replace("</i> Merch", "</i> Bolt")
+                .Replace("</i> About", "</i> Névjegy")
                 .Replace("</i> History", "</i> Történet")
                 .Replace("</i> Ruleset", "</i> Szabályok")
+                .Replace("</i> Media", "</i> Média")
                 .Replace("</i> Contact", "</i> Kapcsolat")
+                .Replace(">Competition<", ">Verseny<")
+                .Replace(">Community<", ">Közösség<")
                 .Replace(">Merch<", ">Bolt<")
                 .Replace(">History<", ">Történet<")
                 .Replace(">Ruleset<", ">Szabályok<")
