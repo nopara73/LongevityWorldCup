@@ -55,6 +55,90 @@ public sealed class HomepageChromeRegressionBrowserTests
     }
 
     [Fact]
+    public async Task HomepagePrimaryAction_RetainsInvitationCuesAndHonorsReducedMotion()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await SettleLayoutAsync(page);
+
+        var action = page.Locator("body.home-page header[role=\"banner\"] .join-game:not(.scrolled-button)");
+        var cues = await action.EvaluateAsync<InvitationCueDiagnostics>(
+            """
+            element => {
+                const style = getComputedStyle(element);
+                const halo = getComputedStyle(element, '::before');
+                return {
+                    BackgroundImage: style.backgroundImage,
+                    BoxShadow: style.boxShadow,
+                    AnimationName: style.animationName,
+                    AnimationDuration: style.animationDuration,
+                    AnimationIterationCount: style.animationIterationCount,
+                    HaloDisplay: halo.display,
+                    HaloPointerEvents: halo.pointerEvents,
+                    Transform: style.transform
+                };
+            }
+            """);
+
+        Assert.Contains("linear-gradient", cues.BackgroundImage);
+        Assert.NotEqual("none", cues.BoxShadow);
+        Assert.Equal("play-invitation", cues.AnimationName);
+        Assert.Equal("0.88s", cues.AnimationDuration);
+        Assert.Equal("3", cues.AnimationIterationCount);
+        Assert.Equal("block", cues.HaloDisplay);
+        Assert.Equal("none", cues.HaloPointerEvents);
+
+        await action.HoverAsync();
+        await page.WaitForTimeoutAsync(180);
+        var hovered = await action.EvaluateAsync<InvitationCueDiagnostics>(
+            """
+            element => {
+                const style = getComputedStyle(element);
+                return {
+                    BackgroundImage: style.backgroundImage,
+                    BoxShadow: style.boxShadow,
+                    AnimationName: style.animationName,
+                    AnimationDuration: style.animationDuration,
+                    AnimationIterationCount: style.animationIterationCount,
+                    Transform: style.transform
+                };
+            }
+            """);
+
+        Assert.NotEqual("none", hovered.Transform);
+        Assert.NotEqual(cues.BackgroundImage, hovered.BackgroundImage);
+
+        await using var reducedContext = await NewContextAsync(browser, app, ReducedMotion.Reduce);
+        var reducedPage = await reducedContext.NewPageAsync();
+        await reducedPage.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await SettleLayoutAsync(reducedPage);
+        var reduced = await reducedPage
+            .Locator("body.home-page header[role=\"banner\"] .join-game:not(.scrolled-button)")
+            .EvaluateAsync<InvitationCueDiagnostics>(
+                """
+                element => {
+                    const style = getComputedStyle(element);
+                    return {
+                        BackgroundImage: style.backgroundImage,
+                        BoxShadow: style.boxShadow,
+                        AnimationName: style.animationName
+                    };
+                }
+                """);
+
+        Assert.Contains("linear-gradient", reduced.BackgroundImage);
+        Assert.NotEqual("none", reduced.BoxShadow);
+        Assert.Equal("none", reduced.AnimationName);
+    }
+
+    [Fact]
     public async Task PlayAction_IsNeverAbsentInCompactLandscapeOrAfterScrolling()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -264,13 +348,17 @@ public sealed class HomepageChromeRegressionBrowserTests
         }
         """;
 
-    private static async Task<IBrowserContext> NewContextAsync(IBrowser browser, BrowserTestApp app)
+    private static async Task<IBrowserContext> NewContextAsync(
+        IBrowser browser,
+        BrowserTestApp app,
+        ReducedMotion? reducedMotion = null)
     {
         var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
+            ViewportSize = new ViewportSize { Width = 1280, Height = 720 },
+            ReducedMotion = reducedMotion
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         await context.RouteAsync("**/api/bitcoin/**", async route =>
@@ -459,5 +547,17 @@ public sealed class HomepageChromeRegressionBrowserTests
         public double LogoRenderedAspectRatio { get; set; }
         public double LogoNaturalAspectRatio { get; set; }
         public bool HasHorizontalOverflow { get; set; }
+    }
+
+    private sealed class InvitationCueDiagnostics
+    {
+        public string BackgroundImage { get; set; } = "";
+        public string BoxShadow { get; set; } = "";
+        public string AnimationName { get; set; } = "";
+        public string AnimationDuration { get; set; } = "";
+        public string AnimationIterationCount { get; set; } = "";
+        public string HaloDisplay { get; set; } = "";
+        public string HaloPointerEvents { get; set; } = "";
+        public string Transform { get; set; } = "";
     }
 }

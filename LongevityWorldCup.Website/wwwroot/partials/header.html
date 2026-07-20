@@ -893,13 +893,14 @@
         padding: 0.65rem 1rem;
         border: 1px solid transparent;
         border-radius: var(--radius-md);
-        background: var(--primary-color-bright);
+        background: #19c3d1 linear-gradient(135deg, #19c3d1 0%, #65dce4 100%);
         color: #102a43;
-        box-shadow: none;
-        animation: none;
+        box-shadow: 0 5px 12px rgba(2, 12, 18, 0.28), 0 0 16px rgba(25, 195, 209, 0.3);
+        animation: play-invitation calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) 3;
         font-size: 0.9rem;
         letter-spacing: 0.02em;
-        transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+        isolation: isolate;
+        transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
     .join-game:not(.scrolled-button) {
@@ -909,18 +910,54 @@
 
     .join-game::before,
     .scrolled-button::before {
-        display: none;
+        content: '';
+        position: absolute;
+        inset: -5px;
+        display: block;
+        border: 1px solid rgba(101, 220, 228, 0.32);
+        border-radius: calc(var(--radius-md) + var(--space-1));
+        background: transparent;
+        opacity: 0.8;
+        pointer-events: none;
     }
 
     .join-game:hover,
-    .join-game:active,
-    .scrolled-button:hover,
-    .scrolled-button:active {
-        background: #65dce4;
+    .scrolled-button:hover {
+        background: #65dce4 linear-gradient(135deg, #65dce4 0%, #8be6eb 100%);
         color: #0b2239;
         border-color: rgba(255, 255, 255, 0.35);
-        box-shadow: none;
-        transform: none;
+        box-shadow: 0 9px 18px rgba(2, 12, 18, 0.34), 0 0 24px rgba(25, 195, 209, 0.52);
+        transform: translateY(-2px) scale(1.025);
+    }
+
+    .join-game:not(.scrolled-button):hover {
+        transform: translateY(-2px) scale(1.025) rotate(1deg);
+    }
+
+    .join-game:active,
+    .scrolled-button:active {
+        background: #19c3d1 linear-gradient(135deg, #19c3d1 0%, #65dce4 100%);
+        box-shadow: 0 3px 8px rgba(2, 12, 18, 0.28), 0 0 12px rgba(25, 195, 209, 0.28);
+        transform: translateY(0) scale(0.985);
+    }
+
+    @keyframes play-invitation {
+        0%,
+        100% {
+            box-shadow: 0 5px 12px rgba(2, 12, 18, 0.28), 0 0 16px rgba(25, 195, 209, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 7px 16px rgba(2, 12, 18, 0.32), 0 0 28px rgba(25, 195, 209, 0.58);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .join-game,
+        .scrolled-button {
+            animation: none;
+            transition: none;
+        }
     }
 
     .option-button,
@@ -1116,8 +1153,13 @@
         min-height: 52px;
         max-width: calc(100% - 2rem);
         padding: 0.8rem 1.8rem;
+        border-radius: var(--radius-lg);
         font-size: 1.05rem;
         letter-spacing: 0.025em;
+    }
+
+    :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button)::before {
+        border-radius: calc(var(--radius-lg) + var(--space-1));
     }
 
     :where(body.home-page) header[role="banner"] .join-game:not(.scrolled-button) .join-game-middle,
