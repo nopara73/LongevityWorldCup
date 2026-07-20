@@ -921,6 +921,23 @@
     .modal-content.is-loading #proofsGallery{
         visibility:hidden;
     }
+    #detailsModal .modal-content.has-load-error #athlete-profile > :not(#athleteName):not(#athleteLoadError),
+    #detailsModal .modal-content.has-load-error #athlete-biomarkers,
+    #detailsModal .modal-content.has-load-error .events-embed,
+    #detailsModal .modal-content.has-load-error #athlete-proofs{
+        display:none !important;
+    }
+    #athleteLoadError{
+        width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        margin:.5rem auto 0;
+        padding:.8rem;
+        border:1px solid var(--athlete-modal-cream-border);
+        border-radius:var(--lwc-radius-md, 8px);
+        background:rgba(255,255,255,.08);
+    }
+    #athleteLoadError[hidden]{ display:none; }
+    #athleteLoadError p{ margin:0 0 .65rem; }
     .modal-content{
         background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
         border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
@@ -3172,6 +3189,10 @@
                         <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
                     </span>
                     <h2 id="athleteName"></h2>
+                    <div id="athleteLoadError" role="alert" hidden>
+                        <p>We could not load this profile. Try again, or close the panel and come back later.</p>
+                        <button id="retryAthleteLoad" type="button" class="modal-link">Try again</button>
+                    </div>
 
                     <!--GUESS-MY-AGE-->
 
@@ -5308,6 +5329,13 @@
         img.src = sourceImage.dataset.fullSrc || sourceImage.src;
         img.alt = sourceImage.alt;
 
+        if (history.state?.modal === 'enlarged') {
+            history.replaceState({
+                ...history.state,
+                enlargedImage: getEnlargedImageHistoryState(sourceImage, enlargedElem)
+            }, '', window.location.href);
+        }
+
         if (stage) {
             stage.setAttribute('aria-label', isProofGallery
                 ? 'Scrollable proof image. Use zoom controls for fine text.'
@@ -5367,7 +5395,39 @@
         }
     }
 
-    function openEnlargedView(imgElement) {
+    function getEnlargedImageHistoryState(imgElement, viewer) {
+        const isProfileImage = imgElement.id === 'modalProfilePic';
+        return {
+            kind: isProfileImage ? 'profile' : 'proof',
+            source: imgElement.dataset.fullSrc || imgElement.getAttribute('src') || '',
+            index: Number.isInteger(viewer.currentImageIndex) ? viewer.currentImageIndex : 0
+        };
+    }
+
+    function restoreEnlargedViewFromHistory(state) {
+        const imageState = state?.enlargedImage;
+        const modalContent = modal.querySelector('.modal-content');
+        if (!imageState
+            || modal.style.display !== 'block'
+            || modalContent?.classList.contains('is-loading')
+            || modalContent?.classList.contains('has-load-error')) {
+            return false;
+        }
+
+        const candidates = imageState.kind === 'profile'
+            ? [document.getElementById('modalProfilePic')].filter(Boolean)
+            : Array.from(document.querySelectorAll('#proofsGallery .proof-item img'));
+        const image = candidates.find(candidate =>
+            (candidate.dataset.fullSrc || candidate.getAttribute('src') || '') === imageState.source)
+            || candidates[imageState.index]
+            || null;
+        if (!image) return false;
+
+        openEnlargedView(image, { pushHistory: false });
+        return true;
+    }
+
+    function openEnlargedView(imgElement, options) {
         const viewer = document.getElementById('athleteImageViewer');
         const ownerDialog = viewer ? viewer.closest('#detailsModal') : null;
         const modalContent = ownerDialog ? ownerDialog.querySelector('.modal-content') : null;
@@ -5377,6 +5437,11 @@
             clearTimeout(viewer._closeTimer);
             viewer._closeTimer = 0;
         }
+        if (viewer._showFrame != null) {
+            cancelAnimationFrame(viewer._showFrame);
+            viewer._showFrame = null;
+        }
+        viewer._historyClosePending = false;
 
         const proofGallery = imgElement.closest('.proofs-gallery');
         viewer.isProofGallery = Boolean(proofGallery);
@@ -5394,13 +5459,26 @@
 
         const closeButton = viewer.querySelector('.close-btn');
         closeButton.focus({ preventScroll: true });
-        requestAnimationFrame(() => viewer.classList.add('show'));
+        viewer._showFrame = requestAnimationFrame(() => {
+            viewer._showFrame = null;
+            if (viewer.hidden || viewer.getAttribute('aria-hidden') !== 'false') return;
+            viewer.classList.add('show');
+        });
+
+        const shouldPushHistory = !options || options.pushHistory !== false;
+        if (shouldPushHistory && history.state?.modal !== 'enlarged') {
+            history.pushState({
+                ...(history.state || {}),
+                modal: 'enlarged',
+                enlargedImage: getEnlargedImageHistoryState(imgElement, viewer)
+            }, '', window.location.href);
+        }
 
         if (viewer.dataset.interactionsBound === 'true') return;
         viewer.dataset.interactionsBound = 'true';
 
         closeButton.addEventListener('click', () => {
-            closeEnlargedView(viewer);
+            requestCloseEnlargedView(viewer);
         });
 
         viewer.querySelector('.image-nav--previous').addEventListener('click', () => {
@@ -5423,7 +5501,7 @@
             if (event.key === 'Escape' || event.key === 'Esc') {
                 event.preventDefault();
                 event.stopPropagation();
-                closeEnlargedView(viewer);
+                requestCloseEnlargedView(viewer);
                 return;
             }
 
@@ -5476,13 +5554,32 @@
 
         viewer.addEventListener('click', event => {
             if (event.target === viewer) {
-                closeEnlargedView(viewer);
+                requestCloseEnlargedView(viewer);
             }
         });
     }
 
+    function requestCloseEnlargedView(enlargedElem) {
+        if (!enlargedElem || enlargedElem.hidden || enlargedElem.getAttribute('aria-hidden') !== 'false') return;
+
+        if (history.state?.modal === 'enlarged') {
+            if (enlargedElem._historyClosePending) return;
+            enlargedElem._historyClosePending = true;
+            history.back();
+            return;
+        }
+
+        closeEnlargedView(enlargedElem);
+    }
+
     function closeEnlargedView(enlargedElem) {
-        if (!enlargedElem || enlargedElem.hidden) return;
+        if (!enlargedElem || enlargedElem.hidden || enlargedElem.getAttribute('aria-hidden') !== 'false') return;
+
+        enlargedElem._historyClosePending = false;
+        if (enlargedElem._showFrame != null) {
+            cancelAnimationFrame(enlargedElem._showFrame);
+            enlargedElem._showFrame = null;
+        }
 
         const returnFocusTo = enlargedElem.returnFocusTo;
         const ownerDialog = enlargedElem.closest('#detailsModal');
@@ -5634,12 +5731,22 @@
         ensureAthleteModalDeferredSections();
         closeAthleteShareMenu();
 
+        if (modal._closeTimer) {
+            clearTimeout(modal._closeTimer);
+            modal._closeTimer = 0;
+        }
+        modal.classList.remove('fade-out');
+
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return null;
 
+        modalContent.classList.remove('has-load-error');
         modalContent.classList.add('is-loading');
         modalContent.dataset.athleteSlug = athleteSlug;
         modalContent.scrollTop = 0;
+
+        const loadError = document.getElementById('athleteLoadError');
+        if (loadError) loadError.hidden = true;
 
         const stickyHeader = document.getElementById('modalStickyHeader');
         if (stickyHeader) {
@@ -5654,6 +5761,7 @@
         const profilePic = document.getElementById('modalProfilePic');
         if (profilePic) {
             profilePic.removeAttribute('src');
+            profilePic.removeAttribute('data-full-src');
             profilePic.alt = 'Loading athlete profile picture';
         }
 
@@ -5684,8 +5792,8 @@
 
         if (modal.style.display !== "block") {
             modal.style.display = "block";
-            lockBodyScroll();
         }
+        lockBodyScroll();
 
         return modalContent;
     }
@@ -5917,6 +6025,8 @@
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return;
 
+        currentAthleteModalRequestId++;
+
         closeAthleteShareMenu();
         
         const athleteSlug = modalContent.dataset.athleteSlug;
@@ -5945,7 +6055,11 @@
         
         modal.classList.add('fade-out');
         restoreBodyScroll();
-        setTimeout(() => {
+        if (modal._closeTimer) {
+            clearTimeout(modal._closeTimer);
+        }
+        modal._closeTimer = setTimeout(() => {
+            modal._closeTimer = 0;
             modal.style.display = "none";
             modal.classList.remove('fade-out');
             
@@ -5993,7 +6107,7 @@
 
         const url = new URL(window.location.href);
         url.searchParams.delete('search');
-        history.replaceState({}, "", url.toString());
+        history.replaceState(history.state || {}, "", url.toString());
     }
 
     // Wrap the filter function with debounce
@@ -6587,7 +6701,7 @@
             url.searchParams.set('view', currentLeaderboardView);
         }
 
-        history.replaceState({}, "", url.toString());
+        history.replaceState(history.state || {}, "", url.toString());
     }
 
     function updateRankingExplanation(currentLeaderboardView) {
@@ -7184,20 +7298,28 @@
             closeOpenComponents();
         }
     });
-    function closeOpenComponents() {
-        // don't close the details modal mid-guess
+    function closeOpenComponents(options) {
+        const closeAll = !!(options && options.closeAll);
+        const enlargedImg = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
+        if (enlargedImg) {
+            if (options && options.fromHistory) {
+                closeEnlargedView(enlargedImg);
+            } else {
+                requestCloseEnlargedView(enlargedImg);
+            }
+            if (!closeAll) return;
+        }
+
+        if (closeAthleteShareMenu({ restoreFocus: true })) {
+            if (!closeAll) return;
+        }
+
+        // Don't close the parent details modal mid-guess. Its nested image viewer
+        // and share menu remain independently dismissible above this guard.
         const modalContent = document.querySelector('.modal-content');
         if (modalContent && modalContent.classList.contains('guess-mode')) return;
 
-        if (closeAthleteShareMenu({ restoreFocus: true })) {
-            return;
-        }
-
-        const enlargedImg = document.querySelector('.enlarged-portrait.show');
-        if (enlargedImg) {
-            closeEnlargedView(enlargedImg);
-        }
-        else if (modal.style.display === "block") {
+        if (modal.style.display === "block") {
             closeModal();
         }
     }
@@ -7516,6 +7638,37 @@
         closeAthleteShareMenu();
     });
 
+    function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error) {
+        window.__sharedAthletesRequest = null;
+
+        if (modalContent) {
+            modalContent.classList.add('has-load-error');
+            modalContent.classList.remove('is-loading');
+        }
+
+        const athleteNameElement = document.getElementById('athleteName');
+        if (athleteNameElement) athleteNameElement.textContent = 'Athlete details unavailable';
+        const stickyAthleteName = document.getElementById('stickyAthleteName');
+        if (stickyAthleteName) stickyAthleteName.textContent = 'Athlete details unavailable';
+        const profilePic = document.getElementById('modalProfilePic');
+        if (profilePic) profilePic.alt = '';
+        const loadError = document.getElementById('athleteLoadError');
+        if (loadError) loadError.hidden = false;
+        const retryButton = document.getElementById('retryAthleteLoad');
+        if (retryButton) {
+            const retryOptions = options
+                ? { ...options, restoreEnlargedState: undefined }
+                : undefined;
+            retryButton.onclick = () => window.openAthleteModalBySlug(athleteSlug, retryOptions);
+        }
+
+        if (options?.restoreEnlargedState && history.state?.modal === 'enlarged') {
+            history.back();
+        }
+
+        console.error('Error fetching full athlete data:', error);
+    }
+
     function fetchFullAthleteData(athleteNameText, athleteData, options) {
         window.getSharedAthletes = window.getSharedAthletes || function(){
             if(!window.__sharedAthletesRequest){
@@ -7539,8 +7692,7 @@
                 if (requestId !== currentAthleteModalRequestId) return;
                 const fullAthleteData = athletes.find(a => window.slugifyName(a.Name) === window.slugifyName(athleteNameText));
                 if (!fullAthleteData) {
-                    console.error('Full athlete data not found');
-                    return;
+                    throw new Error(`Full athlete data not found for ${athleteSlug}`);
                 }
 
                 const rankSummary = computeBestLeagueRank(athleteData);
@@ -7564,7 +7716,10 @@
                 if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
                     originalAthletelessURL = getAthletelessURL();
                 }
-                history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
+                const shouldPushHistory = !options || options.historyMode !== 'preserve';
+                if (shouldPushHistory) {
+                    history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
+                }
 
                 // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
 
@@ -7721,13 +7876,18 @@
                     paceOfAgingContainer.style.display = 'none';
                 }
 
+                const currentEnlargedState = history.state;
+                if (options?.restoreEnlargedState
+                    && currentEnlargedState?.modal === 'enlarged'
+                    && currentEnlargedState.athlete === athleteSlug
+                    && !restoreEnlargedViewFromHistory(currentEnlargedState)) {
+                    history.replaceState({ modal: 'details', athlete: athleteSlug }, '', window.location.href);
+                }
+
             })
             .catch(error => {
                 if (requestId !== currentAthleteModalRequestId) return;
-                if (modalContent) {
-                    modalContent.classList.remove('is-loading');
-                }
-                console.error('Error fetching full athlete data:', error);
+                handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error);
             });
     }
 
@@ -8505,7 +8665,54 @@
 
     // Ensure modal history cleanup
     window.addEventListener('popstate', function (event) {
-        closeOpenComponents();
+        if (event.state?.modal === 'enlarged') {
+            const viewer = document.getElementById('athleteImageViewer');
+            if (viewer?.getAttribute('aria-hidden') === 'false') {
+                return;
+            }
+
+            const parentCanRestore = modal.style.display === 'block'
+                && !modal.classList.contains('fade-out');
+            if (parentCanRestore && restoreEnlargedViewFromHistory(event.state)) {
+                return;
+            }
+
+            const restored = event.state.athlete
+                && window.openAthleteModalBySlug(event.state.athlete, {
+                    historyMode: 'preserve',
+                    restoreEnlargedState: event.state
+                });
+            if (!restored) {
+                history.replaceState({}, '', originalAthletelessURL);
+            }
+            return;
+        }
+
+        if (event.state?.modal === 'details') {
+            const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
+            if (viewer) {
+                closeEnlargedView(viewer);
+            }
+
+            if (modal.style.display !== 'block' || modal.classList.contains('fade-out')) {
+                const restored = event.state.athlete
+                    && window.openAthleteModalBySlug(event.state.athlete, { historyMode: 'preserve' });
+                if (!restored) {
+                    history.replaceState({}, '', originalAthletelessURL);
+                }
+            }
+            return;
+        }
+
+        const modalContent = document.querySelector('#detailsModal .modal-content');
+        if (modal.style.display === 'block' && modalContent?.classList.contains('guess-mode')) {
+            // Guess My Age deliberately cannot be abandoned mid-round. Undo a
+            // Back-menu jump, then let the details-state pop close any viewer.
+            history.forward();
+            return;
+        }
+
+        closeOpenComponents({ fromHistory: true, closeAll: true });
     });
 
     const sidebar = document.querySelector('.sidebar');

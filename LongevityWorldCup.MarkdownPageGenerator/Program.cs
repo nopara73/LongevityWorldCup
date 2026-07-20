@@ -429,7 +429,7 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                 border-radius: 0 0 8px 8px;
             }
 
-            .documentation-nav-toggle {
+            .documentation-nav.is-enhanced .documentation-nav-toggle {
                 box-sizing: border-box;
                 display: flex;
                 align-items: center;
@@ -464,15 +464,14 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
             }
 
             .documentation-nav-links {
-                display: none;
                 max-height: min(65svh, 30rem);
                 margin-top: 0.35rem;
                 overflow-y: auto;
                 overscroll-behavior: contain;
             }
 
-            .documentation-nav.is-open .documentation-nav-links {
-                display: grid;
+            .documentation-nav.is-enhanced:not(.is-open) .documentation-nav-links {
+                display: none;
             }
 
             .documentation-nav-title {
@@ -640,6 +639,11 @@ static string RenderPage(string title, string documentHtml, string contentsHtml,
                     icon.textContent = open ? "−" : "+";
                 }
             };
+
+            if (documentationNav && documentationNavToggle) {
+                documentationNav.classList.add("is-enhanced");
+                setDocumentationNavOpen(false);
+            }
 
             documentationNavToggle?.addEventListener("click", () => {
                 setDocumentationNavOpen(documentationNavToggle.getAttribute("aria-expanded") !== "true");

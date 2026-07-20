@@ -380,6 +380,46 @@
         transition: opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), height var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), padding var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) !important;
     }
 
+    .gma-troll-note {
+        box-sizing: border-box;
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr);
+        align-items: center;
+        gap: 0.75rem;
+        width: min(100%, 32rem);
+        margin: 0 auto 1rem;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--athlete-modal-cream-border, var(--lwc-border, rgba(255, 255, 255, 0.24)));
+        border-inline-start: 4px solid var(--lwc-accent-bright, #19c3d1);
+        border-radius: var(--lwc-radius-md, 8px);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        text-align: left;
+    }
+
+    .gma-troll-note[hidden] {
+        display: none;
+    }
+
+    .gma-troll-note img {
+        display: block;
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+    }
+
+    .gma-troll-note p {
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .gma-troll-note a {
+        color: inherit;
+        font-weight: 700;
+        text-decoration-thickness: 0.1em;
+        text-underline-offset: 0.14em;
+    }
+
     .gma-heading,
     .chrono-age-heading {
         white-space: normal;
@@ -755,10 +795,14 @@
     }
 </style>
 
-<div id="guessAgeContainer" class="gma-card" aria-live="polite">
+<div id="guessAgeContainer" class="gma-card">
     <h3 class="gma-heading">Guess my age!</h3>
     <h3 class="chrono-age-heading" style="display: none;">My real age is:</h3>
     <p id="gmaStatus" class="smaller-text" role="status" hidden></p>
+    <div id="gmaTrollNote" class="gma-troll-note" role="status" aria-atomic="true" hidden>
+        <img src="{{ASSET_TROLLFACE}}" alt="" width="48" height="48" loading="lazy" decoding="async" />
+        <p>Nice try. Pick another age, or <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">claim your rickroll</a>.</p>
+    </div>
 
     <div class="gma-slider-wrap">
         <input type="range"
@@ -789,6 +833,7 @@
     const heading = gmaCard.querySelector('.gma-heading');
     const chronoHeading = gmaCard.querySelector('.chrono-age-heading');
     const gmaStatus = document.getElementById('gmaStatus');
+    const gmaTrollNote = document.getElementById('gmaTrollNote');
 
     const modalContent = document.querySelector('.modal-content');
     const gmaActions = gmaCard.querySelector('.gma-actions');
@@ -808,8 +853,10 @@
                 heading.style.display = '';
                 gmaStatus.hidden = true;
                 gmaStatus.textContent = '';
+                gmaTrollNote.hidden = true;
                 gmaCard.removeAttribute('aria-busy');
                 gmaActions.classList.remove('gma-actions-hide');
+                gmaActions.inert = false;
                 gmaCard.classList.remove('gma-done');
 
                 gmaBubble.classList.remove('gma-bubble-inactive');
@@ -820,6 +867,7 @@
                 gmaRange.value = gmaDefaultValue;
                 gmaRange.disabled = false;
                 gmaRange.style.pointerEvents = '';
+                gmaSubmitBtn.disabled = false;
                 syncRange();
 
                 gmaCard.classList.remove('celebrate-exact');
@@ -843,17 +891,39 @@
     gmaRange.addEventListener('input', syncRange);
     syncRange();   // initialise bubble
 
+    function restoreGuessControls(message, focusTarget) {
+        gmaCard.removeAttribute('aria-busy');
+        gmaStatus.hidden = !message;
+        gmaStatus.textContent = message || '';
+        gmaActions.classList.remove('gma-actions-hide');
+        gmaActions.inert = false;
+        gmaRange.disabled = false;
+        gmaRange.style.pointerEvents = '';
+        gmaSubmitBtn.disabled = false;
+        (focusTarget || gmaRange).focus();
+    }
+
     const gmaSubmitBtn = gmaCard.querySelector('.gma-btn--primary');
     gmaSubmitBtn.addEventListener('click', async function (event) {
         const userGuess = +gmaRange.value;
         const btn = event.currentTarget;
 
+        if (userGuess === +gmaRange.min || userGuess === +gmaRange.max) {
+            gmaTrollNote.hidden = false;
+            restoreGuessControls('', gmaRange);
+            return;
+        }
+
+        gmaTrollNote.hidden = true;
+
         gmaCard.setAttribute('aria-busy', 'true');
         gmaStatus.hidden = false;
         gmaStatus.textContent = 'Submitting your guess…';
         gmaActions.classList.add('gma-actions-hide');
+        gmaActions.inert = true;
         gmaRange.disabled = true;
         gmaRange.style.pointerEvents = 'none';
+        gmaSubmitBtn.disabled = true;
 
         try {
             const response = await fetch(
@@ -866,6 +936,15 @@
             }
 
             const result = await response.json();
+            if (result.guessAccepted !== true) {
+                const retryAfterSeconds = Number.parseInt(response.headers.get('Retry-After') || '', 10);
+                const rejectionMessage = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+                    ? `That guess was not accepted. Try again in ${retryAfterSeconds} seconds.`
+                    : 'That guess was not accepted. Adjust the age and try again.';
+                restoreGuessControls(rejectionMessage, gmaRange);
+                return;
+            }
+
             const realAge = +result.actualAge;
             const crowdCountBeforeGuess = result.crowdCount === 1 ? 0 : result.crowdCount;
             const isFirstGuess = crowdCountBeforeGuess === 0;
@@ -877,7 +956,12 @@
             updateCrowdContainer(result.crowdAge, result.crowdCount);
             heading.style.display = 'none';
             chronoHeading.style.display = 'block';
-            gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}.`;
+            const reaction = userGuess === realAge
+                ? 'Right on the nose.'
+                : userGuess < realAge
+                    ? 'You guessed younger — high five.'
+                    : 'You guessed older — oof.';
+            gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}. ${reaction}`;
 
             const sliderWrap = document.querySelector('.gma-slider-wrap');
             const realBubble = document.createElement('output');
@@ -915,12 +999,7 @@
             }), 2400);
         } catch (error) {
             console.error('Error submitting guess:', error);
-            gmaCard.removeAttribute('aria-busy');
-            gmaStatus.textContent = 'We could not submit your guess. Please try again.';
-            gmaActions.classList.remove('gma-actions-hide');
-            gmaRange.disabled = false;
-            gmaRange.style.pointerEvents = '';
-            gmaSubmitBtn.focus();
+            restoreGuessControls('We could not submit your guess. Please try again.', gmaSubmitBtn);
         }
     });
 
@@ -968,7 +1047,7 @@
             b.textContent = 'Bullseye!';
         }
         else if (isFirst) {
-            b.textContent = 'First accepted guess';
+            b.textContent = 'First accepted guess!';
         }
         else {
             b.textContent = 'You beat the crowd!';
@@ -993,6 +1072,6 @@
         const url = new URL(window.location.href);
         if (active) url.searchParams.set('guessmyage', '1');
         else url.searchParams.delete('guessmyage');
-        history.replaceState({}, "", url.toString());
+        history.replaceState(history.state || {}, "", url.toString());
     }
 </script>
