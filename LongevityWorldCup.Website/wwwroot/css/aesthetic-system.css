@@ -414,7 +414,10 @@ input[type="reset"],
     font-weight: 700;
 }
 
-button:not(.close):not(.copy-btn):not(.lwc-merch-mobile-dot):not(.badge-class),
+/* The Play entry is the site's primary conversion action and owns a bounded
+   invitation treatment in the shared header. Do not flatten its gradient or
+   elevation with the ordinary control reset. */
+button:not(.close):not(.copy-btn):not(.lwc-merch-mobile-dot):not(.badge-class):not(.join-game),
 .option-button,
 .dialog-button,
 .rankings-btn,
