@@ -441,14 +441,15 @@
     }
 
     .gma-actions.gma-actions-hide {
+        display: none;
         opacity: 0 !important;
         animation: none !important;
         pointer-events: none; /* ← prevent any mouse events */
     }
 
-    /* dim the old guess bubble once the real one appears */
+    /* The result sentence preserves the submitted value; hide its bubble so nearby ages cannot collide. */
     #gmaBubble.gma-bubble-inactive {
-        opacity: 0.4;
+        opacity: 0;
         transform: translateX(-50%) scale(0.8);
         transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
     }
@@ -509,7 +510,9 @@
     }
     #detailsModal #gmaStatus {
         color: var(--athlete-modal-cream, rgba(246,244,237,.92));
-        margin: -.75rem 0 1rem;
+        line-height: 1.35;
+        margin: 0.25rem auto 1rem;
+        max-width: 34rem;
     }
     #detailsModal #gmaRange {
         background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
@@ -936,18 +939,17 @@
             }
 
             const result = await response.json();
-            if (result.guessAccepted !== true) {
-                const retryAfterSeconds = Number.parseInt(response.headers.get('Retry-After') || '', 10);
-                const rejectionMessage = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-                    ? `That guess was not accepted. Try again in ${retryAfterSeconds} seconds.`
-                    : 'That guess was not accepted. Adjust the age and try again.';
-                restoreGuessControls(rejectionMessage, gmaRange);
-                return;
+            const realAge = +result.actualAge;
+            if (!Number.isFinite(realAge)) {
+                throw new Error('Guess response did not include a valid actual age');
             }
 
-            const realAge = +result.actualAge;
+            // GuessAccepted describes inclusion in the public Crowd Age aggregate, not whether
+            // the player completed the game. Always reveal a successful response: asking the
+            // player to revise after the server has disclosed the real age creates a dead end
+            // and would let a filtered guess be replaced with a knowingly correct one.
             const crowdCountBeforeGuess = result.crowdCount === 1 ? 0 : result.crowdCount;
-            const isFirstGuess = crowdCountBeforeGuess === 0;
+            const isFirstGuess = result.guessAccepted === true && crowdCountBeforeGuess === 0;
             const userError = Math.abs(realAge - userGuess);
             const crowdError = result.crowdAge === 0 || isFirstGuess
                 ? null

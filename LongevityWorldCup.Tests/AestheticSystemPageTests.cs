@@ -265,7 +265,10 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("claim your rickroll", html);
         Assert.Contains("target=\"_blank\" rel=\"noopener noreferrer\"", html);
         Assert.Contains("userGuess === +gmaRange.min || userGuess === +gmaRange.max", html);
-        Assert.Contains("result.guessAccepted !== true", html);
+        Assert.Contains("result.guessAccepted === true && crowdCountBeforeGuess === 0", html);
+        Assert.DoesNotContain("That guess was not accepted", html);
+        Assert.Contains("#gmaBubble.gma-bubble-inactive", html);
+        Assert.Contains("opacity: 0;", html);
         Assert.Contains("Right on the nose.", html);
         Assert.Contains("You guessed younger — high five.", html);
         Assert.Contains("You guessed older — oof.", html);
