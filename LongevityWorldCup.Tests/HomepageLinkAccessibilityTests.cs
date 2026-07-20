@@ -5,6 +5,21 @@ namespace LongevityWorldCup.Tests;
 public sealed class HomepageLinkAccessibilityTests
 {
     [Fact]
+    public async Task LeaderboardsAboutLink_ReplacesTheDuplicateHomepageTagline()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var homepage = await client.GetStringAsync("/");
+        var about = await client.GetStringAsync("/about");
+
+        Assert.Contains("<a href=\"/about\">longevity&nbsp;leaderboards</a>. Reverse&nbsp;your&nbsp;age", homepage);
+        Assert.DoesNotContain("Too old for your sport?", homepage);
+        Assert.DoesNotContain("<span class=\"tagline\">", homepage);
+        Assert.Contains("<span class=\"tagline\">", about);
+    }
+
+    [Fact]
     public async Task HistoryCallToAction_IsOneNamedLink()
     {
         using var factory = new TestWebApplicationFactory();

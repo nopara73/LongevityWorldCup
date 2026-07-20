@@ -129,6 +129,11 @@ namespace LongevityWorldCup.Website.Middleware
                         footer = LocalizeHungarianFooter(footer);
                     }
 
+                    if (IsHomepageRequest(context))
+                    {
+                        header = RemoveHeaderTagline(header);
+                    }
+
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
                         .Replace("<!--HEAD-->", head)
@@ -303,11 +308,7 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace(">Alert<", ">Figyelmeztetés<")
                 .Replace(">Loading<", ">Betöltés<");
 
-            html = Regex.Replace(
-                html,
-                @"\s*<span class=""tagline"">\s*longevity leaderboards\s*</span>",
-                string.Empty,
-                RegexOptions.IgnoreCase);
+            html = RemoveHeaderTagline(html);
             html = Regex.Replace(
                 html,
                 @"\s*<button onclick=""window\.location\.href='/play'"" class=""join-game(?: scrolled-button)?""[^>]*>.*?</button>",
@@ -316,6 +317,13 @@ namespace LongevityWorldCup.Website.Middleware
 
             return html;
         }
+
+        private static string RemoveHeaderTagline(string html)
+            => Regex.Replace(
+                html,
+                @"\s*<span class=""tagline"">\s*longevity leaderboards\s*</span>",
+                string.Empty,
+                RegexOptions.IgnoreCase);
 
         private static string LocalizeHungarianFooter(string html)
         {
