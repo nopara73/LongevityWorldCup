@@ -236,18 +236,28 @@ public sealed class HomepageChromeRegressionBrowserTests
                 const halo = getComputedStyle(element, '::before');
                 return {
                     BackgroundImage: style.backgroundImage,
+                    Foreground: style.color,
                     BoxShadow: style.boxShadow,
                     AnimationName: style.animationName,
                     AnimationDuration: style.animationDuration,
                     AnimationIterationCount: style.animationIterationCount,
                     HaloDisplay: halo.display,
                     HaloPointerEvents: halo.pointerEvents,
+                    PlayWeight: getComputedStyle(element.querySelector('strong')).fontWeight,
+                    MiddleWeight: getComputedStyle(element.querySelector('.join-game-middle')).fontWeight,
+                    GameWeight: getComputedStyle(element.querySelector('.join-game-end')).fontWeight,
                     Transform: style.transform
                 };
             }
             """);
 
         Assert.Contains("linear-gradient", cues.BackgroundImage);
+        Assert.Contains("rgb(76, 175, 80)", cues.BackgroundImage);
+        Assert.Contains("rgb(102, 187, 106)", cues.BackgroundImage);
+        Assert.Equal("rgb(255, 255, 255)", cues.Foreground);
+        Assert.Equal("700", cues.PlayWeight);
+        Assert.Equal("400", cues.MiddleWeight);
+        Assert.Equal("700", cues.GameWeight);
         Assert.NotEqual("none", cues.BoxShadow);
         Assert.Equal("play-invitation", cues.AnimationName);
         Assert.Equal("0.88s", cues.AnimationDuration);
@@ -649,6 +659,8 @@ public sealed class HomepageChromeRegressionBrowserTests
                     return {
                         Name: action.getAttribute('aria-label'),
                         Text: action.innerText.trim().replace(/\s+/g, ' '),
+                        Foreground: style.color,
+                        BackgroundImage: style.backgroundImage,
                         IsScrolled: action.classList.contains('scrolled-button'),
                         Display: style.display,
                         Visibility: style.visibility,
@@ -705,6 +717,9 @@ public sealed class HomepageChromeRegressionBrowserTests
             $"{path} Play action overlapped the brand at {viewport.Width}x{viewport.Height}.");
         Assert.True(action.BackgroundAlpha >= 0.99,
             $"{path} Play action lost its opaque fill at {viewport.Width}x{viewport.Height}.");
+        Assert.Equal("rgb(255, 255, 255)", action.Foreground);
+        Assert.Contains("rgb(76, 175, 80)", action.BackgroundImage);
+        Assert.Contains("rgb(102, 187, 106)", action.BackgroundImage);
     }
 
     private sealed class HomepageHeaderDiagnostics
@@ -727,6 +742,8 @@ public sealed class HomepageChromeRegressionBrowserTests
     {
         public string Name { get; set; } = "";
         public string Text { get; set; } = "";
+        public string Foreground { get; set; } = "";
+        public string BackgroundImage { get; set; } = "";
         public bool IsScrolled { get; set; }
         public string Display { get; set; } = "";
         public string Visibility { get; set; } = "";
@@ -780,12 +797,16 @@ public sealed class HomepageChromeRegressionBrowserTests
     private sealed class InvitationCueDiagnostics
     {
         public string BackgroundImage { get; set; } = "";
+        public string Foreground { get; set; } = "";
         public string BoxShadow { get; set; } = "";
         public string AnimationName { get; set; } = "";
         public string AnimationDuration { get; set; } = "";
         public string AnimationIterationCount { get; set; } = "";
         public string HaloDisplay { get; set; } = "";
         public string HaloPointerEvents { get; set; } = "";
+        public string PlayWeight { get; set; } = "";
+        public string MiddleWeight { get; set; } = "";
+        public string GameWeight { get; set; } = "";
         public string Transform { get; set; } = "";
     }
 }
