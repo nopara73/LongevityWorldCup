@@ -6,6 +6,59 @@ namespace LongevityWorldCup.Tests;
 public sealed class HomepageChromeRegressionBrowserTests
 {
     [Fact]
+    public async Task LeaderboardPortraits_UseTheOriginalPhotoWhenGeneratedThumbnailsFail()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app);
+        await context.RouteAsync(
+            "**/generated/thumbs/athletes/devarajan_narayanan_thumb_md.webp*",
+            route => route.AbortAsync());
+        await context.RouteAsync(
+            "**/generated/thumbs/athletes/devarajan_narayanan_thumb_sm.webp*",
+            route => route.AbortAsync());
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?view=bortz", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('view-bortz')?.checked === true && document.querySelector('tr[data-athlete-name=\"Devarajan Narayanan\"] img.portrait')");
+
+        var athleteRow = page.Locator("tr[data-athlete-name=\"Devarajan Narayanan\"]");
+        var rowPortrait = athleteRow.Locator("img.portrait");
+        await rowPortrait.ScrollIntoViewIfNeededAsync();
+        await page.WaitForFunctionAsync(
+            """
+            () => {
+                const image = document.querySelector('tr[data-athlete-name="Devarajan Narayanan"] img.portrait');
+                return image?.complete
+                    && image.naturalWidth > 0
+                    && image.src.includes('/athletes/devarajan_narayanan/devarajan_narayanan.webp');
+            }
+            """);
+
+        Assert.DoesNotContain("portrait-fallback", await rowPortrait.GetAttributeAsync("class") ?? "");
+
+        await athleteRow.Locator(".athlete-name").ClickAsync();
+        await page.WaitForFunctionAsync(
+            """
+            () => {
+                const image = document.getElementById('modalProfilePic');
+                return document.getElementById('detailsModal')?.style.display === 'block'
+                    && image?.complete
+                    && image.naturalWidth > 0
+                    && image.src.includes('/athletes/devarajan_narayanan/devarajan_narayanan.webp');
+            }
+            """);
+
+        var modalPortrait = page.Locator("#modalProfilePic");
+        Assert.DoesNotContain("portrait-fallback", await modalPortrait.GetAttributeAsync("class") ?? "");
+    }
+
+    [Fact]
     public async Task LeaderboardChangedControls_RetainTheMasterAttentionCue()
     {
         await using var app = await BrowserTestApp.StartAsync();

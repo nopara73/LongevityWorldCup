@@ -3821,13 +3821,47 @@
         renderBestRankLink
     };
 
-    function getAthletePortraitUrl(athlete) {
-        return (athlete && (athlete.profilePicThumb || athlete.profilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic)) || defaultProfilePic;
+    function getAthletePortraitUrls(athlete) {
+        if (!athlete) return [];
+
+        return [
+            athlete.profilePicThumb,
+            athlete.ProfilePicLeaderboardThumb,
+            athlete.ProfilePicThumb,
+            athlete.profilePic,
+            athlete.ProfilePic
+        ].filter((candidate, index, candidates) =>
+            typeof candidate === 'string'
+            && candidate.trim()
+            && candidates.indexOf(candidate) === index);
     }
 
-    function wirePortraitFallback(img) {
+    function getAthletePortraitUrl(athlete) {
+        return getAthletePortraitUrls(athlete)[0] || defaultProfilePic;
+    }
+
+    function wirePortraitFallback(img, athlete) {
         if (!img) return;
+
+        const candidates = getAthletePortraitUrls(athlete);
+        const toAbsoluteUrl = candidate => {
+            try {
+                return new URL(candidate, window.location.href).href;
+            } catch (_) {
+                return candidate;
+            }
+        };
+        const currentSrc = toAbsoluteUrl(img.getAttribute('src') || img.src || '');
+        const currentIndex = candidates.findIndex(candidate => toAbsoluteUrl(candidate) === currentSrc);
+        let nextCandidateIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
+
         img.onerror = function () {
+            const nextCandidate = candidates[nextCandidateIndex++];
+            if (nextCandidate) {
+                this.src = nextCandidate;
+                return;
+            }
+
             this.onerror = null;
             this.src = defaultProfilePic;
             this.classList.add('portrait-fallback');
@@ -4885,7 +4919,7 @@
 
                                         // Append the podiumItem to the podium container
                                         podium.appendChild(podiumItem);
-                                        wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'));
+                                        wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'), athlete);
 
                                         // After appending the podium item
                                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
@@ -4977,7 +5011,7 @@
                     const portraitImg = athleteCell.querySelector('img.portrait');
                     portraitImg.src = getAthletePortraitUrl(athlete);
                     portraitImg.alt = `${athlete.displayName} portrait`;
-                    wirePortraitFallback(portraitImg);
+                    wirePortraitFallback(portraitImg, athlete);
                     if (athlete.isNew) {
                         portraitImg.classList.add('is-new');
                         applyNewUI(portraitImg, row);
@@ -8022,7 +8056,7 @@
         profilePic.alt = `${modalDisplayName} Profile Picture`;
         profilePic.loading = 'lazy';
         profilePic.classList.remove('portrait-fallback');
-        wirePortraitFallback(profilePic);
+        wirePortraitFallback(profilePic, fullAthleteData);
 
         const athleteProfileEl = document.getElementById('athlete-profile');
         if (athleteProfileEl) {
