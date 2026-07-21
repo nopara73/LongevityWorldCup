@@ -205,6 +205,7 @@
         line-height: 1;
         vertical-align: middle;
         font-size: 0.68em;
+        font-weight: 400;
         position: relative;
         top: -1px;
     }
@@ -898,14 +899,19 @@
         padding: 0.65rem 1rem;
         border: 1px solid transparent;
         border-radius: var(--radius-md);
-        background: #19c3d1 linear-gradient(135deg, #19c3d1 0%, #65dce4 100%);
-        color: #102a43;
-        box-shadow: 0 5px 12px rgba(2, 12, 18, 0.28), 0 0 16px rgba(25, 195, 209, 0.3);
+        background: #4caf50 linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+        color: #ffffff;
+        box-shadow: 0 5px 12px rgba(2, 12, 18, 0.28), 0 0 16px rgba(72, 187, 120, 0.3);
         animation: play-invitation calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) 3;
         font-size: 0.9rem;
         letter-spacing: 0.02em;
         isolation: isolate;
         transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    }
+
+    .join-game > strong,
+    .scrolled-button > strong {
+        font-weight: 700;
     }
 
     .join-game:not(.scrolled-button) {
@@ -923,7 +929,7 @@
         position: absolute;
         inset: -5px;
         display: block;
-        border: 1px solid rgba(101, 220, 228, 0.32);
+        border: 1px solid rgba(102, 187, 106, 0.38);
         border-radius: calc(var(--radius-md) + var(--space-1));
         background: transparent;
         opacity: 0.8;
@@ -937,10 +943,10 @@
 
     .join-game:hover,
     .scrolled-button:hover {
-        background: #65dce4 linear-gradient(135deg, #65dce4 0%, #8be6eb 100%);
-        color: #0b2239;
+        background: #388e3c linear-gradient(135deg, #388e3c 0%, #4caf50 100%);
+        color: #ffffff;
         border-color: rgba(255, 255, 255, 0.35);
-        box-shadow: 0 9px 18px rgba(2, 12, 18, 0.34), 0 0 24px rgba(25, 195, 209, 0.52);
+        box-shadow: 0 9px 18px rgba(2, 12, 18, 0.34), 0 0 24px rgba(72, 187, 120, 0.52);
         transform: translateY(-2px) scale(1.025);
     }
 
@@ -950,19 +956,19 @@
 
     .join-game:active,
     .scrolled-button:active {
-        background: #19c3d1 linear-gradient(135deg, #19c3d1 0%, #65dce4 100%);
-        box-shadow: 0 3px 8px rgba(2, 12, 18, 0.28), 0 0 12px rgba(25, 195, 209, 0.28);
+        background: #4caf50 linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+        box-shadow: 0 3px 8px rgba(2, 12, 18, 0.28), 0 0 12px rgba(72, 187, 120, 0.28);
         transform: translateY(0) scale(0.985);
     }
 
     @keyframes play-invitation {
         0%,
         100% {
-            box-shadow: 0 5px 12px rgba(2, 12, 18, 0.28), 0 0 16px rgba(25, 195, 209, 0.3);
+            box-shadow: 0 5px 12px rgba(2, 12, 18, 0.28), 0 0 16px rgba(72, 187, 120, 0.3);
         }
 
         50% {
-            box-shadow: 0 7px 16px rgba(2, 12, 18, 0.32), 0 0 28px rgba(25, 195, 209, 0.58);
+            box-shadow: 0 7px 16px rgba(2, 12, 18, 0.32), 0 0 28px rgba(72, 187, 120, 0.58);
         }
     }
 
