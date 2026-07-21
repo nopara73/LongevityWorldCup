@@ -6,6 +6,38 @@ namespace LongevityWorldCup.Tests;
 public sealed class HomepageChromeRegressionBrowserTests
 {
     [Fact]
+    public async Task HomepageLeaderboardsLink_IsCentered()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+        foreach (var viewport in new[]
+                 {
+                     new ViewportSize { Width = 320, Height = 720 },
+                     new ViewportSize { Width = 1280, Height = 720 }
+                 })
+        {
+            await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
+            await SettleLayoutAsync(page);
+
+            var description = page.Locator(".game-description");
+            var link = description.Locator("a[href=\"/about\"]");
+            Assert.Equal("center", await description.EvaluateAsync<string>("element => getComputedStyle(element).textAlign"));
+
+            var horizontalOffset = await link.EvaluateAsync<double>(
+                "element => { const rect = element.getBoundingClientRect(); return Math.abs((rect.left + rect.right) / 2 - document.documentElement.clientWidth / 2); }");
+            Assert.InRange(horizontalOffset, 0, 1);
+        }
+    }
+
+    [Fact]
     public async Task SharedHeaderBrand_HoverKeepsItsTextColorAndUsesPointerCursor()
     {
         await using var app = await BrowserTestApp.StartAsync();

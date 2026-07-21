@@ -360,8 +360,7 @@ html body #lmxParticipantTabs .lmx-tab[aria-selected="true"] {
 }
 
 .section-container p,
-.section-container li,
-.game-description {
+.section-container li {
     text-align: left;
 }
 
