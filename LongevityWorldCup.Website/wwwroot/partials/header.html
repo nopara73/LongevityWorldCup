@@ -1015,6 +1015,24 @@
         transform: none;
     }
 
+    /* Keep forward progress in the Play flow visually distinct from the site's
+       teal navigation accent. The green class is already the flow's semantic
+       marker for the contextual primary action. */
+    body.play-flow-route {
+        --play-flow-action-color: #1f7a38;
+        --play-flow-action-hover-color: #17612d;
+    }
+
+    body.play-flow-route .option-button.green {
+        border-color: transparent;
+        background: var(--play-flow-action-color);
+        color: #ffffff;
+    }
+
+    body.play-flow-route .option-button.green:hover {
+        background: var(--play-flow-action-hover-color);
+    }
+
     /* Content imagery follows the same quiet boundary treatment as other media.
        This deliberately neutralizes the legacy poster-style frame above. */
     .illustration {

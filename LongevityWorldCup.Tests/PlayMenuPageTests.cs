@@ -145,8 +145,12 @@ public sealed class PlayMenuPageTests
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
 
+        var html = await client.GetStringAsync("/play");
         var playMenu = await client.GetStringAsync("/js/play-menu.js");
 
+        Assert.Contains("body.play-flow-route .option-button.green", html);
+        Assert.Contains("--play-flow-action-color: #1f7a38;", html);
+        Assert.Contains("--play-flow-action-hover-color: #17612d;", html);
         Assert.Contains("function promotePlayStartAction(button)", playMenu);
         Assert.Contains("button.classList.remove('grey', 'flow-action--secondary');", playMenu);
         Assert.Contains("button.classList.add('green');", playMenu);

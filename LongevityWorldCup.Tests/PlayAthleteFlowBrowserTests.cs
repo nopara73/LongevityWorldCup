@@ -7,6 +7,38 @@ namespace LongevityWorldCup.Tests;
 public sealed class PlayAthleteFlowBrowserTests
 {
     [Fact]
+    public async Task PlayForwardActions_KeepTheirGreenNavigationCue()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1280, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => !document.getElementById('newGameBtn').disabled && getComputedStyle(document.getElementById('newGameBtn')).backgroundColor === 'rgb(31, 122, 56)'");
+
+        await ExpectGreenPlayActionAsync(page.Locator("#newGameBtn"));
+
+        await page.Locator("#newGameBtn").ClickAsync();
+        await page.WaitForURLAsync("**/join");
+        await page.WaitForFunctionAsync(
+            "() => !document.getElementById('joinGoProButton').disabled && getComputedStyle(document.getElementById('joinGoProButton')).backgroundColor === 'rgb(31, 122, 56)'");
+
+        await ExpectGreenPlayActionAsync(page.Locator("#joinGoProButton"));
+    }
+
+    [Fact]
     public async Task PaymentOfferFailures_DistinguishPreparationFromStorage()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -998,6 +1030,17 @@ public sealed class PlayAthleteFlowBrowserTests
             }
             """,
             activePanelId);
+    }
+
+    private static async Task ExpectGreenPlayActionAsync(ILocator action)
+    {
+        Assert.Contains("green", (await action.GetAttributeAsync("class"))?.Split(' ') ?? []);
+        Assert.Equal(
+            "rgb(31, 122, 56)",
+            await action.EvaluateAsync<string>("element => getComputedStyle(element).backgroundColor"));
+        Assert.Equal(
+            "rgb(255, 255, 255)",
+            await action.EvaluateAsync<string>("element => getComputedStyle(element).color"));
     }
 
     private static async Task ExpectNoPlayPanelTransitionAsync(IPage page)
