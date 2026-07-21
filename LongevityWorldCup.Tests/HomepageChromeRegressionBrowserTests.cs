@@ -6,6 +6,43 @@ namespace LongevityWorldCup.Tests;
 public sealed class HomepageChromeRegressionBrowserTests
 {
     [Fact]
+    public async Task LeaderboardChangedControls_RetainTheMasterAttentionCue()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/leaderboard?view=bortz", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('view-bortz')?.checked === true && document.querySelector('.sidebar-toggle')?.classList.contains('has-active-state') === true");
+        await page.Locator("#athleteSearch").ClickAsync();
+        await page.WaitForFunctionAsync(
+            "() => getComputedStyle(document.getElementById('athleteSearch')).borderColor === 'rgb(255, 64, 129)'");
+
+        var cueColors = await page.EvaluateAsync<string[]>(
+            """
+            () => {
+                const toggle = document.querySelector('.sidebar-toggle');
+                const trophy = document.querySelector('.sidebar-icon');
+                const search = document.getElementById('athleteSearch');
+                const searchIcon = document.querySelector('.search-icon');
+                return [
+                    getComputedStyle(toggle, '::after').backgroundColor,
+                    getComputedStyle(trophy, '::after').backgroundColor,
+                    getComputedStyle(search).borderColor,
+                    getComputedStyle(searchIcon).color
+                ];
+            }
+            """);
+
+        Assert.All(cueColors, color => Assert.Equal("rgb(255, 64, 129)", color));
+    }
+
+    [Fact]
     public async Task HomepageLeaderboardsLink_IsCentered()
     {
         await using var app = await BrowserTestApp.StartAsync();

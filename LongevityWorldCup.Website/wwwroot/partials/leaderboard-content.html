@@ -13,6 +13,9 @@
         --tier-amateur-bg-even: rgba(59, 130, 246, 0.11);
         --tier-amateur-border: 4px solid rgba(37, 99, 235, 0.45);
         --tier-amateur-hover: rgba(59, 130, 246, 0.12);
+        /* Preserve the pre-visual-system attention cue for changed filters and
+           clear actions without reintroducing it as a general page accent. */
+        --leaderboard-change-cue: #ff4081;
     }
 
     /* =========================
@@ -2853,6 +2856,34 @@
         background: var(--card-bg);
         color: var(--primary-color-hover);
         box-shadow: inset 0 -3px 0 var(--primary-color);
+    }
+
+    .sidebar-toggle.has-active-state::after,
+    .sidebar.has-active-state .sidebar-title .sidebar-icon::after {
+        background: var(--leaderboard-change-cue);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+    }
+
+    #athleteSearch:focus {
+        border-color: var(--leaderboard-change-cue);
+        box-shadow: 0 0 0 4px rgba(255, 64, 129, .16), 0 4px 10px rgba(0, 0, 0, .08);
+    }
+
+    .search-container:focus-within .search-icon,
+    .clear-icon:hover,
+    .clear-icon:focus-visible {
+        color: var(--leaderboard-change-cue);
+    }
+
+    .clear-icon:hover,
+    .clear-icon:focus-visible {
+        background: rgba(255, 64, 129, .08);
+        border-color: rgba(255, 64, 129, .22);
+    }
+
+    .clear-icon:focus-visible {
+        outline-color: var(--leaderboard-change-cue);
+        box-shadow: 0 0 0 4px rgba(255, 64, 129, .16), 0 4px 10px rgba(0, 0, 0, .1);
     }
 
     .ranking-explanation,
