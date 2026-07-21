@@ -6,6 +6,44 @@ namespace LongevityWorldCup.Tests;
 public sealed class HomepageChromeRegressionBrowserTests
 {
     [Fact]
+    public async Task SharedHeaderBrand_HoverKeepsItsTextColorAndUsesPointerCursor()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/select-athlete", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await SettleLayoutAsync(page);
+
+        await AssertHoverKeepsColorAndUsesPointerAsync(
+            page.Locator("header[role=\"banner\"] .header-link"));
+
+        await page.GotoAsync("/history", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.EvaluateAsync("window.scrollTo(0, Math.min(700, document.documentElement.scrollHeight - innerHeight))");
+        await SettleLayoutAsync(page);
+
+        await page.Locator("#site-sticky-header")
+            .WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        await AssertHoverKeepsColorAndUsesPointerAsync(page.Locator(".site-sticky-header-link"));
+
+        static async Task AssertHoverKeepsColorAndUsesPointerAsync(ILocator brand)
+        {
+            var colorBeforeHover = await brand.EvaluateAsync<string>("element => getComputedStyle(element).color");
+
+            await brand.HoverAsync();
+
+            var colorWhileHovered = await brand.EvaluateAsync<string>("element => getComputedStyle(element).color");
+            var cursorWhileHovered = await brand.EvaluateAsync<string>("element => getComputedStyle(element).cursor");
+            Assert.Equal(colorBeforeHover, colorWhileHovered);
+            Assert.Equal("pointer", cursorWhileHovered);
+        }
+    }
+
+    [Fact]
     public async Task HomepagePrimaryAction_RemainsProminentVisibleAndSeparateFromTheBrand()
     {
         await using var app = await BrowserTestApp.StartAsync();
