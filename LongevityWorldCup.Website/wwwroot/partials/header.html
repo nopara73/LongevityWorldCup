@@ -913,6 +913,10 @@
         right: max(var(--space-5), env(safe-area-inset-right, 0px));
     }
 
+    .scrolled-button {
+        top: max(var(--space-1), env(safe-area-inset-top, 0px));
+    }
+
     .join-game::before,
     .scrolled-button::before {
         content: '';
@@ -924,6 +928,11 @@
         background: transparent;
         opacity: 0.8;
         pointer-events: none;
+    }
+
+    .scrolled-button::before {
+        inset: calc(var(--space-1) / -2);
+        border-radius: calc(var(--radius-md) + (var(--space-1) / 2));
     }
 
     .join-game:hover,
