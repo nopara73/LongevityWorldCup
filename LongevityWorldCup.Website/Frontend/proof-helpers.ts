@@ -300,6 +300,9 @@ window.setupProofUploadHTML = function (
         if (!notice) {
             notice = document.createElement('p');
             notice.className = 'proof-upload-notice smaller-text';
+            notice.setAttribute('role', 'status');
+            notice.setAttribute('aria-live', 'polite');
+            notice.setAttribute('aria-atomic', 'true');
             proofImageContainer.appendChild(notice);
         }
         notice.textContent = message;
@@ -586,12 +589,15 @@ window.updateProofUploadButtons = function (
     if (!nextButton || !uploadProofButton) return;
 
     const uploadIsRequired = nextButton.disabled;
-    [uploadProofButton, cameraButton].forEach(button => {
-        if (!button) return;
-        button.classList.toggle('green', uploadIsRequired);
-        button.classList.toggle('grey', !uploadIsRequired);
-        button.classList.toggle('flow-action--secondary', !uploadIsRequired);
-    });
+    uploadProofButton.classList.toggle('green', uploadIsRequired);
+    uploadProofButton.classList.toggle('grey', !uploadIsRequired);
+    uploadProofButton.classList.toggle('flow-action--secondary', !uploadIsRequired);
+
+    // Camera capture is an alternative input method, not a competing primary action.
+    if (cameraButton) {
+        cameraButton.classList.remove('green');
+        cameraButton.classList.add('grey', 'flow-action--secondary');
+    }
 }
 
 function generateBiomarkerChecklist(

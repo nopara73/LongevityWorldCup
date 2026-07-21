@@ -171,7 +171,7 @@
       font-weight: 900;
       text-decoration: none;
       cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      transition: transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
     button {
@@ -296,13 +296,14 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="/css/error-system.css?v=20260719-1">
 </head>
 <body>
   <main class="error-card" aria-labelledby="page-title">
     <div class="card-bar">
       <div class="brand">
         <span class="mark" aria-hidden="true">
-          <img src="/assets/favicon-128x128.png" alt="">
+          <img src="/assets/favicon-128x128.png" alt="" width="128" height="128">
         </span>
         <span>Longevity World Cup</span>
       </div>
@@ -311,7 +312,7 @@
 
     <div class="card-body">
       <figure class="visual">
-        <img src="/error/herold.png" alt="Herold waiting through a temporary outage">
+        <img src="/error/herold.png" alt="Herold waiting through a temporary outage" width="1024" height="1536" decoding="async">
       </figure>
 
       <section>

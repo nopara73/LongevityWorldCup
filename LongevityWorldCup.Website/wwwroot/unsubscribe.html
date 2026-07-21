@@ -12,10 +12,10 @@
             max-width: 620px;
             margin: 2.25rem auto;
             padding: 2rem;
-            background: rgba(255, 255, 255, 0.84);
-            border: 1px solid rgba(255, 255, 255, 0.68);
-            border-radius: 16px;
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
+            background: var(--lwc-surface, #ffffff);
+            border: 1px solid var(--lwc-border, #d7e0e6);
+            border-radius: var(--lwc-radius-md, 8px);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
             text-align: center;
         }
 
@@ -27,15 +27,10 @@
             overflow-wrap: normal;
         }
 
-        .unsubscribe-panel h1[data-aos]:not(.aos-animate) {
-            opacity: 1;
-            transform: none;
-        }
-
         .unsubscribe-copy {
             max-width: 34rem;
             margin: 0 auto;
-            color: #243446;
+            color: var(--lwc-muted, #52606d);
             line-height: 1.45;
         }
 
@@ -49,7 +44,7 @@
 
         .unsubscribe-form label {
             font-weight: 700;
-            color: #243446;
+            color: var(--lwc-ink, #17212b);
         }
 
         .unsubscribe-form input {
@@ -57,10 +52,10 @@
             box-sizing: border-box;
             min-height: 46px;
             padding: 0.75rem 0.85rem;
-            border: 1px solid rgba(80, 97, 118, 0.28);
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.92);
-            color: #243446;
+            border: 1px solid var(--lwc-border-strong, #71808d);
+            border-radius: var(--lwc-radius-sm, 4px);
+            background: var(--lwc-surface, #ffffff);
+            color: var(--lwc-ink, #17212b);
             font: inherit;
         }
 
@@ -80,24 +75,24 @@
             margin-top: 0.25rem;
             padding: 0.75rem 1.15rem;
             border: none;
-            border-radius: 10px;
-            background: #0a7c0a;
-            color: #fff;
+            border-radius: var(--lwc-radius-sm, 4px);
+            background: var(--lwc-accent, #087685);
+            color: var(--lwc-on-accent, #ffffff);
             font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 8px 18px rgba(10, 124, 10, 0.16);
-            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+            box-shadow: none;
+            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .unsubscribe-button:hover,
         .unsubscribe-button:focus-visible {
-            background: #096f09;
-            box-shadow: 0 10px 22px rgba(10, 124, 10, 0.22);
-            transform: translateY(-1px);
+            background: var(--lwc-accent-hover, #065d68);
+            box-shadow: none;
+            transform: none;
         }
 
         .unsubscribe-button:focus-visible {
-            outline: 3px solid rgba(10, 124, 10, 0.22);
+            outline: 3px solid var(--lwc-accent, #087685);
             outline-offset: 2px;
         }
 
@@ -108,11 +103,19 @@
             text-align: center;
         }
 
+        .unsubscribe-message.is-error {
+            color: var(--lwc-danger, #b4233b);
+        }
+
+        .unsubscribe-message.is-success {
+            color: var(--lwc-success, #1f7a38);
+        }
+
         @media (max-width: 600px) {
             .unsubscribe-panel {
                 margin: 1.5rem 1rem;
                 padding: 1.35rem 1rem;
-                border-radius: 14px;
+                border-radius: var(--lwc-radius-md, 8px);
             }
 
             .unsubscribe-panel h1 {
@@ -177,7 +180,7 @@
     <!--HEADER-->
     <main>
         <section class="unsubscribe-panel">
-            <h1 data-aos="fade" data-aos-duration="700" data-aos-delay="250">Unsubscribe</h1>
+            <h1>Unsubscribe</h1>
             <p class="unsubscribe-copy">Remove your email from the Longevity World Cup yearly newsletter.</p>
 
             <form id="unsubscribe-form" class="unsubscribe-form" novalidate>
@@ -212,7 +215,8 @@
 
             function setMessage(text, isError) {
                 message.textContent = text;
-                message.style.color = isError ? "#cc0000" : "#0a7c0a";
+                message.classList.toggle("is-error", Boolean(text) && isError);
+                message.classList.toggle("is-success", Boolean(text) && !isError);
             }
 
             form.addEventListener("submit", async function (event) {

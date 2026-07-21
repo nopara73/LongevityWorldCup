@@ -613,6 +613,7 @@ interface Window {
     let lastBioageResultShown = false;
     let lastBioageResultActionsVisible = false;
     let resultRevealFrame = 0;
+    let resultResizeObserver: ResizeObserver | null = null;
 
     function getShownBioageResultElement(): HTMLElement | null {
         return document.querySelector<HTMLElement>('#phenoAgeResult.show, #bortzAgeResult.show');
@@ -710,21 +711,24 @@ interface Window {
 
     }
 
-    function scheduleBioageResultReveal(resultElement: HTMLElement | null): void {
+    function scheduleBioageResultReveal(
+        resultElement: HTMLElement | null,
+        revealOptions: BioageResultRevealOptions = {}
+    ): void {
         if (!resultElement) return;
         clearScheduledBioageResultReveals();
 
-        const revealIfCurrent = (instant = false): void => {
+        const revealIfCurrent = (): void => {
             if (!isRenderedElement(resultElement)) return;
             if (getShownBioageResultElement() !== resultElement) return;
 
-            revealBioageResult(resultElement, { instant });
+            revealBioageResult(resultElement, revealOptions);
         };
 
         resultRevealFrame = window.requestAnimationFrame(() => {
             resultRevealFrame = window.requestAnimationFrame(() => {
                 resultRevealFrame = 0;
-                revealIfCurrent(false);
+                revealIfCurrent();
             });
         });
     }
@@ -765,6 +769,17 @@ interface Window {
             });
         });
 
+        resultResizeObserver?.disconnect();
+        if ('ResizeObserver' in window) {
+            resultResizeObserver = new ResizeObserver(entries => {
+                const resultElement = getShownBioageResultElement();
+                if (!resultElement || !entries.some(entry => entry.target === resultElement)) return;
+
+                scheduleBioageResultReveal(resultElement, { instant: true });
+            });
+            document.querySelectorAll<HTMLElement>('#phenoAgeResult, #bortzAgeResult')
+                .forEach(resultElement => resultResizeObserver?.observe(resultElement));
+        }
     }
 
     function hideUpdateModeStepNavigation(): void {

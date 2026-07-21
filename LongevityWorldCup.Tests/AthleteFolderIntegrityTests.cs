@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -22,6 +23,38 @@ public class AthleteFolderIntegrityTests
         Assert.True(
             issues.Length == 0,
             "Athlete folders must expose required public assets:" + Environment.NewLine + string.Join(Environment.NewLine, issues));
+    }
+
+    [Fact]
+    public void AthleteProfileImagesDecodeWithNonZeroDimensions()
+    {
+        var repoRoot = FindRepoRoot();
+        var athletesRoot = Path.Combine(repoRoot, "LongevityWorldCup.Website", "wwwroot", "athletes");
+        var issues = new List<string>();
+
+        foreach (var folder in Directory.GetDirectories(athletesRoot))
+        {
+            var slug = Path.GetFileName(folder);
+            foreach (var profileImage in Directory
+                         .EnumerateFiles(folder, $"{slug}.*", SearchOption.TopDirectoryOnly)
+                         .Where(path => ProfileImageExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)))
+            {
+                try
+                {
+                    var imageInfo = Image.Identify(profileImage);
+                    if (imageInfo is null || imageInfo.Width <= 0 || imageInfo.Height <= 0)
+                        issues.Add($"{slug}: profile image has invalid dimensions ({Path.GetFileName(profileImage)})");
+                }
+                catch (Exception ex)
+                {
+                    issues.Add($"{slug}: profile image does not decode ({Path.GetFileName(profileImage)}): {ex.Message}");
+                }
+            }
+        }
+
+        Assert.True(
+            issues.Count == 0,
+            "Athlete profile images must remain decodable:" + Environment.NewLine + string.Join(Environment.NewLine, issues));
     }
 
     private static IEnumerable<string> ValidateAthleteFolder(string folder)

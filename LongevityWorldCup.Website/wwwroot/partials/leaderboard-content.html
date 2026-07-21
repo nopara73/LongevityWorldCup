@@ -13,6 +13,9 @@
         --tier-amateur-bg-even: rgba(59, 130, 246, 0.11);
         --tier-amateur-border: 4px solid rgba(37, 99, 235, 0.45);
         --tier-amateur-hover: rgba(59, 130, 246, 0.12);
+        /* Preserve the pre-visual-system attention cue for changed filters and
+           clear actions without reintroducing it as a general page accent. */
+        --leaderboard-change-cue: #ff4081;
     }
 
     /* =========================
@@ -20,10 +23,10 @@
        ========================= */
     .visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
     .highlight{
-        background:rgba(0,188,212,.16); color:#10333a; border-radius:.28em; padding:0 .12em;
-        box-shadow:inset 0 -0.12em 0 rgba(255,64,129,.34);
+        background:var(--lwc-accent-soft, rgba(0,188,212,.16)); color:var(--lwc-ink, var(--dark-text-color)); border-radius:.28em; padding:0 .12em;
+        box-shadow:inset 0 -0.12em 0 rgba(8,118,133,.34);
     }
-    .fade-out{ opacity:0; transition:opacity .4s ease; }
+    .fade-out{ opacity:0; transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); }
     .no-results{ color:var(--primary-color); font-weight:bold; text-align:center; padding:1rem; font-size:1.2rem; }
     .leaderboard table tbody tr.no-results{ cursor:default; }
     .leaderboard table tbody tr.no-results:hover{ transform:none; box-shadow:none; }
@@ -34,24 +37,40 @@
         box-sizing:border-box;
     }
     .no-results-empty-state p{ margin:0; }
-    .show-all-athletes-btn{
+    .show-all-athletes-btn,
+    .leaderboard-retry-button{
         min-height:44px; border:1px solid var(--primary-color); border-radius:999px; background:var(--card-bg); color:var(--primary-color);
         font:inherit; font-size:.9rem; font-weight:700; padding:.55rem 1rem; cursor:pointer; transform:none !important;
         appearance:none; -webkit-appearance:none; box-shadow:none;
-        transition:border-color .2s ease, color .2s ease, background-color .2s ease, box-shadow .2s ease;
+        transition:border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
     .show-all-athletes-btn:hover,
     .show-all-athletes-btn:active,
-    .show-all-athletes-btn:focus{
-        background:rgba(255,64,129,.08); color:var(--secondary-color); border-color:var(--secondary-color);
+    .leaderboard-retry-button:hover,
+    .leaderboard-retry-button:active{
+        background:rgba(8,118,133,.08); color:var(--secondary-color); border-color:var(--secondary-color);
         outline:none; box-shadow:none; transform:none !important; font:inherit; font-size:.9rem; font-weight:700;
     }
+    .show-all-athletes-btn:focus-visible,
+    .leaderboard-retry-button:focus-visible{
+        background:rgba(0,188,212,.08); color:var(--primary-color); border-color:var(--primary-color);
+        outline:3px solid rgba(0,188,212,.45); outline-offset:3px; box-shadow:none; transform:none !important;
+    }
+    .leaderboard-status{
+        position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+        clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+    .leaderboard-recovery{
+        display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.75rem;
+        width:min(100%, 400px); margin:0 auto; color:var(--dark-text-color); font-size:1rem; font-weight:400;
+    }
+    .leaderboard-recovery p{ margin:0; }
     #comingSoon{ font-size:.5rem; font-weight:normal; }
 
     /* Common transition for table rows and podium items */
-    .leaderboard table tbody tr, .podium-item{ transition:opacity .3s ease, transform .3s ease; }
-    .leaderboard table tbody tr.fade-in{ animation:filterRowFade .22s ease-out both; }
-    .podium-item.fade-in{ animation:filterPodiumFade .22s ease-out both; }
+    .leaderboard table tbody tr, .podium-item{ transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); }
+    .leaderboard table tbody tr.fade-in{ animation:filterRowFade var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
+    .podium-item.fade-in{ animation:filterPodiumFade var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both; }
 
     @keyframes filterRowFade{
         from{ opacity:.82; }
@@ -72,7 +91,7 @@
        3) Global layout / shell
        ========================= */
     .main-container{ display:flex; align-items:flex-start; }
-    .content{ flex-grow:1; transition:margin-left .3s ease; }
+    .content{ flex-grow:1; transition:margin-left var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); }
 
     .leaderboard{
         --leaderboard-table-height: calc(100vh - 2rem);
@@ -225,7 +244,7 @@
         border-radius:6px;
     }
     .leaderboard table th:nth-child(2){ text-align:left; }
-    .leaderboard table tr:nth-child(even){ background-color:rgba(240,244,248,.5); }
+    .leaderboard table tr:nth-child(even){ background-color:var(--lwc-surface-muted, rgba(240,244,248,.5)); }
 
     /* Amateur (pheno age) tier – blueish hue; pro (Bortz) rows use default table styling */
     .leaderboard table tbody tr.tier-amateur{
@@ -301,7 +320,7 @@
        ========================= */
     .sidebar{
         position:relative; width:50px; min-height:var(--leaderboard-table-height); padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
-        margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width .3s ease, padding .3s ease;
+        margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
         overflow:visible; flex-shrink:0;
     }
     .sidebar:hover:not(.button-collapsed), .sidebar.expanded{
@@ -323,34 +342,34 @@
     .sidebar.partially-expanded{ width:80px; }
     .sidebar-toggle{
         background:var(--card-bg); border:2px solid var(--primary-color); border-radius:50%; width:44px; height:44px;
-        display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color .3s ease, border-color .3s ease, box-shadow .3s ease, transform .3s ease; margin-right:1rem; position:relative;
+        display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); margin-right:1rem; position:relative;
     }
     .sidebar-toggle.active{ background:var(--primary-color); transform:scale(1); }
     .sidebar-toggle.active i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state:not(.active){
-        background:linear-gradient(180deg, var(--card-bg), rgba(255,64,129,.07)); border-color:var(--secondary-color);
-        box-shadow:0 0 0 3px rgba(255,64,129,.14), 0 8px 18px rgba(0,0,0,.1);
+        background:var(--lwc-accent-soft, rgba(8,118,133,.07)); border-color:var(--secondary-color);
+        box-shadow:0 0 0 3px rgba(8,118,133,.14), 0 8px 18px rgba(0,0,0,.1);
     }
     .sidebar-toggle.has-active-state:not(.active) i{ color:var(--secondary-color); }
     .sidebar-toggle:hover{ background:var(--primary-color); transform:scale(1.05); }
-    .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color .3s ease; }
+    .sidebar-toggle i{ color:var(--primary-color); font-size:1.5rem; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); }
     .sidebar-toggle:hover i{ color:var(--card-bg); }
     .sidebar-toggle:focus-visible,
     .sidebar-toggle.is-keyboard-focus{
         outline:2px solid var(--secondary-color); outline-offset:3px;
-        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(0,0,0,.12);
+        box-shadow:0 0 0 4px rgba(8,118,133,.16), 0 8px 18px rgba(0,0,0,.12);
     }
     .sidebar-toggle:focus-visible i,
     .sidebar-toggle.is-keyboard-focus i{ color:var(--secondary-color); }
     .sidebar-toggle.active:focus-visible,
     .sidebar-toggle.active.is-keyboard-focus{
         border-color:var(--secondary-color);
-        box-shadow:0 0 0 4px rgba(255,64,129,.18), 0 8px 18px rgba(255,64,129,.16);
+        box-shadow:0 0 0 4px rgba(8,118,133,.18), 0 8px 18px rgba(8,118,133,.16);
     }
     .sidebar-toggle.active:focus-visible i,
     .sidebar-toggle.active.is-keyboard-focus i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state:not(.active):hover{
-        background:var(--secondary-color); border-color:var(--secondary-color); box-shadow:0 10px 22px rgba(255,64,129,.24);
+        background:var(--secondary-color); border-color:var(--secondary-color); box-shadow:0 10px 22px rgba(8,118,133,.24);
     }
     .sidebar-toggle.has-active-state:not(.active):hover i{ color:var(--card-bg); }
     .sidebar-toggle.has-active-state::after{
@@ -361,7 +380,7 @@
     .sidebar-close{
         display:none; align-items:center; justify-content:center; background:rgba(0,188,212,.08); border:1px solid rgba(0,188,212,.22);
         font-size:1rem; color:var(--primary-color); cursor:pointer; position:absolute; top:.9rem; right:.9rem; z-index:10;
-        transition:background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease;
+        transition:background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         width:44px; height:44px; border-radius:50%; box-sizing:border-box;
     }
     .sidebar.expanded .sidebar-close{ display:block; }
@@ -373,7 +392,7 @@
     .sidebar-close:focus-visible,
     .sidebar-close.is-keyboard-focus{
         background:var(--card-bg); border-color:var(--secondary-color); color:var(--secondary-color);
-        outline:none; transform:scale(1.04); box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 8px 18px rgba(255,64,129,.16);
+        outline:none; transform:scale(1.04); box-shadow:0 0 0 4px rgba(8,118,133,.16), 0 8px 18px rgba(8,118,133,.16);
     }
 
     .collapsed-title{
@@ -405,10 +424,11 @@
     .sidebar:hover .sidebar-title .sidebar-title-text,
     .sidebar.expanded .sidebar-title .sidebar-title-text{ display:inline-block; }
     .clear-sidebar-filters{
-        display:none; align-items:center; gap:.35rem; min-height:36px; margin:.6rem 0 1rem; padding:.35rem .65rem;
+        display:none; align-items:center; gap:.35rem; min-height:44px; margin:.6rem 0 1rem; padding:.35rem .65rem;
         color:#777; background:rgba(0,0,0,.035); border:1px solid rgba(0,0,0,.07); border-radius:999px;
         font-size:.85rem; font-weight:700; cursor:pointer; line-height:1.2; visibility:hidden; pointer-events:none;
-        box-sizing:border-box; transition:background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+        font-family:inherit; appearance:none; -webkit-appearance:none; box-sizing:border-box;
+        transition:background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
     .clear-sidebar-filters .clear-sidebar-filters-icon{
         display:inline-block; width:.85rem; color:inherit; font-size:.85rem; line-height:1; text-align:center; vertical-align:-.05em;
@@ -422,11 +442,11 @@
     .sidebar.expanded .clear-sidebar-filters{ display:inline-flex; }
     .sidebar.has-active-state:hover .clear-sidebar-filters,
     .sidebar.has-active-state.expanded .clear-sidebar-filters{
-        visibility:visible; pointer-events:auto; color:var(--secondary-color); background:rgba(255,64,129,.08); border-color:rgba(255,64,129,.22);
+        visibility:visible; pointer-events:auto; color:var(--secondary-color); background:rgba(8,118,133,.08); border-color:rgba(8,118,133,.22);
     }
     .clear-sidebar-filters:focus-visible{
-        color:var(--secondary-color); background:linear-gradient(90deg, rgba(255,64,129,.1), rgba(0,188,212,.06));
-        border-color:rgba(255,64,129,.42); outline:none; box-shadow:0 0 0 4px rgba(255,64,129,.14), 0 6px 14px rgba(255,64,129,.1);
+        color:var(--secondary-color); background:var(--lwc-accent-soft, rgba(8,118,133,.1));
+        border-color:rgba(8,118,133,.42); outline:none; box-shadow:0 0 0 4px rgba(8,118,133,.14), 0 6px 14px rgba(8,118,133,.1);
     }
 
     .sidebar:hover ~ .content, .sidebar.expanded ~ .content{ margin-left:200px; }
@@ -434,7 +454,7 @@
     .filter-section{ margin-bottom:1.5rem; width:100%; }
     .filter-section h3{
         display:flex; align-items:center; gap:.5rem; margin-bottom:.55rem; color:var(--primary-color); font-size:1.2rem;
-        transition:color .2s ease;
+        transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
     .filter-section.has-active-filter h3{ color:var(--secondary-color); }
     .filter-section ul{ list-style:none; padding:0; margin:0; display:grid; gap:.35rem; }
@@ -444,12 +464,12 @@
     }
     .filter-section li{ margin:0; }
     .filter-section label{
-        display:flex; align-items:center; min-height:38px; padding:.42rem .55rem; border:1px solid rgba(0,0,0,.045);
-        border-radius:12px; box-sizing:border-box; cursor:pointer; color:#555; line-height:1.25;
-        background:rgba(0,0,0,.025); transition:background-color .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+        display:flex; align-items:center; min-height:44px; padding:.42rem .55rem; border:1px solid rgba(0,0,0,.045);
+        border-radius:8px; box-sizing:border-box; cursor:pointer; color:var(--lwc-ink, #555); line-height:1.25;
+        background:var(--lwc-surface-muted, rgba(0,0,0,.025)); transition:background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
     .filter-section label.is-zero-count:not(.active){
-        color:#909090; background:rgba(0,0,0,.012); border-color:rgba(0,0,0,.055); border-style:dashed;
+        color:var(--lwc-muted, #526373); background:var(--lwc-surface-muted, rgba(0,0,0,.012)); border-color:var(--lwc-border, rgba(0,0,0,.055)); border-style:dashed;
         cursor:not-allowed; box-shadow:none; filter:grayscale(.65);
     }
     .filter-section label.is-zero-count:not(.active) input[type="checkbox"]{
@@ -465,25 +485,25 @@
     #athleteFlag .lwc-flag-icon{ margin-right:.45rem; vertical-align:-.08em; }
     .filter-section label:hover{ color:var(--primary-color); background:rgba(0,188,212,.06); border-color:rgba(0,188,212,.18); }
     .filter-section label.is-zero-count:not(.active):hover{
-        color:#909090; background:rgba(0,0,0,.012); border-color:rgba(0,0,0,.055);
+        color:var(--lwc-muted, #526373); background:var(--lwc-surface-muted, rgba(0,0,0,.012)); border-color:var(--lwc-border, rgba(0,0,0,.055));
     }
     .filter-section label.active{
         font-weight:bold; color:var(--secondary-color);
-        background:linear-gradient(90deg, rgba(255,64,129,.13), rgba(0,188,212,.08));
-        border-color:rgba(255,64,129,.38);
-        box-shadow:inset 4px 0 0 var(--secondary-color), inset 0 0 0 1px rgba(255,64,129,.08), 0 6px 14px rgba(255,64,129,.08);
+        background:var(--lwc-accent-soft, rgba(0,188,212,.1));
+        border-color:var(--lwc-accent, var(--primary-color));
+        box-shadow:inset 4px 0 0 var(--lwc-accent, var(--primary-color));
     }
     .filter-section label.active input[type="checkbox"]{ accent-color:var(--secondary-color); }
     .filter-section .filter-count{
-        color:#666; font-size:.95em; font-weight:700;
+        color:var(--lwc-muted, #526373); font-size:.95em; font-weight:700;
     }
     .filter-section .filter-count-group{ white-space:nowrap; }
     .filter-section label.active .filter-count{ color:var(--secondary-color); }
-    .filter-section label.is-zero-count:not(.active) .filter-count{ color:#909090; }
+    .filter-section label.is-zero-count:not(.active) .filter-count{ color:var(--lwc-muted, #526373); }
     .filter-section label:has(input[type="checkbox"]:focus-visible){
-        color:var(--secondary-color); border-color:rgba(255,64,129,.42);
-        background:linear-gradient(90deg, rgba(255,64,129,.08), rgba(0,188,212,.06));
-        box-shadow:0 0 0 4px rgba(255,64,129,.14);
+        color:var(--secondary-color); border-color:rgba(8,118,133,.42);
+        background:var(--lwc-accent-soft, rgba(8,118,133,.08));
+        box-shadow:0 0 0 4px rgba(8,118,133,.14);
     }
     .filter-section input[type="checkbox"]:focus-visible{ outline:2px solid var(--secondary-color); outline-offset:2px; }
 
@@ -500,7 +520,7 @@
     }
     .ranking-explanation{
         display:none; width:100%; box-sizing:border-box; margin:.25rem 0 1rem; padding:.72rem .9rem;
-        color:#4d5963; background:rgba(255,255,255,.78); border:1px solid rgba(0,188,212,.18);
+        color:var(--lwc-ink, #4d5963); background:var(--lwc-surface-muted, rgba(255,255,255,.78)); border:1px solid var(--lwc-border, rgba(0,188,212,.18));
         border-left:4px solid var(--primary-color); border-radius:8px; box-shadow:0 6px 14px rgba(0,0,0,.06);
         font-size:.95rem; line-height:1.42;
     }
@@ -509,21 +529,21 @@
     .search-wrapper{ display:flex; justify-content:flex-end; margin-bottom:1rem; }
     .search-container{ position:relative; max-width:250px; width:100%; min-height:44px; margin-right:.5rem; }
     #athleteSearch{
-        width:100%; min-height:44px; padding:.55rem 5.4rem .55rem 1rem; border:2px solid var(--primary-color); border-radius:999px; font-family:inherit; font-size:1rem; color:var(--dark-text-color);
-        transition:border-color .3s ease, box-shadow .2s ease; outline:none; box-sizing:border-box;
+        width:100%; min-height:44px; padding:.55rem 5.4rem .55rem 1rem; border:2px solid var(--primary-color); border-radius:8px; font-family:inherit; font-size:1rem; color:var(--dark-text-color);
+        transition:border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); outline:none; box-sizing:border-box;
     }
-    #athleteSearch::placeholder{ color:#56666f; opacity:1; }
+    #athleteSearch::placeholder{ color:var(--lwc-muted, #56666f); opacity:1; }
     #athleteSearch:focus{
         border-color:var(--secondary-color);
-        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
+        box-shadow:0 0 0 4px rgba(8,118,133,.16), 0 4px 10px rgba(0,0,0,.08);
     }
-    .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; transition:color .2s ease; }
+    .search-icon{ position:absolute; right:1rem; top:50%; transform:translateY(-50%); color:var(--primary-color); font-size:1.2rem; pointer-events:none; z-index:2; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); }
     .search-container:focus-within .search-icon{ color:var(--secondary-color); }
     .clear-icon{
         position:absolute; right:2.2rem; top:50%; transform:translateY(-50%); width:2.75rem; height:2.75rem;
         display:inline-flex; align-items:center; justify-content:center; color:var(--primary-color); font-size:1.05rem; cursor:pointer; z-index:2;
         appearance:none; padding:0; font:inherit; line-height:1; background:transparent; border:1px solid transparent; border-radius:50%; box-sizing:border-box; opacity:0; visibility:hidden;
-        transition:opacity .3s ease, visibility .3s ease, color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+        transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), visibility var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
     .clear-icon.visible{
         opacity:1; visibility:visible; background:rgba(0,188,212,.09); border-color:rgba(0,188,212,.24);
@@ -531,12 +551,12 @@
     .clear-icon:hover,
     .clear-icon:focus-visible{
         transform:translateY(-50%);
-        color:var(--secondary-color); background:rgba(255,64,129,.08); border-color:rgba(255,64,129,.22);
+        color:var(--secondary-color); background:rgba(8,118,133,.08); border-color:rgba(8,118,133,.22);
         box-shadow:0 3px 8px rgba(0,0,0,.08);
     }
     .clear-icon:focus-visible{
         outline:2px solid var(--secondary-color); outline-offset:2px;
-        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.1);
+        box-shadow:0 0 0 4px rgba(8,118,133,.16), 0 4px 10px rgba(0,0,0,.1);
     }
 
     /* =========================
@@ -546,16 +566,16 @@
         display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap;
     }
     .leaderboard-view-switcher .view-switcher-label{
-        font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#666; margin-right:.25rem;
+        font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--lwc-muted, #526373); margin-right:.25rem;
     }
     .leaderboard-view-switcher .view-switcher-chips{
-        display:inline-flex; align-items:stretch; min-height:44px; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:999px;
+        display:inline-flex; align-items:stretch; min-height:44px; background:var(--lwc-surface-muted, rgba(0,0,0,.04)); border:1px solid var(--lwc-border, rgba(0,0,0,.08)); border-radius:8px;
         padding:0; gap:0; box-sizing:border-box;
     }
     .leaderboard-view-switcher .view-badge{
-        display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:.45rem 1rem; border-radius:999px;
-        border:none; background:transparent; color:#555;
-        font-size:.85rem; font-weight:600; line-height:1.1; white-space:nowrap; box-sizing:border-box; cursor:pointer; transition:background .2s ease, color .2s ease, box-shadow .2s ease;
+        display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:.45rem 1rem; border-radius:6px;
+        border:none; background:transparent; color:var(--lwc-muted, #526373);
+        font-size:.85rem; font-weight:600; line-height:1.3; white-space:normal; overflow-wrap:anywhere; box-sizing:border-box; cursor:pointer; transition:background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
     .leaderboard-view-switcher .view-badge-suffix{
         margin-left:.25em;
@@ -581,12 +601,12 @@
     .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge,
     .leaderboard-view-switcher input[name="leaderboardView"].is-keyboard-focus + .view-badge{
         outline:2px solid var(--secondary-color); outline-offset:2px;
-        color:var(--secondary-color); background:linear-gradient(180deg, var(--card-bg), rgba(255,64,129,.08));
-        box-shadow:0 0 0 4px rgba(255,64,129,.16), 0 4px 10px rgba(0,0,0,.08);
+        color:var(--secondary-color); background:var(--lwc-surface, var(--card-bg));
+        box-shadow:0 0 0 4px rgba(8,118,133,.16), 0 4px 10px rgba(0,0,0,.08);
     }
     .leaderboard-view-switcher input[name="leaderboardView"]:focus-visible + .view-badge.is-clearable::after,
     .leaderboard-view-switcher input[name="leaderboardView"].is-keyboard-focus + .view-badge.is-clearable::after{
-        background:rgba(255,64,129,.12); color:var(--secondary-color);
+        background:rgba(8,118,133,.12); color:var(--secondary-color);
     }
 
     /* =========================
@@ -601,7 +621,7 @@
         border: 3px solid var(--secondary-color);
         margin: .5rem 0;
         cursor: pointer;
-        transition: transform .3s ease;
+        transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
     .portrait:hover{ transform: scale(var(--portrait-hover-scale)); }
     .portrait.portrait-fallback,
@@ -615,7 +635,7 @@
     /* PODIUM portrait (bounded even if not wrapped) */
     .podium-item .podium-portrait{
         width:var(--podium-portrait-size); height:var(--podium-portrait-size); aspect-ratio:1 / 1; border-radius:50%; object-fit:cover;
-        border:3px solid var(--secondary-color); margin:.68rem 0 .55rem; cursor:pointer; transition:transform .3s ease; will-change:transform;
+        border:3px solid var(--secondary-color); margin:.68rem 0 .55rem; cursor:pointer; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); will-change:transform;
         flex:0 0 auto; box-sizing:border-box; /* include border in the height */
     }
     .podium-item .podium-portrait:hover{ transform: scale(1.1); }
@@ -623,7 +643,7 @@
     /* When wrapped on podium: wrapper defines circle, img fills it */
     .podium-item .rank-change{ display:block; width:var(--podium-portrait-size); height:var(--podium-portrait-size); margin:.68rem 0 .55rem; flex:0 0 auto; }
     .podium-item .rank-change img.podium-portrait{
-        width:100%; height:100%; border-radius:50%; object-fit:cover; transition:transform .3s ease; box-sizing:border-box;
+        width:100%; height:100%; border-radius:50%; object-fit:cover; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); box-sizing:border-box;
     }
     .podium-item .rank-change img.podium-portrait:hover{ transform: scale(1.1); }
 
@@ -636,8 +656,9 @@
     .podium .name-row .athlete-name {
         flex: 1;
         min-width: 0;
-        white-space: nowrap;
-        line-height: 1.1
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.25
     }
 
     /* Rank-change wrapper */
@@ -653,14 +674,14 @@
         box-shadow:0 0 0 2px rgba(59,130,246,.16);
     }
     .leaderboard tr.is-new-athlete.is-new-revealed > td{
-        animation:newAthleteEntrySlide 2.8s cubic-bezier(.22,1,.36,1) 1 both;
+        animation:newAthleteEntrySlide var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) 1 both;
     }
     .leaderboard tr.is-rank-up-athlete.is-rank-up-revealed > td{
-        animation:rankUpAthleteClimb 2.8s cubic-bezier(.22,1,.36,1) 1 both;
+        animation:rankUpAthleteClimb var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) 1 both;
     }
     @keyframes newAthleteEntrySlide{
         0%{
-            transform:translateX(-28px);
+            transform:translateX(-4px);
             opacity:1;
         }
         44%{
@@ -674,7 +695,7 @@
     }
     @keyframes rankUpAthleteClimb{
         0%{
-            transform:translateY(18px);
+            transform:translateY(4px);
             opacity:1;
         }
         48%{
@@ -697,7 +718,7 @@
         position:absolute; z-index:-1; left:var(--arrow-left); top:50%; transform:translateY(-50%);
         width:20px; height:20px; border-radius:50% 0 0 50%;
         color: rgb(255 255 255 / 80%); display:flex; align-items:center; justify-content:center;
-        font-size:12px; cursor:default; transition:left .3s ease;
+        font-size:12px; cursor:default; transition:left var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
     }
     .rank-change .rank-arrow{ background:#2ecc71; }  /* green up arrow */
     .rank-change .new-bubble{ background:#3B82F6; }  /* blue new-athlete arrow */
@@ -777,38 +798,38 @@
     /* =========================
        7) Podium cards
        ========================= */
-    .podium{ display:flex; justify-content:center; align-items:flex-end; margin-bottom:1.2rem; }
+    .podium{ display:flex; justify-content:center; align-items:stretch; margin-bottom:1.2rem; }
     .podium-item{
         --podium-prize-panel-height: 82px;
         --podium-portrait-size: 112px;
         position:relative; text-align:center; padding:.9rem 1rem calc(var(--podium-prize-panel-height) + 1rem); background:var(--card-bg); border-radius:15px;
         box-shadow:0 10px 30px rgba(0,0,0,.1); margin:0 1rem; display:flex; flex-direction:column; align-items:center;
-        justify-content:flex-start; width:190px; min-height:230px; box-sizing:border-box; transition:opacity .3s ease, transform .3s ease; cursor:pointer;
+        justify-content:flex-start; width:190px; min-height:230px; box-sizing:border-box; transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); cursor:pointer;
     }
     .podium .podium-item:hover{
         transform: scale(1.05) !important; will-change: transform;
-        transition: transform .3s ease-in-out, box-shadow .3s ease-in-out; box-shadow:0 10px 20px rgba(0,0,0,.2);
+        transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); box-shadow:0 10px 20px rgba(0,0,0,.2);
     }
     .podium-item.blurred{ filter: blur(5px); pointer-events:none; }
-    .podium-item.first{ --podium-portrait-size: 116px; order:2; height:340px; }
-    .podium-item.second{ --podium-portrait-size: 102px; order:1; height:322px; }
-    .podium-item.third{ --podium-portrait-size: 92px; order:3; height:306px; }
+    .podium-item.first{ --podium-portrait-size: 116px; order:2; min-height:340px; margin-top:0; }
+    .podium-item.second{ --podium-portrait-size: 102px; order:1; min-height:322px; margin-top:18px; }
+    .podium-item.third{ --podium-portrait-size: 92px; order:3; min-height:306px; margin-top:34px; }
 
     .podium-item-lower{
         position:absolute; bottom:0; width:100%; min-height:var(--podium-prize-panel-height); padding:10px 0; border-radius:0 0 15px 15px;
         display:flex; flex-direction:column; align-items:center; clip-path:polygon(0 0, 100% 0, 100% 100%, 0% 100%);
-        transition:clip-path .3s ease-in-out; pointer-events:auto; cursor:pointer; color:inherit; text-decoration:none;
+        transition:clip-path var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); pointer-events:auto; cursor:pointer; color:inherit; text-decoration:none;
         box-sizing:border-box;
     }
     .podium-item-lower:hover{ clip-path:polygon(0 0, 100% 0, 100% 100%, 0% 100%); }
-    .podium-item.first .podium-item-lower{ background:#FFF9C4; }
-    .podium-item.second .podium-item-lower{ background:#E0E0E0; }
-    .podium-item.third .podium-item-lower{ background:#D9C3A3; }
-    .prize-money{ font-weight:bold; font-size:1.55rem; color:#4caf50; margin-top:1px; }
-    .btc-amount{ margin-top:.62rem; font-weight:normal; font-size:.72rem; color:var(--dark-text-color); line-height:1.2; }
+    .podium-item.first .podium-item-lower{ background:#FFF9C4; color:#17212b; }
+    .podium-item.second .podium-item-lower{ background:#E0E0E0; color:#17212b; }
+    .podium-item.third .podium-item-lower{ background:#D9C3A3; color:#17212b; }
+    .prize-money{ font-weight:bold; font-size:1.55rem; color:#1f7a38; margin-top:1px; }
+    .btc-amount{ margin-top:.62rem; font-weight:normal; font-size:.72rem; color:inherit; line-height:1.2; }
 
     .podium-rank{
-        position:absolute; top:-6px; left:10%; transform:translateX(-50%); background:#fff;
+        position:absolute; top:-6px; left:10%; transform:translateX(-50%); background:var(--lwc-surface, #fff); color:var(--lwc-ink, #17212b);
         padding:2px; border-radius:50%; width:60px; height:60px; display:flex; justify-content:center; align-items:center;
         font-size:2rem; box-shadow:0 4px 8px rgba(0,0,0,.1);
     }
@@ -817,7 +838,7 @@
        8) Table row bits
        ========================= */
     .rank{ font-weight:700; font-size:1.2rem; color:var(--primary-color); }
-    .age-reduction{ font-weight:700; color:#4caf50; text-align:left; }
+    .age-reduction{ font-weight:700; color:var(--lwc-success, #1f7a38); text-align:left; }
     .athlete-td{
         display:flex;
         align-items:center;
@@ -829,26 +850,27 @@
 
     .athlete-name{
         color:var(--primary-color); text-decoration:underline; text-decoration-thickness:.08em; text-underline-offset:.18em; text-align:left; cursor:pointer;
-        transition:color .2s ease-in-out, background-color .2s ease-in-out, box-shadow .2s ease-in-out;
-        display:inline-block; padding:.5rem .45rem; white-space:pre-wrap; overflow-wrap:normal; word-break:normal; hyphens:none; border-radius:8px;
+        transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+        display:inline-flex; align-items:center; min-height:44px; padding:.5rem .45rem; white-space:pre-wrap; overflow-wrap:normal; word-break:normal; hyphens:none; border-radius:8px;
+        border:0; background:transparent; font:inherit; appearance:none; -webkit-appearance:none; box-sizing:border-box;
     }
     .athlete-name:hover{
-        color:var(--secondary-color); background-color:rgba(255,64,129,.08); box-shadow:inset 0 0 0 1px rgba(255,64,129,.12);
+        color:var(--secondary-color); background-color:rgba(8,118,133,.08); box-shadow:inset 0 0 0 1px rgba(8,118,133,.12);
     }
     .athlete-name:focus-visible{
-        color:var(--secondary-color); background-color:rgba(255,64,129,.08); outline:3px solid rgba(0,188,212,.38); outline-offset:2px;
+        color:var(--secondary-color); background-color:rgba(8,118,133,.08); outline:3px solid rgba(0,188,212,.38); outline-offset:2px;
     }
     .podium .athlete-name{ font-size:1.1rem; padding-bottom:.2rem; }
 
     .media-contact{
-        color:rgba(255,64,129,.7); text-decoration:none; transition:color .2s ease-in-out; font-size:1.5rem; padding:.5rem; margin:10px 0;
+        color:var(--lwc-accent, #087685); text-decoration:none; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); font-size:1.5rem; padding:.5rem; margin:10px 0;
     }
     .media-contact:hover{ color:var(--primary-color); }
     .media-contact i{ font-size:2rem; width:2rem; height:2rem; line-height:2rem; display:inline-block; text-align:center; vertical-align:middle; }
 
     .personal-link-icon{
         display:inline-flex; align-items:center; justify-content:center; width:2rem; height:2rem;
-        color:var(--primary-color); font-size:1rem; text-decoration:none; transition:color .2s ease-in-out, background-color .2s ease-in-out;
+        color:var(--primary-color); font-size:1rem; text-decoration:none; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         margin-left:.15rem; border-radius:50%; box-sizing:border-box; vertical-align:middle;
     }
     .personal-link-icon:first-of-type{ margin-left:0; }
@@ -865,7 +887,7 @@
     .podium-link-row .personal-link-icon i{ width:auto; }
 
     .leaderboard table tbody tr{ scroll-margin-top:0; }
-    .leaderboard table tbody tr:target{ background:rgba(255,255,0,.35); transition:background-color 1.2s ease; }
+    .leaderboard table tbody tr:target{ background:var(--lwc-accent-soft, rgba(8,118,133,.16)); transition:background-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); }
 
     /* =========================
        10) Modal
@@ -902,9 +924,26 @@
     .modal-content.is-loading #proofsGallery{
         visibility:hidden;
     }
+    #detailsModal .modal-content.has-load-error #athlete-profile > :not(#athleteName):not(#athleteLoadError),
+    #detailsModal .modal-content.has-load-error #athlete-biomarkers,
+    #detailsModal .modal-content.has-load-error .events-embed,
+    #detailsModal .modal-content.has-load-error #athlete-proofs{
+        display:none !important;
+    }
+    #athleteLoadError{
+        width:min(100%, var(--athlete-modal-section-width));
+        box-sizing:border-box;
+        margin:.5rem auto 0;
+        padding:.8rem;
+        border:1px solid var(--athlete-modal-cream-border);
+        border-radius:var(--lwc-radius-md, 8px);
+        background:rgba(255,255,255,.08);
+    }
+    #athleteLoadError[hidden]{ display:none; }
+    #athleteLoadError p{ margin:0 0 .65rem; }
     .modal-content{
         background:#fefefe; margin:1% auto; padding:20px; border:none; width:80%; height:88%; max-width:900px;
-        border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn .5s ease-out;
+        border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,.1); overflow-y:auto; max-height:90vh; animation:fadeIn var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
         -webkit-overflow-scrolling:touch; scroll-behavior:smooth; overscroll-behavior:contain;
         position:relative;
     }
@@ -965,10 +1004,6 @@
     #detailsModal .modal-sticky-header{
         position: sticky;
     }
-    #detailsModal .modal-content > .gma-trollface-container{
-        position:absolute;
-        z-index:10000;
-    }
     /* Remove border-radius on mobile immediately (before animation) */
     @media (max-width: 768px) {
         .modal-content{
@@ -991,7 +1026,7 @@
         background:#fefefe; padding:0.75rem 1rem; margin:-20px -20px 1rem -20px;
         border-bottom:1px solid rgba(0,0,0,0.1); box-shadow:0 2px 4px rgba(0,0,0,0.05);
         display:none; align-items:center; justify-content:space-between;
-        transition:opacity 0.2s ease, transform 0.2s ease;
+        transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
     }
     .modal-sticky-header.visible{ display:flex; }
     /* Blur overlay above sticky header */
@@ -1025,7 +1060,7 @@
         background:none; border:none; font-size:1.5rem; color:#999;
         cursor:pointer; padding:0.5rem; margin-left:1rem; flex-shrink:0;
         line-height:1; min-width:44px; min-height:44px;
-        border-radius:50%; transition:all 0.2s ease;
+        border-radius:50%; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         display:flex; align-items:center; justify-content:center;
     }
     .modal-sticky-header .sticky-close-btn:hover{
@@ -1117,10 +1152,10 @@
         border-radius:50%;
         object-fit:cover;
         cursor:pointer;
-        transition:transform .3s ease, border-color .3s ease;
+        transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
     #athlete-profile .portrait-wrapper:hover #modalProfilePic{ transform: scale(1.05); }
-    #athlete-profile.is-pro .pro-badge{ transition:transform .3s ease; }
+    #athlete-profile.is-pro .pro-badge{ transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); }
     #athlete-profile .portrait-wrapper:hover .pro-badge{ transform:rotate(-12deg) scale(1.05); }
 
     #detailsModal #athlete-profile{
@@ -1306,7 +1341,7 @@
     .athlete-links{ display:flex; align-items:center; flex-direction:column; gap:.5rem; }
     .athlete-share-wrapper{ position:relative; display:inline-flex; }
     .athlete-links a,
-    .athlete-links button{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color .2s ease-in-out; }
+    .athlete-links button{ display:flex; align-items:center; text-decoration:none; color:var(--primary-color); transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); }
     .athlete-links a:hover,
     .athlete-links button:hover{ color:var(--secondary-color); }
     #detailsModal .athlete-links{
@@ -1445,7 +1480,7 @@
         z-index:70;
         transform:scaleX(var(--modal-scroll-progress, 0));
         transform-origin:left center;
-        transition:transform 0.1s ease-out;
+        transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         opacity:0;
         pointer-events:none;
         border-radius:0 2px 2px 0;
@@ -1463,12 +1498,12 @@
        11) Proofs & enlarged overlay
        ========================= */
     .proofs-gallery{ display:flex; flex-direction:column; align-items:stretch; gap:1rem; justify-content:center; padding:0; width:100%; }
-    .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .3s ease; background:#fff; box-shadow:0 1px 8px rgba(0,0,0,.08); }
+    .proof-item{ width:100%; height:auto; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); background:#fff; box-shadow:0 1px 8px rgba(0,0,0,.08); }
     .proof-item:hover{ transform: scale(1.05); }
     .proof-item img{ display:block; width:auto; max-width:100%; height:auto; max-height:72vh; object-fit:contain; margin:0 auto; background:#fff; }
     .proof-item img:focus-visible,
     #modalProfilePic:focus-visible{ outline:3px solid rgba(0,188,212,.58); outline-offset:-3px; }
-    .proofs-empty{ margin:.5rem 0 0; color:#666; text-align:center; font-size:.95rem; }
+    .proofs-empty{ margin:.5rem 0 0; color:var(--athlete-modal-muted); text-align:center; font-size:.95rem; }
     #detailsModal .biomarkers-section,
     #detailsModal .proofs-section,
     #detailsModal .events-embed{
@@ -1622,18 +1657,20 @@
     }
 
     .enlarged-portrait{
-        position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.92);
-        display:flex; justify-content:center; align-items:center; z-index:1000; cursor:pointer;
+        --image-viewer-entry-scale:.98;
+        position:absolute; inset:0; width:100%; height:100%; background:rgba(0,0,0,.92);
+        display:flex; flex-direction:column; justify-content:center; align-items:center; gap:.65rem; z-index:1000; cursor:default;
         box-sizing:border-box;
         padding:max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
-        opacity:0; transform:scale(.95); transition:opacity .5s ease, transform .5s ease;
+        opacity:0; transform:scale(var(--image-viewer-entry-scale)); transition:opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
     }
+    .enlarged-portrait[hidden]{ display:none; }
     .enlarged-portrait.show{ opacity:1; transform:scale(1); filter:blur(0); }
     .enlarged-portrait .close-btn{
         position:absolute; top:max(16px, env(safe-area-inset-top)); left:max(16px, env(safe-area-inset-left)); font-size:1.9rem; color:rgba(255,255,255,.9); background:rgba(12,14,14,.78);
         width:48px; height:48px; display:flex; align-items:center; justify-content:center; border-radius:50%; cursor:pointer;
         border:1px solid rgba(246,244,237,.26); box-shadow:0 10px 28px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.08);
-        transition:color .3s, background-color .3s, transform .2s; padding:0; z-index:1;
+        transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); padding:0; z-index:1;
     }
     .enlarged-portrait .close-btn:hover{ color:var(--light-text-color); background:rgba(0,0,0,.9); transform:scale(1.1); }
     .enlarged-portrait .close-btn:focus-visible{ color:var(--light-text-color); background:rgba(0,0,0,.9); outline:3px solid rgba(0,188,212,.68); outline-offset:3px; }
@@ -1656,7 +1693,7 @@
         line-height:1;
         cursor:pointer;
         transform:translateY(-50%);
-        transition:color .2s, background-color .2s, transform .2s;
+        transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         z-index:1;
     }
     .enlarged-portrait .image-nav--previous{ left:max(16px, env(safe-area-inset-left)); }
@@ -1678,7 +1715,7 @@
     }
     .enlarged-portrait .image-position{
         position:absolute;
-        bottom:max(16px, env(safe-area-inset-bottom));
+        top:max(16px, env(safe-area-inset-top));
         left:50%;
         padding:.4rem .7rem;
         border:1px solid rgba(246,244,237,.2);
@@ -1694,8 +1731,25 @@
         z-index:1;
     }
     .enlarged-portrait .image-nav[hidden],
-    .enlarged-portrait .image-position[hidden]{ display:none; }
-    .enlarged-portrait img{
+    .enlarged-portrait .image-position[hidden],
+    .enlarged-portrait .image-zoom-controls[hidden],
+    .enlarged-portrait .image-viewer-hint[hidden]{ display:none; }
+    .enlarged-portrait .image-viewer-stage{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        width:min(900px, calc(100vw - 2rem));
+        max-width:100%;
+        max-height:calc(100vh - 2rem);
+        overflow:hidden;
+        overscroll-behavior:contain;
+        scrollbar-color:rgba(255,255,255,.58) rgba(255,255,255,.12);
+    }
+    .enlarged-portrait .image-viewer-stage:focus-visible{
+        outline:3px solid var(--lwc-accent-bright, #19c3d1);
+        outline-offset:3px;
+    }
+    .enlarged-portrait .image-viewer-stage img{
         width:auto;
         height:auto;
         max-width:min(900px, calc(100vw - 2rem));
@@ -1704,18 +1758,117 @@
         cursor:default;
         box-shadow:0 24px 70px rgba(0,0,0,.42);
     }
+    .enlarged-portrait.is-proof-gallery .image-viewer-stage{
+        height:calc(100% - 8rem);
+        max-height:calc(100vh - 8rem);
+        overflow:auto;
+        align-items:flex-start;
+        justify-content:flex-start;
+        touch-action:pan-x pan-y pinch-zoom;
+    }
+    .enlarged-portrait.is-proof-gallery .image-viewer-stage img{
+        flex:0 0 auto;
+        width:calc(100% * var(--proof-viewer-zoom, 1));
+        max-width:none;
+        max-height:none;
+        object-fit:initial;
+    }
+    .enlarged-portrait .image-zoom-controls{
+        position:absolute;
+        bottom:max(16px, env(safe-area-inset-bottom));
+        left:50%;
+        display:flex;
+        align-items:center;
+        gap:.35rem;
+        transform:translateX(-50%);
+        z-index:2;
+    }
+    .enlarged-portrait .image-zoom-controls button{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        min-width:45px;
+        min-height:45px;
+        padding:.45rem .65rem;
+        border:1px solid rgba(246,244,237,.42);
+        border-radius:8px;
+        background:rgba(12,14,14,.9);
+        color:rgba(255,255,255,.96);
+        font:inherit;
+        font-weight:700;
+        line-height:1;
+        cursor:pointer;
+    }
+    .enlarged-portrait .image-zoom-controls button:hover:not(:disabled){
+        border-color:var(--lwc-accent-bright, #19c3d1);
+        background:#17212b;
+    }
+    .enlarged-portrait .image-zoom-controls button:focus-visible{
+        outline:3px solid var(--lwc-accent-bright, #19c3d1);
+        outline-offset:2px;
+    }
+    .enlarged-portrait .image-zoom-controls button:disabled{
+        opacity:.42;
+        cursor:default;
+    }
+    .enlarged-portrait .image-zoom-status{
+        min-width:3.75rem;
+        color:rgba(255,255,255,.96);
+        font-size:.85rem;
+        font-variant-numeric:tabular-nums;
+        font-weight:700;
+        text-align:center;
+    }
+    .enlarged-portrait .image-viewer-hint{
+        position:absolute;
+        bottom:max(68px, calc(env(safe-area-inset-bottom) + 68px));
+        left:50%;
+        max-width:calc(100% - 2rem);
+        margin:0;
+        padding:.35rem .65rem;
+        border-radius:6px;
+        background:rgba(12,14,14,.88);
+        color:rgba(255,255,255,.92);
+        font-size:.78rem;
+        line-height:1.25;
+        text-align:center;
+        transform:translateX(-50%);
+        z-index:2;
+    }
+
+    @media (max-width:768px){
+        .enlarged-portrait{
+            padding:max(4.4rem, calc(env(safe-area-inset-top) + 4.4rem)) max(.75rem, env(safe-area-inset-right)) max(7.2rem, calc(env(safe-area-inset-bottom) + 7.2rem)) max(.75rem, env(safe-area-inset-left));
+        }
+        .enlarged-portrait.is-proof-gallery .image-viewer-stage{
+            width:100%;
+            height:100%;
+            max-height:100%;
+        }
+        .enlarged-portrait .image-nav{
+            top:auto;
+            bottom:max(16px, env(safe-area-inset-bottom));
+            transform:none;
+        }
+        .enlarged-portrait .image-nav:not(:disabled):hover{
+            transform:none;
+        }
+        .enlarged-portrait .image-position{
+            top:max(18px, env(safe-area-inset-top));
+        }
+    }
 
     /* =========================
        12) Links & animations / stamps
        ========================= */
-    .league-link{ color:var(--primary-color); text-decoration:underline; transition:color .2s ease; }
+    .league-link{ color:var(--primary-color); text-decoration:underline; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); }
     .league-link:hover{ color:var(--secondary-color); }
 
-    .modal-link{ display:flex; align-items:center; gap:.5rem; font-size:1.2rem; color:var(--primary-color); text-decoration:none; transition:color .3s ease; }
+    .modal-link{ display:flex; align-items:center; gap:.5rem; font-size:1.2rem; color:var(--primary-color); text-decoration:none; transition:color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease); }
     .modal-link:hover{ color:var(--secondary-color); }
     .modal-link i{ font-size:1.8rem; line-height:1; }
 
-    .fade-in-element{ animation:fadeIn .6s ease-in-out; }
+    .fade-in-element{ animation:fadeIn var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease); }
 
     /* Guess-My-Age stamps — applied to the value span inside the table so the row stays aligned */
     .athlete-info-table .first-guess-stamp{
@@ -1837,7 +1990,7 @@
             position:fixed; top:0; left:0; height:100dvh; min-height:0; max-height:100dvh; align-items:stretch; border-radius:0 18px 18px 0;
             background:var(--card-bg); z-index:1002; box-shadow:0 18px 42px rgba(0,0,0,.26); overflow-x:hidden; overflow-y:auto; transform:translateX(-105%);
             visibility:hidden; pointer-events:none;
-            transition:transform .3s ease-in-out, visibility 0s linear .3s; box-sizing:border-box; overscroll-behavior:contain;
+        transition:transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), visibility 0s linear var(--lwc-duration-normal, 220ms); box-sizing:border-box; overscroll-behavior:contain;
             -webkit-overflow-scrolling:touch; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:rgba(0,188,212,.55) transparent;
         }
         .sidebar::-webkit-scrollbar{ width:8px; }
@@ -1866,10 +2019,10 @@
         .clear-sidebar-filters{ min-height:44px; align-items:center; align-self:flex-start; padding:.45rem .75rem; }
         .sidebar.has-active-state.expanded .clear-sidebar-filters{
             display:flex; width:max-content; position:sticky; top:calc(env(safe-area-inset-top) + 4rem); z-index:8; align-self:flex-end; margin-left:auto; margin-right:.75rem;
-            background:#fff6fa; box-shadow:0 0 0 8px var(--card-bg), 0 8px 18px rgba(255,64,129,.16);
+            background:var(--lwc-accent-soft, #e7f7f8); box-shadow:0 0 0 8px var(--card-bg), 0 8px 18px rgba(8,118,133,.16);
         }
         .sidebar.has-active-state.expanded .clear-sidebar-filters:focus-visible{
-            box-shadow:0 0 0 8px var(--card-bg), 0 0 0 12px rgba(255,64,129,.18), 0 8px 18px rgba(255,64,129,.16);
+            box-shadow:0 0 0 8px var(--card-bg), 0 0 0 12px rgba(8,118,133,.18), 0 8px 18px rgba(8,118,133,.16);
         }
         .filter-section label{ min-height:44px; padding:.52rem .65rem; }
         .content{ margin-left:0; }
@@ -1882,6 +2035,9 @@
         .podium-item.first{ --podium-portrait-size: 142px; order:1; height:auto; min-height:386px; }
         .podium-item.second{ --podium-portrait-size: 124px; order:2; height:auto; min-height:366px; }
         .podium-item.third{ --podium-portrait-size: 110px; order:3; height:auto; min-height:348px; }
+        .podium-item.first,
+        .podium-item.second,
+        .podium-item.third{ margin-top:0; }
         .podium-item .podium-portrait,
         .podium-item .rank-change{ margin:.65rem 0 .55rem; }
         .podium-item .name-row{ justify-content:center; }
@@ -2225,12 +2381,12 @@
             .leaderboard table td.age-reduction-td::before {
                 content: attr(data-label);
                 display: inline-block;
-                color: #64748b;
-                font-size: 0.58rem;
+                color: var(--lwc-muted, #52606d);
+                font-size: var(--lwc-type-xs, 0.75rem);
                 font-weight: 700;
                 letter-spacing: 0.04em;
                 text-transform: uppercase;
-                white-space: nowrap;
+                white-space: normal;
             }
 
             .leaderboard table td.age-reduction-td .age-reduction {
@@ -2419,7 +2575,7 @@
         }
 
         .leaderboard-view-switcher .view-badge{
-            min-height:40px;
+            min-height:44px;
             padding:.35rem .55rem;
             font-size:.78rem;
         }
@@ -2432,19 +2588,19 @@
         }
 
         .search-container{
-            min-height:40px;
+            min-height:44px;
         }
 
         #athleteSearch{
-            min-height:40px;
+            min-height:44px;
             padding-top:.42rem;
             padding-bottom:.42rem;
         }
 
         .sidebar-toggle{
-            width:40px;
-            height:40px;
-            min-height:40px;
+            width:44px;
+            height:44px;
+            min-height:44px;
         }
 
         .leaderboard table th{
@@ -2532,6 +2688,300 @@
         text-align:left;
     }
 
+    /* Shared-system alignment: comparison first, decoration second. */
+    .leaderboard {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg, 12px);
+        background: var(--card-bg);
+        box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,.08));
+    }
+
+    .leaderboard table {
+        color: var(--dark-text-color);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .leaderboard table th {
+        background: var(--surface-accent);
+        color: #075f6b;
+        font-size: .875rem;
+        letter-spacing: .02em;
+        text-transform: none;
+    }
+
+    .leaderboard table tbody tr,
+    .leaderboard table tbody tr.tier-amateur,
+    .leaderboard table tbody tr.tier-amateur:nth-child(even) {
+        border-color: var(--border-color);
+        box-shadow: none;
+    }
+
+    .leaderboard table tbody tr:hover,
+    .leaderboard table tbody tr.tier-amateur:hover {
+        background: var(--surface-accent);
+        box-shadow: none;
+        transform: none;
+    }
+
+    .leaderboard table tbody tr.tier-separator {
+        background: var(--surface-muted);
+    }
+
+    .leaderboard table tbody tr.tier-separator .tier-separator-cell {
+        border-color: var(--border-color);
+        color: var(--primary-color);
+        font-weight: 700;
+        letter-spacing: .02em;
+    }
+
+    .tier-separator-cell .tier-separator-link,
+    .show-all-athletes-btn,
+    .leaderboard-retry-button {
+        border-radius: var(--radius-md, 8px);
+    }
+
+    .show-all-athletes-btn:hover,
+    .show-all-athletes-btn:active,
+    .leaderboard-retry-button:hover,
+    .leaderboard-retry-button:active {
+        border-color: var(--primary-color);
+        background: var(--primary-color-soft);
+        color: var(--primary-color-hover);
+    }
+
+    .sidebar {
+        border: 0;
+        border-inline-end: 1px solid var(--border-color);
+        border-radius: var(--radius-lg, 12px) 0 0 var(--radius-lg, 12px);
+        background: var(--card-bg);
+        box-shadow: none;
+    }
+
+    .collapsed-title {
+        padding-block: var(--space-4, 1rem);
+        border-radius: 0;
+        background: none;
+        color: var(--primary-color);
+        font-family: 'Roboto', sans-serif;
+        font-size: 1rem;
+        letter-spacing: .04em;
+        word-spacing: normal;
+        -webkit-text-fill-color: currentColor;
+    }
+
+    .sidebar-toggle,
+    .sidebar-close,
+    .clear-sidebar-filters,
+    .search-container,
+    .view-switcher-chips,
+    .view-badge {
+        border-radius: var(--radius-md, 8px);
+        box-shadow: none;
+    }
+
+    .sidebar-toggle,
+    .sidebar-close {
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+    }
+
+    .sidebar-toggle:hover,
+    .sidebar-close:hover,
+    .sidebar-toggle.active,
+    .sidebar-toggle.has-active-state:not(.active),
+    .sidebar-toggle.has-active-state:not(.active):hover {
+        border-color: var(--primary-color);
+        background: var(--primary-color-soft);
+        box-shadow: none;
+        transform: none;
+    }
+
+    .sidebar-toggle:hover i,
+    .sidebar-close:hover i,
+    .sidebar-toggle.active i,
+    .sidebar-toggle.has-active-state:not(.active) i {
+        color: var(--primary-color-hover);
+    }
+
+    .sidebar-toggle:focus-visible,
+    .sidebar-toggle.is-keyboard-focus,
+    .sidebar-close:focus-visible,
+    .sidebar-close.is-keyboard-focus {
+        outline: 3px solid var(--primary-color-bright);
+        outline-offset: 3px;
+        border-color: var(--primary-color);
+        box-shadow: none;
+        transform: none;
+    }
+
+    .sidebar-toggle.has-active-state::after {
+        top: -3px;
+        right: -3px;
+        width: 9px;
+        height: 9px;
+        border: 2px solid var(--card-bg);
+        background: var(--primary-color);
+        box-shadow: none;
+    }
+
+    .filter-section {
+        border: 0;
+        border-top: 1px solid var(--border-color);
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .filter-section label {
+        min-height: 44px;
+        border-radius: var(--radius-sm, 4px);
+        box-shadow: none;
+    }
+
+    .filter-section label:hover,
+    .filter-section label:has(input:checked) {
+        background: var(--primary-color-soft);
+        color: var(--primary-color-hover);
+        box-shadow: none;
+        transform: none;
+    }
+
+    .search-container,
+    .view-switcher-chips {
+        border: 1px solid var(--border-color);
+        background: var(--surface-muted);
+    }
+
+    .leaderboard-view-switcher input:checked + .view-badge {
+        background: var(--card-bg);
+        color: var(--primary-color-hover);
+        box-shadow: inset 0 -3px 0 var(--primary-color);
+    }
+
+    .sidebar-toggle.has-active-state::after,
+    .sidebar.has-active-state .sidebar-title .sidebar-icon::after {
+        background: var(--leaderboard-change-cue);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+    }
+
+    #athleteSearch:focus {
+        border-color: var(--leaderboard-change-cue);
+        box-shadow: 0 0 0 4px rgba(255, 64, 129, .16), 0 4px 10px rgba(0, 0, 0, .08);
+    }
+
+    .search-container:focus-within .search-icon,
+    .clear-icon:hover,
+    .clear-icon:focus-visible {
+        color: var(--leaderboard-change-cue);
+    }
+
+    .clear-icon:hover,
+    .clear-icon:focus-visible {
+        background: rgba(255, 64, 129, .08);
+        border-color: rgba(255, 64, 129, .22);
+    }
+
+    .clear-icon:focus-visible {
+        outline-color: var(--leaderboard-change-cue);
+        box-shadow: 0 0 0 4px rgba(255, 64, 129, .16), 0 4px 10px rgba(0, 0, 0, .1);
+    }
+
+    .ranking-explanation,
+    .no-results-empty-state {
+        border: 0;
+        border-inline-start: 4px solid var(--primary-color-bright);
+        border-radius: var(--radius-md, 8px);
+        background: var(--surface-muted);
+        box-shadow: none;
+        color: var(--muted-text-color);
+    }
+
+    .sponsor-coming-soon,
+    .leaderboard-metric-link {
+        min-height: 44px;
+        color: #52606d;
+        text-decoration: underline;
+        text-underline-offset: .15em;
+    }
+
+    #comingSoon {
+        color: var(--lwc-muted, #405261);
+        font-size: .75rem;
+        line-height: 1.2;
+    }
+
+    .sponsor-coming-soon:hover,
+    .leaderboard-metric-link:hover {
+        color: var(--primary-color-hover);
+    }
+
+    .podium-item {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg, 12px);
+        background: var(--card-bg);
+        box-shadow: none;
+    }
+
+    .podium-item:hover {
+        box-shadow: none;
+        transform: none;
+    }
+
+    .leaderboard .age-reduction,
+    .leaderboard .media-contact,
+    .leaderboard .personal-link-icon {
+        color: var(--primary-color-hover);
+    }
+
+    .leaderboard .media-contact:hover,
+    .leaderboard .media-contact:focus-visible,
+    .leaderboard .personal-link-icon:hover,
+    .leaderboard .personal-link-icon:focus-visible,
+    .leaderboard .athlete-name:hover,
+    .leaderboard .athlete-name:focus-visible {
+        color: var(--primary-color-hover);
+        background: var(--primary-color-soft);
+        box-shadow: none;
+    }
+
+    #detailsModal {
+        background: rgba(11, 15, 20, .72);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
+    #detailsModal .modal-content {
+        --athlete-modal-surface: #101820;
+        --athlete-modal-card: #17212b;
+        --athlete-modal-card-strong: #1c2933;
+        --athlete-modal-card-hover: #253641;
+        border: 1px solid #42515e;
+        border-radius: var(--radius-lg, 12px);
+        background: var(--athlete-modal-surface);
+        box-shadow: var(--shadow-md, 0 10px 28px rgba(0,0,0,.3));
+    }
+
+    #detailsModal .athlete-profile,
+    #detailsModal .proofs-section,
+    #detailsModal .events-embed,
+    #detailsModal .athlete-info-table,
+    #detailsModal .proof-item {
+        box-shadow: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .leaderboard table th {
+            background: var(--surface-accent);
+            color: #a9edf0;
+        }
+
+        .sponsor-coming-soon,
+        .leaderboard-metric-link,
+        .ranking-explanation {
+            color: var(--muted-text-color);
+        }
+    }
+
 </style>
 
 <div class="main-container">
@@ -2601,10 +3051,10 @@
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
                 </h2>
-                <span class="clear-sidebar-filters" id="clearSidebarFiltersBtn" role="button" tabindex="-1" aria-hidden="true">
+                <button type="button" class="clear-sidebar-filters" id="clearSidebarFiltersBtn" tabindex="-1" aria-hidden="true">
                     <i class="fa fa-times clear-sidebar-filters-icon" aria-hidden="true"></i>
                     <span>Clear filters</span>
-                </span>
+                </button>
                 <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
                 <div class="filter-section" id="aging-clock-filter-section">
                     <h3>Aging clocks</h3>
@@ -2612,31 +3062,31 @@
                         <li>
                             <label data-aging-clock-view="bortz">
                                 <input type="checkbox" name="agingClockView" value="bortz">
-                                <span class="filter-label-copy">🩸 Bortz Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
+                                <span class="filter-label-copy"><i class="fas fa-droplet filter-icon" aria-hidden="true"></i> Bortz Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="pheno">
                                 <input type="checkbox" name="agingClockView" value="pheno">
-                                <span class="filter-label-copy">🩸 Pheno Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
+                                <span class="filter-label-copy"><i class="fas fa-droplet filter-icon" aria-hidden="true"></i> Pheno Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="improvement">
                                 <input type="checkbox" name="agingClockView" value="improvement">
-                                <span class="filter-label-copy">📉 Pheno Improvement <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
+                                <span class="filter-label-copy"><i class="fas fa-chart-line filter-icon" aria-hidden="true"></i> Pheno Improvement <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="bortz-improvement">
                                 <input type="checkbox" name="agingClockView" value="bortz-improvement">
-                                <span class="filter-label-copy">📉 Bortz Improvement <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
+                                <span class="filter-label-copy"><i class="fas fa-chart-line filter-icon" aria-hidden="true"></i> Bortz Improvement <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                         <li>
                             <label data-aging-clock-view="crowd">
                                 <input type="checkbox" name="agingClockView" value="crowd">
-                                <span class="filter-label-copy">👥 Crowd Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
+                                <span class="filter-label-copy"><i class="fas fa-people-group filter-icon" aria-hidden="true"></i> Crowd Age <span class="filter-count-group">(<span class="filter-count">0</span>)</span></span>
                             </label>
                         </li>
                     </ul>
@@ -2663,6 +3113,7 @@
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
             </div>
+            <div id="leaderboardStatus" class="leaderboard-status" role="status" aria-live="polite" aria-atomic="true">Loading leaderboard...</div>
             <table>
                 <thead>
                 <tr>
@@ -2670,18 +3121,14 @@
                     <th>Athlete</th>
                     <th class="sponsor-th">
                         Sponsor<br />
-                        <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" style="color: #999; text-decoration: underline; cursor: pointer;"
-                           onmouseover="this.style.color='var(--secondary-color)';"
-                           onmouseout="this.style.color='#999';">
+                        <a href="https://github.com/nopara73/LongevityWorldCup/issues/74" target="_blank" rel="noopener" class="sponsor-coming-soon">
                                 <span id="comingSoon">
                                     coming soon
                                 </span>
                         </a>
                     </th>
                     <th>
-                        <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md#point-system" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;"
-                           onmouseover="this.style.color='var(--secondary-color)';"
-                           onmouseout="this.style.color='var(--primary-color)';">
+                        <a href="https://github.com/nopara73/LongevityWorldCup/blob/master/LongevityWorldCup.Documentation/Ruleset.md#point-system" target="_blank" rel="noopener" class="leaderboard-metric-link">
                             <span id="leaderboardMetricHeader">Age reduction</span>
                         </a>
                     </th>
@@ -2777,6 +3224,10 @@
                         <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
                     </span>
                     <h2 id="athleteName"></h2>
+                    <div id="athleteLoadError" role="alert" hidden>
+                        <p>We could not load this profile. Try again, or close the panel and come back later.</p>
+                        <button id="retryAthleteLoad" type="button" class="modal-link">Try again</button>
+                    </div>
 
                     <!--GUESS-MY-AGE-->
 
@@ -2900,6 +3351,27 @@
                 </div>
 
             </div>
+            <div id="athleteImageViewer"
+                 class="enlarged-portrait"
+                 role="region"
+                 aria-label="Image viewer"
+                 aria-hidden="true"
+                 hidden>
+                <button type="button" class="close-btn" aria-label="Close enlarged image">&times;</button>
+                <div class="image-viewer-stage" tabindex="0" aria-label="Enlarged image">
+                    <img src="" alt="" loading="lazy">
+                </div>
+                <div class="image-zoom-controls" role="group" aria-label="Proof zoom controls" hidden>
+                    <button type="button" class="image-zoom-out" aria-label="Zoom proof out">&minus;</button>
+                    <span class="image-zoom-status" aria-live="polite" aria-atomic="true">100%</span>
+                    <button type="button" class="image-zoom-in" aria-label="Zoom proof in">+</button>
+                    <button type="button" class="image-zoom-fit" aria-label="Fit proof to viewer">Fit</button>
+                </div>
+                <button type="button" class="image-nav image-nav--previous" aria-label="Previous proof" hidden>&lsaquo;</button>
+                <button type="button" class="image-nav image-nav--next" aria-label="Next proof" hidden>&rsaquo;</button>
+                <span class="image-position" aria-live="polite" aria-atomic="true" hidden></span>
+                <p class="image-viewer-hint" hidden>Zoomed for readable text. Scroll to inspect the full proof.</p>
+            </div>
         </div>
     </div>
 </div>
@@ -2922,16 +3394,6 @@
     </div>
 </template>
 
-<template id="enlargedPortraitTemplate">
-    <div class="enlarged-portrait" role="dialog" aria-modal="true" aria-label="Enlarged image">
-        <img src="" alt="" loading="lazy">
-        <button type="button" class="close-btn" aria-label="Close enlarged image">&times;</button>
-        <button type="button" class="image-nav image-nav--previous" aria-label="Previous proof" hidden>&lsaquo;</button>
-        <button type="button" class="image-nav image-nav--next" aria-label="Next proof" hidden>&rsaquo;</button>
-        <span class="image-position" aria-live="polite" aria-atomic="true" hidden></span>
-    </div>
-</template>
-
 <template id="leaderboardRowTemplate">
     <tr>
         <td data-label="Rank" class="rank-td">
@@ -2942,7 +3404,7 @@
                 <img src="" alt="" class="portrait" loading="lazy">
                 <span class="pro-badge" aria-label="Pro division" title="Professional longevity athlete">PRO</span>
             </span>
-            <span class="athlete-name" title="View stats"></span>
+            <button type="button" class="athlete-name" title="View stats"></button>
             <div class="badge-section"></div>
         </td>
         <td data-label="Sponsor" class="sponsor-td"></td>
@@ -3359,13 +3821,47 @@
         renderBestRankLink
     };
 
-    function getAthletePortraitUrl(athlete) {
-        return (athlete && (athlete.profilePicThumb || athlete.profilePic || athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic)) || defaultProfilePic;
+    function getAthletePortraitUrls(athlete) {
+        if (!athlete) return [];
+
+        return [
+            athlete.profilePicThumb,
+            athlete.ProfilePicLeaderboardThumb,
+            athlete.ProfilePicThumb,
+            athlete.profilePic,
+            athlete.ProfilePic
+        ].filter((candidate, index, candidates) =>
+            typeof candidate === 'string'
+            && candidate.trim()
+            && candidates.indexOf(candidate) === index);
     }
 
-    function wirePortraitFallback(img) {
+    function getAthletePortraitUrl(athlete) {
+        return getAthletePortraitUrls(athlete)[0] || defaultProfilePic;
+    }
+
+    function wirePortraitFallback(img, athlete) {
         if (!img) return;
+
+        const candidates = getAthletePortraitUrls(athlete);
+        const toAbsoluteUrl = candidate => {
+            try {
+                return new URL(candidate, window.location.href).href;
+            } catch (_) {
+                return candidate;
+            }
+        };
+        const currentSrc = toAbsoluteUrl(img.getAttribute('src') || img.src || '');
+        const currentIndex = candidates.findIndex(candidate => toAbsoluteUrl(candidate) === currentSrc);
+        let nextCandidateIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
+
         img.onerror = function () {
+            const nextCandidate = candidates[nextCandidateIndex++];
+            if (nextCandidate) {
+                this.src = nextCandidate;
+                return;
+            }
+
             this.onerror = null;
             this.src = defaultProfilePic;
             this.classList.add('portrait-fallback');
@@ -4405,7 +4901,7 @@
                                             </div>
                                             <img src="${podiumPortraitUrl}" alt="${athlete.displayName} portrait" class="podium-portrait" loading="lazy">
                                             <div class="name-row">
-                                                <span class="athlete-name" style="cursor: pointer;" title="View stats of ${athlete.displayName}">${athlete.displayName}</span>
+                                                <button type="button" class="athlete-name" title="View stats of ${athlete.displayName}">${athlete.displayName}</button>
                                             </div>
                                             <div class="podium-link-row">
                                                 ${athlete.personalLink ? `<a href="${athlete.personalLink.startsWith('http') ? athlete.personalLink : 'https://' + athlete.personalLink}" target="_blank" rel="noopener"  class="personal-link-icon podium-personal-link" aria-label="Visit athlete's personal page" title="Visit personal page of ${athlete.displayName}">
@@ -4423,41 +4919,21 @@
 
                                         // Append the podiumItem to the podium container
                                         podium.appendChild(podiumItem);
-                                        wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'));
+                                        wirePortraitFallback(podiumItem.querySelector('img.podium-portrait'), athlete);
 
                                         // After appending the podium item
                                         podiumItem.setAttribute('data-division', athlete.division.toLowerCase());
                                         podiumItem.setAttribute('data-generation', athlete.generation.toLowerCase());
                                         podiumItem.setAttribute('data-athlete-name', athlete.name);
+                                        attachAthleteContainerClickListener(podiumItem);
 
                                     });
 
                                     // Attach click event listeners to athlete names
                                     attachAthleteNameClickListeners();
 
-                                    document.querySelectorAll('.podium-item').forEach(item => {
-                                        item.addEventListener('click', function (e) {
-                                            // Let links and the prize area do their own thing
-                                            if (e.target.closest('a') || e.target.closest('.podium-item-lower')) return;
-
-                                            // Don’t open the modal when clicking badges
-                                            const badge = e.target.closest('.badge-class');
-                                            if (badge) {
-                                                const isPointer = getComputedStyle(badge).cursor === 'pointer';
-                                                if (!isPointer) e.preventDefault();
-                                                return; // never trigger the modal from a badge click
-                                            }
-
-                                            handleAthleteNameClick(e);
-                                        });
-                                    });
-
                                     animatePodiumContent();
-                                    autoshrinkPodiumNames();
-
-                                    addClickListenerToImages('.portrait', function () {
-                                        openEnlargedView(this);
-                                    });
+                                    addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
                                     addClickListenerToImages('#modalProfilePic', function () {
                                         openEnlargedView(this);
                                     }, img => `Enlarge ${img.alt || 'image'}`);
@@ -4535,7 +5011,7 @@
                     const portraitImg = athleteCell.querySelector('img.portrait');
                     portraitImg.src = getAthletePortraitUrl(athlete);
                     portraitImg.alt = `${athlete.displayName} portrait`;
-                    wirePortraitFallback(portraitImg);
+                    wirePortraitFallback(portraitImg, athlete);
                     if (athlete.isNew) {
                         portraitImg.classList.add('is-new');
                         applyNewUI(portraitImg, row);
@@ -4573,33 +5049,17 @@
                         row.classList.add('extra-athlete');
                     }
 
+                    row.id = `rank-${athlete.rank}`;
+                    tableBody.appendChild(row);
+                    attachAthleteContainerClickListener(row);
                     attachAthleteNameClickListeners();
                     addClickListenerToImages('#modalProfilePic', function () {
                         openEnlargedView(this);
                     }, img => `Enlarge ${img.alt || 'athlete profile picture'}`);
                     addClickListenerToImages('.portrait, .podium-portrait', handleAthleteNameClick);
-
-                    row.style.cursor = 'pointer';
-                    row.addEventListener('click', function (e) {
-                        // Let real links work
-                        if (e.target.closest('a')) return;
-
-                        // If the click was on a badge, never open the modal via the row
-                        const badge = e.target.closest('.badge-class');
-                        if (badge) {
-                            // Only disable if it’s a “default” cursor badge (non-navigable)
-                            const isPointer = getComputedStyle(badge).cursor === 'pointer';
-                            if (!isPointer) e.preventDefault(); // does nothing for spans, but safe for anchors
-                            return; // stop the row from opening the modal on any badge click
-                        }
-
-                        handleAthleteNameClick(e);
-                    });
-
-                    row.id = `rank-${athlete.rank}`;
-                    tableBody.appendChild(row);
                 });
                 scheduleLeaderboardTableHeightSync();
+                setLeaderboardStatus('Leaderboard loaded.');
 
                 const hash = window.location.hash;
                 if (hash && /^#rank-\d+$/.test(hash)) {
@@ -4708,10 +5168,9 @@
                     tableBody.classList.remove('loading-skeleton');
                     tableBody.setAttribute('aria-busy', 'false');
                     tableBody.removeAttribute('data-hydrating');
-                    if (!hasServerRenderedLeaderboardRows(tableBody)) {
-                        tableBody.innerHTML = '<tr><td colspan="5" class="no-results">Failed to load leaderboard.</td></tr>';
-                    }
+                    renderLeaderboardLoadError(tableBody);
                 }
+                setLeaderboardStatus('Leaderboard could not load.', true);
                 const podium = document.querySelector('.podium');
                 if (podium) {
                     podium.innerHTML = '';
@@ -4768,7 +5227,46 @@
             !!tableBody.querySelector('tr.server-rendered-leaderboard-row');
     }
 
+    function setLeaderboardStatus(message, isError = false) {
+        const status = document.getElementById('leaderboardStatus');
+        if (!status) return;
+        status.setAttribute('role', isError ? 'alert' : 'status');
+        status.textContent = message;
+    }
+
+    function renderLeaderboardLoadError(tableBody) {
+        tableBody.querySelector('.leaderboard-load-error-row')?.remove();
+
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        const recovery = document.createElement('div');
+        const message = document.createElement('p');
+        const retryButton = document.createElement('button');
+
+        row.className = 'no-results leaderboard-load-error-row';
+        cell.colSpan = 5;
+        recovery.className = 'leaderboard-recovery';
+        recovery.setAttribute('role', 'alert');
+        message.textContent = 'Leaderboard could not load.';
+        retryButton.type = 'button';
+        retryButton.className = 'leaderboard-retry-button';
+        retryButton.textContent = 'Retry';
+        retryButton.addEventListener('click', () => {
+            LoadLeaderboard(includePodiumGlobal, maxAthletesGlobal);
+        });
+
+        recovery.append(message, retryButton);
+        cell.appendChild(recovery);
+        row.appendChild(cell);
+        if (hasServerRenderedLeaderboardRows(tableBody)) {
+            tableBody.appendChild(row);
+        } else {
+            tableBody.replaceChildren(row);
+        }
+    }
+
     function setLeaderboardLoadingState(includePodium, maxAthletes) {
+        setLeaderboardStatus('Loading leaderboard.');
         const podium = document.querySelector('.podium');
         if (podium) {
             if (includePodium) {
@@ -4784,6 +5282,7 @@
 
         const tableBody = document.querySelector('.leaderboard table tbody');
         if (!tableBody) return;
+        tableBody.querySelector('.leaderboard-load-error-row')?.remove();
         if (hasServerRenderedLeaderboardRows(tableBody)) {
             tableBody.classList.remove('loading-skeleton');
             tableBody.setAttribute('aria-busy', 'true');
@@ -4832,10 +5331,22 @@
         handleAthleteNameClick(event);
     }
 
-    function handleAthleteNameKeydown(event) {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        activateAthleteName(event);
+    function activateAthleteContainer(event) {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+
+        // Preserve the generous row/card hit area from the original leaderboard while
+        // allowing every nested control to keep its own behavior.
+        if (target.closest('a, button, input, select, textarea, [role="button"]')) return;
+        if (target.closest('.badge-class, .portrait, .podium-portrait')) return;
+
+        handleAthleteNameClick(event);
+    }
+
+    function attachAthleteContainerClickListener(container) {
+        if (!container || container.dataset.athleteContainerClickListener === 'true') return;
+        container.addEventListener('click', activateAthleteContainer);
+        container.dataset.athleteContainerClickListener = 'true';
     }
 
     function attachAthleteNameClickListeners() {
@@ -4843,14 +5354,44 @@
             const athleteName = athleteNameElement.textContent.trim();
             if (!athleteName) return;
 
-            athleteNameElement.setAttribute('role', 'button');
-            athleteNameElement.setAttribute('tabindex', '0');
             athleteNameElement.setAttribute('aria-label', athleteNameElement.title || `View stats of ${athleteName}`);
             athleteNameElement.removeEventListener('click', activateAthleteName);
-            athleteNameElement.removeEventListener('keydown', handleAthleteNameKeydown);
             athleteNameElement.addEventListener('click', activateAthleteName);
-            athleteNameElement.addEventListener('keydown', handleAthleteNameKeydown);
         });
+    }
+
+    const proofViewerZoomLevels = [1, 1.5, 2, 3];
+
+    function centerProofViewer(enlargedElem) {
+        const stage = enlargedElem.querySelector('.image-viewer-stage');
+        if (!stage || !enlargedElem.isProofGallery) return;
+
+        stage.scrollLeft = Math.max(0, (stage.scrollWidth - stage.clientWidth) / 2);
+        stage.scrollTop = 0;
+    }
+
+    function setProofViewerZoom(enlargedElem, requestedIndex, shouldCenter = true) {
+        const boundedIndex = Math.min(Math.max(requestedIndex, 0), proofViewerZoomLevels.length - 1);
+        const zoom = proofViewerZoomLevels[boundedIndex];
+        const zoomOut = enlargedElem.querySelector('.image-zoom-out');
+        const zoomIn = enlargedElem.querySelector('.image-zoom-in');
+        const status = enlargedElem.querySelector('.image-zoom-status');
+        const hint = enlargedElem.querySelector('.image-viewer-hint');
+
+        enlargedElem.proofZoomIndex = boundedIndex;
+        enlargedElem.style.setProperty('--proof-viewer-zoom', String(zoom));
+        if (zoomOut) zoomOut.disabled = boundedIndex === 0;
+        if (zoomIn) zoomIn.disabled = boundedIndex === proofViewerZoomLevels.length - 1;
+        if (status) status.textContent = `${Math.round(zoom * 100)}%`;
+        if (hint) {
+            hint.textContent = zoom > 1
+                ? 'Zoomed for readable text. Scroll to inspect the full proof.'
+                : 'Use the zoom controls for fine text, then scroll to inspect.';
+        }
+
+        if (shouldCenter) {
+            requestAnimationFrame(() => centerProofViewer(enlargedElem));
+        }
     }
 
     function updateEnlargedImage(enlargedElem, index) {
@@ -4864,13 +5405,39 @@
         const previousButton = enlargedElem.querySelector('.image-nav--previous');
         const nextButton = enlargedElem.querySelector('.image-nav--next');
         const position = enlargedElem.querySelector('.image-position');
+        const stage = enlargedElem.querySelector('.image-viewer-stage');
+        const zoomControls = enlargedElem.querySelector('.image-zoom-controls');
+        const hint = enlargedElem.querySelector('.image-viewer-hint');
         const isProofGallery = enlargedElem.isProofGallery;
         const canNavigate = isProofGallery && imageCount > 1;
 
         enlargedElem.currentImageIndex = boundedIndex;
         enlargedElem.returnFocusTo = sourceImage;
+        enlargedElem.classList.toggle('is-proof-gallery', isProofGallery);
         img.src = sourceImage.dataset.fullSrc || sourceImage.src;
         img.alt = sourceImage.alt;
+
+        if (history.state?.modal === 'enlarged') {
+            history.replaceState({
+                ...history.state,
+                enlargedImage: getEnlargedImageHistoryState(sourceImage, enlargedElem)
+            }, '', window.location.href);
+        }
+
+        if (stage) {
+            stage.setAttribute('aria-label', isProofGallery
+                ? 'Scrollable proof image. Use zoom controls for fine text.'
+                : `Enlarged ${sourceImage.alt || 'image'}`);
+        }
+        if (zoomControls) zoomControls.hidden = !isProofGallery;
+        if (hint) hint.hidden = !isProofGallery;
+        if (isProofGallery) {
+            setProofViewerZoom(enlargedElem, enlargedElem.proofZoomIndex ?? 0, false);
+            img.addEventListener('load', () => centerProofViewer(enlargedElem), { once: true });
+            requestAnimationFrame(() => centerProofViewer(enlargedElem));
+        } else {
+            enlargedElem.style.removeProperty('--proof-viewer-zoom');
+        }
 
         previousButton.hidden = !canNavigate;
         nextButton.hidden = !canNavigate;
@@ -4902,7 +5469,7 @@
     function trapEnlargedViewFocus(enlargedElem, event) {
         if (event.key !== 'Tab') return;
 
-        const focusableControls = Array.from(enlargedElem.querySelectorAll('button:not([hidden]):not(:disabled)'));
+        const focusableControls = Array.from(enlargedElem.querySelectorAll('.image-viewer-stage[tabindex="0"], button:not([hidden]):not(:disabled)'));
         if (focusableControls.length === 0) return;
 
         const firstControl = focusableControls[0];
@@ -4916,103 +5483,208 @@
         }
     }
 
-    function openEnlargedView(imgElement) {
-        // Retrieve and clone the template content
-        const template = document.getElementById("enlargedPortraitTemplate");
-        const clone = template.content.firstElementChild.cloneNode(true);
+    function getEnlargedImageHistoryState(imgElement, viewer) {
+        const isProfileImage = imgElement.id === 'modalProfilePic';
+        return {
+            kind: isProfileImage ? 'profile' : 'proof',
+            source: imgElement.dataset.fullSrc || imgElement.getAttribute('src') || '',
+            index: Number.isInteger(viewer.currentImageIndex) ? viewer.currentImageIndex : 0
+        };
+    }
+
+    function restoreEnlargedViewFromHistory(state) {
+        const imageState = state?.enlargedImage;
+        const modalContent = modal.querySelector('.modal-content');
+        if (!imageState
+            || modal.style.display !== 'block'
+            || modalContent?.classList.contains('is-loading')
+            || modalContent?.classList.contains('has-load-error')) {
+            return false;
+        }
+
+        const candidates = imageState.kind === 'profile'
+            ? [document.getElementById('modalProfilePic')].filter(Boolean)
+            : Array.from(document.querySelectorAll('#proofsGallery .proof-item img'));
+        const image = candidates.find(candidate =>
+            (candidate.dataset.fullSrc || candidate.getAttribute('src') || '') === imageState.source)
+            || candidates[imageState.index]
+            || null;
+        if (!image) return false;
+
+        openEnlargedView(image, { pushHistory: false });
+        return true;
+    }
+
+    function openEnlargedView(imgElement, options) {
+        const viewer = document.getElementById('athleteImageViewer');
+        const ownerDialog = viewer ? viewer.closest('#detailsModal') : null;
+        const modalContent = ownerDialog ? ownerDialog.querySelector('.modal-content') : null;
+        if (!viewer || !ownerDialog || !modalContent || ownerDialog.style.display !== 'block') return;
+
+        if (viewer._closeTimer) {
+            clearTimeout(viewer._closeTimer);
+            viewer._closeTimer = 0;
+        }
+        if (viewer._showFrame != null) {
+            cancelAnimationFrame(viewer._showFrame);
+            viewer._showFrame = null;
+        }
+        viewer._historyClosePending = false;
+
         const proofGallery = imgElement.closest('.proofs-gallery');
-        clone.isProofGallery = Boolean(proofGallery);
-        clone.galleryImages = proofGallery
+        viewer.isProofGallery = Boolean(proofGallery);
+        viewer.galleryImages = proofGallery
             ? Array.from(proofGallery.querySelectorAll('.proof-item img'))
             : [imgElement];
-        const initialIndex = Math.max(0, clone.galleryImages.indexOf(imgElement));
-        updateEnlargedImage(clone, initialIndex);
+        viewer.proofZoomIndex = viewer.isProofGallery && window.matchMedia('(max-width: 768px)').matches ? 2 : 0;
+        const initialIndex = Math.max(0, viewer.galleryImages.indexOf(imgElement));
+        updateEnlargedImage(viewer, initialIndex);
 
-        // Append the cloned element to the document (it will be added where it fits in your DOM structure)
-        document.body.appendChild(clone);
-        lockBodyScroll();
-        history.pushState({ modal: 'enlarged' }, "");
-        const closeButton = clone.querySelector('.close-btn');
-        closeButton.focus();
+        viewer.hidden = false;
+        viewer.setAttribute('aria-hidden', 'false');
+        modalContent.inert = true;
+        ownerDialog.classList.add('image-viewer-open');
 
-        // Trigger a transition to show the element
-        setTimeout(() => clone.classList.add('show'), 10);
+        const closeButton = viewer.querySelector('.close-btn');
+        closeButton.focus({ preventScroll: true });
+        viewer._showFrame = requestAnimationFrame(() => {
+            viewer._showFrame = null;
+            if (viewer.hidden || viewer.getAttribute('aria-hidden') !== 'false') return;
+            viewer.classList.add('show');
+        });
 
-        // Add event listener for the close button
+        const shouldPushHistory = !options || options.pushHistory !== false;
+        if (shouldPushHistory && history.state?.modal !== 'enlarged') {
+            history.pushState({
+                ...(history.state || {}),
+                modal: 'enlarged',
+                enlargedImage: getEnlargedImageHistoryState(imgElement, viewer)
+            }, '', window.location.href);
+        }
+
+        if (viewer.dataset.interactionsBound === 'true') return;
+        viewer.dataset.interactionsBound = 'true';
+
         closeButton.addEventListener('click', () => {
-            closeEnlargedView(clone);
+            requestCloseEnlargedView(viewer);
         });
 
-        clone.querySelector('.image-nav--previous').addEventListener('click', () => {
-            navigateEnlargedImage(clone, -1);
+        viewer.querySelector('.image-nav--previous').addEventListener('click', () => {
+            navigateEnlargedImage(viewer, -1);
         });
-        clone.querySelector('.image-nav--next').addEventListener('click', () => {
-            navigateEnlargedImage(clone, 1);
+        viewer.querySelector('.image-nav--next').addEventListener('click', () => {
+            navigateEnlargedImage(viewer, 1);
+        });
+        viewer.querySelector('.image-zoom-out').addEventListener('click', () => {
+            setProofViewerZoom(viewer, (viewer.proofZoomIndex ?? 0) - 1);
+        });
+        viewer.querySelector('.image-zoom-in').addEventListener('click', () => {
+            setProofViewerZoom(viewer, (viewer.proofZoomIndex ?? 0) + 1);
+        });
+        viewer.querySelector('.image-zoom-fit').addEventListener('click', () => {
+            setProofViewerZoom(viewer, 0);
         });
 
-        clone.addEventListener('keydown', event => {
-            trapEnlargedViewFocus(clone, event);
-            if (!clone.isProofGallery || clone.galleryImages.length < 2) return;
+        viewer.addEventListener('keydown', event => {
+            if (event.key === 'Escape' || event.key === 'Esc') {
+                event.preventDefault();
+                event.stopPropagation();
+                requestCloseEnlargedView(viewer);
+                return;
+            }
+
+            trapEnlargedViewFocus(viewer, event);
+            if (!viewer.isProofGallery || viewer.galleryImages.length < 2) return;
+            if ((viewer.proofZoomIndex ?? 0) > 0 && event.target.closest('.image-viewer-stage')) return;
 
             if (event.key === 'ArrowLeft') {
                 event.preventDefault();
-                navigateEnlargedImage(clone, -1);
+                event.stopPropagation();
+                navigateEnlargedImage(viewer, -1);
             } else if (event.key === 'ArrowRight') {
                 event.preventDefault();
-                navigateEnlargedImage(clone, 1);
+                event.stopPropagation();
+                navigateEnlargedImage(viewer, 1);
             } else if (event.key === 'Home') {
                 event.preventDefault();
-                updateEnlargedImage(clone, 0);
+                event.stopPropagation();
+                updateEnlargedImage(viewer, 0);
             } else if (event.key === 'End') {
                 event.preventDefault();
-                updateEnlargedImage(clone, clone.galleryImages.length - 1);
+                event.stopPropagation();
+                updateEnlargedImage(viewer, viewer.galleryImages.length - 1);
             }
         });
 
         let touchStart = null;
-        clone.addEventListener('touchstart', event => {
+        viewer.addEventListener('touchstart', event => {
             if (event.touches.length !== 1) return;
             touchStart = {
                 x: event.touches[0].clientX,
                 y: event.touches[0].clientY
             };
         }, { passive: true });
-        clone.addEventListener('touchend', event => {
+        viewer.addEventListener('touchend', event => {
             if (!touchStart) return;
             const completedTouch = event.changedTouches[0];
             const startingTouch = touchStart;
             touchStart = null;
             if (!completedTouch) return;
+            if ((viewer.proofZoomIndex ?? 0) > 0) return;
             const horizontalDistance = completedTouch.clientX - startingTouch.x;
             const verticalDistance = completedTouch.clientY - startingTouch.y;
             if (Math.abs(horizontalDistance) < 50 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
-            navigateEnlargedImage(clone, horizontalDistance > 0 ? -1 : 1);
+            navigateEnlargedImage(viewer, horizontalDistance > 0 ? -1 : 1);
         }, { passive: true });
-        clone.addEventListener('touchcancel', () => {
+        viewer.addEventListener('touchcancel', () => {
             touchStart = null;
         }, { passive: true });
 
-        // Add event listener to close the view when clicking outside the image
-        clone.addEventListener('click', (e) => {
-            if (e.target === clone) {
-                closeEnlargedView(clone);
+        viewer.addEventListener('click', event => {
+            if (event.target === viewer) {
+                requestCloseEnlargedView(viewer);
             }
         });
     }
 
+    function requestCloseEnlargedView(enlargedElem) {
+        if (!enlargedElem || enlargedElem.hidden || enlargedElem.getAttribute('aria-hidden') !== 'false') return;
+
+        if (history.state?.modal === 'enlarged') {
+            if (enlargedElem._historyClosePending) return;
+            enlargedElem._historyClosePending = true;
+            history.back();
+            return;
+        }
+
+        closeEnlargedView(enlargedElem);
+    }
+
     function closeEnlargedView(enlargedElem) {
+        if (!enlargedElem || enlargedElem.hidden || enlargedElem.getAttribute('aria-hidden') !== 'false') return;
+
+        enlargedElem._historyClosePending = false;
+        if (enlargedElem._showFrame != null) {
+            cancelAnimationFrame(enlargedElem._showFrame);
+            enlargedElem._showFrame = null;
+        }
+
         const returnFocusTo = enlargedElem.returnFocusTo;
+        const ownerDialog = enlargedElem.closest('#detailsModal');
+        const modalContent = ownerDialog ? ownerDialog.querySelector('.modal-content') : null;
+        if (modalContent) modalContent.inert = false;
+        if (ownerDialog?.style.display === 'block' && returnFocusTo?.isConnected && typeof returnFocusTo.focus === 'function') {
+            returnFocusTo.focus({ preventScroll: true });
+        }
         enlargedElem.classList.remove('show');
-        setTimeout(() => {
-            document.body.removeChild(enlargedElem);
-            // If no modal is open, restore body scroll
-            if (modal.style.display !== "block") {
-                restoreBodyScroll();
-            }
-            if (returnFocusTo && typeof returnFocusTo.focus === 'function') {
-                returnFocusTo.focus();
-            }
-        }, 300);
+        enlargedElem.setAttribute('aria-hidden', 'true');
+
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        enlargedElem._closeTimer = setTimeout(() => {
+            enlargedElem.hidden = true;
+            enlargedElem._closeTimer = 0;
+            if (ownerDialog) ownerDialog.classList.remove('image-viewer-open');
+        }, prefersReducedMotion ? 0 : 220);
     }
 
     function renderMediaContact(contact, isPodium, athleteName) {
@@ -5147,12 +5819,22 @@
         ensureAthleteModalDeferredSections();
         closeAthleteShareMenu();
 
+        if (modal._closeTimer) {
+            clearTimeout(modal._closeTimer);
+            modal._closeTimer = 0;
+        }
+        modal.classList.remove('fade-out');
+
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return null;
 
+        modalContent.classList.remove('has-load-error');
         modalContent.classList.add('is-loading');
         modalContent.dataset.athleteSlug = athleteSlug;
         modalContent.scrollTop = 0;
+
+        const loadError = document.getElementById('athleteLoadError');
+        if (loadError) loadError.hidden = true;
 
         const stickyHeader = document.getElementById('modalStickyHeader');
         if (stickyHeader) {
@@ -5167,6 +5849,7 @@
         const profilePic = document.getElementById('modalProfilePic');
         if (profilePic) {
             profilePic.removeAttribute('src');
+            profilePic.removeAttribute('data-full-src');
             profilePic.alt = 'Loading athlete profile picture';
         }
 
@@ -5197,8 +5880,8 @@
 
         if (modal.style.display !== "block") {
             modal.style.display = "block";
-            lockBodyScroll();
         }
+        lockBodyScroll();
 
         return modalContent;
     }
@@ -5430,6 +6113,8 @@
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return;
 
+        currentAthleteModalRequestId++;
+
         closeAthleteShareMenu();
         
         const athleteSlug = modalContent.dataset.athleteSlug;
@@ -5458,7 +6143,11 @@
         
         modal.classList.add('fade-out');
         restoreBodyScroll();
-        setTimeout(() => {
+        if (modal._closeTimer) {
+            clearTimeout(modal._closeTimer);
+        }
+        modal._closeTimer = setTimeout(() => {
+            modal._closeTimer = 0;
             modal.style.display = "none";
             modal.classList.remove('fade-out');
             
@@ -5506,7 +6195,7 @@
 
         const url = new URL(window.location.href);
         url.searchParams.delete('search');
-        history.replaceState({}, "", url.toString());
+        history.replaceState(history.state || {}, "", url.toString());
     }
 
     // Wrap the filter function with debounce
@@ -6100,7 +6789,7 @@
             url.searchParams.set('view', currentLeaderboardView);
         }
 
-        history.replaceState({}, "", url.toString());
+        history.replaceState(history.state || {}, "", url.toString());
     }
 
     function updateRankingExplanation(currentLeaderboardView) {
@@ -6406,18 +7095,6 @@
             focusAfterClearingSidebarFilters();
         }
     });
-    clearSidebarFiltersButton?.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
-            event.preventDefault();
-            event.stopPropagation();
-            clearSidebarFilters();
-            if (!isMobileDrawerViewport()) {
-                closeSidebar({ restoreFocus: true });
-            } else {
-                focusAfterClearingSidebarFilters();
-            }
-        }
-    });
     function focusAfterClearingSidebarFilters() {
         const sidebar = document.querySelector('.sidebar');
         const sidebarClose = document.querySelector('.sidebar-close');
@@ -6513,13 +7190,13 @@
         // Generate the filter items with icons and counts
         Object.keys(divisionCounts).forEach(division => {
             const count = divisionCounts[division];
-            const icon = window.TryGetDivisionIcon(division);
+            const icon = window.TryGetDivisionFaIcon ? window.TryGetDivisionFaIcon(division) : '';
 
             const li = document.createElement('li');
             li.innerHTML = `
         <label data-division="${division}">
             <input type="checkbox" name="division" value="${division}">
-            <span class="filter-label-copy">${icon} ${division.charAt(0).toUpperCase() + division.slice(1)} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
+            <span class="filter-label-copy">${renderFilterIcon(icon)} ${division.charAt(0).toUpperCase() + division.slice(1)} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
         </label>
     `;
             filterSection.appendChild(li);
@@ -6571,13 +7248,13 @@
         orderedGenerations.forEach(generation => {
             const count = generationCounts[generation] || 0;
             if (count > 0) { // Only show generations with at least one athlete
-                const icon = window.TryGetGenerationIcon(generation);
+                const icon = window.TryGetGenerationFaIcon ? window.TryGetGenerationFaIcon(generation) : '';
 
                 const li = document.createElement('li');
                 li.innerHTML = `
             <label data-generation="${generation}">
                 <input type="checkbox" name="generation" value="${generation}">
-                <span class="filter-label-copy">${icon} ${generation} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
+                <span class="filter-label-copy">${renderFilterIcon(icon)} ${generation} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
             </label>
         `;
                 filterSection.appendChild(li);
@@ -6603,7 +7280,7 @@
             li.innerHTML = `
             <label data-exclusive-league="Prosperan">
                 <input type="checkbox" name="exclusiveLeague" value="Prosperan">
-                <span class="filter-label-copy">🏝️ Prosperan <span class="filter-count-group">(<span class="filter-count">${prosperanCount}</span>)</span></span>
+                <span class="filter-label-copy"><i class="fas fa-umbrella-beach filter-icon" aria-hidden="true"></i> Prosperan <span class="filter-count-group">(<span class="filter-count">${prosperanCount}</span>)</span></span>
             </label>
         `;
             filterSection.appendChild(li);
@@ -6630,12 +7307,12 @@
         ];
 
         tracks.forEach(({ value, label, count }) => {
-            const icon = window.TryGetLeagueTrackIcon ? window.TryGetLeagueTrackIcon(value) : '';
+            const icon = window.TryGetLeagueTrackFaIcon ? window.TryGetLeagueTrackFaIcon(value) : '';
             const li = document.createElement('li');
             li.innerHTML = `
                 <label data-league-track="${value}">
                     <input type="checkbox" name="leagueTrack" value="${value}">
-                    <span class="filter-label-copy">${icon} ${label} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
+                    <span class="filter-label-copy">${renderFilterIcon(icon)} ${label} <span class="filter-count-group">(<span class="filter-count">${count}</span>)</span></span>
                 </label>
             `;
             filterSection.appendChild(li);
@@ -6654,6 +7331,12 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    }
+
+    function renderFilterIcon(iconClass) {
+        return iconClass
+            ? `<i class="fas ${escapeHtml(iconClass)} filter-icon" aria-hidden="true"></i>`
+            : '';
     }
 
     function formatAthleteNameForMobile(name) {
@@ -6698,47 +7381,33 @@
         return `<a href="${escapeHtml(flagHref)}" class="league-link">${renderFlagLabel(canonicalFlag)}</a>${getModalDetailRankMarkup(flagRank)}`;
     }
 
-    function fitTextToWidth(el, minPx = 12, maxPx = null) {
-        // reset to CSS default first
-        el.style.fontSize = '';
-        const max = maxPx || parseFloat(getComputedStyle(el).fontSize) || 18;
-        let lo = minPx, hi = Math.round(max), best = minPx;
-        // binary search for largest size that fits
-        while (lo <= hi) {
-            const mid = Math.floor((lo + hi) / 2);
-            el.style.fontSize = mid + 'px';
-            if (el.scrollWidth <= el.clientWidth) { best = mid; lo = mid + 1; }
-            else { hi = mid - 1; }
-        }
-        el.style.fontSize = best + 'px';
-    }
-
-    function autoshrinkPodiumNames() {
-        document.querySelectorAll('.podium .athlete-name').forEach(el => fitTextToWidth(el, 12));
-    }
-
-    // run after podium render and on resize
-    window.addEventListener('resize', debounce(autoshrinkPodiumNames, 150));
-    window.addEventListener('load', autoshrinkPodiumNames);
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape' || event.key === 'Esc') {
             closeOpenComponents();
         }
     });
-    function closeOpenComponents() {
-        // don't close the details modal mid-guess
+    function closeOpenComponents(options) {
+        const closeAll = !!(options && options.closeAll);
+        const enlargedImg = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
+        if (enlargedImg) {
+            if (options && options.fromHistory) {
+                closeEnlargedView(enlargedImg);
+            } else {
+                requestCloseEnlargedView(enlargedImg);
+            }
+            if (!closeAll) return;
+        }
+
+        if (closeAthleteShareMenu({ restoreFocus: true })) {
+            if (!closeAll) return;
+        }
+
+        // Don't close the parent details modal mid-guess. Its nested image viewer
+        // and share menu remain independently dismissible above this guard.
         const modalContent = document.querySelector('.modal-content');
         if (modalContent && modalContent.classList.contains('guess-mode')) return;
 
-        if (closeAthleteShareMenu({ restoreFocus: true })) {
-            return;
-        }
-
-        const enlargedImg = document.querySelector('.enlarged-portrait.show');
-        if (enlargedImg) {
-            closeEnlargedView(enlargedImg);
-        }
-        else if (modal.style.display === "block") {
+        if (modal.style.display === "block") {
             closeModal();
         }
     }
@@ -7057,6 +7726,37 @@
         closeAthleteShareMenu();
     });
 
+    function handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error) {
+        window.__sharedAthletesRequest = null;
+
+        if (modalContent) {
+            modalContent.classList.add('has-load-error');
+            modalContent.classList.remove('is-loading');
+        }
+
+        const athleteNameElement = document.getElementById('athleteName');
+        if (athleteNameElement) athleteNameElement.textContent = 'Athlete details unavailable';
+        const stickyAthleteName = document.getElementById('stickyAthleteName');
+        if (stickyAthleteName) stickyAthleteName.textContent = 'Athlete details unavailable';
+        const profilePic = document.getElementById('modalProfilePic');
+        if (profilePic) profilePic.alt = '';
+        const loadError = document.getElementById('athleteLoadError');
+        if (loadError) loadError.hidden = false;
+        const retryButton = document.getElementById('retryAthleteLoad');
+        if (retryButton) {
+            const retryOptions = options
+                ? { ...options, restoreEnlargedState: undefined }
+                : undefined;
+            retryButton.onclick = () => window.openAthleteModalBySlug(athleteSlug, retryOptions);
+        }
+
+        if (options?.restoreEnlargedState && history.state?.modal === 'enlarged') {
+            history.back();
+        }
+
+        console.error('Error fetching full athlete data:', error);
+    }
+
     function fetchFullAthleteData(athleteNameText, athleteData, options) {
         window.getSharedAthletes = window.getSharedAthletes || function(){
             if(!window.__sharedAthletesRequest){
@@ -7080,8 +7780,7 @@
                 if (requestId !== currentAthleteModalRequestId) return;
                 const fullAthleteData = athletes.find(a => window.slugifyName(a.Name) === window.slugifyName(athleteNameText));
                 if (!fullAthleteData) {
-                    console.error('Full athlete data not found');
-                    return;
+                    throw new Error(`Full athlete data not found for ${athleteSlug}`);
                 }
 
                 const rankSummary = computeBestLeagueRank(athleteData);
@@ -7105,7 +7804,10 @@
                 if (!/^\/athlete\/[^/]+\/?$/.test(pathnameBeforeOpen)) {
                     originalAthletelessURL = getAthletelessURL();
                 }
-                history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
+                const shouldPushHistory = !options || options.historyMode !== 'preserve';
+                if (shouldPushHistory) {
+                    history.pushState({ modal: 'details', athlete: athleteSlug }, "", `/athlete/${athleteSlug}`);
+                }
 
                 // Biomarker chart is created after modal is shown (see below) so the canvas has layout dimensions.
 
@@ -7262,13 +7964,18 @@
                     paceOfAgingContainer.style.display = 'none';
                 }
 
+                const currentEnlargedState = history.state;
+                if (options?.restoreEnlargedState
+                    && currentEnlargedState?.modal === 'enlarged'
+                    && currentEnlargedState.athlete === athleteSlug
+                    && !restoreEnlargedViewFromHistory(currentEnlargedState)) {
+                    history.replaceState({ modal: 'details', athlete: athleteSlug }, '', window.location.href);
+                }
+
             })
             .catch(error => {
                 if (requestId !== currentAthleteModalRequestId) return;
-                if (modalContent) {
-                    modalContent.classList.remove('is-loading');
-                }
-                console.error('Error fetching full athlete data:', error);
+                handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error);
             });
     }
 
@@ -7349,7 +8056,7 @@
         profilePic.alt = `${modalDisplayName} Profile Picture`;
         profilePic.loading = 'lazy';
         profilePic.classList.remove('portrait-fallback');
-        wirePortraitFallback(profilePic);
+        wirePortraitFallback(profilePic, fullAthleteData);
 
         const athleteProfileEl = document.getElementById('athlete-profile');
         if (athleteProfileEl) {
@@ -8046,7 +8753,54 @@
 
     // Ensure modal history cleanup
     window.addEventListener('popstate', function (event) {
-        closeOpenComponents();
+        if (event.state?.modal === 'enlarged') {
+            const viewer = document.getElementById('athleteImageViewer');
+            if (viewer?.getAttribute('aria-hidden') === 'false') {
+                return;
+            }
+
+            const parentCanRestore = modal.style.display === 'block'
+                && !modal.classList.contains('fade-out');
+            if (parentCanRestore && restoreEnlargedViewFromHistory(event.state)) {
+                return;
+            }
+
+            const restored = event.state.athlete
+                && window.openAthleteModalBySlug(event.state.athlete, {
+                    historyMode: 'preserve',
+                    restoreEnlargedState: event.state
+                });
+            if (!restored) {
+                history.replaceState({}, '', originalAthletelessURL);
+            }
+            return;
+        }
+
+        if (event.state?.modal === 'details') {
+            const viewer = document.querySelector('#athleteImageViewer[aria-hidden="false"]');
+            if (viewer) {
+                closeEnlargedView(viewer);
+            }
+
+            if (modal.style.display !== 'block' || modal.classList.contains('fade-out')) {
+                const restored = event.state.athlete
+                    && window.openAthleteModalBySlug(event.state.athlete, { historyMode: 'preserve' });
+                if (!restored) {
+                    history.replaceState({}, '', originalAthletelessURL);
+                }
+            }
+            return;
+        }
+
+        const modalContent = document.querySelector('#detailsModal .modal-content');
+        if (modal.style.display === 'block' && modalContent?.classList.contains('guess-mode')) {
+            // Guess My Age deliberately cannot be abandoned mid-round. Undo a
+            // Back-menu jump, then let the details-state pop close any viewer.
+            history.forward();
+            return;
+        }
+
+        closeOpenComponents({ fromHistory: true, closeAll: true });
     });
 
     const sidebar = document.querySelector('.sidebar');

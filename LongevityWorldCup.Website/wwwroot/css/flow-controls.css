@@ -105,11 +105,12 @@ body.play-flow-route > main {
     gap: 0.55rem;
     padding: 0.55rem max(0.75rem, env(safe-area-inset-left)) calc(0.58rem + env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-right));
     border-top: 0;
-    background: var(--flow-action-dock-surface, rgba(238, 238, 238, 0.985));
-    box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.11);
+    border-top: 1px solid var(--border-color, #d7e0e6);
+    background: var(--flow-action-dock-surface, rgba(243, 245, 247, 0.985));
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
     opacity: 1;
     transform: translateY(0) !important;
-    transition: opacity 0.14s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
     will-change: transform, opacity;
 }
 
@@ -186,7 +187,7 @@ html.flow-action-dock-active {
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    border-radius: 50px;
+    border-radius: var(--radius-md, 8px);
     font: inherit;
     font-size: 1.12rem;
     font-weight: 700;
@@ -237,24 +238,26 @@ html.flow-action-dock-active {
 
 .option-button.flow-action.back-button,
 .option-button.flow-action.flow-action--secondary {
-    background: #f8fafc;
-    border: 1px solid rgba(96, 125, 139, 0.16);
-    color: #526d7a;
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+    background: var(--lwc-surface-muted, var(--surface-muted, #eef2f5));
+    border: 1px solid var(--lwc-border, var(--border-color, #d7e0e6));
+    color: var(--lwc-ink, #405261);
+    box-shadow: none;
 }
 
 .option-button.flow-action.back-button:hover,
 .option-button.flow-action.flow-action--secondary:hover {
-    background: #eef2f7;
-    border-color: rgba(96, 125, 139, 0.22);
-    color: #405866;
+    background: var(--lwc-surface, #e3e9ed);
+    border-color: var(--lwc-border-strong, #71808d);
+    color: var(--lwc-ink, #273946);
+    box-shadow: none;
+    transform: none;
 }
 
 .option-button.flow-action:disabled,
 .option-button.flow-action:disabled:hover {
-    background: #eef2f7 !important;
-    border: 1px solid rgba(100, 116, 139, 0.16);
-    color: #64748b;
+    background: var(--lwc-surface-muted, #eef2f7) !important;
+    border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.16));
+    color: var(--lwc-muted, #526373);
     box-shadow: none !important;
     cursor: not-allowed;
     opacity: 1;

@@ -16,7 +16,7 @@ public sealed class CharacterSelectionPageTests
 
         Assert.Contains("id=\"athleteSelectionPanel\"", html);
         Assert.Contains("id=\"athleteSelectionPicture\" class=\"athlete-picture-frame\"", html);
-        Assert.Contains("<label for=\"playAthleteInput\" class=\"visually-hidden\">Athlete name</label>", html);
+        Assert.Contains("<label for=\"playAthleteInput\" class=\"field-label\">Athlete name</label>", html);
         Assert.Contains("id=\"playAthleteInput\"", html);
         Assert.Contains("id=\"playConfirmAthleteBtn\"", html);
         Assert.Contains("function navigateToStartPanel()", playMenu);
@@ -57,8 +57,29 @@ public sealed class CharacterSelectionPageTests
         Assert.Contains("let athleteLoadPromise = null;", flow);
         Assert.Contains("fetch(athleteApiPath)", flow);
         Assert.Contains("console.error(\"Error fetching athletes:\", error);", flow);
-        Assert.Contains("errorElement.textContent = \"Athlete list could not load. Check your connection and try again.\";", flow);
+        Assert.Contains("function renderAthleteLoadError()", flow);
+        Assert.Contains("message.textContent = \"Athlete list could not load. Check your connection and try again.\";", flow);
+        Assert.Contains("retryButton.className = \"athlete-load-retry\";", flow);
+        Assert.Contains("retryButton.addEventListener(\"click\"", flow);
         Assert.Contains("if (saved && !currentAthlete && !hasUserEditedInput)", flow);
+    }
+
+    [Fact]
+    public async Task AthleteSelection_ExposesListboxStateToAssistiveTechnology()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/select-athlete");
+        var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
+
+        Assert.Contains("id=\"playAthleteError\" class=\"error-message\" role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"", html);
+        Assert.Contains("input.setAttribute(\"role\", \"combobox\");", flow);
+        Assert.Contains("input.setAttribute(\"aria-autocomplete\", \"list\");", flow);
+        Assert.Contains("list.setAttribute(\"role\", \"listbox\");", flow);
+        Assert.Contains("item.setAttribute(\"role\", \"option\");", flow);
+        Assert.Contains("input.setAttribute(\"aria-activedescendant\", activeItem.id);", flow);
+        Assert.Contains("input.setAttribute(\"aria-expanded\", \"false\");", flow);
     }
 
     [Fact]

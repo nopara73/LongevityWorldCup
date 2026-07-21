@@ -9,13 +9,14 @@
     <link rel="canonical" href="https://longevityworldcup.com/privacy">
     <style>
         :root {
-            color-scheme: dark;
-            --bg: #0f1115;
-            --panel: #171b22;
-            --text: #eef2f7;
-            --muted: #c4ccd8;
-            --line: #293243;
-            --accent: #72c16b;
+            color-scheme: light dark;
+            --bg: var(--lwc-canvas, #f4f6f7);
+            --panel: var(--lwc-surface, #ffffff);
+            --text: var(--lwc-ink, #17212b);
+            --muted: var(--lwc-muted, #536471);
+            --line: var(--lwc-border, #c7d0d7);
+            --accent: var(--lwc-accent, #087685);
+            --accent-soft: var(--lwc-accent-soft, #e4f4f5);
         }
 
         * {
@@ -26,10 +27,8 @@
             margin: 0;
             max-width: 100%;
             overflow-x: clip;
-            font-family: Roboto, Arial, sans-serif;
-            background:
-                radial-gradient(circle at top right, rgba(114, 193, 107, 0.14), transparent 30%),
-                linear-gradient(180deg, #0c0f14 0%, #121720 100%);
+            font-family: var(--lwc-font-body, Inter, "Segoe UI", Arial, sans-serif);
+            background: var(--bg);
             color: var(--text);
             line-height: 1.6;
         }
@@ -40,17 +39,18 @@
         }
 
         .card {
-            background: rgba(23, 27, 34, 0.92);
+            min-width: 0;
+            background: var(--panel);
             border: 1px solid var(--line);
-            border-radius: 18px;
+            border-radius: var(--lwc-radius-md, 6px);
             padding: 32px;
-            box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
+            box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(23, 33, 43, 0.1));
         }
 
         h1 {
             margin: 0 0 8px;
-            font-family: Orbitron, Roboto, Arial, sans-serif;
-            font-size: 2.4rem;
+            font-family: var(--lwc-font-display, Inter, "Segoe UI", Arial, sans-serif);
+            font-size: clamp(2rem, 5vw, 2.4rem);
             line-height: 1.15;
             overflow-wrap: anywhere;
         }
@@ -72,6 +72,9 @@
             color: var(--muted);
             font-size: 16px;
             max-width: 68ch;
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         p {
@@ -88,8 +91,9 @@
             display: inline-block;
             margin-bottom: 20px;
             padding: 8px 12px;
-            border-radius: 999px;
-            background: rgba(114, 193, 107, 0.12);
+            border: 1px solid var(--line);
+            border-radius: var(--lwc-radius-sm, 4px);
+            background: var(--accent-soft);
             color: var(--accent);
             font-size: 14px;
             font-weight: 700;
@@ -97,6 +101,7 @@
 
         a {
             color: var(--accent);
+            overflow-wrap: anywhere;
         }
 
         ul {
@@ -115,7 +120,7 @@
             }
 
             .card {
-                border-radius: 16px;
+                border-radius: var(--lwc-radius-md, 6px);
                 padding: 22px 20px 28px;
             }
 
@@ -132,6 +137,7 @@
             }
         }
     </style>
+    <!--AESTHETIC-SYSTEM-->
 </head>
 <body>
     <div class="wrap">

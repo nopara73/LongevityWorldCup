@@ -51,10 +51,11 @@
             display: block;
             margin-top: 0.55rem;
             padding: 0.55rem 0.7rem;
-            border: 1px solid rgba(220, 38, 38, 0.24);
+            border: 0;
+            border-inline-start: 4px solid var(--lwc-danger, #b4233b);
             border-radius: 8px;
-            background: rgba(254, 242, 242, 0.94);
-            color: #b91c1c;
+            background: var(--lwc-surface-muted, #f4f7f9);
+            color: var(--lwc-ink, #17212b);
             font-size: 0.9rem;
             font-weight: 700;
             line-height: 1.35;
@@ -79,9 +80,9 @@
             left: 0;
             margin-top: 0.45rem;
             padding: 0.25rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
             border-radius: 8px;
-            background-color: white;
+            background-color: var(--lwc-surface, white);
             z-index: 9999;
             max-height: min(14rem, 42vh);
             overflow-y: auto;
@@ -93,8 +94,8 @@
         }
 
             .autocomplete-items .autocomplete-active {
-                background-color: rgba(0, 188, 212, 0.12);
-                color: #243446;
+                background-color: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
+                color: var(--lwc-ink, #243446);
             }
 
             .autocomplete-items div {
@@ -105,7 +106,7 @@
                 box-sizing: border-box;
                 cursor: pointer;
                 border-radius: 6px;
-                color: #2d3748;
+                color: var(--lwc-ink, #2d3748);
                 font-size: 1rem;
                 line-height: 1.25;
             }
@@ -115,8 +116,8 @@
                 }
 
                 .autocomplete-items div:hover {
-                    background-color: rgba(0, 188, 212, 0.12);
-                    color: #243446;
+                    background-color: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
+                    color: var(--lwc-ink, #243446);
                 }
 
                 .autocomplete-items div .lwc-flag-icon {
@@ -132,8 +133,8 @@
                 .autocomplete-items div strong {
                     padding: 0 0.12rem;
                     border-radius: 4px;
-                    background: rgba(0, 188, 212, 0.12);
-                    color: #007f90;
+                    background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
+                    color: var(--lwc-accent-hover, #007f90);
                     font-weight: 800;
                 }
         /* Add a new class for the pointer cursor */
@@ -145,11 +146,11 @@
             width: min(100%, 408px);
             margin: 0.75rem auto 1.2rem;
             padding: 0.85rem 1rem 0.85rem 2.25rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
             box-sizing: border-box;
-            color: #334155;
+            color: var(--lwc-ink, #334155);
             line-height: 1.55;
         }
 
@@ -191,7 +192,7 @@
             justify-content: center;
             gap: 0.65rem;
             min-height: 1.25rem;
-            color: #64748b;
+            color: var(--lwc-muted, #526373);
             font-size: 0.85rem;
             font-weight: 700;
             line-height: 1;
@@ -203,7 +204,7 @@
             content: "";
             height: 1px;
             flex: 1 1 auto;
-            background: rgba(100, 116, 139, 0.22);
+            background: var(--lwc-border, rgba(100, 116, 139, 0.22));
         }
 
         .convergence-upload-action .option-button i {
@@ -215,10 +216,10 @@
             max-width: 408px;
             margin: 0.75rem auto 0;
             padding: 0.45rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
             border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+            background: var(--lwc-surface, #fff);
+            box-shadow: none;
             box-sizing: border-box;
             overflow: hidden;
         }
@@ -230,7 +231,7 @@
             height: auto;
             margin: 0 auto;
             border-radius: 6px;
-            background: #f8fafc;
+            background: var(--lwc-surface-muted, #f8fafc);
         }
 
         .convergence-crop-preview .cropper-container {
@@ -259,12 +260,12 @@
             min-height: 42px;
             margin: 0 0 0.75rem;
             padding: 0.6rem 0.85rem;
-            border: 1px solid rgba(22, 163, 74, 0.22);
+            border: 1px solid var(--lwc-success, rgba(22, 163, 74, 0.35));
             border-radius: 8px;
-            background: rgba(240, 253, 244, 0.94);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 1px 2px rgba(15, 23, 42, 0.04);
+            background: var(--lwc-success-soft, rgba(240, 253, 244, 0.94));
+            box-shadow: none;
             box-sizing: border-box;
-            color: #166534;
+            color: var(--lwc-ink, #166534);
             font-weight: 700;
             line-height: 1.25;
         }
@@ -274,10 +275,10 @@
             display: block !important;
             margin: 0 !important;
             padding: 0.45rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
             border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+            background: var(--lwc-surface, #fff);
+            box-shadow: none;
             box-sizing: border-box;
             overflow: hidden;
         }
@@ -293,7 +294,7 @@
             max-width: 100% !important;
             border: 0 !important;
             border-radius: 6px;
-            background: #f8fafc;
+            background: var(--lwc-surface-muted, #f8fafc);
             object-fit: contain;
         }
 
@@ -320,22 +321,22 @@
             max-width: 408px;
             margin: 1.25rem auto 1.35rem;
             padding: 0.9rem 1.05rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.04);
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
+            box-shadow: none;
             box-sizing: border-box;
-            color: #222;
+            color: var(--lwc-ink, #222);
         }
 
         #biomarker-checklist h4 {
             margin: 0 0 0.35rem !important;
-            color: #111827;
+            color: var(--lwc-ink, #111827);
         }
 
         #biomarker-checklist p {
             margin: 0 !important;
-            color: #334155;
+            color: var(--lwc-muted, #526373);
             line-height: 1.35;
         }
 
@@ -370,9 +371,9 @@
         }
 
         .convergence-actions .option-button:disabled {
-            background: #eef2f7 !important;
-            border: 1px solid rgba(100, 116, 139, 0.16);
-            color: #64748b;
+            background: var(--lwc-surface-muted, #eef2f7) !important;
+            border: 1px solid var(--lwc-border, rgba(100, 116, 139, 0.16));
+            color: var(--lwc-muted, #526373);
             box-shadow: none !important;
             cursor: not-allowed;
             opacity: 1;
@@ -380,9 +381,9 @@
         }
 
         .convergence-actions .option-button:disabled:hover {
-            background: #eef2f7 !important;
-            border-color: rgba(100, 116, 139, 0.16);
-            color: #64748b;
+            background: var(--lwc-surface-muted, #eef2f7) !important;
+            border-color: var(--lwc-border, rgba(100, 116, 139, 0.16));
+            color: var(--lwc-muted, #526373);
             box-shadow: none !important;
             transform: none;
         }
@@ -395,10 +396,10 @@
         .convergence-helper-text {
             margin: 0.75rem 0 0;
             padding: 0.8rem 0.9rem;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
-            color: #334155;
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
+            color: var(--lwc-ink, #334155);
             line-height: 1.48;
             box-sizing: border-box;
         }
@@ -416,10 +417,10 @@
             max-width: 32rem;
             margin: 1.1rem auto 0;
             padding: 0.95rem 1rem;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
             border-radius: 8px;
-            background: rgba(248, 250, 252, 0.92);
-            color: #334155;
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
+            color: var(--lwc-ink, #334155);
             line-height: 1.5;
             text-align: left;
             box-sizing: border-box;
@@ -434,11 +435,11 @@
         }
 
         .convergence-stage-copy strong {
-            color: #1f2937;
+            color: var(--lwc-ink, #1f2937);
         }
 
         .convergence-stage-copy em {
-            color: #1f2937;
+            color: var(--lwc-ink, #1f2937);
         }
 
         .convergence-visual {
@@ -500,10 +501,10 @@
         .convergence-application-copy {
             margin: 0.75rem 0 1.1rem;
             padding: 0.85rem 0.95rem;
-            border: 1px solid rgba(0, 188, 212, 0.22);
+            border: 1px solid var(--lwc-border, rgba(0, 188, 212, 0.22));
             border-radius: 8px;
-            background: rgba(0, 188, 212, 0.08);
-            color: #2d3748;
+            background: var(--lwc-accent-soft, rgba(0, 188, 212, 0.08));
+            color: var(--lwc-ink, #2d3748);
             line-height: 1.5;
             box-sizing: border-box;
         }
@@ -520,13 +521,14 @@
             align-items: center;
             margin: 0.55rem 0 0 auto;
             padding: 0.25rem 0.65rem;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
             border-radius: 999px;
-            background: rgba(248, 250, 252, 0.96);
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.96));
             box-sizing: border-box;
             font-weight: 700;
             line-height: 1;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+            color: var(--lwc-muted, #526373);
+            box-shadow: none;
         }
 
         @media (max-width: 600px) {
@@ -593,8 +595,9 @@
                 <picture id="illustrationPicture" style="display:''">
                     <source type="image/webp" srcset="../assets/content-images/enter-arena.webp">
                     <source type="image/jpeg" srcset="../assets/content-images/enter-arena.jpg">
-                    <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" loading="lazy">
+                    <img id="illustrationImage" src="../assets/content-images/enter-arena.jpg" alt="Longevity World Cup logo" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
                 </picture>
+                <div id="onboardingProofSymbol" class="proof-upload-symbol" aria-hidden="true" hidden><i class="fas fa-file-medical"></i></div>
                 <img style="display:none" id="profileImage" src="" alt="Profile picture" class="illustration" loading="lazy">
             </div>
             <!--SUB-PROGRESS-BAR-->
@@ -625,20 +628,20 @@
                 <legend>Athlete details</legend>
 
                 <!-- Name Field -->
-                <label for="name">Name</label>
+                <label for="name">Name <span class="field-requirement">(required)</span></label>
                 <input type="text" id="name" name="name" required aria-required="true" aria-describedby="nameError" minlength="3" maxlength="100" autocomplete="name" autocapitalize="none" spellcheck="false" placeholder="Name or cyber alias">
                 <span id="nameError" class="error-message" aria-live="polite"></span>
 
                 <!-- Division Field -->
-                <label for="division">Division</label>
+                <label for="division">Division <span class="field-requirement">(required)</span></label>
                 <select id="division" name="division" required aria-required="true">
                     <!-- Options will be populated dynamically -->
                 </select>
 
                 <!-- Flag Field with Autocomplete -->
-                <label for="flag">Flag</label>
+                <label for="flag">Flag <span class="field-requirement">(required)</span></label>
                 <div class="autocomplete-container">
-                    <input type="text" id="flag" name="flag" required aria-required="true" aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Cyberspace">
+                    <input type="text" id="flag" name="flag" required aria-required="true" aria-describedby="flagError" minlength="3" maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Cyberspace" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="flag-autocomplete-list">
                     <span id="flagError" class="error-message" aria-live="polite"></span>
                 </div>
             </fieldset>
@@ -731,14 +734,14 @@
                 <div id="congratsText" class="convergence-application-copy" style="display:none">
                     <strong>Congratulations!</strong> All that's left to do is to provide an email where we can reach you about your application.
                 </div>
-                <label for="accountEmail" class="visually-hidden">Email address</label>
+                <label for="accountEmail">Email address <span class="field-requirement">(required)</span></label>
                 <input type="text" id="accountEmail" name="accountEmail" required aria-required="true" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="pizza_lover@hungry.com">
             </fieldset>
 
             <!-- WHY Field (Initially Hidden) -->
             <fieldset id="whyField" style="display: none; position: relative;">
                 <legend>Motivation</legend>
-                <label for="why">What drives you forward?</label>
+                <label for="why">What drives you forward? <span class="field-requirement">(required)</span></label>
                 <textarea id="why" name="why" rows="5" required aria-required="true" minlength="30" maxlength="250" placeholder="Share your motivation here..."></textarea>
                 <div id="whyCharCounter" class="char-counter">0/250</div>
             </fieldset>
@@ -1382,6 +1385,8 @@
             const illustrationImage = document.getElementById('illustrationImage');
             const illustrationPicture = document.getElementById('illustrationPicture');
             illustrationPicture.style.display = '';
+            const proofUploadSymbol = document.getElementById('onboardingProofSymbol');
+            proofUploadSymbol.hidden = true;
             const profileImage = document.getElementById('profileImage');
             profileImage.style.display = 'none';
             const webpSource = illustrationPicture.querySelector('source[type="image/webp"]');
@@ -1427,7 +1432,6 @@
                     addStageListenerOnce(flagInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');
 
                     addStageListenerOnce(divisionSelect, 'click', validateStage1Inputs, 'stage1ValidateOnClick');
-                    addStageListenerOnce(flagInput, 'input', validateStage1Inputs, 'stage1ValidateOnInput');
 
                     function validateStage1Inputs() {
                         const nameValue = nameInput.value.trim();
@@ -1532,11 +1536,11 @@
                 case 5:
                     // Stage 5: Don't Trust, Verify
                     document.querySelector('h1').innerHTML = "4/b. Don't trust, verify";
-                    updateIllustration("proof", "jpg", webpSource, jpegSource, illustrationImage);
-                    illustrationImage.alt = "Proof image";
-                    illustrationImage.loading = "lazy";
+                    illustrationPicture.style.display = 'none';
+                    proofUploadSymbol.hidden = false;
                     document.getElementById('proofText').style.display = '';
                     document.getElementById('proofUploadSection').style.display = '';
+                    updateSubProgress(4);
 
                     illustrationImage.classList.remove('clickable');
                     nextButton.innerHTML = '<span class="flow-action__label">Next</span><i class="fas fa-arrow-right" aria-hidden="true"></i>';
@@ -1707,16 +1711,21 @@
                         const listContainer = document.createElement('div');
                         listContainer.setAttribute('id', flagInput.id + '-autocomplete-list');
                         listContainer.setAttribute('class', 'autocomplete-items');
+                        listContainer.setAttribute('role', 'listbox');
+                        listContainer.setAttribute('aria-label', 'Flag suggestions');
                         const container = flagInput.closest('.autocomplete-container');
                         container.appendChild(listContainer);
 
                         flagOptions
                             .filter(option => window.LwcFlags.matchesFlagOption(option, inputVal))
-                            .forEach(option => {
+                            .forEach((option, optionIndex) => {
                                 const listItem = document.createElement('div');
 
                                 listItem.innerHTML = window.LwcFlags.renderFlagOptionLabel(option.name, inputVal);
                                 listItem.setAttribute('data-value', option.name);
+                                listItem.id = `${listContainer.id}-option-${optionIndex}`;
+                                listItem.setAttribute('role', 'option');
+                                listItem.setAttribute('aria-selected', 'false');
 
                                 listItem.addEventListener('mousedown', function (e) {
                                     e.preventDefault(); // Prevent focus loss
@@ -1729,6 +1738,13 @@
                                 listContainer.appendChild(listItem);
                                 listItem.classList.add('autocomplete-item');
                             });
+
+                        if (listContainer.childElementCount > 0) {
+                            flagInput.setAttribute('aria-expanded', 'true');
+                        } else {
+                            listContainer.remove();
+                            flagInput.setAttribute('aria-expanded', 'false');
+                        }
                     }
 
                     flagInput.addEventListener('focus', function () {
@@ -1747,17 +1763,17 @@
                             if (list) {
                                 items = list.getElementsByClassName('autocomplete-item');
                             }
-                            if (e.keyCode == 40) {
+                            if (e.key === 'ArrowDown') {
                                 // Down key
                                 currentFocus++;
                                 addActive(items);
                                 e.preventDefault();
-                            } else if (e.keyCode == 38) {
+                            } else if (e.key === 'ArrowUp') {
                                 // Up key
                                 currentFocus--;
                                 addActive(items);
                                 e.preventDefault();
-                            } else if (e.keyCode == 13) {
+                            } else if (e.key === 'Enter') {
                                 // Enter key
                                 e.preventDefault();
                                 if (currentFocus > -1) {
@@ -1771,7 +1787,7 @@
                                         items[currentFocus].dispatchEvent(mousedownEvent);
                                     }
                                 }
-                            } else if (e.keyCode == 27) {
+                            } else if (e.key === 'Escape') {
                                 // Escape key
                                 closeAllLists();
                             }
@@ -1787,20 +1803,26 @@
                             }
                         }
                         currentFocus = -1;
+                        flagInput.setAttribute('aria-expanded', 'false');
+                        flagInput.removeAttribute('aria-activedescendant');
                     }
 
                     function addActive(items) {
-                        if (!items) return false;
+                        if (!items || items.length === 0) return false;
                         removeActive(items); // Clear previous active item
                         if (currentFocus >= items.length) currentFocus = 0;
                         if (currentFocus < 0) currentFocus = items.length - 1;
                         items[currentFocus].classList.add('autocomplete-active');
+                        items[currentFocus].setAttribute('aria-selected', 'true');
+                        flagInput.setAttribute('aria-activedescendant', items[currentFocus].id);
                     }
 
                     function removeActive(items) {
                         for (let i = 0; i < items.length; i++) {
                             items[i].classList.remove('autocomplete-active');
+                            items[i].setAttribute('aria-selected', 'false');
                         }
+                        flagInput.removeAttribute('aria-activedescendant');
                     }
 
                     // Add a hover event to clear keyboard focus
@@ -1829,7 +1851,7 @@
                 availableDivisions.forEach(function (division) {
                     const option = document.createElement('option');
                     option.value = division; // Use lowercase or any appropriate value
-                    option.textContent = `${window.TryGetDivisionIcon(division)} ${division}`;
+                    option.textContent = division;
                     divisionSelect.appendChild(option);
                 });
 
@@ -2251,17 +2273,11 @@
             const flagValid = flagValidationResult.valid;
             const divisionSelected = divisionSelect && divisionSelect.value.trim() !== '';
 
-            if (!nameValid && nameValue.length >= 3) {
-                // Display error message immediately as the user types
-                document.getElementById('nameError').textContent = nameValidationResult.error;
-            } else {
+            if (nameValid) {
                 document.getElementById('nameError').textContent = '';
             }
 
-            if (!flagValid && flagValue.length >= 3) {
-                // Display error message immediately as the user types
-                document.getElementById('flagError').textContent = flagValidationResult.error;
-            } else {
+            if (flagValid) {
                 document.getElementById('flagError').textContent = '';
             }
 

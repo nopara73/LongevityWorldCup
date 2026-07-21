@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Xunit;
 
@@ -211,7 +212,103 @@ public sealed class NewAthleteOnboardingBrowserTests
         });
     }
 
-    private static async Task RunOnboardingBrowserAsync(Func<IPage, List<string>, Task> testBody)
+    [Theory]
+    [InlineData("pheno")]
+    [InlineData("bortz")]
+    public async Task BioageResults_PreserveApprovedValuesPersonalityAndRankCopy(string clock)
+    {
+        var isBortz = clock == "bortz";
+        var route = isBortz
+            ? "/bortz-age?Year=1980&Month=6&Day=15&Date=2026-06-01&AlbGL=45&AlpUL=70&UreaMmolL=5&CholesterolMmolL=4.5&CreatUmolL=80&CystatinCMgL=0.9&Hba1cMmolMol=33.33&CrpMgL=1&GgtUL=20&Rbc10e12L=4.8&McvFL=90&RdwPc=13&GluMmolL=5&MchPg=30&ApoA1GL=1.5&LymPc=30&AltUL=25&ShbgNmolL=40&VitaminDNmolL=200&Wbc1000cellsuL=5.5&MonocytePc=6&NeutrophilPc=60"
+            : "/pheno-age?Year=1980&Month=6&Day=15&Date=2026-06-01&AlbGL=45&CreatUmolL=80&GluMmolL=5&CrpMgL=1&Wbc1000cellsuL=5.5&LymPc=30&McvFL=90&RdwPc=13&AlpUL=70";
+        var resultSelector = isBortz ? "#bortzAgeResult" : "#phenoAgeResult";
+        var rankSelector = isBortz ? "#bortzAgeRankPreview" : "#phenoAgeRankPreview";
+        var expectedAge = isBortz ? "39.4" : "38.0";
+        var expectedReduction = isBortz ? "- 6.5 years 🚀" : "- 8.0 years 🚀";
+        var expectedRank = isBortz ? "#27" : "#156";
+        var expectedMeta = isBortz ? "Bortz Age · 27 of 30" : "Pheno Age · 156 of 217";
+        var expectedPercentile = isBortz ? "Top 90%" : "Top 72%";
+        var expectedNeighbors = isBortz
+            ? new[]
+            {
+                "#25 Joe V -7.6y",
+                "#26 Todd Cus -7.5y",
+                "#27 You -6.5y",
+                "#28 Devarajan Narayanan -5.0y",
+                "#29 Andressa Lohana de Almeida -2.8y"
+            }
+            : new[]
+            {
+                "#154 Yuhwen -8.095y",
+                "#155 Benjamin Woosley -7.964y",
+                "#156 You -7.962y",
+                "#157 Kelvin Nicholson -7.953y",
+                "#158 Mathias -7.919y"
+            };
+        var approvedRankFieldJson = BuildApprovedRankFieldJson(clock);
+
+        await RunOnboardingBrowserAsync(
+            async (page, errors) =>
+            {
+                await page.RouteAsync("**/api/data/athletes", route => route.FulfillAsync(new RouteFulfillOptions
+                {
+                    Status = 200,
+                    ContentType = "application/json",
+                    Body = approvedRankFieldJson
+                }));
+                await page.GotoAsync(route, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+                Assert.Equal("2026-06-01", await page.Locator("#blood-draw-date").InputValueAsync());
+                await page.Locator("#lwcToStep2Btn").ClickAsync();
+                await page.WaitForFunctionAsync(
+                    "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
+
+                if (isBortz)
+                {
+                    await page.EvaluateAsync(
+                        """
+                        () => {
+                            document.getElementById('hba1c').value = '5.2';
+                            document.getElementById('hba1cUnit').value = '0.0915';
+                            document.getElementById('vitamin_d').value = '80';
+                            document.getElementById('vitamin_dUnit').value = '0.4';
+                        }
+                        """);
+                }
+
+                await page.Locator("#calculateBioageButton").ClickAsync();
+                await page.WaitForSelectorAsync($"{resultSelector}.show");
+                await page.WaitForFunctionAsync(
+                    "selector => document.querySelector(selector)?.getAttribute('aria-busy') === 'false'",
+                    rankSelector);
+
+                Assert.Equal(expectedAge, await page.Locator("#animatedAge").TextContentAsync());
+                Assert.Equal(expectedReduction, await page.Locator("#yearsText").TextContentAsync());
+                if (isBortz)
+                {
+                    Assert.Equal("38.0", await page.Locator("#phenoAgeValue").TextContentAsync());
+                    Assert.Equal("(↓ 8.0y)", await page.Locator("#phenoAgeDelta").TextContentAsync());
+                }
+
+                Assert.Equal(expectedRank, await page.Locator($"{rankSelector} .bioage-rank-number").TextContentAsync());
+                Assert.Equal(expectedMeta, await page.Locator($"{rankSelector} .bioage-rank-meta").TextContentAsync());
+                Assert.Equal(expectedPercentile, await page.Locator($"{rankSelector} .bioage-rank-percentile").TextContentAsync());
+                var actualNeighbors = await page.Locator($"{rankSelector} .bioage-rank-row").EvaluateAllAsync<string[]>(
+                    """
+                    rows => rows.map(row => [
+                        row.querySelector('.bioage-rank-row-place')?.textContent?.trim(),
+                        row.querySelector('.bioage-rank-row-name')?.textContent?.trim(),
+                        row.querySelector('.bioage-rank-row-score')?.textContent?.trim()
+                    ].join(' '))
+                    """);
+                Assert.Equal(expectedNeighbors, actualNeighbors);
+                Assert.Empty(errors);
+            },
+            timezoneId: "Europe/Budapest");
+    }
+
+    private static async Task RunOnboardingBrowserAsync(
+        Func<IPage, List<string>, Task> testBody,
+        string? timezoneId = null)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -223,6 +320,7 @@ public sealed class NewAthleteOnboardingBrowserTests
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
+            TimezoneId = timezoneId,
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
@@ -237,6 +335,49 @@ public sealed class NewAthleteOnboardingBrowserTests
         page.PageError += (_, error) => errors.Add(error);
 
         await testBody(page, errors);
+    }
+
+    private static string BuildApprovedRankFieldJson(string clock)
+    {
+        var fixtures = new List<string>();
+        void AddCopies(string slug, int count)
+        {
+            var fixture = ReadAthleteFixture(slug);
+            for (var index = 0; index < count; index++)
+                fixtures.Add(fixture);
+        }
+
+        if (clock == "bortz")
+        {
+            AddCopies("joe_v", 25);
+            AddCopies("todd_cus", 1);
+            AddCopies("devarajan_narayanan", 1);
+            AddCopies("andressa_lohana_de_almeida", 2);
+        }
+        else
+        {
+            AddCopies("yuhwen", 154);
+            AddCopies("benjamin_woosley", 1);
+            AddCopies("kelvin_nicholson", 1);
+            AddCopies("mathias", 60);
+        }
+
+        return $"[{string.Join(',', fixtures)}]";
+    }
+
+    private static string ReadAthleteFixture(string slug, [CallerFilePath] string sourceFilePath = "")
+    {
+        var testsDirectory = Path.GetDirectoryName(sourceFilePath)
+            ?? throw new DirectoryNotFoundException($"Could not locate tests directory from {sourceFilePath}.");
+        var repoRoot = Directory.GetParent(testsDirectory)?.FullName
+            ?? throw new DirectoryNotFoundException($"Could not locate repository root from {testsDirectory}.");
+        return File.ReadAllText(Path.Combine(
+            repoRoot,
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "athletes",
+            slug,
+            "athlete.json"));
     }
 
     private static async Task CompleteAmateurHandoffToApplicationAsync(IPage page, string bloodDrawDate)

@@ -50,9 +50,9 @@
             left: 0;
             right: 0;
             padding: 0.25rem;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
             border-radius: 8px;
-            background: #fff;
+            background: var(--lwc-surface, #fff);
             width: 100%;
             max-height: min(12rem, 36vh);
             overflow-y: auto;
@@ -70,7 +70,7 @@
                 padding: 0.6rem 0.7rem;
                 border-radius: 6px;
                 box-sizing: border-box;
-                color: #2d3748;
+                color: var(--lwc-ink, #2d3748);
                 cursor: pointer;
                 font-size: 1rem;
                 line-height: 1.25;
@@ -82,8 +82,8 @@
 
                 .autocomplete-items div:hover,
                 .autocomplete-active {
-                    background-color: rgba(0, 188, 212, 0.12);
-                    color: #243446;
+                    background-color: var(--lwc-accent-soft, rgba(0, 188, 212, 0.12));
+                    color: var(--lwc-ink, #243446);
                 }
 
                 .autocomplete-items div .lwc-flag-icon {
@@ -113,13 +113,14 @@
             width: 100%;
             min-height: 44px;
             padding: 0.65rem 0.85rem;
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--lwc-border-strong, #71808d);
             border-radius: 8px;
             font-size: 1rem;
             font-family: inherit;
             line-height: 1.35;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            background-color: #fff;
+            transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+            background-color: var(--lwc-surface, #fff);
+            color: var(--lwc-ink, #17212b);
             box-sizing: border-box;
         }
 
@@ -133,13 +134,14 @@
             width: 100%;
             min-height: 44px;
             padding: 0.65rem 2.25rem 0.65rem 0.85rem;
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--lwc-border-strong, #71808d);
             border-radius: 8px;
             font-size: 1rem;
             font-family: inherit;
             line-height: 1.35;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            background-color: #fff;
+            transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+            background-color: var(--lwc-surface, #fff);
+            color: var(--lwc-ink, #17212b);
             background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364758b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
             background-repeat: no-repeat;
             background-position: right 0.85rem center;
@@ -160,7 +162,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
+            background: var(--lwc-surface, white);
+            color: var(--lwc-ink, #17212b);
             z-index: 10000;
             box-sizing: border-box;
             padding: 1.25rem;
@@ -168,7 +171,7 @@
             max-width: 430px;
             max-height: calc(100dvh - 1.5rem);
             overflow: auto;
-            border: 1px solid rgba(15, 23, 42, 0.12);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.12));
             border-radius: 8px;
             box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
             display: flex;
@@ -176,6 +179,13 @@
             align-items: center;
             justify-content: center;
             gap: 0.95rem;
+        }
+
+        .cropper-dialog-title {
+            margin: 0;
+            font-size: 1.2rem;
+            line-height: 1.25;
+            text-align: center;
         }
 
             #changeProfileCropperModal button {
@@ -203,9 +213,9 @@
             max-height: min(54vh, 360px);
             object-fit: contain;
             box-sizing: border-box;
-            border: 1px solid rgba(15, 23, 42, 0.14);
+            border: 1px solid var(--lwc-border, rgba(15, 23, 42, 0.14));
             border-radius: 8px;
-            background: #f8fafc;
+            background: var(--lwc-surface-muted, #f8fafc);
         }
 
         /* dark backdrop & lock scroll when modal is open */
@@ -254,19 +264,19 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            border: 1px solid rgba(96, 125, 139, 0.22);
+            border: 1px solid var(--lwc-border, rgba(96, 125, 139, 0.22));
             border-radius: 50%;
-            background: rgba(248, 250, 252, 0.96);
-            color: #4f6573;
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.96));
+            color: var(--lwc-muted, #4f6573);
             font-size: 0.95rem;
-            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.10);
+            box-shadow: none;
         }
 
         .option-button.icon-only:hover {
-            background: #fff;
-            color: #273d4a;
+            background: var(--lwc-surface, #fff);
+            color: var(--lwc-ink, #273d4a);
             transform: none;
-            box-shadow: 0 3px 9px rgba(15, 23, 42, 0.14);
+            box-shadow: none;
         }
 
         .option-button.icon-only i {
@@ -309,7 +319,7 @@
             justify-content: center;
             gap: 0.65rem;
             min-height: 1.25rem;
-            color: #64748b;
+            color: var(--lwc-muted, #526373);
             font-size: 0.85rem;
             font-weight: 700;
             line-height: 1;
@@ -321,7 +331,7 @@
             content: "";
             height: 1px;
             flex: 1 1 auto;
-            background: rgba(100, 116, 139, 0.22);
+            background: var(--lwc-border, rgba(100, 116, 139, 0.22));
         }
 
         #changeProfilePicWrapper .option-button {
@@ -551,12 +561,12 @@
 <body class="play-flow-route">
     <!--HEADER-->
     <main class="edit-profile-main">
-        <h1 id="character-title" class="edit-profile-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Athlete selection</h1>
+        <h1 id="character-title" class="edit-profile-title" data-aos="fade" data-aos-duration="700" data-aos-delay="250">Edit athlete profile</h1>
         <div class="edit-profile-visual" data-aos="fade" data-aos-duration="700" data-aos-delay="300">
             <picture>
                 <source srcset="../assets/content-images/headshot.webp" type="image/webp">
                 <source srcset="../assets/content-images/headshot.jpg" type="image/jpeg">
-                <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" loading="lazy">
+                <img src="../assets/content-images/headshot.jpg" alt="Headshot" class="illustration" width="1024" height="768" loading="lazy" decoding="async">
             </picture>
         </div>
         <div id="editOptionsGroup" data-aos="fade" data-aos-duration="700" data-aos-delay="350">
@@ -575,14 +585,14 @@
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="divisionDisplaySelect" class="visually-hidden">Division</label>
+                <label for="divisionDisplaySelect" class="field-label">Division</label>
                 <select id="divisionDisplaySelect"></select>
                 <button id="restoreDivisionBtn" class="option-button icon-only" style="display:none" title="Restore division" aria-label="Restore division">
                     <i class="fas fa-undo" aria-hidden="true"></i>
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="flagDisplayInput" class="visually-hidden">Flag</label>
+                <label for="flagDisplayInput" class="field-label">Flag <span class="field-requirement">(required)</span></label>
                 <input type="text"
                        id="flagDisplayInput"
                        name="flagDisplay"
@@ -599,7 +609,7 @@
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="personalLinkInput" class="visually-hidden">Personal link</label>
+                <label for="personalLinkInput" class="field-label">Personal link <span class="field-requirement">(optional)</span></label>
                 <input type="text"
                        id="personalLinkInput"
                        name="personalLink"
@@ -613,7 +623,7 @@
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="mediaContactInput" class="visually-hidden">Media contact</label>
+                <label for="mediaContactInput" class="field-label">Media contact <span class="field-requirement">(required)</span></label>
                 <input type="text"
                        id="mediaContactInput"
                        name="mediaContact"
@@ -629,7 +639,7 @@
                 </button>
             </div>
             <div class="niceInputFieldDisplayWrapper options-container inline-option-group">
-                <label for="whyDisplayInput" class="visually-hidden">Your why</label>
+                <label for="whyDisplayInput" class="field-label">Motivation <span class="field-requirement">(required)</span></label>
                 <textarea id="whyDisplayInput"
                           name="whyDisplay"
                           rows="3"
@@ -649,19 +659,25 @@
             </button>
         </div>
 
-        <div id="changeProfileCropperModal" style="display:none">
-            <img id="changeProfileCropperImage" src="" alt="Cropper Preview">
-            <div class="options-container flow-action-stack flow-action-stack--flush">
-                <button id="changeProfileCropButton" class="option-button green flow-action">
-                    <span class="flow-action__label">Crop and save</span>
-                </button>
-                <button id="changeProfileCancelButton" class="option-button grey flow-action flow-action--secondary">
-                    <span class="flow-action__label">Cancel</span>
-                </button>
-            </div>
-        </div>
-        <div id="modalOverlay"></div>
     </main>
+    <div id="modalOverlay" aria-hidden="true" hidden></div>
+    <div id="changeProfileCropperModal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="changeProfileCropperTitle"
+         tabindex="-1"
+         hidden>
+        <h2 id="changeProfileCropperTitle" class="cropper-dialog-title">Crop profile picture</h2>
+        <img id="changeProfileCropperImage" src="" alt="Profile picture crop preview">
+        <div class="options-container flow-action-stack flow-action-stack--flush">
+            <button type="button" id="changeProfileCropButton" class="option-button green flow-action">
+                <span class="flow-action__label">Crop and save</span>
+            </button>
+            <button type="button" id="changeProfileCancelButton" class="option-button grey flow-action flow-action--secondary">
+                <span class="flow-action__label">Cancel</span>
+            </button>
+        </div>
+    </div>
     <!--FOOTER-->
     <script>
         let currentFlagFocus = -1;
@@ -840,7 +856,7 @@
                 divisionOptions.forEach(d => {
                     const opt = document.createElement('option');
                     opt.value = d;
-                    opt.textContent = `${window.TryGetDivisionIcon(d)} ${d}`;
+                    opt.textContent = d;
                     divisionSelect.appendChild(opt);
                 });
                 divisionSelect.value = athlete.Division;
@@ -1291,11 +1307,130 @@
         const changeProfileInput = document.getElementById('profilePicInputModal');
         const takeProfileSelfieBtn = document.getElementById('takeProfileSelfieButton');
         const profileCameraInput = document.getElementById('profileCameraInputModal');
+        const cropperModal = document.getElementById('changeProfileCropperModal');
+        const cropperImage = document.getElementById('changeProfileCropperImage');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const cropBtn = document.getElementById('changeProfileCropButton');
+        const cancelBtn = document.getElementById('changeProfileCancelButton');
+        const profileCropperBackgroundState = new Map();
+        let profileCropperReturnFocus = changeProfileBtn;
+        let isChangeProfileCropProcessing = false;
+
+        function restoreProfileCropperFocus() {
+            if (profileCropperReturnFocus?.isConnected && !profileCropperReturnFocus.disabled) {
+                profileCropperReturnFocus.focus({ preventScroll: true });
+            }
+        }
+
+        function setProfileCropperBackgroundInert(shouldBeInert) {
+            if (shouldBeInert) {
+                if (profileCropperBackgroundState.size > 0) return;
+
+                Array.from(document.body.children).forEach(element => {
+                    if (element === cropperModal
+                        || element === modalOverlay
+                        || element.tagName === 'SCRIPT'
+                        || element.tagName === 'STYLE') {
+                        return;
+                    }
+
+                    profileCropperBackgroundState.set(element, {
+                        inert: element.inert === true,
+                        hadAriaHidden: element.hasAttribute('aria-hidden'),
+                        ariaHidden: element.getAttribute('aria-hidden')
+                    });
+                    element.inert = true;
+                    element.setAttribute('aria-hidden', 'true');
+                });
+                return;
+            }
+
+            profileCropperBackgroundState.forEach((state, element) => {
+                element.inert = state.inert;
+                if (state.hadAriaHidden) {
+                    element.setAttribute('aria-hidden', state.ariaHidden ?? '');
+                } else {
+                    element.removeAttribute('aria-hidden');
+                }
+            });
+            profileCropperBackgroundState.clear();
+        }
+
+        function getProfileCropperFocusableElements() {
+            return Array.from(cropperModal.querySelectorAll(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )).filter(element => !element.hidden
+                && element.getAttribute('aria-hidden') !== 'true'
+                && (element.offsetWidth > 0 || element.offsetHeight > 0 || element.getClientRects().length > 0));
+        }
+
+        function openChangeProfileCropperDialog() {
+            cropperModal.hidden = false;
+            cropperModal.style.display = 'flex';
+            modalOverlay.hidden = false;
+            modalOverlay.style.display = 'block';
+            document.body.classList.add('no-scroll');
+            setProfileCropperBackgroundInert(true);
+
+            requestAnimationFrame(() => {
+                if (!cropperModal.hidden) cropBtn.focus({ preventScroll: true });
+            });
+        }
+
+        function closeChangeProfileCropperDialog({ destroyCropper = true, restoreFocus = true } = {}) {
+            if (destroyCropper && window.changeProfileCropper) {
+                try { window.changeProfileCropper.destroy(); } catch (_) { }
+            }
+            window.changeProfileCropper = null;
+            cropperModal.hidden = true;
+            cropperModal.style.display = 'none';
+            cropperModal.removeAttribute('aria-busy');
+            modalOverlay.hidden = true;
+            modalOverlay.style.display = 'none';
+            document.body.classList.remove('no-scroll');
+            setProfileCropperBackgroundInert(false);
+            changeProfileInput.value = '';
+            profileCameraInput.value = '';
+
+            if (restoreFocus) requestAnimationFrame(restoreProfileCropperFocus);
+        }
+
+        cropperModal.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                if (isChangeProfileCropProcessing) return;
+                event.preventDefault();
+                closeChangeProfileCropperDialog();
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+
+            const focusableElements = getProfileCropperFocusableElements();
+            if (focusableElements.length === 0) {
+                event.preventDefault();
+                cropperModal.focus({ preventScroll: true });
+                return;
+            }
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+            const focusIsOutsideDialog = !cropperModal.contains(document.activeElement);
+            if (event.shiftKey && (document.activeElement === firstElement || focusIsOutsideDialog)) {
+                event.preventDefault();
+                lastElement.focus();
+            } else if (!event.shiftKey && (document.activeElement === lastElement || focusIsOutsideDialog)) {
+                event.preventDefault();
+                firstElement.focus();
+            }
+        });
+
         changeProfileBtn.addEventListener('click', () => {
+            profileCropperReturnFocus = changeProfileBtn;
             changeProfileInput.click();
         });
 
         takeProfileSelfieBtn.addEventListener('click', () => {
+            profileCropperReturnFocus = takeProfileSelfieBtn;
             profileCameraInput.click();
         });
 
@@ -1323,27 +1458,23 @@
             const input = e.target;
             const file = input.files && input.files[0];
             if (!file) return;
+            profileCropperReturnFocus = input === profileCameraInput ? takeProfileSelfieBtn : changeProfileBtn;
             input.value = '';
             if (!isSupportedProfilePictureFile(file)) {
                 customAlert('Profile picture must be an image file.')
-                    .then(() => changeProfileBtn.focus());
+                    .then(restoreProfileCropperFocus);
                 return;
             }
 
             const reader = new FileReader();
             reader.onload = (evt) => {
-                const cropperModal = document.getElementById('changeProfileCropperModal');
-                const cropperImage = document.getElementById('changeProfileCropperImage');
-                const modalOverlay = document.getElementById('modalOverlay');
                 try {
                     if (window.changeProfileCropper) {
                         window.changeProfileCropper.destroy();
                         window.changeProfileCropper = null;
                     }
                     cropperImage.src = evt.target.result;
-                    cropperModal.style.display = 'flex';
-                    modalOverlay.style.display = 'block';
-                    document.body.classList.add('no-scroll');
+                    openChangeProfileCropperDialog();
 
                     // expose globally so crop/cancel buttons can access it
                     window.changeProfileCropper = new Cropper(cropperImage, {
@@ -1356,16 +1487,14 @@
                         try { window.changeProfileCropper.destroy(); } catch (_) { }
                         window.changeProfileCropper = null;
                     }
-                    cropperModal.style.display = 'none';
-                    modalOverlay.style.display = 'none';
-                    document.body.classList.remove('no-scroll');
+                    closeChangeProfileCropperDialog({ destroyCropper: false, restoreFocus: false });
                     customAlert('Profile picture upload failed. Please try another image.')
-                        .then(() => changeProfileBtn.focus());
+                        .then(restoreProfileCropperFocus);
                 }
             };
             reader.onerror = () => {
                 customAlert('Profile picture upload failed. Please try another image.')
-                    .then(() => changeProfileBtn.focus());
+                    .then(restoreProfileCropperFocus);
             };
             reader.onabort = reader.onerror;
             reader.readAsDataURL(file);
@@ -1375,14 +1504,12 @@
         profileCameraInput.addEventListener('change', handleProfilePictureSelection);
 
         // Crop & Cancel handlers for change-profile
-        const cropBtn = document.getElementById('changeProfileCropButton');
-        const cancelBtn = document.getElementById('changeProfileCancelButton');
-        let isChangeProfileCropProcessing = false;
         cropBtn.addEventListener('click', async function () {
             const activeCropper = window.changeProfileCropper;
             if (isChangeProfileCropProcessing || !activeCropper) return;
 
             isChangeProfileCropProcessing = true;
+            cropperModal.setAttribute('aria-busy', 'true');
             cropBtn.disabled = true;
             cancelBtn.disabled = true;
             try {
@@ -1391,8 +1518,9 @@
                     height: 1024,
                 });
                 if (!canvas) {
+                    closeChangeProfileCropperDialog({ restoreFocus: false });
                     customAlert('Profile picture crop failed. Please try another image.')
-                        .then(() => cropBtn.focus());
+                        .then(restoreProfileCropperFocus);
                     return;
                 }
                 const raw = canvas.toDataURL('image/png');
@@ -1411,34 +1539,21 @@
 
                 // enable the “Submit Change Request” button now that there’s a new image
                 updateSubmitButtonState(changeProfileBtn);
-                try { activeCropper.destroy(); } catch (_) { }
-                window.changeProfileCropper = null;
-                document.getElementById('modalOverlay').style.display = 'none';
-                document.body.classList.remove('no-scroll');
-                document.getElementById('changeProfileCropperModal').style.display = 'none';
-                changeProfileInput.value = '';
-                profileCameraInput.value = '';
+                closeChangeProfileCropperDialog();
             } catch (_) {
+                closeChangeProfileCropperDialog({ restoreFocus: false });
                 customAlert('Profile picture crop failed. Please try another image.')
-                    .then(() => cropBtn.focus());
+                    .then(restoreProfileCropperFocus);
             } finally {
                 isChangeProfileCropProcessing = false;
+                cropperModal.removeAttribute('aria-busy');
                 cropBtn.disabled = false;
                 cancelBtn.disabled = false;
             }
         });
         cancelBtn.addEventListener('click', () => {
             if (isChangeProfileCropProcessing) return;
-            const activeCropper = window.changeProfileCropper;
-            if (activeCropper) {
-                try { activeCropper.destroy(); } catch (_) { }
-            }
-            window.changeProfileCropper = null;
-            document.getElementById('modalOverlay').style.display = 'none';
-            document.body.classList.remove('no-scroll');
-            document.getElementById('changeProfileCropperModal').style.display = 'none';
-            changeProfileInput.value = '';
-            profileCameraInput.value = '';
+            closeChangeProfileCropperDialog();
         });
 
         function keepEditedControlClearOfDock(control) {

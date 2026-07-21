@@ -495,6 +495,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         if (string.IsNullOrWhiteSpace(thumbPath))
             return null;
 
+        string? pendingThumbPath = null;
         try
         {
             var needsGenerate = !File.Exists(thumbPath);
@@ -506,6 +507,9 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
             if (needsGenerate)
             {
+                pendingThumbPath = Path.Combine(
+                    _profileThumbDir,
+                    $".{thumbFileName}.{Guid.NewGuid():N}.tmp");
                 using var image = Image.Load(sourceImagePath);
                 image.Mutate(ctx => ctx
                     .AutoOrient()
@@ -517,18 +521,38 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     }));
 
                 image.Metadata.ExifProfile = null;
-                image.Save(thumbPath, new WebpEncoder
+                image.Save(pendingThumbPath, new WebpEncoder
                 {
                     FileFormat = WebpFileFormatType.Lossy,
                     Quality = quality
                 });
+                File.Move(pendingThumbPath, thumbPath, overwrite: true);
+                pendingThumbPath = null;
             }
 
-            return $"/generated/thumbs/athletes/{thumbFileName}?v={sourceInfo.LastWriteTimeUtc.Ticks}";
+            var publishedThumbInfo = new FileInfo(thumbPath);
+            if (!publishedThumbInfo.Exists || publishedThumbInfo.Length <= 0)
+                return null;
+
+            return $"/generated/thumbs/athletes/{thumbFileName}?v={publishedThumbInfo.LastWriteTimeUtc.Ticks}";
         }
         catch
         {
             return null;
+        }
+        finally
+        {
+            if (!string.IsNullOrWhiteSpace(pendingThumbPath) && File.Exists(pendingThumbPath))
+            {
+                try
+                {
+                    File.Delete(pendingThumbPath);
+                }
+                catch
+                {
+                    // A failed cleanup must not hide the usable original portrait fallback.
+                }
+            }
         }
     }
 

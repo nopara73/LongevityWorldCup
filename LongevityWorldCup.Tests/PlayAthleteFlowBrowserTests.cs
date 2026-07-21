@@ -7,6 +7,38 @@ namespace LongevityWorldCup.Tests;
 public sealed class PlayAthleteFlowBrowserTests
 {
     [Fact]
+    public async Task PlayForwardActions_KeepTheirGreenNavigationCue()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1280, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/play", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => !document.getElementById('newGameBtn').disabled && getComputedStyle(document.getElementById('newGameBtn')).backgroundColor === 'rgb(31, 122, 56)'");
+
+        await ExpectGreenPlayActionAsync(page.Locator("#newGameBtn"));
+
+        await page.Locator("#newGameBtn").ClickAsync();
+        await page.WaitForURLAsync("**/join");
+        await page.WaitForFunctionAsync(
+            "() => !document.getElementById('joinGoProButton').disabled && getComputedStyle(document.getElementById('joinGoProButton')).backgroundColor === 'rgb(31, 122, 56)'");
+
+        await ExpectGreenPlayActionAsync(page.Locator("#joinGoProButton"));
+    }
+
+    [Fact]
     public async Task PaymentOfferFailures_DistinguishPreparationFromStorage()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -548,11 +580,12 @@ public sealed class PlayAthleteFlowBrowserTests
     }
 
     [Theory]
-    [InlineData(390, 844)]
-    [InlineData(1280, 720)]
+    [InlineData(390, 844, true)]
+    [InlineData(1280, 720, false)]
     public async Task ExistingAthleteSelectionWithSavedName_WaitsForAthleteMatchBeforeRevealingPanel(
         int viewportWidth,
-        int viewportHeight)
+        int viewportHeight,
+        bool expectDockedActions)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -644,24 +677,28 @@ public sealed class PlayAthleteFlowBrowserTests
                 return docked;
             }
             """);
-        Assert.True(dockedWhenRefreshed, "Selection actions should dock as soon as the saved-athlete panel is ready.");
-        await page.WaitForFunctionAsync(
-            """
-            () => {
-                const element = document.querySelector('.play-athlete-actions');
-                if (!element
-                    || !element.classList.contains('flow-action-stack--docked')
-                    || element.classList.contains('flow-action-stack--dock-entering')
-                    || element.getAnimations().some(animation =>
-                        animation.playState === 'pending' || animation.playState === 'running')) {
-                    return false;
+        Assert.True(dockedWhenRefreshed == expectDockedActions,
+            $"Selection actions should {(expectDockedActions ? "dock" : "stay inline")} as soon as the saved-athlete panel is ready.");
+        if (expectDockedActions)
+        {
+            await page.WaitForFunctionAsync(
+                """
+                () => {
+                    const element = document.querySelector('.play-athlete-actions');
+                    if (!element
+                        || !element.classList.contains('flow-action-stack--docked')
+                        || element.classList.contains('flow-action-stack--dock-entering')
+                        || element.getAnimations().some(animation =>
+                            animation.playState === 'pending' || animation.playState === 'running')) {
+                        return false;
+                    }
+                    const rect = element.getBoundingClientRect();
+                    return rect.top >= -1 && rect.bottom <= window.innerHeight + 1;
                 }
-                const rect = element.getBoundingClientRect();
-                return rect.top >= -1 && rect.bottom <= window.innerHeight + 1;
-            }
-            """,
-            null,
-            new PageWaitForFunctionOptions { Timeout = 5_000 });
+                """,
+                null,
+                new PageWaitForFunctionOptions { Timeout = 5_000 });
+        }
         var actionLayout = await page.Locator(".play-athlete-actions").EvaluateAsync<ActionStackTransitionLayout>(
             """
             element => {
@@ -674,7 +711,8 @@ public sealed class PlayAthleteFlowBrowserTests
                 };
             }
             """);
-        Assert.True(actionLayout.Docked, "Selection actions should dock while the saved-athlete panel fades in.");
+        Assert.True(actionLayout.Docked == expectDockedActions,
+            $"Selection actions should {(expectDockedActions ? "remain docked" : "remain inline")} after the saved-athlete panel is ready.");
         Assert.True(actionLayout.Top >= -1, $"Selection actions top {actionLayout.Top} was above the viewport.");
         Assert.True(actionLayout.Bottom <= actionLayout.ViewportHeight + 1,
             $"Selection actions bottom {actionLayout.Bottom} exceeded viewport height {actionLayout.ViewportHeight}.");
@@ -992,6 +1030,17 @@ public sealed class PlayAthleteFlowBrowserTests
             }
             """,
             activePanelId);
+    }
+
+    private static async Task ExpectGreenPlayActionAsync(ILocator action)
+    {
+        Assert.Contains("green", (await action.GetAttributeAsync("class"))?.Split(' ') ?? []);
+        Assert.Equal(
+            "rgb(31, 122, 56)",
+            await action.EvaluateAsync<string>("element => getComputedStyle(element).backgroundColor"));
+        Assert.Equal(
+            "rgb(255, 255, 255)",
+            await action.EvaluateAsync<string>("element => getComputedStyle(element).color"));
     }
 
     private static async Task ExpectNoPlayPanelTransitionAsync(IPage page)

@@ -388,7 +388,7 @@ public sealed class FlowActionDockBrowserTests
     public async Task ReviewPage_KeepsHomeActionWithReviewPanel(
         int viewportWidth,
         int viewportHeight,
-        double minIllustrationHeight)
+        double minimumArtworkHeight)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -408,14 +408,16 @@ public sealed class FlowActionDockBrowserTests
         var errors = CapturePageErrors(page);
 
         await page.GotoAsync("/review", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => document.querySelector('.application-review-visual img')?.complete");
+        await page.WaitForSelectorAsync(".application-review-copy.primary");
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
         await page.WaitForTimeoutAsync(850);
         await page.EvaluateAsync("() => window.LwcFlowActionDock?.refreshNow()");
         await ExpectActionStackInViewportAsync(page, ".application-review-actions");
+        await page.WaitForFunctionAsync(
+            "() => { const image = document.querySelector('.application-review-visual .illustration'); return image?.complete && image.naturalWidth > 0; }");
 
         var titleRect = await ReadElementRectAsync(page, ".application-review-title");
-        var illustrationRect = await ReadElementRectAsync(page, ".application-review-visual img");
+        var visualRect = await ReadElementRectAsync(page, ".application-review-visual .illustration");
         var primaryCopyRect = await ReadElementRectAsync(page, ".application-review-copy.primary");
         var actionRect = await ReadElementRectAsync(page, ".application-review-actions");
         var actionDocked = await HasDockClassAsync(page, ".application-review-actions");
@@ -435,8 +437,22 @@ public sealed class FlowActionDockBrowserTests
 
         Assert.True(titleRect.Top >= 0,
             $"Review title starts above the viewport: {titleRect.Top}px.");
-        Assert.True(illustrationRect.Height >= minIllustrationHeight,
-            $"Review illustration was over-compressed: {illustrationRect.Height}px < {minIllustrationHeight}px.");
+        Assert.Equal(1, await page.Locator(".application-review-visual .illustration").CountAsync());
+        Assert.True(
+            await page.Locator(".application-review-visual .illustration").EvaluateAsync<bool>(
+                "image => image.complete && image.naturalWidth > 0"),
+            "Review joke artwork did not decode.");
+        Assert.True(visualRect.Width > 0 && visualRect.Height > 0,
+            $"Review joke artwork is not visibly rendered: {visualRect.Width}x{visualRect.Height}px.");
+        Assert.True(visualRect.Height + 0.5 >= minimumArtworkHeight,
+            $"Review joke artwork was over-compressed: {visualRect.Height}px < {minimumArtworkHeight}px.");
+        Assert.InRange(Math.Abs(visualRect.Width / visualRect.Height - 860d / 721d), 0, 0.02);
+        Assert.True(visualRect.Left >= 0 && visualRect.Right <= viewportWidth,
+            $"Review joke artwork escapes the viewport horizontally: {visualRect.Left}-{visualRect.Right}px in {viewportWidth}px.");
+        Assert.True(visualRect.Top >= 0 && visualRect.Bottom <= viewportHeight,
+            $"Review joke artwork escapes the viewport vertically: {visualRect.Top}-{visualRect.Bottom}px in {viewportHeight}px.");
+        Assert.True(visualRect.Bottom <= primaryCopyRect.Top,
+            $"Review joke artwork overlaps the primary message: artwork bottom {visualRect.Bottom}px, copy top {primaryCopyRect.Top}px.");
         Assert.True(primaryCopyRect.Bottom <= actionRect.Top - 8,
             $"Review primary message is too close to the Home action: copy bottom {primaryCopyRect.Bottom}px, action top {actionRect.Top}px.");
         Assert.NotEmpty(visibleSecondaryCopies);
@@ -778,9 +794,9 @@ public sealed class FlowActionDockBrowserTests
         Assert.True(playStartState.HeroLeft >= -1, $"Hero stage overflows left: {playStartState.HeroLeft}");
         Assert.True(playStartState.HeroRight <= playStartState.ViewportWidth + 1, $"Hero stage overflows right: {playStartState.HeroRight} > {playStartState.ViewportWidth}");
         Assert.True(playStartState.ScrollWidth <= playStartState.ViewportWidth + 1, $"Play hero creates horizontal overflow: {playStartState.ScrollWidth} > {playStartState.ViewportWidth}");
-        Assert.Equal("linear-gradient(120deg, #000000, #555555)", playStartState.HeaderBackground);
+        Assert.Equal("#101820", playStartState.HeaderBackground);
         Assert.Equal("none", playStartState.HeaderBackgroundImage);
-        Assert.Contains("linear-gradient", playStartState.BodyBackgroundImage);
+        Assert.Equal("none", playStartState.BodyBackgroundImage);
         Assert.Equal("none", playStartState.MainBackgroundImage);
         Assert.Equal("none", playStartState.PanelBeforeBackgroundImage);
         Assert.Equal("absolute", playStartState.PanelBeforePosition);
@@ -1018,14 +1034,13 @@ public sealed class FlowActionDockBrowserTests
     }
 
     [Theory]
-    [InlineData(844, 390, 32, 70)]
-    [InlineData(768, 1024, 38, 240)]
-    [InlineData(1280, 720, 36, 240)]
+    [InlineData(844, 390, 32)]
+    [InlineData(768, 1024, 38)]
+    [InlineData(1280, 720, 36)]
     public async Task ProofUpload_FirstViewportUsesFormScaleTitleAndShowsUploadAction(
         int viewportWidth,
         int viewportHeight,
-        double maxTitleFontSize,
-        double minIllustrationHeight)
+        double maxTitleFontSize)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -1061,7 +1076,7 @@ public sealed class FlowActionDockBrowserTests
         await page.WaitForFunctionAsync(
             """
             () => document.querySelector('#character-title')?.textContent.trim() === 'Browser Test Athlete'
-                && document.querySelector('.proof-upload-visual img')?.complete
+                && document.querySelector('.proof-upload-symbol .fa-file-medical')
                 && document.querySelector('#uploadProofButton')?.getAttribute('data-listener') === 'true'
             """);
 
@@ -1069,7 +1084,7 @@ public sealed class FlowActionDockBrowserTests
             """
             () => {
                 const title = document.querySelector('#character-title');
-                const image = document.querySelector('.proof-upload-visual img');
+                const illustration = document.querySelector('.proof-upload-symbol');
                 const uploadButton = document.querySelector('#uploadProofButton');
                 const rectOf = element => {
                     const rect = element.getBoundingClientRect();
@@ -1086,7 +1101,7 @@ public sealed class FlowActionDockBrowserTests
                 return {
                     TitleFontSize: parseFloat(getComputedStyle(title).fontSize),
                     Title: rectOf(title),
-                    Illustration: rectOf(image),
+                    Illustration: rectOf(illustration),
                     UploadButton: rectOf(uploadButton),
                     ViewportHeight: window.innerHeight
                 };
@@ -1095,8 +1110,8 @@ public sealed class FlowActionDockBrowserTests
 
         Assert.True(layout.TitleFontSize <= maxTitleFontSize,
             $"Proof upload title fell back to oversized global h1 sizing: {layout.TitleFontSize}px > {maxTitleFontSize}px.");
-        Assert.True(layout.Illustration.Height >= minIllustrationHeight,
-            $"Proof upload illustration was over-compressed: {layout.Illustration.Height}px < {minIllustrationHeight}px.");
+        Assert.InRange(layout.Illustration.Height, 80, 104);
+        Assert.Equal(0, await page.Locator(".proof-upload-visual img").CountAsync());
         Assert.True(layout.UploadButton.Bottom <= layout.ViewportHeight - 8,
             $"Upload proofs action is cut off in the first viewport: bottom {layout.UploadButton.Bottom}px, viewport {layout.ViewportHeight}px.");
         Assert.Empty(errors);
@@ -2140,9 +2155,37 @@ public sealed class FlowActionDockBrowserTests
     }
 
     [Theory]
-    [InlineData("/pheno-age", "#lwcStepOneActions")]
-    [InlineData("/apply?fake=1", ".convergence-actions")]
-    public async Task DesktopDocks_UseCompactCommandBarHeight(string path, string actionSelector)
+    [InlineData("/pheno-age", "#lwcStepOneActions", 650)]
+    [InlineData("/apply?fake=1", ".convergence-actions", 768)]
+    public async Task DesktopDocks_UseCompactCommandBarHeight(string path, string actionSelector, int viewportHeight)
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1366, Height = viewportHeight }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var errors = CapturePageErrors(page);
+
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await ExpectActionStackDockedInViewportAsync(page, actionSelector);
+
+        var rect = await ReadElementRectAsync(page, actionSelector);
+        Assert.True(rect.Height <= 68, $"{actionSelector} dock is too tall: {rect.Height}px.");
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task DesktopDock_PreservesItsInlinePlaceholderHeightWithoutOscillating()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -2160,12 +2203,42 @@ public sealed class FlowActionDockBrowserTests
 
         var page = await context.NewPageAsync();
         var errors = CapturePageErrors(page);
+        await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => { window.LwcFlowActionDock?.refreshNow?.(); const actions = document.getElementById('lwcStepOneActions'); return actions && !actions.classList.contains('flow-action-stack--docked'); }");
 
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await ExpectActionStackDockedInViewportAsync(page, actionSelector);
+        var inlineHeight = await page.Locator("#lwcStepOneActions").EvaluateAsync<double>(
+            "element => element.getBoundingClientRect().height");
+        Assert.True(inlineHeight > 0, "The inline action stack had no measurable height.");
 
-        var rect = await ReadElementRectAsync(page, actionSelector);
-        Assert.True(rect.Height <= 68, $"{actionSelector} dock is too tall: {rect.Height}px.");
+        await page.SetViewportSizeAsync(1366, 650);
+        await ExpectActionStackDockedInViewportAsync(page, "#lwcStepOneActions");
+        var samples = await page.EvaluateAsync<double[][]>(
+            """
+            async () => {
+                const actions = document.getElementById('lwcStepOneActions');
+                const placeholder = document.querySelector('#lwc-step-1 > .flow-action-dock-placeholder');
+                const samples = [];
+                for (let index = 0; index < 10; index += 1) {
+                    window.LwcFlowActionDock?.refreshNow?.();
+                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    samples.push([
+                        placeholder?.getBoundingClientRect().height || 0,
+                        actions?.getBoundingClientRect().height || 0,
+                        actions?.classList.contains('flow-action-stack--docked') ? 1 : 0
+                    ]);
+                }
+                return samples;
+            }
+            """);
+
+        Assert.Equal(10, samples.Length);
+        foreach (var sample in samples)
+        {
+            Assert.Equal(1, sample[2]);
+            Assert.InRange(sample[0], inlineHeight - 1, inlineHeight + 1);
+            Assert.True(sample[1] > 0, "The docked action stack lost its rendered height.");
+        }
         Assert.Empty(errors);
     }
 
@@ -2337,7 +2410,8 @@ public sealed class FlowActionDockBrowserTests
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1366, Height = 768 }
+            // The compact step-one form fits inline at 768px; constrain the height to exercise the dock.
+            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
@@ -2456,7 +2530,9 @@ public sealed class FlowActionDockBrowserTests
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
-            ViewportSize = new ViewportSize { Width = 1366, Height = 768 }
+            // Keep the desktop width while constraining height enough to exercise the dock.
+            // At 768px the compact form and both actions now fit fully inline by design.
+            ViewportSize = new ViewportSize { Width = 1366, Height = 650 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
@@ -2548,7 +2624,7 @@ public sealed class FlowActionDockBrowserTests
     [Theory]
     [InlineData(1366, 768, 340)]
     [InlineData(1280, 720, 288)]
-    public async Task DesktopSelectAthlete_KeepsPictureAndInputAboveDockAtCommonViewport(
+    public async Task DesktopSelectAthlete_KeepsPictureInputAndInlineActionsVisibleAtCommonViewport(
         int viewportWidth,
         int viewportHeight,
         double minPictureWidth)
@@ -2571,7 +2647,7 @@ public sealed class FlowActionDockBrowserTests
         var errors = CapturePageErrors(page);
 
         await page.GotoAsync("/select-athlete", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await ExpectActionStackDockedInViewportAsync(page, ".play-athlete-actions");
+        await ExpectActionStackInViewportAsync(page, ".play-athlete-actions");
 
         var pictureRect = await ReadElementRectAsync(page, "#athleteSelectionPicture");
         var inputRect = await ReadElementRectAsync(page, "#playAthleteInput");
@@ -2579,10 +2655,12 @@ public sealed class FlowActionDockBrowserTests
 
         Assert.True(pictureRect.Width >= minPictureWidth,
             $"Athlete picture is too small for the available desktop space: {pictureRect.Width}px < {minPictureWidth}px.");
-        Assert.True(pictureRect.Bottom <= actionsRect.Top - 16,
-            $"Athlete picture overlaps the dock: picture bottom {pictureRect.Bottom}, dock top {actionsRect.Top}.");
+        Assert.True(pictureRect.Bottom <= inputRect.Top - 16,
+            $"Athlete picture overlaps the search field: picture bottom {pictureRect.Bottom}, input top {inputRect.Top}.");
         Assert.True(inputRect.Bottom <= actionsRect.Top - 16,
-            $"Athlete input overlaps the dock: input bottom {inputRect.Bottom}, dock top {actionsRect.Top}.");
+            $"Athlete input overlaps the actions: input bottom {inputRect.Bottom}, actions top {actionsRect.Top}.");
+        Assert.False(await HasDockClassAsync(page, ".play-athlete-actions"),
+            "Athlete actions should stay inline when the full selection flow fits in the common desktop viewport.");
         Assert.Empty(errors);
     }
 
@@ -2635,7 +2713,11 @@ public sealed class FlowActionDockBrowserTests
 
         await page.GotoAsync("/dashboard", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
-            "() => document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4");
+            """
+            () => document.getElementById('athleteDashboardPanel')?.hidden === false
+                && document.querySelectorAll('#athleteDashboardActions .flow-action').length >= 4
+                && document.getElementById('athleteDashboardActions')?.getBoundingClientRect().width > 0
+            """);
         await ExpectActionStackDockedInViewportAsync(page, ".play-dashboard-actions");
 
         var pictureRect = await ReadElementRectAsync(page, "#athleteDashboardPicture");
@@ -2970,6 +3052,104 @@ public sealed class FlowActionDockBrowserTests
             """);
 
         Assert.Equal(1, dockedVisibleActionCount);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task BioageResult_RevealsAgainAfterDelayedRankPreviewExpands()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync(
+            """
+            window.__rankPreviewGate = new Promise(resolve => {
+                window.__releaseRankPreview = resolve;
+            });
+            window.getSharedAthletes = () => window.__rankPreviewGate;
+            """);
+
+        var page = await context.NewPageAsync();
+        var errors = CapturePageErrors(page);
+        await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await FillPhenoBiomarkersAsync(page);
+        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await page.WaitForSelectorAsync("#phenoAgeResult.show");
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('phenoAgeRankPreview')?.getAttribute('aria-busy') === 'true'");
+        await ExpectActionStackDockedInViewportAsync(page, ".phenoage-result-actions");
+        await ExpectBioageResultVisibleAboveDockAsync(page, "#phenoAgeResult", ".phenoage-result-actions");
+
+        await page.EvaluateAsync(
+            """
+            () => {
+                const result = document.getElementById('phenoAgeResult').getBoundingClientRect();
+                const dock = document.querySelector('.phenoage-result-actions').getBoundingClientRect();
+                window.scrollBy({ top: result.bottom - (dock.top - 12), behavior: 'auto' });
+            }
+            """);
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        var initialLayout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const result = document.getElementById('phenoAgeResult').getBoundingClientRect();
+                const dock = document.querySelector('.phenoage-result-actions').getBoundingClientRect();
+                return [result.height, result.bottom, dock.top, window.scrollY];
+            }
+            """);
+        Assert.InRange(initialLayout[2] - initialLayout[1], 8, 16);
+
+        await page.EvaluateAsync(
+            """
+            async () => {
+                const athletes = await fetch('/api/data/athletes', {
+                    cache: 'no-store',
+                    headers: { accept: 'application/json' }
+                }).then(response => response.json());
+                window.__releaseRankPreview(athletes);
+            }
+            """);
+        await page.WaitForFunctionAsync(
+            """
+            () => {
+                const preview = document.getElementById('phenoAgeRankPreview');
+                const result = document.getElementById('phenoAgeResult');
+                const dock = document.querySelector('.phenoage-result-actions');
+                if (preview?.getAttribute('aria-busy') !== 'false'
+                    || !preview.querySelector('.bioage-rank-neighbors')
+                    || !result
+                    || !dock) return false;
+                return result.getBoundingClientRect().bottom <= dock.getBoundingClientRect().top - 8;
+            }
+            """);
+
+        var finalLayout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const result = document.getElementById('phenoAgeResult').getBoundingClientRect();
+                const dock = document.querySelector('.phenoage-result-actions').getBoundingClientRect();
+                return [result.height, result.bottom, dock.top, window.scrollY];
+            }
+            """);
+        Assert.True(
+            finalLayout[0] >= initialLayout[0] + 50,
+            $"Rank preview did not materially expand the result: {initialLayout[0]}px to {finalLayout[0]}px.");
+        Assert.True(
+            finalLayout[3] >= initialLayout[3] + 20,
+            $"Expanded rank preview was not re-revealed: scrollY {initialLayout[3]}px to {finalLayout[3]}px.");
+        Assert.True(finalLayout[1] <= finalLayout[2] - 8);
         Assert.Empty(errors);
     }
 

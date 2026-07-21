@@ -1,45 +1,49 @@
 <style>
     /* Footer Styles */
     .footer {
-        background: var(--background-color);
+        background: #101820;
         color: var(--light-text-color);
         padding: 1.75rem 0 1.6rem;
         margin-top: 4rem;
         position: relative;
         width: 100%;
         clear: both;
-        box-shadow: 0px -3px 10px rgba(0, 0, 0, 0.3); /* Adds depth to footer */
+        box-shadow: none;
     }
 
     .footer-link {
         color: var(--light-text-color);
         text-decoration: none;
         padding: 0.5rem 0.65rem;
-        border-radius: 8px;
-        transition: transform 0.3s ease-out, color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+        border-radius: var(--radius-sm, 4px);
+        transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         display: flex;
         align-items: center;
         min-height: 2.75rem;
         box-sizing: border-box;
         width: 100%;
-        will-change: transform;
         font-weight: 400;
         font-size: 0.95rem;
         letter-spacing: 0.005em;
     }
 
         .footer-link:hover {
-            color: var(--primary-color);
+            color: var(--primary-color-bright);
             background: rgba(255, 255, 255, 0.08);
-            transform: translateX(4px);
         }
 
         .footer-link:focus-visible {
-            color: var(--primary-color);
-            background: rgba(0, 188, 212, 0.12);
-            outline: 2px solid rgba(0, 188, 212, 0.72);
+            color: var(--primary-color-bright);
+            background: rgba(255, 255, 255, 0.08);
+            outline: 3px solid var(--primary-color-bright);
             outline-offset: 3px;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+            box-shadow: none;
+        }
+
+        .footer-link[aria-current="page"] {
+            color: var(--primary-color-bright);
+            background: rgba(255, 255, 255, 0.08);
+            border-inline-start: 3px solid var(--primary-color-bright);
         }
 
         .footer-link i {
@@ -67,6 +71,16 @@
         gap: 0.05rem;
         margin: 0;
         align-items: flex-start;
+    }
+
+    .footer-column-title {
+        margin: 0 0 0.4rem;
+        padding-inline: 0.65rem;
+        color: #cbd5e1;
+        font-size: 0.875rem;
+        font-weight: 700;
+        line-height: 1.3;
+        text-align: left;
     }
 
     @media (max-width: 768px) {
@@ -111,6 +125,7 @@
 <footer class="footer" style="margin-top: 1.5rem;">
     <div class="footer-container">
         <div class="footer-column">
+            <h2 class="footer-column-title">Explore</h2>
             <a href="https://merch.longevityworldcup.com/" target="_blank" rel="noopener" class="footer-link" aria-label="Shop Longevity World Cup merchandise">
                 <i class="fas fa-store"></i> Merch
             </a>
@@ -131,6 +146,7 @@
             </a>
         </div>
         <div class="footer-column">
+            <h2 class="footer-column-title">Follow</h2>
             <a href="https://x.com/LongevityWorldC" target="_blank" rel="noopener" class="footer-link" aria-label="Follow Longevity World Cup on X">
                 <i class="fab fa-twitter"></i> X
             </a>
@@ -152,3 +168,19 @@
         </div>
     </div>
 </footer>
+<script>
+    (() => {
+        const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
+        document.querySelectorAll('.footer-link[href^="/"]').forEach(link => {
+            const linkPath = new URL(link.href, window.location.origin).pathname.replace(/\/$/, '') || '/';
+            if (linkPath === currentPath) {
+                link.setAttribute('aria-current', 'page');
+            }
+        });
+
+        const homeLink = document.querySelector('header[role="banner"] .header-link');
+        if (homeLink && currentPath === '/') {
+            homeLink.setAttribute('aria-current', 'page');
+        }
+    })();
+</script>
