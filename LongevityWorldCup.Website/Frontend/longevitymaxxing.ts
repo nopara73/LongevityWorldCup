@@ -1145,7 +1145,7 @@
         if (!list) return;
 
         list.innerHTML = QUESTIONS.map(q => `
-            <div class="lmx-question-preview-item">
+            <div class="lmx-question-preview-item" data-key="${q.key}">
                 <div class="lmx-question-preview-label">
                     <i class="fas ${q.icon}" aria-hidden="true"></i>
                     <span>${esc(q.text)}</span>
@@ -2186,7 +2186,7 @@
             return `<div class="lmx-cell practice" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}"><i class="fa fa-rocket" aria-hidden="true"></i></div>`;
         }
 
-        const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
+        const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" data-key="${item.key}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
         return `<div class="lmx-cell lmx-cell-breakdown practice" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
             <span class="lmx-cell-score"><i class="fa fa-rocket" aria-hidden="true"></i></span>
             <span class="lmx-habit-marks">${marks}</span>
@@ -2204,7 +2204,7 @@
 
         const rawScore = breakdown.reduce((sum, item) => sum + item.value, 0);
         const scoreClass = rawScore >= 6 ? "score-high" : rawScore >= 3 ? "score-mid" : "score-low";
-        const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
+        const marks = breakdown.map(item => `<span class="${habitMarkClass(item.value)}" data-key="${item.key}" title="${escAttr(`${item.label} ${item.value}/2`)}" aria-hidden="true">${esc(item.short)}</span>`).join("");
         return `<div class="lmx-cell lmx-cell-breakdown ${scoreClass}" data-day="${escAttr(cell.challengeDay)}" title="${escAttr(title)}" aria-label="${escAttr(title)}">
             <span class="lmx-cell-score">${score}</span>
             <span class="lmx-habit-marks">${marks}</span>

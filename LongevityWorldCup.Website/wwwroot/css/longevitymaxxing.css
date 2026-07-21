@@ -1,8 +1,76 @@
+.lmx-page,
+.lmx-quote-dialog {
+    --lmx-sleep-accent: #2563eb;
+    --lmx-sleep-deep: #1e40af;
+    --lmx-sleep-soft: 37, 99, 235;
+    --lmx-exercise-accent: #dc2626;
+    --lmx-exercise-deep: #991b1b;
+    --lmx-exercise-soft: 220, 38, 38;
+    --lmx-nutrition-accent: #16a34a;
+    --lmx-nutrition-deep: #166534;
+    --lmx-nutrition-soft: 22, 163, 74;
+    --lmx-vices-accent: #7c3aed;
+    --lmx-vices-deep: #5b21b6;
+    --lmx-vices-soft: 124, 58, 237;
+}
+
 .lmx-page {
     min-width: 0;
     max-width: 1280px;
     color: #172033;
     padding-block: 1.5rem 2.5rem;
+}
+
+.lmx-habit-card.sleep,
+.lmx-question-preview-item[data-key="sleep"],
+.lmx-dashboard-stat.sleep,
+.lmx-dashboard-category.sleep,
+.lmx-question[data-key="sleep"],
+.lmx-quote-dialog[data-quote-bucket="sleep"],
+.lmx-habit-key [data-key="sleep"],
+.lmx-habit-mark[data-key="sleep"] {
+    --lmx-category-accent: var(--lmx-sleep-accent);
+    --lmx-category-deep: var(--lmx-sleep-deep);
+    --lmx-category-soft: var(--lmx-sleep-soft);
+}
+
+.lmx-habit-card.exercise,
+.lmx-question-preview-item[data-key="exercise"],
+.lmx-dashboard-stat.exercise,
+.lmx-dashboard-category.exercise,
+.lmx-question[data-key="exercise"],
+.lmx-quote-dialog[data-quote-bucket="exercise"],
+.lmx-habit-key [data-key="exercise"],
+.lmx-habit-mark[data-key="exercise"] {
+    --lmx-category-accent: var(--lmx-exercise-accent);
+    --lmx-category-deep: var(--lmx-exercise-deep);
+    --lmx-category-soft: var(--lmx-exercise-soft);
+}
+
+.lmx-habit-card.nutrition,
+.lmx-question-preview-item[data-key="nutrition"],
+.lmx-dashboard-stat.nutrition,
+.lmx-dashboard-category.nutrition,
+.lmx-question[data-key="nutrition"],
+.lmx-quote-dialog[data-quote-bucket="nutrition"],
+.lmx-habit-key [data-key="nutrition"],
+.lmx-habit-mark[data-key="nutrition"] {
+    --lmx-category-accent: var(--lmx-nutrition-accent);
+    --lmx-category-deep: var(--lmx-nutrition-deep);
+    --lmx-category-soft: var(--lmx-nutrition-soft);
+}
+
+.lmx-habit-card.vices,
+.lmx-question-preview-item[data-key="vices"],
+.lmx-dashboard-stat.vices,
+.lmx-dashboard-category.vices,
+.lmx-question[data-key="vices"],
+.lmx-quote-dialog[data-quote-bucket="vices"],
+.lmx-habit-key [data-key="vices"],
+.lmx-habit-mark[data-key="vices"] {
+    --lmx-category-accent: var(--lmx-vices-accent);
+    --lmx-category-deep: var(--lmx-vices-deep);
+    --lmx-category-soft: var(--lmx-vices-soft);
 }
 
 .lmx-shell {
@@ -299,27 +367,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    background: var(--lmx-category-accent);
     color: #ffffff;
 }
 
 .lmx-habit-card span {
     font-weight: 900;
-}
-
-.lmx-habit-card.sleep i {
-    background: #2563eb;
-}
-
-.lmx-habit-card.exercise i {
-    background: #dc2626;
-}
-
-.lmx-habit-card.nutrition i {
-    background: #16a34a;
-}
-
-.lmx-habit-card.vices i {
-    background: #7c3aed;
 }
 
 .lmx-question-preview {
@@ -369,7 +422,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #0f172a;
+    background: var(--lmx-category-accent);
     color: #ffffff;
 }
 
@@ -470,20 +523,11 @@
     color: #ffffff;
 }
 
-.lmx-dashboard-stat.sleep i {
-    background: #2563eb;
-}
-
-.lmx-dashboard-stat.exercise i {
-    background: #dc2626;
-}
-
-.lmx-dashboard-stat.nutrition i {
-    background: #16a34a;
-}
-
+.lmx-dashboard-stat.sleep i,
+.lmx-dashboard-stat.exercise i,
+.lmx-dashboard-stat.nutrition i,
 .lmx-dashboard-stat.vices i {
-    background: #7c3aed;
+    background: var(--lmx-category-accent);
 }
 
 .lmx-dashboard-stat span {
@@ -673,23 +717,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    background: var(--lmx-category-accent);
     color: #ffffff;
-}
-
-.lmx-dashboard-category.sleep i {
-    background: #2563eb;
-}
-
-.lmx-dashboard-category.exercise i {
-    background: #dc2626;
-}
-
-.lmx-dashboard-category.nutrition i {
-    background: #16a34a;
-}
-
-.lmx-dashboard-category.vices i {
-    background: #7c3aed;
 }
 
 .lmx-dashboard-category span {
@@ -718,7 +747,7 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, #14b8a6, #f8d35b);
+    background: var(--lmx-category-accent);
 }
 
 .lmx-category-day {
@@ -1819,9 +1848,9 @@ body.lmx-quote-open {
 }
 
 .lmx-quote-dialog-card {
-    --lmx-quote-accent: #14b8a6;
-    --lmx-quote-accent-deep: #0f766e;
-    --lmx-quote-accent-soft: rgba(20, 184, 166, 0.10);
+    --lmx-quote-accent: var(--lmx-category-accent, #14b8a6);
+    --lmx-quote-accent-deep: var(--lmx-category-deep, #0f766e);
+    --lmx-quote-accent-soft: rgba(var(--lmx-category-soft, 20, 184, 166), 0.10);
     position: relative;
     z-index: 1;
     width: min(100%, 43rem);
@@ -1833,30 +1862,6 @@ body.lmx-quote-open {
     box-shadow:
         0 22px 58px rgba(15, 23, 42, 0.30),
         0 1px 0 rgba(255, 255, 255, 0.70) inset;
-}
-
-.lmx-quote-dialog[data-quote-bucket="sleep"] .lmx-quote-dialog-card {
-    --lmx-quote-accent: #0ea5e9;
-    --lmx-quote-accent-deep: #075985;
-    --lmx-quote-accent-soft: rgba(14, 165, 233, 0.10);
-}
-
-.lmx-quote-dialog[data-quote-bucket="exercise"] .lmx-quote-dialog-card {
-    --lmx-quote-accent: #f97316;
-    --lmx-quote-accent-deep: #9a3412;
-    --lmx-quote-accent-soft: rgba(249, 115, 22, 0.10);
-}
-
-.lmx-quote-dialog[data-quote-bucket="nutrition"] .lmx-quote-dialog-card {
-    --lmx-quote-accent: #16a34a;
-    --lmx-quote-accent-deep: #166534;
-    --lmx-quote-accent-soft: rgba(22, 163, 74, 0.10);
-}
-
-.lmx-quote-dialog[data-quote-bucket="vices"] .lmx-quote-dialog-card {
-    --lmx-quote-accent: #e11d48;
-    --lmx-quote-accent-deep: #9f1239;
-    --lmx-quote-accent-soft: rgba(225, 29, 72, 0.09);
 }
 
 .lmx-quote-dialog[data-quote-bucket="mindset"] .lmx-quote-dialog-card {
@@ -2516,24 +2521,9 @@ body.lmx-quote-open {
 }
 
 .lmx-board-legend .lmx-habit-key i {
+    color: var(--lmx-category-accent);
     font-size: 0.94rem;
     line-height: 1;
-}
-
-.lmx-board-legend .lmx-habit-key i:nth-child(1) {
-    color: #4f46e5;
-}
-
-.lmx-board-legend .lmx-habit-key i:nth-child(2) {
-    color: #0f766e;
-}
-
-.lmx-board-legend .lmx-habit-key i:nth-child(3) {
-    color: #ca8a04;
-}
-
-.lmx-board-legend .lmx-habit-key i:nth-child(4) {
-    color: #be185d;
 }
 
 .lmx-inactive-toggle {
@@ -2907,6 +2897,7 @@ body.lmx-quote-open {
     overflow: hidden;
     font-size: 0;
     line-height: 0;
+    color: var(--lmx-category-accent);
 }
 
 .lmx-habit-mark.full {
@@ -3083,9 +3074,9 @@ body.lmx-quote-open {
 }
 
 .lmx-question {
-    --lmx-habit-accent: #7c3aed;
-    --lmx-habit-deep: #4c1d95;
-    --lmx-habit-soft: 124, 58, 237;
+    --lmx-habit-accent: var(--lmx-category-accent, var(--lmx-sleep-accent));
+    --lmx-habit-deep: var(--lmx-category-deep, var(--lmx-sleep-deep));
+    --lmx-habit-soft: var(--lmx-category-soft, var(--lmx-sleep-soft));
     display: grid;
     gap: 0.55rem;
     margin: 0.65rem 0;
@@ -3096,24 +3087,6 @@ body.lmx-quote-open {
         radial-gradient(circle at 0 0, rgba(var(--lmx-habit-soft), 0.07), transparent 34%),
         #ffffff;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-}
-
-.lmx-question[data-key="exercise"] {
-    --lmx-habit-accent: #ea580c;
-    --lmx-habit-deep: #9a3412;
-    --lmx-habit-soft: 234, 88, 12;
-}
-
-.lmx-question[data-key="nutrition"] {
-    --lmx-habit-accent: #16a34a;
-    --lmx-habit-deep: #166534;
-    --lmx-habit-soft: 22, 163, 74;
-}
-
-.lmx-question[data-key="vices"] {
-    --lmx-habit-accent: #0284c7;
-    --lmx-habit-deep: #075985;
-    --lmx-habit-soft: 2, 132, 199;
 }
 
 .lmx-question-label {
@@ -3134,8 +3107,8 @@ body.lmx-quote-open {
     align-items: center;
     justify-content: center;
     border-radius: 9px;
-    background: rgba(var(--lmx-habit-soft), 0.12);
-    color: var(--lmx-habit-deep);
+    background: var(--lmx-habit-accent);
+    color: #ffffff;
     box-shadow: inset 0 0 0 1px rgba(var(--lmx-habit-soft), 0.1);
 }
 

@@ -100,6 +100,49 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
+    public async Task HabitIcons_UseTheSameCategoryPaletteAcrossChallengeSurfaces()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
+
+        var page = await context.NewPageAsync();
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState())));
+
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator(".lmx-growth-control").First.WaitForAsync();
+        await page.Locator(".lmx-habit-marks").First.WaitForAsync(new LocatorWaitForOptions
+        {
+            State = WaitForSelectorState.Attached
+        });
+
+        var expectedPalette = new[]
+        {
+            "rgb(37, 99, 235)",
+            "rgb(220, 38, 38)",
+            "rgb(22, 163, 74)",
+            "rgb(124, 58, 237)"
+        };
+        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-card i"), "backgroundColor"));
+        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question-preview-item i"), "backgroundColor"));
+        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question .lmx-question-icon"), "backgroundColor"));
+        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-key i"), "color"));
+        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-marks").First.Locator(".lmx-habit-mark"), "color"));
+    }
+
+    [Fact]
     public async Task CheckInForm_ShowsLatestPublicRemarksUnderSave()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -270,6 +313,11 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             Body = body
         });
 
+    private static Task<string[]> ComputedColorsAsync(ILocator locator, string property)
+        => locator.EvaluateAllAsync<string[]>(
+            "(elements, property) => elements.map(element => getComputedStyle(element)[property])",
+            property);
+
     private static object BuildParticipantState(bool emptyGarden = false)
         => new
         {
@@ -383,13 +431,13 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                         .Select(day => new
                         {
                             challengeDay = day,
-                            checkedIn = false,
-                            score = (int?)null,
+                            checkedIn = day == 22,
+                            score = day == 22 ? 8 : (int?)null,
                             countsForScore = day != 1,
-                            sleep = (int?)null,
-                            exercise = (int?)null,
-                            nutrition = (int?)null,
-                            vices = (int?)null
+                            sleep = day == 22 ? 2 : (int?)null,
+                            exercise = day == 22 ? 1 : (int?)null,
+                            nutrition = day == 22 ? 2 : (int?)null,
+                            vices = day == 22 ? 1 : (int?)null
                         })
                         .ToArray(),
                     badges = Array.Empty<string>(),

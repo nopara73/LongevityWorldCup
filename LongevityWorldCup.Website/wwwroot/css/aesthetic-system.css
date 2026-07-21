@@ -239,12 +239,6 @@ video {
     background: transparent;
 }
 
-.lmx-habit-card i,
-.lmx-habit-card.sleep i,
-.lmx-habit-card.exercise i,
-.lmx-habit-card.nutrition i,
-.lmx-habit-card.vices i,
-.lmx-question-preview-label i,
 .lmx-ops-tile i,
 .lmx-workflow-step i {
     background: var(--lwc-accent);
