@@ -21,7 +21,8 @@
         }
 
         .dialog-content {
-            background-color: #fefefe;
+            background-color: var(--lwc-surface, #fefefe);
+            color: var(--lwc-ink, #17212b);
             margin: 5% auto;
             padding: 2.25rem 1.25rem 1.25rem;
             border: none;
@@ -32,7 +33,7 @@
             width: 90%;
             overflow-y: auto;
             max-height: 90vh;
-            animation: fadeIn 0.5s ease-out;
+            animation: fadeIn var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
             position: relative;
         }
 
@@ -44,7 +45,7 @@
             margin: 0 auto; /* Center horizontally */
             text-align: center; /* Center align the checkmark */
             font-size: 100px; /* Adjust size */
-            color: rgba(0, 200, 0, 0.5); /* Green color with opacity */
+            color: var(--lwc-success, #1f7a38);
             z-index: 0;
         }
 
@@ -59,17 +60,17 @@
             right: 0.75rem;
             width: 44px;
             height: 44px;
-            background: rgba(15, 23, 42, 0.06);
-            color: rgba(15, 23, 42, 0.68);
+            background: var(--lwc-surface-muted, rgba(15, 23, 42, 0.06));
+            color: var(--lwc-ink, rgba(15, 23, 42, 0.68));
             z-index: 2;
-            transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .dialog-content .close:hover,
         .dialog-content .close:focus-visible {
-            background: rgba(231, 76, 60, 0.1);
-            color: #e74c3c;
-            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.14);
+            background: var(--lwc-danger-soft, rgba(231, 76, 60, 0.1));
+            color: var(--lwc-danger, #b4233b);
+            box-shadow: 0 0 0 3px var(--lwc-danger-soft, rgba(231, 76, 60, 0.14));
             outline: none;
         }
 
@@ -95,7 +96,7 @@
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             width: 80%;
         }
@@ -133,14 +134,14 @@
             .copy-btn:hover i {
                 color: var(--secondary-color); /* Change icon color on hover */
                 transform: scale(1.2); /* Slightly enlarge the icon */
-                transition: transform 0.2s ease, color 0.2s ease; /* Smooth transition for both color and size */
+                transition: transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             }
 
         .game-description {
             text-align: center;
             margin: 0 auto 1.1rem;
             line-height: 1.55;
-            color: #334155;
+            color: var(--lwc-ink, #334155);
             font-size: clamp(1.02rem, 1.3vw, 1.08rem);
             font-weight: 400;
             letter-spacing: 0.005em;
@@ -150,7 +151,7 @@
 
         .game-description strong {
             font-weight: 600;
-            color: #1f2937;
+            color: var(--lwc-ink, #1f2937);
         }
 
         .game-description a {
@@ -200,7 +201,7 @@
             /* Paragraph style */
             .section-container p {
                 font-size: 1rem;
-                color: #4a5568;
+                color: var(--lwc-muted, #4a5568);
                 margin-bottom: 1.5rem;
                 line-height: 1.7;
                 font-weight: 400;
@@ -209,7 +210,7 @@
 
             .section-container p strong {
                 font-weight: 600;
-                color: #2d3748;
+                color: var(--lwc-ink, #2d3748);
             }
 
         .homepage-faq-section {
@@ -223,7 +224,7 @@
                 justify-content: center;
                 gap: 0.55rem;
                 margin: 0 0 1.35rem;
-                color: #2d3748;
+                color: var(--lwc-ink, #2d3748);
                 font-size: clamp(1.45rem, 2.4vw, 2rem);
                 line-height: 1.2;
                 text-align: center;
@@ -242,14 +243,14 @@
 
             .homepage-faq-item h3 {
                 margin: 0 0 0.45rem;
-                color: #2d3748;
+                color: var(--lwc-ink, #2d3748);
                 font-size: 1rem;
                 line-height: 1.3;
             }
 
             .homepage-faq-item p {
                 margin: 0;
-                color: #4a5568;
+                color: var(--lwc-muted, #4a5568);
                 font-size: 0.95rem;
                 line-height: 1.6;
             }
@@ -292,7 +293,7 @@
                 border: none;
                 border-radius: 25px;
                 cursor: pointer;
-                transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+                transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
                 max-width: 350px;
             }
 
@@ -311,7 +312,7 @@
             border: none;
             border-radius: 150px;
             cursor: pointer;
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             font-weight: bold;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
         }
@@ -352,7 +353,7 @@
             .copy-btn i {
                 font-size: 1rem;
                 color: var(--primary-color);
-                transition: transform 0.2s ease, color 0.2s ease;
+                transition: transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             }
 
             .copy-btn:hover i {
@@ -363,21 +364,6 @@
         .copy-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-        }
-
-        /* Flash animation */
-        @keyframes flash {
-            0%, 100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.1;
-            }
-        }
-
-        .flash-animation {
-            animation: flash 0.5s ease-in-out 4;
         }
 
         /* Contribute Section Styles */
@@ -399,7 +385,7 @@
 
         .contribute-section h3,
         .contribute-section p {
-            color: #4a5568;
+            color: var(--lwc-muted, #4a5568);
             text-align: center;
             line-height: 1.7;
             font-weight: 400;
@@ -408,7 +394,7 @@
 
         .contribute-section strong {
             font-weight: 600;
-            color: #2d3748;
+            color: var(--lwc-ink, #2d3748);
         }
 
         .newsletter-section {
@@ -428,7 +414,7 @@
                 gap: 0.55rem;
                 margin: 0 0 1.15rem;
                 font-size: clamp(1.45rem, 2.4vw, 2rem);
-                color: #2d3748;
+                color: var(--lwc-ink, #2d3748);
             }
 
             .newsletter-section h2 i {
@@ -436,7 +422,7 @@
             }
 
             .newsletter-section p {
-                color: #4a5568;
+                color: var(--lwc-muted, #4a5568);
                 line-height: 1.7;
                 font-weight: 400;
                 letter-spacing: 0.005em;
@@ -451,13 +437,13 @@
 
             .newsletter-section strong {
                 font-weight: 600;
-                color: #2d3748;
+                color: var(--lwc-ink, #2d3748);
             }
 
             .shared-email-input {
                 color: var(--dark-text-color);
                 border: 2px solid var(--primary-color);
-                transition: border-color 0.3s ease;
+                transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
                 outline: none;
                 padding: 0.6rem 1rem;
                 border-radius: 25px;
@@ -482,7 +468,7 @@
                 border: none;
                 border-radius: 25px;
                 cursor: pointer;
-                transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+                transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
                 max-width: 350px;
                 box-sizing: border-box;
                 white-space: nowrap;
@@ -509,9 +495,9 @@
             width: min(100%, 340px);
             padding: 0.85rem 1rem;
             border-radius: 14px;
-            background: rgba(248, 250, 252, 0.88);
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.88));
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 8px rgba(15, 23, 42, 0.06);
-            color: #334155;
+            color: var(--lwc-ink, #334155);
         }
 
         .btc-status-topline {
@@ -522,14 +508,14 @@
         }
 
         .btc-status-title {
-            color: #475569;
+            color: var(--lwc-muted, #475569);
             font-size: 0.95rem;
             line-height: 1.2;
             text-align: left;
         }
 
         .btc-status-goal {
-            color: #64748b;
+            color: var(--lwc-muted, #526373);
             font-size: 0.82rem;
             font-weight: 600;
             line-height: 1.2;
@@ -538,7 +524,7 @@
         }
 
         .btc-status-value {
-            color: #334155;
+            color: var(--lwc-ink, #334155);
             font-size: 1.35rem;
             line-height: 1.15;
             text-align: left;
@@ -560,7 +546,7 @@
             height: 100%;
             border-radius: inherit;
             background: linear-gradient(90deg, rgba(247, 147, 26, 0.85), rgba(255, 193, 7, 0.55));
-            transition: width 0.5s ease-in-out;
+            transition: width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
         }
 
         /* BTC address text */
@@ -621,7 +607,7 @@
             border-radius: 50%;
             box-sizing: border-box;
             cursor: pointer;
-            transition: color 0.3s ease;
+            transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
             /* Add vertical alignment */
             display: flex;
             align-items: center;
@@ -944,7 +930,7 @@
 
         .lwc-merch-header-link:hover,
         .lwc-merch-header-link:focus-visible {
-            color: #087f8f;
+            color: var(--lwc-accent-hover, #087f8f);
             text-decoration-color: currentColor;
         }
 
@@ -955,7 +941,7 @@
             text-transform: uppercase;
             letter-spacing: 0.08em;
             border: 1px solid rgba(0, 188, 212, 0.3);
-            background: rgba(255, 255, 255, 0.7);
+            background: var(--lwc-surface, rgba(255, 255, 255, 0.7));
             color: var(--primary-color);
             white-space: nowrap;
             font-weight: 700;
@@ -987,14 +973,14 @@
             padding: 0 0.4rem;
             margin-left: auto;
             margin-right: auto;
-            color: #3a4758;
+            color: var(--lwc-muted, #3a4758);
             font-weight: 500;
             letter-spacing: 0.005em;
         }
 
         .lwc-countdown-details-text strong {
             font-weight: 700;
-            color: #243446;
+            color: var(--lwc-ink, #243446);
         }
 
         .lwc-merch-body {
@@ -1008,7 +994,7 @@
             margin: 0;
             font-size: 0.88rem;
             line-height: 1.36;
-            color: #506176;
+            color: var(--lwc-muted, #506176);
         }
 
         .lwc-merch-copy-link {
@@ -1035,16 +1021,16 @@
             text-decoration: none;
             padding: 0.38rem;
             border-radius: 14px;
-            background: rgba(248, 250, 252, 0.92);
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
             box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
-            transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+            transition: transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .lwc-merch-item:hover,
         .lwc-merch-item:focus-visible {
             transform: translateY(-2px);
             box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
-            background: #ffffff;
+            background: var(--lwc-surface, #ffffff);
         }
 
         .lwc-merch-item:focus-visible {
@@ -1074,13 +1060,13 @@
             font-size: 0.77rem;
             line-height: 1.14;
             font-weight: 700;
-            color: #243446;
+            color: var(--lwc-ink, #243446);
         }
 
         .lwc-merch-item-price {
             font-size: 0.72rem;
             line-height: 1.15;
-            color: #506176;
+            color: var(--lwc-muted, #506176);
         }
 
         .lwc-merch-mobile-track {
@@ -1102,11 +1088,11 @@
             text-decoration: none;
             padding: 0.38rem;
             border-radius: 14px;
-            background: rgba(248, 250, 252, 0.92);
+            background: var(--lwc-surface-muted, rgba(248, 250, 252, 0.92));
             box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
             opacity: 0;
             pointer-events: none;
-            transition: opacity 220ms ease;
+            transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
         }
 
         .lwc-merch-mobile-slide.is-active {
@@ -1132,7 +1118,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: transform 180ms ease, background-color 180ms ease;
+            transition: transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .lwc-merch-mobile-dot::before {
@@ -1141,7 +1127,7 @@
             height: 0.6rem;
             border-radius: inherit;
             background: rgba(0, 188, 212, 0.22);
-            transition: width 180ms ease, transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+            transition: width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .lwc-merch-mobile-dot.is-active::before {
@@ -1397,7 +1383,7 @@
         }
 
         .archive-table tbody tr {
-            transition: background-color 0.2s ease;
+            transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .archive-table tbody tr:hover {
@@ -1409,7 +1395,7 @@
             padding: 0.85rem 1.35rem;
             text-align: center;
             font-size: 0.975rem;
-            color: #4a5568;
+            color: var(--lwc-muted, #4a5568);
             vertical-align: middle;
             font-weight: 400;
             letter-spacing: 0.005em;
@@ -1422,7 +1408,7 @@
             text-decoration-color: rgba(0, 188, 212, 0.4);
             text-underline-offset: 2px;
             font-weight: 500;
-            transition: color 0.3s ease, text-decoration-color 0.3s ease;
+            transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), text-decoration-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .archive-table td a:hover {
@@ -1438,7 +1424,7 @@
 
         /* Age reduction Styling */
         .archive-table .age-reduction {
-            color: #48bb78;
+            color: var(--lwc-success, #1f7a38);
             font-weight: 600;
             font-size: 0.9rem;
             display: block;
@@ -1451,7 +1437,7 @@
         .archive-section p a {
             font-size: 1rem;
             opacity: 1;
-            transition: color 0.3s ease;
+            transition: color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
         }
 
         .archive-section p a:hover {
@@ -1524,7 +1510,7 @@
 
             .archive-mobile-card {
                 display: block;
-                background: rgba(240, 248, 250, 0.52);
+                background: var(--lwc-surface-muted, rgba(240, 248, 250, 0.52));
                 border: 1px solid rgba(0, 188, 212, 0.14);
                 border-radius: 10px;
                 padding: 0.9rem;
@@ -1544,7 +1530,7 @@
             .archive-mobile-card-year {
                 font-weight: 600;
                 font-size: 1rem;
-                color: #2d3748;
+                color: var(--lwc-ink, #2d3748);
             }
 
             .archive-mobile-card-clock {
@@ -1620,7 +1606,7 @@
             }
 
             .archive-mobile-card-age-reduction {
-                color: #48bb78;
+                color: var(--lwc-success, #1f7a38);
                 font-weight: 600;
                 font-size: 0.85rem;
                 display: block;
@@ -1688,12 +1674,12 @@
 
     </style>
 </head>
-<body>
+<body{{BODY_CLASS_ATTRIBUTE}}>
     <!--HEADER-->
     <main>
         <h1 class="visually-hidden">Longevity World Cup</h1>
         <p class="game-description">
-            Too old for your sport? Not <a href="/about">this&nbsp;one</a>. Reverse&nbsp;your&nbsp;age and <strong>rise&nbsp;on&nbsp;the&nbsp;leaderboard!</strong>
+            <a href="/about">longevity&nbsp;leaderboards</a>
         </p>
 
         <!--LEADERBOARD-CONTENT-->
@@ -1734,7 +1720,8 @@
                                aria-label="Open White glossy mug in the Longevity World Cup merch store">
                                 <img class="lwc-merch-thumb"
                                      src="{{ASSET_MERCH_MUG}}"
-                                     alt="White glossy mug in the Longevity World Cup merch store">
+                                     alt="White glossy mug in the Longevity World Cup merch store"
+                                     width="428" height="487" loading="lazy" decoding="async">
                                 <span class="lwc-merch-item-copy">
                                     <span class="lwc-merch-item-title">White glossy mug</span>
                                     <span class="lwc-merch-item-price">$22.00 - $32.00</span>
@@ -1747,7 +1734,8 @@
                                aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
                                 <img class="lwc-merch-thumb"
                                      src="{{ASSET_MERCH_HOODIE}}"
-                                     alt="Organic cotton hoodie in the Longevity World Cup merch store">
+                                     alt="Organic cotton hoodie in the Longevity World Cup merch store"
+                                     width="428" height="487" loading="lazy" decoding="async">
                                 <span class="lwc-merch-item-copy">
                                     <span class="lwc-merch-item-title">Organic cotton hoodie</span>
                                     <span class="lwc-merch-item-price">$97.00 - $101.50</span>
@@ -1760,7 +1748,8 @@
                                aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
                                 <img class="lwc-merch-thumb"
                                      src="{{ASSET_MERCH_CAP}}"
-                                     alt="Organic cotton cap in the Longevity World Cup merch store">
+                                     alt="Organic cotton cap in the Longevity World Cup merch store"
+                                     width="428" height="487" loading="lazy" decoding="async">
                                 <span class="lwc-merch-item-copy">
                                     <span class="lwc-merch-item-title">Organic cotton cap</span>
                                     <span class="lwc-merch-item-price">$38.00</span>
@@ -1776,7 +1765,8 @@
                                    aria-label="Open White glossy mug in the Longevity World Cup merch store">
                                     <img class="lwc-merch-thumb"
                                          src="{{ASSET_MERCH_MUG}}"
-                                         alt="White glossy mug in the Longevity World Cup merch store">
+                                         alt="White glossy mug in the Longevity World Cup merch store"
+                                         width="428" height="487" loading="lazy" decoding="async">
                                     <span class="lwc-merch-item-copy">
                                         <span class="lwc-merch-item-title">White glossy mug</span>
                                         <span class="lwc-merch-item-price">$22.00 - $32.00</span>
@@ -1789,7 +1779,8 @@
                                    aria-label="Open Organic cotton hoodie in the Longevity World Cup merch store">
                                     <img class="lwc-merch-thumb"
                                          src="{{ASSET_MERCH_HOODIE}}"
-                                         alt="Organic cotton hoodie in the Longevity World Cup merch store">
+                                         alt="Organic cotton hoodie in the Longevity World Cup merch store"
+                                         width="428" height="487" loading="lazy" decoding="async">
                                     <span class="lwc-merch-item-copy">
                                         <span class="lwc-merch-item-title">Organic cotton hoodie</span>
                                         <span class="lwc-merch-item-price">$97.00 - $101.50</span>
@@ -1802,7 +1793,8 @@
                                    aria-label="Open Organic cotton cap in the Longevity World Cup merch store">
                                     <img class="lwc-merch-thumb"
                                          src="{{ASSET_MERCH_CAP}}"
-                                         alt="Organic cotton cap in the Longevity World Cup merch store">
+                                         alt="Organic cotton cap in the Longevity World Cup merch store"
+                                         width="428" height="487" loading="lazy" decoding="async">
                                     <span class="lwc-merch-item-copy">
                                         <span class="lwc-merch-item-title">Organic cotton cap</span>
                                         <span class="lwc-merch-item-price">$38.00</span>
@@ -1961,7 +1953,7 @@
             </p>
 
             <form id="newsletter-form">
-                <label for="emailInput" class="visually-hidden">Email address</label>
+                <label for="emailInput" class="shared-email-label">Email address</label>
                 <input type="email" id="emailInput" class="shared-email-input" placeholder="athlete@example.com" autocomplete="email" required>
                 <button type="submit" class="enhanced-subscribe-btn shared-email-button" aria-label="Subscribe to the Longevity World&nbsp;Cup newsletter">
                     <i class="fas fa-paper-plane"></i> Subscribe
@@ -2200,7 +2192,6 @@
             }
 
             let activeIndex = 0;
-            let rotationId = null;
 
             function setActiveSlide(index) {
                 activeIndex = (index + slides.length) % slides.length;
@@ -2214,55 +2205,17 @@
 
                 dots.forEach((dot, dotIndex) => {
                     dot.classList.toggle('is-active', dotIndex === activeIndex);
+                    dot.setAttribute('aria-pressed', String(dotIndex === activeIndex));
                 });
-            }
-
-            function stopRotation() {
-                if (rotationId !== null) {
-                    clearInterval(rotationId);
-                    rotationId = null;
-                }
-            }
-
-            function startRotation() {
-                if (window.innerWidth > 576 || rotationId !== null) {
-                    return;
-                }
-
-                rotationId = window.setInterval(() => {
-                    setActiveSlide(activeIndex + 1);
-                }, 4500);
             }
 
             dots.forEach((dot, dotIndex) => {
                 dot.addEventListener('click', function () {
-                    stopRotation();
                     setActiveSlide(dotIndex);
-                    startRotation();
                 });
-            });
-
-            merchCarousel.addEventListener('mouseenter', stopRotation);
-            merchCarousel.addEventListener('mouseleave', startRotation);
-            merchCarousel.addEventListener('focusin', stopRotation);
-            merchCarousel.addEventListener('focusout', function () {
-                requestAnimationFrame(() => {
-                    if (!merchCarousel.contains(document.activeElement)) {
-                        startRotation();
-                    }
-                });
-            });
-
-            window.addEventListener('resize', function () {
-                if (window.innerWidth > 576) {
-                    stopRotation();
-                } else {
-                    startRotation();
-                }
             });
 
             setActiveSlide(0);
-            startRotation();
         });
 
 
@@ -2408,19 +2361,13 @@
                 const copiedTextElement = document.getElementById('copiedText');
                 copiedTextElement.style.display = 'inline';
 
-                // Get the copy icon element
-                const copyIcon = document.querySelector('.copy-btn i');
-                // Add the flash animation class
-                copyIcon.classList.add('flash-animation');
-
-                // Remove the flash animation class and revert back after the duration
+                // Restore the address after the concise text confirmation.
                 setTimeout(function () {
-                    copyIcon.classList.remove('flash-animation');
                     // Hide 'Copied' text
                     copiedTextElement.style.display = 'none';
                     // Show BTC address
                     document.getElementById('btcAddressLink').style.display = 'inline';
-                }, 2000); // Duration is 0.5s * 4 flashes = 2s
+                }, 2000);
             }, function (err) {
                 customAlert('Failed to copy the address');
             });

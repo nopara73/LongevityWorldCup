@@ -1,0 +1,221 @@
+:root {
+    color-scheme: light;
+    --error-ink: #17212b;
+    --error-muted: #52606d;
+    --error-canvas: #f3f5f7;
+    --error-surface: #ffffff;
+    --error-surface-muted: #eef2f5;
+    --error-border: #d7e0e6;
+    --error-accent: #087685;
+    --error-accent-hover: #065d68;
+}
+
+body {
+    color: var(--error-ink);
+    background: var(--error-canvas);
+    font-synthesis: none;
+}
+
+.error-card {
+    width: min(100%, 800px);
+    border: 1px solid var(--error-border);
+    border-radius: 12px;
+    background: var(--error-surface);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.card-bar {
+    min-height: 64px;
+    flex-direction: row;
+    align-items: center;
+    border-bottom: 1px solid var(--error-border);
+    background: var(--error-surface-muted);
+}
+
+.brand {
+    font-weight: 700;
+}
+
+.mark {
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.code {
+    border: 1px solid var(--error-border);
+    border-radius: 4px;
+    background: var(--error-surface);
+    color: var(--error-muted);
+    font-weight: 700;
+}
+
+.visual {
+    display: block;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--error-border);
+    border-radius: 8px;
+    background: var(--error-surface-muted);
+}
+
+.visual img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 2 / 3;
+    object-fit: contain;
+    object-position: center;
+}
+
+.card-body {
+    display: grid;
+    grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1.25rem, 4vw, 2rem);
+    max-width: none;
+    margin: 0;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+h1 {
+    margin: 0;
+    color: var(--error-ink);
+    font-size: clamp(2rem, 6vw, 3.25rem);
+    line-height: 1.05;
+    text-wrap: initial;
+    white-space: nowrap;
+}
+
+.joke {
+    color: var(--error-ink);
+    font-weight: 700;
+}
+
+.note {
+    color: var(--error-muted);
+}
+
+button {
+    min-height: 44px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: var(--error-accent);
+    color: #ffffff;
+    box-shadow: none;
+    font-weight: 700;
+    transition: background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, cubic-bezier(0.2, 0, 0, 1));
+}
+
+button:hover,
+button:active {
+    background: var(--error-accent-hover);
+    box-shadow: none;
+    transform: none;
+}
+
+button:focus-visible {
+    outline: 3px solid #19c3d1;
+    outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+    .card-body {
+        grid-template-columns: 1fr;
+    }
+
+    .visual {
+        width: min(100%, 10.5rem);
+        justify-self: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-bar {
+        min-height: 56px;
+        flex-direction: row;
+        align-items: center;
+        padding: .75rem;
+    }
+
+    .brand {
+        gap: .5rem;
+        font-size: .9rem;
+    }
+
+    .mark {
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .code {
+        margin-left: auto;
+        font-size: .72rem;
+    }
+
+    .card-body {
+        padding: 1.5rem 1.25rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+        white-space: normal;
+    }
+}
+
+@media (min-width: 560px) and (max-width: 700px) and (max-height: 480px) {
+    body {
+        place-items: center;
+        padding: 0.75rem;
+    }
+
+    .error-card {
+        width: min(100%, 640px);
+    }
+
+    .card-body {
+        grid-template-columns: minmax(110px, 140px) minmax(0, 1fr);
+        gap: 1rem;
+        padding: 0.9rem 1rem;
+    }
+
+    .visual {
+        width: 100%;
+    }
+
+    .visual img {
+        aspect-ratio: 4 / 3;
+    }
+
+    h1 {
+        font-size: clamp(2rem, 7vw, 3rem);
+        white-space: nowrap;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        color-scheme: dark;
+        --error-ink: #e6edf3;
+        --error-muted: #aebdca;
+        --error-canvas: #0d141b;
+        --error-surface: #17212b;
+        --error-surface-muted: #202d38;
+        --error-border: #42515e;
+        --error-accent: #087685;
+        --error-accent-hover: #0a6977;
+    }
+}
+
+@media (forced-colors: active) {
+    button:focus-visible {
+        outline-color: Highlight;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    button {
+        transition: none;
+    }
+}

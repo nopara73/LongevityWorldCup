@@ -12,11 +12,12 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
 
-        Assert.Contains("<label for=\"divisionDisplaySelect\" class=\"visually-hidden\">Division</label>", html);
-        Assert.Contains("<label for=\"flagDisplayInput\" class=\"visually-hidden\">Flag</label>", html);
-        Assert.Contains("<label for=\"personalLinkInput\" class=\"visually-hidden\">Personal link</label>", html);
-        Assert.Contains("<label for=\"mediaContactInput\" class=\"visually-hidden\">Media contact</label>", html);
-        Assert.Contains("<label for=\"whyDisplayInput\" class=\"visually-hidden\">Your why</label>", html);
+        Assert.Contains("<h1 id=\"character-title\" class=\"edit-profile-title\" data-aos=\"fade\" data-aos-duration=\"700\" data-aos-delay=\"250\">Edit athlete profile</h1>", html);
+        Assert.Contains("<label for=\"divisionDisplaySelect\" class=\"field-label\">Division</label>", html);
+        Assert.Contains("<label for=\"flagDisplayInput\" class=\"field-label\">Flag <span class=\"field-requirement\">(required)</span></label>", html);
+        Assert.Contains("<label for=\"personalLinkInput\" class=\"field-label\">Personal link <span class=\"field-requirement\">(optional)</span></label>", html);
+        Assert.Contains("<label for=\"mediaContactInput\" class=\"field-label\">Media contact <span class=\"field-requirement\">(required)</span></label>", html);
+        Assert.Contains("<label for=\"whyDisplayInput\" class=\"field-label\">Motivation <span class=\"field-requirement\">(required)</span></label>", html);
     }
 
     [Fact]
@@ -157,7 +158,27 @@ public sealed class EditProfilePageTests
         Assert.Contains("input.value = '';", selectionBody);
         Assert.Contains("reader.onerror = () =>", selectionBody);
         Assert.Contains("reader.onabort = reader.onerror;", selectionBody);
-        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.')\n                    .then(() => changeProfileBtn.focus());", selectionBody);
+        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.')\n                    .then(restoreProfileCropperFocus);", selectionBody);
+    }
+
+    [Fact]
+    public async Task ProfilePictureCropper_UsesAnAccessibleModalInteraction()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("id=\"changeProfileCropperModal\"\n         role=\"dialog\"\n         aria-modal=\"true\"\n         aria-labelledby=\"changeProfileCropperTitle\"\n         tabindex=\"-1\"\n         hidden", html);
+        Assert.Contains("<h2 id=\"changeProfileCropperTitle\" class=\"cropper-dialog-title\">Crop profile picture</h2>", html);
+        Assert.Contains("<div id=\"modalOverlay\" aria-hidden=\"true\" hidden></div>", html);
+        Assert.Contains("function setProfileCropperBackgroundInert(shouldBeInert)", html);
+        Assert.Contains("element.inert = true;", html);
+        Assert.Contains("function getProfileCropperFocusableElements()", html);
+        Assert.Contains("if (event.key === 'Escape')", html);
+        Assert.Contains("if (event.key !== 'Tab') return;", html);
+        Assert.Contains("if (!cropperModal.hidden) cropBtn.focus({ preventScroll: true });", html);
+        Assert.Contains("if (restoreFocus) requestAnimationFrame(restoreProfileCropperFocus);", html);
     }
 
     [Fact]
@@ -200,7 +221,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("extension === 'heif'", html);
         Assert.Contains("input.value = '';", beforeReader);
         Assert.Contains("if (!isSupportedProfilePictureFile(file))", beforeReader);
-        Assert.Contains("customAlert('Profile picture must be an image file.')\n                    .then(() => changeProfileBtn.focus());", beforeReader);
+        Assert.Contains("customAlert('Profile picture must be an image file.')\n                    .then(restoreProfileCropperFocus);", beforeReader);
         Assert.Contains("return;", beforeReader);
     }
 
@@ -215,29 +236,31 @@ public sealed class EditProfilePageTests
         var loadEnd = html.IndexOf("reader.onerror = () =>", loadStart, StringComparison.Ordinal);
         var cropStart = html.IndexOf("cropBtn.addEventListener('click', async function ()", StringComparison.Ordinal);
         var cancelStart = html.IndexOf("cancelBtn.addEventListener('click', () =>", cropStart, StringComparison.Ordinal);
+        var closeHelperStart = html.IndexOf("function closeChangeProfileCropperDialog(", StringComparison.Ordinal);
+        var closeHelperEnd = html.IndexOf("cropperModal.addEventListener('keydown'", closeHelperStart, StringComparison.Ordinal);
 
         Assert.True(loadStart >= 0);
         Assert.True(loadEnd > loadStart);
         Assert.True(cropStart >= 0);
         Assert.True(cancelStart > cropStart);
+        Assert.True(closeHelperStart >= 0);
+        Assert.True(closeHelperEnd > closeHelperStart);
 
         var loadBody = html[loadStart..loadEnd];
         var cropBody = html[cropStart..cancelStart];
         var cancelBody = html[cancelStart..html.IndexOf("function keepEditedControlClearOfDock(control)", cancelStart, StringComparison.Ordinal)];
+        var closeHelperBody = html[closeHelperStart..closeHelperEnd];
 
         Assert.Contains("if (window.changeProfileCropper)", loadBody);
         Assert.Contains("window.changeProfileCropper.destroy();", loadBody);
         Assert.Contains("window.changeProfileCropper = null;", loadBody);
         Assert.Contains("cropperImage.src = evt.target.result;", loadBody);
+        Assert.Contains("openChangeProfileCropperDialog();", loadBody);
         Assert.Contains("window.changeProfileCropper = new Cropper(cropperImage,", loadBody);
-        Assert.Contains("const modalOverlay = document.getElementById('modalOverlay');", loadBody);
-        Assert.Contains("modalOverlay.style.display = 'block';", loadBody);
         Assert.Contains("} catch (_) {", loadBody);
         Assert.Contains("try { window.changeProfileCropper.destroy(); } catch (_) { }", loadBody);
-        Assert.Contains("cropperModal.style.display = 'none';", loadBody);
-        Assert.Contains("modalOverlay.style.display = 'none';", loadBody);
-        Assert.Contains("document.body.classList.remove('no-scroll');", loadBody);
-        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.')\n                        .then(() => changeProfileBtn.focus());", loadBody);
+        Assert.Contains("closeChangeProfileCropperDialog({ destroyCropper: false, restoreFocus: false });", loadBody);
+        Assert.Contains("customAlert('Profile picture upload failed. Please try another image.')\n                        .then(restoreProfileCropperFocus);", loadBody);
         Assert.Contains("let isChangeProfileCropProcessing = false;", html);
         Assert.Contains("const activeCropper = window.changeProfileCropper;", cropBody);
         Assert.Contains("if (isChangeProfileCropProcessing || !activeCropper) return;", cropBody);
@@ -245,15 +268,15 @@ public sealed class EditProfilePageTests
         Assert.Contains("cropBtn.disabled = true;", cropBody);
         Assert.Contains("cancelBtn.disabled = true;", cropBody);
         Assert.Contains("activeCropper.getCroppedCanvas({", cropBody);
-        Assert.Contains("activeCropper.destroy();", cropBody);
+        Assert.Contains("closeChangeProfileCropperDialog();", cropBody);
         Assert.Contains("isChangeProfileCropProcessing = false;", cropBody);
         Assert.Contains("cropBtn.disabled = false;", cropBody);
         Assert.Contains("cancelBtn.disabled = false;", cropBody);
         Assert.Contains("if (isChangeProfileCropProcessing) return;", cancelBody);
-        Assert.Contains("if (activeCropper)", cancelBody);
-        Assert.Contains("try { activeCropper.destroy(); } catch (_) { }", cancelBody);
-        Assert.Contains("window.changeProfileCropper = null;", cropBody);
-        Assert.Contains("window.changeProfileCropper = null;", cancelBody);
+        Assert.Contains("closeChangeProfileCropperDialog();", cancelBody);
+        Assert.Contains("if (destroyCropper && window.changeProfileCropper)", closeHelperBody);
+        Assert.Contains("try { window.changeProfileCropper.destroy(); } catch (_) { }", closeHelperBody);
+        Assert.Contains("window.changeProfileCropper = null;", closeHelperBody);
     }
 
     [Fact]
@@ -271,7 +294,8 @@ public sealed class EditProfilePageTests
 
         var cropBody = html[cropStart..cropEnd];
         Assert.Contains("if (!canvas)", cropBody);
-        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.')\n                        .then(() => cropBtn.focus());", cropBody);
+        Assert.Contains("closeChangeProfileCropperDialog({ restoreFocus: false });", cropBody);
+        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.')\n                        .then(restoreProfileCropperFocus);", cropBody);
         Assert.Contains("return;", cropBody);
         Assert.Contains("let newSrc = raw;", cropBody);
         Assert.Contains("try {", cropBody);
@@ -280,9 +304,9 @@ public sealed class EditProfilePageTests
         Assert.Contains("newSrc = raw;", cropBody);
         Assert.Contains("athlete.ProfilePic = newSrc;", cropBody);
         Assert.Contains("updateSubmitButtonState(changeProfileBtn);", cropBody);
-        Assert.Contains("try { activeCropper.destroy(); } catch (_) { }", cropBody);
+        Assert.Contains("closeChangeProfileCropperDialog();", cropBody);
         Assert.Contains("} catch (_) {", cropBody);
-        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.')\n                    .then(() => cropBtn.focus());", cropBody);
+        Assert.Contains("customAlert('Profile picture crop failed. Please try another image.')\n                    .then(restoreProfileCropperFocus);", cropBody);
     }
 
     [Fact]

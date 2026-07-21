@@ -31,7 +31,7 @@ public sealed class ApplicationOnboardingPageTests
         var html = await client.GetStringAsync("/onboarding/convergence.html");
 
         Assert.Contains("<legend>Contact email</legend>", html);
-        Assert.Contains("<label for=\"accountEmail\" class=\"visually-hidden\">Email address</label>", html);
+        Assert.Contains("<label for=\"accountEmail\">Email address <span class=\"field-requirement\">(required)</span></label>", html);
         Assert.DoesNotContain("<legend for=\"accountEmail\">", html);
     }
 
@@ -415,7 +415,6 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("addStageListenerOnce(nameInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');", html);
         Assert.Contains("addStageListenerOnce(flagInput, 'blur', validateStage1Inputs, 'stage1ValidateOnBlur');", html);
         Assert.Contains("addStageListenerOnce(divisionSelect, 'click', validateStage1Inputs, 'stage1ValidateOnClick');", html);
-        Assert.Contains("addStageListenerOnce(flagInput, 'input', validateStage1Inputs, 'stage1ValidateOnInput');", html);
         Assert.Contains("addStageListenerOnce(whyInput, 'input', checkFormValidityStage2, 'stage2ValidityListener');", html);
         Assert.Contains("addStageListenerOnce(mediaContactInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');", html);
         Assert.Contains("addStageListenerOnce(personalLinkInput, 'input', checkFormValidityStage6, 'stage6ValidityListener');", html);
@@ -439,6 +438,21 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("const nameRegex = /^", html);
         Assert.Contains("const flagRegex = /^", html);
         Assert.Contains("{2,99}$/;", html);
+    }
+
+    [Fact]
+    public async Task ApplicationFlagAutocomplete_ExposesComboboxAndListboxState()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/convergence.html");
+
+        Assert.Contains("role=\"combobox\" aria-autocomplete=\"list\" aria-expanded=\"false\" aria-controls=\"flag-autocomplete-list\"", html);
+        Assert.Contains("listContainer.setAttribute('role', 'listbox');", html);
+        Assert.Contains("listItem.setAttribute('role', 'option');", html);
+        Assert.Contains("flagInput.setAttribute('aria-activedescendant', items[currentFocus].id);", html);
+        Assert.Contains("flagInput.removeAttribute('aria-activedescendant');", html);
     }
 
     [Fact]

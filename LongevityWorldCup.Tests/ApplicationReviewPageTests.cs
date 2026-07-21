@@ -154,4 +154,19 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("word-break: break-word;", rule);
         Assert.Contains("white-space: normal;", rule);
     }
+
+    [Fact]
+    public async Task ApplicationReview_KeepsWaitingJokeArtworkVersionedAndAccessible()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/onboarding/application-review.html");
+
+        Assert.Contains("class=\"application-review-visual\"", html);
+        Assert.Contains("/assets/content-images/bean-waiting.webp?v=", html);
+        Assert.Contains("/assets/content-images/bean-waiting.png?v=", html);
+        Assert.Contains("alt=\"Mr Bean waiting patiently for the review\"", html);
+        Assert.Contains("width=\"860\" height=\"721\"", html);
+    }
 }

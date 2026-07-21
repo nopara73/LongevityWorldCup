@@ -727,7 +727,7 @@ function buildServerBadgeHtml(b: ServerBadge, athlete: BadgeAthlete): RenderedBa
         return {
             order,
             searchText: tooltip,
-            html: `<a class="${className} badge-clickable" href="${escapeAttr(url)}" target="_blank" rel="noopener" aria-label="Open podcast" title="${tooltip}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}"></i></a>`
+            html: `<a class="${className} badge-clickable" href="${escapeAttr(url)}" target="_blank" rel="noopener" aria-label="${escapeAttr(tooltip)}. Open podcast" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}" aria-hidden="true"></i></a>`
         };
     }
 
@@ -735,8 +735,8 @@ function buildServerBadgeHtml(b: ServerBadge, athlete: BadgeAthlete): RenderedBa
         order,
         searchText: tooltip,
         html: url
-            ? `<a class="${className} badge-clickable" href="${escapeAttr(url)}" aria-label="Open league" title="${tooltip}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}"></i></a>`
-            : `<span class="${className}" title="${tooltip}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}"></i></span>`
+            ? `<a class="${className} badge-clickable" href="${escapeAttr(url)}" aria-label="${escapeAttr(tooltip)}. Open league" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}" aria-hidden="true"></i></a>`
+            : `<span class="${className} badge-explained" tabindex="0" aria-label="${escapeAttr(tooltip)}" title="${escapeAttr(tooltip)}" style="${styleWithBadgeVars(style)}"><i class="fa ${icon}" aria-hidden="true"></i></span>`
     };
 }
 
@@ -803,8 +803,8 @@ window.setBadges = function (athlete, athleteCell) {
                 items.push({
                     order: 1.194,
                     searchText: 'Bullseye: you guessed their age perfectly!',
-                    html: `<span class="badge-class badge-family-utility" title="Bullseye: you guessed their age perfectly!" style="${LEGACY_BG.black}">
-                               <i class="fa fa-bullseye"></i>
+                    html: `<span class="badge-class badge-family-utility badge-explained" tabindex="0" aria-label="Bullseye: you guessed their age perfectly!" title="Bullseye: you guessed their age perfectly!" style="${LEGACY_BG.black}">
+                               <i class="fa fa-bullseye" aria-hidden="true"></i>
                            </span>`
                 });
             }
@@ -817,9 +817,9 @@ window.setBadges = function (athlete, athleteCell) {
         (typeof badgeContainer.closest === 'function' && !!badgeContainer.closest('#detailsModal'));
 
     let renderedItems = items;
-    if (!isModalStrip && items.length > 6) {
-        const visibleItems = items.slice(0, 5);
-        const hiddenItems = items.slice(5);
+    if (!isModalStrip && items.length > 4) {
+        const visibleItems = items.slice(0, 3);
+        const hiddenItems = items.slice(3);
         const hiddenTitle = hiddenItems
             .map(x => x.searchText)
             .filter(Boolean)
@@ -830,7 +830,7 @@ window.setBadges = function (athlete, athleteCell) {
         const athleteName = athlete.displayName || athlete.DisplayName || athlete.name || athlete.Name || 'athlete';
         const overflowHtml = athleteProfileUrl
             ? `<a class="badge-class badge-family-utility badge-overflow-count badge-clickable" href="${escapeAttr(athleteProfileUrl)}" data-athlete-slug="${escapeAttr(athleteSlug)}" title="${escapeAttr(overflowTitle)}" aria-label="Open ${escapeAttr(athleteName)} profile to view ${hiddenItems.length} more badges">+${hiddenItems.length}</a>`
-            : `<span class="badge-class badge-family-utility badge-overflow-count" title="${escapeAttr(overflowTitle)}">+${hiddenItems.length}</span>`;
+            : `<span class="badge-class badge-family-utility badge-overflow-count badge-explained" tabindex="0" aria-label="${escapeAttr(overflowTitle)}" title="${escapeAttr(overflowTitle)}">+${hiddenItems.length}</span>`;
 
         renderedItems = [
             ...visibleItems,

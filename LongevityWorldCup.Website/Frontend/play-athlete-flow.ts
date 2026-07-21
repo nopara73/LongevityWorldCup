@@ -505,10 +505,18 @@ function createAthleteSelectionController(
     let isBound = false;
     let hasUserEditedInput = false;
 
+    const autocompleteListId = `${input.id}-autocomplete-list`;
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-controls", autocompleteListId);
+    input.setAttribute("aria-expanded", "false");
+
     function closeAllLists(): void {
         document.querySelectorAll<HTMLElement>(".autocomplete-items")
             .forEach(list => list.remove());
         currentFocus = -1;
+        input.setAttribute("aria-expanded", "false");
+        input.removeAttribute("aria-activedescendant");
     }
 
     function addActive(items: HTMLCollectionOf<HTMLDivElement> | null): void {
@@ -519,11 +527,17 @@ function createAthleteSelectionController(
         const activeItem = items[currentFocus];
         if (!activeItem) return;
         activeItem.classList.add("autocomplete-active");
+        activeItem.setAttribute("aria-selected", "true");
+        input.setAttribute("aria-activedescendant", activeItem.id);
         activeItem.scrollIntoView({ block: "nearest" });
     }
 
     function removeActive(items: HTMLCollectionOf<HTMLDivElement>): void {
-        Array.from(items).forEach((item: HTMLDivElement) => item.classList.remove("autocomplete-active"));
+        Array.from(items).forEach((item: HTMLDivElement) => {
+            item.classList.remove("autocomplete-active");
+            item.setAttribute("aria-selected", "false");
+        });
+        input.removeAttribute("aria-activedescendant");
     }
 
     function clearCurrentAthleteSelectionIfInputChanged(value: string): void {
@@ -583,8 +597,10 @@ function createAthleteSelectionController(
         if (!terms.length) return false;
 
         const list = document.createElement("div");
-        list.setAttribute("id", `${input.id}-autocomplete-list`);
+        list.setAttribute("id", autocompleteListId);
         list.setAttribute("class", "autocomplete-items");
+        list.setAttribute("role", "listbox");
+        list.setAttribute("aria-label", "Athlete suggestions");
         input.parentNode?.appendChild(list);
 
         let count = 0;
@@ -597,6 +613,9 @@ function createAthleteSelectionController(
                 if (!first) return;
                 const displayName = getAthleteDisplayName(athlete);
                 const item = document.createElement("div");
+                item.id = `${autocompleteListId}-option-${count}`;
+                item.setAttribute("role", "option");
+                item.setAttribute("aria-selected", "false");
                 appendHighlightedText(item, displayName, first);
                 item.dataset.value = athlete.Name;
                 if (typeof athlete.ProfilePic === "string") {
@@ -617,13 +636,40 @@ function createAthleteSelectionController(
             }
         });
 
+        if (count === 0) {
+            list.remove();
+            input.setAttribute("aria-expanded", "false");
+            return false;
+        }
+
+        input.setAttribute("aria-expanded", "true");
         return count > 0;
+    }
+
+    function renderAthleteLoadError(): void {
+        errorElement.replaceChildren();
+        errorElement.setAttribute("role", "alert");
+
+        const message = document.createElement("span");
+        message.textContent = "Athlete list could not load. Check your connection and try again.";
+
+        const retryButton = document.createElement("button");
+        retryButton.type = "button";
+        retryButton.className = "athlete-load-retry";
+        retryButton.textContent = "Retry";
+        retryButton.addEventListener("click", () => {
+            retryAthleteLoad();
+            input.focus({ preventScroll: true });
+        });
+
+        errorElement.append(message, retryButton);
     }
 
     function loadAthletes(loadOptions: AthleteSelectionLoadOptions = {}): Promise<PlayAthlete[]> {
         if (athleteAutocompleteReady) return Promise.resolve(athletes);
         if (athleteLoadPromise) return athleteLoadPromise;
-        errorElement.textContent = "";
+        errorElement.replaceChildren();
+        errorElement.setAttribute("role", "status");
         athleteLoadPromise = fetch(athleteApiPath)
             .then(response => response.ok ? response.json() : Promise.reject(new Error("Athlete list request failed")))
             .then((data: unknown) => {
@@ -649,7 +695,7 @@ function createAthleteSelectionController(
             })
             .catch((error: unknown) => {
                 console.error("Error fetching athletes:", error);
-                errorElement.textContent = "Athlete list could not load. Check your connection and try again.";
+                renderAthleteLoadError();
                 throw error;
             })
             .finally(() => {
@@ -679,15 +725,17 @@ function createAthleteSelectionController(
         });
 
         input.addEventListener("keydown", event => {
-            const listElement = document.getElementById(`${input.id}-autocomplete-list`);
+            const listElement = document.getElementById(autocompleteListId);
             const list = listElement?.getElementsByTagName("div") ?? null;
-            if (event.keyCode === 40) {
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
                 currentFocus++;
                 addActive(list);
-            } else if (event.keyCode === 38) {
+            } else if (event.key === "ArrowUp") {
+                event.preventDefault();
                 currentFocus--;
                 addActive(list);
-            } else if (event.keyCode === 13) {
+            } else if (event.key === "Enter") {
                 event.preventDefault();
                 if (currentFocus > -1 && list) {
                     list[currentFocus]?.dispatchEvent(new MouseEvent("mousedown"));
@@ -702,6 +750,8 @@ function createAthleteSelectionController(
                         focusWithoutScrolling(confirmButton);
                     }
                 }
+            } else if (event.key === "Escape") {
+                closeAllLists();
             }
         });
 

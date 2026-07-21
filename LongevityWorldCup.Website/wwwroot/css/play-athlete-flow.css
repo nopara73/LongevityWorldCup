@@ -36,7 +36,7 @@
     object-position: center;
     box-sizing: border-box;
     opacity: 1;
-    transition: opacity 160ms ease;
+    transition: opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
 .athlete-picture-frame > img.athlete-picture-placeholder,

@@ -91,6 +91,8 @@ namespace LongevityWorldCup.Website.Middleware
                 {
                     // Read the main HTML file
                     var bodyContent = await File.ReadAllTextAsync(filePath);
+                    var usesSharedHead = bodyContent.Contains("<!--HEAD-->", StringComparison.Ordinal);
+                    var optsIntoSharedAestheticSystem = bodyContent.Contains("<!--AESTHETIC-SYSTEM-->", StringComparison.Ordinal);
 
                     // Read the header and footer files
                     var head = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "head.html"));
@@ -127,6 +129,11 @@ namespace LongevityWorldCup.Website.Middleware
                         footer = LocalizeHungarianFooter(footer);
                     }
 
+                    if (IsHomepageRequest(context))
+                    {
+                        header = RemoveHeaderTagline(header);
+                    }
+
                     // Replace placeholders with header and footer content
                     bodyContent = bodyContent
                         .Replace("<!--HEAD-->", head)
@@ -151,9 +158,15 @@ namespace LongevityWorldCup.Website.Middleware
                         .Replace("{{ASSET_MARTIN_HELSTAB_PROFILE_IMAGE}}", _assetVersionProvider.AppendVersion("/athletes/martin_helstab/martin_helstab.webp"))
                         .Replace("{{ASSET_POPPINS_REGULAR}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Regular.ttf"))
                         .Replace("{{ASSET_POPPINS_BOLD}}", _assetVersionProvider.AppendVersion("/assets/fonts/Poppins-Bold.ttf"))
-                        .Replace("{{REQUEST_COUNTRY_CODE}}", GetRequestCountryCode(context));
+                        .Replace("{{REQUEST_COUNTRY_CODE}}", GetRequestCountryCode(context))
+                        .Replace("{{BODY_CLASS_ATTRIBUTE}}", IsHomepageRequest(context) ? " class=\"home-page\"" : string.Empty);
                     bodyContent = ApplySharedCssPlaceholders(ApplySharedAssetPlaceholders(bodyContent));
+                    bodyContent = bodyContent.Replace("<!--AESTHETIC-SYSTEM-->", string.Empty, StringComparison.Ordinal);
                     bodyContent = ReplacePageTitle(bodyContent, seo.PageTitle);
+                    if (usesSharedHead || optsIntoSharedAestheticSystem)
+                    {
+                        bodyContent = InjectAestheticSystemStylesheet(bodyContent);
+                    }
 
                     if (ShouldRemoveJoinGameButtons(path))
                     {
@@ -268,6 +281,12 @@ namespace LongevityWorldCup.Website.Middleware
                 : string.Empty;
         }
 
+        private static bool IsHomepageRequest(HttpContext context)
+            => string.Equals(GetRequestCanonicalPath(context), "/", StringComparison.Ordinal)
+               && !context.Request.Query.ContainsKey("athlete")
+               && !context.Request.Query.ContainsKey("filters")
+               && !context.Request.Query.ContainsKey("view");
+
         private static bool ShouldUseHungarianChrome(HttpContext context)
             => IsHungarianPage(GetRequestCanonicalPath(context));
 
@@ -289,11 +308,7 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace(">Alert<", ">Figyelmeztetés<")
                 .Replace(">Loading<", ">Betöltés<");
 
-            html = Regex.Replace(
-                html,
-                @"\s*<span class=""tagline"">\s*longevity leaderboards\s*</span>",
-                string.Empty,
-                RegexOptions.IgnoreCase);
+            html = RemoveHeaderTagline(html);
             html = Regex.Replace(
                 html,
                 @"\s*<button onclick=""window\.location\.href='/play'"" class=""join-game(?: scrolled-button)?""[^>]*>.*?</button>",
@@ -303,9 +318,18 @@ namespace LongevityWorldCup.Website.Middleware
             return html;
         }
 
+        private static string RemoveHeaderTagline(string html)
+            => Regex.Replace(
+                html,
+                @"\s*<span class=""tagline"">\s*longevity leaderboards\s*</span>",
+                string.Empty,
+                RegexOptions.IgnoreCase);
+
         private static string LocalizeHungarianFooter(string html)
         {
             return html
+                .Replace(">Explore<", ">Felfedezés<")
+                .Replace(">Follow<", ">Kövess minket<")
                 .Replace("Shop Longevity World Cup merchandise", "Hosszúéletesítési Világbajnokság bolt")
                 .Replace("Visit Longevity World&nbsp;Cup GitHub repository", "Hosszúéletesítési Világbajnokság GitHub tároló")
                 .Replace("Read the history of Longevity as a Sport", "A hosszúélet mint sport története")
@@ -354,6 +378,8 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_HEADSHOT_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.webp"))
                 .Replace("{{ASSET_HEADSHOT_JPEG}}", _assetVersionProvider.AppendVersion("/assets/content-images/headshot.jpg"))
                 .Replace("{{ASSET_JUST_TRACK_IT_IMAGE}}", _assetVersionProvider.AppendVersion("/assets/content-images/JustTrackIt.jpg"))
+                .Replace("{{ASSET_BEAN_WAITING_WEBP}}", _assetVersionProvider.AppendVersion("/assets/content-images/bean-waiting.webp"))
+                .Replace("{{ASSET_BEAN_WAITING_PNG}}", _assetVersionProvider.AppendVersion("/assets/content-images/bean-waiting.png"))
                 .Replace("{{ASSET_TROLLFACE}}", _assetVersionProvider.AppendVersion("/assets/content-images/trollface.png"));
         }
 
@@ -364,6 +390,19 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_FLOW_CONTROLS_CSS}}", _assetVersionProvider.AppendVersion("/css/flow-controls.css"))
                 .Replace("{{ASSET_PLAY_MENU_CSS}}", _assetVersionProvider.AppendVersion("/css/play-menu.css"))
                 .Replace("{{ASSET_PLAY_ATHLETE_FLOW_CSS}}", _assetVersionProvider.AppendVersion("/css/play-athlete-flow.css"));
+        }
+
+        private string InjectAestheticSystemStylesheet(string html)
+        {
+            const string closingHeadTag = "</head>";
+            var closingHeadIndex = html.IndexOf(closingHeadTag, StringComparison.OrdinalIgnoreCase);
+            if (closingHeadIndex < 0)
+            {
+                return html;
+            }
+
+            var stylesheet = $"<link rel=\"stylesheet\" href=\"{_assetVersionProvider.AppendVersion("/css/aesthetic-system.css")}\">{Environment.NewLine}";
+            return html.Insert(closingHeadIndex, stylesheet);
         }
 
         private string BuildOptionalHeadScripts(HeadAssetConfig config)
