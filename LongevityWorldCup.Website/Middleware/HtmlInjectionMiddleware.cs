@@ -285,6 +285,7 @@ namespace LongevityWorldCup.Website.Middleware
             => string.Equals(GetRequestCanonicalPath(context), "/", StringComparison.Ordinal)
                && !context.Request.Query.ContainsKey("athlete")
                && !context.Request.Query.ContainsKey("filters")
+               && !context.Request.Query.ContainsKey("search")
                && !context.Request.Query.ContainsKey("view");
 
         private static bool ShouldUseHungarianChrome(HttpContext context)
