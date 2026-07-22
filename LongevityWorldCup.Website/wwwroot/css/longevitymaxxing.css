@@ -32,6 +32,7 @@
     --lmx-category-accent: var(--lmx-sleep-accent);
     --lmx-category-deep: var(--lmx-sleep-deep);
     --lmx-category-soft: var(--lmx-sleep-soft);
+    --lmx-category-mark: #58749a;
 }
 
 .lmx-habit-card.exercise,
@@ -45,6 +46,7 @@
     --lmx-category-accent: var(--lmx-exercise-accent);
     --lmx-category-deep: var(--lmx-exercise-deep);
     --lmx-category-soft: var(--lmx-exercise-soft);
+    --lmx-category-mark: #98636a;
 }
 
 .lmx-habit-card.nutrition,
@@ -58,6 +60,7 @@
     --lmx-category-accent: var(--lmx-nutrition-accent);
     --lmx-category-deep: var(--lmx-nutrition-deep);
     --lmx-category-soft: var(--lmx-nutrition-soft);
+    --lmx-category-mark: #5b806d;
 }
 
 .lmx-habit-card.vices,
@@ -71,6 +74,7 @@
     --lmx-category-accent: var(--lmx-vices-accent);
     --lmx-category-deep: var(--lmx-vices-deep);
     --lmx-category-soft: var(--lmx-vices-soft);
+    --lmx-category-mark: #76688f;
 }
 
 .lmx-shell {
@@ -2897,7 +2901,7 @@ body.lmx-quote-open {
     overflow: hidden;
     font-size: 0;
     line-height: 0;
-    color: var(--lmx-category-accent);
+    color: var(--lmx-category-mark);
 }
 
 .lmx-habit-mark.full {
