@@ -168,6 +168,38 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
+    public async Task CommunityCallIcon_RendersWithoutExternalIconFont()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
+
+        var page = await context.NewPageAsync();
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(includeUpcomingCall: true))));
+
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var icon = page.Locator(".lmx-call-title-icon");
+        await icon.WaitForAsync();
+
+        Assert.Equal("svg", await icon.EvaluateAsync<string>("element => element.tagName.toLowerCase()"));
+        Assert.Equal("0 0 640 512", await icon.GetAttributeAsync("viewBox"));
+        var size = await icon.EvaluateAsync<double[]>("element => { const rect = element.getBoundingClientRect(); return [rect.width, rect.height]; }");
+        Assert.True(size[0] >= 16 && size[1] >= 12, $"Community call icon rendered at {size[0]}x{size[1]} pixels.");
+    }
+
+    [Fact]
     public async Task CheckInForm_ShowsLatestPublicRemarksUnderSave()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -343,7 +375,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             "(elements, property) => elements.map(element => getComputedStyle(element)[property])",
             property);
 
-    private static object BuildParticipantState(bool emptyGarden = false)
+    private static object BuildParticipantState(bool emptyGarden = false, bool includeUpcomingCall = false)
         => new
         {
             @public = BuildPublicState(),
@@ -361,21 +393,38 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 commitmentAmountUsd = 25m,
                 daysIn = 22
             },
-            eligibleDays = new[]
-            {
-                new
+            eligibleDays = includeUpcomingCall
+                ? Array.Empty<object>()
+                : new object[]
                 {
-                    challengeDay = 22,
-                    date = "2026-06-29",
-                    countsForScore = true,
-                    existing = (object?)null
-                }
-            },
+                    new
+                    {
+                        challengeDay = 22,
+                        date = "2026-06-29",
+                        countsForScore = true,
+                        existing = (object?)null
+                    }
+                },
             notes = new[]
             {
                 Note("p5", "Private", 1, "2026-06-08", "Private participant-only remark.")
             },
-            calls = Array.Empty<object>(),
+            calls = includeUpcomingCall
+                ? new object[]
+                {
+                    new
+                    {
+                        key = "community-call",
+                        label = "Community call",
+                        selectedSlot = new
+                        {
+                            id = "2099-01-01T08:30:00Z",
+                            startsAtUtc = "2099-01-01T08:30:00Z"
+                        },
+                        videoCallUrl = (string?)null
+                    }
+                }
+                : Array.Empty<object>(),
             commitment = new
             {
                 status = "current",
