@@ -100,7 +100,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
-    public async Task HabitIcons_UseCategoryPaletteWhileLeaderboardDotsUseMutedVariants()
+    public async Task HabitIcons_UseCategoryPaletteWhileLeaderboardDotsMatchTheirCells()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -135,18 +135,36 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             "rgb(22, 163, 74)",
             "rgb(124, 58, 237)"
         };
-        var expectedMutedDotPalette = new[]
+        var expectedCellColors = new[]
         {
-            "rgb(88, 116, 154)",
-            "rgb(152, 99, 106)",
-            "rgb(91, 128, 109)",
-            "rgb(118, 104, 143)"
+            "rgb(7, 89, 133)",
+            "rgb(153, 27, 27)",
+            "rgb(146, 64, 14)",
+            "rgb(22, 101, 52)"
         };
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-card i"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question-preview-item i"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question .lmx-question-icon"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-key i"), "color"));
-        Assert.Equal(expectedMutedDotPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-marks").First.Locator(".lmx-habit-mark"), "color"));
+
+        var cellAndDotColors = await page.EvaluateAsync<string[][]>("""
+            () => ["practice", "score-low", "score-mid", "score-high"].map(scoreClass => {
+                const cell = document.createElement("div");
+                cell.className = `lmx-cell lmx-cell-breakdown ${scoreClass}`;
+                cell.innerHTML = ["sleep", "exercise", "nutrition", "vices"]
+                    .map(key => `<span class="lmx-habit-mark full" data-key="${key}"></span>`)
+                    .join("");
+                document.body.append(cell);
+                const colors = [
+                    getComputedStyle(cell).color,
+                    ...Array.from(cell.children, dot => getComputedStyle(dot).color)
+                ];
+                cell.remove();
+                return colors;
+            })
+            """);
+        Assert.Equal(expectedCellColors, cellAndDotColors.Select(colors => colors[0]));
+        Assert.All(cellAndDotColors, colors => Assert.All(colors.Skip(1), dotColor => Assert.Equal(colors[0], dotColor)));
     }
 
     [Fact]

@@ -27,12 +27,10 @@
 .lmx-dashboard-category.sleep,
 .lmx-question[data-key="sleep"],
 .lmx-quote-dialog[data-quote-bucket="sleep"],
-.lmx-habit-key [data-key="sleep"],
-.lmx-habit-mark[data-key="sleep"] {
+.lmx-habit-key [data-key="sleep"] {
     --lmx-category-accent: var(--lmx-sleep-accent);
     --lmx-category-deep: var(--lmx-sleep-deep);
     --lmx-category-soft: var(--lmx-sleep-soft);
-    --lmx-category-mark: #58749a;
 }
 
 .lmx-habit-card.exercise,
@@ -41,12 +39,10 @@
 .lmx-dashboard-category.exercise,
 .lmx-question[data-key="exercise"],
 .lmx-quote-dialog[data-quote-bucket="exercise"],
-.lmx-habit-key [data-key="exercise"],
-.lmx-habit-mark[data-key="exercise"] {
+.lmx-habit-key [data-key="exercise"] {
     --lmx-category-accent: var(--lmx-exercise-accent);
     --lmx-category-deep: var(--lmx-exercise-deep);
     --lmx-category-soft: var(--lmx-exercise-soft);
-    --lmx-category-mark: #98636a;
 }
 
 .lmx-habit-card.nutrition,
@@ -55,12 +51,10 @@
 .lmx-dashboard-category.nutrition,
 .lmx-question[data-key="nutrition"],
 .lmx-quote-dialog[data-quote-bucket="nutrition"],
-.lmx-habit-key [data-key="nutrition"],
-.lmx-habit-mark[data-key="nutrition"] {
+.lmx-habit-key [data-key="nutrition"] {
     --lmx-category-accent: var(--lmx-nutrition-accent);
     --lmx-category-deep: var(--lmx-nutrition-deep);
     --lmx-category-soft: var(--lmx-nutrition-soft);
-    --lmx-category-mark: #5b806d;
 }
 
 .lmx-habit-card.vices,
@@ -69,12 +63,10 @@
 .lmx-dashboard-category.vices,
 .lmx-question[data-key="vices"],
 .lmx-quote-dialog[data-quote-bucket="vices"],
-.lmx-habit-key [data-key="vices"],
-.lmx-habit-mark[data-key="vices"] {
+.lmx-habit-key [data-key="vices"] {
     --lmx-category-accent: var(--lmx-vices-accent);
     --lmx-category-deep: var(--lmx-vices-deep);
     --lmx-category-soft: var(--lmx-vices-soft);
-    --lmx-category-mark: #76688f;
 }
 
 .lmx-shell {
@@ -2901,7 +2893,6 @@ body.lmx-quote-open {
     overflow: hidden;
     font-size: 0;
     line-height: 0;
-    color: var(--lmx-category-mark);
 }
 
 .lmx-habit-mark.full {
