@@ -550,6 +550,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("button.toggleAttribute(\"disabled\", locked);", javascript);
         Assert.Contains("const availableTabs = PARTICIPANT_TABS.filter(tab => !isParticipantTabLocked(tab, currentParticipantState));", javascript);
         Assert.Contains("Next community call", javascript);
+        Assert.Contains("<svg class=\"lmx-call-title-icon\"", javascript);
+        Assert.DoesNotContain("fa-users lmx-call-title-icon", javascript);
         Assert.Contains("data-call-countdown", javascript);
         Assert.Contains("function callCountdownHtml", javascript);
         Assert.Contains("function formatCallCountdown", javascript);

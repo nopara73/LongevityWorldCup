@@ -2237,8 +2237,12 @@ body.lmx-quote-open {
 }
 
 .lmx-call-title-icon {
+    width: 1rem;
+    height: 0.8rem;
+    flex: 0 0 auto;
+    display: block;
+    fill: currentColor;
     color: #075985;
-    font-size: 0.88rem;
 }
 
 .lmx-call-group.done {
