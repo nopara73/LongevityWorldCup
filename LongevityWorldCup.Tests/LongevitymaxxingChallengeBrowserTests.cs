@@ -100,7 +100,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
-    public async Task HabitIcons_UseTheSameCategoryPaletteAcrossChallengeSurfaces()
+    public async Task HabitIcons_UseCategoryPaletteWhileLeaderboardDotsUseMutedVariants()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -135,11 +135,18 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             "rgb(22, 163, 74)",
             "rgb(124, 58, 237)"
         };
+        var expectedMutedDotPalette = new[]
+        {
+            "rgb(88, 116, 154)",
+            "rgb(152, 99, 106)",
+            "rgb(91, 128, 109)",
+            "rgb(118, 104, 143)"
+        };
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-card i"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question-preview-item i"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question .lmx-question-icon"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-key i"), "color"));
-        Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-marks").First.Locator(".lmx-habit-mark"), "color"));
+        Assert.Equal(expectedMutedDotPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-marks").First.Locator(".lmx-habit-mark"), "color"));
     }
 
     [Fact]
