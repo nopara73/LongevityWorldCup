@@ -9,6 +9,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/league/pheno", false)]
     [InlineData("/flag/hu", false)]
     [InlineData("/athlete/nonexistent-athlete", false)]
+    [InlineData("/?search=pascoe", false)]
     [InlineData("/?view=pheno", false)]
     public async Task HomepageHeroClass_IsLimitedToTheActualHomepage(string path, bool expectsHomepageHero)
     {
@@ -26,6 +27,18 @@ public sealed class AestheticSystemPageTests
         {
             Assert.DoesNotContain("class=\"home-page\"", html, StringComparison.Ordinal);
         }
+    }
+
+    [Fact]
+    public async Task SearchDeepLink_UsesLeaderboardChrome()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/?search=pascoe");
+
+        Assert.DoesNotContain("class=\"home-page\"", html, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"tagline\">", html, StringComparison.Ordinal);
     }
 
     [Theory]

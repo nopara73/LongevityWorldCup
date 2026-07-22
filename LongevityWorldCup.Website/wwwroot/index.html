@@ -2057,7 +2057,7 @@
 
             try {
                 const params = new URLSearchParams(window.location.search || '');
-                return !params.has('athlete');
+                return !['athlete', 'filters', 'search', 'view'].some(param => params.has(param));
             } catch (_) {
                 return true;
             }

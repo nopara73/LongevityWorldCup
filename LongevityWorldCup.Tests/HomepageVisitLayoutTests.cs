@@ -16,7 +16,7 @@ public sealed class HomepageVisitLayoutTests
 
         Assert.Contains("function isHomepageVisitCounterRoute()", indexHtml);
         Assert.Contains("path === '/' || path === '/index.html'", indexHtml);
-        Assert.Contains("!params.has('athlete')", indexHtml);
+        Assert.Contains("['athlete', 'filters', 'search', 'view'].some(param => params.has(param))", indexHtml);
 
         var layoutStart = indexHtml.IndexOf("function placeHomepageHighlightsForVisit()", StringComparison.Ordinal);
         Assert.True(layoutStart >= 0, "Could not find placeHomepageHighlightsForVisit.");
