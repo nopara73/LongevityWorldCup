@@ -613,6 +613,8 @@ interface Window {
     let lastBioageResultShown = false;
     let lastBioageResultActionsVisible = false;
     let resultRevealFrame = 0;
+    let pendingResultRevealElement: HTMLElement | null = null;
+    let pendingResultRevealInstant = false;
     let resultResizeObserver: ResizeObserver | null = null;
 
     function getShownBioageResultElement(): HTMLElement | null {
@@ -709,6 +711,8 @@ interface Window {
             resultRevealFrame = 0;
         }
 
+        pendingResultRevealElement = null;
+        pendingResultRevealInstant = false;
     }
 
     function scheduleBioageResultReveal(
@@ -716,19 +720,22 @@ interface Window {
         revealOptions: BioageResultRevealOptions = {}
     ): void {
         if (!resultElement) return;
-        clearScheduledBioageResultReveals();
-
-        const revealIfCurrent = (): void => {
-            if (!isRenderedElement(resultElement)) return;
-            if (getShownBioageResultElement() !== resultElement) return;
-
-            revealBioageResult(resultElement, revealOptions);
-        };
+        pendingResultRevealElement = resultElement;
+        pendingResultRevealInstant ||= !!revealOptions.instant;
+        if (resultRevealFrame) return;
 
         resultRevealFrame = window.requestAnimationFrame(() => {
             resultRevealFrame = window.requestAnimationFrame(() => {
                 resultRevealFrame = 0;
-                revealIfCurrent();
+                const pendingElement = pendingResultRevealElement;
+                const pendingInstant = pendingResultRevealInstant;
+                pendingResultRevealElement = null;
+                pendingResultRevealInstant = false;
+
+                if (!isRenderedElement(pendingElement)) return;
+                if (getShownBioageResultElement() !== pendingElement) return;
+
+                revealBioageResult(pendingElement, { instant: pendingInstant });
             });
         });
     }
