@@ -1,0 +1,28 @@
+{
+  "Name": "Norbert Pusztai",
+  "DisplayName": null,
+  "MediaContact": "norbert.pusztai@yahoo.com",
+  "DateOfBirth": {
+    "Year": 1983,
+    "Month": 9,
+    "Day": 23
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-07-23",
+      "AlbGL": 49,
+      "CreatUmolL": 101,
+      "GluMmolL": 5,
+      "CrpMgL": 4.48,
+      "LymPc": 35.2,
+      "McvFL": 87,
+      "RdwPc": 12.2,
+      "AlpUL": 105,
+      "Wbc1000cellsuL": 4.2
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "I want to use objective biomarkers to better understand my health, establish a baseline, and improve my biological age through sustainable lifestyle changes. The competition gives me extra motivation to stay consistent.",
+  "PersonalLink": "https://instagram.com/bynorbertpusztai"
+}
