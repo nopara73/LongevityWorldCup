@@ -3153,6 +3153,80 @@ public sealed class FlowActionDockBrowserTests
         Assert.Empty(errors);
     }
 
+    [Fact]
+    public async Task BioageResultReveal_IsNotStarvedByContinuousResultResizing()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var errors = CapturePageErrors(page);
+        await page.GotoAsync("/bortz-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await FillBioageStepOneAsync(page, DateTime.UtcNow.Date.AddDays(-9).ToString("yyyy-MM-dd"));
+        await FillBortzBiomarkersAsync(page);
+        await page.Locator(".bioage-calculate-button").ClickAsync();
+        await page.WaitForSelectorAsync("#bortzAgeResult.show");
+        await page.WaitForSelectorAsync("#continueButton.show");
+        await ExpectActionStackDockedInViewportAsync(page, ".bioage-result-actions");
+        await ExpectBioageResultVisibleAboveDockAsync(page, "#bortzAgeResult", ".bioage-result-actions");
+
+        await page.EvaluateAsync(
+            """
+            () => {
+                const result = document.getElementById('bortzAgeResult');
+                const dock = document.querySelector('.bioage-result-actions');
+                const resultRect = result.getBoundingClientRect();
+                const dockRect = dock.getBoundingClientRect();
+                window.scrollBy({ top: resultRect.bottom - (dockRect.top - 12), behavior: 'auto' });
+
+                const growingContent = document.createElement('div');
+                growingContent.setAttribute('aria-hidden', 'true');
+                result.append(growingContent);
+                window.__bioageResizeStormFrame = 0;
+                window.__bioageResizeStormActive = true;
+                const growResult = () => {
+                    if (!window.__bioageResizeStormActive) return;
+                    window.__bioageResizeStormFrame += 1;
+                    growingContent.style.height = `${window.__bioageResizeStormFrame}px`;
+                    if (window.__bioageResizeStormFrame < 600) {
+                        requestAnimationFrame(growResult);
+                    }
+                };
+                requestAnimationFrame(growResult);
+            }
+            """);
+        await page.WaitForFunctionAsync("() => window.__bioageResizeStormFrame >= 24");
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                window.__bioageResizeStormActive = false;
+                const result = document.getElementById('bortzAgeResult').getBoundingClientRect();
+                const dock = document.querySelector('.bioage-result-actions').getBoundingClientRect();
+                return [result.bottom, dock.top, window.__bioageResizeStormFrame, window.scrollY];
+            }
+            """);
+
+        Assert.InRange(layout[2], 24, 599);
+        Assert.True(
+            layout[0] <= layout[1] - 8,
+            $"Continuous result resizing starved the dock-clearance reveal. result bottom={layout[0]:F1}, dock top={layout[1]:F1}, frame={layout[2]}, scrollY={layout[3]:F1}.");
+        Assert.Empty(errors);
+    }
+
     private static async Task ExpectBioageResultVisibleAboveDockAsync(
         IPage page,
         string resultSelector,
