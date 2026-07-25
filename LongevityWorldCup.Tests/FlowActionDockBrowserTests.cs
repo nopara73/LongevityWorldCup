@@ -3035,7 +3035,7 @@ public sealed class FlowActionDockBrowserTests
         await page.WaitForSelectorAsync("#continueButton.show");
 
         await ExpectActionStackDockedInViewportAsync(page, resultActionsSelector);
-        await ExpectBioageResultVisibleAboveDockAsync(page, resultSelector, resultActionsSelector);
+        await ExpectBioageResultReadableWithDockAsync(page, resultSelector, resultActionsSelector);
         Assert.False(await HasDockClassAsync(page, "#lwcStepTwoActions"));
 
         var dockedVisibleActionCount = await page.EvaluateAsync<int>(
@@ -3056,7 +3056,7 @@ public sealed class FlowActionDockBrowserTests
     }
 
     [Fact]
-    public async Task BioageResult_RevealsAgainAfterDelayedRankPreviewExpands()
+    public async Task BioageResult_DoesNotMoveTheReadingPositionWhenRankPreviewExpands()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -3089,7 +3089,7 @@ public sealed class FlowActionDockBrowserTests
         await page.WaitForFunctionAsync(
             "() => document.getElementById('phenoAgeRankPreview')?.getAttribute('aria-busy') === 'true'");
         await ExpectActionStackDockedInViewportAsync(page, ".phenoage-result-actions");
-        await ExpectBioageResultVisibleAboveDockAsync(page, "#phenoAgeResult", ".phenoage-result-actions");
+        await ExpectBioageResultReadableWithDockAsync(page, "#phenoAgeResult", ".phenoage-result-actions");
 
         await page.EvaluateAsync(
             """
@@ -3126,12 +3126,10 @@ public sealed class FlowActionDockBrowserTests
             () => {
                 const preview = document.getElementById('phenoAgeRankPreview');
                 const result = document.getElementById('phenoAgeResult');
-                const dock = document.querySelector('.phenoage-result-actions');
                 if (preview?.getAttribute('aria-busy') !== 'false'
                     || !preview.querySelector('.bioage-rank-neighbors')
-                    || !result
-                    || !dock) return false;
-                return result.getBoundingClientRect().bottom <= dock.getBoundingClientRect().top - 8;
+                    || !result) return false;
+                return result.getBoundingClientRect().height >= 300;
             }
             """);
 
@@ -3146,15 +3144,15 @@ public sealed class FlowActionDockBrowserTests
         Assert.True(
             finalLayout[0] >= initialLayout[0] + 50,
             $"Rank preview did not materially expand the result: {initialLayout[0]}px to {finalLayout[0]}px.");
-        Assert.True(
-            finalLayout[3] >= initialLayout[3] + 20,
-            $"Expanded rank preview was not re-revealed: scrollY {initialLayout[3]}px to {finalLayout[3]}px.");
-        Assert.True(finalLayout[1] <= finalLayout[2] - 8);
+        Assert.InRange(
+            Math.Abs(finalLayout[3] - initialLayout[3]),
+            0,
+            2);
         Assert.Empty(errors);
     }
 
     [Fact]
-    public async Task BioageResultReveal_IsNotStarvedByContinuousResultResizing()
+    public async Task BioageResult_DoesNotChaseContinuousResultResizing()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -3179,7 +3177,7 @@ public sealed class FlowActionDockBrowserTests
         await page.WaitForSelectorAsync("#bortzAgeResult.show");
         await page.WaitForSelectorAsync("#continueButton.show");
         await ExpectActionStackDockedInViewportAsync(page, ".bioage-result-actions");
-        await ExpectBioageResultVisibleAboveDockAsync(page, "#bortzAgeResult", ".bioage-result-actions");
+        await ExpectBioageResultReadableWithDockAsync(page, "#bortzAgeResult", ".bioage-result-actions");
 
         await page.EvaluateAsync(
             """
@@ -3189,6 +3187,7 @@ public sealed class FlowActionDockBrowserTests
                 const resultRect = result.getBoundingClientRect();
                 const dockRect = dock.getBoundingClientRect();
                 window.scrollBy({ top: resultRect.bottom - (dockRect.top - 12), behavior: 'auto' });
+                window.__bioageResizeStartScrollY = window.scrollY;
 
                 const growingContent = document.createElement('div');
                 growingContent.setAttribute('aria-hidden', 'true');
@@ -3216,18 +3215,19 @@ public sealed class FlowActionDockBrowserTests
                 window.__bioageResizeStormActive = false;
                 const result = document.getElementById('bortzAgeResult').getBoundingClientRect();
                 const dock = document.querySelector('.bioage-result-actions').getBoundingClientRect();
-                return [result.bottom, dock.top, window.__bioageResizeStormFrame, window.scrollY];
+                return [result.bottom, dock.top, window.__bioageResizeStormFrame, window.scrollY, window.__bioageResizeStartScrollY];
             }
             """);
 
         Assert.InRange(layout[2], 24, 599);
-        Assert.True(
-            layout[0] <= layout[1] - 8,
-            $"Continuous result resizing starved the dock-clearance reveal. result bottom={layout[0]:F1}, dock top={layout[1]:F1}, frame={layout[2]}, scrollY={layout[3]:F1}.");
+        Assert.InRange(
+            Math.Abs(layout[3] - layout[4]),
+            0,
+            2);
         Assert.Empty(errors);
     }
 
-    private static async Task ExpectBioageResultVisibleAboveDockAsync(
+    private static async Task ExpectBioageResultReadableWithDockAsync(
         IPage page,
         string resultSelector,
         string dockSelector)
@@ -3281,7 +3281,14 @@ public sealed class FlowActionDockBrowserTests
         Assert.True(layout.ResultVisible, $"{resultSelector} is not visibly rendered. {layout}");
         Assert.True(layout.DockVisible, $"{dockSelector} is not visibly rendered. {layout}");
         Assert.True(layout.ResultTop >= 0, $"{resultSelector} starts above the viewport. {layout}");
-        Assert.True(layout.ResultBottom <= layout.DockTop - 8, $"{resultSelector} is covered by the result action dock. {layout}");
+        Assert.True(
+            layout.ResultTop <= layout.DockTop - 44,
+            $"{resultSelector} does not begin in the readable area above the result action dock. {layout}");
+
+        var remainingScroll = Math.Max(0, layout.MaxScrollY - layout.ScrollY);
+        Assert.True(
+            layout.ResultBottom - remainingScroll <= layout.DockTop - 8,
+            $"{resultSelector} cannot be scrolled fully clear of the result action dock. {layout}");
     }
 
     [Fact]
