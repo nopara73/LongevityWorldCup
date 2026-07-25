@@ -185,11 +185,22 @@ public sealed class NewAthleteOnboardingBrowserTests
         {
             await page.GotoAsync("/pheno-age", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
             await SetPendingPaymentOfferAsync(page, "join-game", "pro", 100);
+            await page.EvaluateAsync(
+                """
+                () => {
+                    sessionStorage.setItem('bioageClock', 'bortz');
+                    sessionStorage.setItem('chronoBortzDifference', '-4.20');
+                }
+                """);
             await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
             await page.Locator("#continueButton").ClickAsync();
             await page.WaitForURLAsync("**/apply");
 
             await AssertPaymentOfferAsync(page, "direct-pheno-age", "amateur", 10);
+            Assert.Equal("pheno", await page.EvaluateAsync<string?>(
+                "() => sessionStorage.getItem('bioageClock')"));
+            Assert.Null(await page.EvaluateAsync<string?>(
+                "() => sessionStorage.getItem('chronoBortzDifference')"));
             Assert.Empty(errors);
         });
     }
@@ -208,6 +219,95 @@ public sealed class NewAthleteOnboardingBrowserTests
             await page.WaitForURLAsync("**/apply");
 
             await AssertPaymentOfferAsync(page, "direct-bortz-age", "pro", 100);
+            Assert.Empty(errors);
+        });
+    }
+
+    [Fact]
+    public async Task LegacyClockInference_UsesOfferAndPanelCompletenessWithZeroDifferences()
+    {
+        await RunOnboardingBrowserAsync(async (page, errors) =>
+        {
+            await page.GotoAsync("/apply?fake=1", new PageGotoOptions
+            {
+                WaitUntil = WaitUntilState.DOMContentLoaded
+            });
+
+            var clocks = await page.EvaluateAsync<string[]>(
+                """
+                () => {
+                    const phenoEntry = {
+                        Date: '2026-06-01',
+                        AlbGL: 45,
+                        CreatUmolL: 72,
+                        GluMmolL: 5,
+                        CrpMgL: 1.35,
+                        Wbc1000cellsuL: 6.54,
+                        LymPc: 28.6,
+                        McvFL: 92,
+                        RdwPc: 13.4,
+                        AlpUL: 83
+                    };
+                    const bortzEntry = {
+                        ...phenoEntry,
+                        UreaMmolL: 5.4,
+                        CholesterolMmolL: 5.6,
+                        CystatinCMgL: 0.9,
+                        Hba1cMmolMol: 35.5,
+                        GgtUL: 29,
+                        Rbc10e12L: 4.5,
+                        MonocytePc: 7.2,
+                        NeutrophilPc: 64.2,
+                        AltUL: 22,
+                        ShbgNmolL: 45.6,
+                        VitaminDNmolL: 50,
+                        MchPg: 31.8,
+                        ApoA1GL: 1.52
+                    };
+
+                    sessionStorage.removeItem('bioageClock');
+                    sessionStorage.setItem('pendingPaymentOffer', JSON.stringify({
+                        source: 'join-game',
+                        offerType: 'amateur',
+                        currency: 'USD',
+                        amountUsd: 10
+                    }));
+                    const pheno = readStoredBioageClock(
+                        { Biomarkers: [phenoEntry] },
+                        '0.00',
+                        '0.00');
+
+                    sessionStorage.setItem('pendingPaymentOffer', JSON.stringify({
+                        source: 'join-game',
+                        offerType: 'pro',
+                        currency: 'USD',
+                        amountUsd: 100
+                    }));
+                    const staleProPheno = readStoredBioageClock(
+                        { Biomarkers: [phenoEntry] },
+                        '0.00',
+                        '0.00');
+                    sessionStorage.setItem('biomarkerData', JSON.stringify({
+                        Biomarkers: [phenoEntry]
+                    }));
+                    sessionStorage.setItem('chronoPhenoDifference', '0.00');
+                    sessionStorage.setItem('chronoBortzDifference', '0.00');
+                    const staleProBackDestination = getConvergenceBackDestination();
+
+                    sessionStorage.removeItem('pendingPaymentOffer');
+                    const fallbackPheno = readStoredBioageClock(
+                        { Biomarkers: [phenoEntry] },
+                        '0.00',
+                        '0.00');
+                    const fallbackBortz = readStoredBioageClock(
+                        { Biomarkers: [bortzEntry] },
+                        '0.00',
+                        '0.00');
+                    return [pheno, staleProPheno, fallbackPheno, fallbackBortz, staleProBackDestination];
+                }
+                """);
+
+            Assert.Equal(["pheno", "pheno", "pheno", "bortz", "/pheno-age"], clocks);
             Assert.Empty(errors);
         });
     }
@@ -575,7 +675,7 @@ public sealed class NewAthleteOnboardingBrowserTests
                 return {
                     offerType: offer.offerType,
                     amountUsd: offer.amountUsd,
-                    lwcStep: sessionStorage.getItem('lwcStep'),
+                    bioageClock: sessionStorage.getItem('bioageClock'),
                     hasChronoPhenoDifference: !!(chronoPhenoDifference && chronoPhenoDifference.trim()),
                     chronoPhenoDifference: chronoPhenoDifference === null ? null : Number(chronoPhenoDifference),
                     dobYear: biomarkerData.DateOfBirth?.Year,
@@ -598,7 +698,7 @@ public sealed class NewAthleteOnboardingBrowserTests
 
         Assert.Equal("amateur", handoff.GetProperty("offerType").GetString());
         Assert.Equal(10, handoff.GetProperty("amountUsd").GetDouble());
-        Assert.Equal("1", handoff.GetProperty("lwcStep").GetString());
+        Assert.Equal("pheno", handoff.GetProperty("bioageClock").GetString());
         Assert.True(handoff.GetProperty("hasChronoPhenoDifference").GetBoolean());
         Assert.True(double.IsFinite(handoff.GetProperty("chronoPhenoDifference").GetDouble()));
         Assert.Equal(1980, handoff.GetProperty("dobYear").GetInt32());
@@ -649,7 +749,7 @@ public sealed class NewAthleteOnboardingBrowserTests
                 return {
                     offerType: offer.offerType,
                     amountUsd: offer.amountUsd,
-                    lwcStep: sessionStorage.getItem('lwcStep'),
+                    bioageClock: sessionStorage.getItem('bioageClock'),
                     hasChronoBortzDifference: !!(chronoBortzDifference && chronoBortzDifference.trim()),
                     hasChronoPhenoDifference: !!(chronoPhenoDifference && chronoPhenoDifference.trim()),
                     chronoBortzDifference: chronoBortzDifference === null ? null : Number(chronoBortzDifference),
@@ -687,7 +787,7 @@ public sealed class NewAthleteOnboardingBrowserTests
 
         Assert.Equal("pro", handoff.GetProperty("offerType").GetString());
         Assert.Equal(100, handoff.GetProperty("amountUsd").GetDouble());
-        Assert.Equal("1", handoff.GetProperty("lwcStep").GetString());
+        Assert.Equal("bortz", handoff.GetProperty("bioageClock").GetString());
         Assert.True(handoff.GetProperty("hasChronoBortzDifference").GetBoolean());
         Assert.True(handoff.GetProperty("hasChronoPhenoDifference").GetBoolean());
         Assert.True(double.IsFinite(handoff.GetProperty("chronoBortzDifference").GetDouble()));

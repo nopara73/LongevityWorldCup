@@ -166,6 +166,7 @@ function persistSelectedAthlete(athlete: PlayAthlete | null): boolean {
     const prevName = getLocalItem("selectedAthleteName");
     if (!isAthleteInputValue(athlete, prevName)) {
         removeSessionItem("biomarkerData");
+        removeSessionItem("bioageClock");
         removeSessionItem("chronoPhenoDifference");
         removeSessionItem("chronoBortzDifference");
         removeSessionItem("contactEmail");
