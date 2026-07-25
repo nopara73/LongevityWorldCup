@@ -171,16 +171,13 @@ public sealed class BioageMobileUxBrowserTests
     [Theory]
     [InlineData(
         "/pheno-age?Year=1980&Month=6&Day=15&Date=2026-06-01&AlbGL=45&CreatUmolL=80&GluMmolL=5&CrpMgL=1&Wbc1000cellsuL=5.5&LymPc=30&McvFL=90&RdwPc=13&AlpUL=70",
-        "#phenoAgeResult",
-        9)]
+        "#phenoAgeResult")]
     [InlineData(
         "/bortz-age?Year=1980&Month=6&Day=15&Date=2026-06-01&AlbGL=45&AlpUL=70&UreaMmolL=5&CholesterolMmolL=4.5&CreatUmolL=80&CystatinCMgL=0.9&Hba1cMmolMol=33.33&CrpMgL=1&GgtUL=20&Rbc10e12L=4.8&McvFL=90&RdwPc=13&GluMmolL=5&MchPg=30&ApoA1GL=1.5&LymPc=30&AltUL=25&ShbgNmolL=40&VitaminDNmolL=200&Wbc1000cellsuL=5.5&MonocytePc=6&NeutrophilPc=60",
-        "#bortzAgeResult",
-        22)]
-    public async Task MobileResult_EditValuesReturnsToThePreservedWorksheet(
+        "#bortzAgeResult")]
+    public async Task MobileResult_DoesNotShowInlineEditValuesAction(
         string path,
-        string resultSelector,
-        int biomarkerCount)
+        string resultSelector)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -210,87 +207,22 @@ public sealed class BioageMobileUxBrowserTests
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
             "() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
-        var unchangedUrl = page.Url;
-        var editValues = page.Locator($"{resultSelector} .bioage-edit-values-button");
-        Assert.NotNull(await page.Locator(resultSelector).GetAttributeAsync("inert"));
-        Assert.False(await editValues.EvaluateAsync<bool>(
-            "button => { button.focus(); return document.activeElement === button; }"));
 
         await page.Locator("#lwcToStep2Btn").TapAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
-        Assert.Equal($"{biomarkerCount} of {biomarkerCount} biomarkers entered",
-            await page.Locator(".bioage-biomarker-progress").InnerTextAsync());
 
-        var firstValue = await page.Locator("#wbc").InputValueAsync();
         var calculate = page.Locator("#calculateBioageButton");
         Assert.False(await calculate.IsDisabledAsync());
         await calculate.TapAsync();
         await page.WaitForSelectorAsync($"{resultSelector}.show");
 
-        await editValues.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
         Assert.Null(await page.Locator(resultSelector).GetAttributeAsync("inert"));
-        await editValues.TapAsync();
-        await page.WaitForFunctionAsync(
-            "selector => !document.querySelector(selector)?.classList.contains('show')",
-            resultSelector);
-
-        Assert.True(await page.Locator("#lwc-step-2").IsVisibleAsync());
-        Assert.Equal(firstValue, await page.Locator("#wbc").InputValueAsync());
-        Assert.False(await calculate.IsDisabledAsync());
-        Assert.Equal(unchangedUrl, page.Url);
-        Assert.False(await page.Locator("body").EvaluateAsync<bool>(
-            "body => body.classList.contains('bioage-result-ready')"));
-        Assert.NotNull(await page.Locator(resultSelector).GetAttributeAsync("inert"));
-        Assert.False(await editValues.EvaluateAsync<bool>(
-            "button => { button.focus(); return document.activeElement === button; }"));
+        Assert.Equal(0, await page.GetByRole(
+            AriaRole.Button,
+            new() { Name = "Edit values" }).CountAsync());
+        Assert.Equal(0, await page.Locator(".bioage-edit-values-button").CountAsync());
         Assert.Empty(errors);
-    }
-
-    [Theory]
-    [InlineData(
-        "/pheno-age?Year=1980&Month=6&Day=15&Date=2026-06-01&AlbGL=45&CreatUmolL=80&GluMmolL=5&CrpMgL=1&Wbc1000cellsuL=5.5&LymPc=30&McvFL=90&RdwPc=10000&AlpUL=70",
-        "#phenoAgeResult")]
-    [InlineData(
-        "/bortz-age?Year=1980&Month=6&Day=15&Date=2026-06-01&AlbGL=45&AlpUL=70&UreaMmolL=5&CholesterolMmolL=4.5&CreatUmolL=80&CystatinCMgL=0.9&Hba1cMmolMol=33.33&CrpMgL=0&GgtUL=20&Rbc10e12L=4.8&McvFL=90&RdwPc=13&GluMmolL=5&MchPg=30&ApoA1GL=1.5&LymPc=30&AltUL=25&ShbgNmolL=40&VitaminDNmolL=200&Wbc1000cellsuL=5.5&MonocytePc=6&NeutrophilPc=60",
-        "#bortzAgeResult")]
-    public async Task MobileNonFiniteResult_EditValuesStillReturnsToTheWorksheet(
-        string path,
-        string resultSelector)
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US",
-            IsMobile = true,
-            HasTouch = true,
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-        });
-        await BrowserTestApp.RouteExternalResourcesAsync(context);
-
-        var page = await context.NewPageAsync();
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.Locator("#lwcToStep2Btn").TapAsync();
-        await page.WaitForFunctionAsync(
-            "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
-        await page.Locator("#calculateBioageButton").TapAsync();
-        await page.WaitForSelectorAsync($"{resultSelector}.show");
-        Assert.True(await page.Locator("#ensureCorrectInputSuggestion").IsVisibleAsync());
-
-        await page.GetByRole(AriaRole.Button, new() { Name = "Edit values" }).TapAsync();
-        await page.WaitForFunctionAsync(
-            "selector => !document.querySelector(selector)?.classList.contains('show')",
-            resultSelector);
-
-        Assert.True(await page.Locator("#lwc-step-2").IsVisibleAsync());
-        Assert.False(await page.Locator("body").EvaluateAsync<bool>(
-            "body => body.classList.contains('bioage-result-ready')"));
     }
 
     [Theory]

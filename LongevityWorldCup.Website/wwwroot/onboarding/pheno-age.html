@@ -1171,7 +1171,6 @@
                 <i class="fas fa-ambulance" aria-hidden="true"></i> <i class="fas fa-hospital" aria-hidden="true"></i> <i class="fas fa-clinic-medical" aria-hidden="true"></i>
             </div>
             <div id="phenoAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
-            <button type="button" class="bioage-edit-values-button" onclick="editBioageValues()">Edit values</button>
         </div>
 
         <div class="options-container phenoage-result-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body.bioage-result-ready" data-aos="fade" data-aos-duration="700" data-aos-delay="450" hidden>
@@ -1823,11 +1822,6 @@
 
         function calculateResultIfResultAlreadyCalculated() {
             if (isResultCalculated) hideCalculatedResult();
-        }
-
-        function editBioageValues() {
-            hideCalculatedResult();
-            lwcSetStep(2);
         }
 
         function correctCorrectableUnits() {
