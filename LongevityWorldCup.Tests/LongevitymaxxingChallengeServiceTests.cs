@@ -219,7 +219,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 "This still saves, @Bea Builder."),
             DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
 
-        var saved = Assert.Single(state.EligibleDays.Where(day => day.ChallengeDay == 1));
+        var saved = Assert.Single(state.EligibleDays, day => day.ChallengeDay == 1);
         Assert.Equal("This still saves, @Bea Builder.", saved.Existing?.Note);
     }
 

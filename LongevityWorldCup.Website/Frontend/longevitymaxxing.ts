@@ -58,6 +58,12 @@
         query: string;
     }
 
+    interface ParticipantMention {
+        start: number;
+        end: number;
+        participant: LeaderboardRow;
+    }
+
     interface CheckInDraft {
         sleep: number;
         exercise: number;
@@ -2830,14 +2836,21 @@
 
     function mentionableParticipants(): LeaderboardRow[] {
         const selfId = participantState?.participant?.id || "";
-        return [...(participantState?.public?.leaderboard || publicState?.leaderboard || [])]
+        return challengeParticipants()
             .filter(row => row.participantId && row.participantId !== selfId && row.displayName.trim())
             .sort((first, second) => first.displayName.localeCompare(second.displayName));
     }
 
+    function challengeParticipants(): LeaderboardRow[] {
+        return [...(participantState?.public?.leaderboard || publicState?.leaderboard || [])];
+    }
+
     function mentionedParticipantIds(note: string, participants: LeaderboardRow[]): Set<string> {
-        const found = new Set<string>();
-        const claimedRanges: Array<{ start: number; end: number }> = [];
+        return new Set(findParticipantMentions(note, participants).map(mention => mention.participant.participantId));
+    }
+
+    function findParticipantMentions(note: string, participants: LeaderboardRow[]): ParticipantMention[] {
+        const matches: ParticipantMention[] = [];
         const lowerNote = note.toLocaleLowerCase();
 
         [...participants]
@@ -2851,16 +2864,36 @@
                     const end = start + token.length;
                     const validStart = start === 0 || !isMentionWordCharacter(note[start - 1]);
                     const validEnd = end === note.length || !isMentionWordCharacter(note[end]);
-                    const overlaps = claimedRanges.some(range => range.start < end && start < range.end);
-                    if (validStart && validEnd && !overlaps) {
-                        found.add(participant.participantId);
-                        claimedRanges.push({ start, end });
-                    }
+                    if (validStart && validEnd) matches.push({ start, end, participant });
                     searchFrom = start + 1;
                 }
             });
 
-        return found;
+        return matches
+            .sort((first, second) => first.start - second.start || (second.end - second.start) - (first.end - first.start))
+            .reduce<ParticipantMention[]>((selected, match) => {
+                const overlaps = selected.some(existing => existing.start < match.end && match.start < existing.end);
+                if (!overlaps) selected.push(match);
+                return selected;
+            }, []);
+    }
+
+    function participantMentionTextHtml(note: string): string {
+        const mentions = findParticipantMentions(note, challengeParticipants());
+        if (!mentions.length) return esc(note);
+
+        let cursor = 0;
+        let html = "";
+        mentions.forEach(mention => {
+            html += esc(note.slice(cursor, mention.start));
+            const label = note.slice(mention.start, mention.end);
+            const athleteUrl = String(mention.participant.athleteUrl || "").trim();
+            html += athleteUrl
+                ? `<a class="lmx-note-mention linked" href="${escAttr(athleteUrl)}" aria-label="${escAttr(`${mention.participant.displayName}, view athlete profile`)}">${esc(label)}</a>`
+                : `<span class="lmx-note-mention">${esc(label)}</span>`;
+            cursor = mention.end;
+        });
+        return html + esc(note.slice(cursor));
     }
 
     function isMentionWordCharacter(character: string | undefined): boolean {
@@ -3197,7 +3230,7 @@
                 const date = note.date ? ` · ${formatShortDateLabel(note.date)}` : "";
                 return `<article class="lmx-recent-remark">
                     <strong>${esc(note.displayName)} · Day ${esc(note.challengeDay)}${esc(date)}</strong>
-                    ${noteText ? `<p>${esc(noteText)}</p>` : ""}
+                    ${noteText ? `<p>${participantMentionTextHtml(noteText)}</p>` : ""}
                     ${imageHtml}
                 </article>`;
             }).join("")}
@@ -4042,7 +4075,7 @@
             const noteText = String(note.note || "").trim();
             return `<article class="lmx-note">
                 <strong>${esc(note.displayName)} · Day ${note.challengeDay}</strong>
-                ${noteText ? `<p>${esc(noteText)}</p>` : ""}
+                ${noteText ? `<p>${participantMentionTextHtml(noteText)}</p>` : ""}
                 ${imageHtml}
             </article>`;
         }).join("");

@@ -76,9 +76,16 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("event.key === \"Escape\"", source);
         Assert.Contains("textarea.setAttribute(\"aria-activedescendant\", activeOption.id);", source);
         Assert.Contains("const MAX_NOTE_MENTIONS = 5;", source);
+        Assert.Contains("function participantMentionTextHtml(note: string): string", source);
+        Assert.Contains("participantMentionTextHtml(noteText)", source);
+        Assert.Contains("mention.participant.athleteUrl", source);
+        Assert.Contains("<a class=\"lmx-note-mention linked\"", source);
+        Assert.Contains("<span class=\"lmx-note-mention\"", source);
         Assert.Contains(".lmx-mention-option {", css);
         Assert.Contains("min-height: 44px;", css);
         Assert.Contains(".lmx-mention-options[hidden]", css);
+        Assert.Contains(".lmx-note-mention {", css);
+        Assert.Contains("a.lmx-note-mention:focus-visible", css);
     }
 
     [Fact]

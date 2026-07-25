@@ -359,6 +359,24 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         var textarea = page.Locator("textarea[data-mention-input]");
         await textarea.WaitForAsync();
+
+        var displayedNote = page.Locator(".lmx-recent-remark p");
+        var profileMention = displayedNote.Locator("a.lmx-note-mention");
+        var participantMention = displayedNote.Locator("span.lmx-note-mention");
+        Assert.Equal(1, await profileMention.CountAsync());
+        Assert.Equal("@Ari Able", await profileMention.InnerTextAsync());
+        Assert.Equal("/athlete/ari-able", await profileMention.GetAttributeAsync("href"));
+        Assert.Equal("Ari Able, view athlete profile", await profileMention.GetAttributeAsync("aria-label"));
+        Assert.Equal(1, await participantMention.CountAsync());
+        Assert.Equal("@Bea Builder", await participantMention.InnerTextAsync());
+        Assert.Equal(2, await displayedNote.Locator(".lmx-note-mention").CountAsync());
+        Assert.Contains("@Nobody", await displayedNote.InnerTextAsync());
+        Assert.DoesNotContain("test@Ari Able", await profileMention.InnerTextAsync());
+        Assert.True(await profileMention.EvaluateAsync<bool>(
+            "element => getComputedStyle(element).textDecorationLine.includes('underline')"));
+        await profileMention.FocusAsync();
+        Assert.Equal("solid", await profileMention.EvaluateAsync<string>("element => getComputedStyle(element).outlineStyle"));
+
         await textarea.FillAsync("Great work @Be");
 
         var list = page.Locator(".lmx-mention-options:not([hidden])");
@@ -685,31 +703,41 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             }.Concat(includeMentionParticipants
                 ? new object[]
                 {
-                    MentionLeaderboardRow("p2", "Ari Able"),
+                    MentionLeaderboardRow("p2", "Ari Able", "/athlete/ari-able"),
                     MentionLeaderboardRow("p3", "Bea Builder")
                 }
                 : []).ToArray(),
             podium = Array.Empty<object>(),
-            notes = new[]
-            {
-                Note("p2", "Ari", 22, "2026-06-29", "First recent public remark.",
-                    [CheckInImage("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari")]),
-                Note("p3", "Bea", 21, "2026-06-28", null,
-                    [CheckInImage("/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea")]),
-                Note("p4", "Cam", 20, "2026-06-27", "Third recent public remark."),
-                Note("p5", "Dee", 19, "2026-06-26", "Fourth older public remark.")
-            },
+            notes = includeMentionParticipants
+                ? new[]
+                {
+                    Note(
+                        "p4",
+                        "Cam",
+                        22,
+                        "2026-06-29",
+                        "Contact test@Ari Able, then thank @Ari Able and @Bea Builder — not @Nobody.")
+                }
+                : new[]
+                {
+                    Note("p2", "Ari", 22, "2026-06-29", "First recent public remark.",
+                        [CheckInImage("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari")]),
+                    Note("p3", "Bea", 21, "2026-06-28", null,
+                        [CheckInImage("/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea")]),
+                    Note("p4", "Cam", 20, "2026-06-27", "Third recent public remark."),
+                    Note("p5", "Dee", 19, "2026-06-26", "Fourth older public remark.")
+                },
             calls = Array.Empty<object>(),
             slackInviteUrl = "",
             slackRoomUrl = (string?)null
         };
 
-    private static object MentionLeaderboardRow(string participantId, string displayName)
+    private static object MentionLeaderboardRow(string participantId, string displayName, string? athleteUrl = null)
         => new
         {
             participantId,
             displayName,
-            athleteUrl = (string?)null,
+            athleteUrl,
             profileImageUrl = (string?)null,
             checkedInDays = 1,
             totalPoints = 8,

@@ -2484,6 +2484,41 @@ body.lmx-photo-viewer-open {
     overflow: hidden;
 }
 
+.lmx-note-mention {
+    padding: 0 0.12em;
+    border-radius: 4px;
+    background: rgba(0, 188, 212, 0.11);
+    color: #0f5965;
+    font-weight: 700;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+}
+
+a.lmx-note-mention {
+    color: #075f6c;
+    text-decoration: underline;
+    text-decoration-color: rgba(7, 95, 108, 0.45);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.16em;
+    transition:
+        color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        text-decoration-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+a.lmx-note-mention:hover {
+    background: rgba(0, 188, 212, 0.19);
+    color: #064e58;
+    text-decoration-color: currentColor;
+}
+
+a.lmx-note-mention:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.36);
+    outline-offset: 2px;
+    background: rgba(0, 188, 212, 0.19);
+    text-decoration-color: currentColor;
+}
+
 .lmx-call-list {
     display: grid;
     gap: 0.55rem;
