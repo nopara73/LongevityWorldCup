@@ -58,6 +58,30 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
+    public async Task ChallengeNoteMentions_ExposeAnAccessibleKeyboardParticipantPicker()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var source = ReadFrontendSource();
+        var css = await client.GetStringAsync("/css/longevitymaxxing.css");
+
+        Assert.Contains("data-mention-input role=\"combobox\"", source);
+        Assert.Contains("aria-autocomplete=\"list\"", source);
+        Assert.Contains("aria-haspopup=\"listbox\"", source);
+        Assert.Contains("class=\"lmx-mention-options\" role=\"listbox\"", source);
+        Assert.Contains("function wireMentionAutocomplete(", source);
+        Assert.Contains("event.key === \"ArrowDown\"", source);
+        Assert.Contains("event.key === \"ArrowUp\"", source);
+        Assert.Contains("event.key === \"Enter\"", source);
+        Assert.Contains("event.key === \"Escape\"", source);
+        Assert.Contains("textarea.setAttribute(\"aria-activedescendant\", activeOption.id);", source);
+        Assert.Contains("const MAX_NOTE_MENTIONS = 5;", source);
+        Assert.Contains(".lmx-mention-option {", css);
+        Assert.Contains("min-height: 44px;", css);
+        Assert.Contains(".lmx-mention-options[hidden]", css);
+    }
+
+    [Fact]
     public void ChallengeSubmitHelper_IgnoresDuplicateBusySubmissions()
     {
         var source = ReadFrontendSource();

@@ -31,3 +31,5 @@ Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age 
 
 - Public community-call social announcements are social-only Custom Events queued about one hour before each selected call; they may include the public video call URL, but never participant access or stop links.
 - Community-call reminder emails have their own opt-out; stopping them does not stop daily Challenge emails.
+- Check-in notes may mention confirmed participants with their unique public display name in the form `@Display Name`. A participant receives the full note by email only when they are newly added to a saved note; self-mentions and repeated saves do not notify.
+- A check-in may mention at most five other participants. Challenge email opt-outs also stop mention notifications.

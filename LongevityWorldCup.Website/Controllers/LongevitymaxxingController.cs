@@ -148,11 +148,13 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
 
     [HttpPost("check-in")]
     [Consumes("application/json")]
-    public IActionResult CheckIn([FromBody] LongevitymaxxingCheckInRequest request)
+    public async Task<IActionResult> CheckIn(
+        [FromBody] LongevitymaxxingCheckInRequest request,
+        CancellationToken ct)
     {
         try
         {
-            return Ok(_challenge.SubmitCheckIn(request, context: HttpContext));
+            return Ok(await _challenge.SubmitCheckInAsync(request, [], context: HttpContext, ct: ct).ConfigureAwait(false));
         }
         catch (UnauthorizedAccessException ex)
         {
