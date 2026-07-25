@@ -27,6 +27,7 @@ public sealed class LongevitymaxxingChallengeService
     private const int CommitmentAverageWindowDays = 7;
     private const int CommitmentPledgeAllowanceRawPoints = 2;
     private const int LeaderboardScoringWindowDays = 14;
+    private const int MaxMentionsPerCheckIn = 5;
     private const string CommitmentPaymentReminderKind = "commitment-payment";
     private const string ChallengeInactiveReasonMissedScoredDays = "missed-scored-days";
     private const string ChallengeInactiveReasonCommitmentPayment = "commitment-payment";
@@ -736,6 +737,7 @@ public sealed class LongevitymaxxingChallengeService
         {
             checkIn = ValidateCheckIn(request, nowUtc);
             var state = SaveCheckIn(checkIn, []);
+            SendMentionNotifications(checkIn);
             TrackCheckInEvent(
                 CheckInEventName(checkIn.CountsForScore, "submitted"),
                 checkIn,
@@ -776,6 +778,7 @@ public sealed class LongevitymaxxingChallengeService
             if (photoFiles.Count == 0)
             {
                 var stateWithoutPhotos = SaveCheckIn(checkIn, []);
+                await SendMentionNotificationsAsync(checkIn, ct).ConfigureAwait(false);
                 await TrackCheckInEventAsync(
                     CheckInEventName(checkIn.CountsForScore, "submitted"),
                     checkIn,
@@ -806,6 +809,7 @@ public sealed class LongevitymaxxingChallengeService
             }
 
             var state = SaveCheckIn(checkIn, processedImages);
+            await SendMentionNotificationsAsync(checkIn, ct).ConfigureAwait(false);
             await TrackCheckInEventAsync(
                 CheckInEventName(checkIn.CountsForScore, "submitted"),
                 checkIn,
@@ -853,10 +857,120 @@ public sealed class LongevitymaxxingChallengeService
             throw new InvalidOperationException("Pay the commitment due or fix an existing eligible check-in before continuing.");
 
         var note = NormalizeNote(request.Note);
+        var confirmedParticipants = GetConfirmedParticipants();
+        var mentionedParticipants = ResolveMentionedParticipants(note, participant.Id, confirmedParticipants);
+        if (mentionedParticipants.Count > MaxMentionsPerCheckIn)
+            throw new InvalidOperationException($"Each check-in can mention up to {MaxMentionsPerCheckIn} participants.");
+
+        byDay.TryGetValue(request.ChallengeDay, out var existingCheckIn);
+        var previousMentionIds = ResolveMentionedParticipants(existingCheckIn?.Note, participant.Id, confirmedParticipants)
+            .Select(mentioned => mentioned.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        var newMentionRecipients = mentionedParticipants
+            .Where(mentioned => !previousMentionIds.Contains(mentioned.Id))
+            .ToList();
         var challengeDate = settings.StartDate.AddDays(request.ChallengeDay - 1);
 
-        return new ValidatedCheckIn(request, now, participant, values.Sleep, values.Exercise, values.Nutrition, values.Vices, note, challengeDate, eligible.CountsForScore);
+        return new ValidatedCheckIn(
+            request,
+            now,
+            participant,
+            values.Sleep,
+            values.Exercise,
+            values.Nutrition,
+            values.Vices,
+            note,
+            challengeDate,
+            eligible.CountsForScore,
+            newMentionRecipients);
     }
+
+    private void SendMentionNotifications(ValidatedCheckIn checkIn)
+        => SendMentionNotificationsAsync(checkIn, CancellationToken.None).GetAwaiter().GetResult();
+
+    private async Task SendMentionNotificationsAsync(ValidatedCheckIn checkIn, CancellationToken ct)
+    {
+        if (checkIn.Note is null || checkIn.NewMentionRecipients.Count == 0)
+            return;
+
+        foreach (var recipient in checkIn.NewMentionRecipients.Where(candidate => candidate.StoppedEmailsAtUtc is null))
+        {
+            try
+            {
+                var mention = new LongevitymaxxingMentionNotificationCandidate(
+                    recipient.Id,
+                    recipient.Email,
+                    recipient.DisplayName,
+                    checkIn.Participant.DisplayName,
+                    checkIn.Request.ChallengeDay,
+                    checkIn.Note);
+                await _email.SendMentionNotificationAsync(
+                    mention,
+                    BuildAccessUrl(recipient.AccessToken),
+                    ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Failed to send Longevitymaxxing mention notification from {SenderParticipantId} to {RecipientParticipantId}",
+                    checkIn.Participant.Id,
+                    recipient.Id);
+            }
+        }
+    }
+
+    private static IReadOnlyList<ParticipantRecord> ResolveMentionedParticipants(
+        string? note,
+        string senderParticipantId,
+        IReadOnlyList<ParticipantRecord> confirmedParticipants)
+    {
+        if (string.IsNullOrWhiteSpace(note))
+            return [];
+
+        var matches = new List<(int Start, int Length, ParticipantRecord Participant)>();
+        foreach (var participant in confirmedParticipants
+                     .Where(candidate => !string.Equals(candidate.Id, senderParticipantId, StringComparison.Ordinal))
+                     .OrderByDescending(candidate => candidate.DisplayName.Length))
+        {
+            var token = $"@{participant.DisplayName}";
+            var searchFrom = 0;
+            while (searchFrom < note.Length)
+            {
+                var start = note.IndexOf(token, searchFrom, StringComparison.OrdinalIgnoreCase);
+                if (start < 0)
+                    break;
+
+                var end = start + token.Length;
+                var hasValidStart = start == 0 || !IsMentionWordCharacter(note[start - 1]);
+                var hasValidEnd = end == note.Length || !IsMentionWordCharacter(note[end]);
+                if (hasValidStart && hasValidEnd)
+                    matches.Add((start, token.Length, participant));
+
+                searchFrom = start + 1;
+            }
+        }
+
+        var selected = new List<(int Start, int Length, ParticipantRecord Participant)>();
+        foreach (var match in matches.OrderBy(candidate => candidate.Start).ThenByDescending(candidate => candidate.Length))
+        {
+            if (selected.Any(existing => RangesOverlap(existing.Start, existing.Length, match.Start, match.Length)))
+                continue;
+            selected.Add(match);
+        }
+
+        return selected
+            .OrderBy(match => match.Start)
+            .Select(match => match.Participant)
+            .DistinctBy(participant => participant.Id, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private static bool IsMentionWordCharacter(char character)
+        => char.IsLetterOrDigit(character) || character == '_';
+
+    private static bool RangesOverlap(int firstStart, int firstLength, int secondStart, int secondLength)
+        => firstStart < secondStart + secondLength && secondStart < firstStart + firstLength;
 
     private LongevitymaxxingParticipantState SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages)
     {
@@ -4219,7 +4333,8 @@ public sealed class LongevitymaxxingChallengeService
         int Vices,
         string? Note,
         DateOnly ChallengeDate,
-        bool CountsForScore);
+        bool CountsForScore,
+        IReadOnlyList<ParticipantRecord> NewMentionRecipients);
 
     private sealed record PendingCheckInImage(
         int ImageIndex,

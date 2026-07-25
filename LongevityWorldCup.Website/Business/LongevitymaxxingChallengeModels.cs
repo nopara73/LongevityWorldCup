@@ -235,6 +235,14 @@ public sealed record LongevitymaxxingChallengeStartCandidate(
     string StopToken,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
 
+public sealed record LongevitymaxxingMentionNotificationCandidate(
+    string RecipientParticipantId,
+    string RecipientEmail,
+    string RecipientDisplayName,
+    string SenderDisplayName,
+    int ChallengeDay,
+    string Note);
+
 public sealed record LongevitymaxxingChallengeResultEventRow(
     string ParticipantId,
     string DisplayName,

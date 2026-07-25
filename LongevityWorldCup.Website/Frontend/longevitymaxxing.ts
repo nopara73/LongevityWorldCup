@@ -52,6 +52,12 @@
         trigger: HTMLButtonElement;
     }
 
+    interface MentionContext {
+        start: number;
+        end: number;
+        query: string;
+    }
+
     interface CheckInDraft {
         sleep: number;
         exercise: number;
@@ -483,6 +489,7 @@
     ];
     const SAVED_CHECKIN_TEXT = "Saved.";
     const MAX_NOTE_PHOTOS = 4;
+    const MAX_NOTE_MENTIONS = 5;
     const RECENT_REMARK_LIMIT = 3;
     const PLANT_LEAF_CAPACITY = 64;
     const PLANT_BUD_CAPACITY = 12;
@@ -2507,7 +2514,8 @@
             });
         });
         container.querySelectorAll<HTMLFormElement>("form").forEach(form => {
-            form.querySelector("textarea")?.addEventListener("input", () => updateCheckInSaveState(form));
+            const noteInput = form.querySelector<HTMLTextAreaElement>("textarea[data-mention-input]");
+            if (noteInput) wireMentionAutocomplete(noteInput, form);
             form.querySelector<HTMLButtonElement>("[data-photo-button]")?.addEventListener("click", () => {
                 form.querySelector<HTMLInputElement>("input[data-note-photos]")?.click();
             });
@@ -2607,9 +2615,10 @@
             <h3>Day ${day.challengeDay} <span class="lmx-phase">${practice ? `Practice check-in - ${esc(formatCheckInDate(day.date))}` : esc(formatCheckInDate(day.date))}</span></h3>
             ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
             ${questions}
-            <div class="lmx-field">
+            <div class="lmx-field lmx-mention-field">
                 <label for="lmx-note-${day.challengeDay}">Remarks <span>optional</span></label>
-                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible publicly">${esc(note)}</textarea>
+                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}">${esc(note)}</textarea>
+                <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
                 <span class="lmx-label">Photos <span>optional</span></span>
@@ -2631,6 +2640,241 @@
             <div class="lmx-status${saved || day.existing ? " success" : ""}">${saved || day.existing ? SAVED_CHECKIN_TEXT : ""}</div>
             ${recentRemarksHtml(recentRemarks)}
         </form>`;
+    }
+
+    function wireMentionAutocomplete(textarea: HTMLTextAreaElement, form: HTMLFormElement): void {
+        const controlledList = document.getElementById(textarea.getAttribute("aria-controls") || "");
+        if (!(controlledList instanceof HTMLElement)) {
+            textarea.addEventListener("input", () => updateCheckInSaveState(form));
+            return;
+        }
+        const list = controlledList;
+
+        let matches: LeaderboardRow[] = [];
+        let currentFocus = -1;
+        let completedMention: { start: number; end: number; token: string } | null = null;
+
+        textarea.addEventListener("input", () => {
+            updateCheckInSaveState(form);
+            if (completedMention) {
+                const currentToken = textarea.value.slice(completedMention.start, completedMention.end);
+                if (currentToken !== completedMention.token) completedMention = null;
+            }
+            renderSuggestions();
+        });
+        textarea.addEventListener("click", renderSuggestions);
+        textarea.addEventListener("keyup", event => {
+            if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) renderSuggestions();
+        });
+        textarea.addEventListener("keydown", event => {
+            if (list.hidden) return;
+
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                currentFocus = matches.length ? (currentFocus + 1) % matches.length : -1;
+                syncActiveOption();
+            } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                currentFocus = matches.length ? (currentFocus <= 0 ? matches.length - 1 : currentFocus - 1) : -1;
+                syncActiveOption();
+            } else if (event.key === "Enter" && currentFocus >= 0) {
+                event.preventDefault();
+                selectParticipant(matches[currentFocus]);
+            } else if (event.key === "Tab" && currentFocus >= 0) {
+                selectParticipant(matches[currentFocus], false);
+            } else if (event.key === "Escape") {
+                event.preventDefault();
+                closeList();
+            }
+        });
+        textarea.addEventListener("blur", () => {
+            window.setTimeout(closeList, 100);
+        });
+
+        function renderSuggestions(): void {
+            const context = activeMentionContext(textarea);
+            const rows = mentionableParticipants();
+            if (!context || isCompletedMentionContext(context) || contextContinuesPastParticipant(context, rows)) {
+                closeList();
+                return;
+            }
+
+            const mentionedIds = mentionedParticipantIds(textarea.value, rows);
+            if (mentionedIds.size >= MAX_NOTE_MENTIONS) {
+                matches = [];
+                currentFocus = -1;
+                openList(`<div class="lmx-mention-empty" role="option" aria-disabled="true">Five-participant mention limit reached</div>`);
+                return;
+            }
+
+            const query = context.query.trim().toLocaleLowerCase();
+            const terms = query.split(/\s+/).filter(Boolean);
+            matches = rows
+                .filter(row => terms.every(term => row.displayName.toLocaleLowerCase().includes(term)))
+                .sort((first, second) => {
+                    const firstName = first.displayName.toLocaleLowerCase();
+                    const secondName = second.displayName.toLocaleLowerCase();
+                    const firstScore = query && firstName.startsWith(query) ? 0 : firstName.split(/\s+/).some(part => part.startsWith(query)) ? 1 : 2;
+                    const secondScore = query && secondName.startsWith(query) ? 0 : secondName.split(/\s+/).some(part => part.startsWith(query)) ? 1 : 2;
+                    return firstScore - secondScore || first.displayName.localeCompare(second.displayName);
+                })
+                .slice(0, 6);
+            currentFocus = matches.length ? 0 : -1;
+
+            if (!matches.length) {
+                openList(`<div class="lmx-mention-empty" role="option" aria-disabled="true">No participant found</div>`);
+                return;
+            }
+
+            openList(matches.map((row, index) => {
+                const optionId = `${list.id}-option-${index}`;
+                return `<div id="${optionId}" class="lmx-mention-option${index === currentFocus ? " autocomplete-active" : ""}" role="option" aria-selected="${index === currentFocus ? "true" : "false"}" data-mention-index="${index}">
+                    ${mentionAvatarHtml(row)}
+                    <span>${highlightMatch(row.displayName, context.query.trim())}</span>
+                </div>`;
+            }).join(""));
+            list.querySelectorAll<HTMLElement>("[data-mention-index]").forEach(option => {
+                option.addEventListener("mousedown", event => {
+                    event.preventDefault();
+                    const index = Number(option.dataset.mentionIndex);
+                    if (Number.isInteger(index) && matches[index]) selectParticipant(matches[index]);
+                });
+            });
+            syncActiveOption();
+        }
+
+        function selectParticipant(row: LeaderboardRow | undefined, restoreFocus = true): void {
+            const context = activeMentionContext(textarea);
+            if (!row || !context) return;
+
+            const token = `@${row.displayName}`;
+            const suffix = textarea.value.slice(context.end);
+            const separator = !suffix ? " " : /^\s/.test(suffix) ? "" : " ";
+            const nextValue = textarea.value.slice(0, context.start) + token + separator + suffix;
+            const caret = context.start + token.length + separator.length;
+            textarea.value = nextValue.slice(0, textarea.maxLength > 0 ? textarea.maxLength : undefined);
+            textarea.setSelectionRange(Math.min(caret, textarea.value.length), Math.min(caret, textarea.value.length));
+            completedMention = {
+                start: context.start,
+                end: context.start + token.length,
+                token
+            };
+            updateCheckInSaveState(form);
+            closeList();
+            if (restoreFocus) textarea.focus({ preventScroll: true });
+        }
+
+        function openList(html: string): void {
+            list.innerHTML = html;
+            list.hidden = false;
+            textarea.setAttribute("aria-expanded", "true");
+        }
+
+        function closeList(): void {
+            list.hidden = true;
+            list.innerHTML = "";
+            matches = [];
+            currentFocus = -1;
+            textarea.setAttribute("aria-expanded", "false");
+            textarea.removeAttribute("aria-activedescendant");
+        }
+
+        function syncActiveOption(): void {
+            const options = Array.from(list.querySelectorAll<HTMLElement>("[data-mention-index]"));
+            options.forEach((option, index) => {
+                const active = index === currentFocus;
+                option.classList.toggle("autocomplete-active", active);
+                option.setAttribute("aria-selected", active ? "true" : "false");
+            });
+            const activeOption = currentFocus >= 0 ? options[currentFocus] : null;
+            if (activeOption) {
+                textarea.setAttribute("aria-activedescendant", activeOption.id);
+                activeOption.scrollIntoView({ block: "nearest" });
+            } else {
+                textarea.removeAttribute("aria-activedescendant");
+            }
+        }
+
+        function isCompletedMentionContext(context: MentionContext): boolean {
+            return !!completedMention &&
+                context.start === completedMention.start &&
+                context.end >= completedMention.end &&
+                textarea.value.slice(completedMention.start, completedMention.end) === completedMention.token;
+        }
+
+        function contextContinuesPastParticipant(context: MentionContext, rows: LeaderboardRow[]): boolean {
+            const query = context.query.toLocaleLowerCase();
+            return rows.some(row => {
+                const name = row.displayName.toLocaleLowerCase();
+                if (!query.startsWith(name) || query.length === name.length) return false;
+                if (isMentionWordCharacter(query[name.length])) return false;
+                return !rows.some(candidate => candidate.displayName.toLocaleLowerCase().startsWith(query));
+            });
+        }
+    }
+
+    function activeMentionContext(textarea: HTMLTextAreaElement): MentionContext | null {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        if (start === null || end === null || start !== end) return null;
+
+        const beforeCaret = textarea.value.slice(0, start);
+        const mentionStart = beforeCaret.lastIndexOf("@");
+        if (mentionStart < 0) return null;
+        if (mentionStart > 0 && isMentionWordCharacter(beforeCaret[mentionStart - 1])) return null;
+
+        const query = beforeCaret.slice(mentionStart + 1);
+        if (/[\r\n@]/.test(query) || query.length > 80) return null;
+        return { start: mentionStart, end: start, query };
+    }
+
+    function mentionableParticipants(): LeaderboardRow[] {
+        const selfId = participantState?.participant?.id || "";
+        return [...(participantState?.public?.leaderboard || publicState?.leaderboard || [])]
+            .filter(row => row.participantId && row.participantId !== selfId && row.displayName.trim())
+            .sort((first, second) => first.displayName.localeCompare(second.displayName));
+    }
+
+    function mentionedParticipantIds(note: string, participants: LeaderboardRow[]): Set<string> {
+        const found = new Set<string>();
+        const claimedRanges: Array<{ start: number; end: number }> = [];
+        const lowerNote = note.toLocaleLowerCase();
+
+        [...participants]
+            .sort((first, second) => second.displayName.length - first.displayName.length)
+            .forEach(participant => {
+                const token = `@${participant.displayName}`.toLocaleLowerCase();
+                let searchFrom = 0;
+                while (searchFrom < lowerNote.length) {
+                    const start = lowerNote.indexOf(token, searchFrom);
+                    if (start < 0) break;
+                    const end = start + token.length;
+                    const validStart = start === 0 || !isMentionWordCharacter(note[start - 1]);
+                    const validEnd = end === note.length || !isMentionWordCharacter(note[end]);
+                    const overlaps = claimedRanges.some(range => range.start < end && start < range.end);
+                    if (validStart && validEnd && !overlaps) {
+                        found.add(participant.participantId);
+                        claimedRanges.push({ start, end });
+                    }
+                    searchFrom = start + 1;
+                }
+            });
+
+        return found;
+    }
+
+    function isMentionWordCharacter(character: string | undefined): boolean {
+        return !!character && /[\p{L}\p{N}_]/u.test(character);
+    }
+
+    function mentionAvatarHtml(row: LeaderboardRow): string {
+        const athlete = findAthleteForParticipant(row);
+        const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? "" : (athlete?.profilePic || "");
+        const image = athleteProfileImage || String(row.profileImageUrl || "").trim();
+        if (image) {
+            return `<span class="lmx-mention-avatar" aria-hidden="true"><img src="${escAttr(image)}" alt="" loading="lazy" decoding="async"></span>`;
+        }
+        return `<span class="lmx-mention-avatar fallback" aria-hidden="true">${esc(row.displayName.slice(0, 1).toLocaleUpperCase())}</span>`;
     }
 
     function lifetimeHabitEvidence(key: HabitKey): GardenHabitState {

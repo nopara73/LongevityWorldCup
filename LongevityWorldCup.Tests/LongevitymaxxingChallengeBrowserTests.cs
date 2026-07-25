@@ -328,6 +328,97 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
+    public async Task CheckInNoteMentionPickerSupportsKeyboardAndPointerWithoutCoveringActions()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState(includeMentionParticipants: true))));
+        await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(includeMentionParticipants: true))));
+
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var textarea = page.Locator("textarea[data-mention-input]");
+        await textarea.WaitForAsync();
+        await textarea.FillAsync("Great work @Be");
+
+        var list = page.Locator(".lmx-mention-options:not([hidden])");
+        await list.WaitForAsync();
+        Assert.Equal("combobox", await textarea.GetAttributeAsync("role"));
+        Assert.Equal("true", await textarea.GetAttributeAsync("aria-expanded"));
+        Assert.Equal("listbox", await list.GetAttributeAsync("role"));
+        var option = list.Locator(".lmx-mention-option");
+        Assert.Equal(1, await option.CountAsync());
+        Assert.Contains("Bea Builder", await option.InnerTextAsync());
+        Assert.Equal("true", await option.GetAttributeAsync("aria-selected"));
+
+        var layout = await page.EvaluateAsync<double[]>(
+            """
+            () => {
+                const textarea = document.querySelector('textarea[data-mention-input]');
+                const list = document.querySelector('.lmx-mention-options:not([hidden])');
+                const photoField = document.querySelector('.lmx-note-photo-field');
+                const option = document.querySelector('.lmx-mention-option');
+                if (!textarea || !list || !photoField || !option) return [];
+                const textareaRect = textarea.getBoundingClientRect();
+                const listRect = list.getBoundingClientRect();
+                const photoRect = photoField.getBoundingClientRect();
+                const optionRect = option.getBoundingClientRect();
+                return [textareaRect.bottom, listRect.top, listRect.bottom, photoRect.top, optionRect.height];
+            }
+            """);
+        Assert.Equal(5, layout.Length);
+        Assert.True(layout[1] >= layout[0] - 1, "Mention suggestions should flow below the note editor.");
+        Assert.True(layout[3] >= layout[2] - 1, "Mention suggestions should not cover the photo or save actions.");
+        Assert.True(layout[4] >= 44, $"Expected a 44px mention touch target; got {layout[4]}.");
+
+        await textarea.PressAsync("Enter");
+        Assert.Equal("Great work @Bea Builder ", await textarea.InputValueAsync());
+        Assert.Equal("false", await textarea.GetAttributeAsync("aria-expanded"));
+        Assert.True(await list.IsHiddenAsync());
+
+        await textarea.FillAsync("Thanks @Ar");
+        await list.WaitForAsync();
+        var ari = list.Locator(".lmx-mention-option");
+        Assert.Equal(1, await ari.CountAsync());
+        await ari.DispatchEventAsync("mousedown");
+        Assert.Equal("Thanks @Ari Able ", await textarea.InputValueAsync());
+        Assert.True(await textarea.EvaluateAsync<bool>("element => element === document.activeElement"));
+
+        await textarea.FillAsync("Thanks @Ari Able for this.");
+        await textarea.ClickAsync();
+        Assert.True(await list.IsHiddenAsync());
+
+        await textarea.FillAsync("@");
+        await list.WaitForAsync();
+        Assert.Equal(2, await list.Locator(".lmx-mention-option").CountAsync());
+        Assert.DoesNotContain("Browser Tester", await list.InnerTextAsync());
+        await textarea.PressAsync("Escape");
+        Assert.Equal("false", await textarea.GetAttributeAsync("aria-expanded"));
+        Assert.True(await list.IsHiddenAsync());
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task CheckInGarden_UsesEstablishedGrowthDamageWithSeedlingStartAndBoundedProceduralPlants()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -443,10 +534,13 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             "(elements, property) => elements.map(element => getComputedStyle(element)[property])",
             property);
 
-    private static object BuildParticipantState(bool emptyGarden = false, bool includeUpcomingCall = false)
+    private static object BuildParticipantState(
+        bool emptyGarden = false,
+        bool includeUpcomingCall = false,
+        bool includeMentionParticipants = false)
         => new
         {
-            @public = BuildPublicState(),
+            @public = BuildPublicState(includeMentionParticipants),
             participant = new
             {
                 id = "p1",
@@ -539,7 +633,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 vices = new { yesCount = 1000, noCount = 0, vitality = 0.999d }
             };
 
-    private static object BuildPublicState()
+    private static object BuildPublicState(bool includeMentionParticipants = false)
         => new
         {
             challengeName = "Longevitymaxxing Challenge",
@@ -558,7 +652,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                     date = DateOnly.Parse("2026-06-08").AddDays(day - 1).ToString("yyyy-MM-dd")
                 })
                 .ToArray(),
-            leaderboard = new[]
+            leaderboard = new object[]
             {
                 new
                 {
@@ -588,7 +682,13 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                     challengeInactive = false,
                     commitmentStatus = (string?)null
                 }
-            },
+            }.Concat(includeMentionParticipants
+                ? new object[]
+                {
+                    MentionLeaderboardRow("p2", "Ari Able"),
+                    MentionLeaderboardRow("p3", "Bea Builder")
+                }
+                : []).ToArray(),
             podium = Array.Empty<object>(),
             notes = new[]
             {
@@ -602,6 +702,36 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             calls = Array.Empty<object>(),
             slackInviteUrl = "",
             slackRoomUrl = (string?)null
+        };
+
+    private static object MentionLeaderboardRow(string participantId, string displayName)
+        => new
+        {
+            participantId,
+            displayName,
+            athleteUrl = (string?)null,
+            profileImageUrl = (string?)null,
+            checkedInDays = 1,
+            totalPoints = 8,
+            currentStreak = 1,
+            cells = Enumerable.Range(1, 22)
+                .Select(day => new
+                {
+                    challengeDay = day,
+                    checkedIn = false,
+                    score = (int?)null,
+                    countsForScore = day != 1,
+                    sleep = (int?)null,
+                    exercise = (int?)null,
+                    nutrition = (int?)null,
+                    vices = (int?)null
+                })
+                .ToArray(),
+            badges = Array.Empty<string>(),
+            latestCheckInAtUtc = "2026-06-28T07:00:00Z",
+            challengeEmailsStopped = false,
+            challengeInactive = false,
+            commitmentStatus = (string?)null
         };
 
     private static object Note(

@@ -80,6 +80,171 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task CheckInMentionsNotifyExactConfirmedParticipantsWithTheFullNote()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
+        var recipientAccess = await fixture.ConfirmParticipantAsync("bea@example.com", "Bea Builder");
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(
+                senderAccess,
+                1,
+                2,
+                2,
+                2,
+                2,
+                "Strong work @Bea Builder — your consistency helped today."),
+            DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
+
+        var sent = Assert.Single(fixture.Email.Mentions);
+        Assert.Equal("bea@example.com", sent.Mention.RecipientEmail);
+        Assert.Equal("Bea Builder", sent.Mention.RecipientDisplayName);
+        Assert.Equal("Sender Sam", sent.Mention.SenderDisplayName);
+        Assert.Equal(1, sent.Mention.ChallengeDay);
+        Assert.Equal("Strong work @Bea Builder — your consistency helped today.", sent.Mention.Note);
+        Assert.Equal(recipientAccess, ReadQueryToken(sent.Url, "token"));
+    }
+
+    [Fact]
+    public async Task CheckInMentionEditsNotifyOnlyNewNamesAndAvoidPartialOrSelfMatches()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
+        await fixture.ConfirmParticipantAsync("bob@example.com", "Bob");
+        await fixture.ConfirmParticipantAsync("bob-smith@example.com", "Bob Smith");
+        var now = DateTimeOffset.Parse("2026-06-09T08:05:00Z");
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(
+                senderAccess,
+                1,
+                2,
+                2,
+                2,
+                2,
+                "Email test@Bob.com; thanks @Bob Smith and @Sender Sam."),
+            now);
+
+        var first = Assert.Single(fixture.Email.Mentions);
+        Assert.Equal("bob-smith@example.com", first.Mention.RecipientEmail);
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(
+                senderAccess,
+                1,
+                2,
+                2,
+                2,
+                2,
+                "Email test@Bob.com; thanks @Bob Smith and @Sender Sam."),
+            now.AddMinutes(1));
+
+        Assert.Single(fixture.Email.Mentions);
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(
+                senderAccess,
+                1,
+                2,
+                2,
+                2,
+                2,
+                "Thanks again @Bob Smith, and welcome @Bob."),
+            now.AddMinutes(2));
+
+        Assert.Equal(2, fixture.Email.Mentions.Count);
+        Assert.Equal("bob@example.com", fixture.Email.Mentions.Last().Mention.RecipientEmail);
+    }
+
+    [Fact]
+    public async Task CheckInMentionsHonorChallengeEmailOptOutAndLimitFanout()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
+        await fixture.ConfirmParticipantAsync("quiet@example.com", "Quiet Quinn");
+        fixture.Db.Run(sqlite =>
+        {
+            using var update = sqlite.CreateCommand();
+            update.CommandText =
+                """
+                UPDATE LongevitymaxxingParticipants
+                SET StoppedEmailsAtUtc = @stopped
+                WHERE Email = 'quiet@example.com';
+                """;
+            update.Parameters.AddWithValue("@stopped", DateTimeOffset.Parse("2026-06-08T12:00:00Z").ToString("o"));
+            update.ExecuteNonQuery();
+        });
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(senderAccess, 1, 2, 2, 2, 2, "Still visible to @Quiet Quinn."),
+            DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
+
+        Assert.Empty(fixture.Email.Mentions);
+
+        var names = Enumerable.Range(1, 6).Select(index => $"Person {index}").ToArray();
+        foreach (var name in names)
+            fixture.InsertConfirmedParticipant($"{name.Replace(' ', '-').ToLowerInvariant()}@example.com", name);
+
+        var error = Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(
+                senderAccess,
+                1,
+                2,
+                2,
+                2,
+                2,
+                string.Join(" ", names.Select(name => $"@{name}"))),
+            DateTimeOffset.Parse("2026-06-09T08:07:00Z")));
+
+        Assert.Equal("Each check-in can mention up to 5 participants.", error.Message);
+    }
+
+    [Fact]
+    public async Task MentionDeliveryFailureDoesNotUndoTheSavedCheckIn()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
+        await fixture.ConfirmParticipantAsync("bea@example.com", "Bea Builder");
+        fixture.Email.ThrowOnMention = true;
+
+        var state = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(
+                senderAccess,
+                1,
+                2,
+                2,
+                2,
+                2,
+                "This still saves, @Bea Builder."),
+            DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
+
+        var saved = Assert.Single(state.EligibleDays.Where(day => day.ChallengeDay == 1));
+        Assert.Equal("This still saves, @Bea Builder.", saved.Existing?.Note);
+    }
+
+    [Fact]
+    public void MentionNotificationEmailIncludesSenderMessageAndParticipantLink()
+    {
+        var content = SmtpLongevitymaxxingEmailSender.BuildMentionNotificationEmailContent(
+            new LongevitymaxxingMentionNotificationCandidate(
+                "recipient",
+                "bea@example.com",
+                "Bea Builder",
+                "Sender Sam",
+                12,
+                "You made this easier, @Bea Builder."),
+            "https://example.test/longevitymaxxing?token=recipient-token");
+
+        Assert.Equal("Sender Sam mentioned you in Longevitymaxxing", content.Subject);
+        Assert.Contains("Hi Bea Builder,", content.TextBody);
+        Assert.Contains("Sender Sam mentioned you in their Longevitymaxxing Day 12 check-in:", content.TextBody);
+        Assert.Contains("You made this easier, @Bea Builder.", content.TextBody);
+        Assert.Contains("https://example.test/longevitymaxxing?token=recipient-token", content.TextBody);
+        Assert.Empty(content.Attachments);
+    }
+
+    [Fact]
     public async Task SignupRequiresConfirmationBeforePublicRosterAndSubscribesNewsletterOnConfirm()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -2672,6 +2837,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
     {
         public List<(string Email, string Url)> Confirmations { get; } = [];
         public List<(string Email, string Url)> AccessLinks { get; } = [];
+        public List<(LongevitymaxxingMentionNotificationCandidate Mention, string Url)> Mentions { get; } = [];
+        public bool ThrowOnMention { get; set; }
 
         public Task SendConfirmationAsync(string email, string displayName, string confirmationUrl, CancellationToken ct = default)
         {
@@ -2693,6 +2860,17 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         public Task SendChallengeStartAsync(LongevitymaxxingChallengeStartCandidate start, string challengeUrl, string stopUrl, CancellationToken ct = default)
             => Task.CompletedTask;
+
+        public Task SendMentionNotificationAsync(
+            LongevitymaxxingMentionNotificationCandidate mention,
+            string challengeUrl,
+            CancellationToken ct = default)
+        {
+            if (ThrowOnMention)
+                throw new InvalidOperationException("Mention delivery failed.");
+            Mentions.Add((mention, challengeUrl));
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeBtcpayInvoiceClient : IBtcpayInvoiceClient
