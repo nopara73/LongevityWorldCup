@@ -40,6 +40,17 @@
         transition: border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
+    .bioageform .biomarker-card input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+
+    .bioageform .biomarker-card input[type="number"]::-webkit-inner-spin-button,
+    .bioageform .biomarker-card input[type="number"]::-webkit-outer-spin-button {
+        margin: 0;
+        -webkit-appearance: none;
+    }
+
     .bioageform select {
         padding-right: 2.25rem;
         background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371808d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
