@@ -414,6 +414,14 @@ public sealed class BioageMobileUxBrowserTests
             $"1 of {biomarkerCount} biomarkers entered");
         Assert.True(await calculate.IsDisabledAsync());
 
+        await firstInput.PressAsync("Tab");
+        await page.WaitForFunctionAsync(
+            "nextId => document.activeElement?.id === nextId",
+            nextInputId);
+        Assert.NotEqual($"{firstInputId}Unit", await page.EvaluateAsync<string>(
+            "() => document.activeElement?.id || ''"));
+
+        await firstInput.FocusAsync();
         await firstInput.PressAsync("Enter");
         await page.WaitForFunctionAsync(
             "nextId => document.activeElement?.id === nextId",
