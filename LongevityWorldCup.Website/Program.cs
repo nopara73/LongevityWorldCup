@@ -56,7 +56,13 @@ namespace LongevityWorldCup.Website
                     Description = """
                         Public no-auth JSON endpoints for Longevity World Cup athlete, field, biological aging clock calculation, and rank-preview data.
 
-                        The documented endpoints are public data and biological aging clock calculation surfaces used by the website and external clients. They do not require API keys, OAuth, cookies, or other authentication.
+                        The documented endpoints are public data and biological aging clock calculation surfaces used by the website and external clients.
+
+                        Access for every documented endpoint:
+
+                        - **Auth: No.** No API key, OAuth, cookie, or other authentication is required.
+                        - **HTTPS: Yes.** Use the production HTTPS server listed below.
+                        - **CORS: Yes.** The production endpoints accept cross-origin browser requests from any origin without credentials.
                         """,
                     Contact = new OpenApiContact
                     {

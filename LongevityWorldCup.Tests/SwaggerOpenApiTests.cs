@@ -201,7 +201,12 @@ public sealed class SwaggerOpenApiTests
             .GetProperty("servers")[0]
             .GetProperty("url")
             .GetString());
-        Assert.Contains("no-auth", root.GetProperty("info").GetProperty("description").GetString());
+        var description = root.GetProperty("info").GetProperty("description").GetString();
+        Assert.Contains("no-auth", description);
+        Assert.Contains("Access for every documented endpoint", description);
+        Assert.Contains("Auth: No", description);
+        Assert.Contains("HTTPS: Yes", description);
+        Assert.Contains("CORS: Yes", description);
         Assert.Equal("https://longevityworldcup.com/", root
             .GetProperty("info")
             .GetProperty("contact")
