@@ -385,6 +385,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("targetBlank: true", javascript);
         Assert.Contains("target=\"_blank\" rel=\"noopener noreferrer\"", javascript);
         Assert.Contains("id=\"lmxQuoteDialogOk\"", javascript);
+        Assert.Contains("lwc:athlete-dialog-before-open", javascript);
         Assert.Contains("Podcast</span>", javascript);
         Assert.Contains("fa fa-microphone", javascript);
         Assert.DoesNotContain(">YouTube</a>", javascript);

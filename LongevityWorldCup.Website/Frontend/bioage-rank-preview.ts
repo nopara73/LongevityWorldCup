@@ -442,6 +442,10 @@ declare global {
             var isYou = row.isYou;
             var reduction = getReduction(row, clock);
             var nameHtml = escapeHtml(isYou ? 'You' : row.displayName);
+            if (!isYou && row.slug) {
+                var profileSlug = String(row.slug).trim().replace(/_/g, '-');
+                nameHtml = '<a href="/athlete/' + encodeURIComponent(profileSlug) + '">' + nameHtml + '</a>';
+            }
             html += '<div class="bioage-rank-row' + (isYou ? ' current' : '') + '">' +
                 '<span class="bioage-rank-row-place">#' + (i + 1) + '</span>' +
                 buildAvatar(row) +

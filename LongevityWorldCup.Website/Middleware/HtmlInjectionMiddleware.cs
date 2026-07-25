@@ -23,6 +23,22 @@ namespace LongevityWorldCup.Website.Middleware
         private const string LeaderboardRowsStartMarker = "<!--LEADERBOARD-TBODY-ROWS-START-->";
         private const string LeaderboardRowsEndMarker = "<!--LEADERBOARD-TBODY-ROWS-END-->";
         private const string LeaderboardSkeletonTbodyOpenTag = "<tbody class=\"loading-skeleton\" aria-busy=\"true\">";
+        private const string AthleteDialogStartMarker = "<!--ATHLETE-DIALOG-START-->";
+        private const string AthleteDialogEndMarker = "<!--ATHLETE-DIALOG-END-->";
+        private const string AthleteDialogDeferredStartMarker = "<!--ATHLETE-DIALOG-DEFERRED-START-->";
+        private const string AthleteDialogDeferredEndMarker = "<!--ATHLETE-DIALOG-DEFERRED-END-->";
+        private const string LeaderboardRuntimeScriptsStartMarker = "<!--LEADERBOARD-RUNTIME-SCRIPTS-START-->";
+        private const string AthleteDialogRuntimeId = "athleteDialogRuntime";
+        private static readonly IReadOnlyList<string> AthleteDialogModulePaths =
+        [
+            "/js/misc.js",
+            "/js/flags.js",
+            "/js/leagueIcons.js",
+            "/js/pheno-age.js",
+            "/js/bortz-age.js",
+            "/js/badges.js",
+            "/js/age-visualization.js"
+        ];
         private static readonly HashSet<string> IndexableRoutes = new(StringComparer.OrdinalIgnoreCase)
         {
             "/",
@@ -93,6 +109,7 @@ namespace LongevityWorldCup.Website.Middleware
                     var bodyContent = await File.ReadAllTextAsync(filePath);
                     var usesSharedHead = bodyContent.Contains("<!--HEAD-->", StringComparison.Ordinal);
                     var optsIntoSharedAestheticSystem = bodyContent.Contains("<!--AESTHETIC-SYSTEM-->", StringComparison.Ordinal);
+                    var containsLeaderboardContent = bodyContent.Contains("<!--LEADERBOARD-CONTENT-->", StringComparison.Ordinal);
 
                     // Read the header and footer files
                     var head = await File.ReadAllTextAsync(Path.Combine(_webRootPath, "partials", "head.html"));
@@ -120,8 +137,23 @@ namespace LongevityWorldCup.Website.Middleware
 
                     // Replace placeholders within leaderboardContent first (since it contains nested placeholders)
                     leaderboardContent = leaderboardContent.Replace("<!--AGE-VISUALIZATION-->", ageVisualization);
+                    leaderboardContent = leaderboardContent.Replace("<!--GUESS-MY-AGE-->", guessMyAge);
                     leaderboardContent = ApplyLeaderboardRows(leaderboardContent, context);
                     leaderboardContent = ApplyLongevitymaxxingPromo(leaderboardContent);
+
+                    if (!containsLeaderboardContent && ShouldInjectAthleteDialogRuntime(path))
+                    {
+                        if (TryBuildAthleteDialogRuntime(leaderboardContent, out var athleteDialogRuntime))
+                        {
+                            bodyContent = InjectBeforeClosingBody(bodyContent, athleteDialogRuntime);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "Athlete dialog runtime markers were incomplete; no runtime was injected into {Path}.",
+                                path);
+                        }
+                    }
 
                     if (ShouldUseHungarianChrome(context))
                     {
@@ -193,6 +225,11 @@ namespace LongevityWorldCup.Website.Middleware
         private string ApplyHeadAssets(string html, string path)
         {
             var config = GetHeadAssetConfig(path);
+            if (ShouldInjectAthleteDialogRuntime(path))
+            {
+                config = AddAthleteDialogModules(config);
+            }
+
             var optionalHeadScripts = BuildOptionalHeadScripts(config);
             var modulesBootstrap = BuildModulesBootstrap(config);
 
@@ -217,6 +254,164 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
                 .Replace("{{ASSET_PROOF_HELPERS_JS}}", _assetVersionProvider.AppendVersion("/js/proof-helpers.js"))
                 .Replace("{{ASSET_AGE_VISUALIZATION_JS}}", _assetVersionProvider.AppendVersion("/js/age-visualization.js"));
+        }
+
+        private static HeadAssetConfig AddAthleteDialogModules(HeadAssetConfig config)
+        {
+            var modulePaths = config.ModulePaths
+                .Concat(AthleteDialogModulePaths)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            return config with { ModulePaths = modulePaths };
+        }
+
+        private static bool ShouldInjectAthleteDialogRuntime(string? path)
+        {
+            return path?.ToLowerInvariant() switch
+            {
+                "/events" or
+                "/event-board/event-board.html" or
+                "/longevitymaxxing" or
+                "/longevitymaxxing/longevitymaxxing.html" or
+                "/about" or
+                "/misc-pages/about.html" or
+                "/history" or
+                "/misc-pages/history.html" or
+                "/helstab-kihivas" or
+                "/helstab-kihivas/helstab-kihivas.html" or
+                "/pheno-age" or
+                "/onboarding/pheno-age.html" or
+                "/bortz-age" or
+                "/onboarding/bortz-age.html" => true,
+                _ => false
+            };
+        }
+
+        private static bool TryBuildAthleteDialogRuntime(string leaderboardContent, out string runtime)
+        {
+            runtime = string.Empty;
+            if (!TryExtractFirstStyleBlock(leaderboardContent, out var styles) ||
+                !TryExtractMarkedRegion(
+                    leaderboardContent,
+                    AthleteDialogStartMarker,
+                    AthleteDialogEndMarker,
+                    out var dialog) ||
+                !TryExtractMarkedRegion(
+                    leaderboardContent,
+                    AthleteDialogDeferredStartMarker,
+                    AthleteDialogDeferredEndMarker,
+                    out var deferredSections) ||
+                !TryExtractTail(
+                    leaderboardContent,
+                    LeaderboardRuntimeScriptsStartMarker,
+                    out var runtimeScripts))
+            {
+                return false;
+            }
+
+            var runtimeContents = ScopeAthleteDialogStyles(
+                string.Join(
+                    Environment.NewLine,
+                    styles,
+                    dialog,
+                    deferredSections));
+
+            runtime =
+$@"<div id=""{AthleteDialogRuntimeId}""
+     class=""athlete-dialog-runtime""
+     data-athlete-dialog-only=""true""
+     style=""--athlete-dialog-layer:10020"">
+{runtimeContents}
+</div>
+{runtimeScripts}";
+            return true;
+        }
+
+        private static bool TryExtractFirstStyleBlock(string html, out string styleBlock)
+        {
+            var match = Regex.Match(
+                html,
+                @"<style\b[^>]*>.*?</style\s*>",
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            styleBlock = match.Success ? match.Value.Trim() : string.Empty;
+            return match.Success;
+        }
+
+        private static bool TryExtractMarkedRegion(
+            string html,
+            string startMarker,
+            string endMarker,
+            out string region)
+        {
+            region = string.Empty;
+            var start = html.IndexOf(startMarker, StringComparison.Ordinal);
+            if (start < 0)
+            {
+                return false;
+            }
+
+            start += startMarker.Length;
+            var end = html.IndexOf(endMarker, start, StringComparison.Ordinal);
+            if (end < start)
+            {
+                return false;
+            }
+
+            region = html[start..end].Trim();
+            return true;
+        }
+
+        private static bool TryExtractTail(string html, string startMarker, out string tail)
+        {
+            tail = string.Empty;
+            var start = html.IndexOf(startMarker, StringComparison.Ordinal);
+            if (start < 0)
+            {
+                return false;
+            }
+
+            tail = html[(start + startMarker.Length)..].Trim();
+            return !string.IsNullOrWhiteSpace(tail);
+        }
+
+        private static string ScopeAthleteDialogStyles(string html)
+        {
+            return Regex.Replace(
+                html,
+                @"<style(?<attributes>\s[^>]*)?>(?<css>.*?)</style\s*>",
+                match =>
+                {
+                    var attributes = match.Groups["attributes"].Value;
+                    var css = Regex.Replace(
+                        match.Groups["css"].Value,
+                        @":root\b",
+                        ":scope",
+                        RegexOptions.IgnoreCase);
+
+                    return
+$@"<style{attributes}>
+    @scope (#{AthleteDialogRuntimeId}) {{{css}
+    }}
+</style>";
+                },
+                RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        }
+
+        private static string InjectBeforeClosingBody(string html, string content)
+        {
+            if (html.Contains($"id=\"{AthleteDialogRuntimeId}\"", StringComparison.OrdinalIgnoreCase) ||
+                html.Contains($"id='{AthleteDialogRuntimeId}'", StringComparison.OrdinalIgnoreCase))
+            {
+                return html;
+            }
+
+            var closingBodyIndex = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+            return closingBodyIndex < 0
+                ? html
+                : html.Insert(
+                    closingBodyIndex,
+                    $"{Environment.NewLine}{content}{Environment.NewLine}");
         }
 
         private string ApplyLeaderboardRows(string html, HttpContext context)
