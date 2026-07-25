@@ -298,6 +298,8 @@ public sealed class BioageMobileUxBrowserTests
         var firstUnit = page.Locator($"#{firstInputId}Unit");
         Assert.True(await firstInput.IsVisibleAsync());
         Assert.True(await firstUnit.IsVisibleAsync());
+        Assert.Equal("textfield", await firstInput.EvaluateAsync<string>(
+            "input => getComputedStyle(input).appearance"));
 
         var inlineLayout = await firstInput.EvaluateAsync<double[]>(
             """
