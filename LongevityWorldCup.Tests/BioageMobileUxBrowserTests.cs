@@ -85,31 +85,37 @@ public sealed class BioageMobileUxBrowserTests
                 Name: 'Mobile Update Athlete',
                 DisplayName: 'Mobile Update Athlete',
                 DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
-                Biomarkers: [{
-                    Date: '2026-06-01',
-                    AlbGL: 45,
-                    AlpUL: 83,
-                    AltUL: 22,
-                    ApoA1GL: 1.52,
-                    CholesterolMmolL: 5.6,
-                    CreatUmolL: 72,
-                    CrpMgL: 1.35,
-                    CystatinCMgL: 0.9,
-                    GluMmolL: 5,
-                    GgtUL: 29,
-                    Hba1cMmolMol: 35.5,
-                    LymPc: 28.6,
-                    MchPg: 31.8,
-                    McvFL: 92,
-                    MonocytePc: 7.2,
-                    NeutrophilPc: 64.2,
-                    Rbc10e12L: 4.5,
-                    RdwPc: 13.4,
-                    ShbgNmolL: 45.6,
-                    UreaMmolL: 5.4,
-                    VitaminDNmolL: 50,
-                    Wbc1000cellsuL: 6.54
-                }]
+                Biomarkers: [
+                    {
+                        Date: '2026-06-01',
+                        AlbGL: 45,
+                        AlpUL: 83,
+                        AltUL: 22,
+                        ApoA1GL: 1.52,
+                        CholesterolMmolL: 5.6,
+                        CreatUmolL: 72,
+                        CrpMgL: 1.35,
+                        CystatinCMgL: 0.9,
+                        GluMmolL: 5,
+                        GgtUL: 29,
+                        Hba1cMmolMol: 35.5,
+                        LymPc: 28.6,
+                        MchPg: 31.8,
+                        McvFL: 92,
+                        MonocytePc: 7.2,
+                        NeutrophilPc: 64.2,
+                        Rbc10e12L: 4.5,
+                        RdwPc: 13.4,
+                        ShbgNmolL: 45.6,
+                        UreaMmolL: 5.4,
+                        VitaminDNmolL: 50,
+                        Wbc1000cellsuL: 6.54
+                    },
+                    {
+                        Date: '2026-07-01',
+                        GluMmolL: 5.1
+                    }
+                ]
             }));
             """);
 
@@ -164,7 +170,9 @@ public sealed class BioageMobileUxBrowserTests
         await calculate.TapAsync();
         await page.WaitForSelectorAsync($"{resultSelector}.show");
         Assert.Equal("5.2", await page.Locator("#glucose").InputValueAsync());
-        Assert.NotEqual("", await page.Locator("#wbc").InputValueAsync());
+        Assert.Equal("6.54", await page.Locator("#wbc").InputValueAsync());
+        Assert.True(await page.Locator("#validAgeInput").IsVisibleAsync());
+        Assert.False(await page.Locator("#ensureCorrectInputSuggestion").IsVisibleAsync());
         Assert.Empty(errors);
     }
 

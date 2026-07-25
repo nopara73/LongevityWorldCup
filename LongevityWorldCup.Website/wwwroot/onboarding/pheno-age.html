@@ -1874,24 +1874,23 @@
 
             // Fill missing biomarker fields on update
             if (isUpdate && athlete?.Biomarkers?.length) {
-                const latestBiomarkerSet = athlete.Biomarkers.reduce((latest, current) => {
-                    return new Date(current.Date) > new Date(latest.Date) ? current : latest;
-                });
+                const latestValue = fieldNames =>
+                    bioageFlow.getLatestBiomarkerValue(athlete, fieldNames)?.value;
                 const biomarkerDefaults = {
-                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' },
-                    lymphocyte: { val: latestBiomarkerSet.LymPc, unit: '1' },
-                    mcv: { val: latestBiomarkerSet.McvFL, unit: '1' },
-                    rcdw: { val: latestBiomarkerSet.RdwPc, unit: '1' },
-                    albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
-                    ap: { val: latestBiomarkerSet.AlpUL, unit: '1' },
-                    creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
-                    glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
-                    crp: { val: latestBiomarkerSet.CrpMgL, unit: '10' }
+                    wbc: { val: latestValue('Wbc1000cellsuL'), unit: '1' },
+                    lymphocyte: { val: latestValue('LymPc'), unit: '1' },
+                    mcv: { val: latestValue('McvFL'), unit: '1' },
+                    rcdw: { val: latestValue('RdwPc'), unit: '1' },
+                    albumin: { val: latestValue('AlbGL'), unit: '1' },
+                    ap: { val: latestValue('AlpUL'), unit: '1' },
+                    creatinine: { val: latestValue('CreatUmolL'), unit: '1' },
+                    glucose: { val: latestValue('GluMmolL'), unit: '1' },
+                    crp: { val: latestValue('CrpMgL'), unit: '10' }
                 };
 
                 Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
                     const input = document.getElementById(id);
-                    if (!input.value) {
+                    if (hasStoredFiniteBiomarkerValue(val) && !input.value) {
                         input.value = val;
                         document.getElementById(id + 'Unit').value = unit;
                     }
