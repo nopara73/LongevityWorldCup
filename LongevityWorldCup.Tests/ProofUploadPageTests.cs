@@ -466,8 +466,13 @@ public sealed class ProofUploadPageTests
         Assert.Contains("const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value.trim());", html);
         Assert.Contains("return parsedDate <= todayUtc;", html);
         Assert.Contains("function hasStoredBiomarkerValues(biomarkerData)", html);
-        Assert.Contains("function hasCompleteSubmittedBiomarkerValues(biomarkerData, chronoPhenoDifference, chronoBortzDifference)", html);
-        Assert.Contains("!hasCompleteSubmittedBiomarkerValues(biomarkerData, chronoPhenoDifference, chronoBortzDifference)", parseBody);
+        Assert.Contains("function hasCompleteSubmittedBiomarkerValues(biomarkerData, bioageClock)", html);
+        Assert.Contains("!hasCompleteSubmittedBiomarkerValues(biomarkerData, bioageClock)", parseBody);
+        Assert.Contains("function readStoredBioageClock(biomarkerData, chronoPhenoDifference, chronoBortzDifference)", html);
+        Assert.Contains("const isLegacyUnclockedResult = !bioageClock", parseBody);
+        Assert.Contains("&& getSessionItem('bioageClock') === null", parseBody);
+        Assert.Contains("const hasRequiredAgeDifferences = isLegacyUnclockedResult || (chronoPhenoDifference !== null", parseBody);
+        Assert.Contains("(!bioageClock && !isLegacyUnclockedResult)", parseBody);
         Assert.Contains("function hasStoredBiomarkerValue(value)", html);
         Assert.Contains("Object.keys(entry).some(key => key !== 'Date' && hasStoredBiomarkerValue(entry[key]))", html);
         Assert.Contains("const PHENO_RESULT_BIOMARKER_KEYS = ['AlbGL', 'CreatUmolL', 'GluMmolL', 'CrpMgL', 'Wbc1000cellsuL', 'LymPc', 'McvFL', 'RdwPc', 'AlpUL'];", html);
@@ -480,6 +485,7 @@ public sealed class ProofUploadPageTests
         Assert.Contains("clearStoredBiomarkerHandoff();", parseBody);
         Assert.Contains("function clearStoredBiomarkerHandoff()", html);
         Assert.Contains("removeSessionItem('biomarkerData');", html);
+        Assert.Contains("removeSessionItem('bioageClock');", html);
         Assert.Contains("removeSessionItem('chronoPhenoDifference');", html);
         Assert.Contains("removeSessionItem('chronoBortzDifference');", html);
         Assert.Contains("customAlert('Biomarker data is missing. Please fill out the biomarker form first.')", parseBody);
@@ -514,7 +520,9 @@ public sealed class ProofUploadPageTests
         Assert.Contains("|| readStoredContactEmail();", html);
         Assert.Contains("accountEmail: readResultUploadContactEmail()", submitBody);
         Assert.Contains("const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');", html);
-        Assert.Contains("const chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');", html);
+        Assert.Contains("let chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');", html);
+        Assert.Contains("const bioageClock = readStoredBioageClock(", html);
+        Assert.Contains("if (bioageClock === 'pheno') chronoBortzDifference = null;", html);
         Assert.Contains("chronoPhenoDifference: chronoPhenoDifference", submitBody);
         Assert.Contains("chronoBortzDifference: chronoBortzDifference", submitBody);
         Assert.Contains("function readStoredAgeDifference(key)", html);

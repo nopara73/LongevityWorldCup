@@ -1,6 +1,7 @@
 type BioageBrowserStorageName = 'localStorage' | 'sessionStorage';
 type BioageStorageGetter = (key: string) => string | null;
 type BioageStorageRemover = (key: string) => void;
+type BioageClock = 'pheno' | 'bortz';
 
 interface BioageSelectedAthleteDateOfBirth {
     Year: unknown;
@@ -38,8 +39,47 @@ interface BioageResultRevealOptions {
     instant?: boolean;
 }
 
+interface BioageBiomarkerEntryOptions {
+    clock: BioageClock;
+    form: HTMLFormElement;
+    isUpdate?: boolean;
+    restoreDraft?: boolean;
+}
+
+interface BioageBiomarkerEntryResult {
+    restoredDraft: boolean;
+    step: 1 | 2;
+}
+
+interface BioageDraftField {
+    checked?: boolean;
+    selectedIndex?: number;
+    value: string;
+}
+
+interface BioageDraft {
+    clock: BioageClock;
+    fields: Record<string, BioageDraftField>;
+    step: 1 | 2;
+    version: 1;
+}
+
+interface BioageBiomarkerEntryController {
+    clock: BioageClock;
+    form: HTMLFormElement;
+    inputs: HTMLInputElement[];
+    invalidBatchActive: boolean;
+    isUpdate: boolean;
+    progress: HTMLParagraphElement;
+    restoring: boolean;
+    saveTimer: number;
+    step: 1 | 2;
+    visitedInputs: Set<HTMLInputElement>;
+}
+
 interface LwcBioageFlowApi {
     bindBiomarkerComparison: (inputId: string, getState: BioageBiomarkerComparisonGetter) => void;
+    clearBioageDraft: (clock?: BioageClock) => void;
     clearStoredBiomarkerHandoff: (removeItem?: BioageStorageRemover) => void;
     buildUnitSpecificBiomarkerPlaceholders: (
         inputId: string,
@@ -52,8 +92,10 @@ interface LwcBioageFlowApi {
     getBrowserStorageItem: (storageName: BioageBrowserStorageName, key: string) => string | null;
     getLocalItem: BioageStorageGetter;
     getSessionItem: BioageStorageGetter;
+    getDraftStep: (clock: BioageClock) => 1 | 2;
     hasFiniteBiomarkerValue: (value: unknown) => boolean;
     hideUpdateModeStepNavigation: () => void;
+    initializeBiomarkerEntry: (options: BioageBiomarkerEntryOptions) => BioageBiomarkerEntryResult;
     isUpdateMode: (search?: string) => boolean;
     isValidSelectedAthlete: (value: unknown) => value is BioageSelectedAthlete;
     navigateBack: (isUpdate: boolean) => void;
@@ -63,12 +105,14 @@ interface LwcBioageFlowApi {
     removeBrowserStorageItem: (storageName: BioageBrowserStorageName, key: string) => void;
     removeLocalItem: BioageStorageRemover;
     removeSessionItem: BioageStorageRemover;
+    expandBiomarkerCard: (field: string | Element | null | undefined) => void;
     resetUpdateModeScroll: () => void;
     revealBioageResult: (resultElement: HTMLElement | null, revealOptions?: BioageResultRevealOptions) => void;
     setBrowserStorageItem: (storageName: BioageBrowserStorageName, key: string, value: string) => boolean;
     setLocalItem: (key: string, value: string) => boolean;
     setSubmittedBiomarkerPlaceholders: (placeholdersByInputId: unknown) => void;
     setSessionItem: (key: string, value: string) => boolean;
+    setDraftStep: (clock: BioageClock, step: number) => void;
     syncBioageResultActions: () => void;
     syncBioageResultVisibility: () => void;
     syncBiomarkerExamplePlaceholders: (root?: ParentNode | null) => void;
@@ -489,6 +533,533 @@ interface Window {
         });
     }
 
+    const BIOAGE_DRAFT_VERSION = 1;
+    const bioageMobileMedia = window.matchMedia(
+        '(max-width: 600px), (max-width: 1024px) and (max-height: 600px) and (orientation: landscape)'
+    );
+    const biomarkerEntryControllers = new Map<BioageClock, BioageBiomarkerEntryController>();
+
+    function getBioageDraftKey(clock: BioageClock): string {
+        return `bioageDraft:${clock}:v${BIOAGE_DRAFT_VERSION}`;
+    }
+
+    function isBioageClock(value: unknown): value is BioageClock {
+        return value === 'pheno' || value === 'bortz';
+    }
+
+    function readBioageDraft(clock: BioageClock): BioageDraft | null {
+        const raw = getSessionItem(getBioageDraftKey(clock));
+        if (!raw) return null;
+
+        try {
+            const draft: unknown = JSON.parse(raw);
+            if (!isObject(draft)
+                || Reflect.get(draft, 'version') !== BIOAGE_DRAFT_VERSION
+                || Reflect.get(draft, 'clock') !== clock
+                || !isObject(Reflect.get(draft, 'fields'))) {
+                throw new Error('Invalid biological age draft');
+            }
+
+            const stepValue = Reflect.get(draft, 'step');
+            return {
+                version: BIOAGE_DRAFT_VERSION,
+                clock,
+                step: stepValue === 2 ? 2 : 1,
+                fields: Reflect.get(draft, 'fields') as Record<string, BioageDraftField>
+            };
+        } catch (_) {
+            removeSessionItem(getBioageDraftKey(clock));
+            return null;
+        }
+    }
+
+    function clearBioageDraft(clock?: BioageClock): void {
+        const clocks: BioageClock[] = clock ? [clock] : ['pheno', 'bortz'];
+        clocks.forEach(draftClock => {
+            const controller = biomarkerEntryControllers.get(draftClock);
+            if (controller?.saveTimer) window.clearTimeout(controller.saveTimer);
+            biomarkerEntryControllers.delete(draftClock);
+            removeSessionItem(getBioageDraftKey(draftClock));
+        });
+    }
+
+    function getDraftControls(form: HTMLFormElement): Array<HTMLInputElement | HTMLSelectElement> {
+        return Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+            '#dob-year, #dob-month, #dob-day, #blood-draw-date, .biomarker-card input[id], .biomarker-card select[id]'
+        ));
+    }
+
+    function serializeDraftFields(form: HTMLFormElement): Record<string, BioageDraftField> {
+        const fields: Record<string, BioageDraftField> = {};
+        getDraftControls(form).forEach(control => {
+            if (!control.id) return;
+
+            const field: BioageDraftField = { value: control.value };
+            if (control instanceof HTMLInputElement && control.type === 'checkbox') {
+                field.checked = control.checked;
+            }
+            if (control instanceof HTMLSelectElement) {
+                field.selectedIndex = control.selectedIndex;
+            }
+            fields[control.id] = field;
+        });
+        return fields;
+    }
+
+    function saveBioageDraft(controller: BioageBiomarkerEntryController): void {
+        controller.saveTimer = 0;
+        if (controller.isUpdate || controller.restoring) return;
+
+        const draft: BioageDraft = {
+            version: BIOAGE_DRAFT_VERSION,
+            clock: controller.clock,
+            step: controller.step,
+            fields: serializeDraftFields(controller.form)
+        };
+
+        try {
+            setSessionItem(getBioageDraftKey(controller.clock), JSON.stringify(draft));
+        } catch (_) {
+        }
+    }
+
+    function scheduleBioageDraftSave(controller: BioageBiomarkerEntryController): void {
+        if (controller.isUpdate || controller.restoring) return;
+        if (controller.saveTimer) window.clearTimeout(controller.saveTimer);
+        controller.saveTimer = window.setTimeout(() => saveBioageDraft(controller), 100);
+    }
+
+    function applyDraftField(
+        form: HTMLFormElement,
+        fields: Record<string, BioageDraftField>,
+        id: string
+    ): void {
+        const field = fields[id];
+        const control = document.getElementById(id);
+        if (!field || !control || !form.contains(control)) return;
+
+        if (control instanceof HTMLSelectElement) {
+            const selectedIndex = Number(field.selectedIndex);
+            if (Number.isInteger(selectedIndex) && selectedIndex >= 0 && selectedIndex < control.options.length) {
+                control.selectedIndex = selectedIndex;
+            } else {
+                control.value = typeof field.value === 'string' ? field.value : '';
+            }
+            return;
+        }
+
+        if (!(control instanceof HTMLInputElement)) return;
+        if (control.type === 'checkbox') {
+            control.checked = field.checked === true;
+        } else {
+            control.value = typeof field.value === 'string' ? field.value : '';
+        }
+    }
+
+    function restoreBioageDraft(controller: BioageBiomarkerEntryController): boolean {
+        if (controller.isUpdate) return false;
+        const draft = readBioageDraft(controller.clock);
+        if (!draft) return false;
+
+        controller.restoring = true;
+        try {
+            applyDraftField(controller.form, draft.fields, 'dob-year');
+            applyDraftField(controller.form, draft.fields, 'dob-month');
+            controller.form.querySelector<HTMLSelectElement>('#dob-month')
+                ?.dispatchEvent(new Event('change', { bubbles: true }));
+            applyDraftField(controller.form, draft.fields, 'dob-day');
+
+            Object.keys(draft.fields)
+                .filter(id => !['dob-year', 'dob-month', 'dob-day'].includes(id))
+                .forEach(id => applyDraftField(controller.form, draft.fields, id));
+
+            const negativeCrp = controller.form.querySelector<HTMLInputElement>('#crp-negative');
+            if (negativeCrp?.checked) {
+                negativeCrp.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            controller.step = draft.step;
+            return true;
+        } finally {
+            controller.restoring = false;
+        }
+    }
+
+    function getBiomarkerInput(field: string | Element | null | undefined): HTMLInputElement | null {
+        const candidate = typeof field === 'string' ? document.getElementById(field) : field;
+        if (candidate instanceof HTMLInputElement) return candidate;
+        return candidate?.closest<HTMLElement>('.biomarker-card')
+            ?.querySelector<HTMLInputElement>('input[type="number"]') || null;
+    }
+
+    function setBiomarkerCardExpanded(card: HTMLElement, expanded: boolean): void {
+        const header = card.querySelector<HTMLElement>('.biomarker-card-header');
+        const icon = header?.querySelector<HTMLElement>('.toggle-icon');
+        const content = card.querySelector<HTMLElement>('.biomarker-card-content');
+
+        card.classList.toggle('active', expanded);
+        header?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        if (icon) icon.textContent = expanded ? '−' : '+';
+        if (content) {
+            content.style.maxHeight = expanded ? `${content.scrollHeight}px` : '0';
+            content.style.paddingTop = expanded ? '0.75rem' : '0';
+            content.style.paddingBottom = expanded ? '0.75rem' : '0';
+        }
+    }
+
+    function expandBiomarkerCard(field: string | Element | null | undefined): void {
+        const input = getBiomarkerInput(field);
+        const card = input?.closest<HTMLElement>('.biomarker-card');
+        if (!card || card.classList.contains('active')) return;
+        setBiomarkerCardExpanded(card, true);
+    }
+
+    function getBiomarkerLabel(input: HTMLInputElement): string {
+        return input.getAttribute('aria-label')
+            || input.closest('.biomarker-card')
+            ?.querySelector<HTMLElement>('.biomarker-card-header')
+            ?.childNodes[0]
+            ?.textContent
+            ?.trim()
+            || 'this biomarker';
+    }
+
+    function isCompleteBiomarkerInput(input: HTMLInputElement): boolean {
+        const value = input.value.trim();
+        return value !== ''
+            && Number.isFinite(Number(value))
+            && input.validity.valid;
+    }
+
+    function getOrCreateBiomarkerError(input: HTMLInputElement): HTMLParagraphElement {
+        const cardContent = input.closest<HTMLElement>('.biomarker-card-content');
+        const errorId = `${input.id}-entry-error`;
+        let error = cardContent?.querySelector<HTMLParagraphElement>(`#${errorId}`) || null;
+        if (!error) {
+            error = document.createElement('p');
+            error.id = errorId;
+            error.className = 'bioage-biomarker-error';
+            error.hidden = true;
+            error.setAttribute('role', 'alert');
+            error.textContent = `Enter ${getBiomarkerLabel(input)}.`;
+            cardContent?.appendChild(error);
+        }
+
+        const describedBy = new Set((input.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+        describedBy.add(errorId);
+        input.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
+        return error;
+    }
+
+    function setBiomarkerError(input: HTMLInputElement, visible: boolean): void {
+        const error = getOrCreateBiomarkerError(input);
+        error.hidden = !visible;
+        input.setAttribute('aria-invalid', visible ? 'true' : 'false');
+    }
+
+    function ensureBiomarkerVisible(input: HTMLInputElement): void {
+        const reveal = () => {
+            const dock = getFlowActionDock();
+            dock?.refreshNow?.();
+            dock?.ensureClear?.(input, { margin: 16, behavior: 'auto' });
+
+            const visualViewport = window.visualViewport;
+            const top = visualViewport?.offsetTop || 0;
+            const bottom = top + (visualViewport?.height || window.innerHeight);
+            const rect = input.getBoundingClientRect();
+            if (rect.bottom > bottom - 16 || rect.top < top + 16) {
+                input.scrollIntoView({
+                    block: 'center',
+                    inline: 'nearest',
+                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+                });
+            }
+        };
+
+        window.requestAnimationFrame(() => window.requestAnimationFrame(reveal));
+    }
+
+    function syncFixedUnitPresentation(input: HTMLInputElement): void {
+        const group = input.closest<HTMLElement>('.input-group');
+        const select = group?.querySelector<HTMLSelectElement>('select');
+        if (!group || !select || select.options.length !== 1) return;
+
+        select.classList.add('bioage-fixed-unit-select');
+        let suffix = group.querySelector<HTMLElement>('.bioage-fixed-unit');
+        if (!suffix) {
+            suffix = document.createElement('span');
+            suffix.className = 'bioage-fixed-unit';
+            suffix.id = `${input.id}-fixed-unit`;
+            group.appendChild(suffix);
+        }
+        suffix.textContent = select.options[0]?.textContent?.trim() || '';
+
+        const describedBy = new Set((input.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean));
+        describedBy.add(suffix.id);
+        input.setAttribute('aria-describedby', Array.from(describedBy).join(' '));
+    }
+
+    function syncBiomarkerHeaderSemantics(controller: BioageBiomarkerEntryController): void {
+        const isMobile = bioageMobileMedia.matches;
+        controller.form.querySelectorAll<HTMLElement>('.biomarker-card-header').forEach(header => {
+            const card = header.closest<HTMLElement>('.biomarker-card');
+            const icon = header.querySelector<HTMLElement>('.toggle-icon');
+            header.style.pointerEvents = '';
+            header.style.cursor = '';
+            header.removeAttribute('aria-disabled');
+            icon?.setAttribute('aria-hidden', 'true');
+
+            if (isMobile) {
+                header.removeAttribute('role');
+                header.removeAttribute('tabindex');
+                header.removeAttribute('aria-expanded');
+                if (icon) icon.textContent = '';
+                return;
+            }
+
+            header.setAttribute('role', 'button');
+            header.tabIndex = 0;
+            header.setAttribute('aria-expanded', card?.classList.contains('active') ? 'true' : 'false');
+            if (icon) icon.textContent = card?.classList.contains('active') ? '−' : '+';
+        });
+    }
+
+    function syncBiomarkerCompletion(controller: BioageBiomarkerEntryController): void {
+        let completed = 0;
+        const incompleteInputs: HTMLInputElement[] = [];
+        controller.inputs.forEach(input => {
+            const isComplete = isCompleteBiomarkerInput(input);
+            input.dataset.bioageComplete = isComplete ? 'true' : 'false';
+            input.closest<HTMLElement>('.biomarker-card')
+                ?.classList.toggle('biomarker-card--complete', isComplete);
+            if (isComplete) {
+                completed += 1;
+                setBiomarkerError(input, false);
+            } else if (controller.isUpdate && input.value.trim() === '') {
+                setBiomarkerError(input, false);
+            }
+            if (!isComplete) incompleteInputs.push(input);
+        });
+        controller.inputs.forEach((input, index) => {
+            const hasOtherIncompleteInput = incompleteInputs.some(candidate => candidate !== input);
+            input.enterKeyHint = (controller.isUpdate
+                ? index < controller.inputs.length - 1
+                : hasOtherIncompleteInput || index < controller.inputs.length - 1)
+                ? 'next'
+                : 'done';
+        });
+
+        const total = controller.inputs.length;
+        const bloodDrawDate = controller.form.querySelector<HTMLInputElement>('#blood-draw-date');
+        const hasBloodDrawDate = !!bloodDrawDate?.value && bloodDrawDate.validity.valid;
+        const ready = controller.isUpdate
+            ? completed > 0 && hasBloodDrawDate
+            : total > 0 && completed === total;
+        controller.progress.textContent = controller.isUpdate
+            ? !hasBloodDrawDate && completed === 0
+                ? 'Enter the blood draw date and at least 1 new biomarker value'
+                : !hasBloodDrawDate
+                    ? 'Enter the blood draw date'
+                    : completed > 0
+                        ? `${completed} biomarker${completed === 1 ? '' : 's'} ready to update`
+                        : 'Enter at least 1 new biomarker value'
+            : `${completed} of ${total} biomarkers entered`;
+        controller.progress.classList.toggle('bioage-biomarker-progress--complete', ready);
+
+        // The flow dock portals the action stack out of the form on small screens.
+        const calculateButton = document.querySelector<HTMLButtonElement>('.bioage-calculate-button');
+        if (calculateButton) {
+            calculateButton.disabled = !ready;
+            calculateButton.setAttribute('aria-describedby', controller.progress.id);
+            if (!document.getElementById('continueButton')?.classList.contains('show')) {
+                calculateButton.classList.toggle('green', ready);
+                calculateButton.classList.toggle('grey', !ready);
+                calculateButton.classList.toggle('flow-action--secondary', !ready);
+            }
+        }
+    }
+
+    function refreshAllBiomarkerCompletion(): void {
+        biomarkerEntryControllers.forEach(syncBiomarkerCompletion);
+    }
+
+    function moveToNextBiomarker(
+        controller: BioageBiomarkerEntryController,
+        input: HTMLInputElement
+    ): void {
+        const index = controller.inputs.indexOf(input);
+        const nextInput = controller.inputs.slice(index + 1).find(candidate => !isCompleteBiomarkerInput(candidate))
+            || (!controller.isUpdate
+                ? controller.inputs.slice(0, index).find(candidate => !isCompleteBiomarkerInput(candidate))
+                : null)
+            || controller.inputs[index + 1];
+        if (!nextInput) {
+            input.blur();
+            return;
+        }
+
+        expandBiomarkerCard(nextInput);
+        nextInput.focus();
+        ensureBiomarkerVisible(nextInput);
+    }
+
+    function bindBiomarkerEntry(controller: BioageBiomarkerEntryController): void {
+        controller.form.querySelectorAll<HTMLElement>('.biomarker-card-header').forEach(header => {
+            if (header.dataset.bioageEntryBound === 'true') return;
+            header.dataset.bioageEntryBound = 'true';
+
+            const toggle = () => {
+                if (bioageMobileMedia.matches) return;
+                const card = header.closest<HTMLElement>('.biomarker-card');
+                if (card) setBiomarkerCardExpanded(card, !card.classList.contains('active'));
+            };
+            header.addEventListener('click', toggle);
+            header.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                toggle();
+            });
+        });
+
+        controller.inputs.forEach(input => {
+            syncFixedUnitPresentation(input);
+            getOrCreateBiomarkerError(input);
+
+            input.addEventListener('focus', () => {
+                controller.visitedInputs.add(input);
+                expandBiomarkerCard(input);
+                ensureBiomarkerVisible(input);
+            });
+            input.addEventListener('input', () => {
+                if (!controller.restoring) clearStoredBiomarkerHandoff();
+                syncBiomarkerCompletion(controller);
+                scheduleBioageDraftSave(controller);
+            });
+            input.addEventListener('blur', () => {
+                if (controller.visitedInputs.has(input)
+                    && !isCompleteBiomarkerInput(input)
+                    && !(controller.isUpdate && input.value.trim() === '')) {
+                    setBiomarkerError(input, true);
+                }
+                scheduleBioageDraftSave(controller);
+            });
+            input.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' || !bioageMobileMedia.matches) return;
+                event.preventDefault();
+                if (controller.isUpdate && input.value.trim() === '') {
+                    moveToNextBiomarker(controller, input);
+                    return;
+                }
+                if (!isCompleteBiomarkerInput(input)) {
+                    setBiomarkerError(input, true);
+                    ensureBiomarkerVisible(input);
+                    return;
+                }
+                moveToNextBiomarker(controller, input);
+            });
+        });
+
+        controller.form.addEventListener('change', () => {
+            if (!controller.restoring) clearStoredBiomarkerHandoff();
+            syncBiomarkerCompletion(controller);
+            scheduleBioageDraftSave(controller);
+        });
+        controller.form.addEventListener('invalid', event => {
+            const input = event.target;
+            if (!(input instanceof HTMLInputElement) || !controller.inputs.includes(input)) return;
+            if (controller.invalidBatchActive) {
+                event.preventDefault();
+                return;
+            }
+
+            controller.invalidBatchActive = true;
+            expandBiomarkerCard(input);
+            setBiomarkerError(input, true);
+            window.requestAnimationFrame(() => {
+                input.focus();
+                ensureBiomarkerVisible(input);
+            });
+            window.setTimeout(() => {
+                controller.invalidBatchActive = false;
+            }, 0);
+        }, true);
+
+        bioageMobileMedia.addEventListener?.('change', () => {
+            syncBiomarkerHeaderSemantics(controller);
+            getFlowActionDock()?.refresh?.();
+        });
+        window.addEventListener('pagehide', () => saveBioageDraft(controller));
+    }
+
+    function initializeBiomarkerEntry(options: BioageBiomarkerEntryOptions): BioageBiomarkerEntryResult {
+        const existing = biomarkerEntryControllers.get(options.clock);
+        if (existing?.form === options.form) {
+            syncBiomarkerCompletion(existing);
+            return { restoredDraft: false, step: existing.step };
+        }
+
+        const stepTwo = options.form.querySelector<HTMLElement>('#lwc-step-2');
+        const stepHeading = stepTwo?.querySelector('h2');
+        if (options.isUpdate && stepTwo) {
+            const bloodDrawDateFieldset = options.form.querySelector<HTMLInputElement>('#blood-draw-date')
+                ?.closest<HTMLFieldSetElement>('fieldset');
+            const firstBiomarkerFieldset = stepTwo.querySelector<HTMLFieldSetElement>(':scope > fieldset');
+            if (bloodDrawDateFieldset && firstBiomarkerFieldset) {
+                bloodDrawDateFieldset.classList.add('bioage-update-date-fieldset');
+                stepTwo.insertBefore(bloodDrawDateFieldset, firstBiomarkerFieldset);
+            }
+        }
+        const progress = document.createElement('p');
+        progress.id = `${options.clock}BiomarkerProgress`;
+        progress.className = 'bioage-biomarker-progress';
+        progress.setAttribute('role', 'status');
+        progress.setAttribute('aria-live', 'polite');
+        progress.setAttribute('aria-atomic', 'true');
+        stepHeading?.insertAdjacentElement('afterend', progress);
+
+        const controller: BioageBiomarkerEntryController = {
+            clock: options.clock,
+            form: options.form,
+            inputs: Array.from(options.form.querySelectorAll<HTMLInputElement>(
+                '.biomarker-card input[type="number"][required]'
+            )),
+            invalidBatchActive: false,
+            isUpdate: options.isUpdate === true,
+            progress,
+            restoring: false,
+            saveTimer: 0,
+            step: 1,
+            visitedInputs: new Set()
+        };
+
+        options.form.classList.add('bioage-biomarker-entry-ready');
+        biomarkerEntryControllers.set(options.clock, controller);
+        bindBiomarkerEntry(controller);
+        syncBiomarkerHeaderSemantics(controller);
+
+        const restoredDraft = options.restoreDraft !== false && restoreBioageDraft(controller);
+        syncBiomarkerExamplePlaceholders(options.form);
+        syncBiomarkerCompletion(controller);
+        removeSessionItem('lwcStep');
+
+        return {
+            restoredDraft,
+            step: controller.step
+        };
+    }
+
+    function getDraftStep(clock: BioageClock): 1 | 2 {
+        return biomarkerEntryControllers.get(clock)?.step
+            || readBioageDraft(clock)?.step
+            || 1;
+    }
+
+    function setDraftStep(clock: BioageClock, step: number): void {
+        const controller = biomarkerEntryControllers.get(clock);
+        if (!controller) return;
+        controller.step = step === 2 ? 2 : 1;
+        scheduleBioageDraftSave(controller);
+    }
+
     function isUpdateMode(search?: string): boolean {
         return new URLSearchParams(search || window.location.search).get('update') === '1';
     }
@@ -571,6 +1142,7 @@ interface Window {
     function clearStoredBiomarkerHandoff(removeItem?: BioageStorageRemover): void {
         const remove = typeof removeItem === 'function' ? removeItem : removeSessionItem;
         remove('biomarkerData');
+        remove('bioageClock');
         remove('chronoPhenoDifference');
         remove('chronoBortzDifference');
     }
@@ -589,6 +1161,7 @@ interface Window {
         }
 
         syncBioageResultActions();
+        refreshAllBiomarkerCompletion();
     }
 
     function syncBioageResultActions(): void {
@@ -601,9 +1174,9 @@ interface Window {
         resultActions.hidden = !hasResult;
         getFlowActionDock()?.refreshNow?.();
 
-        if (hasResult) {
+        if (hasResult && !lastBioageResultActionsVisible) {
             scheduleBioageResultReveal(getShownBioageResultElement());
-        } else {
+        } else if (!hasResult) {
             clearScheduledBioageResultReveals();
         }
 
@@ -615,7 +1188,6 @@ interface Window {
     let resultRevealFrame = 0;
     let pendingResultRevealElement: HTMLElement | null = null;
     let pendingResultRevealInstant = false;
-    let resultResizeObserver: ResizeObserver | null = null;
 
     function getShownBioageResultElement(): HTMLElement | null {
         return document.querySelector<HTMLElement>('#phenoAgeResult.show, #bortzAgeResult.show');
@@ -741,6 +1313,14 @@ interface Window {
     }
 
     function syncBioageResultVisibility(): void {
+        document.querySelectorAll<HTMLElement>('#phenoAgeResult, #bortzAgeResult')
+            .forEach(candidate => {
+                const isShown = candidate.classList.contains('show');
+                candidate.toggleAttribute('inert', !isShown);
+                if (isShown) candidate.removeAttribute('aria-hidden');
+                else candidate.setAttribute('aria-hidden', 'true');
+            });
+
         const resultElement = getShownBioageResultElement();
         const hasShownResult = !!resultElement;
 
@@ -775,18 +1355,6 @@ interface Window {
                 attributeFilter: ['class']
             });
         });
-
-        resultResizeObserver?.disconnect();
-        if ('ResizeObserver' in window) {
-            resultResizeObserver = new ResizeObserver(entries => {
-                const resultElement = getShownBioageResultElement();
-                if (!resultElement || !entries.some(entry => entry.target === resultElement)) return;
-
-                scheduleBioageResultReveal(resultElement, { instant: true });
-            });
-            document.querySelectorAll<HTMLElement>('#phenoAgeResult, #bortzAgeResult')
-                .forEach(resultElement => resultResizeObserver?.observe(resultElement));
-        }
     }
 
     function hideUpdateModeStepNavigation(): void {
@@ -796,8 +1364,11 @@ interface Window {
 
     window.LwcBioageFlow = {
         bindBiomarkerComparison,
+        clearBioageDraft,
         clearStoredBiomarkerHandoff,
         buildUnitSpecificBiomarkerPlaceholders,
+        expandBiomarkerCard,
+        getDraftStep,
         getLatestBiomarkerEntry,
         getLatestBiomarkerValue,
         getBackDestination,
@@ -806,6 +1377,7 @@ interface Window {
         getSessionItem,
         hasFiniteBiomarkerValue,
         hideUpdateModeStepNavigation,
+        initializeBiomarkerEntry,
         isUpdateMode,
         isValidSelectedAthlete,
         navigateBack,
@@ -821,6 +1393,7 @@ interface Window {
         setLocalItem,
         setSubmittedBiomarkerPlaceholders,
         setSessionItem,
+        setDraftStep,
         syncBioageResultActions,
         syncBioageResultVisibility,
         syncBiomarkerExamplePlaceholders,

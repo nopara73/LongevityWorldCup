@@ -9,18 +9,22 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
-    public void BiomarkerCards_AreKeyboardOperableAndShowFocus(string fileName)
+    public void BiomarkerCards_AreKeyboardOperableOnDesktopAndDirectEntryOnMobile(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
+        var flow = File.ReadAllText(GetBioageFlowTypeScriptPath());
 
-        Assert.Contains("header.setAttribute('role', 'button');", html);
-        Assert.Contains("header.setAttribute('tabindex', '0');", html);
-        Assert.Contains("header.querySelector('.toggle-icon')?.setAttribute('aria-hidden', 'true');", html);
-        Assert.Contains("header.addEventListener('keydown', event => {", html);
-        Assert.Contains("if (event.key !== 'Enter' && event.key !== ' ') return;", html);
+        Assert.Contains("header.setAttribute('role', 'button');", flow);
+        Assert.Contains("header.tabIndex = 0;", flow);
+        Assert.Contains("icon?.setAttribute('aria-hidden', 'true');", flow);
+        Assert.Contains("header.addEventListener('keydown', event => {", flow);
+        Assert.Contains("if (event.key !== 'Enter' && event.key !== ' ') return;", flow);
+        Assert.Contains("if (bioageMobileMedia.matches) return;", flow);
+        Assert.Contains("header.removeAttribute('role');", flow);
+        Assert.Contains("header.removeAttribute('tabindex');", flow);
+        Assert.Contains("options.form.classList.add('bioage-biomarker-entry-ready');", flow);
         Assert.Contains(".biomarker-card-header:focus-visible", html);
-        Assert.Contains("header.setAttribute('aria-disabled', 'true');", html);
-        Assert.Contains("header.setAttribute('tabindex', '-1');", html);
+        Assert.DoesNotContain("header.setAttribute('aria-disabled', 'true');", html);
     }
 
     [Theory]
@@ -98,6 +102,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("const clearStoredBiomarkerHandoff = () => bioageFlow.clearStoredBiomarkerHandoff(removeSessionItem);", html);
         Assert.Contains("function clearStoredBiomarkerHandoff(removeItem)", flow);
         Assert.Contains("remove('biomarkerData');", flow);
+        Assert.Contains("remove('bioageClock');", flow);
         Assert.Contains("remove('chronoPhenoDifference');", flow);
         Assert.Contains("remove('chronoBortzDifference');", flow);
         Assert.Contains("clearStoredBiomarkerHandoff();", html);
@@ -133,7 +138,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("serializedBiomarkerData = JSON.stringify(biomarkerData);", html);
         Assert.Contains("setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))", html);
         Assert.Contains("setSessionItem('biomarkerData', serializedBiomarkerData)", html);
-        Assert.Contains("setSessionItem('lwcStep', '1')", html);
+        Assert.Contains("setSessionItem('bioageClock', 'pheno')", html);
         Assert.Contains("setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer)", html);
         Assert.DoesNotContain("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);
         Assert.DoesNotContain("sessionStorage.setItem('biomarkerData', JSON.stringify(biomarkerData));", html);
@@ -151,20 +156,23 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html")]
     [InlineData("bortz-age.html")]
-    public void BioagePages_PersistAndRestoreWizardStepWithSafeStorage(string fileName)
+    public void BioagePages_PersistAndRestorePerClockDraftWithSafeStorage(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
+        var flow = File.ReadAllText(GetBioageFlowTypeScriptPath());
+        var clock = fileName == "pheno-age.html" ? "pheno" : "bortz";
 
         Assert.Contains("function lwcValidateStep1(silent)", html);
         Assert.Contains("const yearSelect = document.getElementById('dob-year');", html);
         Assert.Contains("customAlert('Please select your birth year.')\n                        .then(() => yearSelect.focus());", html);
-        Assert.Contains("setSessionItem('lwcStep', '2');", html);
-        Assert.Contains("setSessionItem('lwcStep', '1');", html);
-        Assert.Contains("function activateDot1() { lwcSetStep(1); setSessionItem('lwcStep', '1'); }", html);
-        Assert.Contains("function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); setSessionItem('lwcStep', '2'); } }", html);
-        Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
-        Assert.Contains("let restoredStep = false;", html);
+        Assert.Contains($"bioageFlow.setDraftStep('{clock}', step);", html);
+        Assert.Contains($"clock: '{clock}'", html);
+        Assert.Contains("const biomarkerEntry = bioageFlow.initializeBiomarkerEntry({", html);
+        Assert.Contains("const restoredStep = biomarkerEntry.step === 2 && lwcValidateStep1(true);", html);
         Assert.Contains("if (!restoredStep) {", html);
+        Assert.Contains("return `bioageDraft:${clock}:v${BIOAGE_DRAFT_VERSION}`;", flow);
+        Assert.Contains("setSessionItem(getBioageDraftKey(controller.clock), JSON.stringify(draft));", flow);
+        Assert.Contains("const restoredDraft = options.restoreDraft !== false && restoreBioageDraft(controller);", flow);
         Assert.DoesNotContain("sessionStorage.setItem('lwcStep'", html);
     }
 
@@ -180,7 +188,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("customAlert('Please enter the date when your blood was drawn.')\n                        .then(() => bloodDrawDateInput.focus());", html);
         Assert.Contains("customAlert('Blood draw date cannot be in the future.')\n                        .then(() => bloodDrawDateInput.focus());", html);
         Assert.Contains("const bd = getValidatedBloodDrawDate(silent);", html);
-        Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
+        Assert.Contains("const restoredStep = biomarkerEntry.step === 2 && lwcValidateStep1(true);", html);
     }
 
     [Fact]
@@ -197,9 +205,10 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html", "function storePhenoResultForNextStep")]
     [InlineData("bortz-age.html", "function storeBortzResultForNextStep")]
-    public void BioagePages_ResetWizardStepBeforeHandoff(string fileName, string storeFunctionMarker)
+    public void BioagePages_RecordExplicitClockAndClearStaleHandoff(string fileName, string storeFunctionMarker)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
+        var clock = fileName == "pheno-age.html" ? "pheno" : "bortz";
         var storeStart = html.IndexOf(storeFunctionMarker, StringComparison.Ordinal);
         var storeEnd = html.IndexOf("return true;", storeStart, StringComparison.Ordinal);
 
@@ -208,8 +217,10 @@ public sealed class BioageStoredBiomarkerTests
 
         var storeBody = html[storeStart..storeEnd];
 
+        Assert.Contains("clearStoredBiomarkerHandoff();", storeBody);
+        Assert.Contains($"setSessionItem('bioageClock', '{clock}')", storeBody);
         Assert.Contains("setSessionItem('biomarkerData', serializedBiomarkerData)", storeBody);
-        Assert.Contains("setSessionItem('lwcStep', '1')", storeBody);
+        Assert.DoesNotContain("setSessionItem('lwcStep'", storeBody);
     }
 
     [Theory]
@@ -307,7 +318,7 @@ public sealed class BioageStoredBiomarkerTests
     [Theory]
     [InlineData("pheno-age.html", "phenoAgeForm")]
     [InlineData("bortz-age.html", "bortzAgeForm")]
-    public void BioagePages_ReportRequiredFieldValidityBeforeCalculating(string fileName, string formId)
+    public void BioagePages_ReportRequiredFieldValidityForNewApplicationsBeforeCalculating(string fileName, string formId)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
         var formStart = html.IndexOf($"const form = document.getElementById('{formId}');", StringComparison.Ordinal);
@@ -319,7 +330,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.True(submitStart > formStart);
 
         var calculateIndex = html.IndexOf("calculateResult();", submitStart, StringComparison.Ordinal);
-        var validityIndex = html.IndexOf("if (!this.reportValidity())", submitStart, StringComparison.Ordinal);
+        var validityIndex = html.IndexOf("if (!isUpdate && !this.reportValidity())", submitStart, StringComparison.Ordinal);
 
         Assert.True(validityIndex > submitStart);
         Assert.True(calculateIndex > submitStart);
@@ -391,9 +402,9 @@ public sealed class BioageStoredBiomarkerTests
         var html = File.ReadAllText(GetPagePath(fileName));
 
         Assert.Contains("yearsTextElement.textContent = `${yearsDelta}years${ageDiff < 0 ? ' 🚀' : ''}`;", html);
-        Assert.Contains("document.getElementById('mainInstructions').textContent = 'Submit your latest test results. All fields are required and must be from the same day.';", html);
+        Assert.Contains("document.getElementById('mainInstructions').textContent = 'Enter the blood draw date and at least one new biomarker value. Unchanged values will carry over from your latest result.';", html);
         Assert.DoesNotContain("yearsTextElement.innerHTML =", html);
-        Assert.DoesNotContain("document.getElementById('mainInstructions').innerHTML = 'Submit your latest test results. All fields are required and must be from the same day.';", html);
+        Assert.DoesNotContain("document.getElementById('mainInstructions').innerHTML =", html);
     }
 
     [Theory]
@@ -428,16 +439,14 @@ public sealed class BioageStoredBiomarkerTests
         var updateBranch = html.IndexOf("if (isUpdate && hasSelectedAthlete)", StringComparison.Ordinal);
         var hideNav = html.IndexOf("hideUpdateModeStepNavigation();", updateBranch, StringComparison.Ordinal);
         var forceStep2 = html.IndexOf("lwcSetStep(2, { focus: false });", hideNav, StringComparison.Ordinal);
-        var storeStep2 = html.IndexOf("setSessionItem('lwcStep', '2');", forceStep2, StringComparison.Ordinal);
-        var resetScroll = html.IndexOf("bioageFlow.resetUpdateModeScroll();", storeStep2, StringComparison.Ordinal);
+        var resetScroll = html.IndexOf("bioageFlow.resetUpdateModeScroll();", forceStep2, StringComparison.Ordinal);
         var onboardingBranch = html.IndexOf("} else {", resetScroll, StringComparison.Ordinal);
         Assert.True(updateBranch >= 0);
         Assert.True(hideNav > updateBranch);
         Assert.True(forceStep2 > hideNav);
-        Assert.True(storeStep2 > forceStep2);
-        Assert.True(resetScroll > storeStep2);
+        Assert.True(resetScroll > forceStep2);
         Assert.True(onboardingBranch > resetScroll);
-        Assert.Contains("if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true))", html);
+        Assert.Contains("const restoredStep = biomarkerEntry.step === 2 && lwcValidateStep1(true);", html);
     }
 
     [Theory]
@@ -600,7 +609,7 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("setSessionItem('chronoBortzDifference', chronoBortzDifference.toFixed(2))", html);
         Assert.Contains("setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))", html);
         Assert.Contains("setSessionItem('biomarkerData', serializedBiomarkerData)", html);
-        Assert.Contains("setSessionItem('lwcStep', '1')", html);
+        Assert.Contains("setSessionItem('bioageClock', 'bortz')", html);
         Assert.Contains("setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer)", html);
         Assert.DoesNotContain("sessionStorage.setItem('chronoBortzDifference', chronoBortzDifference.toFixed(2));", html);
         Assert.DoesNotContain("sessionStorage.setItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2));", html);

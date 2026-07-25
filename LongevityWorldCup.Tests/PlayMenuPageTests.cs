@@ -109,6 +109,9 @@ public sealed class PlayMenuPageTests
         Assert.DoesNotContain("onclick=\"window.location.href='/join'\"", html);
         Assert.Contains("flow.setPendingPaymentOffer({", playMenu);
         Assert.Contains("source: 'join-game'", playMenu);
+        Assert.Contains("function clearCompletedBioageHandoff(playFlow: PlayAthleteFlowApi): void", playMenuSource);
+        Assert.Contains("'bioageClock'", playMenuSource);
+        Assert.Contains("clearCompletedBioageHandoff(flow);", playMenuSource);
         Assert.Contains("window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;", playMenu);
         Assert.Contains("window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;", playMenu);
         Assert.Contains("createPriceHtmlFallback", flow);
