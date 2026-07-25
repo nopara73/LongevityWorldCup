@@ -337,7 +337,7 @@ public sealed class HomepageChromeRegressionBrowserTests
             {
                 await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
                 await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-                await page.EvaluateAsync("window.scrollTo(0, 0)");
+                await page.EvaluateAsync("window.scrollTo({ top: 0, behavior: 'instant' })");
                 await SettleLayoutAsync(page);
 
                 var atTopActions = await MeasurePlayActionsAsync(page);
@@ -347,7 +347,8 @@ public sealed class HomepageChromeRegressionBrowserTests
                     DescribeActions(atTopActions));
                 Assert.All(atTop, action => AssertActionInsideViewport(path, viewport, action));
 
-                await page.EvaluateAsync("window.scrollTo(0, Math.min(52, document.documentElement.scrollHeight - innerHeight))");
+                await page.EvaluateAsync(
+                    "window.scrollTo({ top: Math.min(52, document.documentElement.scrollHeight - innerHeight), behavior: 'instant' })");
                 await SettleLayoutAsync(page);
                 var stickyHeaderVisible = await page.EvaluateAsync<bool>(
                     "() => document.getElementById('site-sticky-header')?.classList.contains('visible') === true");
@@ -360,7 +361,8 @@ public sealed class HomepageChromeRegressionBrowserTests
                     AssertActionInsideViewport(path, viewport, stickyAction);
                 }
 
-                await page.EvaluateAsync("window.scrollTo(0, Math.min(700, document.documentElement.scrollHeight - innerHeight))");
+                await page.EvaluateAsync(
+                    "window.scrollTo({ top: Math.min(700, document.documentElement.scrollHeight - innerHeight), behavior: 'instant' })");
                 await SettleLayoutAsync(page);
                 var afterScrollActions = await MeasurePlayActionsAsync(page);
                 var afterScroll = afterScrollActions.Where(action => action.Visible).ToArray();
