@@ -250,6 +250,50 @@ jobs:
             fi
             rm -f "$health_body"
 
+            cors_headers="$frontend_stage/cors-headers.txt"
+            normalized_cors_headers="$frontend_stage/cors-headers.normalized.txt"
+            assert_single_public_cors_origin() {
+              origin_count="$(grep -Eic '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*$' "$normalized_cors_headers" || true)"
+              if [ "$origin_count" -ne 1 ]; then
+                echo "Expected exactly one wildcard Access-Control-Allow-Origin header, found $origin_count." >&2
+                cat "$normalized_cors_headers" >&2
+                exit 1
+              fi
+            }
+
+            curl -fsS --max-time 10 \
+              -H "Origin: https://public-api-client.example" \
+              -D "$cors_headers" \
+              -o /dev/null \
+              "https://www.longevityworldcup.com/api/data/flags"
+            tr -d '\r' < "$cors_headers" > "$normalized_cors_headers"
+            assert_single_public_cors_origin
+
+            curl -fsS --max-time 10 \
+              -X OPTIONS \
+              -H "Origin: https://public-api-client.example" \
+              -H "Access-Control-Request-Method: POST" \
+              -H "Access-Control-Request-Headers: content-type" \
+              -D "$cors_headers" \
+              -o /dev/null \
+              "https://www.longevityworldcup.com/api/data/pheno-age"
+            tr -d '\r' < "$cors_headers" > "$normalized_cors_headers"
+            assert_single_public_cors_origin
+            grep -Eiq '^access-control-allow-methods:.*POST' "$normalized_cors_headers"
+            grep -Eiq '^access-control-allow-headers:.*content-type' "$normalized_cors_headers"
+
+            curl -fsS --max-time 10 \
+              -H "Origin: https://public-api-client.example" \
+              -D "$cors_headers" \
+              -o /dev/null \
+              "$health_url"
+            tr -d '\r' < "$cors_headers" > "$normalized_cors_headers"
+            if grep -Eiq '^access-control-allow-origin:' "$normalized_cors_headers"; then
+              echo "A non-public endpoint unexpectedly allowed an arbitrary CORS origin." >&2
+              cat "$normalized_cors_headers" >&2
+              exit 1
+            fi
+
             downloaded_script="$frontend_stage/deployed-script.js"
             for script_path in "$publish_output"/wwwroot/js/*.js; do
               curl -fsS --max-time 10 \
