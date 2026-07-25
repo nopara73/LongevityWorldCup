@@ -238,15 +238,21 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(3, await remarks.CountAsync());
 
         var checkInText = await page.Locator("#lmxCheckinList").InnerTextAsync();
-        Assert.Contains("Recent remarks", checkInText);
+        Assert.Contains("Recent check-ins", checkInText);
         Assert.Contains("Ari · Day 22", checkInText);
         Assert.Contains("First recent public remark.", checkInText);
         Assert.Contains("Bea · Day 21", checkInText);
-        Assert.Contains("Second recent public remark.", checkInText);
         Assert.Contains("Cam · Day 20", checkInText);
         Assert.Contains("Third recent public remark.", checkInText);
         Assert.DoesNotContain("Fourth older public remark.", checkInText);
         Assert.DoesNotContain("Private participant-only remark.", checkInText);
+
+        var photos = page.Locator(".lmx-recent-remark .lmx-note-photo");
+        Assert.Equal(2, await photos.CountAsync());
+        Assert.Equal("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari", await photos.Nth(0).GetAttributeAsync("href"));
+        Assert.Equal("/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea", await photos.Nth(1).GetAttributeAsync("href"));
+        Assert.Equal("1600", await photos.Nth(0).Locator("img").GetAttributeAsync("width"));
+        Assert.Equal("800", await photos.Nth(0).Locator("img").GetAttributeAsync("height"));
 
         Assert.True(await page.Locator(".lmx-checkin-card").EvaluateAsync<bool>(
             """
@@ -524,8 +530,10 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             podium = Array.Empty<object>(),
             notes = new[]
             {
-                Note("p2", "Ari", 22, "2026-06-29", "First recent public remark."),
-                Note("p3", "Bea", 21, "2026-06-28", "Second recent public remark."),
+                Note("p2", "Ari", 22, "2026-06-29", "First recent public remark.",
+                    [CheckInImage("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari")]),
+                Note("p3", "Bea", 21, "2026-06-28", null,
+                    [CheckInImage("/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea")]),
                 Note("p4", "Cam", 20, "2026-06-27", "Third recent public remark."),
                 Note("p5", "Dee", 19, "2026-06-26", "Fourth older public remark.")
             },
@@ -534,7 +542,13 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             slackRoomUrl = (string?)null
         };
 
-    private static object Note(string participantId, string displayName, int challengeDay, string date, string note)
+    private static object Note(
+        string participantId,
+        string displayName,
+        int challengeDay,
+        string date,
+        string? note,
+        object[]? images = null)
         => new
         {
             participantId,
@@ -543,6 +557,14 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             date,
             note,
             updatedAtUtc = $"{date}T07:00:00Z",
-            images = Array.Empty<object>()
+            images = images ?? Array.Empty<object>()
+        };
+
+    private static object CheckInImage(string url)
+        => new
+        {
+            url,
+            width = 1600,
+            height = 800
         };
 }

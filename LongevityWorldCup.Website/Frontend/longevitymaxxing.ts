@@ -2921,27 +2921,36 @@
     function recentPublicRemarks(state: ParticipantState): ParticipantNote[] {
         const notes = Array.isArray(state?.public?.notes) ? state.public.notes : [];
         return notes
-            .filter(note => String(note?.note || "").trim())
+            .filter(hasParticipantNoteContent)
             .slice(0, RECENT_REMARK_LIMIT);
     }
 
     function recentRemarksHtml(notes: ParticipantNote[]): string {
         const remarks = (Array.isArray(notes) ? notes : [])
-            .filter(note => String(note?.note || "").trim())
+            .filter(hasParticipantNoteContent)
             .slice(0, RECENT_REMARK_LIMIT);
         if (!remarks.length) return "";
 
-        return `<section class="lmx-recent-remarks" aria-label="Recent public remarks">
-            <strong>Recent remarks</strong>
+        return `<section class="lmx-recent-remarks" aria-label="Recent public check-ins">
+            <strong>Recent check-ins</strong>
             ${remarks.map(note => {
                 const noteText = String(note.note || "").trim();
+                const images = Array.isArray(note.images) ? note.images : [];
+                const imageHtml = images.length
+                    ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
+                    : "";
                 const date = note.date ? ` · ${formatShortDateLabel(note.date)}` : "";
                 return `<article class="lmx-recent-remark">
                     <strong>${esc(note.displayName)} · Day ${esc(note.challengeDay)}${esc(date)}</strong>
-                    <p>${esc(noteText)}</p>
+                    ${noteText ? `<p>${esc(noteText)}</p>` : ""}
+                    ${imageHtml}
                 </article>`;
             }).join("")}
         </section>`;
+    }
+
+    function hasParticipantNoteContent(note: ParticipantNote): boolean {
+        return !!String(note?.note || "").trim() || (Array.isArray(note?.images) && note.images.length > 0);
     }
 
     function notePhotoHtml(image: CheckInImage, key: string): string {
