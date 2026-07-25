@@ -7,12 +7,12 @@ namespace LongevityWorldCup.Tests;
 public sealed class BioageKeyboardViewportBrowserTests
 {
     [Theory]
-    [InlineData("/pheno-age", "#crp", "1", 390, 844, 420, 0)]
-    [InlineData("/bortz-age", "#vitamin_d", "50", 390, 844, 420, 0)]
-    [InlineData("/pheno-age", "#crp", "1", 844, 390, 200, 24)]
-    [InlineData("/bortz-age", "#vitamin_d", "50", 844, 390, 200, 24)]
-    [InlineData("/pheno-age", "#crp", "1", 956, 440, 230, 24)]
-    [InlineData("/bortz-age", "#vitamin_d", "50", 956, 440, 230, 24)]
+    [InlineData("/pheno-age", "#crp", "1", 390, 844, 420, 360)]
+    [InlineData("/bortz-age", "#vitamin_d", "50", 390, 844, 420, 360)]
+    [InlineData("/pheno-age", "#crp", "1", 844, 390, 200, 160)]
+    [InlineData("/bortz-age", "#vitamin_d", "50", 844, 390, 200, 160)]
+    [InlineData("/pheno-age", "#crp", "1", 956, 440, 230, 180)]
+    [InlineData("/bortz-age", "#vitamin_d", "50", 956, 440, 230, 180)]
     public async Task BioageBiomarker_FocusStaysVisibleWhenTheMobileKeyboardOpens(
         string path,
         string inputSelector,
@@ -112,7 +112,9 @@ public sealed class BioageKeyboardViewportBrowserTests
                     InputTop: rect.top,
                     InputBottom: rect.bottom,
                     VisualViewportTop: viewport.offsetTop,
-                    VisualViewportBottom: viewport.offsetTop + viewport.height
+                    VisualViewportBottom: viewport.offsetTop + viewport.height,
+                    KeyboardClearance: parseFloat(getComputedStyle(document.documentElement)
+                        .getPropertyValue('--flow-input-keyboard-occlusion')) || 0
                 };
             }
             """,
@@ -122,11 +124,31 @@ public sealed class BioageKeyboardViewportBrowserTests
         Assert.True(state.BodyKeyboardOpen, "The body should expose the keyboard-open state.");
         Assert.False(state.Docked, "The mobile action dock should return to document flow while the keyboard is open.");
         Assert.True(state.InputFocused, "The biomarker input should retain focus after the visual viewport shrinks.");
+        Assert.InRange(
+            state.KeyboardClearance,
+            viewportHeight - keyboardViewportHeight - 1,
+            viewportHeight - keyboardViewportHeight + 1);
         Assert.True(
             state.InputTop >= state.VisualViewportTop && state.InputBottom <= state.VisualViewportBottom,
             $"The focused biomarker must remain fully visible: input {state.InputTop}-{state.InputBottom}, "
             + $"visual viewport {state.VisualViewportTop}-{state.VisualViewportBottom}.");
         Assert.Equal("next", await biomarker.GetAttributeAsync("enterkeyhint"));
+
+        await page.EvaluateAsync("() => window.scrollTo({ top: 0, behavior: 'instant' })");
+        await page.WaitForTimeoutAsync(250);
+        Assert.InRange(await page.EvaluateAsync<double>("() => window.scrollY"), 0, 1);
+
+        await page.EvaluateAsync(
+            "() => window.scrollTo({ top: document.scrollingElement.scrollHeight, behavior: 'instant' })");
+        await page.WaitForTimeoutAsync(250);
+        var downwardScroll = await page.EvaluateAsync<ManualScrollState>(
+            """
+            () => ({
+                ScrollY: window.scrollY,
+                MaxScrollY: document.scrollingElement.scrollHeight - window.innerHeight
+            })
+            """);
+        Assert.InRange(downwardScroll.MaxScrollY - downwardScroll.ScrollY, 0, 1);
 
         await biomarker.PressAsync("Enter");
         await page.WaitForFunctionAsync(
@@ -191,5 +213,12 @@ public sealed class BioageKeyboardViewportBrowserTests
         public double InputBottom { get; set; }
         public double VisualViewportTop { get; set; }
         public double VisualViewportBottom { get; set; }
+        public double KeyboardClearance { get; set; }
+    }
+
+    private sealed class ManualScrollState
+    {
+        public double ScrollY { get; set; }
+        public double MaxScrollY { get; set; }
     }
 }

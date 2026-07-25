@@ -47,6 +47,7 @@ interface FlowActionDockApi {
     let transitionsReady = false;
     let generatedFormId = 0;
     let keyboardClearFrame = 0;
+    let focusedControlClearanceRequested = false;
     let largestUnobscuredViewportHeight = 0;
     let lastLayoutViewportWidth = window.innerWidth;
     let isKeyboardOpen = false;
@@ -121,7 +122,7 @@ interface FlowActionDockApi {
             && editingControl
             && largestUnobscuredViewportHeight - viewport.height >= keyboardThreshold;
         const keyboardOcclusion = isKeyboardOpen
-            ? Math.max(0, largestUnobscuredViewportHeight - viewport.bottom)
+            ? Math.max(0, largestUnobscuredViewportHeight - viewport.height)
             : 0;
         const occlusionValue = `${Math.ceil(keyboardOcclusion)}px`;
 
@@ -350,6 +351,8 @@ interface FlowActionDockApi {
 
     function refresh(): void {
         refreshFrame = 0;
+        const shouldClearFocusedControl = focusedControlClearanceRequested;
+        focusedControlClearanceRequested = false;
         ensureRegisteredElements();
         syncKeyboardState();
 
@@ -374,11 +377,16 @@ interface FlowActionDockApi {
         const heightValue = hasDockedElement ? `${Math.ceil(dockedHeight)}px` : '0px';
         document.documentElement.style.setProperty('--flow-action-dock-height', heightValue);
         document.body.style.setProperty('--flow-action-dock-height', heightValue);
-        keepFocusedControlInVisualViewport();
+        if (shouldClearFocusedControl) keepFocusedControlInVisualViewport();
     }
 
     function scheduleRefresh(): void {
         if (!refreshFrame) refreshFrame = window.requestAnimationFrame(refresh);
+    }
+
+    function scheduleFocusedControlClearance(): void {
+        focusedControlClearanceRequested = true;
+        scheduleRefresh();
     }
 
     function refreshImmediately(): void {
@@ -464,19 +472,19 @@ interface FlowActionDockApi {
             attributeFilter: ['class']
         });
 
-        window.addEventListener('resize', scheduleRefresh);
-        window.addEventListener('orientationchange', scheduleRefresh);
+        window.addEventListener('resize', scheduleFocusedControlClearance);
+        window.addEventListener('orientationchange', scheduleFocusedControlClearance);
         window.addEventListener('scroll', scheduleRefresh, { passive: true });
         window.addEventListener('load', scheduleRefresh);
         window.addEventListener('pageshow', scheduleRefresh);
-        document.addEventListener('focusin', scheduleRefresh, true);
+        document.addEventListener('focusin', scheduleFocusedControlClearance, true);
         document.addEventListener('focusout', () => window.setTimeout(scheduleRefresh, 0), true);
         mobileMedia.addEventListener?.('change', scheduleRefresh);
         keyboardMedia.addEventListener?.('change', scheduleRefresh);
         coarsePointerMedia.addEventListener?.('change', scheduleRefresh);
 
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', scheduleRefresh);
+            window.visualViewport.addEventListener('resize', scheduleFocusedControlClearance);
             window.visualViewport.addEventListener('scroll', scheduleRefresh);
         }
         document.fonts?.ready.then(scheduleRefresh).catch(() => {});
