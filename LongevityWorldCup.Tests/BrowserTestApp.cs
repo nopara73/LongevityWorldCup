@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Playwright;
-using System.Net;
-using System.Net.Sockets;
 
 namespace LongevityWorldCup.Tests;
 
@@ -11,11 +9,10 @@ internal sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClie
 
     public static async Task<BrowserTestApp> StartAsync()
     {
-        var port = GetFreeTcpPort();
-        var baseAddress = new Uri($"http://127.0.0.1:{port}");
         var factory = new TestWebApplicationFactory();
-        factory.UseKestrel(port);
+        factory.UseKestrel(0);
         factory.StartServer();
+        var baseAddress = factory.ClientOptions.BaseAddress;
 
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions
         {
@@ -87,19 +84,5 @@ internal sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClie
     {
         client.Dispose();
         await factory.DisposeAsync();
-    }
-
-    private static int GetFreeTcpPort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        try
-        {
-            return ((IPEndPoint)listener.LocalEndpoint).Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
     }
 }
