@@ -893,7 +893,7 @@
        10) Modal
        ========================= */
     .modal{
-        display:none; position:fixed; z-index:3; left:0; top:0; width:100%; height:100%;
+        display:none; position:fixed; z-index:var(--athlete-dialog-layer, 3); left:0; top:0; width:100%; height:100%;
         overflow:hidden; background-color:rgba(0,0,0,.4); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
     }
     .modal.fade-out .modal-content,
@@ -2984,7 +2984,9 @@
 
 </style>
 
-<div class="main-container">
+<div id="athleteDialogRuntime"
+     class="main-container athlete-dialog-runtime"
+     data-athlete-dialog-only="false">
 
     <div class="content">
         <div class="podium" aria-busy="true" style="display:none;">
@@ -3202,6 +3204,7 @@
             </table>
         </div>
 
+<!--ATHLETE-DIALOG-START-->
         <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="athleteName">
             <div class="modal-content">
                 <div class="modal-sticky-header" id="modalStickyHeader">
@@ -3373,9 +3376,10 @@
                 <p class="image-viewer-hint" hidden>Zoomed for readable text. Scroll to inspect the full proof.</p>
             </div>
         </div>
+<!--ATHLETE-DIALOG-END-->
     </div>
-</div>
 
+<!--ATHLETE-DIALOG-DEFERRED-START-->
 <template id="athleteModalDeferredSectionsTemplate">
     <div class="biomarkers-section" id="athlete-biomarkers">
         <h3>Biomarkers over time</h3>
@@ -3393,6 +3397,7 @@
         </div>
     </div>
 </template>
+<!--ATHLETE-DIALOG-DEFERRED-END-->
 
 <template id="leaderboardRowTemplate">
     <tr>
@@ -3414,12 +3419,50 @@
         <td data-label="Media contact" class="media-contact-td"></td>
     </tr>
 </template>
+</div>
 
+<!--LEADERBOARD-RUNTIME-SCRIPTS-START-->
 <script>
+    (function () {
+    const pageDocument = window.document;
+    const athleteDialogRuntime = pageDocument.getElementById('athleteDialogRuntime');
+    if (!athleteDialogRuntime) {
+        console.error('Athlete dialog runtime root was not found.');
+        return;
+    }
+
+    // Keep the legacy leaderboard controller isolated from unrelated page
+    // components when the same runtime is mounted outside the leaderboard.
+    // Selector calls remain scoped to this one component; document-wide APIs
+    // such as body scroll locking and event listeners still use the real page.
+    const document = new Proxy(pageDocument, {
+        get(target, property) {
+            if (property === 'getElementById') {
+                return id => athleteDialogRuntime.querySelector(`#${CSS.escape(id)}`);
+            }
+            if (property === 'querySelector') {
+                return selector => athleteDialogRuntime.querySelector(selector);
+            }
+            if (property === 'querySelectorAll') {
+                return selector => athleteDialogRuntime.querySelectorAll(selector);
+            }
+
+            const value = Reflect.get(target, property, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+        },
+        set(target, property, value) {
+            return Reflect.set(target, property, value, target);
+        }
+    });
+
     let athleteResults = [];
     let athletesOrderedByPace;
     let athletesOrderedByBortzPace;
     let athletesOrderedByPhenoAgeReduction;
+    const isAthleteDialogOnlyRuntime = athleteDialogRuntime.dataset.athleteDialogOnly === 'true';
+    let athleteResultsReady = false;
+    let athleteResultsLoadPromise = null;
+    let athleteDialogReturnFocusElement = null;
     const defaultProfilePic = '{{ASSET_HD_LOGO_THUMB_SM}}';
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
@@ -3983,47 +4026,49 @@
     }
 
 
-    // Prevent browser auto-restoring scroll on history nav (harmless if unsupported)
-    try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch { }
+    if (!isAthleteDialogOnlyRuntime) {
+        // Prevent browser auto-restoring scroll on leaderboard history navigation.
+        try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch { }
 
-    /* ------- ScrollGuard: block untrusted scrolls during anchor jump ------- */
-    (function () {
-        if (window.__scrollGuardInstalled) return;
-        window.__scrollGuardInstalled = true;
+        /* ------- ScrollGuard: block untrusted scrolls during anchor jump ------- */
+        (function () {
+            if (window.__scrollGuardInstalled) return;
+            window.__scrollGuardInstalled = true;
 
-        const ORIG = {
-            scrollTo: window.scrollTo.bind(window),
-            scrollBy: window.scrollBy.bind(window),
-            elSIV: Element.prototype.scrollIntoView,
-        };
-        let guardUntil = 0;
-        let anchorTarget = null;
+            const ORIG = {
+                scrollTo: window.scrollTo.bind(window),
+                scrollBy: window.scrollBy.bind(window),
+                elSIV: Element.prototype.scrollIntoView,
+            };
+            let guardUntil = 0;
+            let anchorTarget = null;
 
-        function blocked() { return Date.now() <= guardUntil; }
+            function blocked() { return Date.now() <= guardUntil; }
 
-        // Public API
-        window.ScrollGuard = {
-            block(ms = 1600) { guardUntil = Date.now() + ms; },
-            trustedScrollTo(opts) { ORIG.scrollTo(opts); },
-            trustedScrollIntoView(el, opts) { ORIG.elSIV.call(el, opts); },
-            setAnchorTarget(el) { anchorTarget = el || null; }
-        };
+            // Public API
+            window.ScrollGuard = {
+                block(ms = 1600) { guardUntil = Date.now() + ms; },
+                trustedScrollTo(opts) { ORIG.scrollTo(opts); },
+                trustedScrollIntoView(el, opts) { ORIG.elSIV.call(el, opts); },
+                setAnchorTarget(el) { anchorTarget = el || null; }
+            };
 
-        // Patch global scroll fns (no-op while blocked)
-        window.scrollTo = function (...args) { if (blocked()) return; return ORIG.scrollTo(...args); };
-        window.scrollBy = function (...args) { if (blocked()) return; return ORIG.scrollBy(...args); };
-        Element.prototype.scrollIntoView = function (...args) {
-            if (blocked()) return;
-            return ORIG.elSIV.apply(this, args);
-        };
+            // Patch global scroll fns (no-op while blocked)
+            window.scrollTo = function (...args) { if (blocked()) return; return ORIG.scrollTo(...args); };
+            window.scrollBy = function (...args) { if (blocked()) return; return ORIG.scrollBy(...args); };
+            Element.prototype.scrollIntoView = function (...args) {
+                if (blocked()) return;
+                return ORIG.elSIV.apply(this, args);
+            };
 
-        // If *anything* flips the hash during the guard, re-center the intended target
-        window.addEventListener('hashchange', () => {
-            if (blocked() && anchorTarget) {
-                ORIG.elSIV.call(anchorTarget, { behavior: 'auto', block: 'start' });
-            }
-        }, true);
-    })();
+            // If *anything* flips the hash during the guard, re-center the intended target
+            window.addEventListener('hashchange', () => {
+                if (blocked() && anchorTarget) {
+                    ORIG.elSIV.call(anchorTarget, { behavior: 'auto', block: 'start' });
+                }
+            }, true);
+        })();
+    }
 
     /* ------- Scroll Performance Optimization ------- */
     (function() {
@@ -4294,6 +4339,7 @@
     function LoadLeaderboard(includePodium = true, maxAthletes = Infinity) {
         includePodiumGlobal = includePodium;
         maxAthletesGlobal = maxAthletes;
+        athleteResultsReady = false;
         setLeaderboardLoadingState(includePodium, maxAthletes);
 
         window.getSharedAthletes = window.getSharedAthletes || function(){
@@ -4308,7 +4354,7 @@
             return window.__sharedAthletesRequest;
         };
 
-        window.getSharedAthletes()
+        const currentLoadPromise = window.getSharedAthletes()
             .then(athletes => {
                 // Array to store athletes with their lowest PhenoAge and age reduction
                 var viewAllAthletesBtn = document.getElementById('viewAllAthletesBtn');
@@ -4740,12 +4786,14 @@
                     return currentRounded === previousRounded || currentRounded === nextRounded ? 2 : 1;
                 };
 
-                generateDivisionFilters(athleteResults);
-                generateFlagFilters(athleteResults);
-                generateGenerationFilters(athleteResults);
-                generateExclusiveFilters(athleteResults);
-                generateLeagueTrackFilters(athleteResults);
-                updateFilterCounts(athleteResults);
+                if (!isAthleteDialogOnlyRuntime) {
+                    generateDivisionFilters(athleteResults);
+                    generateFlagFilters(athleteResults);
+                    generateGenerationFilters(athleteResults);
+                    generateExclusiveFilters(athleteResults);
+                    generateLeagueTrackFilters(athleteResults);
+                    updateFilterCounts(athleteResults);
+                }
 
                 // Sort the athletes by age reduction in ascending order
                 athleteResults.sort(window.compareAthleteRank);
@@ -4827,6 +4875,13 @@
                 athletesOrderedByPhenoAgeReduction = athleteResults.slice();
                 athletesOrderedByPhenoAgeReduction.sort(window.compareAthleteRankPhenoOnly);
                 assignBestRankCandidates(athleteResults);
+                athleteResultsReady = true;
+
+                // Standalone pages reuse the leaderboard's exact dialog and rank
+                // derivation, but do not own a leaderboard DOM to render into.
+                if (isAthleteDialogOnlyRuntime) {
+                    return;
+                }
 
                 const podiumCount = includePodium ? 3 : 0;
 
@@ -5163,6 +5218,8 @@
                 }
             })
             .catch(error => {
+                athleteResultsReady = false;
+                athleteResultsLoadPromise = null;
                 const tableBody = document.querySelector('.leaderboard table tbody');
                 if (tableBody) {
                     tableBody.classList.remove('loading-skeleton');
@@ -5178,6 +5235,8 @@
                 }
                 console.error('Error fetching athletes:', error);
             });
+        athleteResultsLoadPromise = currentLoadPromise;
+        return currentLoadPromise;
     };
 
     function buildPodiumSkeletonHtml() {
@@ -6114,6 +6173,8 @@
         if (!modalContent) return;
 
         currentAthleteModalRequestId++;
+        const returnFocusElement = athleteDialogReturnFocusElement;
+        athleteDialogReturnFocusElement = null;
 
         closeAthleteShareMenu();
         
@@ -6160,6 +6221,9 @@
             history.replaceState({}, "", originalAthletelessURL);
 
             resetPageTitle();
+            if (returnFocusElement?.isConnected) {
+                returnFocusElement.focus({ preventScroll: true });
+            }
         }, 400);
     }
 
@@ -7034,12 +7098,12 @@
     const searchInput = document.getElementById('athleteSearch');
 
     // Select all text on the first focus
-    searchInput.addEventListener('focus', () => {
+    searchInput?.addEventListener('focus', () => {
         isInitialClick = true;
     });
 
     // Select all text on the first click, then just place the cursor where clicked on the second click
-    searchInput.addEventListener('click', (event) => {
+    searchInput?.addEventListener('click', (event) => {
         if (isInitialClick) {
             searchInput.select(); // Select all text
             isInitialClick = false;
@@ -7056,7 +7120,7 @@
     });
 
     // Modify the input event listener
-    document.getElementById('athleteSearch').addEventListener('input', function () {
+    document.getElementById('athleteSearch')?.addEventListener('input', function () {
         const query = this.value.trim();
         if (query === '') {
             clearSearch(); // Run only when input is cleared
@@ -7066,11 +7130,11 @@
     });
 
     const clearSearchButton = document.querySelector('.clear-icon');
-    clearSearchButton.addEventListener('click', function () {
+    clearSearchButton?.addEventListener('click', function () {
         clearSearch();
         document.getElementById('athleteSearch')?.focus({ preventScroll: true });
     });
-    clearSearchButton.addEventListener('keydown', function (event) {
+    clearSearchButton?.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
             event.preventDefault();
             clearSearch();
@@ -7442,21 +7506,176 @@
         return athleteResults.find(athlete => window.slugifyName(athlete.name) === window.slugifyName(athleteNameText));
     }
 
-    window.openAthleteModalBySlug = function (athleteSlug, options) {
-        const normalizedSlug = window.slugifyName(athleteSlug, true);
-        const athleteData = athleteResults.find(athlete => {
-            const nameSlug = window.slugifyName(athlete.name, true);
-            const displayNameSlug = athlete.displayName ? window.slugifyName(athlete.displayName, true) : '';
-            return nameSlug === normalizedSlug || displayNameSlug === normalizedSlug;
-        });
+    function normalizeAthleteSlugForLookup(value) {
+        const routeSlug = String(value || '').replace(/_/g, '-');
+        if (typeof window.slugifyName === 'function') {
+            return window.slugifyName(routeSlug, true);
+        }
 
-        if (!athleteData) {
+        return routeSlug
+            .trim()
+            .toLowerCase()
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+    }
+
+    function findAthleteDataBySlug(athleteSlug) {
+        const normalizedSlug = normalizeAthleteSlugForLookup(athleteSlug);
+        if (!normalizedSlug) return null;
+
+        return athleteResults.find(athlete => {
+            const nameSlug = normalizeAthleteSlugForLookup(athlete.name);
+            const displayNameSlug = athlete.displayName ? normalizeAthleteSlugForLookup(athlete.displayName) : '';
+            return nameSlug === normalizedSlug || displayNameSlug === normalizedSlug;
+        }) || null;
+    }
+
+    function ensureAthleteResultsReady() {
+        return Promise.resolve(window.modulesReady)
+            .then(() => {
+                if (athleteResultsReady) return athleteResults;
+                if (!athleteResultsLoadPromise) {
+                    LoadLeaderboard(false, 0);
+                }
+                return athleteResultsLoadPromise;
+            })
+            .then(() => {
+                if (!athleteResultsReady) {
+                    throw new Error('Athlete profile index could not be loaded.');
+                }
+                return athleteResults;
+            });
+    }
+
+    function navigateToAthleteFallback(fallbackUrl) {
+        currentAthleteModalRequestId++;
+        modal.style.display = 'none';
+        modal.classList.remove('fade-out');
+        restoreBodyScroll();
+        window.location.assign(fallbackUrl);
+    }
+
+    window.openAthleteModalBySlug = function (athleteSlug, options) {
+        const normalizedSlug = normalizeAthleteSlugForLookup(athleteSlug);
+        if (!normalizedSlug) return false;
+
+        const athleteData = findAthleteDataBySlug(normalizedSlug);
+        if (athleteData) {
+            if (options?.returnFocusTo instanceof HTMLElement) {
+                athleteDialogReturnFocusElement = options.returnFocusTo;
+            }
+            fetchFullAthleteData(athleteData.name, athleteData, options);
+            return true;
+        }
+
+        // Once the index is loaded, an unknown profile must retain ordinary
+        // anchor navigation instead of swallowing a potentially valid URL.
+        if (athleteResultsReady) {
             return false;
         }
 
-        fetchFullAthleteData(athleteData.name, athleteData, options);
+        if (options?.returnFocusTo instanceof HTMLElement) {
+            athleteDialogReturnFocusElement = options.returnFocusTo;
+        }
+        const requestId = ++currentAthleteModalRequestId;
+        const modalContent = resetModalForLoading(normalizedSlug);
+
+        ensureAthleteResultsReady()
+            .then(() => {
+                if (requestId !== currentAthleteModalRequestId) return;
+                const loadedAthlete = findAthleteDataBySlug(normalizedSlug);
+                if (!loadedAthlete) {
+                    if (options?.fallbackUrl) {
+                        navigateToAthleteFallback(options.fallbackUrl);
+                        return;
+                    }
+                    throw new Error(`Athlete not found for ${normalizedSlug}.`);
+                }
+                fetchFullAthleteData(loadedAthlete.name, loadedAthlete, options);
+            })
+            .catch(error => {
+                if (requestId !== currentAthleteModalRequestId) return;
+                if (options?.fallbackUrl) {
+                    navigateToAthleteFallback(options.fallbackUrl);
+                    return;
+                }
+                handleAthleteModalLoadFailure(modalContent, normalizedSlug, options, error);
+            });
+
         return true;
     };
+
+    function getAthleteSlugFromProfileLink(link) {
+        if (link.hasAttribute('download')) return '';
+
+        let url;
+        try {
+            url = new URL(link.getAttribute('href'), window.location.href);
+        } catch (error) {
+            return '';
+        }
+
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
+        const normalizedHostname = url.hostname.toLowerCase().replace(/^www\./, '');
+        const isCurrentOrigin = url.origin === window.location.origin;
+        if (!isCurrentOrigin && normalizedHostname !== 'longevityworldcup.com') return '';
+
+        const match = url.pathname.match(/^\/athlete\/([^/]+)\/?$/i);
+        if (!match) return '';
+
+        try {
+            return decodeURIComponent(match[1]);
+        } catch (error) {
+            return '';
+        }
+    }
+
+    pageDocument.addEventListener('click', event => {
+        if (event.defaultPrevented ||
+            event.button !== 0 ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.shiftKey ||
+            event.altKey ||
+            !(event.target instanceof Element)) {
+            return;
+        }
+
+        const link = event.target.closest('a[href]');
+        if (!link ||
+            link.closest('#detailsModal') ||
+            link.closest('[data-athlete-dialog="off"]')) {
+            return;
+        }
+
+        const athleteSlug = getAthleteSlugFromProfileLink(link);
+        if (!athleteSlug) return;
+
+        const beforeOpen = new CustomEvent('lwc:athlete-dialog-before-open', {
+            bubbles: true,
+            cancelable: true,
+            detail: { athleteSlug }
+        });
+        if (!link.dispatchEvent(beforeOpen)) return;
+
+        const returnFocusTo = link.getClientRects().length > 0
+            ? link
+            : pageDocument.activeElement instanceof HTMLElement
+                ? pageDocument.activeElement
+                : null;
+        const opened = window.openAthleteModalBySlug(athleteSlug, {
+            suppressGuessMyAge: true,
+            fallbackUrl: link.href,
+            returnFocusTo
+        });
+        if (opened) {
+            event.preventDefault();
+        }
+    });
 
     function getAthletelessURL() {
         const url = new URL(window.location.href.replace(/\/athlete\/[^/]+\/?$/, ''));
@@ -7490,7 +7709,7 @@
             return window.location.origin;
         }
 
-        const canonicalLink = document.querySelector('link[rel="canonical"]');
+        const canonicalLink = pageDocument.querySelector('link[rel="canonical"]');
         try {
             return canonicalLink && canonicalLink.href
                 ? new URL(canonicalLink.href).origin
@@ -7758,6 +7977,11 @@
     }
 
     function fetchFullAthleteData(athleteNameText, athleteData, options) {
+        athleteDialogReturnFocusElement =
+            options?.returnFocusTo instanceof HTMLElement
+                ? options.returnFocusTo
+                : null;
+
         window.getSharedAthletes = window.getSharedAthletes || function(){
             if(!window.__sharedAthletesRequest){
                 window.__sharedAthletesRequest = fetchWithTimeout('/api/data/athletes', {}, 10000)
@@ -8806,6 +9030,7 @@
     const sidebar = document.querySelector('.sidebar');
     const sidebarToggle = document.querySelector('.sidebar-toggle');
     const sidebarClose = document.querySelector('.sidebar-close');
+    const hasLeaderboardSidebar = !!(sidebar && sidebarToggle && sidebarClose);
     const mobileDrawerMediaQuery = window.matchMedia('(max-width: 768px), (max-width: 932px) and (max-height: 480px) and (orientation: landscape)');
     let leaderboardTableHeightFrame = 0;
     let leaderboardTableResizeObserver = null;
@@ -8849,30 +9074,31 @@
         scheduleLeaderboardTableHeightSync();
     }
 
-    sidebarToggle.addEventListener('click', (event) => {
+    sidebarToggle?.addEventListener('click', (event) => {
         toggleSidebar({ focusDrawerClose: event.detail === 0 });
     });
 
-    sidebarToggle.addEventListener('mouseenter', () => {
+    sidebarToggle?.addEventListener('mouseenter', () => {
         if (sidebar.classList.contains('expanded')) return;
         sidebar.classList.add('partially-expanded');
     });
 
-    sidebarToggle.addEventListener('mouseleave', () => {
+    sidebarToggle?.addEventListener('mouseleave', () => {
         sidebar.classList.remove('partially-expanded');
     });
 
-    sidebarClose.addEventListener('click', (event) => {
+    sidebarClose?.addEventListener('click', (event) => {
         closeSidebar({ restoreFocus: event.detail === 0 });
     });
 
-    sidebar.addEventListener('change', (event) => {
+    sidebar?.addEventListener('change', (event) => {
         if (!event.target.matches('input[type="checkbox"]')) return;
 
         requestAnimationFrame(pinActiveDesktopSidebar);
     }, true);
 
     document.addEventListener('click', (event) => {
+        if (!hasLeaderboardSidebar) return;
         const isMobileDrawer = isMobileDrawerViewport();
         if (!sidebar.classList.contains('expanded')) return;
         if (sidebar.contains(event.target) || sidebarToggle.contains(event.target)) return;
@@ -8883,6 +9109,7 @@
     });
 
     document.addEventListener('keydown', (event) => {
+        if (!hasLeaderboardSidebar) return;
         if (event.key !== 'Tab') return;
         if (modal.style.display === "block") return;
 
@@ -8911,6 +9138,7 @@
     });
 
     document.addEventListener('keydown', (event) => {
+        if (!hasLeaderboardSidebar) return;
         if (event.key !== 'Escape' && event.key !== 'Esc') return;
         if (modal.style.display === "block") return;
 
@@ -8925,6 +9153,7 @@
     });
 
     function syncSidebarDrawerBackdrop() {
+        if (!hasLeaderboardSidebar) return;
         const isMobileDrawer = isMobileDrawerViewport();
         const isOpenMobileDrawer = isMobileDrawer && sidebar.classList.contains('expanded');
         document.body.classList.toggle('sidebar-drawer-open', isOpenMobileDrawer);
@@ -8932,6 +9161,7 @@
     }
 
     function getSidebarFocusableControls() {
+        if (!hasLeaderboardSidebar) return [];
         return Array.from(sidebar.querySelectorAll('a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'))
             .filter(element => {
                 if (element.disabled || element.getAttribute('aria-hidden') === 'true') return false;
@@ -8954,6 +9184,7 @@
     }
 
     function toggleSidebar(options = {}) {
+        if (!hasLeaderboardSidebar) return;
         if (sidebar.classList.contains('expanded')) {
             closeSidebar();
         }
@@ -8963,6 +9194,7 @@
     }
 
     function pinActiveDesktopSidebar() {
+        if (!hasLeaderboardSidebar) return;
         if (isMobileDrawerViewport()) return;
         if (!hasActiveLeaderboardFilterState()) return;
         if (sidebar.classList.contains('expanded')) return;
@@ -8971,6 +9203,7 @@
     }
 
     function openSidebar(options = {}) {
+        if (!hasLeaderboardSidebar) return;
         const isMobileDrawer = isMobileDrawerViewport();
         const drawerScrollX = window.scrollX;
         const drawerScrollY = window.scrollY;
@@ -9016,6 +9249,7 @@
     }
 
     function closeSidebar(options = {}) {
+        if (!hasLeaderboardSidebar) return;
         sidebar.classList.remove('expanded');
         sidebar.setAttribute('aria-hidden', 'true');
         sidebarToggle.classList.remove('active');
@@ -9048,16 +9282,18 @@
         }, 50);
     }
 
-    syncSidebarDrawerBackdrop();
-    installLeaderboardTableHeightObserver();
-    window.addEventListener('resize', () => {
+    if (hasLeaderboardSidebar) {
         syncSidebarDrawerBackdrop();
-        scheduleLeaderboardTableHeightSync();
-    });
-    if (typeof mobileDrawerMediaQuery.addEventListener === 'function') {
-        mobileDrawerMediaQuery.addEventListener('change', scheduleLeaderboardTableHeightSync);
-    } else if (typeof mobileDrawerMediaQuery.addListener === 'function') {
-        mobileDrawerMediaQuery.addListener(scheduleLeaderboardTableHeightSync);
+        installLeaderboardTableHeightObserver();
+        window.addEventListener('resize', () => {
+            syncSidebarDrawerBackdrop();
+            scheduleLeaderboardTableHeightSync();
+        });
+        if (typeof mobileDrawerMediaQuery.addEventListener === 'function') {
+            mobileDrawerMediaQuery.addEventListener('change', scheduleLeaderboardTableHeightSync);
+        } else if (typeof mobileDrawerMediaQuery.addListener === 'function') {
+            mobileDrawerMediaQuery.addListener(scheduleLeaderboardTableHeightSync);
+        }
     }
 
     // Sidebar swipe gesture
@@ -9069,6 +9305,7 @@
     const TAP_THRESHOLD = 10; // Allowable movement for taps
 
     document.addEventListener('touchstart', (e) => {
+        if (!hasLeaderboardSidebar) return;
         if (modal.style.display === "block") return;
 
         startX = e.changedTouches[0].clientX;
@@ -9076,6 +9313,7 @@
     }, false);
 
     document.addEventListener('touchend', (e) => {
+        if (!hasLeaderboardSidebar) return;
         if (modal.style.display === "block") return;
 
         endX = e.changedTouches[0].clientX;
@@ -9216,6 +9454,18 @@
         }
         updateAthleteInfoGrouping();
     }
+
+    // Keep the small public surface used by page bootstraps, Guess My Age, and
+    // existing browser tests while the controller itself remains isolated.
+    window.LoadLeaderboard = LoadLeaderboard;
+    window.openEnlargedView = openEnlargedView;
+    window.closeEnlargedView = closeEnlargedView;
+    window.populateProofsGallery = populateProofsGallery;
+    window.closeAthleteShareMenu = closeAthleteShareMenu;
+    window.closeModal = closeModal;
+    window.updateCrowdContainer = updateCrowdContainer;
+    window.updateYourGuess = updateYourGuess;
+    })();
 </script>
 
 <script>
