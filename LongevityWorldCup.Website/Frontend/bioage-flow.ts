@@ -882,24 +882,38 @@ interface Window {
         biomarkerEntryControllers.forEach(syncBiomarkerCompletion);
     }
 
+    function focusBiomarkerInput(input: HTMLInputElement): void {
+        expandBiomarkerCard(input);
+        input.focus();
+        ensureBiomarkerVisible(input);
+    }
+
+    function getFollowingBiomarkerInput(
+        controller: BioageBiomarkerEntryController,
+        input: HTMLInputElement
+    ): HTMLInputElement | null {
+        const index = controller.inputs.indexOf(input);
+        return controller.inputs.slice(index + 1).find(candidate => !candidate.disabled) || null;
+    }
+
     function moveToNextBiomarker(
         controller: BioageBiomarkerEntryController,
         input: HTMLInputElement
     ): void {
         const index = controller.inputs.indexOf(input);
-        const nextInput = controller.inputs.slice(index + 1).find(candidate => !isCompleteBiomarkerInput(candidate))
+        const nextInput = controller.inputs.slice(index + 1)
+            .find(candidate => !candidate.disabled && !isCompleteBiomarkerInput(candidate))
             || (!controller.isUpdate
-                ? controller.inputs.slice(0, index).find(candidate => !isCompleteBiomarkerInput(candidate))
+                ? controller.inputs.slice(0, index)
+                    .find(candidate => !candidate.disabled && !isCompleteBiomarkerInput(candidate))
                 : null)
-            || controller.inputs[index + 1];
+            || getFollowingBiomarkerInput(controller, input);
         if (!nextInput) {
             input.blur();
             return;
         }
 
-        expandBiomarkerCard(nextInput);
-        nextInput.focus();
-        ensureBiomarkerVisible(nextInput);
+        focusBiomarkerInput(nextInput);
     }
 
     function bindBiomarkerEntry(controller: BioageBiomarkerEntryController): void {
@@ -943,7 +957,15 @@ interface Window {
                 scheduleBioageDraftSave(controller);
             });
             input.addEventListener('keydown', event => {
-                if (event.key !== 'Enter' || !bioageMobileMedia.matches) return;
+                if (!bioageMobileMedia.matches) return;
+                if (event.key === 'Tab' && !event.shiftKey) {
+                    const nextInput = getFollowingBiomarkerInput(controller, input);
+                    if (!nextInput) return;
+                    event.preventDefault();
+                    focusBiomarkerInput(nextInput);
+                    return;
+                }
+                if (event.key !== 'Enter') return;
                 event.preventDefault();
                 if (controller.isUpdate && input.value.trim() === '') {
                     moveToNextBiomarker(controller, input);
