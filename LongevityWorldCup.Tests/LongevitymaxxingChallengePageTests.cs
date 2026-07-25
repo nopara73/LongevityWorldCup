@@ -582,8 +582,10 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("renderCheckIns(editableDays, \"lmxCommitmentCheckinList\", recentPublicRemarks(state));", javascript);
         Assert.Contains("function recentPublicRemarks(state: ParticipantState): ParticipantNote[]", javascript);
         Assert.Contains("function recentRemarksHtml(notes: ParticipantNote[]): string", javascript);
-        Assert.Contains("Recent remarks", javascript);
-        Assert.Contains("aria-label=\"Recent public remarks\"", javascript);
+        Assert.Contains("function hasParticipantNoteContent(note: ParticipantNote): boolean", javascript);
+        Assert.Contains("Recent check-ins", javascript);
+        Assert.Contains("aria-label=\"Recent public check-ins\"", javascript);
+        Assert.Contains("images.map((image, index) => notePhotoHtml(image", javascript);
         Assert.Contains("No public notes yet.", javascript);
         Assert.Contains("No participant notes yet.", javascript);
         Assert.Contains("placeholder=\"Visible publicly\"", javascript);
