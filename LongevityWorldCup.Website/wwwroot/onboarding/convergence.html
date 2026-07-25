@@ -1092,8 +1092,15 @@
 
         function clearStoredBiomarkerHandoff() {
             removeSessionItem('biomarkerData');
+            removeSessionItem('bioageClock');
             removeSessionItem('chronoPhenoDifference');
             removeSessionItem('chronoBortzDifference');
+        }
+
+        function clearCompletedBioageState() {
+            clearStoredBiomarkerHandoff();
+            removeSessionItem('bioageDraft:pheno:v1');
+            removeSessionItem('bioageDraft:bortz:v1');
         }
 
         function clearPendingPaymentOffer() {
@@ -1139,10 +1146,10 @@
         const PHENO_RESULT_BIOMARKER_KEYS = ['AlbGL', 'CreatUmolL', 'GluMmolL', 'CrpMgL', 'Wbc1000cellsuL', 'LymPc', 'McvFL', 'RdwPc', 'AlpUL'];
         const BORTZ_RESULT_BIOMARKER_KEYS = ['AlbGL', 'AlpUL', 'UreaMmolL', 'CholesterolMmolL', 'CreatUmolL', 'CystatinCMgL', 'Hba1cMmolMol', 'CrpMgL', 'GgtUL', 'Rbc10e12L', 'McvFL', 'RdwPc', 'Wbc1000cellsuL', 'MonocytePc', 'NeutrophilPc', 'LymPc', 'AltUL', 'ShbgNmolL', 'VitaminDNmolL', 'GluMmolL', 'MchPg', 'ApoA1GL'];
 
-        function hasCompleteSubmittedBiomarkerValues(biomarkerData, chronoPhenoDifference, chronoBortzDifference) {
-            const requiredKeys = chronoBortzDifference
+        function hasCompleteSubmittedBiomarkerValues(biomarkerData, bioageClock) {
+            const requiredKeys = bioageClock === 'bortz'
                 ? BORTZ_RESULT_BIOMARKER_KEYS
-                : chronoPhenoDifference
+                : bioageClock === 'pheno'
                     ? PHENO_RESULT_BIOMARKER_KEYS
                     : null;
 
@@ -1172,6 +1179,25 @@
             }
 
             removeSessionItem(key);
+            return null;
+        }
+
+        function readStoredBioageClock(biomarkerData, chronoPhenoDifference, chronoBortzDifference) {
+            const storedClock = getSessionItem('bioageClock');
+            if (storedClock === 'pheno' || storedClock === 'bortz') return storedClock;
+
+            // Compatibility for applications started before the clock marker existed.
+            const pendingOffer = readPendingPaymentOffer();
+            if (pendingOffer?.offerType === 'pro'
+                && chronoBortzDifference !== null
+                && hasCompleteSubmittedBiomarkerValues(biomarkerData, 'bortz')) return 'bortz';
+            if (pendingOffer?.offerType === 'amateur'
+                && chronoPhenoDifference !== null
+                && hasCompleteSubmittedBiomarkerValues(biomarkerData, 'pheno')) return 'pheno';
+            if (chronoBortzDifference !== null
+                && hasCompleteSubmittedBiomarkerValues(biomarkerData, 'bortz')) return 'bortz';
+            if (chronoPhenoDifference !== null
+                && hasCompleteSubmittedBiomarkerValues(biomarkerData, 'pheno')) return 'pheno';
             return null;
         }
 
@@ -1244,6 +1270,19 @@
         }
 
         function getConvergenceBackDestination() {
+            let biomarkerData = null;
+            try {
+                biomarkerData = JSON.parse(getSessionItem('biomarkerData'));
+            } catch (_) {
+            }
+
+            const storedClock = readStoredBioageClock(
+                biomarkerData,
+                readStoredAgeDifference('chronoPhenoDifference'),
+                readStoredAgeDifference('chronoBortzDifference'));
+            if (storedClock === 'bortz') return '/bortz-age';
+            if (storedClock === 'pheno') return '/pheno-age';
+
             const paymentOffer = readPendingPaymentOffer();
             return paymentOffer && paymentOffer.offerType === 'pro'
                 ? '/bortz-age'
@@ -1306,7 +1345,7 @@
 
             // Get the differences from sessionStorage
             const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');
-            const chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');
+            let chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');
 
             // Use the global variables `profilePic` and `proofPics` directly
             // Get the biomarker data from sessionStorage
@@ -1316,10 +1355,23 @@
             } catch (_) {
                 biomarkerData = null;
             }
-            if (!biomarkerData || !hasStoredDateOfBirth(biomarkerData) || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasCompleteSubmittedBiomarkerValues(biomarkerData, chronoPhenoDifference, chronoBortzDifference)) {
+            const bioageClock = readStoredBioageClock(
+                biomarkerData,
+                chronoPhenoDifference,
+                chronoBortzDifference);
+            if (bioageClock === 'pheno') chronoBortzDifference = null;
+            const isLegacyUnclockedResult = !bioageClock
+                && getSessionItem('bioageClock') === null
+                && chronoPhenoDifference === null
+                && chronoBortzDifference === null
+                && hasStoredBiomarkerValues(biomarkerData);
+            const hasRequiredAgeDifferences = isLegacyUnclockedResult || (chronoPhenoDifference !== null
+                && (bioageClock === 'pheno' || (bioageClock === 'bortz' && chronoBortzDifference !== null)));
+            if ((!bioageClock && !isLegacyUnclockedResult) || !hasRequiredAgeDifferences || !biomarkerData || !hasStoredDateOfBirth(biomarkerData) || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasCompleteSubmittedBiomarkerValues(biomarkerData, bioageClock)) {
+                const biomarkerRoute = bioageClock === 'bortz' ? '/bortz-age' : '/pheno-age';
                 clearStoredBiomarkerHandoff();
                 customAlert('Biomarker data is missing. Please complete the biomarker step.')
-                    .then(() => window.location.href = '/onboarding/pheno-age');
+                    .then(() => window.location.href = biomarkerRoute);
                 return;
             }
 
@@ -1989,6 +2041,7 @@
                                     setSessionItem('contactEmail', applicantData.accountEmail);
                                     setLocalItem('contactEmail', applicantData.accountEmail);
                                     removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                    clearCompletedBioageState();
                                     // Clear the image variables
                                     profilePic = null;
                                     proofPics = [];
@@ -2025,6 +2078,7 @@
                                         setSessionItem('contactEmail', applicantData.accountEmail);
                                         setLocalItem('contactEmail', applicantData.accountEmail);
                                         removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                        clearCompletedBioageState();
                                         profilePic = null;
                                         proofPics = [];
                                         removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
