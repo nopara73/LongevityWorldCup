@@ -26,6 +26,9 @@ namespace LongevityWorldCup.Website
         private static readonly TimeSpan PublicAnalyticsPostRateLimitWindow = TimeSpan.FromMinutes(1);
         private const int PublicPostRateLimitPermitLimit = 120;
         private const int PublicAnalyticsPostRateLimitPermitLimit = 240;
+        private const string PublicApiCorsPolicy = "AllowPublicApi";
+        private const string SiteCorsPolicy = "AllowSpecificOrigin";
+        private const string PublicApiPathPrefix = "/api/data";
 
         public static void Main(string[] args)
         {
@@ -334,13 +337,20 @@ namespace LongevityWorldCup.Website
                 builder.Services.AddQuartzHostedService(o => o.WaitForJobsToComplete = true);
             }
 
-            // Add CORS policy
+            // Add CORS policies
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("AllowSpecificOrigin",
-                    builder =>
+                options.AddPolicy(PublicApiCorsPolicy,
+                    policy =>
                     {
-                        builder.WithOrigins(
+                        policy.AllowAnyOrigin()
+                              .AllowAnyHeader()
+                              .AllowAnyMethod();
+                    });
+                options.AddPolicy(SiteCorsPolicy,
+                    policy =>
+                    {
+                        policy.WithOrigins(
                             "https://www.longevityworldcup.com",
                             "http://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion",
                             "https://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion")
@@ -421,12 +431,17 @@ namespace LongevityWorldCup.Website
                 options.ConfigObject.ValidatorUrl = null;
             });
 
-            // Use CORS
-            app.UseCors("AllowSpecificOrigin");
+            app.UseRouting();
+
+            // The documented public API is intentionally callable from any browser origin.
+            app.UseWhen(
+                context => context.Request.Path.StartsWithSegments(PublicApiPathPrefix),
+                publicApi => publicApi.UseCors(PublicApiCorsPolicy));
+            app.UseWhen(
+                context => !context.Request.Path.StartsWithSegments(PublicApiPathPrefix),
+                site => site.UseCors(SiteCorsPolicy));
 
             app.UseStatusCodePagesWithReExecute("/error/{0}");
-
-            app.UseRouting();
 
             app.UseRateLimiter();
 
