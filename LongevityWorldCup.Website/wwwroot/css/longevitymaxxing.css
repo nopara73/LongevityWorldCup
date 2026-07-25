@@ -1119,10 +1119,28 @@
     position: relative;
     display: block;
     aspect-ratio: 4 / 3;
+    width: 100%;
+    padding: 0;
     border: 1px solid rgba(15, 23, 42, 0.12);
     border-radius: 8px;
     background: #f8fafc;
     overflow: hidden;
+    cursor: zoom-in;
+    transition:
+        border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.lmx-note-photo:hover {
+    border-color: rgba(0, 188, 212, 0.58);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+    transform: translateY(-1px);
+}
+
+.lmx-note-photo:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.42);
+    outline-offset: 2px;
 }
 
 .lmx-note-photo img {
@@ -1130,10 +1148,18 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
+    pointer-events: none;
 }
 
 .lmx-note-photo.pending-item {
     border-style: dashed;
+    cursor: default;
+}
+
+.lmx-note-photo.pending-item:hover {
+    border-color: rgba(15, 23, 42, 0.12);
+    box-shadow: none;
+    transform: none;
 }
 
 .lmx-note-photo-remove {
@@ -1155,6 +1181,190 @@
 .lmx-note-photo-remove:focus-visible {
     outline: 3px solid rgba(0, 188, 212, 0.42);
     outline-offset: 2px;
+}
+
+.lmx-photo-viewer[hidden] {
+    display: none;
+}
+
+.lmx-photo-viewer {
+    --lmx-photo-viewer-entry-scale: 0.98;
+    position: fixed;
+    inset: 0;
+    z-index: 10001;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding:
+        max(1rem, env(safe-area-inset-top))
+        max(1rem, env(safe-area-inset-right))
+        max(1rem, env(safe-area-inset-bottom))
+        max(1rem, env(safe-area-inset-left));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.92);
+    opacity: 0;
+    transform: scale(var(--lmx-photo-viewer-entry-scale));
+    transition:
+        opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+}
+
+.lmx-photo-viewer.show {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.lmx-photo-viewer-close,
+.lmx-photo-viewer-nav {
+    position: absolute;
+    z-index: 1;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid rgba(246, 244, 237, 0.26);
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(12, 14, 14, 0.78);
+    color: rgba(255, 255, 255, 0.92);
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.38),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        background-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
+        transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+}
+
+.lmx-photo-viewer-close {
+    top: max(16px, env(safe-area-inset-top));
+    left: max(16px, env(safe-area-inset-left));
+    font-size: 1.9rem;
+}
+
+.lmx-photo-viewer-close:hover {
+    background: rgba(0, 0, 0, 0.9);
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.lmx-photo-viewer-close:focus-visible,
+.lmx-photo-viewer-nav:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.68);
+    outline-offset: 3px;
+    background: rgba(0, 0, 0, 0.9);
+    color: #ffffff;
+}
+
+.lmx-photo-viewer-stage {
+    width: min(900px, calc(100vw - 2rem));
+    max-width: 100%;
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    overscroll-behavior: contain;
+}
+
+.lmx-photo-viewer-stage:focus-visible {
+    outline: 3px solid var(--lwc-accent-bright, #19c3d1);
+    outline-offset: 3px;
+}
+
+.lmx-photo-viewer-stage img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: min(900px, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    object-fit: contain;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+}
+
+.lmx-photo-viewer-nav {
+    top: 50%;
+    padding-bottom: 0.15rem;
+    font-size: 2.2rem;
+    transform: translateY(-50%);
+}
+
+.lmx-photo-viewer-nav.previous {
+    left: max(16px, env(safe-area-inset-left));
+}
+
+.lmx-photo-viewer-nav.next {
+    right: max(16px, env(safe-area-inset-right));
+}
+
+.lmx-photo-viewer-nav:not(:disabled):hover {
+    background: rgba(0, 0, 0, 0.9);
+    color: #ffffff;
+    transform: translateY(-50%) scale(1.08);
+}
+
+.lmx-photo-viewer-nav:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.lmx-photo-viewer-nav[hidden],
+.lmx-photo-viewer-position[hidden] {
+    display: none;
+}
+
+.lmx-photo-viewer-position {
+    position: absolute;
+    top: max(16px, env(safe-area-inset-top));
+    left: 50%;
+    z-index: 1;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid rgba(246, 244, 237, 0.20);
+    border-radius: 999px;
+    background: rgba(12, 14, 14, 0.78);
+    color: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.30);
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    pointer-events: none;
+    transform: translateX(-50%);
+}
+
+@media (max-width: 768px) {
+    .lmx-photo-viewer {
+        padding:
+            max(4.4rem, calc(env(safe-area-inset-top) + 4.4rem))
+            max(0.75rem, env(safe-area-inset-right))
+            max(4.8rem, calc(env(safe-area-inset-bottom) + 4.8rem))
+            max(0.75rem, env(safe-area-inset-left));
+    }
+
+    .lmx-photo-viewer-stage {
+        width: 100%;
+        max-height: 100%;
+    }
+
+    .lmx-photo-viewer-stage img {
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    .lmx-photo-viewer-nav {
+        top: auto;
+        bottom: max(16px, env(safe-area-inset-bottom));
+        transform: none;
+    }
+
+    .lmx-photo-viewer-nav:not(:disabled):hover {
+        transform: none;
+    }
 }
 
 .lmx-field input:focus,
@@ -1819,7 +2029,8 @@
     cursor: progress;
 }
 
-body.lmx-quote-open {
+body.lmx-quote-open,
+body.lmx-photo-viewer-open {
     overflow: hidden;
 }
 

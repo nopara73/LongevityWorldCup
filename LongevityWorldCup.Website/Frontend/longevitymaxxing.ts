@@ -47,6 +47,11 @@
         height: number;
     }
 
+    interface NotePhotoViewerItem {
+        source: string;
+        trigger: HTMLButtonElement;
+    }
+
     interface CheckInDraft {
         sleep: number;
         exercise: number;
@@ -664,6 +669,11 @@
     let regionDisplayNames: Intl.DisplayNames | null = null;
     let callCountdownTimer: number | null = null;
     let quoteDialogLastFocus: HTMLElement | null = null;
+    let notePhotoViewerItems: NotePhotoViewerItem[] = [];
+    let notePhotoViewerIndex = 0;
+    let notePhotoViewerShowFrame: number | null = null;
+    let notePhotoViewerCloseTimer: number | null = null;
+    let notePhotoViewerInertStates: Array<{ element: HTMLElement; inert: boolean }> = [];
 
     function readSharedWindowApi(): SharedWindowApi {
         const api: SharedWindowApi = {};
@@ -756,6 +766,7 @@
         wireAccessTabs();
         initAthleteSelectors();
         wireIdentityControls();
+        wireNotePhotoViewer();
         startCallCountdownTimer();
         if (accessLoading) renderAccessLoading();
 
@@ -2958,9 +2969,298 @@
         if (!url) return "";
         const width = Number(image.width) || "";
         const height = Number(image.height) || "";
-        return `<a class="lmx-note-photo" href="${escAttr(url)}" target="_blank" rel="noopener" aria-label="Open note photo">
+        return `<button class="lmx-note-photo" type="button" data-photo-src="${escAttr(url)}" data-photo-key="${escAttr(key)}" aria-label="Open check-in photo">
             <img src="${escAttr(url)}" alt="" loading="lazy" decoding="async" width="${escAttr(width)}" height="${escAttr(height)}" data-photo-key="${escAttr(key)}">
-        </a>`;
+        </button>`;
+    }
+
+    function wireNotePhotoViewer(): void {
+        document.addEventListener("click", event => {
+            if (!(event.target instanceof Element)) return;
+            const trigger = event.target.closest<HTMLButtonElement>("button.lmx-note-photo[data-photo-src]");
+            if (!trigger) return;
+            openNotePhotoViewer(trigger);
+        });
+
+        window.addEventListener("popstate", event => {
+            const source = notePhotoViewerHistorySource(event.state);
+            const dialog = document.getElementById("lmxNotePhotoViewer");
+            const isOpen = !!dialog && !dialog.hidden && dialog.getAttribute("aria-hidden") === "false";
+            if (!source) {
+                if (isOpen) closeNotePhotoViewer();
+                return;
+            }
+
+            const trigger = Array.from(document.querySelectorAll<HTMLButtonElement>("button.lmx-note-photo[data-photo-src]"))
+                .find(button => button.dataset.photoSrc === source);
+            if (trigger) {
+                openNotePhotoViewer(trigger, { pushHistory: false });
+            } else if (isOpen) {
+                closeNotePhotoViewer();
+            }
+        });
+    }
+
+    function ensureNotePhotoViewer(): HTMLElement {
+        let dialog = document.getElementById("lmxNotePhotoViewer");
+        if (dialog) return dialog;
+
+        document.body.insertAdjacentHTML("beforeend", `
+            <div id="lmxNotePhotoViewer"
+                 class="lmx-photo-viewer"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-label="Check-in photo viewer"
+                 aria-hidden="true"
+                 hidden>
+                <button id="lmxNotePhotoViewerClose" type="button" class="lmx-photo-viewer-close" aria-label="Close enlarged image">&times;</button>
+                <div id="lmxNotePhotoViewerStage" class="lmx-photo-viewer-stage" tabindex="0" aria-label="Enlarged check-in photo">
+                    <img src="" alt="">
+                </div>
+                <button id="lmxNotePhotoViewerPrevious" type="button" class="lmx-photo-viewer-nav previous" aria-label="Previous check-in photo" hidden>&lsaquo;</button>
+                <button id="lmxNotePhotoViewerNext" type="button" class="lmx-photo-viewer-nav next" aria-label="Next check-in photo" hidden>&rsaquo;</button>
+                <span id="lmxNotePhotoViewerPosition" class="lmx-photo-viewer-position" aria-live="polite" aria-atomic="true" hidden></span>
+            </div>`);
+
+        dialog = requiredElement("lmxNotePhotoViewer", HTMLElement);
+        const closeButton = requiredButton("lmxNotePhotoViewerClose");
+        const previousButton = requiredButton("lmxNotePhotoViewerPrevious");
+        const nextButton = requiredButton("lmxNotePhotoViewerNext");
+
+        closeButton.addEventListener("click", requestCloseNotePhotoViewer);
+        previousButton.addEventListener("click", () => navigateNotePhotoViewer(-1));
+        nextButton.addEventListener("click", () => navigateNotePhotoViewer(1));
+        dialog.addEventListener("click", event => {
+            if (event.target === dialog) requestCloseNotePhotoViewer();
+        });
+        dialog.addEventListener("keydown", event => {
+            if (event.key === "Escape" || event.key === "Esc") {
+                event.preventDefault();
+                event.stopPropagation();
+                requestCloseNotePhotoViewer();
+                return;
+            }
+
+            if (event.key === "Tab") {
+                trapNotePhotoViewerFocus(dialog, event);
+                return;
+            }
+            if (notePhotoViewerItems.length < 2) return;
+
+            if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                event.stopPropagation();
+                navigateNotePhotoViewer(-1);
+            } else if (event.key === "ArrowRight") {
+                event.preventDefault();
+                event.stopPropagation();
+                navigateNotePhotoViewer(1);
+            } else if (event.key === "Home") {
+                event.preventDefault();
+                event.stopPropagation();
+                updateNotePhotoViewer(0);
+            } else if (event.key === "End") {
+                event.preventDefault();
+                event.stopPropagation();
+                updateNotePhotoViewer(notePhotoViewerItems.length - 1);
+            }
+        });
+
+        let touchStart: { x: number; y: number } | null = null;
+        dialog.addEventListener("touchstart", event => {
+            if (event.touches.length !== 1) return;
+            const touch = event.touches[0];
+            if (!touch) return;
+            touchStart = { x: touch.clientX, y: touch.clientY };
+        }, { passive: true });
+        dialog.addEventListener("touchend", event => {
+            if (!touchStart) return;
+            const touch = event.changedTouches[0];
+            const start = touchStart;
+            touchStart = null;
+            if (!touch || notePhotoViewerItems.length < 2) return;
+
+            const horizontalDistance = touch.clientX - start.x;
+            const verticalDistance = touch.clientY - start.y;
+            if (Math.abs(horizontalDistance) < 50 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
+            navigateNotePhotoViewer(horizontalDistance > 0 ? -1 : 1);
+        }, { passive: true });
+        dialog.addEventListener("touchcancel", () => {
+            touchStart = null;
+        }, { passive: true });
+
+        return dialog;
+    }
+
+    function openNotePhotoViewer(trigger: HTMLButtonElement, options: { pushHistory?: boolean } = {}): void {
+        const source = String(trigger.dataset.photoSrc || "").trim();
+        if (!source) return;
+
+        const gallery = trigger.closest<HTMLElement>(".lmx-recent-remarks, .lmx-notes, .lmx-note-photo-field")
+            || trigger.parentElement;
+        const triggers = gallery
+            ? Array.from(gallery.querySelectorAll<HTMLButtonElement>("button.lmx-note-photo[data-photo-src]"))
+            : [trigger];
+        notePhotoViewerItems = triggers
+            .map(item => ({ source: String(item.dataset.photoSrc || "").trim(), trigger: item }))
+            .filter(item => !!item.source);
+        if (!notePhotoViewerItems.length) return;
+
+        const initialIndex = Math.max(0, notePhotoViewerItems.findIndex(item => item.trigger === trigger));
+        const dialog = ensureNotePhotoViewer();
+        const wasOpen = !dialog.hidden && dialog.getAttribute("aria-hidden") === "false";
+        if (notePhotoViewerCloseTimer !== null) {
+            window.clearTimeout(notePhotoViewerCloseTimer);
+            notePhotoViewerCloseTimer = null;
+        }
+        if (notePhotoViewerShowFrame !== null) {
+            window.cancelAnimationFrame(notePhotoViewerShowFrame);
+            notePhotoViewerShowFrame = null;
+        }
+
+        updateNotePhotoViewer(initialIndex);
+        dialog.hidden = false;
+        dialog.setAttribute("aria-hidden", "false");
+        document.body.classList.add("lmx-photo-viewer-open");
+        if (!wasOpen) setNotePhotoViewerPageInert(dialog, true);
+        requiredButton("lmxNotePhotoViewerClose").focus({ preventScroll: true });
+        notePhotoViewerShowFrame = window.requestAnimationFrame(() => {
+            notePhotoViewerShowFrame = null;
+            if (!dialog.hidden && dialog.getAttribute("aria-hidden") === "false") dialog.classList.add("show");
+        });
+
+        if (options.pushHistory !== false && !notePhotoViewerHistorySource(window.history.state)) {
+            window.history.pushState(
+                {
+                    ...(window.history.state || {}),
+                    lmxNotePhotoViewer: { source: notePhotoViewerItems[notePhotoViewerIndex]?.source || source }
+                },
+                "",
+                window.location.href);
+        }
+    }
+
+    function updateNotePhotoViewer(index: number): void {
+        if (!notePhotoViewerItems.length) return;
+        const boundedIndex = Math.min(Math.max(index, 0), notePhotoViewerItems.length - 1);
+        const item = notePhotoViewerItems[boundedIndex];
+        const dialog = document.getElementById("lmxNotePhotoViewer");
+        const image = dialog?.querySelector<HTMLImageElement>(".lmx-photo-viewer-stage img");
+        const stage = dialog?.querySelector<HTMLElement>(".lmx-photo-viewer-stage");
+        const previousButton = optionalElement("lmxNotePhotoViewerPrevious", HTMLButtonElement);
+        const nextButton = optionalElement("lmxNotePhotoViewerNext", HTMLButtonElement);
+        const position = optionalElement("lmxNotePhotoViewerPosition", HTMLElement);
+        if (!item || !dialog || !image || !stage || !previousButton || !nextButton || !position) return;
+
+        notePhotoViewerIndex = boundedIndex;
+        image.src = item.source;
+        image.alt = `Check-in photo ${boundedIndex + 1}`;
+        const canNavigate = notePhotoViewerItems.length > 1;
+        previousButton.hidden = !canNavigate;
+        nextButton.hidden = !canNavigate;
+        previousButton.disabled = !canNavigate || boundedIndex === 0;
+        nextButton.disabled = !canNavigate || boundedIndex === notePhotoViewerItems.length - 1;
+        position.hidden = !canNavigate;
+        position.textContent = canNavigate ? `Photo ${boundedIndex + 1} of ${notePhotoViewerItems.length}` : "";
+        stage.setAttribute("aria-label", canNavigate
+            ? `Enlarged check-in photo ${boundedIndex + 1} of ${notePhotoViewerItems.length}`
+            : "Enlarged check-in photo");
+        dialog.setAttribute("aria-label", canNavigate
+            ? `Check-in photo ${boundedIndex + 1} of ${notePhotoViewerItems.length}`
+            : "Enlarged check-in photo");
+
+        if (notePhotoViewerHistorySource(window.history.state)) {
+            window.history.replaceState(
+                {
+                    ...(window.history.state || {}),
+                    lmxNotePhotoViewer: { source: item.source }
+                },
+                "",
+                window.location.href);
+        }
+    }
+
+    function navigateNotePhotoViewer(offset: number): void {
+        const targetIndex = notePhotoViewerIndex + offset;
+        if (targetIndex < 0 || targetIndex >= notePhotoViewerItems.length) return;
+        updateNotePhotoViewer(targetIndex);
+    }
+
+    function trapNotePhotoViewerFocus(dialog: HTMLElement, event: KeyboardEvent): void {
+        const focusable = getDialogFocusableElements(dialog);
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (!first || !last) {
+            event.preventDefault();
+            return;
+        }
+
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus({ preventScroll: true });
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus({ preventScroll: true });
+        }
+    }
+
+    function requestCloseNotePhotoViewer(): void {
+        const dialog = document.getElementById("lmxNotePhotoViewer");
+        if (!dialog || dialog.hidden || dialog.getAttribute("aria-hidden") !== "false") return;
+        if (notePhotoViewerHistorySource(window.history.state)) {
+            window.history.back();
+            return;
+        }
+        closeNotePhotoViewer();
+    }
+
+    function closeNotePhotoViewer(): void {
+        const dialog = document.getElementById("lmxNotePhotoViewer");
+        if (!dialog || dialog.hidden || dialog.getAttribute("aria-hidden") !== "false") return;
+        if (notePhotoViewerShowFrame !== null) {
+            window.cancelAnimationFrame(notePhotoViewerShowFrame);
+            notePhotoViewerShowFrame = null;
+        }
+
+        const returnFocusTo = notePhotoViewerItems[notePhotoViewerIndex]?.trigger;
+        dialog.classList.remove("show");
+        dialog.setAttribute("aria-hidden", "true");
+        setNotePhotoViewerPageInert(dialog, false);
+        if (returnFocusTo?.isConnected) returnFocusTo.focus({ preventScroll: true });
+
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        notePhotoViewerCloseTimer = window.setTimeout(() => {
+            dialog.hidden = true;
+            document.body.classList.remove("lmx-photo-viewer-open");
+            notePhotoViewerCloseTimer = null;
+        }, prefersReducedMotion ? 0 : 220);
+    }
+
+    function setNotePhotoViewerPageInert(dialog: HTMLElement, inert: boolean): void {
+        if (inert) {
+            if (notePhotoViewerInertStates.length) return;
+            notePhotoViewerInertStates = Array.from(document.body.children)
+                .filter((element): element is HTMLElement => element instanceof HTMLElement && element !== dialog)
+                .map(element => ({ element, inert: element.inert }));
+            notePhotoViewerInertStates.forEach(state => {
+                state.element.inert = true;
+            });
+            return;
+        }
+
+        notePhotoViewerInertStates.forEach(state => {
+            state.element.inert = state.inert;
+        });
+        notePhotoViewerInertStates = [];
+    }
+
+    function notePhotoViewerHistorySource(state: unknown): string {
+        if (!state || typeof state !== "object" || !("lmxNotePhotoViewer" in state)) return "";
+        const viewerState = (state as { lmxNotePhotoViewer?: unknown }).lmxNotePhotoViewer;
+        if (!viewerState || typeof viewerState !== "object" || !("source" in viewerState)) return "";
+        return typeof (viewerState as { source?: unknown }).source === "string"
+            ? String((viewerState as { source: string }).source || "").trim()
+            : "";
     }
 
     function setPendingNotePhotos(form: HTMLFormElement, files: File[]): void {
