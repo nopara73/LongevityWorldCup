@@ -36,6 +36,7 @@ function canonicalizeBadgeLabel(label: unknown): string {
         "≥2 Submissions": "≥2 submissions",
         "Crowd - Most Guessed": "Crowd – most guessed",
         "Crowd - Age Gap (Chrono−Crowd)": "Crowd – age gap (chrono−crowd)",
+        "Crowd Age - lowest": "Crowd Age – lowest",
         "First Applicants": "First applicants",
         "Perfect Application": "Perfect application"
     };
@@ -233,6 +234,13 @@ function weightForBadge(badge: ServerBadge): number {
         if (place === 3) return 10;
         return 0;
     }
+    if (label === "Crowd Age – lowest") {
+        if (place === 1) return 30;
+        if (place === 2) return 20;
+        if (place === 3) return 10;
+        return 0;
+    }
+
     if (label === "Podcast") return 100;
     if (label === "First applicants") {
         if (place === 1) return 100;
@@ -487,6 +495,10 @@ function describeServerBadgeReason(badge: ServerBadge): string | null {
     if (label === "Crowd – age gap (chrono−crowd)" && place) {
         return `while being #${place} in age-gap vs the crowd`;
     }
+    if (label === "Crowd Age – lowest" && place) {
+        return `while being #${place} youngest-looking to the crowd`;
+    }
+
     return null;
 }
 

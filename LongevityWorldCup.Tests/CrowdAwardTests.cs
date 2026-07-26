@@ -8,7 +8,7 @@ namespace LongevityWorldCup.Tests;
 public sealed class CrowdAwardTests
 {
     [Fact]
-    public void CrowdAwardsDoNotRankRawCrowdAge()
+    public void CrowdAwardsPreserveLowestCrowdAgeBadge()
     {
         using var factory = new TestWebApplicationFactory();
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
@@ -30,7 +30,6 @@ public sealed class CrowdAwardTests
         });
 
         Assert.Contains("Crowd – most guessed", labels);
-        Assert.DoesNotContain("Crowd Age – lowest", labels);
-        Assert.DoesNotContain("Crowd Age - lowest", labels);
+        Assert.Contains("Crowd Age – lowest", labels);
     }
 }
