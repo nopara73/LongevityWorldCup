@@ -80,4 +80,17 @@ public sealed class PublicApiCorsTests
             TrustedSiteOrigin,
             Assert.Single(trustedResponse.Headers.GetValues("Access-Control-Allow-Origin")));
     }
+
+    [Fact]
+    public async Task NonPublicNotFound_ReExecutesRoutedErrorEndpoint()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        using var response = await client.GetAsync("/route-that-does-not-exist");
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.Equal("/error/404.html", response.Headers.Location?.ToString());
+    }
 }
