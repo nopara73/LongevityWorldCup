@@ -225,13 +225,21 @@ namespace LongevityWorldCup.Website.Middleware
         private string ApplyHeadAssets(string html, string path)
         {
             var config = GetHeadAssetConfig(path);
-            if (ShouldInjectAthleteDialogRuntime(path))
-            {
-                config = AddAthleteDialogModules(config);
-            }
-
             var optionalHeadScripts = BuildOptionalHeadScripts(config);
             var modulesBootstrap = BuildModulesBootstrap(config);
+            if (ShouldInjectAthleteDialogRuntime(path))
+            {
+                var athleteDialogModules = AthleteDialogModulePaths
+                    .Except(config.ModulePaths, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                var athleteDialogModulesBootstrap = BuildModulesBootstrap(
+                    athleteDialogModules,
+                    "athleteDialogModulesReady");
+                modulesBootstrap = string.Join(
+                    Environment.NewLine,
+                    new[] { modulesBootstrap, athleteDialogModulesBootstrap }
+                        .Where(value => !string.IsNullOrEmpty(value)));
+            }
 
             return ApplySharedCssPlaceholders(ApplySharedAssetPlaceholders(html))
                 .Replace("{{OPTIONAL_HEAD_SCRIPTS}}", optionalHeadScripts)
@@ -254,16 +262,6 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_PRO_DISCOUNTS_JS}}", _assetVersionProvider.AppendVersion("/js/pro-discounts.js"))
                 .Replace("{{ASSET_PROOF_HELPERS_JS}}", _assetVersionProvider.AppendVersion("/js/proof-helpers.js"))
                 .Replace("{{ASSET_AGE_VISUALIZATION_JS}}", _assetVersionProvider.AppendVersion("/js/age-visualization.js"));
-        }
-
-        private static HeadAssetConfig AddAthleteDialogModules(HeadAssetConfig config)
-        {
-            var modulePaths = config.ModulePaths
-                .Concat(AthleteDialogModulePaths)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            return config with { ModulePaths = modulePaths };
         }
 
         private static bool ShouldInjectAthleteDialogRuntime(string? path)
@@ -627,17 +625,24 @@ $@"<style{attributes}>
             return sb.ToString().TrimEnd();
         }
 
-        private string BuildModulesBootstrap(HeadAssetConfig config)
+        private string BuildModulesBootstrap(HeadAssetConfig config) =>
+            BuildModulesBootstrap(config.ModulePaths, "modulesReady");
+
+        private string BuildModulesBootstrap(
+            IReadOnlyList<string> modulePaths,
+            string readinessProperty)
         {
-            if (config.ModulePaths.Count == 0)
+            if (modulePaths.Count == 0)
             {
                 return string.Empty;
             }
 
-            var imports = string.Join("," + Environment.NewLine, config.ModulePaths.Select(path => $"        import(`{_assetVersionProvider.AppendVersion(path)}`)"));
+            var imports = string.Join(
+                "," + Environment.NewLine,
+                modulePaths.Select(path => $"        import(`{_assetVersionProvider.AppendVersion(path)}`)"));
             return
 $@"<script type=""module"">
-    window.modulesReady = Promise.all([
+    window.{readinessProperty} = Promise.all([
 {imports}
     ]);
 </script>";

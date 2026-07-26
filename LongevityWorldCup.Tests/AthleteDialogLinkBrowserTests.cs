@@ -28,7 +28,57 @@ public sealed class AthleteDialogLinkBrowserTests
         Assert.Contains("data-athlete-dialog-only=\"true\"", html);
         Assert.Contains("@scope (#athleteDialogRuntime)", html);
         Assert.Contains("--athlete-dialog-layer:10020", html);
+        Assert.Contains("window.athleteDialogModulesReady = Promise.all", html);
         Assert.DoesNotContain("<!--ATHLETE-DIALOG-", html);
+    }
+
+    [Fact]
+    public async Task CalculatorHydration_DoesNotWaitForDialogOnlyModules()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app, width: 1024, height: 720);
+
+        var dialogModuleRequestReceived =
+            new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseDialogModuleResponse =
+            new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/js/age-visualization.js*", async route =>
+        {
+            dialogModuleRequestReceived.TrySetResult();
+            await releaseDialogModuleResponse.Task;
+            await route.ContinueAsync();
+        });
+
+        var page = await context.NewPageAsync();
+        page.SetDefaultTimeout(15_000);
+
+        try
+        {
+            await page.GotoAsync(
+                "/bortz-age?Year=1980&Month=6&Day=15&Date=2026-06-01",
+                new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await dialogModuleRequestReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await page.WaitForFunctionAsync(
+                "() => document.querySelector('#blood-draw-date')?.value === '2026-06-01'");
+
+            var dialogModulesReady = await page.EvaluateAsync<bool>(
+                """
+                () => Promise.race([
+                    window.athleteDialogModulesReady.then(() => true),
+                    new Promise(resolve => setTimeout(() => resolve(false), 100))
+                ])
+                """);
+            Assert.False(dialogModulesReady);
+        }
+        finally
+        {
+            releaseDialogModuleResponse.TrySetResult();
+        }
     }
 
     [Fact]
