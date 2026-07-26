@@ -4,14 +4,15 @@ namespace LongevityWorldCup.Website.Business;
 
 public enum FillerType
 {
-    Top3Leaderboard,
-    CrowdGuesses,
-    Newcomers,
-    DomainTop,
-    HistoryDocument,
-    Ruleset,
-    GitHubRepository,
-    Donation
+    Top3Leaderboard = 0,
+    // Retained only so historical database rows keep their meaning. This filler is no longer scheduled.
+    CrowdGuesses = 1,
+    Newcomers = 2,
+    DomainTop = 3,
+    HistoryDocument = 4,
+    Ruleset = 5,
+    GitHubRepository = 6,
+    Donation = 7
 }
 
 public class XFillerPostLogService
@@ -134,7 +135,6 @@ public class XFillerPostLogService
         var options = new List<(FillerType Type, string Text)>();
         foreach (var slug in Top3LeagueSlugs)
             options.Add((FillerType.Top3Leaderboard, $"league[{slug}]"));
-        options.Add((FillerType.CrowdGuesses, ""));
         foreach (var dk in DomainKeys)
             options.Add((FillerType.DomainTop, $"domain[{dk}]"));
         options.Add((FillerType.HistoryDocument, ""));

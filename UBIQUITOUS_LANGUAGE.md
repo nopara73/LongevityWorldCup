@@ -11,6 +11,7 @@
 - **Biological Age Difference** is biological age minus chronological age; lower is better. **Age Reduction** is the favorable public label.
 - **Effective Age Reduction** is the Ultimate League score: Bortz for Pro, otherwise pheno.
 - **Crowd Count** is accepted realistic guesses behind Crowd Age.
+- Crowd Age competition placements compare crowd age with chronological age. Raw crowd age does not produce a "youngest-looking" award or social post.
 - **Proof** is evidence for an athlete, profile, or result. **Profile picture** is the public display image.
 - **Event** is persisted public/social output; **Custom Event** is admin-created. **Badge** is a computed award.
 - **Social post** is generated copy for X, Threads, Facebook, Slack, or future integrations.

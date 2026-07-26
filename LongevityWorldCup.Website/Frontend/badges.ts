@@ -49,7 +49,6 @@ const BASE_ICONS: Readonly<Record<string, string>> = {
     '≥2 submissions': 'fa-calendar-check',
     'Crowd – most guessed': 'fa-users',
     'Crowd – age gap (chrono−crowd)': 'fa-user-ninja',
-    'Crowd Age – lowest': 'fa-baby',
     'Pheno Age best improvement': 'fa-clock',
     'Bortz Age best improvement': 'fa-clock',
     'Best domain – liver': 'fa-droplet',
@@ -100,7 +99,6 @@ function canonicalizeBadgeLabel(label: unknown): string {
         '≥2 Submissions': '≥2 submissions',
         'Crowd - Most Guessed': 'Crowd – most guessed',
         'Crowd - Age Gap (Chrono−Crowd)': 'Crowd – age gap (chrono−crowd)',
-        'Crowd Age - lowest': 'Crowd Age – lowest',
         'First Applicants': 'First applicants',
         'Perfect Application': 'Perfect application'
     };
@@ -532,19 +530,6 @@ function makeUnformattedTooltipFromServerBadge(
             if (place === 3) return `Collagen Smuggler: perceived ${gapText} ${yearWord} younger`;
         }
 
-        if (label.endsWith('lowest crowd age') && place) {
-            if (suppressValues) {
-                if (place === 1) return 'Baby Boss: youngest looking';
-                if (place === 2) return 'Lullaby Lord: 2nd youngest looking';
-                if (place === 3) return 'Diaper Don: 3rd youngest looking';
-            }
-            const cr = Number(athlete?.crowdAge ?? athlete?.CrowdAge ?? 0);
-            const ageText = Number.isFinite(cr) ? cr.toFixed(1) : '';
-            const yearWord = ageText === '1.0' ? 'year' : 'years';
-            if (place === 1) return `Baby Boss: youngest looking (crowd age: ${ageText} ${yearWord})`;
-            if (place === 2) return `Lullaby Lord: 2nd youngest looking (crowd age: ${ageText} ${yearWord})`;
-            if (place === 3) return `Diaper Don: 3rd youngest looking (crowd age: ${ageText} ${yearWord})`;
-        }
     }
 
     if (label === 'Pheno Age best improvement') {
@@ -677,7 +662,6 @@ function computeOrder(b: ServerBadge): number {
             else if (cat === 'exclusive')  micro = 0.04;
         } else if (label === 'Crowd – most guessed')         micro = 0.20;
         else if (label === 'Crowd – age gap (chrono−crowd)') micro = 0.21;
-        else if (label === 'Crowd Age – lowest')       micro = 0.22;
 
         return base + micro;
     }
