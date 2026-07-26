@@ -28,7 +28,7 @@ public sealed class SocialEventSkipPolicyTests
         yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Podcast] cat[Global] val[] place[1]", now, 99, freshCutoff, true, true, SocialEventSkipReason.PodcastBadgeHandledImmediately };
         yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Pheno Age - lowest] cat[Global] val[] place[2]", now, 2, freshCutoff, true, true, SocialEventSkipReason.NonWinningSingleWinnerBadge };
         yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Pheno Age best improvement] cat[Global] val[] place[1]", now, 3, freshCutoff, false, true, SocialEventSkipReason.TiedBestImprovementBadge };
-        yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Crowd Age - lowest] cat[Global] val[] place[1]", now, 99, freshCutoff, true, true, SocialEventSkipReason.UnsupportedBadgeAward };
+        yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Crowd Age - lowest] cat[Global] val[] place[1]", now, 0, freshCutoff, true, true, SocialEventSkipReason.YoungestLookingBadge };
         yield return new object[] { EventType.BadgeAward, "slug[alice] badge[Age reduction] cat[Division] val[Men's] place[1]", now, 1, freshCutoff, true, false, SocialEventSkipReason.None };
     }
 

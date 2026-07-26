@@ -33,6 +33,14 @@ public sealed record AgeImprovementLeaderboardEntry(
     double Improvement,
     double AgeReduction);
 
+public sealed record BiologicalAgeLeaderboardEntry(
+    string Slug,
+    string Name,
+    string Clock,
+    int Rank,
+    double BiologicalAge,
+    double AgeReduction);
+
 public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 {
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
@@ -1037,14 +1045,6 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return list;
     }
 
-    public IReadOnlyList<(string Slug, double CrowdAge)> GetCrowdLowestAgeTop3()
-    {
-        return CompetitionRanking.SortByCrowdAgeRules(GetCrowdAgeRankCandidates())
-            .Take(3)
-            .Select(t => (t.Slug, t.CrowdAge))
-            .ToList();
-    }
-
     public bool TryGetCrowdAgeLeaderboardEntry(string athleteSlug, out CrowdAgeLeaderboardEntry entry)
     {
         entry = null!;
@@ -1106,6 +1106,106 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             phenoIndex + 1,
             phenoCandidate.PhenoAgeImprovement,
             phenoCandidate.PhenoAgeReduction);
+        return true;
+    }
+
+    public bool TryGetBaselineImprovementLeaderboardEntry(string athleteSlug, string clock, out AgeImprovementLeaderboardEntry entry)
+    {
+        entry = null!;
+        var normalized = NormalizeAthleteSlug(athleteSlug);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return false;
+
+        if (!string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var useBortz = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase);
+        var ranked = PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date)
+            .Values
+            .Select(result => new
+            {
+                Result = result,
+                Improvement = useBortz ? result.BortzAgeDiffFromBaseline : result.PhenoAgeDiffFromBaseline,
+                SubmissionCount = useBortz ? result.BortzSubmissionCount : result.SubmissionCount,
+                AgeReduction = useBortz ? result.BortzAgeReduction : result.AgeReduction
+            })
+            .Where(row =>
+                row.SubmissionCount >= 2 &&
+                row.Improvement.HasValue &&
+                double.IsFinite(row.Improvement.Value))
+            .OrderBy(row => row.Improvement!.Value)
+            .ThenBy(row => row.Result.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var athlete = ranked.FirstOrDefault(row =>
+            string.Equals(NormalizeAthleteSlug(row.Result.Slug), normalized, StringComparison.Ordinal));
+        if (athlete is null || athlete.Improvement is not { } improvement)
+            return false;
+
+        var rank = ranked
+            .Select(row => row.Improvement!.Value)
+            .Distinct()
+            .TakeWhile(value => value < improvement)
+            .Count() + 1;
+        entry = new AgeImprovementLeaderboardEntry(
+            NormalizeAthleteSlug(athlete.Result.Slug),
+            athlete.Result.Name,
+            useBortz ? "bortz" : "pheno",
+            rank,
+            improvement,
+            athlete.AgeReduction is { } ageReduction && double.IsFinite(ageReduction)
+                ? ageReduction
+                : 0d);
+        return true;
+    }
+
+    public bool TryGetBiologicalAgeLeaderboardEntry(string athleteSlug, string clock, out BiologicalAgeLeaderboardEntry entry)
+    {
+        entry = null!;
+        var normalized = NormalizeAthleteSlug(athleteSlug);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return false;
+
+        if (!string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var useBortz = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase);
+        var stats = PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date);
+        var ranked = stats.Values
+            .Where(result => result.DobUtc.HasValue)
+            .Select(result => new
+            {
+                Result = result,
+                BiologicalAge = useBortz ? result.LowestBortzAge : result.LowestPhenoAge,
+                AgeReduction = useBortz ? result.BortzAgeReduction : result.AgeReduction,
+                SubmissionCount = useBortz ? result.BortzSubmissionCount : result.SubmissionCount
+            })
+            .Where(row =>
+                row.SubmissionCount > 0 &&
+                row.BiologicalAge.HasValue &&
+                double.IsFinite(row.BiologicalAge.Value) &&
+                row.AgeReduction.HasValue &&
+                double.IsFinite(row.AgeReduction.Value))
+            .OrderBy(row => row.AgeReduction!.Value)
+            .ThenBy(row => row.Result.DobUtc!.Value)
+            .ThenBy(row => row.Result.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var index = ranked.FindIndex(row =>
+            string.Equals(NormalizeAthleteSlug(row.Result.Slug), normalized, StringComparison.Ordinal));
+        if (index < 0)
+            return false;
+
+        var athlete = ranked[index];
+        entry = new BiologicalAgeLeaderboardEntry(
+            NormalizeAthleteSlug(athlete.Result.Slug),
+            athlete.Result.Name,
+            useBortz ? "bortz" : "pheno",
+            index + 1,
+            athlete.BiologicalAge!.Value,
+            athlete.AgeReduction!.Value);
         return true;
     }
 
@@ -1464,64 +1564,6 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private static double CalculateAgeAtDate(DateTime birthDateUtc, DateTime atDateUtc)
     {
         return Math.Round((atDateUtc.Date - birthDateUtc.Date).TotalDays / 365.2425, 2);
-    }
-
-    public IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)> GetCrowdLowestAgeBadgePodiumForX()
-    {
-        var crowdLowestAgeLabels = BadgeLabelQueryVariants("Crowd Age – lowest");
-
-        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var o in GetAthletesSnapshot().OfType<JsonObject>())
-        {
-            var slug = o["AthleteSlug"]?.GetValue<string>();
-            if (!string.IsNullOrWhiteSpace(slug))
-                existing.Add(slug);
-        }
-
-        return _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            var labelPlaceholders = AddBadgeLabelParameters(cmd, crowdLowestAgeLabels);
-            cmd.CommandText =
-                "SELECT DISTINCT Place, AthleteSlug " +
-                "FROM BadgeAwards " +
-                $"WHERE BadgeLabel IN ({labelPlaceholders}) AND LeagueCategory='Global' AND Place IN (1,2,3) " +
-                "ORDER BY Place ASC, AthleteSlug COLLATE NOCASE ASC";
-
-            var byPlace = new Dictionary<int, List<string>>();
-            using var r = cmd.ExecuteReader();
-            while (r.Read())
-            {
-                if (r.IsDBNull(0) || r.IsDBNull(1))
-                    continue;
-
-                var place = r.GetInt32(0);
-                var slug = r.GetString(1);
-                if (place < 1 || place > 3 || string.IsNullOrWhiteSpace(slug))
-                    continue;
-                if (existing.Count > 0 && !existing.Contains(slug))
-                    continue;
-
-                if (!byPlace.TryGetValue(place, out var list))
-                {
-                    list = new List<string>();
-                    byPlace[place] = list;
-                }
-
-                if (!list.Contains(slug, StringComparer.OrdinalIgnoreCase))
-                    list.Add(slug);
-            }
-
-            var result = new List<(int Place, IReadOnlyList<string> Slugs)>();
-            for (var place = 1; place <= 3; place++)
-            {
-                if (!byPlace.TryGetValue(place, out var slugs) || slugs.Count == 0)
-                    continue;
-                result.Add((place, slugs));
-            }
-
-            return (IReadOnlyList<(int Place, IReadOnlyList<string> Slugs)>)result;
-        });
     }
 
     public IReadOnlyList<string> GetRecentNewcomersForX()
