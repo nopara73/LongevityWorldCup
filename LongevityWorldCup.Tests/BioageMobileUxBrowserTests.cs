@@ -5,6 +5,71 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class BioageMobileUxBrowserTests
 {
+    [Theory]
+    [InlineData("/pheno-age", "pheno")]
+    [InlineData("/bortz-age", "bortz")]
+    public async Task CompletedDraftClear_IsNotUndoneByCachedCalculator(string path, string clock)
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            IsMobile = true,
+            HasTouch = true,
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
+
+        var draftKey = $"bioageDraft:{clock}:v1";
+        await page.EvaluateAsync(
+            """
+            () => {
+                const input = document.querySelector('#wbc');
+                input.value = '6.54';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            """);
+        await page.WaitForFunctionAsync(
+            "key => sessionStorage.getItem(key)?.includes('6.54') === true",
+            draftKey);
+
+        await page.EvaluateAsync(
+            """
+            key => {
+                window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+                sessionStorage.removeItem(key);
+                window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+            }
+            """,
+            draftKey);
+        await page.EvaluateAsync(
+            """
+            () => {
+                const input = document.querySelector('#wbc');
+                input.value = '6.55';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            """);
+        await page.WaitForTimeoutAsync(250);
+        await page.EvaluateAsync(
+            "() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))");
+
+        Assert.Null(await page.EvaluateAsync<string?>(
+            "key => sessionStorage.getItem(key)",
+            draftKey));
+    }
+
     [Fact]
     public async Task RestoredDraftEdit_InvalidatesThePreviouslyCalculatedHandoff()
     {

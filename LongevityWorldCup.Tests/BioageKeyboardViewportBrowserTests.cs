@@ -6,6 +6,53 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class BioageKeyboardViewportBrowserTests
 {
+    [Fact]
+    public async Task FocusedInput_InWindowedViewportDoesNotTreatUnusedScreenSpaceAsAKeyboard()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            IsMobile = true,
+            HasTouch = true,
+            ViewportSize = new ViewportSize { Width = 390, Height = 500 },
+            ScreenSize = new ScreenSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/pheno-age", new PageGotoOptions
+        {
+            WaitUntil = WaitUntilState.DOMContentLoaded
+        });
+        await page.WaitForFunctionAsync("() => window.LwcFlowActionDock");
+        await page.Locator("#blood-draw-date").FocusAsync();
+        await page.EvaluateAsync("() => window.LwcFlowActionDock.refreshNow()");
+
+        var state = await page.EvaluateAsync<WindowedViewportState>(
+            """
+            () => ({
+                KeyboardOpen: document.documentElement.classList.contains('flow-input-keyboard-open'),
+                KeyboardClearance: parseFloat(getComputedStyle(document.documentElement)
+                    .getPropertyValue('--flow-input-keyboard-occlusion')) || 0,
+                ScreenHeight: window.screen.height,
+                ViewportHeight: window.visualViewport?.height || window.innerHeight
+            })
+            """);
+
+        Assert.True(
+            state.ScreenHeight - state.ViewportHeight >= 300,
+            $"The test requires a substantially taller physical screen: {state.ScreenHeight} vs {state.ViewportHeight}.");
+        Assert.False(state.KeyboardOpen);
+        Assert.Equal(0, state.KeyboardClearance);
+    }
+
     [Theory]
     [InlineData("/pheno-age", "#crp", "1", 390, 844, 420, 360)]
     [InlineData("/bortz-age", "#vitamin_d", "50", 390, 844, 420, 360)]
@@ -220,5 +267,13 @@ public sealed class BioageKeyboardViewportBrowserTests
     {
         public double ScrollY { get; set; }
         public double MaxScrollY { get; set; }
+    }
+
+    private sealed class WindowedViewportState
+    {
+        public bool KeyboardOpen { get; set; }
+        public double KeyboardClearance { get; set; }
+        public double ScreenHeight { get; set; }
+        public double ViewportHeight { get; set; }
     }
 }
