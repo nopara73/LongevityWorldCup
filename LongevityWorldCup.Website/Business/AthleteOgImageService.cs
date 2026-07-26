@@ -111,6 +111,8 @@ public sealed class AthleteOgImageService
 
         if (TryBuildSpecialLeaderboardPayload(normalized, rawLeagueContext, athlete, name, out payload))
             return true;
+        if (IsSpecialLeaderboardContext(rawLeagueContext))
+            return false;
 
         if (!TryGetRankRowForLeague(normalized, leagueSlug, rankings, snapshot, out var rankingRow, out var rank))
         {
@@ -517,6 +519,147 @@ public sealed class AthleteOgImageService
 
         var profilePicUrl = athlete["ProfilePic"]?.GetValue<string>();
 
+        if (string.Equals(context, "chronological-oldest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "chronological-youngest", StringComparison.OrdinalIgnoreCase))
+        {
+            var oldestFirst = string.Equals(context, "chronological-oldest", StringComparison.OrdinalIgnoreCase);
+            var ranked = PhenoStatsCalculator.BuildAll(_athletes.GetAthletesSnapshot(), DateTime.UtcNow.Date)
+                .Values
+                .Where(result =>
+                    result.DobUtc.HasValue &&
+                    result.ChronoAge.HasValue &&
+                    double.IsFinite(result.ChronoAge.Value))
+                .OrderBy(result => oldestFirst ? -result.ChronoAge!.Value : result.ChronoAge!.Value)
+                .ThenBy(result => result.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var index = ranked.FindIndex(result =>
+                string.Equals(NormalizeSlug(result.Slug), normalizedSlug, StringComparison.Ordinal));
+            if (index < 0)
+                return false;
+
+            var entry = ranked[index];
+            var age = entry.ChronoAge!.Value.ToString("0.#", CultureInfo.InvariantCulture);
+            var leagueName = oldestFirst ? "Oldest athlete" : "Youngest athlete";
+            var description = $"{leagueName} rank #{index + 1}. Chronological age {age} years.";
+            var signature = ComputeSignature(
+                normalizedSlug,
+                context,
+                index + 1,
+                entry.ChronoAge.Value,
+                name,
+                leagueName,
+                "Age rank",
+                age,
+                "Chronological age",
+                description,
+                profilePicUrl);
+
+            payload = new AthleteOgPayload(
+                InternalSlug: normalizedSlug,
+                RouteSlug: ToRouteSlug(normalizedSlug),
+                LeagueSlug: context,
+                Name: name,
+                LeagueName: leagueName,
+                Rank: index + 1,
+                AgeReduction: entry.ChronoAge.Value,
+                RankLabel: "Age rank",
+                MetricValue: age,
+                MetricLabel: "Chronological age",
+                Description: description,
+                ProfilePicUrl: profilePicUrl,
+                Signature: signature);
+            return true;
+        }
+
+        if (TryGetDomainContext(context, out var domainKey, out var domainLabel, out var domainClockLabel))
+        {
+            var winnerSlug = _athletes.GetBestDomainWinnerSlug(domainKey);
+            if (!string.Equals(NormalizeSlug(winnerSlug), normalizedSlug, StringComparison.Ordinal))
+                return false;
+
+            var domainLeagueSlug = $"domain-{domainKey.Replace('_', '-')}";
+            var leagueName = $"{domainLabel} domain leader";
+            var metricLabel = domainClockLabel is null
+                ? $"{domainLabel} profile"
+                : $"{domainClockLabel} {domainLabel} profile";
+            var description = domainClockLabel is null
+                ? $"Strongest {domainLabel} profile in the Longevity World Cup field."
+                : $"Strongest {domainClockLabel} {domainLabel} profile in the Longevity World Cup field.";
+            var signature = ComputeSignature(
+                normalizedSlug,
+                domainLeagueSlug,
+                1,
+                0,
+                name,
+                leagueName,
+                "Domain rank",
+                "#1",
+                metricLabel,
+                description,
+                profilePicUrl);
+
+            payload = new AthleteOgPayload(
+                InternalSlug: normalizedSlug,
+                RouteSlug: ToRouteSlug(normalizedSlug),
+                LeagueSlug: domainLeagueSlug,
+                Name: name,
+                LeagueName: leagueName,
+                Rank: 1,
+                AgeReduction: 0,
+                RankLabel: "Domain rank",
+                MetricValue: "#1",
+                MetricLabel: metricLabel,
+                Description: description,
+                ProfilePicUrl: profilePicUrl,
+                Signature: signature);
+            return true;
+        }
+
+        if (string.Equals(context, "pheno", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "bortz", StringComparison.OrdinalIgnoreCase))
+        {
+            var clock = string.Equals(context, "bortz", StringComparison.OrdinalIgnoreCase) ? "bortz" : "pheno";
+            if (!_athletes.TryGetBiologicalAgeLeaderboardEntry(normalizedSlug, clock, out var entry))
+                return false;
+
+            var biologicalAgeLeagueSlug = entry.Clock;
+            var clockLabel = string.Equals(entry.Clock, "bortz", StringComparison.OrdinalIgnoreCase)
+                ? "Bortz Age"
+                : "Pheno Age";
+            var leagueName = $"{clockLabel} leaderboard";
+            var biologicalAge = entry.BiologicalAge.ToString("0.#", CultureInfo.InvariantCulture);
+            var reduction = FormatReduction(entry.AgeReduction);
+            var description = $"{leagueName} rank #{entry.Rank}. {clockLabel} {biologicalAge} years; age reduction {reduction} years.";
+            var signature = ComputeSignature(
+                normalizedSlug,
+                biologicalAgeLeagueSlug,
+                entry.Rank,
+                entry.AgeReduction,
+                name,
+                leagueName,
+                $"{clockLabel} rank",
+                biologicalAge,
+                clockLabel,
+                description,
+                profilePicUrl);
+
+            payload = new AthleteOgPayload(
+                InternalSlug: normalizedSlug,
+                RouteSlug: ToRouteSlug(normalizedSlug),
+                LeagueSlug: biologicalAgeLeagueSlug,
+                Name: name,
+                LeagueName: leagueName,
+                Rank: entry.Rank,
+                AgeReduction: entry.AgeReduction,
+                RankLabel: $"{clockLabel} rank",
+                MetricValue: biologicalAge,
+                MetricLabel: clockLabel,
+                Description: description,
+                ProfilePicUrl: profilePicUrl,
+                Signature: signature);
+            return true;
+        }
+
         if (string.Equals(context, "crowd", StringComparison.OrdinalIgnoreCase))
         {
             if (!_athletes.TryGetCrowdAgeLeaderboardEntry(normalizedSlug, out var entry))
@@ -551,6 +694,52 @@ public sealed class AthleteOgImageService
                 MetricValue: metricValue,
                 MetricLabel: "Crowd Age",
                 Description: crowdDescription,
+                ProfilePicUrl: profilePicUrl,
+                Signature: signature);
+            return true;
+        }
+
+        var baselineImprovementClock = context switch
+        {
+            "pheno-baseline-improvement" => "pheno",
+            "bortz-baseline-improvement" => "bortz",
+            _ => null
+        };
+        if (baselineImprovementClock is not null)
+        {
+            if (!_athletes.TryGetBaselineImprovementLeaderboardEntry(normalizedSlug, baselineImprovementClock, out var entry))
+                return false;
+
+            var isBortz = string.Equals(baselineImprovementClock, "bortz", StringComparison.OrdinalIgnoreCase);
+            var baselineLeagueSlug = isBortz ? "bortz-baseline-improvement" : "pheno-baseline-improvement";
+            var leagueName = isBortz ? "Bortz Age best improvement" : "Pheno Age best improvement";
+            var baselineMetric = FormatReduction(entry.Improvement);
+            var description = $"{leagueName} rank #{entry.Rank}. Improvement {baselineMetric} years from first to latest eligible result.";
+            var signature = ComputeSignature(
+                normalizedSlug,
+                baselineLeagueSlug,
+                entry.Rank,
+                entry.Improvement,
+                name,
+                leagueName,
+                "Baseline rank",
+                baselineMetric,
+                "Baseline improvement",
+                description,
+                profilePicUrl);
+
+            payload = new AthleteOgPayload(
+                InternalSlug: normalizedSlug,
+                RouteSlug: ToRouteSlug(normalizedSlug),
+                LeagueSlug: baselineLeagueSlug,
+                Name: name,
+                LeagueName: leagueName,
+                Rank: entry.Rank,
+                AgeReduction: entry.Improvement,
+                RankLabel: "Baseline rank",
+                MetricValue: baselineMetric,
+                MetricLabel: "Baseline improvement",
+                Description: description,
                 ProfilePicUrl: profilePicUrl,
                 Signature: signature);
             return true;
@@ -605,6 +794,55 @@ public sealed class AthleteOgImageService
             ProfilePicUrl: profilePicUrl,
             Signature: improvementSignature);
         return true;
+    }
+
+    private static bool TryGetDomainContext(
+        string context,
+        out string domainKey,
+        out string domainLabel,
+        out string? clockLabel)
+    {
+        domainKey = "";
+        domainLabel = "";
+        clockLabel = "Bortz";
+        if (!context.StartsWith("domain-", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var token = context["domain-".Length..].Replace('-', '_');
+        (domainKey, domainLabel, clockLabel) = token switch
+        {
+            "liver" => ("liver", "liver", "Bortz"),
+            "kidney" => ("kidney", "kidney", "Bortz"),
+            "metabolic" => ("metabolic", "metabolic", "Bortz"),
+            "inflammation" => ("inflammation", "inflammation", null),
+            "immune" => ("immune", "immune", "Bortz"),
+            "vitamin_d" => ("vitamin_d", "vitamin D", "Bortz"),
+            _ => ("", "", null)
+        };
+        return domainKey.Length > 0;
+    }
+
+    private static bool IsSpecialLeaderboardContext(string? rawContext)
+    {
+        var context = NormalizeContextSlug(rawContext);
+        if (string.IsNullOrWhiteSpace(context))
+            return false;
+
+        if (string.Equals(context, "pheno", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "bortz", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "crowd", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "pheno-improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "bortz-improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "pheno-baseline-improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "bortz-baseline-improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "chronological-oldest", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "chronological-youngest", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return TryGetDomainContext(context, out _, out _, out _);
     }
 
     private string? ResolveProfilePath(string? profilePicUrl)

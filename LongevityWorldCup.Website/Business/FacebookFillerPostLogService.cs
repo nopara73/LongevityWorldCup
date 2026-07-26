@@ -117,7 +117,6 @@ public class FacebookFillerPostLogService
         var options = new List<(FillerType Type, string Text)>();
         foreach (var slug in Top3LeagueSlugs)
             options.Add((FillerType.Top3Leaderboard, $"league[{slug}]"));
-        options.Add((FillerType.CrowdGuesses, ""));
         foreach (var dk in DomainKeys)
             options.Add((FillerType.DomainTop, $"domain[{dk}]"));
         options.Add((FillerType.HistoryDocument, ""));

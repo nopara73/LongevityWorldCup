@@ -124,7 +124,7 @@ public sealed class SocialJobIntegrationTests
 
         await fixture.CreateThreadsJob().Execute(TestJobExecutionContext.Now());
 
-        Assert.Equal((1, SocialEventSkipReason.UnsupportedBadgeAward.ToString()), fixture.ReadPlatformState(eventId, "Threads"));
+        Assert.Equal((1, SocialEventSkipReason.YoungestLookingBadge.ToString()), fixture.ReadPlatformState(eventId, "Threads"));
         Assert.Empty(fixture.ThreadsRequests);
     }
 
