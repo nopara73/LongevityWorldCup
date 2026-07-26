@@ -1334,7 +1334,7 @@
                 </section>
             </form>
         </div>
-        <div id="bortzAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400">
+        <div id="bortzAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400" inert aria-hidden="true">
             <div id="validAgeInput">
                 <div>Bortz Age:</div>
                 <div class="bio-age-number-container">
@@ -1515,12 +1515,13 @@
                 serializedBiomarkerData = null;
             }
 
+            clearStoredBiomarkerHandoff();
             const stored =
                 !!serializedBiomarkerData
+                && setSessionItem('bioageClock', 'bortz')
                 && setSessionItem('chronoBortzDifference', chronoBortzDifference.toFixed(2))
                 && setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))
                 && setSessionItem('biomarkerData', serializedBiomarkerData)
-                && setSessionItem('lwcStep', '1')
                 && (!serializedPaymentOffer || setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer));
 
             if (!stored) {
@@ -1748,7 +1749,6 @@
             const d = String(todayLocal.getDate()).padStart(2, '0');
             const todayStr = `${y}-${m}-${d}`;
             bloodDrawDateInput.max = todayStr;
-            bloodDrawDateInput.value = todayStr;
 
             // Open the native picker on focus/click (only when supported)
             const lwcOpenDatePickerGuarded = () => {
@@ -1813,20 +1813,6 @@
                 el.addEventListener('input', () => {
                     if (el.value.trim() === '') touchedBiomarkers.delete(id);
                     else touchedBiomarkers.add(id);
-
-                    const card = el.closest('.biomarker-card');
-                    const headerField = card.querySelector('.biomarker-card-header');
-                    const iconField = headerField.querySelector('.toggle-icon');
-                    if (el.value.trim() !== '') {
-                        headerField.style.pointerEvents = 'none';
-                        iconField.style.display = 'none';
-
-                        expandFieldCard(card);
-                    } else if (isUpdate) {
-                        headerField.style.pointerEvents = '';
-                        iconField.style.display = '';
-                    }
-
                 });
             });
 
@@ -2208,10 +2194,15 @@
 
         let isResultCalculated = false;
         let lastCalculatedPhenoAge = NaN;
+        function hideCalculatedResult() {
+            isResultCalculated = false;
+            document.getElementById('bortzAgeResult')?.classList.remove('show');
+            document.getElementById('continueButton')?.classList.remove('show');
+            updateCalculateButton();
+        }
+
         function calculateResultIfResultAlreadyCalculated() {
-            if (isResultCalculated) {
-                calculateResult();
-            }
+            if (isResultCalculated) hideCalculatedResult();
         }
 
         function correctCorrectableUnits() {
@@ -2368,32 +2359,31 @@
 
             // Fill missing biomarker fields on update
             if (isUpdate && athlete?.Biomarkers?.length) {
-                const latestBiomarkerSet = athlete.Biomarkers.reduce((latest, current) => {
-                    return new Date(current.Date) > new Date(latest.Date) ? current : latest;
-                });
+                const latestValue = fieldNames =>
+                    bioageFlow.getLatestBiomarkerValue(athlete, fieldNames)?.value;
                 const biomarkerDefaults = {
-                    lymphocyte_percentage: { val: latestBiomarkerSet.LymPc, unit: '1' },
-                    neutrophil_percentage: { val: latestBiomarkerSet.NeutrophilPc, unit: '1' },
-                    monocyte_percentage: { val: latestBiomarkerSet.MonocytePc, unit: '1' },
-                    rbc: { val: latestBiomarkerSet.Rbc10e12L ?? latestBiomarkerSet.Rbc, unit: '1' },
-                    mcv: { val: latestBiomarkerSet.McvFL, unit: '1' },
-                    mch: { val: latestBiomarkerSet.MchPg ?? latestBiomarkerSet.Mch, unit: '1' },
-                    rdw: { val: latestBiomarkerSet.RdwPc, unit: '1' },
-                    albumin: { val: latestBiomarkerSet.AlbGL, unit: '1' },
-                    urea: { val: latestBiomarkerSet.UreaMmolL ?? latestBiomarkerSet.Urea, unit: '1' },
-                    creatinine: { val: latestBiomarkerSet.CreatUmolL, unit: '1' },
-                    cystatin_c: { val: latestBiomarkerSet.CystatinCMgL ?? latestBiomarkerSet.CystatinC, unit: '1' },
-                    glucose: { val: latestBiomarkerSet.GluMmolL, unit: '1' },
-                    hba1c: { val: latestBiomarkerSet.Hba1cMmolMol ?? latestBiomarkerSet.Hba1c, unit: '1' },
-                    cholesterol: { val: latestBiomarkerSet.CholesterolMmolL ?? latestBiomarkerSet.Cholesterol, unit: '1' },
-                    apoa1: { val: latestBiomarkerSet.ApoA1GL ?? latestBiomarkerSet.ApoA1, unit: '1' },
-                    alt: { val: latestBiomarkerSet.AltUL ?? latestBiomarkerSet.Alt, unit: '1' },
-                    alp: { val: latestBiomarkerSet.AlpUL, unit: '1' },
-                    ggt: { val: latestBiomarkerSet.GgtUL ?? latestBiomarkerSet.Ggt, unit: '1' },
-                    crp: { val: latestBiomarkerSet.CrpMgL, unit: '1' },
-                    shbg: { val: latestBiomarkerSet.ShbgNmolL ?? latestBiomarkerSet.Shbg, unit: '1' },
-                    vitamin_d: { val: latestBiomarkerSet.VitaminDNmolL ?? latestBiomarkerSet.VitaminD, unit: '1' },
-                    wbc: { val: latestBiomarkerSet.Wbc1000cellsuL, unit: '1' }
+                    lymphocyte_percentage: { val: latestValue('LymPc'), unit: '1' },
+                    neutrophil_percentage: { val: latestValue('NeutrophilPc'), unit: '1' },
+                    monocyte_percentage: { val: latestValue('MonocytePc'), unit: '1' },
+                    rbc: { val: latestValue(['Rbc10e12L', 'Rbc']), unit: '1' },
+                    mcv: { val: latestValue('McvFL'), unit: '1' },
+                    mch: { val: latestValue(['MchPg', 'Mch']), unit: '1' },
+                    rdw: { val: latestValue('RdwPc'), unit: '1' },
+                    albumin: { val: latestValue('AlbGL'), unit: '1' },
+                    urea: { val: latestValue(['UreaMmolL', 'Urea']), unit: '1' },
+                    creatinine: { val: latestValue('CreatUmolL'), unit: '1' },
+                    cystatin_c: { val: latestValue(['CystatinCMgL', 'CystatinC']), unit: '1' },
+                    glucose: { val: latestValue('GluMmolL'), unit: '1' },
+                    hba1c: { val: latestValue(['Hba1cMmolMol', 'Hba1c']), unit: '1' },
+                    cholesterol: { val: latestValue(['CholesterolMmolL', 'Cholesterol']), unit: '1' },
+                    apoa1: { val: latestValue(['ApoA1GL', 'ApoA1']), unit: '1' },
+                    alt: { val: latestValue(['AltUL', 'Alt']), unit: '1' },
+                    alp: { val: latestValue('AlpUL'), unit: '1' },
+                    ggt: { val: latestValue(['GgtUL', 'Ggt']), unit: '1' },
+                    crp: { val: latestValue('CrpMgL'), unit: '1' },
+                    shbg: { val: latestValue(['ShbgNmolL', 'Shbg']), unit: '1' },
+                    vitamin_d: { val: latestValue(['VitaminDNmolL', 'VitaminD']), unit: '1' },
+                    wbc: { val: latestValue('Wbc1000cellsuL'), unit: '1' }
                 };
                 Object.entries(biomarkerDefaults).forEach(([id, { val, unit }]) => {
                     const input = document.getElementById(id);
@@ -2655,55 +2645,6 @@
                 validAgeInput.style.display = 'block';
             }
 
-            // Update URL from calculation result (merge so update=1, fake=1 are preserved)
-            (function updateUrlFromBortzResult() {
-                var two = function (n) { return Number.isFinite(n) ? parseFloat(Number(n).toFixed(2)) : n; };
-                var wbcEl = document.getElementById('wbc');
-                var wbcU = document.getElementById('wbcUnit');
-                var wbcCanonical = wbcEl && wbcU ? parseFloat(wbcEl.value) / parseFloat(wbcU.value) : NaN;
-                var formParams = {
-                    Year: year,
-                    Month: month + 1,
-                    Day: day,
-                    Date: bloodDrawDate,
-                    AlbGL: two(markerValues[1]),
-                    AlpUL: two(markerValues[2]),
-                    UreaMmolL: two(markerValues[3]),
-                    CholesterolMmolL: two(markerValues[4]),
-                    CreatUmolL: two(markerValues[5]),
-                    CystatinCMgL: two(markerValues[6]),
-                    Hba1cMmolMol: two(markerValues[7]),
-                    CrpMgL: two(markerValues[8]),
-                    GgtUL: two(markerValues[9]),
-                    Rbc10e12L: two(markerValues[10]),
-                    McvFL: two(markerValues[11]),
-                    RdwPc: two(markerValues[12]),
-                    GluMmolL: two(markerValues[19]),
-                    MchPg: two(markerValues[20]),
-                    ApoA1GL: two(markerValues[21]),
-                    LymPc: two(markerValues[15]),
-                    AltUL: two(markerValues[16]),
-                    ShbgNmolL: two(markerValues[17]),
-                    VitaminDNmolL: two(markerValues[18])
-                };
-                if (Number.isFinite(wbcCanonical) && wbcCanonical > 0) {
-                    formParams.Wbc1000cellsuL = two(wbcCanonical);
-                    formParams.MonocytePc = two((markerValues[13] / wbcCanonical) * 100);
-                    formParams.NeutrophilPc = two((markerValues[14] / wbcCanonical) * 100);
-                }
-                var BORTZ_URL_KEYS = ['Year', 'Month', 'Day', 'Date', 'AlbGL', 'AlpUL', 'CreatUmolL', 'CrpMgL', 'GluMmolL', 'LymPc', 'McvFL', 'RdwPc', 'Wbc1000cellsuL', 'NeutrophilPc', 'MonocytePc', 'Rbc10e12L', 'MchPg', 'AltUL', 'GgtUL', 'UreaMmolL', 'CystatinCMgL', 'Hba1cMmolMol', 'CholesterolMmolL', 'ApoA1GL', 'ShbgNmolL', 'VitaminDNmolL'];
-                var current = new URLSearchParams(window.location.search);
-                var next = new URLSearchParams();
-                current.forEach(function (val, key) {
-                    if (BORTZ_URL_KEYS.indexOf(key) === -1) next.set(key, val);
-                });
-                Object.keys(formParams).forEach(function (k) { if (formParams[k] != null && formParams[k] !== '') next.set(k, String(formParams[k])); });
-                var search = next.toString();
-                var base = '/bortz-age';
-                var hash = window.location.hash || '';
-                history.replaceState({}, '', base + (search ? '?' + search : '') + hash);
-            })();
-
             // Present the complete result immediately; motion must never gate the next action.
             const animatedAgeElement = document.getElementById('animatedAge');
             const yearsTextElement = document.getElementById('yearsText');
@@ -2805,6 +2746,7 @@
         function lwcSetStep(step, options) {
             const shouldFocus = options?.focus !== false;
             lwcCurrentStep = step;
+            bioageFlow.setDraftStep('bortz', step);
             const s1 = document.getElementById('lwc-step-1');
             const s2 = document.getElementById('lwc-step-2');
             const d1 = document.getElementById('lwcDot1');
@@ -2830,6 +2772,14 @@
                         recalcOpenBiomarkerHeightsLwc();
                         // run again on next tick to catch late layout/ fonts
                         setTimeout(recalcOpenBiomarkerHeightsLwc, 60);
+                        if (shouldFocus && window.matchMedia(
+                            '(max-width: 760px), (max-width: 1024px) and (max-height: 600px) and (orientation: landscape)'
+                        ).matches) {
+                            window.scrollTo({
+                                top: Math.max(0, window.scrollY + active.getBoundingClientRect().top - 12),
+                                behavior: 'auto'
+                            });
+                        }
                     }
                 });
             }
@@ -2903,7 +2853,6 @@
                 toStep2Btn.addEventListener('click', () => {
                     if (!lwcValidateStep1()) return;
                     lwcSetStep(2);
-                    setSessionItem('lwcStep', '2');
                 });
             }
             if (toStep1Btn) {
@@ -2913,7 +2862,6 @@
                         return;
                     }
 
-                    setSessionItem('lwcStep', '1');
                     lwcSetStep(1);
                 });
             }
@@ -2922,8 +2870,8 @@
             const dot1 = document.getElementById('lwcDot1');
             const dot2 = document.getElementById('lwcDot2');
 
-            function activateDot1() { lwcSetStep(1); setSessionItem('lwcStep', '1'); }
-            function activateDot2() { if (lwcValidateStep1()) { lwcSetStep(2); setSessionItem('lwcStep', '2'); } }
+            function activateDot1() { lwcSetStep(1); }
+            function activateDot2() { if (lwcValidateStep1()) lwcSetStep(2); }
 
             if (dot1) {
                 dot1.addEventListener('click', activateDot1);
@@ -2987,7 +2935,7 @@
                 hideMainProgress();
 
                 document.getElementById('mainPageTitleH2').textContent = athlete.Name;
-                document.getElementById('mainInstructions').textContent = 'Submit your latest test results. All fields are required and must be from the same day.';
+                document.getElementById('mainInstructions').textContent = 'Enter the blood draw date and at least one new biomarker value. Unchanged values will carry over from your latest result.';
 
                 // Fill out the date of birth because we'll need it for calculations, but hide it as well so the user doesn't wanna change that.
                 document.getElementById('dob-year').value = athlete.DateOfBirth.Year;
@@ -3011,52 +2959,40 @@
             // Also honor CRP-negative checkbox state
             document.getElementById('crp-negative').dispatchEvent(new Event('change'));
 
-            if (isUpdate) {
-                // any card that's .active right now came from code, not the user —
-                // so hide its toggle-icon
-                document
-                    .querySelectorAll('.biomarker-card.active .toggle-icon')
-                    .forEach(icon => icon.style.display = 'none');
-            }
-
             updateModeFormInitializerUnique();
             applyBortzSubmittedBiomarkerPlaceholders();
             setupBortzSubmittedBiomarkerComparisons();
             bioageFlow.syncBiomarkerExamplePlaceholders();
+            const hasExplicitBiomarkerPrefill = [
+                'Year', 'Month', 'Day', 'Date', 'AlbGL', 'AlpUL', 'CreatUmolL', 'CrpMgL',
+                'GluMmolL', 'LymPc', 'McvFL', 'RdwPc', 'Wbc1000cellsuL', 'NeutrophilPc',
+                'MonocytePc', 'Rbc10e12L', 'MchPg', 'AltUL', 'GgtUL', 'UreaMmolL',
+                'CystatinCMgL', 'Hba1cMmolMol', 'CholesterolMmolL', 'ApoA1GL',
+                'ShbgNmolL', 'VitaminDNmolL'
+            ].some(key => urlParams.has(key));
+            const biomarkerEntry = bioageFlow.initializeBiomarkerEntry({
+                clock: 'bortz',
+                form: document.getElementById('bortzAgeForm'),
+                isUpdate,
+                restoreDraft: !isFake && !hasExplicitBiomarkerPrefill
+            });
 
             if (isUpdate && hasSelectedAthlete) {
                 hideUpdateModeStepNavigation();
                 lwcSetStep(2, { focus: false });
-                setSessionItem('lwcStep', '2');
                 bioageFlow.resetUpdateModeScroll();
             } else {
                 // Restore step 2 after refresh if user had navigated there and step 1 is valid
-                let restoredStep = false;
-                try {
-                    if (getSessionItem('lwcStep') === '2' && lwcValidateStep1(true)) {
-                        lwcSetStep(2, { focus: false });
-                        restoredStep = true;
-                    }
-                } catch (e) {}
+                const restoredStep = biomarkerEntry.step === 2 && lwcValidateStep1(true);
+                if (restoredStep) lwcSetStep(2, { focus: false });
                 if (!restoredStep) {
                     lwcSetStep(1, { focus: false });
-                    setSessionItem('lwcStep', '1');
                 }
             }
         });
 
         function updateModeFormInitializerUnique() {
             if (!isUpdate) return;
-
-            if (bloodDrawDateInput) {
-                // In update mode, default the blood draw date to today instead of leaving it blank
-                const todayLocal = new Date();
-                todayLocal.setHours(0, 0, 0, 0);
-                const y = todayLocal.getFullYear();
-                const m = String(todayLocal.getMonth() + 1).padStart(2, '0');
-                const d = String(todayLocal.getDate()).padStart(2, '0');
-                bloodDrawDateInput.value = `${y}-${m}-${d}`;
-            }
 
 
             const idMapUnique = {
@@ -3146,19 +3082,12 @@
                         }
                     }
                 });
-                // hide toggle icons on expanded cards
-                document.querySelectorAll('.biomarker-card.active .toggle-icon')
-                    .forEach(i => i.style.display = 'none');
             }
             // Expand cards for any field filled from URL (when no sessionStorage or in addition)
             [...bortzFieldIds, 'wbc'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el.value.trim() !== '') expandFieldCard(id);
             });
-            if (isUpdate) {
-                document.querySelectorAll('.biomarker-card.active .toggle-icon')
-                    .forEach(i => i.style.display = 'none');
-            }
         }
 
         window.addEventListener('pageshow', () => {
@@ -3166,6 +3095,7 @@
             applyBortzSubmittedBiomarkerPlaceholders();
             setupBortzSubmittedBiomarkerComparisons();
             bioageFlow.syncBiomarkerExamplePlaceholders();
+            bioageFlow.updateCalculateButton();
         });
 
         // Detect and apply preferences based on language
@@ -3441,19 +3371,6 @@
 
             bioageFlow.updateBiomarkerExamplePlaceholder(crpUnit);
             calculateResultIfResultAlreadyCalculated();
-
-            const card = document.getElementById('crp').closest('.biomarker-card');
-            const crpHeaderField = card.querySelector('.biomarker-card-header');
-            const crpIconField = crpHeaderField.querySelector('.toggle-icon');
-            if (crpNegativeCheckbox.checked || document.getElementById('crp').value.trim() !== '') {
-                crpHeaderField.style.pointerEvents = 'none';
-                crpIconField.style.display = 'none';
-
-                expandFieldCard(card);
-            } else if (isUpdate) {
-                crpHeaderField.style.pointerEvents = '';
-                crpIconField.style.display = '';
-            }
         }
 
         // Hide month/day & privacy note when age < 18
@@ -3488,112 +3405,8 @@
             );
         document.addEventListener('DOMContentLoaded', checkMinor);
 
-        // Wire up all biomarker‐card headers
-        document.querySelectorAll('.biomarker-card-header').forEach(header => {
-            header.setAttribute('role', 'button');
-            header.setAttribute('tabindex', '0');
-            header.querySelector('.toggle-icon')?.setAttribute('aria-hidden', 'true');
-
-            const toggleCard = function () {
-                const card = header.parentNode;
-                const content = card.querySelector('.biomarker-card-content');
-                const icon = header.querySelector('.toggle-icon');
-
-                if (!isUpdate) {
-                    if (!card.classList.contains('active')) {
-                        card.classList.add('active');
-                        header.setAttribute('aria-expanded', 'true');
-
-                        content.style.maxHeight = content.scrollHeight + 'px';
-                        content.style.paddingTop = '0.75rem';
-                        content.style.paddingBottom = '0.75rem';
-                        header.style.pointerEvents = 'none';
-                        header.style.cursor = 'default';
-                        header.setAttribute('aria-disabled', 'true');
-                        header.setAttribute('tabindex', '-1');
-                        icon.style.display = 'none';
-                    }
-                    return;
-                }
-
-                // update mode: full toggle with icon swap
-                const isActive = card.classList.toggle('active');
-                header.setAttribute('aria-expanded', isActive);
-
-                icon.textContent = isActive ? '−' : '+';
-                icon.style.display = '';
-                if (isActive) {
-                    content.style.maxHeight = content.scrollHeight + 'px';
-                    content.style.paddingTop = '0.75rem';
-                    content.style.paddingBottom = '0.75rem';
-                } else {
-                    content.style.maxHeight = '0';
-                    content.style.paddingTop = '0';
-                    content.style.paddingBottom = '0';
-                }
-            };
-
-            header.addEventListener('click', toggleCard);
-            header.addEventListener('keydown', event => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                event.preventDefault();
-                toggleCard();
-            });
-        });
-
-        /**
-         * Expands the biomarker card containing the given input field.
-         *
-         * @param {string|HTMLElement} field - The ID of the input field, or the field element itself.
-         */
         function expandFieldCard(field) {
-            // Get the input element
-            const input = typeof field === 'string'
-                ? document.getElementById(field)
-                : field;
-            if (!input) return;
-
-            // Find its enclosing card
-            const card = input.closest('.biomarker-card');
-            if (!card) return;
-
-            // If not already expanded, open it
-            if (!card.classList.contains('active')) {
-                const header = card.querySelector('.biomarker-card-header');
-
-                card.classList.add('active');
-                if (header) header.setAttribute('aria-expanded', 'true');
-
-                // Animate the content area open
-                const content = card.querySelector('.biomarker-card-content');
-                content.style.maxHeight = content.scrollHeight + 'px';
-                content.style.paddingTop = '0.75rem';
-                content.style.paddingBottom = '0.75rem';
-
-                // Handle the toggle icon and header behavior
-                const icon = card.querySelector('.toggle-icon');
-
-                if (!isUpdate) {
-                    // In non-update mode: hide the icon and disable further clicks
-                    if (icon) icon.style.display = 'none';
-                    if (header) {
-                        header.style.pointerEvents = 'none';
-                        header.style.cursor = 'default';
-                        header.setAttribute('aria-disabled', 'true');
-                        header.setAttribute('tabindex', '-1');
-                    }
-                } else {
-                    // In update mode: show a minus icon
-                    if (icon) {
-                        icon.textContent = '−';
-                        icon.style.display = '';
-
-                        if (touchedBiomarkers.has(input.id)) {
-                            icon.style.display = 'none';
-                        }
-                    }
-                }
-            }
+            bioageFlow.expandBiomarkerCard(field);
         }
 
         function focusFirstEditableBiomarker(fieldIds) {
@@ -3606,13 +3419,7 @@
             input.focus();
         }
 
-        // Let the browser show its validation bubbles, but expand the card first
         const form = document.getElementById('bortzAgeForm');
-
-        form.addEventListener('invalid', e => {
-            // invalid fires during the capture phase before the bubble appears
-            expandFieldCard(e.target);
-        }, true);
 
         // On submit, defer to browser validation; only when the form is fully valid do we preventDefault and run calculateResult()
         form.addEventListener('submit', function (e) {
@@ -3625,8 +3432,9 @@
                 return;
             }
 
-            // Block submit if any required field (including WBC) is missing; show validation bubbles first
-            if (!this.reportValidity()) {
+            // New applications require the complete panel. Updates fill untouched values
+            // from the athlete's latest result inside calculateResult().
+            if (!isUpdate && !this.reportValidity()) {
                 return;
             }
 
