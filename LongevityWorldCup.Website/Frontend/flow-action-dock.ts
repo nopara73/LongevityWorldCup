@@ -37,7 +37,6 @@ interface FlowActionDockApi {
     const backPrimaryActionClass = 'flow-action-stack--back-primary-action';
     const mobileMedia = window.matchMedia('(max-width: 760px)');
     const keyboardMedia = window.matchMedia('(max-width: 760px), (pointer: coarse)');
-    const coarsePointerMedia = window.matchMedia('(pointer: coarse)');
     const reducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
     const states = new Map<HTMLElement, DockState>();
     let refreshFrame = 0;
@@ -85,36 +84,29 @@ interface FlowActionDockApi {
         ].includes(element.type);
     }
 
-    function getEstimatedLayoutViewportHeight(viewport: VisualViewportBounds): number {
-        const orientationType = window.screen?.orientation?.type || '';
-        const isLandscape = orientationType.startsWith('landscape')
-            || (!orientationType && window.innerWidth > window.innerHeight);
-        const screenWidth = Number(window.screen?.width);
-        const screenHeight = Number(window.screen?.height);
-        const orientedScreenHeight = coarsePointerMedia.matches
-            && Number.isFinite(screenWidth)
-            && Number.isFinite(screenHeight)
-            ? isLandscape
-                ? Math.min(screenWidth, screenHeight)
-                : Math.max(screenWidth, screenHeight)
-            : 0;
-
-        return Math.max(viewport.height, window.innerHeight, orientedScreenHeight);
+    function getObservedAppViewportHeight(viewport: VisualViewportBounds): number {
+        return Math.max(viewport.height, window.innerHeight);
     }
 
     function syncKeyboardState(): void {
         const viewport = getVisualViewportBounds();
+        const editingControl = isKeyboardEditingControl(document.activeElement);
         const viewportWidth = window.innerWidth;
         if (Math.abs(viewportWidth - lastLayoutViewportWidth) > 48) {
             lastLayoutViewportWidth = viewportWidth;
-            largestUnobscuredViewportHeight = getEstimatedLayoutViewportHeight(viewport);
+            largestUnobscuredViewportHeight = 0;
         }
 
-        const editingControl = isKeyboardEditingControl(document.activeElement);
+        const observedAppViewportHeight = getObservedAppViewportHeight(viewport);
         if (!editingControl) {
-            largestUnobscuredViewportHeight = getEstimatedLayoutViewportHeight(viewport);
+            largestUnobscuredViewportHeight = observedAppViewportHeight;
         } else if (!largestUnobscuredViewportHeight) {
-            largestUnobscuredViewportHeight = getEstimatedLayoutViewportHeight(viewport);
+            largestUnobscuredViewportHeight = observedAppViewportHeight;
+        } else {
+            largestUnobscuredViewportHeight = Math.max(
+                largestUnobscuredViewportHeight,
+                observedAppViewportHeight
+            );
         }
 
         const keyboardThreshold = Math.max(120, largestUnobscuredViewportHeight * 0.22);
@@ -481,7 +473,6 @@ interface FlowActionDockApi {
         document.addEventListener('focusout', () => window.setTimeout(scheduleRefresh, 0), true);
         mobileMedia.addEventListener?.('change', scheduleRefresh);
         keyboardMedia.addEventListener?.('change', scheduleRefresh);
-        coarsePointerMedia.addEventListener?.('change', scheduleRefresh);
 
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', scheduleFocusedControlClearance);
