@@ -253,9 +253,10 @@ jobs:
             cors_headers="$frontend_stage/cors-headers.txt"
             normalized_cors_headers="$frontend_stage/cors-headers.normalized.txt"
             assert_single_public_cors_origin() {
-              origin_count="$(grep -Eic '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*$' "$normalized_cors_headers" || true)"
-              if [ "$origin_count" -ne 1 ]; then
-                echo "Expected exactly one wildcard Access-Control-Allow-Origin header, found $origin_count." >&2
+              origin_count="$(grep -Eic '^access-control-allow-origin:' "$normalized_cors_headers" || true)"
+              wildcard_origin_count="$(grep -Eic '^access-control-allow-origin:[[:space:]]*\*[[:space:]]*$' "$normalized_cors_headers" || true)"
+              if [ "$origin_count" -ne 1 ] || [ "$wildcard_origin_count" -ne 1 ]; then
+                echo "Expected exactly one Access-Control-Allow-Origin header with value '*'; found $origin_count total and $wildcard_origin_count wildcard." >&2
                 cat "$normalized_cors_headers" >&2
                 exit 1
               fi
