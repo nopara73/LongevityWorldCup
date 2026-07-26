@@ -9,6 +9,7 @@ public enum SocialEventSkipReason
     UnsupportedEventType,
     UnsupportedEventPayload,
     UnsupportedBadgeAward,
+    YoungestLookingBadge,
     PodcastBadgeHandledImmediately,
     NonWinningSingleWinnerBadge,
     TiedBestImprovementBadge,
@@ -93,6 +94,12 @@ public static class SocialEventSkipPolicy
         }
 
         var norm = EventHelpers.NormalizeBadgeLabel(label);
+        if (string.Equals(norm, "Crowd Age – lowest", StringComparison.OrdinalIgnoreCase))
+        {
+            reason = SocialEventSkipReason.YoungestLookingBadge;
+            return true;
+        }
+
         if (string.Equals(norm, "Podcast", StringComparison.OrdinalIgnoreCase))
         {
             reason = SocialEventSkipReason.PodcastBadgeHandledImmediately;
