@@ -7535,7 +7535,10 @@
     }
 
     function ensureAthleteResultsReady() {
-        return Promise.resolve(window.modulesReady)
+        return Promise.all([
+            Promise.resolve(window.modulesReady),
+            Promise.resolve(window.athleteDialogModulesReady)
+        ])
             .then(() => {
                 if (athleteResultsReady) return athleteResults;
                 if (!athleteResultsLoadPromise) {
