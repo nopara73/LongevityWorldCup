@@ -716,8 +716,15 @@
 
         function clearStoredBiomarkerHandoff() {
             removeSessionItem('biomarkerData');
+            removeSessionItem('bioageClock');
             removeSessionItem('chronoPhenoDifference');
             removeSessionItem('chronoBortzDifference');
+        }
+
+        function clearCompletedBioageState() {
+            clearStoredBiomarkerHandoff();
+            removeSessionItem('bioageDraft:pheno:v1');
+            removeSessionItem('bioageDraft:bortz:v1');
         }
 
         function clearPendingPaymentOffer() {
@@ -740,10 +747,10 @@
         const PHENO_RESULT_BIOMARKER_KEYS = ['AlbGL', 'CreatUmolL', 'GluMmolL', 'CrpMgL', 'Wbc1000cellsuL', 'LymPc', 'McvFL', 'RdwPc', 'AlpUL'];
         const BORTZ_RESULT_BIOMARKER_KEYS = ['AlbGL', 'AlpUL', 'UreaMmolL', 'CholesterolMmolL', 'CreatUmolL', 'CystatinCMgL', 'Hba1cMmolMol', 'CrpMgL', 'GgtUL', 'Rbc10e12L', 'McvFL', 'RdwPc', 'Wbc1000cellsuL', 'MonocytePc', 'NeutrophilPc', 'LymPc', 'AltUL', 'ShbgNmolL', 'VitaminDNmolL', 'GluMmolL', 'MchPg', 'ApoA1GL'];
 
-        function hasCompleteSubmittedBiomarkerValues(biomarkerData, chronoPhenoDifference, chronoBortzDifference) {
-            const requiredKeys = chronoBortzDifference
+        function hasCompleteSubmittedBiomarkerValues(biomarkerData, bioageClock) {
+            const requiredKeys = bioageClock === 'bortz'
                 ? BORTZ_RESULT_BIOMARKER_KEYS
-                : chronoPhenoDifference
+                : bioageClock === 'pheno'
                     ? PHENO_RESULT_BIOMARKER_KEYS
                     : null;
 
@@ -773,6 +780,25 @@
             }
 
             removeSessionItem(key);
+            return null;
+        }
+
+        function readStoredBioageClock(biomarkerData, chronoPhenoDifference, chronoBortzDifference) {
+            const storedClock = getSessionItem('bioageClock');
+            if (storedClock === 'pheno' || storedClock === 'bortz') return storedClock;
+
+            // Compatibility for result uploads started before the clock marker existed.
+            const pendingOffer = readPendingPaymentOffer();
+            if (pendingOffer?.offerType === 'pro'
+                && chronoBortzDifference !== null
+                && hasCompleteSubmittedBiomarkerValues(biomarkerData, 'bortz')) return 'bortz';
+            if (pendingOffer?.offerType === 'amateur'
+                && chronoPhenoDifference !== null
+                && hasCompleteSubmittedBiomarkerValues(biomarkerData, 'pheno')) return 'pheno';
+            if (chronoBortzDifference !== null
+                && hasCompleteSubmittedBiomarkerValues(biomarkerData, 'bortz')) return 'bortz';
+            if (chronoPhenoDifference !== null
+                && hasCompleteSubmittedBiomarkerValues(biomarkerData, 'pheno')) return 'pheno';
             return null;
         }
 
@@ -973,14 +999,26 @@
                 }
 
                 const chronoPhenoDifference = readStoredAgeDifference('chronoPhenoDifference');
-                const chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');
+                let chronoBortzDifference = readStoredAgeDifference('chronoBortzDifference');
                 let biomarkerData = null;
                 try {
                     biomarkerData = JSON.parse(getSessionItem('biomarkerData'));
                 } catch (_) {
                     biomarkerData = null;
                 }
-                if (!biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasCompleteSubmittedBiomarkerValues(biomarkerData, chronoPhenoDifference, chronoBortzDifference)) {
+                const bioageClock = readStoredBioageClock(
+                    biomarkerData,
+                    chronoPhenoDifference,
+                    chronoBortzDifference);
+                if (bioageClock === 'pheno') chronoBortzDifference = null;
+                const isLegacyUnclockedResult = !bioageClock
+                    && getSessionItem('bioageClock') === null
+                    && chronoPhenoDifference === null
+                    && chronoBortzDifference === null
+                    && hasStoredBiomarkerValues(biomarkerData);
+                const hasRequiredAgeDifferences = isLegacyUnclockedResult || (chronoPhenoDifference !== null
+                    && (bioageClock === 'pheno' || (bioageClock === 'bortz' && chronoBortzDifference !== null)));
+                if ((!bioageClock && !isLegacyUnclockedResult) || !hasRequiredAgeDifferences || !biomarkerData || !Array.isArray(biomarkerData.Biomarkers) || !biomarkerData.Biomarkers.length || !hasStoredBiomarkerDates(biomarkerData) || !hasCompleteSubmittedBiomarkerValues(biomarkerData, bioageClock)) {
                     clearStoredBiomarkerHandoff();
                     customAlert('Biomarker data is missing. Please fill out the biomarker form first.')
                         .then(() => window.location.href = '/dashboard');
@@ -1044,6 +1082,7 @@
                                     }
                                     proofPics = [];
                                     removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                    clearCompletedBioageState();
                                     if (checkoutLink) {
                                         if (invoiceId) {
                                             const pendingInvoiceInfo = JSON.stringify({
@@ -1083,6 +1122,7 @@
                                         }
                                         proofPics = [];
                                         removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+                                        clearCompletedBioageState();
                                         removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
                                         removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
                                         setSessionItem("came-from", "proof-upload");

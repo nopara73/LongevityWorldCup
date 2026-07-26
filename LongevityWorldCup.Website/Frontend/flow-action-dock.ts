@@ -32,9 +32,11 @@ interface FlowActionDockApi {
     const placeholderClass = 'flow-action-dock-placeholder';
     const activeClass = 'flow-action-dock-active';
     const readyClass = 'flow-action-dock-ready';
+    const keyboardOpenClass = 'flow-input-keyboard-open';
     const singleBackActionClass = 'flow-action-stack--single-back-action';
     const backPrimaryActionClass = 'flow-action-stack--back-primary-action';
     const mobileMedia = window.matchMedia('(max-width: 760px)');
+    const keyboardMedia = window.matchMedia('(max-width: 760px), (pointer: coarse)');
     const reducedMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
     const states = new Map<HTMLElement, DockState>();
     let refreshFrame = 0;
@@ -43,6 +45,11 @@ interface FlowActionDockApi {
     let documentStateObserver: MutationObserver | null = null;
     let transitionsReady = false;
     let generatedFormId = 0;
+    let keyboardClearFrame = 0;
+    let focusedControlClearanceRequested = false;
+    let largestUnobscuredViewportHeight = 0;
+    let lastLayoutViewportWidth = window.innerWidth;
+    let isKeyboardOpen = false;
 
     function getVisualViewportBounds(): VisualViewportBounds {
         const visualViewport = window.visualViewport;
@@ -56,6 +63,90 @@ interface FlowActionDockApi {
             bottom: top + height,
             height
         };
+    }
+
+    function isKeyboardEditingControl(element: Element | null): element is HTMLElement {
+        if (element instanceof HTMLTextAreaElement) return !element.disabled && !element.readOnly;
+        if (element instanceof HTMLElement && element.isContentEditable) return true;
+        if (!(element instanceof HTMLInputElement) || element.disabled || element.readOnly) return false;
+
+        return ![
+            'button',
+            'checkbox',
+            'color',
+            'file',
+            'hidden',
+            'image',
+            'radio',
+            'range',
+            'reset',
+            'submit'
+        ].includes(element.type);
+    }
+
+    function getObservedAppViewportHeight(viewport: VisualViewportBounds): number {
+        return Math.max(viewport.height, window.innerHeight);
+    }
+
+    function syncKeyboardState(): void {
+        const viewport = getVisualViewportBounds();
+        const editingControl = isKeyboardEditingControl(document.activeElement);
+        const viewportWidth = window.innerWidth;
+        if (Math.abs(viewportWidth - lastLayoutViewportWidth) > 48) {
+            lastLayoutViewportWidth = viewportWidth;
+            largestUnobscuredViewportHeight = 0;
+        }
+
+        const observedAppViewportHeight = getObservedAppViewportHeight(viewport);
+        if (!editingControl) {
+            largestUnobscuredViewportHeight = observedAppViewportHeight;
+        } else if (!largestUnobscuredViewportHeight) {
+            largestUnobscuredViewportHeight = observedAppViewportHeight;
+        } else {
+            largestUnobscuredViewportHeight = Math.max(
+                largestUnobscuredViewportHeight,
+                observedAppViewportHeight
+            );
+        }
+
+        const keyboardThreshold = Math.max(120, largestUnobscuredViewportHeight * 0.22);
+        isKeyboardOpen = keyboardMedia.matches
+            && editingControl
+            && largestUnobscuredViewportHeight - viewport.height >= keyboardThreshold;
+        const keyboardOcclusion = isKeyboardOpen
+            ? Math.max(0, largestUnobscuredViewportHeight - viewport.height)
+            : 0;
+        const occlusionValue = `${Math.ceil(keyboardOcclusion)}px`;
+
+        document.documentElement.classList.toggle(keyboardOpenClass, isKeyboardOpen);
+        document.body.classList.toggle(keyboardOpenClass, isKeyboardOpen);
+        document.documentElement.style.setProperty('--flow-input-keyboard-occlusion', occlusionValue);
+        document.body.style.setProperty('--flow-input-keyboard-occlusion', occlusionValue);
+    }
+
+    function keepFocusedControlInVisualViewport(): void {
+        if (keyboardClearFrame) window.cancelAnimationFrame(keyboardClearFrame);
+        if (!isKeyboardOpen || !isKeyboardEditingControl(document.activeElement)) {
+            keyboardClearFrame = 0;
+            return;
+        }
+
+        keyboardClearFrame = window.requestAnimationFrame(() => {
+            keyboardClearFrame = 0;
+            const control = document.activeElement;
+            if (!isKeyboardOpen || !isKeyboardEditingControl(control)) return;
+
+            const viewport = getVisualViewportBounds();
+            const rect = control.getBoundingClientRect();
+            const margin = 16;
+            const topLimit = viewport.top + margin;
+            const bottomLimit = viewport.bottom - margin;
+            if (rect.bottom > bottomLimit) {
+                window.scrollBy({ top: Math.ceil(rect.bottom - bottomLimit), behavior: 'auto' });
+            } else if (rect.top < topLimit) {
+                window.scrollBy({ top: Math.floor(rect.top - topLimit), behavior: 'auto' });
+            }
+        });
     }
 
     function hasLayoutBox(element: Element | null | undefined): element is HTMLElement {
@@ -226,6 +317,7 @@ interface FlowActionDockApi {
     function shouldDock(element: HTMLElement, state: DockState): boolean {
         if (!conditionMatches(element)) return false;
         if (state.docked ? !hasLayoutBox(state.placeholder) : !isVisible(element)) return false;
+        if (isKeyboardOpen) return false;
 
         const mode = (element.getAttribute('data-flow-dock') || 'auto').toLowerCase();
         if (mode === 'off') return false;
@@ -251,7 +343,10 @@ interface FlowActionDockApi {
 
     function refresh(): void {
         refreshFrame = 0;
+        const shouldClearFocusedControl = focusedControlClearanceRequested;
+        focusedControlClearanceRequested = false;
         ensureRegisteredElements();
+        syncKeyboardState();
 
         let dockedHeight = 0;
         let hasDockedElement = false;
@@ -274,10 +369,16 @@ interface FlowActionDockApi {
         const heightValue = hasDockedElement ? `${Math.ceil(dockedHeight)}px` : '0px';
         document.documentElement.style.setProperty('--flow-action-dock-height', heightValue);
         document.body.style.setProperty('--flow-action-dock-height', heightValue);
+        if (shouldClearFocusedControl) keepFocusedControlInVisualViewport();
     }
 
     function scheduleRefresh(): void {
         if (!refreshFrame) refreshFrame = window.requestAnimationFrame(refresh);
+    }
+
+    function scheduleFocusedControlClearance(): void {
+        focusedControlClearanceRequested = true;
+        scheduleRefresh();
     }
 
     function refreshImmediately(): void {
@@ -363,17 +464,18 @@ interface FlowActionDockApi {
             attributeFilter: ['class']
         });
 
-        window.addEventListener('resize', scheduleRefresh);
-        window.addEventListener('orientationchange', scheduleRefresh);
+        window.addEventListener('resize', scheduleFocusedControlClearance);
+        window.addEventListener('orientationchange', scheduleFocusedControlClearance);
         window.addEventListener('scroll', scheduleRefresh, { passive: true });
         window.addEventListener('load', scheduleRefresh);
         window.addEventListener('pageshow', scheduleRefresh);
-        document.addEventListener('focusin', scheduleRefresh, true);
+        document.addEventListener('focusin', scheduleFocusedControlClearance, true);
         document.addEventListener('focusout', () => window.setTimeout(scheduleRefresh, 0), true);
         mobileMedia.addEventListener?.('change', scheduleRefresh);
+        keyboardMedia.addEventListener?.('change', scheduleRefresh);
 
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', scheduleRefresh);
+            window.visualViewport.addEventListener('resize', scheduleFocusedControlClearance);
             window.visualViewport.addEventListener('scroll', scheduleRefresh);
         }
         document.fonts?.ready.then(scheduleRefresh).catch(() => {});

@@ -455,6 +455,15 @@
         return query ? `?${query}` : '';
     }
 
+    function clearCompletedBioageHandoff(playFlow: PlayAthleteFlowApi): void {
+        [
+            'biomarkerData',
+            'bioageClock',
+            'chronoPhenoDifference',
+            'chronoBortzDifference'
+        ].forEach(key => playFlow.removeSessionItem(key));
+    }
+
     function startAmateurApplication(retryButton: HTMLButtonElement): void {
         const flow = requirePlayFlow();
         const stored = flow.setPendingPaymentOffer({
@@ -464,6 +473,7 @@
             amountUsd: 10
         }, retryButton);
         if (!stored) return;
+        clearCompletedBioageHandoff(flow);
         window.location.href = `/pheno-age${getCheckoutQuerySuffix()}`;
     }
 
@@ -480,6 +490,7 @@
             amountUsd
         }, result);
         if (!flow.setPendingPaymentOffer(paymentOffer, retryButton)) return;
+        clearCompletedBioageHandoff(flow);
         window.location.href = `/bortz-age${getCheckoutQuerySuffix()}`;
     }
 
