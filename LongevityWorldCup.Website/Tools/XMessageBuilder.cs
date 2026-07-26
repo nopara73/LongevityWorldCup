@@ -177,7 +177,7 @@ public static class XMessageBuilder
             var years = Math.Abs(diffVal.Value);
             var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
             var athlete = slugToName(diffSlug);
-            var url = AthleteUrl(diffSlug, "improvement");
+            var url = AthleteUrl(diffSlug, "pheno-baseline-improvement");
             var line = BuildImprovementLine(
                 eventPhase,
                 athleteName: athlete,
@@ -213,7 +213,7 @@ public static class XMessageBuilder
             var years = Math.Abs(diffVal.Value);
             var yearsStr = years.ToString("0.#", CultureInfo.InvariantCulture);
             var athlete = slugToName(diffSlug);
-            var url = AthleteUrl(diffSlug, "bortz-improvement");
+            var url = AthleteUrl(diffSlug, "bortz-baseline-improvement");
             var line = BuildImprovementLine(
                 eventPhase,
                 athleteName: athlete,
@@ -886,7 +886,6 @@ public static class XMessageBuilder
         return string.IsNullOrEmpty(emoji) ? lineBase : $"{lineBase} {emoji}";
     }
 }
-
 
 
 

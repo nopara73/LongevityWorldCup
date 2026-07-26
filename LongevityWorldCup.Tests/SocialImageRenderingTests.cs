@@ -151,6 +151,53 @@ public sealed class SocialImageRenderingTests
         await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(payload), 1200, 630);
     }
 
+    [Theory]
+    [InlineData("pheno", "pheno-baseline-improvement", "improvement")]
+    [InlineData("bortz", "bortz-baseline-improvement", "bortz-improvement")]
+    public async Task AthleteImprovementSharePreviews_DistinguishBaselineBadgesFromLeaderboardEvents(
+        string clock,
+        string baselineContext,
+        string leaderboardContext)
+    {
+        using var factory = CreateFactory();
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
+        AgeImprovementLeaderboardEntry? baselineEntry = null;
+        AthleteOgImageService.AthleteOgPayload? baselinePayload = null;
+        AthleteOgImageService.AthleteOgPayload? leaderboardPayload = null;
+
+        foreach (var athlete in athletes.GetAthletesSnapshot().OfType<System.Text.Json.Nodes.JsonObject>())
+        {
+            var slug = athlete["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug) &&
+                athletes.TryGetBaselineImprovementLeaderboardEntry(slug, clock, out var candidateEntry) &&
+                athleteImages.TryGetCurrentPayload(slug, baselineContext, out var candidateBaseline) &&
+                athleteImages.TryGetCurrentPayload(slug, leaderboardContext, out var candidateLeaderboard))
+            {
+                baselineEntry = candidateEntry;
+                baselinePayload = candidateBaseline;
+                leaderboardPayload = candidateLeaderboard;
+                break;
+            }
+        }
+
+        Assert.NotNull(baselineEntry);
+        Assert.NotNull(baselinePayload);
+        Assert.NotNull(leaderboardPayload);
+        Assert.Equal(baselineContext, baselinePayload!.LeagueSlug);
+        Assert.Equal(baselineEntry!.Rank, baselinePayload.Rank);
+        Assert.Equal(baselineEntry.Improvement, baselinePayload.AgeReduction, 6);
+        Assert.Equal("Baseline rank", baselinePayload.RankLabel);
+        Assert.Equal("Baseline improvement", baselinePayload.MetricLabel);
+        Assert.Contains("from first to latest eligible result", baselinePayload.Description);
+        Assert.DoesNotContain("from worst", baselinePayload.Description);
+        Assert.Equal(leaderboardContext, leaderboardPayload!.LeagueSlug);
+        Assert.Contains("from worst to latest eligible result", leaderboardPayload.Description);
+
+        await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(baselinePayload), 1200, 630);
+        await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(leaderboardPayload), 1200, 630);
+    }
+
     [Fact]
     public async Task AthleteDomainSharePreviewImage_UsesTheDomainWinnerContext()
     {

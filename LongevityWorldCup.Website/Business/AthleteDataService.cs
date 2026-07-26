@@ -1109,6 +1109,57 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return true;
     }
 
+    public bool TryGetBaselineImprovementLeaderboardEntry(string athleteSlug, string clock, out AgeImprovementLeaderboardEntry entry)
+    {
+        entry = null!;
+        var normalized = NormalizeAthleteSlug(athleteSlug);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return false;
+
+        if (!string.Equals(clock, "pheno", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var useBortz = string.Equals(clock, "bortz", StringComparison.OrdinalIgnoreCase);
+        var ranked = PhenoStatsCalculator.BuildAll(GetAthletesSnapshot(), DateTime.UtcNow.Date)
+            .Values
+            .Select(result => new
+            {
+                Result = result,
+                Improvement = useBortz ? result.BortzAgeDiffFromBaseline : result.PhenoAgeDiffFromBaseline,
+                SubmissionCount = useBortz ? result.BortzSubmissionCount : result.SubmissionCount,
+                AgeReduction = useBortz ? result.BortzAgeReduction : result.AgeReduction
+            })
+            .Where(row =>
+                row.SubmissionCount >= 2 &&
+                row.Improvement.HasValue &&
+                double.IsFinite(row.Improvement.Value))
+            .OrderBy(row => row.Improvement!.Value)
+            .ThenBy(row => row.Result.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var athlete = ranked.FirstOrDefault(row =>
+            string.Equals(NormalizeAthleteSlug(row.Result.Slug), normalized, StringComparison.Ordinal));
+        if (athlete is null || athlete.Improvement is not { } improvement)
+            return false;
+
+        var rank = ranked
+            .Select(row => row.Improvement!.Value)
+            .Distinct()
+            .TakeWhile(value => value < improvement)
+            .Count() + 1;
+        entry = new AgeImprovementLeaderboardEntry(
+            NormalizeAthleteSlug(athlete.Result.Slug),
+            athlete.Result.Name,
+            useBortz ? "bortz" : "pheno",
+            rank,
+            improvement,
+            athlete.AgeReduction is { } ageReduction && double.IsFinite(ageReduction)
+                ? ageReduction
+                : 0d);
+        return true;
+    }
+
     public bool TryGetBiologicalAgeLeaderboardEntry(string athleteSlug, string clock, out BiologicalAgeLeaderboardEntry entry)
     {
         entry = null!;
