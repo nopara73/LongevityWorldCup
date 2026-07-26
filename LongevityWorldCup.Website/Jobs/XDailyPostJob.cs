@@ -335,27 +335,6 @@ public class XDailyPostJob : IJob
         if (fillerType == FillerType.Donation)
             return DonationReminderPost.InfoToken;
 
-        if (fillerType == FillerType.CrowdGuesses)
-        {
-            var podium = _athletes.GetCrowdLowestAgeBadgePodiumForX();
-            var placeTokens = podium
-                .OrderBy(x => x.Place)
-                .Select(x =>
-                {
-                    var slugs = x.Slugs
-                        .Select(Norm)
-                        .Where(s => s.Length > 0)
-                        .Distinct(StringComparer.Ordinal)
-                        .OrderBy(s => s, StringComparer.Ordinal)
-                        .ToList();
-                    return slugs.Count == 0 ? null : $"{x.Place}:{string.Join(",", slugs)}";
-                })
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .ToList();
-            if (placeTokens.Count == 0) return null;
-            return $"podium[{string.Join(" | ", placeTokens)}]";
-        }
-
         if (fillerType == FillerType.Newcomers)
         {
             var slugs = _athletes.GetRecentNewcomersForX().Select(Norm).Where(s => s.Length > 0).Distinct(StringComparer.Ordinal).OrderBy(s => s, StringComparer.Ordinal).ToList();
@@ -379,7 +358,6 @@ public class XDailyPostJob : IJob
     {
         return fillerType switch
         {
-            FillerType.CrowdGuesses => TimeSpan.FromDays(10),
             FillerType.HistoryDocument => TimeSpan.FromDays(HistoryDocumentReminderPost.MinCooldownDays),
             FillerType.Ruleset => TimeSpan.FromDays(RulesetReminderPost.MinCooldownDays),
             FillerType.GitHubRepository => TimeSpan.FromDays(GitHubRepositoryReminderPost.MinCooldownDays),

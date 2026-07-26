@@ -197,6 +197,32 @@ public sealed class SocialFillerHistoryReminderTests
     }
 
     [Fact]
+    public void YoungestLookingFillerIsAbsentFromEveryPlatformRotation()
+    {
+        using var fixture = TempDatabaseFixture.Create();
+        var x = new XFillerPostLogService(fixture.Database);
+        var threads = new ThreadsFillerPostLogService(fixture.Database);
+        var facebook = new FacebookFillerPostLogService(fixture.Database);
+
+        Assert.DoesNotContain(x.GetSuggestedFillersOrdered(), item => item.Type == FillerType.CrowdGuesses);
+        Assert.DoesNotContain(threads.GetSuggestedFillersOrdered(), item => item.Type == FillerType.CrowdGuesses);
+        Assert.DoesNotContain(facebook.GetSuggestedFillersOrdered(), item => item.Type == FillerType.CrowdGuesses);
+    }
+
+    [Fact]
+    public void LegacyFillerTypeValuesRemainStableForPersistedLogs()
+    {
+        Assert.Equal(0, (int)FillerType.Top3Leaderboard);
+        Assert.Equal(1, (int)FillerType.CrowdGuesses);
+        Assert.Equal(2, (int)FillerType.Newcomers);
+        Assert.Equal(3, (int)FillerType.DomainTop);
+        Assert.Equal(4, (int)FillerType.HistoryDocument);
+        Assert.Equal(5, (int)FillerType.Ruleset);
+        Assert.Equal(6, (int)FillerType.GitHubRepository);
+        Assert.Equal(7, (int)FillerType.Donation);
+    }
+
+    [Fact]
     public void HistoryDocumentReminderUsesTwoToFourMonthRandomizedCooldown()
     {
         using var fixture = TempDatabaseFixture.Create();

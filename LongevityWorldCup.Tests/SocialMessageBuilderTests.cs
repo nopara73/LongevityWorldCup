@@ -38,7 +38,7 @@ public sealed class SocialMessageBuilderTests
         var expectedX =
             "Siim Land went Pro.\n\n" +
             "Bortz Age results now place them in the Pro track.\n\n" +
-            "https://longevityworldcup.com/athlete/siim-land";
+            "https://longevityworldcup.com/athlete/siim-land?ctx=bortz";
         const string expectedSlack =
             "<https://longevityworldcup.com/athlete/siim-land|Siim Land> went Pro";
 
@@ -62,14 +62,14 @@ public sealed class SocialMessageBuilderTests
     }
 
     [Theory]
-    [InlineData("pheno", "pheno age")]
-    [InlineData("bortz", "Bortz Age")]
-    public void BiologicalAgeImprovementEventBuilders_ReturnGoldenMessages(string clock, string expectedClockLabel)
+    [InlineData("pheno", "pheno age", "pheno")]
+    [InlineData("bortz", "Bortz Age", "bortz")]
+    public void BiologicalAgeImprovementEventBuilders_ReturnGoldenMessages(string clock, string expectedClockLabel, string expectedContext)
     {
         var raw = $"slug[siim_land] clock[{clock}] from[44.21] to[41.8]";
         var expectedX =
             $"Siim Land improved their {expectedClockLabel} from 44.21 to 41.8 years.\n\n" +
-            "https://longevityworldcup.com/athlete/siim-land";
+            $"https://longevityworldcup.com/athlete/siim-land?ctx={expectedContext}";
         var expectedSlack =
             $"<https://longevityworldcup.com/athlete/siim-land|Siim Land> improved their {expectedClockLabel} from 44.21 to 41.8 years";
 
@@ -269,6 +269,8 @@ public sealed class SocialMessageBuilderTests
 
         Assert.StartsWith("Siim Land currently has the strongest Bortz immune profile.", xMessage);
         Assert.StartsWith("Siim Land currently has the strongest Bortz immune profile.", threadsMessage);
+        Assert.EndsWith("https://longevityworldcup.com/athlete/siim-land?ctx=domain-immune", xMessage, StringComparison.Ordinal);
+        Assert.EndsWith("https://longevityworldcup.com/athlete/siim-land?ctx=domain-immune", threadsMessage, StringComparison.Ordinal);
         Assert.DoesNotContain("strongest immune profile in the Longevity World Cup field", xMessage);
         Assert.DoesNotContain("strongest immune profile in the field right now", threadsMessage);
     }
@@ -292,8 +294,54 @@ public sealed class SocialMessageBuilderTests
 
         Assert.StartsWith("Siim Land currently has the strongest inflammation profile in the Longevity World Cup field.", xMessage);
         Assert.StartsWith("Siim Land currently has the strongest inflammation profile in the Longevity World Cup field.", threadsMessage);
+        Assert.EndsWith("https://longevityworldcup.com/athlete/siim-land?ctx=domain-inflammation", xMessage, StringComparison.Ordinal);
+        Assert.EndsWith("https://longevityworldcup.com/athlete/siim-land?ctx=domain-inflammation", threadsMessage, StringComparison.Ordinal);
         Assert.DoesNotContain("Bortz inflammation", xMessage);
         Assert.DoesNotContain("Bortz inflammation", threadsMessage);
+    }
+
+    [Theory]
+    [InlineData("Pheno Age - lowest", "pheno")]
+    [InlineData("Pheno Age best improvement", "pheno-baseline-improvement")]
+    [InlineData("Bortz Age - lowest", "bortz")]
+    [InlineData("Bortz Age best improvement", "bortz-baseline-improvement")]
+    [InlineData("Chronological Age - Oldest", "chronological-oldest")]
+    [InlineData("Chronological Age - Youngest", "chronological-youngest")]
+    public void BadgePosts_LinkToMatchingAthletePreviewContext(string badgeLabel, string expectedContext)
+    {
+        var raw = $"slug[siim_land] badge[{badgeLabel}] cat[Global] val[] place[1]";
+        var expectedUrl = $"https://longevityworldcup.com/athlete/siim-land?ctx={expectedContext}";
+
+        var xMessage = XMessageBuilder.ForEventText(
+            EventType.BadgeAward,
+            raw,
+            SlugToName,
+            sampleForBasis: MatureSample,
+            getLowestPhenoAgeForSlug: _ => 31.2,
+            getLowestBortzAgeForSlug: _ => 30.1,
+            getChronoAgeForSlug: _ => 60,
+            getPhenoDiffForSlug: _ => -4.2,
+            getBortzDiffForSlug: _ => -3.1);
+        var threadsMessage = ThreadsMessageBuilder.ForEventText(
+            EventType.BadgeAward,
+            raw,
+            SlugToName,
+            sampleForBasis: MatureSample,
+            getLowestPhenoAgeForSlug: _ => 31.2,
+            getLowestBortzAgeForSlug: _ => 30.1,
+            getChronoAgeForSlug: _ => 60,
+            getPhenoDiffForSlug: _ => -4.2,
+            getBortzDiffForSlug: _ => -3.1);
+
+        Assert.EndsWith(expectedUrl, xMessage, StringComparison.Ordinal);
+        Assert.EndsWith(expectedUrl, threadsMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void YoungestLookingFiller_IsRetired()
+    {
+        Assert.Empty(XMessageBuilder.ForFiller(FillerType.CrowdGuesses, "", SlugToName));
+        Assert.Empty(ThreadsMessageBuilder.ForFiller(FillerType.CrowdGuesses, "", SlugToName));
     }
 
     private static string SlugToName(string slug)
