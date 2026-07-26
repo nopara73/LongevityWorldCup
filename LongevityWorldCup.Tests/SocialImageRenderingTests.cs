@@ -119,6 +119,115 @@ public sealed class SocialImageRenderingTests
         await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(payload), 1200, 630);
     }
 
+    [Theory]
+    [InlineData("pheno", "Pheno Age")]
+    [InlineData("bortz", "Bortz Age")]
+    public async Task AthleteBiologicalAgeSharePreviewImage_UsesClockSpecificMetrics(string context, string clockLabel)
+    {
+        using var factory = CreateFactory();
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
+        AthleteOgImageService.AthleteOgPayload? payload = null;
+
+        foreach (var athlete in athletes.GetAthletesSnapshot().OfType<System.Text.Json.Nodes.JsonObject>())
+        {
+            var slug = athlete["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug) &&
+                athleteImages.TryGetCurrentPayload(slug, context, out var candidate) &&
+                string.Equals(candidate.LeagueSlug, context, StringComparison.Ordinal))
+            {
+                payload = candidate;
+                break;
+            }
+        }
+
+        Assert.NotNull(payload);
+        Assert.Equal(context, payload!.LeagueSlug);
+        Assert.Equal($"{clockLabel} leaderboard", payload.LeagueName);
+        Assert.Equal($"{clockLabel} rank", payload.RankLabel);
+        Assert.Equal(clockLabel, payload.MetricLabel);
+        Assert.Contains("age reduction", payload.Description, StringComparison.OrdinalIgnoreCase);
+
+        await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(payload), 1200, 630);
+    }
+
+    [Fact]
+    public async Task AthleteDomainSharePreviewImage_UsesTheDomainWinnerContext()
+    {
+        using var factory = CreateFactory();
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var badges = factory.Services.GetRequiredService<BadgeDataService>();
+        var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
+        var domainKeys = new[] { "liver", "kidney", "metabolic", "inflammation", "immune", "vitamin_d" };
+        badges.ComputeAndPersistAwards();
+        var domainKey = domainKeys.First(key => !string.IsNullOrWhiteSpace(athletes.GetBestDomainWinnerSlug(key)));
+        var winnerSlug = athletes.GetBestDomainWinnerSlug(domainKey);
+        var context = $"domain-{domainKey.Replace('_', '-')}";
+
+        Assert.True(athleteImages.TryGetCurrentPayload(winnerSlug!, context, out var payload));
+        Assert.Equal(context, payload.LeagueSlug);
+        Assert.Equal(1, payload.Rank);
+        Assert.Equal("Domain rank", payload.RankLabel);
+        Assert.Equal("#1", payload.MetricValue);
+        Assert.DoesNotContain("Ultimate League", payload.Description, StringComparison.OrdinalIgnoreCase);
+
+        await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(payload), 1200, 630);
+    }
+
+    [Theory]
+    [InlineData("chronological-oldest", "Oldest athlete")]
+    [InlineData("chronological-youngest", "Youngest athlete")]
+    public async Task AthleteChronologicalAgeSharePreviewImage_UsesTheRequestedAgeContext(string context, string leagueName)
+    {
+        using var factory = CreateFactory();
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
+        AthleteOgImageService.AthleteOgPayload? payload = null;
+
+        foreach (var athlete in athletes.GetAthletesSnapshot().OfType<System.Text.Json.Nodes.JsonObject>())
+        {
+            var slug = athlete["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug) &&
+                athleteImages.TryGetCurrentPayload(slug, context, out var candidate))
+            {
+                payload = candidate;
+                break;
+            }
+        }
+
+        Assert.NotNull(payload);
+        Assert.Equal(context, payload!.LeagueSlug);
+        Assert.Equal(leagueName, payload.LeagueName);
+        Assert.Equal("Age rank", payload.RankLabel);
+        Assert.Equal("Chronological age", payload.MetricLabel);
+
+        await AssertPngFileCanvasAsync(await athleteImages.EnsureRenderedImageAsync(payload), 1200, 630);
+    }
+
+    [Fact]
+    public void AthleteSharePreview_DoesNotFallBackToUltimateForAnUnavailableKnownContext()
+    {
+        using var factory = CreateFactory();
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
+        string? phenoOnlySlug = null;
+
+        foreach (var athlete in athletes.GetAthletesSnapshot().OfType<System.Text.Json.Nodes.JsonObject>())
+        {
+            var slug = athlete["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug) &&
+                athletes.TryGetBiologicalAgeLeaderboardEntry(slug, "pheno", out _) &&
+                !athletes.TryGetBiologicalAgeLeaderboardEntry(slug, "bortz", out _))
+            {
+                phenoOnlySlug = slug;
+                break;
+            }
+        }
+
+        Assert.False(string.IsNullOrWhiteSpace(phenoOnlySlug));
+        Assert.False(athleteImages.TryGetCurrentPayload(phenoOnlySlug!, "bortz", out _));
+    }
+
     private static async Task AssertPngCanvasAsync(Stream? stream)
     {
         Assert.NotNull(stream);

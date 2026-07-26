@@ -1465,36 +1465,6 @@ VALUES (@bl, @lc, @lv, @p, @a, @dh, @u);";
         var ageGapHash = BuildCrowdRuleHash("Crowd – age gap (chrono−crowd)", "ChronoMinusCrowdAge", "desc", true, 2);
         AddTier(withGuesses, positiveGaps, s => Math.Round(s.ChronoAge!.Value - s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero), "Crowd – age gap (chrono−crowd)", ageGapHash, awards);
 
-        var lowestAgeSlots = withGuesses
-            .Select(s => (
-                CrowdAge: Math.Round(s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero),
-                s.CrowdCount))
-            .Distinct()
-            .OrderBy(x => x.CrowdAge)
-            .ThenByDescending(x => x.CrowdCount)
-            .Take(3)
-            .ToList();
-        var lowestAgeHash = BuildCrowdRuleHash("Crowd Age – lowest", "CrowdAge", "asc", false, 2, tieBreakKey: "crowd_count_desc_then_ties_allowed");
-        for (int i = 0; i < lowestAgeSlots.Count; i++)
-        {
-            var place = i + 1;
-            var slot = lowestAgeSlots[i];
-            foreach (var s in withGuesses.Where(s =>
-                         Math.Round(s.CrowdAge!.Value, 2, MidpointRounding.AwayFromZero) == slot.CrowdAge &&
-                         s.CrowdCount == slot.CrowdCount))
-            {
-                awards.Add(new AwardRow
-                {
-                    BadgeLabel = "Crowd Age – lowest",
-                    LeagueCategory = "Global",
-                    LeagueValue = null,
-                    Place = place,
-                    AthleteSlug = s.Slug,
-                    DefinitionHash = lowestAgeHash
-                });
-            }
-        }
-
         static void AddTier<T>(
             List<AthleteStats> pool,
             List<T> top3Values,

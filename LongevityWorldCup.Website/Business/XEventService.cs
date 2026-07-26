@@ -147,7 +147,6 @@ public class XEventService
             getFieldSizeForLeague: GetFieldSizeForLeague,
             getBortzFieldSizeForLeague: GetBortzFieldSizeForLeague,
             getTop3SlugsForLeague: athletes.GetTop3SlugsForLeague,
-            getCrowdLowestAgePodium: athletes.GetCrowdLowestAgeBadgePodiumForX,
             getRecentNewcomersForX: athletes.GetRecentNewcomersForX,
             getBestDomainWinnerSlug: athletes.GetBestDomainWinnerSlug);
         if (string.IsNullOrWhiteSpace(message))

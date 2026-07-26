@@ -72,6 +72,39 @@ public sealed class SharePreviewMetadataTests
         Assert.Contains("&amp;ctx=crowd", html);
     }
 
+    [Theory]
+    [InlineData("pheno", "Pheno Age leaderboard")]
+    [InlineData("bortz", "Bortz Age leaderboard")]
+    public async Task AthleteProfile_BiologicalAgeContextUsesClockSpecificSharePreviewMetadata(
+        string context,
+        string expectedLeagueName)
+    {
+        using var factory = CreateFactory();
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
+        AthleteOgImageService.AthleteOgPayload? payload = null;
+
+        foreach (var athlete in athletes.GetAthletesSnapshot().OfType<System.Text.Json.Nodes.JsonObject>())
+        {
+            var slug = athlete["AthleteSlug"]?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(slug) &&
+                athleteImages.TryGetCurrentPayload(slug, context, out var candidate) &&
+                string.Equals(candidate.LeagueSlug, context, StringComparison.Ordinal))
+            {
+                payload = candidate;
+                break;
+            }
+        }
+
+        Assert.NotNull(payload);
+        using var client = factory.CreateClient();
+        var html = await client.GetStringAsync($"/athlete/{payload!.RouteSlug}?ctx={context}");
+
+        Assert.Contains(expectedLeagueName, html);
+        Assert.Contains($"{expectedLeagueName} rank #", html);
+        Assert.Contains($"&amp;ctx={context}", html);
+    }
+
     [Fact]
     public async Task GeneratedPageSharePreviewEndpoint_ReturnsPng()
     {
