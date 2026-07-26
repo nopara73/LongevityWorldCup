@@ -66,7 +66,9 @@ interface BioageDraft {
 
 interface BioageBiomarkerEntryController {
     clock: BioageClock;
+    draftPersistenceSuppressed: boolean;
     form: HTMLFormElement;
+    hasPersistedDraft: boolean;
     inputs: HTMLInputElement[];
     invalidBatchActive: boolean;
     isUpdate: boolean;
@@ -577,7 +579,10 @@ interface Window {
         const clocks: BioageClock[] = clock ? [clock] : ['pheno', 'bortz'];
         clocks.forEach(draftClock => {
             const controller = biomarkerEntryControllers.get(draftClock);
-            if (controller?.saveTimer) window.clearTimeout(controller.saveTimer);
+            if (controller) {
+                controller.draftPersistenceSuppressed = true;
+                if (controller.saveTimer) window.clearTimeout(controller.saveTimer);
+            }
             biomarkerEntryControllers.delete(draftClock);
             removeSessionItem(getBioageDraftKey(draftClock));
         });
@@ -606,10 +611,22 @@ interface Window {
         return fields;
     }
 
+    function canPersistBioageDraft(controller: BioageBiomarkerEntryController): boolean {
+        if (controller.isUpdate || controller.restoring || controller.draftPersistenceSuppressed) return false;
+
+        if (controller.hasPersistedDraft && getSessionItem(getBioageDraftKey(controller.clock)) === null) {
+            controller.draftPersistenceSuppressed = true;
+            if (controller.saveTimer) window.clearTimeout(controller.saveTimer);
+            controller.saveTimer = 0;
+            return false;
+        }
+
+        return true;
+    }
+
     function saveBioageDraft(controller: BioageBiomarkerEntryController): void {
         controller.saveTimer = 0;
-        if (controller.isUpdate || controller.restoring) return;
-
+        if (!canPersistBioageDraft(controller)) return;
         const draft: BioageDraft = {
             version: BIOAGE_DRAFT_VERSION,
             clock: controller.clock,
@@ -617,14 +634,12 @@ interface Window {
             fields: serializeDraftFields(controller.form)
         };
 
-        try {
-            setSessionItem(getBioageDraftKey(controller.clock), JSON.stringify(draft));
-        } catch (_) {
-        }
+        setSessionItem(getBioageDraftKey(controller.clock), JSON.stringify(draft));
+        controller.hasPersistedDraft = getSessionItem(getBioageDraftKey(controller.clock)) !== null;
     }
 
     function scheduleBioageDraftSave(controller: BioageBiomarkerEntryController): void {
-        if (controller.isUpdate || controller.restoring) return;
+        if (!canPersistBioageDraft(controller)) return;
         if (controller.saveTimer) window.clearTimeout(controller.saveTimer);
         controller.saveTimer = window.setTimeout(() => saveBioageDraft(controller), 100);
     }
@@ -661,6 +676,7 @@ interface Window {
         const draft = readBioageDraft(controller.clock);
         if (!draft) return false;
 
+        controller.hasPersistedDraft = true;
         controller.restoring = true;
         try {
             applyDraftField(controller.form, draft.fields, 'dob-year');
@@ -1040,7 +1056,9 @@ interface Window {
 
         const controller: BioageBiomarkerEntryController = {
             clock: options.clock,
+            draftPersistenceSuppressed: false,
             form: options.form,
+            hasPersistedDraft: false,
             inputs: Array.from(options.form.querySelectorAll<HTMLInputElement>(
                 '.biomarker-card input[type="number"][required]'
             )),
