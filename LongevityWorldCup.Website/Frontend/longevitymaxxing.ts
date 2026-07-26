@@ -3731,6 +3731,12 @@
         dialog = requiredElement("lmxQuoteDialog", HTMLElement);
         const ok = requiredButton("lmxQuoteDialogOk");
         ok.addEventListener("click", closeCheckInQuoteDialog);
+        dialog.addEventListener("lwc:athlete-dialog-before-open", () => {
+            // The shared athlete profile is itself modal. Retire this quote
+            // layer before it opens so there is one focus trap and one
+            // aria-modal surface, then let the profile restore the prior focus.
+            closeCheckInQuoteDialog();
+        });
         dialog.addEventListener("keydown", event => {
             if (event.key === "Escape") {
                 event.preventDefault();
