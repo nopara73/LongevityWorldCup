@@ -27,6 +27,7 @@ Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age 
 ## Events
 
 - Biological-age improvement Events represent chronologically new personal bests, use the result date as the Event date, and are not created when an older backfilled result predates the athlete's previous personal best.
+- Pheno/Bortz best-improvement badges compare the latest eligible result with the first eligible result. Improvement leaderboards and their placement Events compare the latest eligible result with the worst eligible result.
 
 ## Longevitymaxxing Challenge
 

@@ -302,9 +302,9 @@ public sealed class SocialMessageBuilderTests
 
     [Theory]
     [InlineData("Pheno Age - lowest", "pheno")]
-    [InlineData("Pheno Age best improvement", "improvement")]
+    [InlineData("Pheno Age best improvement", "pheno-baseline-improvement")]
     [InlineData("Bortz Age - lowest", "bortz")]
-    [InlineData("Bortz Age best improvement", "bortz-improvement")]
+    [InlineData("Bortz Age best improvement", "bortz-baseline-improvement")]
     [InlineData("Chronological Age - Oldest", "chronological-oldest")]
     [InlineData("Chronological Age - Youngest", "chronological-youngest")]
     public void BadgePosts_LinkToMatchingAthletePreviewContext(string badgeLabel, string expectedContext)

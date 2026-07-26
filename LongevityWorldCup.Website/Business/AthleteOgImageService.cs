@@ -699,6 +699,52 @@ public sealed class AthleteOgImageService
             return true;
         }
 
+        var baselineImprovementClock = context switch
+        {
+            "pheno-baseline-improvement" => "pheno",
+            "bortz-baseline-improvement" => "bortz",
+            _ => null
+        };
+        if (baselineImprovementClock is not null)
+        {
+            if (!_athletes.TryGetBaselineImprovementLeaderboardEntry(normalizedSlug, baselineImprovementClock, out var entry))
+                return false;
+
+            var isBortz = string.Equals(baselineImprovementClock, "bortz", StringComparison.OrdinalIgnoreCase);
+            var baselineLeagueSlug = isBortz ? "bortz-baseline-improvement" : "pheno-baseline-improvement";
+            var leagueName = isBortz ? "Bortz Age best improvement" : "Pheno Age best improvement";
+            var baselineMetric = FormatReduction(entry.Improvement);
+            var description = $"{leagueName} rank #{entry.Rank}. Improvement {baselineMetric} years from first to latest eligible result.";
+            var signature = ComputeSignature(
+                normalizedSlug,
+                baselineLeagueSlug,
+                entry.Rank,
+                entry.Improvement,
+                name,
+                leagueName,
+                "Baseline rank",
+                baselineMetric,
+                "Baseline improvement",
+                description,
+                profilePicUrl);
+
+            payload = new AthleteOgPayload(
+                InternalSlug: normalizedSlug,
+                RouteSlug: ToRouteSlug(normalizedSlug),
+                LeagueSlug: baselineLeagueSlug,
+                Name: name,
+                LeagueName: leagueName,
+                Rank: entry.Rank,
+                AgeReduction: entry.Improvement,
+                RankLabel: "Baseline rank",
+                MetricValue: baselineMetric,
+                MetricLabel: "Baseline improvement",
+                Description: description,
+                ProfilePicUrl: profilePicUrl,
+                Signature: signature);
+            return true;
+        }
+
         var improvementClock = context switch
         {
             "improvement" => "pheno",
@@ -788,6 +834,8 @@ public sealed class AthleteOgImageService
             string.Equals(context, "improvement", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(context, "pheno-improvement", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(context, "bortz-improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "pheno-baseline-improvement", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(context, "bortz-baseline-improvement", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(context, "chronological-oldest", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(context, "chronological-youngest", StringComparison.OrdinalIgnoreCase))
         {
