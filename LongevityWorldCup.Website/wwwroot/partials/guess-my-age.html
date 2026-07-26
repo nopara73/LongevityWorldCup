@@ -838,7 +838,7 @@
     const gmaStatus = document.getElementById('gmaStatus');
     const gmaTrollNote = document.getElementById('gmaTrollNote');
 
-    const modalContent = document.querySelector('.modal-content');
+    const modalContent = document.querySelector('#detailsModal .modal-content');
     const gmaActions = gmaCard.querySelector('.gma-actions');
 
     // whenever the modal’s class list changes, if we just opened “guess-mode”,
@@ -1015,7 +1015,7 @@
             localStorage.setItem('gmaSkipAll', 'true');
         }
 
-        const modalContent = document.querySelector('.modal-content');
+        const modalContent = document.querySelector('#detailsModal .modal-content');
         const athleteSlug = modalContent.dataset.athleteSlug;
 
         // **Use the originalGuess if passed**, otherwise fall back

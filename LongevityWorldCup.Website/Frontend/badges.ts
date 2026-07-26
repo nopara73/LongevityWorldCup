@@ -845,17 +845,6 @@ window.setBadges = function (athlete, athleteCell) {
     badgeContainer.innerHTML = renderedItems.map(x => x.html).join('');
 
     try {
-        const overflowLinks = badgeContainer.querySelectorAll('.badge-overflow-count[data-athlete-slug]');
-        overflowLinks.forEach((link: Element) => {
-            link.addEventListener('click', (event: Event) => {
-                event.stopPropagation();
-                const slug = link.getAttribute('data-athlete-slug');
-                if (slug && typeof window.openAthleteModalBySlug === 'function' && window.openAthleteModalBySlug(slug, { suppressGuessMyAge: true })) {
-                    event.preventDefault();
-                }
-            });
-        });
-
         if (!isModalStrip) {
             Array.from(badgeContainer.children).forEach((badge: Element) => {
                 if (badge instanceof HTMLElement) badge.style.animation = '';
