@@ -136,6 +136,7 @@ function slugToDisplayName(slug: unknown): string {
 
 function getExactGuessAthleteNames(currentAthlete: BadgeAthlete | null | undefined): string[] {
     try {
+        window.LwcGuessState?.get(currentAthlete);
         const parsed: unknown = JSON.parse(localStorage.getItem("gmaAllGuesses") || "{}");
         const allGuesses = isRecord(parsed) ? parsed : {};
         const exactSlugs = Object.entries(allGuesses)
@@ -149,7 +150,12 @@ function getExactGuessAthleteNames(currentAthlete: BadgeAthlete | null | undefin
         const selectedSlug = String(currentAthlete?.AthleteSlug || currentAthlete?.athleteSlug || "").trim();
         const slugify = typeof window.slugifyName === "function" ? window.slugifyName : null;
         const normalizedSelectedSlug =
-            selectedSlug || (slugify && selectedName ? slugify(selectedName, true) : "");
+            window.LwcGuessState?.getAthleteSlug(currentAthlete) ||
+            (selectedSlug
+                ? selectedSlug.replace(/_/g, "-")
+                : slugify && selectedName
+                    ? slugify(selectedName, true)
+                    : "");
 
         return exactSlugs.map(slug => {
             if (

@@ -365,6 +365,7 @@ public sealed class AthleteDialogLinkBrowserTests
     public async Task CanonicalAthleteSlug_OpensDialogWhenItDiffersFromTheCurrentName()
     {
         const string canonicalSlug = "michael-lustgarten-stable";
+        const string legacyNameSlug = "michael-lustgarten";
 
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -373,6 +374,20 @@ public sealed class AthleteDialogLinkBrowserTests
             Headless = true
         });
         await using var context = await NewContextAsync(browser, app, width: 1100, height: 760);
+        await context.AddInitScriptAsync(
+            """
+            if (!sessionStorage.getItem('canonical-slug-guess-seeded')) {
+                localStorage.setItem('gmaAllGuesses', JSON.stringify({
+                    'michael-lustgarten': {
+                        value: 50,
+                        skipped: false,
+                        first: false,
+                        exact: true
+                    }
+                }));
+                sessionStorage.setItem('canonical-slug-guess-seeded', 'true');
+            }
+            """);
         await context.RouteAsync("**/api/data/athletes", async route =>
         {
             var response = await route.FetchAsync();
@@ -382,6 +397,14 @@ public sealed class AthleteDialogLinkBrowserTests
                 .Single(athlete =>
                     athlete["Name"]?.GetValue<string>() == "Michael Lustgarten");
             michael["AthleteSlug"] = canonicalSlug.Replace('-', '_');
+            michael["DateOfBirth"] = new JsonObject
+            {
+                ["Year"] = 1976,
+                ["Month"] = 1,
+                ["Day"] = 1
+            };
+            michael["CrowdAge"] = 50;
+            michael["CrowdCount"] = 150;
 
             await route.FulfillAsync(new RouteFulfillOptions
             {
@@ -410,12 +433,51 @@ public sealed class AthleteDialogLinkBrowserTests
         await page.Locator("#stableCanonicalAthleteLink").ClickAsync();
         await WaitForOpenAthleteDialogAsync(page, canonicalSlug);
         Assert.StartsWith("Michael Lustgarten, PhD", await page.Locator("#athleteName").InnerTextAsync());
+        var migratedGuess = await page.EvaluateAsync<GuessMigrationDiagnostics>(
+            """
+            slugs => {
+                const guesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+                return {
+                    CanonicalExists: Object.prototype.hasOwnProperty.call(guesses, slugs.canonical),
+                    LegacyExists: Object.prototype.hasOwnProperty.call(guesses, slugs.legacy),
+                    Value: guesses[slugs.canonical]?.value,
+                    Exact: guesses[slugs.canonical]?.exact === true
+                };
+            }
+            """,
+            new { canonical = canonicalSlug, legacy = legacyNameSlug });
+        Assert.True(migratedGuess.CanonicalExists);
+        Assert.False(migratedGuess.LegacyExists);
+        Assert.Equal(50, migratedGuess.Value);
+        Assert.True(migratedGuess.Exact);
+        Assert.False(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('guess-mode')"));
+        Assert.Equal(1, await page.Locator("#modalBadgeStrip .fa-bullseye").CountAsync());
 
         await CloseAthleteDialogAsync(page, "/about");
+        await page.EvaluateAsync("localStorage.removeItem('gmaAllGuesses')");
         await page.GotoAsync(
-            $"/athlete/{canonicalSlug}",
+            "/league/crowd",
+            new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            """
+            slug => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')[slug]?.skipped === true
+            """,
+            canonicalSlug);
+        Assert.False(await page.EvaluateAsync<bool>(
+            """
+            legacySlug => Object.prototype.hasOwnProperty.call(
+                JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}'),
+                legacySlug)
+            """,
+            legacyNameSlug));
+
+        await page.GotoAsync(
+            $"/athlete/{canonicalSlug}?guessmyage=1",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await WaitForOpenAthleteDialogAsync(page, canonicalSlug);
+        Assert.False(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('guess-mode')"));
     }
 
     [Fact]
@@ -718,6 +780,14 @@ public sealed class AthleteDialogLinkBrowserTests
         public bool Exists { get; set; }
         public bool Skipped { get; set; }
         public bool ValueIsNull { get; set; }
+    }
+
+    private sealed class GuessMigrationDiagnostics
+    {
+        public bool CanonicalExists { get; set; }
+        public bool LegacyExists { get; set; }
+        public int Value { get; set; }
+        public bool Exact { get; set; }
     }
 
     private sealed class NativeActivationDiagnostics

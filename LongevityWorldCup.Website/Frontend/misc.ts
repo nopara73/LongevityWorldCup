@@ -130,6 +130,185 @@ window.slugifyName = function (name, encode) {
         return decodeURIComponent(normalized);
     }
 }
+
+const GUESS_MY_AGE_STORAGE_KEY = 'gmaAllGuesses';
+
+interface GuessStateIdentity {
+    readonly canonicalSlug: string;
+    readonly aliasSlugs: readonly string[];
+}
+
+interface GuessStateMigration {
+    readonly canonicalSlug: string;
+    readonly state: unknown;
+    readonly changed: boolean;
+}
+
+function firstGuessStateString(values: readonly unknown[]): string {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) {
+            return value;
+        }
+    }
+    return '';
+}
+
+function normalizeGuessStateSlug(value: unknown): string {
+    const routeSlug = String(value || '').replace(/_/g, '-');
+    return routeSlug ? window.slugifyName(routeSlug, true) : '';
+}
+
+function getGuessStateIdentity(athleteOrSlug: unknown): GuessStateIdentity {
+    if (!isRecord(athleteOrSlug)) {
+        return {
+            canonicalSlug: normalizeGuessStateSlug(athleteOrSlug),
+            aliasSlugs: []
+        };
+    }
+
+    const explicitSlug = firstGuessStateString([
+        athleteOrSlug.AthleteSlug,
+        athleteOrSlug.athleteSlug,
+        athleteOrSlug.Slug,
+        athleteOrSlug.slug
+    ]);
+    const name = firstGuessStateString([athleteOrSlug.Name, athleteOrSlug.name]);
+    const displayName = firstGuessStateString([
+        athleteOrSlug.DisplayName,
+        athleteOrSlug.displayName
+    ]);
+    const canonicalSlug = normalizeGuessStateSlug(explicitSlug || name || displayName);
+    const aliasSlugs = [...new Set([name, displayName]
+        .map(normalizeGuessStateSlug)
+        .filter(slug => slug && slug !== canonicalSlug))];
+
+    return { canonicalSlug, aliasSlugs };
+}
+
+function readGuessStateStore(): Record<string, unknown> {
+    try {
+        const parsed: unknown = JSON.parse(
+            localStorage.getItem(GUESS_MY_AGE_STORAGE_KEY) || '{}');
+        return isRecord(parsed) ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function writeGuessStateStore(store: Record<string, unknown>): void {
+    localStorage.setItem(GUESS_MY_AGE_STORAGE_KEY, JSON.stringify(store));
+}
+
+function guessStatePriority(state: unknown): number {
+    if (!isRecord(state)) return 0;
+    if (state.value != null) return 3;
+    if (state.skipped === true) return 2;
+    return 1;
+}
+
+function migrateGuessState(
+    store: Record<string, unknown>,
+    athleteOrSlug: unknown
+): GuessStateMigration {
+    const identity = getGuessStateIdentity(athleteOrSlug);
+    if (!identity.canonicalSlug) {
+        return { canonicalSlug: '', state: null, changed: false };
+    }
+
+    const hasOwn = (key: string) =>
+        Object.prototype.hasOwnProperty.call(store, key);
+    let hasCanonicalState = hasOwn(identity.canonicalSlug);
+    let state = hasCanonicalState ? store[identity.canonicalSlug] : null;
+    let changed = false;
+
+    for (const aliasSlug of identity.aliasSlugs) {
+        if (!hasOwn(aliasSlug)) continue;
+
+        const aliasState = store[aliasSlug];
+        if (!hasCanonicalState ||
+            guessStatePriority(aliasState) > guessStatePriority(state)) {
+            state = aliasState;
+            store[identity.canonicalSlug] = aliasState;
+            hasCanonicalState = true;
+            changed = true;
+        }
+
+        delete store[aliasSlug];
+        changed = true;
+    }
+
+    return { canonicalSlug: identity.canonicalSlug, state, changed };
+}
+
+window.LwcGuessState = {
+    getAthleteSlug(athleteOrSlug) {
+        return getGuessStateIdentity(athleteOrSlug).canonicalSlug;
+    },
+    get(athleteOrSlug) {
+        const store = readGuessStateStore();
+        const migration = migrateGuessState(store, athleteOrSlug);
+        if (migration.changed) {
+            writeGuessStateStore(store);
+        }
+        return isRecord(migration.state)
+            ? migration.state as unknown as GuessMyAgeState
+            : null;
+    },
+    set(athleteOrSlug, state) {
+        const store = readGuessStateStore();
+        const migration = migrateGuessState(store, athleteOrSlug);
+        if (!migration.canonicalSlug) return;
+
+        store[migration.canonicalSlug] = state;
+        writeGuessStateStore(store);
+    },
+    ensureSkipped(athleteOrSlug) {
+        const store = readGuessStateStore();
+        const migration = migrateGuessState(store, athleteOrSlug);
+        if (!migration.canonicalSlug) return null;
+
+        if (isRecord(migration.state)) {
+            if (migration.changed) {
+                writeGuessStateStore(store);
+            }
+            return migration.state as unknown as GuessMyAgeState;
+        }
+
+        const skippedState: GuessMyAgeState = {
+            value: null,
+            skipped: true,
+            first: false,
+            exact: false
+        };
+        store[migration.canonicalSlug] = skippedState;
+        writeGuessStateStore(store);
+        return skippedState;
+    },
+    ensureSkippedMany(athletes) {
+        if (!Array.isArray(athletes) || athletes.length === 0) return;
+
+        const store = readGuessStateStore();
+        let changed = false;
+        for (const athlete of athletes) {
+            const migration = migrateGuessState(store, athlete);
+            changed = changed || migration.changed;
+            if (!migration.canonicalSlug || isRecord(migration.state)) continue;
+
+            store[migration.canonicalSlug] = {
+                value: null,
+                skipped: true,
+                first: false,
+                exact: false
+            };
+            changed = true;
+        }
+
+        if (changed) {
+            writeGuessStateStore(store);
+        }
+    }
+};
+
 function normalizeString(str: string): string {
     return str.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
