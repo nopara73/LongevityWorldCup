@@ -56,14 +56,7 @@ public class ThreadsEventService
                 if (!string.IsNullOrWhiteSpace(postId))
                     return true;
 
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning("Threads send returned no post id, retrying ({Attempt}/{MaxAttempts}): {Text}", attempt, maxAttempts, text);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogWarning("Threads send returned no post id after retries: {Text}", text);
+                _log.LogWarning("Threads send returned no post id: {Text}", text);
                 return false;
             }
             catch (Exception ex)
@@ -98,14 +91,7 @@ public class ThreadsEventService
                 if (!string.IsNullOrWhiteSpace(postId))
                     return true;
 
-                if (attempt < maxAttempts)
-                {
-                    _log.LogWarning("Threads image send returned no post id, retrying ({Attempt}/{MaxAttempts}): {Text}", attempt, maxAttempts, text);
-                    await Task.Delay(retryDelayMs);
-                    continue;
-                }
-
-                _log.LogWarning("Threads image send returned no post id after retries: {Text}", text);
+                _log.LogWarning("Threads image send returned no post id: {Text}", text);
                 return false;
             }
             catch (Exception ex)
