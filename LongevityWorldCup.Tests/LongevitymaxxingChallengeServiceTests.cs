@@ -158,30 +158,32 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task CheckInMentionsHonorChallengeEmailOptOutAndLimitFanout()
+    public async Task CheckInMentionsIgnoreChallengeEmailOptOut()
     {
         using var fixture = TestChallengeFixture.Create();
         var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
-        await fixture.ConfirmParticipantAsync("quiet@example.com", "Quiet Quinn");
-        fixture.Db.Run(sqlite =>
-        {
-            using var update = sqlite.CreateCommand();
-            update.CommandText =
-                """
-                UPDATE LongevitymaxxingParticipants
-                SET StoppedEmailsAtUtc = @stopped
-                WHERE Email = 'quiet@example.com';
-                """;
-            update.Parameters.AddWithValue("@stopped", DateTimeOffset.Parse("2026-06-08T12:00:00Z").ToString("o"));
-            update.ExecuteNonQuery();
-        });
+        var quietAccess = await fixture.ConfirmParticipantAsync("quiet@example.com", "Quiet Quinn");
+        fixture.Service.StopChallengeEmails(quietAccess, DateTimeOffset.Parse("2026-06-08T12:00:00Z"));
+
+        var unsubscribed = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T08:04:00Z"))
+            .Leaderboard
+            .Single(row => row.DisplayName == "Quiet Quinn");
+        Assert.True(unsubscribed.ChallengeEmailsStopped);
 
         fixture.Service.SubmitCheckIn(
             new LongevitymaxxingCheckInRequest(senderAccess, 1, 2, 2, 2, 2, "Still visible to @Quiet Quinn."),
             DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
 
-        Assert.Empty(fixture.Email.Mentions);
+        var mention = Assert.Single(fixture.Email.Mentions);
+        Assert.Equal("quiet@example.com", mention.Mention.RecipientEmail);
+        Assert.Equal(quietAccess, ReadQueryToken(mention.Url, "token"));
+    }
 
+    [Fact]
+    public async Task CheckInMentionsLimitFanout()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
         var names = Enumerable.Range(1, 6).Select(index => $"Person {index}").ToArray();
         foreach (var name in names)
             fixture.InsertConfirmedParticipant($"{name.Replace(' ', '-').ToLowerInvariant()}@example.com", name);
