@@ -13,7 +13,11 @@ public interface ILongevitymaxxingEmailSender
     Task SendDailyReminderAsync(LongevitymaxxingReminderCandidate reminder, string checkInUrl, string stopUrl, CancellationToken ct = default);
     Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopCommunityCallUrl, CancellationToken ct = default);
     Task SendChallengeStartAsync(LongevitymaxxingChallengeStartCandidate start, string challengeUrl, string stopUrl, CancellationToken ct = default);
-    Task SendMentionNotificationAsync(LongevitymaxxingMentionNotificationCandidate mention, string challengeUrl, CancellationToken ct = default);
+    Task SendMentionNotificationAsync(
+        LongevitymaxxingMentionNotificationCandidate mention,
+        string challengeUrl,
+        string stopMentionUrl,
+        CancellationToken ct = default);
 }
 
 public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpLongevitymaxxingEmailSender> logger) : ILongevitymaxxingEmailSender
@@ -66,9 +70,10 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
     public Task SendMentionNotificationAsync(
         LongevitymaxxingMentionNotificationCandidate mention,
         string challengeUrl,
+        string stopMentionUrl,
         CancellationToken ct = default)
     {
-        var content = BuildMentionNotificationEmailContent(mention, challengeUrl);
+        var content = BuildMentionNotificationEmailContent(mention, challengeUrl, stopMentionUrl);
         return SendAsync(mention.RecipientEmail, mention.RecipientDisplayName, content.Subject, content.TextBody, ct);
     }
 
@@ -93,7 +98,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
                 $"You can either pay the locked amount, or edit {triggerDayText} while it is still eligible. You also can quit, but you'll still have to live with yourself.\n\n" +
                 "Open your participant page:\n" +
                 $"{checkInUrl}\n\n" +
-                $"Stop challenge emails: {stopUrl}\n\n" +
+                $"Stop Challenge reminder emails: {stopUrl}\n\n" +
                 "Longevity World Cup";
 
             return new LongevitymaxxingEmailContent(
@@ -124,7 +129,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             $"{guidance}\n\n" +
             $"{continuation}" +
             $"{scheduleUpdate}" +
-            $"Stop challenge emails: {stopUrl}\n\n" +
+            $"Stop Challenge reminder emails: {stopUrl}\n\n" +
             "Longevity World Cup";
 
         return new LongevitymaxxingEmailContent(
@@ -188,7 +193,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             $"{calls}\n\n" +
             $"{attachmentText}" +
             $"Open your participant page for check-ins, leaderboard, Slack, and meeting links:\n{challengeUrl}\n\n" +
-            $"Stop challenge emails: {stopUrl}\n\n" +
+            $"Stop Challenge reminder emails: {stopUrl}\n\n" +
             "Longevity World Cup";
 
         return new LongevitymaxxingEmailContent("Longevitymaxxing Challenge check-ins are ready", body, attachments);
@@ -196,7 +201,8 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
 
     internal static LongevitymaxxingEmailContent BuildMentionNotificationEmailContent(
         LongevitymaxxingMentionNotificationCandidate mention,
-        string challengeUrl)
+        string challengeUrl,
+        string stopMentionUrl)
     {
         var senderName = SafeName(mention.SenderDisplayName);
         var body =
@@ -205,6 +211,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             $"{mention.Note}\n\n" +
             "Open your participant page:\n" +
             $"{challengeUrl}\n\n" +
+            $"Stop mention emails: {stopMentionUrl}\n\n" +
             "Longevity World Cup";
 
         return new LongevitymaxxingEmailContent(

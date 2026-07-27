@@ -893,7 +893,8 @@ public sealed class LongevitymaxxingChallengeService
         if (checkIn.Note is null || checkIn.NewMentionRecipients.Count == 0)
             return;
 
-        foreach (var recipient in checkIn.NewMentionRecipients)
+        foreach (var recipient in checkIn.NewMentionRecipients
+                     .Where(candidate => candidate.StoppedMentionEmailsAtUtc is null))
         {
             try
             {
@@ -907,6 +908,7 @@ public sealed class LongevitymaxxingChallengeService
                 await _email.SendMentionNotificationAsync(
                     mention,
                     BuildAccessUrl(recipient.AccessToken),
+                    BuildMentionStopUrl(recipient.StopToken),
                     ct).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -1287,6 +1289,28 @@ public sealed class LongevitymaxxingChallengeService
                 """
                 UPDATE LongevitymaxxingParticipants
                 SET StoppedCommunityCallEmailsAtUtc = COALESCE(StoppedCommunityCallEmailsAtUtc, @stopped),
+                    UpdatedAtUtc = @updated
+                WHERE StopToken = @token OR AccessToken = @token;
+                """;
+            Add(update, "@stopped", now.ToString("o"));
+            Add(update, "@updated", now.ToString("o"));
+            Add(update, "@token", normalized);
+            if (update.ExecuteNonQuery() == 0)
+                throw new UnauthorizedAccessException("Invalid stop link.");
+        });
+    }
+
+    public void StopMentionEmails(string token, DateTimeOffset? nowUtc = null)
+    {
+        var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
+        var normalized = NormalizeToken(token);
+        _db.Run(sqlite =>
+        {
+            using var update = sqlite.CreateCommand();
+            update.CommandText =
+                """
+                UPDATE LongevitymaxxingParticipants
+                SET StoppedMentionEmailsAtUtc = COALESCE(StoppedMentionEmailsAtUtc, @stopped),
                     UpdatedAtUtc = @updated
                 WHERE StopToken = @token OR AccessToken = @token;
                 """;
@@ -1791,6 +1815,7 @@ public sealed class LongevitymaxxingChallengeService
                     ConfirmedAtUtc TEXT NULL,
                     StoppedEmailsAtUtc TEXT NULL,
                     StoppedCommunityCallEmailsAtUtc TEXT NULL,
+                    StoppedMentionEmailsAtUtc TEXT NULL,
                     ChallengeInactiveAtUtc TEXT NULL,
                     ChallengeInactiveReason TEXT NULL,
                     CommitmentAmountUsd TEXT NULL,
@@ -1892,6 +1917,7 @@ public sealed class LongevitymaxxingChallengeService
             TryAddLongevitymaxxingParticipantsColumn(sqlite, "ChallengeInactiveAtUtc TEXT NULL");
             TryAddLongevitymaxxingParticipantsColumn(sqlite, "ChallengeInactiveReason TEXT NULL");
             TryAddLongevitymaxxingParticipantsColumn(sqlite, "StoppedCommunityCallEmailsAtUtc TEXT NULL");
+            TryAddLongevitymaxxingParticipantsColumn(sqlite, "StoppedMentionEmailsAtUtc TEXT NULL");
         });
     }
 
@@ -3175,7 +3201,7 @@ public sealed class LongevitymaxxingChallengeService
             cmd.CommandText =
                 """
                 SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                       ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
+                       ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc, StoppedMentionEmailsAtUtc,
                        ChallengeInactiveAtUtc, ChallengeInactiveReason,
                        CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
                 FROM LongevitymaxxingParticipants
@@ -3331,7 +3357,7 @@ public sealed class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc, StoppedMentionEmailsAtUtc,
                    ChallengeInactiveAtUtc, ChallengeInactiveReason,
                    CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
@@ -3348,7 +3374,7 @@ public sealed class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc, StoppedMentionEmailsAtUtc,
                    ChallengeInactiveAtUtc, ChallengeInactiveReason,
                    CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
@@ -3365,7 +3391,7 @@ public sealed class LongevitymaxxingChallengeService
         cmd.CommandText =
             """
             SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc, StoppedMentionEmailsAtUtc,
                    ChallengeInactiveAtUtc, ChallengeInactiveReason,
                    CommitmentAmountUsd, CreatedAtUtc, UpdatedAtUtc
             FROM LongevitymaxxingParticipants
@@ -3395,10 +3421,11 @@ public sealed class LongevitymaxxingChallengeService
                 reader.IsDBNull(9) ? null : ParseNullableDateTimeOffset(reader.GetString(9)),
                 reader.IsDBNull(10) ? null : ParseNullableDateTimeOffset(reader.GetString(10)),
                 reader.IsDBNull(11) ? null : ParseNullableDateTimeOffset(reader.GetString(11)),
-                reader.IsDBNull(12) ? null : reader.GetString(12),
-                reader.IsDBNull(13) ? null : ParseDecimal(reader.GetString(13)),
-                ParseNullableDateTimeOffset(reader.GetString(14))!.Value,
-                ParseNullableDateTimeOffset(reader.GetString(15))!.Value));
+                reader.IsDBNull(12) ? null : ParseNullableDateTimeOffset(reader.GetString(12)),
+                reader.IsDBNull(13) ? null : reader.GetString(13),
+                reader.IsDBNull(14) ? null : ParseDecimal(reader.GetString(14)),
+                ParseNullableDateTimeOffset(reader.GetString(15))!.Value,
+                ParseNullableDateTimeOffset(reader.GetString(16))!.Value));
         }
 
         return rows;
@@ -4184,6 +4211,9 @@ public sealed class LongevitymaxxingChallengeService
     public string BuildCommunityCallStopUrl(string stopToken)
         => BuildChallengeUrl(("stop", stopToken), ("scope", "community-call"));
 
+    public string BuildMentionStopUrl(string stopToken)
+        => BuildChallengeUrl(("stop", stopToken), ("scope", "mention"));
+
     public string GetPublicBaseUrl()
     {
         var configured = (_config.LongevitymaxxingChallenge ?? new LongevitymaxxingChallengeConfig()).PublicBaseUrl;
@@ -4284,6 +4314,7 @@ public sealed class LongevitymaxxingChallengeService
         DateTimeOffset? ConfirmedAtUtc,
         DateTimeOffset? StoppedEmailsAtUtc,
         DateTimeOffset? StoppedCommunityCallEmailsAtUtc,
+        DateTimeOffset? StoppedMentionEmailsAtUtc,
         DateTimeOffset? ChallengeInactiveAtUtc,
         string? ChallengeInactiveReason,
         decimal? CommitmentAmountUsd,
