@@ -893,7 +893,7 @@ public sealed class LongevitymaxxingChallengeService
         if (checkIn.Note is null || checkIn.NewMentionRecipients.Count == 0)
             return;
 
-        foreach (var recipient in checkIn.NewMentionRecipients.Where(candidate => candidate.StoppedEmailsAtUtc is null))
+        foreach (var recipient in checkIn.NewMentionRecipients)
         {
             try
             {
