@@ -104,6 +104,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal(1, sent.Mention.ChallengeDay);
         Assert.Equal("Strong work @Bea Builder — your consistency helped today.", sent.Mention.Note);
         Assert.Equal(recipientAccess, ReadQueryToken(sent.Url, "token"));
+        Assert.NotEmpty(ReadQueryToken(sent.StopUrl, "stop"));
+        Assert.Equal("mention", ReadQueryToken(sent.StopUrl, "scope"));
     }
 
     [Fact]
@@ -180,6 +182,26 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
+    public async Task CheckInMentionsHonorTheirOwnOptOutWithoutStoppingChallengeReminders()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
+        var quietAccess = await fixture.ConfirmParticipantAsync("quiet@example.com", "Quiet Quinn");
+        fixture.Service.StopMentionEmails(quietAccess, DateTimeOffset.Parse("2026-06-08T12:00:00Z"));
+
+        var participant = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T08:04:00Z"))
+            .Leaderboard
+            .Single(row => row.DisplayName == "Quiet Quinn");
+        Assert.False(participant.ChallengeEmailsStopped);
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(senderAccess, 1, 2, 2, 2, 2, "No email for @Quiet Quinn."),
+            DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
+
+        Assert.Empty(fixture.Email.Mentions);
+    }
+
+    [Fact]
     public async Task CheckInMentionsLimitFanout()
     {
         using var fixture = TestChallengeFixture.Create();
@@ -236,13 +258,17 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 "Sender Sam",
                 12,
                 "You made this easier, @Bea Builder."),
-            "https://example.test/longevitymaxxing?token=recipient-token");
+            "https://example.test/longevitymaxxing?token=recipient-token",
+            "https://example.test/longevitymaxxing?stop=mention-stop-token&scope=mention");
 
         Assert.Equal("Sender Sam mentioned you in Longevitymaxxing", content.Subject);
         Assert.Contains("Hi Bea Builder,", content.TextBody);
         Assert.Contains("Sender Sam mentioned you in their Longevitymaxxing Day 12 check-in:", content.TextBody);
         Assert.Contains("You made this easier, @Bea Builder.", content.TextBody);
         Assert.Contains("https://example.test/longevitymaxxing?token=recipient-token", content.TextBody);
+        Assert.Contains(
+            "Stop mention emails: https://example.test/longevitymaxxing?stop=mention-stop-token&scope=mention",
+            content.TextBody);
         Assert.Empty(content.Attachments);
     }
 
@@ -1701,7 +1727,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Contains("Participant page:\nhttps://example.test/longevitymaxxing?", content.TextBody);
         Assert.Contains("Stop community call emails: https://example.test/longevitymaxxing?stop=", content.TextBody);
         Assert.Contains("&scope=community-call", content.TextBody);
-        Assert.DoesNotContain("Stop challenge emails:", content.TextBody);
+        Assert.DoesNotContain("Stop Challenge reminder emails:", content.TextBody);
         Assert.DoesNotContain("2026-06-08 06:30 UTC", content.TextBody);
         Assert.DoesNotContain("UTC+02:00", content.TextBody);
         Assert.DoesNotContain("Full call schedule:", content.TextBody);
@@ -1834,7 +1860,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Contains("Updated call schedule:", content.TextBody);
         Assert.Contains("- Community call: 2026-06-28 06:30 (UTC)", content.TextBody);
-        Assert.Contains("Stop challenge emails:", content.TextBody);
+        Assert.Contains("Stop Challenge reminder emails:", content.TextBody);
     }
 
     [Fact]
@@ -2839,7 +2865,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
     {
         public List<(string Email, string Url)> Confirmations { get; } = [];
         public List<(string Email, string Url)> AccessLinks { get; } = [];
-        public List<(LongevitymaxxingMentionNotificationCandidate Mention, string Url)> Mentions { get; } = [];
+        public List<(LongevitymaxxingMentionNotificationCandidate Mention, string Url, string StopUrl)> Mentions { get; } = [];
         public bool ThrowOnMention { get; set; }
 
         public Task SendConfirmationAsync(string email, string displayName, string confirmationUrl, CancellationToken ct = default)
@@ -2866,11 +2892,12 @@ public sealed class LongevitymaxxingChallengeServiceTests
         public Task SendMentionNotificationAsync(
             LongevitymaxxingMentionNotificationCandidate mention,
             string challengeUrl,
+            string stopMentionUrl,
             CancellationToken ct = default)
         {
             if (ThrowOnMention)
                 throw new InvalidOperationException("Mention delivery failed.");
-            Mentions.Add((mention, challengeUrl));
+            Mentions.Add((mention, challengeUrl, stopMentionUrl));
             return Task.CompletedTask;
         }
     }
