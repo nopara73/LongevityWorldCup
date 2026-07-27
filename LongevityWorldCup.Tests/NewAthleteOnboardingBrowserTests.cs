@@ -357,7 +357,7 @@ public sealed class NewAthleteOnboardingBrowserTests
                     Body = approvedRankFieldJson
                 }));
                 await page.GotoAsync(route, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-                Assert.Equal("2026-06-01", await page.Locator("#blood-draw-date").InputValueAsync());
+                await Assertions.Expect(page.Locator("#blood-draw-date")).ToHaveValueAsync("2026-06-01");
                 await page.Locator("#lwcToStep2Btn").ClickAsync();
                 await page.WaitForFunctionAsync(
                     "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
