@@ -97,6 +97,65 @@ public sealed class ThreadsApiClientTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task SendPostAsync_RetriesTransientContainerCreationFailure(bool imagePost)
+    {
+        var responses = new Queue<HttpResponseMessage>(new[]
+        {
+            Json(HttpStatusCode.TooManyRequests, """{"error":{"message":"Application request limit reached","type":"OAuthException","code":613}}"""),
+            Json(HttpStatusCode.OK, """{"id":"creation-1"}"""),
+            Json(HttpStatusCode.OK, """{"id":"creation-1","status":"FINISHED"}"""),
+            Json(HttpStatusCode.OK, """{"id":"threads-post-1"}""")
+        });
+        var requests = new List<RecordedRequest>();
+        var logger = new RecordingLogger<ThreadsApiClient>();
+        var client = CreateClient(responses, requests, logger);
+
+        var postId = imagePost
+            ? await client.SendImagePostAsync("hello Threads", "https://longevityworldcup.com/post.png")
+            : await client.SendPostAsync("hello Threads");
+
+        Assert.Equal("threads-post-1", postId);
+        Assert.Equal(
+            [
+                "/me/threads",
+                "/me/threads",
+                "/creation-1",
+                "/me/threads_publish"
+            ],
+            requests.Select(request => request.RequestUri!.AbsolutePath));
+        Assert.Contains(
+            logger.Entries,
+            entry => entry.Level == LogLevel.Warning &&
+                     entry.Message.Contains("container creation transiently failed", StringComparison.Ordinal));
+        Assert.DoesNotContain(logger.Entries, entry => entry.Level >= LogLevel.Error);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SendPostAsync_DoesNotRetryPermanentContainerCreationFailure(bool imagePost)
+    {
+        var responses = new Queue<HttpResponseMessage>(new[]
+        {
+            Json(HttpStatusCode.BadRequest, """{"error":{"message":"Invalid parameter","type":"OAuthException","code":100}}""")
+        });
+        var requests = new List<RecordedRequest>();
+        var logger = new RecordingLogger<ThreadsApiClient>();
+        var client = CreateClient(responses, requests, logger);
+
+        var postId = imagePost
+            ? await client.SendImagePostAsync("hello Threads", "https://longevityworldcup.com/post.png")
+            : await client.SendPostAsync("hello Threads");
+
+        Assert.Null(postId);
+        Assert.Single(requests);
+        Assert.Equal("/me/threads", requests[0].RequestUri!.AbsolutePath);
+        Assert.Contains(logger.Entries, entry => entry.Level == LogLevel.Error);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task SendPostAsync_RecreatesContainer_WhenMetaLosesFinishedContainer(bool imagePost)
     {
         var responses = new Queue<HttpResponseMessage>(new[]
@@ -211,12 +270,15 @@ public sealed class ThreadsApiClientTests
         Assert.Equal("/me/threads_publish", requests[2].RequestUri!.AbsolutePath);
     }
 
-    [Fact]
-    public void IsTransientThreadsError_ReturnsTrue_ForGraphTransientBody()
+    [Theory]
+    [InlineData(HttpStatusCode.BadRequest, """{"error":{"message":"retry later","type":"OAuthException","is_transient":true,"code":2}}""")]
+    [InlineData(HttpStatusCode.TooManyRequests, "{}")]
+    [InlineData(HttpStatusCode.InternalServerError, "{}")]
+    public void IsTransientThreadsError_ReturnsTrue_ForRetryableResponse(HttpStatusCode statusCode, string responseBody)
     {
         var isTransient = ThreadsApiClient.IsTransientThreadsError(
-            HttpStatusCode.BadRequest,
-            """{"error":{"message":"retry later","type":"OAuthException","is_transient":true,"code":2}}""");
+            statusCode,
+            responseBody);
 
         Assert.True(isTransient);
     }

@@ -11,6 +11,7 @@ public class ThreadsApiClient
     private const string ContainerFields = "id,status,error_message";
     private const int MaxTextLength = 500;
     private const int MaxContainerAttempts = 2;
+    private const int ContainerCreationRetryDelayMs = 1000;
     private static readonly TimeSpan ProactiveRefreshWindow = TimeSpan.FromDays(14);
     private static readonly TimeSpan UnknownExpiryRefreshRetryInterval = TimeSpan.FromHours(20);
     private static readonly int[] ContainerReadyPollDelaysMs = [1000, 2000, 3000, 5000, 5000, 10000, 10000, 15000];
@@ -137,7 +138,7 @@ public class ThreadsApiClient
             var creation = await createContainer(token);
             if (!creation.Success || string.IsNullOrWhiteSpace(creation.Id))
             {
-                if (creation.ShouldRefreshToken && attempt < MaxContainerAttempts)
+                if (creation.FailureKind == ThreadsFailureKind.RefreshToken && attempt < MaxContainerAttempts)
                 {
                     var refreshed = await TryRefreshAccessTokenAsync();
                     if (refreshed)
@@ -149,6 +150,18 @@ public class ThreadsApiClient
                             continue;
                         }
                     }
+                }
+
+                if (creation.FailureKind == ThreadsFailureKind.Transient && attempt < MaxContainerAttempts)
+                {
+                    _log.LogWarning(
+                        "Threads {PostKind} container creation transiently failed: {StatusCode} {Body}. Retrying in {DelayMs}ms.",
+                        postKind,
+                        creation.StatusCode,
+                        creation.ErrorBody,
+                        ContainerCreationRetryDelayMs);
+                    await Task.Delay(ContainerCreationRetryDelayMs);
+                    continue;
                 }
 
                 if (creation.StatusCode.HasValue)
@@ -167,7 +180,7 @@ public class ThreadsApiClient
             if (publish.Success && !string.IsNullOrWhiteSpace(publish.Id))
                 return publish.Id;
 
-            if (publish.FailureKind == PublishFailureKind.RefreshToken && attempt < MaxContainerAttempts)
+            if (publish.FailureKind == ThreadsFailureKind.RefreshToken && attempt < MaxContainerAttempts)
             {
                 var refreshed = await TryRefreshAccessTokenAsync();
                 if (refreshed)
@@ -181,7 +194,7 @@ public class ThreadsApiClient
                 }
             }
 
-            if (publish.FailureKind == PublishFailureKind.ContainerMissing && attempt < MaxContainerAttempts)
+            if (publish.FailureKind == ThreadsFailureKind.ContainerMissing && attempt < MaxContainerAttempts)
             {
                 _log.LogWarning(
                     "Threads {PostKind} container {CreationId} disappeared during publishing: {StatusCode} {Body}. Creating a replacement container.",
@@ -226,7 +239,7 @@ public class ThreadsApiClient
             return new(
                 false,
                 null,
-                ShouldRefreshToken(res.StatusCode, json),
+                ClassifyThreadsFailure(res.StatusCode, json),
                 res.StatusCode,
                 json);
         }
@@ -235,16 +248,16 @@ public class ThreadsApiClient
         {
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("id", out var idEl))
-                return new(true, idEl.GetString(), false, null, null);
+                return new(true, idEl.GetString(), ThreadsFailureKind.None, null, null);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Threads create container response parse failed: {Json}", json);
-            return new(false, null, false, null, json);
+            return new(false, null, ThreadsFailureKind.Permanent, null, json);
         }
 
         _log.LogWarning("Threads create container returned no id.");
-        return new(false, null, false, null, json);
+        return new(false, null, ThreadsFailureKind.Permanent, null, json);
     }
 
     private async Task<ContainerCreationResult> CreateImageContainerAsync(string text, string imageUrl, string token)
@@ -266,7 +279,7 @@ public class ThreadsApiClient
             return new(
                 false,
                 null,
-                ShouldRefreshToken(res.StatusCode, json),
+                ClassifyThreadsFailure(res.StatusCode, json),
                 res.StatusCode,
                 json);
         }
@@ -275,16 +288,16 @@ public class ThreadsApiClient
         {
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("id", out var idEl))
-                return new(true, idEl.GetString(), false, null, null);
+                return new(true, idEl.GetString(), ThreadsFailureKind.None, null, null);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Threads create image container response parse failed: {Json}", json);
-            return new(false, null, false, null, json);
+            return new(false, null, ThreadsFailureKind.Permanent, null, json);
         }
 
         _log.LogWarning("Threads create image container returned no id.");
-        return new(false, null, false, null, json);
+        return new(false, null, ThreadsFailureKind.Permanent, null, json);
     }
 
     private async Task<ContainerPublishResult> PublishCreatedContainerAsync(string creationId, string token)
@@ -293,12 +306,12 @@ public class ThreadsApiClient
         if (!ready.IsReady)
         {
             if (ready.ShouldRefreshToken)
-                return new(false, null, PublishFailureKind.RefreshToken, null, null);
+                return new(false, null, ThreadsFailureKind.RefreshToken, null, null);
 
             if (ready.IsMissingContainer)
-                return new(false, null, PublishFailureKind.ContainerMissing, null, null);
+                return new(false, null, ThreadsFailureKind.ContainerMissing, null, null);
 
-            return new(false, null, PublishFailureKind.Permanent, null, null);
+            return new(false, null, ThreadsFailureKind.Permanent, null, null);
         }
 
         for (var attempt = 0; attempt <= PublishRetryDelaysMs.Length; attempt++)
@@ -307,10 +320,10 @@ public class ThreadsApiClient
             if (publish.Success && !string.IsNullOrWhiteSpace(publish.Id))
                 return publish;
 
-            if (publish.FailureKind is PublishFailureKind.RefreshToken or PublishFailureKind.ContainerMissing)
+            if (publish.FailureKind is ThreadsFailureKind.RefreshToken or ThreadsFailureKind.ContainerMissing)
                 return publish;
 
-            if (publish.FailureKind == PublishFailureKind.Transient && attempt < PublishRetryDelaysMs.Length)
+            if (publish.FailureKind == ThreadsFailureKind.Transient && attempt < PublishRetryDelaysMs.Length)
             {
                 var delayMs = PublishRetryDelaysMs[attempt];
                 _log.LogWarning(
@@ -326,7 +339,7 @@ public class ThreadsApiClient
             return publish;
         }
 
-        return new(false, null, PublishFailureKind.Permanent, null, null);
+        return new(false, null, ThreadsFailureKind.Permanent, null, null);
     }
 
     private async Task<(bool IsReady, bool ShouldRefreshToken, bool IsMissingContainer)> WaitForContainerReadyAsync(string creationId, string token)
@@ -389,19 +402,10 @@ public class ThreadsApiClient
 
         if (!res.IsSuccessStatusCode)
         {
-            var failureKind =
-                ShouldRefreshToken(res.StatusCode, json)
-                    ? PublishFailureKind.RefreshToken
-                    : IsMissingThreadsContainerError(json)
-                        ? PublishFailureKind.ContainerMissing
-                        : IsTransientThreadsError(res.StatusCode, json)
-                            ? PublishFailureKind.Transient
-                            : PublishFailureKind.Permanent;
-
             return new(
                 false,
                 null,
-                failureKind,
+                ClassifyThreadsFailure(res.StatusCode, json),
                 res.StatusCode,
                 json);
         }
@@ -410,16 +414,16 @@ public class ThreadsApiClient
         {
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.TryGetProperty("id", out var idEl))
-                return new(true, idEl.GetString(), PublishFailureKind.None, null, null);
+                return new(true, idEl.GetString(), ThreadsFailureKind.None, null, null);
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "Threads publish response parse failed: {Json}", json);
-            return new(false, null, PublishFailureKind.Permanent, null, json);
+            return new(false, null, ThreadsFailureKind.Permanent, null, json);
         }
 
         _log.LogWarning("Threads publish returned no id.");
-        return new(false, null, PublishFailureKind.Permanent, null, json);
+        return new(false, null, ThreadsFailureKind.Permanent, null, json);
     }
 
     private async Task<(bool IsFinished, bool IsError, bool ShouldRefreshToken, bool IsMissingContainer, string? Status, string? ErrorMessage)> GetContainerStatusAsync(string creationId, string token)
@@ -587,6 +591,19 @@ public class ThreadsApiClient
                responseBody.Contains("Session has expired", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static ThreadsFailureKind ClassifyThreadsFailure(HttpStatusCode statusCode, string? responseBody)
+    {
+        if (ShouldRefreshToken(statusCode, responseBody))
+            return ThreadsFailureKind.RefreshToken;
+
+        if (IsMissingThreadsContainerError(responseBody))
+            return ThreadsFailureKind.ContainerMissing;
+
+        return IsTransientThreadsError(statusCode, responseBody)
+            ? ThreadsFailureKind.Transient
+            : ThreadsFailureKind.Permanent;
+    }
+
     internal static bool IsTransientThreadsError(HttpStatusCode statusCode, string? responseBody)
     {
         if (TryParseThreadsGraphError(responseBody, out var error) &&
@@ -697,14 +714,14 @@ public class ThreadsApiClient
     private readonly record struct ContainerCreationResult(
         bool Success,
         string? Id,
-        bool ShouldRefreshToken,
+        ThreadsFailureKind FailureKind,
         HttpStatusCode? StatusCode,
         string? ErrorBody);
 
     private readonly record struct ContainerPublishResult(
         bool Success,
         string? Id,
-        PublishFailureKind FailureKind,
+        ThreadsFailureKind FailureKind,
         HttpStatusCode? StatusCode,
         string? ErrorBody);
 
@@ -714,7 +731,7 @@ public class ThreadsApiClient
         bool IsTransient,
         string? UserTitle);
 
-    private enum PublishFailureKind
+    private enum ThreadsFailureKind
     {
         None,
         RefreshToken,
