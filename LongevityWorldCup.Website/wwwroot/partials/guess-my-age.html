@@ -1026,13 +1026,18 @@
         let allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
         const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
 
-        allGuesses[athleteSlug] = {
+        const guessState = {
             value: isSkip ? null : guessValue,
             skipped: isSkip,
             first: !isSkip && Boolean(e.isFirstGuess),
             exact: !isSkip && Boolean(e.isExactGuess)
         };
-        localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+        if (window.LwcGuessState) {
+            window.LwcGuessState.set(athleteSlug, guessState);
+        } else {
+            allGuesses[athleteSlug] = guessState;
+            localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+        }
         updateYourGuess();  // ← Add this line
 
         gmaCard.classList.add('gma-done');

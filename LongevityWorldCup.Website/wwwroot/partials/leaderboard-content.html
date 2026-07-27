@@ -3916,10 +3916,18 @@
             return;
         }
 
+        if (window.LwcGuessState) {
+            window.LwcGuessState.ensureSkipped(athleteSlug);
+            return;
+        }
+
+        const routeSlug = String(athleteSlug).replace(/_/g, '-');
         const normalizedAthleteSlug = typeof window.slugifyName === 'function'
-            ? window.slugifyName(athleteSlug, true)
-            : athleteSlug;
+            ? window.slugifyName(routeSlug, true)
+            : routeSlug;
         const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+        if (allGuesses[normalizedAthleteSlug]) return;
+
         allGuesses[normalizedAthleteSlug] = { value: null, skipped: true, first: false, exact: false };
         localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
     }
@@ -3929,15 +3937,22 @@
             return;
         }
 
+        if (window.LwcGuessState) {
+            window.LwcGuessState.ensureSkippedMany(athletes);
+            return;
+        }
+
         const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
         let changed = false;
         athletes.forEach(athlete => {
-            const athleteSlug = athlete && athlete.name;
+            const athleteSlug = athlete &&
+                (athlete.athleteSlug || athlete.AthleteSlug || athlete.name || athlete.Name);
             if (!athleteSlug) return;
 
+            const routeSlug = String(athleteSlug).replace(/_/g, '-');
             const normalizedAthleteSlug = typeof window.slugifyName === 'function'
-                ? window.slugifyName(athleteSlug, true)
-                : athleteSlug;
+                ? window.slugifyName(routeSlug, true)
+                : routeSlug;
             if (allGuesses[normalizedAthleteSlug]) return;
 
             allGuesses[normalizedAthleteSlug] = { value: null, skipped: true, first: false, exact: false };
@@ -8020,6 +8035,12 @@
                     throw new Error(`Full athlete data not found for ${athleteSlug}`);
                 }
 
+                window.LwcGuessState?.get({
+                    ...athleteData,
+                    AthleteSlug: fullAthleteData.AthleteSlug,
+                    Name: fullAthleteData.Name,
+                    DisplayName: fullAthleteData.DisplayName
+                });
                 const rankSummary = computeBestLeagueRank(athleteData);
 
                 // Populate the modal with athlete data
@@ -8120,6 +8141,8 @@
                 gmaCard.classList.remove('gma-done');
                 // read your guesses from localStorage
                 const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+                const athleteGuessState = window.LwcGuessState?.get(athleteData)
+                    || allGuesses[athleteSlug];
                 // check if the user has hit “Skip All”
                 const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
 
@@ -8133,7 +8156,7 @@
                     // user opted out globally
                     modalContent.classList.remove('guess-mode');
                     gmaCard.classList.add('gma-done');
-                } else if (allGuesses.hasOwnProperty(athleteSlug)) {
+                } else if (athleteGuessState) {
                     // already guessed or skipped this athlete
                     modalContent.classList.remove('guess-mode');
                     gmaCard.classList.add('gma-done');
@@ -9424,7 +9447,7 @@
         const yourGuessSpan = document.getElementById('yourGuess');
         const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
         const athleteSlug = document.querySelector('.modal-content').dataset.athleteSlug;
-        const guessData = allGuesses[athleteSlug];
+        const guessData = window.LwcGuessState?.get(athleteSlug) || allGuesses[athleteSlug];
 
         if (guessData && guessData.value != null) {
             // show the row (use '' so table layout is preserved; mobile CSS overrides tr to block)

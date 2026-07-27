@@ -161,12 +161,16 @@ function styleWithBadgeVars(style: string): string {
 }
 
 function getAthleteProfileSlug(athlete: BadgeAthlete | null | undefined): string {
+    if (window.LwcGuessState) {
+        return window.LwcGuessState.getAthleteSlug(athlete);
+    }
+
     const explicitSlug = athlete && (athlete.AthleteSlug || athlete.athleteSlug || athlete.Slug || athlete.slug);
     const raw = explicitSlug || (athlete && (athlete.name || athlete.Name || athlete.displayName || athlete.DisplayName));
     if (!raw) return '';
 
     if (typeof window.slugifyName === 'function') {
-        return window.slugifyName(String(raw), false);
+        return window.slugifyName(String(raw).replace(/_/g, '-'), false);
     }
 
     let s = String(raw).toLowerCase();
@@ -774,20 +778,11 @@ window.setBadges = function (athlete, athleteCell) {
     serverBadges.forEach(b => items.push(buildServerBadgeHtml(b, athlete)));
 
     try {
-        const rawName = athlete.name || athlete.Name || athlete.displayName || athlete.DisplayName || '';
-        if (rawName) {
-            let slug: string;
-            if (typeof window.slugifyName === 'function') {
-                slug = window.slugifyName(String(rawName), true);
-            } else {
-                let s = String(rawName).toLowerCase();
-                try { s = s.normalize('NFKD'); } catch (_) {}
-                slug = s.replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
-            }
-
+        const slug = getAthleteProfileSlug(athlete);
+        if (slug) {
             const parsedGuesses: unknown = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
             const allGuesses = isRecord(parsedGuesses) ? parsedGuesses : {};
-            const g = allGuesses[slug];
+            const g = window.LwcGuessState?.get(athlete) ?? allGuesses[slug];
             const guessed = (isRecord(g) && g.value != null) ? parseInt(String(g.value), 10) : null;
 
             const chrono = athlete.chronologicalAge ?? athlete.ChronoAge ?? null;

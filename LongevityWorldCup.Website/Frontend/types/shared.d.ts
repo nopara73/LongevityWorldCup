@@ -331,6 +331,21 @@ interface HTMLElement {
     __hypotheticalRankRequestId?: number;
 }
 
+interface GuessMyAgeState {
+    value: unknown;
+    skipped: boolean;
+    first: boolean;
+    exact: boolean;
+}
+
+interface LwcGuessStateApi {
+    getAthleteSlug(athleteOrSlug: unknown): string;
+    get(athleteOrSlug: unknown): GuessMyAgeState | null;
+    set(athleteOrSlug: unknown, state: GuessMyAgeState): void;
+    ensureSkipped(athleteOrSlug: unknown): GuessMyAgeState | null;
+    ensureSkippedMany(athletes: readonly unknown[]): void;
+}
+
 interface Window {
     PhenoAge?: PhenoAgeApi;
     BortzAge?: BortzAgeApi;
@@ -341,6 +356,7 @@ interface Window {
     CustomEventMarkup?: CustomEventMarkupApi;
     __lwcPlayFlowScrollInitialized?: boolean;
     LwcFlowActionDock?: LwcFlowActionDockApi;
+    LwcGuessState?: LwcGuessStateApi;
     getIcon(link: string): string;
     slugifyName(name: string, encode?: boolean): string;
     normalizeString?: ((value: string) => string) | undefined;
