@@ -1,0 +1,28 @@
+{
+  "Name": "Anil Erduran",
+  "DisplayName": null,
+  "MediaContact": "@anil_erduran",
+  "DateOfBirth": {
+    "Year": 1984,
+    "Month": 12,
+    "Day": 4
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-01-05",
+      "AlbGL": 49,
+      "CreatUmolL": 83,
+      "GluMmolL": 4.6,
+      "CrpMgL": 1.4,
+      "LymPc": 34,
+      "McvFL": 90.6,
+      "RdwPc": 12.6,
+      "AlpUL": 58,
+      "Wbc1000cellsuL": 5.18
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Turkey",
+  "Why": "To live a longer and healthier life",
+  "PersonalLink": null
+}
