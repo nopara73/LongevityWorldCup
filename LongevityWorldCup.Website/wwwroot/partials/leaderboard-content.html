@@ -4718,6 +4718,7 @@
                     return {
                         name: athlete.Name,
                         displayName: displayName,
+                        athleteSlug: athlete.AthleteSlug,
                         mediaContact: athlete.MediaContact,
                         dateOfBirth: dob,
                         chronologicalAge: chronologicalAgeNow,
@@ -7503,7 +7504,7 @@
     }
 
     function getAthleteData(athleteNameText) {
-        return athleteResults.find(athlete => window.slugifyName(athlete.name) === window.slugifyName(athleteNameText));
+        return findAthleteDataBySlug(athleteNameText);
     }
 
     function normalizeAthleteSlugForLookup(value) {
@@ -7528,9 +7529,12 @@
         if (!normalizedSlug) return null;
 
         return athleteResults.find(athlete => {
+            const canonicalSlug = normalizeAthleteSlugForLookup(athlete.athleteSlug);
             const nameSlug = normalizeAthleteSlugForLookup(athlete.name);
             const displayNameSlug = athlete.displayName ? normalizeAthleteSlugForLookup(athlete.displayName) : '';
-            return nameSlug === normalizedSlug || displayNameSlug === normalizedSlug;
+            return canonicalSlug === normalizedSlug ||
+                nameSlug === normalizedSlug ||
+                displayNameSlug === normalizedSlug;
         }) || null;
     }
 
@@ -7997,7 +8001,9 @@
             return window.__sharedAthletesRequest;
         };
 
-        const athleteSlug = window.slugifyName(athleteNameText, true);
+        const athleteSlug = normalizeAthleteSlugForLookup(
+            athleteData?.athleteSlug || athleteNameText);
+        const normalizedAthleteName = normalizeAthleteSlugForLookup(athleteNameText);
         const suppressGuessMyAge = !!(options && options.suppressGuessMyAge);
         const requestId = ++currentAthleteModalRequestId;
         const modalContent = resetModalForLoading(athleteSlug);
@@ -8005,7 +8011,11 @@
         window.getSharedAthletes()
             .then(athletes => {
                 if (requestId !== currentAthleteModalRequestId) return;
-                const fullAthleteData = athletes.find(a => window.slugifyName(a.Name) === window.slugifyName(athleteNameText));
+                const fullAthleteData = athletes.find(a => {
+                    const canonicalSlug = normalizeAthleteSlugForLookup(a.AthleteSlug);
+                    const nameSlug = normalizeAthleteSlugForLookup(a.Name);
+                    return canonicalSlug === athleteSlug || nameSlug === normalizedAthleteName;
+                });
                 if (!fullAthleteData) {
                     throw new Error(`Full athlete data not found for ${athleteSlug}`);
                 }
