@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -358,6 +359,63 @@ public sealed class AthleteDialogLinkBrowserTests
         await page.Locator("#unknownAthleteLink").ClickAsync();
         await page.WaitForURLAsync("**/athlete/not-a-real-athlete");
         Assert.Equal("/athlete/not-a-real-athlete", new Uri(page.Url).AbsolutePath);
+    }
+
+    [Fact]
+    public async Task CanonicalAthleteSlug_OpensDialogWhenItDiffersFromTheCurrentName()
+    {
+        const string canonicalSlug = "michael-lustgarten-stable";
+
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app, width: 1100, height: 760);
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            var response = await route.FetchAsync();
+            var athletes = JsonNode.Parse(await response.TextAsync())!.AsArray();
+            var michael = athletes
+                .OfType<JsonObject>()
+                .Single(athlete =>
+                    athlete["Name"]?.GetValue<string>() == "Michael Lustgarten");
+            michael["AthleteSlug"] = canonicalSlug.Replace('-', '_');
+
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = response.Status,
+                ContentType = "application/json",
+                Body = athletes.ToJsonString()
+            });
+        });
+
+        var page = await context.NewPageAsync();
+        page.SetDefaultTimeout(15_000);
+        await page.GotoAsync("/about", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await AssertSharedDialogInstalledAsync(page);
+        await page.EvaluateAsync(
+            """
+            slug => {
+                const link = document.createElement('a');
+                link.id = 'stableCanonicalAthleteLink';
+                link.href = `/athlete/${slug}`;
+                link.textContent = 'Renamed athlete';
+                document.querySelector('.documentation-document').appendChild(link);
+            }
+            """,
+            canonicalSlug);
+
+        await page.Locator("#stableCanonicalAthleteLink").ClickAsync();
+        await WaitForOpenAthleteDialogAsync(page, canonicalSlug);
+        Assert.StartsWith("Michael Lustgarten, PhD", await page.Locator("#athleteName").InnerTextAsync());
+
+        await CloseAthleteDialogAsync(page, "/about");
+        await page.GotoAsync(
+            $"/athlete/{canonicalSlug}",
+            new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await WaitForOpenAthleteDialogAsync(page, canonicalSlug);
     }
 
     [Fact]
