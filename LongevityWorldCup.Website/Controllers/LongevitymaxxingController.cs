@@ -202,7 +202,7 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         try
         {
             _challenge.StopChallengeEmails(request.Token);
-            return Ok(new { message = "Challenge emails stopped." });
+            return Ok(new { message = "Challenge reminder emails stopped." });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -217,6 +217,20 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         {
             _challenge.StopCommunityCallEmails(request.Token);
             return Ok(new { message = "Community call emails stopped." });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("stop-mention-emails")]
+    public IActionResult StopMentionEmails([FromBody] LongevitymaxxingTokenRequest request)
+    {
+        try
+        {
+            _challenge.StopMentionEmails(request.Token);
+            return Ok(new { message = "Mention emails stopped." });
         }
         catch (UnauthorizedAccessException ex)
         {

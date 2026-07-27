@@ -1074,15 +1074,21 @@
         }
 
         if (params.has("stop")) {
-            const stopsCommunityCalls = params.get("scope") === "community-call";
-            const stopEndpoint = stopsCommunityCalls
+            const scope = params.get("scope");
+            const stopEndpoint = scope === "community-call"
                 ? `${API}/stop-community-call-emails` as const
-                : `${API}/stop-emails` as const;
+                : scope === "mention"
+                    ? `${API}/stop-mention-emails` as const
+                    : `${API}/stop-emails` as const;
             await postJson(stopEndpoint, { token: params.get("stop") || "" });
             accessTab = "signin";
             setStatus(
                 "lmxResendStatus",
-                stopsCommunityCalls ? "Community call emails stopped." : "Challenge emails stopped.",
+                scope === "community-call"
+                    ? "Community call emails stopped."
+                    : scope === "mention"
+                        ? "Mention emails stopped."
+                        : "Challenge reminder emails stopped.",
                 false);
             shouldClean = true;
         }
@@ -5457,7 +5463,10 @@
         url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/commitment-payment` | `${typeof API}/commitment-payment/status` | `${typeof API}/check-in`,
         payload: object
     ): Promise<ParticipantState>;
-    async function postJson(url: `${typeof API}/stop-emails` | `${typeof API}/stop-community-call-emails`, payload: object): Promise<unknown>;
+    async function postJson(
+        url: `${typeof API}/stop-emails` | `${typeof API}/stop-community-call-emails` | `${typeof API}/stop-mention-emails`,
+        payload: object
+    ): Promise<unknown>;
     async function postJson(url: string, payload: object): Promise<unknown>;
     async function postJson(url: string, payload: object): Promise<unknown> {
         const response = await requestJson(url, {
