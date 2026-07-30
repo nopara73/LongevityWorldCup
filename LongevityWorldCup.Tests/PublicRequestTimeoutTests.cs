@@ -24,8 +24,23 @@ public sealed class PublicRequestTimeoutTests
         Assert.NotNull(policy.WriteTimeoutResponse);
     }
 
+    [Fact]
+    public void ApplicationSubmissionTimeoutPolicy_IsConfigured()
+    {
+        using var factory = new TestWebApplicationFactory();
+
+        var options = factory.Services.GetRequiredService<IOptions<RequestTimeoutOptions>>().Value;
+
+        Assert.True(options.Policies.TryGetValue(PublicRequestTimeoutPolicies.ApplicationSubmission, out var policy));
+        Assert.Equal(PublicRequestTimeoutPolicies.ApplicationSubmissionTimeout, policy.Timeout);
+        Assert.Equal(StatusCodes.Status504GatewayTimeout, policy.TimeoutStatusCode);
+        Assert.NotNull(policy.WriteTimeoutResponse);
+        Assert.True(
+            PublicRequestTimeoutPolicies.ApplicationSubmissionWorkTimeout
+            < PublicRequestTimeoutPolicies.ApplicationSubmissionTimeout);
+    }
+
     [Theory]
-    [InlineData("api/Application/application")]
     [InlineData("api/data/hypothetical-rank")]
     [InlineData("api/custom-event-preview/image")]
     [InlineData("api/longevitymaxxing/check-in")]
@@ -49,6 +64,30 @@ public sealed class PublicRequestTimeoutTests
             var timeout = endpoint.Metadata.GetMetadata<RequestTimeoutAttribute>();
             Assert.NotNull(timeout);
             Assert.Equal(PublicRequestTimeoutPolicies.PublicWork, timeout.PolicyName);
+        });
+    }
+
+    [Fact]
+    public void ApplicationSubmissionEndpoint_UsesDedicatedTimeoutPolicy()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var _ = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var endpoints = factory.Services.GetRequiredService<EndpointDataSource>()
+            .Endpoints
+            .OfType<RouteEndpoint>()
+            .Where(endpoint => string.Equals(
+                endpoint.RoutePattern.RawText,
+                "api/Application/application",
+                StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        Assert.NotEmpty(endpoints);
+        Assert.All(endpoints, endpoint =>
+        {
+            var timeout = endpoint.Metadata.GetMetadata<RequestTimeoutAttribute>();
+            Assert.NotNull(timeout);
+            Assert.Equal(PublicRequestTimeoutPolicies.ApplicationSubmission, timeout.PolicyName);
         });
     }
 }

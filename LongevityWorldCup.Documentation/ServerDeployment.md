@@ -223,6 +223,39 @@ The production host must have an SDK compatible with the repository's `global.js
 
 Before changing the live publish tree, deployment stops the service and creates a same-filesystem hard-link snapshot. A failed sync, health check, or byte-for-byte script probe restores that prior release before restarting the service. Every master push schedules the workflow; stale runs skip only when a newer run exists, so an otherwise ignored documentation or test commit cannot strand an earlier website change undeployed.
 
+### Application submission proxy timeout
+
+`POST /api/application/application` has a dedicated five-minute ASP.NET Core timeout because an accepted submission may contain up to 37 proof images that must be validated and packaged. The browser waits 310 seconds. Nginx must allow slightly more response-header time than both layers without extending every other public route.
+
+In `/etc/nginx/sites-available/default`, add this exact-match location to the HTTPS `longevityworldcup.com` server. Sibling locations do not inherit proxy directives, so the block must remain complete:
+
+```nginx
+location = /api/application/application {
+    proxy_pass http://127.0.0.1:5000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection keep-alive;
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 330s;
+
+    add_header Onion-Location http://lwc7tszawiykmkjoq4u2yxramezkwbdys2wxr2fmf6sdr6ug5t36ckqd.onion$request_uri always;
+}
+```
+
+Add the same exact-match location to both onion server blocks in `/etc/nginx/sites-available/tor`, but omit the `Onion-Location` response header. Do not raise `proxy_read_timeout` globally.
+
+Before editing, confirm that the enabled symlinks resolve to those two files and create timestamped backups in `sites-available` (never `sites-enabled`, whose wildcard include would load them). After editing:
+
+1. Run `sudo nginx -t`. If it fails, restore both backups and test again; do not reload invalid configuration.
+2. Run `sudo systemctl reload nginx`, then `sudo systemctl is-active --quiet nginx`. If either fails, restore both backups, retest, and reload.
+3. Inspect `sudo nginx -T`. There must be exactly three `location = /api/application/application` blocks and three `proxy_read_timeout 330s;` directives. The public exact block must include `Onion-Location`; the two onion exact blocks must not.
+4. Verify `/health`, then send an empty JSON `POST /api/application/application` through the public host and both onion listeners (use `127.0.0.1` plus the onion `Host` header for local probes, because curl intentionally refuses `.onion` DNS resolution). Each submission probe must return `400`, proving that the exact location reaches ASP.NET Core validation rather than static handling.
+
+Keep the backups until the application submission path has been verified after deployment.
+
 ### Reverse proxy CORS ownership
 
 ASP.NET Core owns the route-specific CORS policies. The nginx reverse-proxy location must pass those response headers through unchanged: do not add `Access-Control-Allow-*` or `Access-Control-Expose-Headers` directives at the proxy layer, and do not intercept `OPTIONS` requests. Adding CORS headers in both layers produces duplicate values that browsers reject; applying wildcard headers in nginx also bypasses the application's restricted policy for non-public routes.
