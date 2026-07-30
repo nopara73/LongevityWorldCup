@@ -92,7 +92,7 @@ public sealed class ApplicationOnboardingPageTests
     }
 
     [Fact]
-    public async Task ApplicationSubmissionTimeout_WaitsForServerPublicWorkTimeout()
+    public async Task ApplicationSubmissionTimeout_WaitsForDedicatedServerTimeout()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -102,11 +102,11 @@ public sealed class ApplicationOnboardingPageTests
 
         Assert.True(match.Success);
         var timeoutMs = int.Parse(match.Groups[1].Value);
-        Assert.True(timeoutMs > PublicRequestTimeoutPolicies.PublicWorkTimeout.TotalMilliseconds);
+        Assert.True(timeoutMs > PublicRequestTimeoutPolicies.ApplicationSubmissionTimeout.TotalMilliseconds);
     }
 
     [Fact]
-    public async Task ApplicationSubmissionId_IsReusedForAnImmediateRetry()
+    public async Task ApplicationSubmissionId_IsReusedOnlyForTheSamePayload()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -114,8 +114,13 @@ public sealed class ApplicationOnboardingPageTests
         var javascript = await client.GetStringAsync("/js/misc.js");
 
         Assert.Contains("window.__pendingApplicationSubmissionId", javascript);
+        Assert.Contains("window.createApplicationSubmissionPayloadKey = function (applicantData)", javascript);
+        Assert.Contains("compactApplicationDataString(proof)", javascript);
+        Assert.Contains("window.__pendingApplicationSubmissionFingerprint === normalizedFingerprint", javascript);
         Assert.Contains("return window.__pendingApplicationSubmissionId;", javascript);
         Assert.Contains("window.__pendingApplicationSubmissionId = submissionId;", javascript);
+        Assert.Contains("delete window.__pendingApplicationSubmissionFingerprint;", javascript);
+        Assert.Contains("window.__pendingApplicationSubmissionFingerprint = normalizedFingerprint;", javascript);
     }
 
     [Fact]
@@ -135,6 +140,9 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("window.setTimeout(() => controller.abort(), timeoutMs)", javascript);
         Assert.Contains("...(controller ? { signal: controller.signal } : {})", javascript);
         Assert.Contains("window.trySendApplicationSubmissionReport = function (applicantData, submissionId, phase, submissionKind, error)", javascript);
+        Assert.Contains("let omittedDataLength = 0;", javascript);
+        Assert.Contains("jsonBodyLength = skeleton.length + omittedDataLength;", javascript);
+        Assert.DoesNotContain("jsonBodyLength = JSON.stringify(data).length;", javascript);
         Assert.Contains("typeof window.buildApplicationSubmissionReport !== 'function'", javascript);
         Assert.Contains("const report = window.buildApplicationSubmissionReport(applicantData, submissionId, phase, submissionKind, error);", javascript);
         Assert.Contains("void window.sendApplicationSubmissionReport(report);", javascript);
