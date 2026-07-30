@@ -1,0 +1,28 @@
+{
+  "Name": "Brittany Williams",
+  "DisplayName": null,
+  "MediaContact": "brittanyrauscherwilliams@gmail.com",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 7,
+    "Day": 14
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-10-23",
+      "AlbGL": 45,
+      "CreatUmolL": 65.49,
+      "GluMmolL": 4.44,
+      "CrpMgL": 1.6,
+      "LymPc": 48.3,
+      "McvFL": 91.9,
+      "RdwPc": 11.7,
+      "AlpUL": 31,
+      "Wbc1000cellsuL": 4.7
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "United States",
+  "Why": "Looking for more healthy years with my loved ones",
+  "PersonalLink": null
+}
