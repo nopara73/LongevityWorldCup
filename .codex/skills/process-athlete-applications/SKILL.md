@@ -235,6 +235,7 @@ For each JSON biomarker record:
 
 - Match the proof date to the JSON `Date`.
 - Match each recorded value to a visible proof value, accounting for explicit unit conversion only when the source unit is clear.
+- Treat a result reported below a laboratory detection limit as valid evidence. Store the stated limit as the numeric value used by the calculator: for example, proof showing CRP `<0.5 mg/L` becomes `"CrpMgL": 0.5`. If a CRP result is below the detection limit but the limit itself is unknown, use the competition default of `1 mg/L`. This is the established competition rule in `LongevityWorldCup.Documentation\Ruleset.md`; do not reject the result, remove the biomarker, or propose an athlete/profile without a biological age because of the qualifier. If processing changed the submitted value, disclose the correction in the human summary and athlete draft.
 - Confirm all values in the record are from one blood draw or one coherent lab report for the same test date. Do not accept a single JSON record assembled from different blood tests, different dates, or unrelated documents.
 - Confirm that required biomarkers for the claimed result are actually supported.
 - Correct obvious JSON clerical mismatches locally instead of blocking. Examples: use the blood draw/collection date instead of a report/submission date when the report clearly shows both; fix a mistyped numeric value such as `ShbgNmolL` when the proof value and unit are unambiguous. Report the correction in the human approval summary.

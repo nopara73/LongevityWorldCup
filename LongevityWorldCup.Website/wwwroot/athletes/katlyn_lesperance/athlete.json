@@ -1,0 +1,28 @@
+{
+  "Name": "Katlyn Lesperance",
+  "DisplayName": null,
+  "MediaContact": "lesperance.ja.katie@gmail.com",
+  "DateOfBirth": {
+    "Year": 1988,
+    "Month": 7,
+    "Day": 5
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-07-20",
+      "AlbGL": 44,
+      "CreatUmolL": 47,
+      "GluMmolL": 6.1,
+      "CrpMgL": 0.5,
+      "LymPc": 18.42,
+      "McvFL": 99,
+      "RdwPc": 11.4,
+      "AlpUL": 138,
+      "Wbc1000cellsuL": 3.8
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Canada",
+  "Why": "To flourish in my feminine as the fountain of youth.",
+  "PersonalLink": "https://www.instagram.com/katielesperance/"
+}
