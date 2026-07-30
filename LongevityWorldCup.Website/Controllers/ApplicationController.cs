@@ -5,6 +5,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.AspNetCore.Mvc;
 using MimeKit;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using System.Diagnostics;
@@ -178,6 +179,7 @@ namespace LongevityWorldCup.Website.Controllers
         }
 
         [HttpPost("application")]
+        [RequestTimeout(PublicRequestTimeoutPolicies.ApplicationSubmission)]
         public async Task<IActionResult> Application([FromBody] ApplicantData applicantData, CancellationToken ct)
         {
             var startedAt = Stopwatch.GetTimestamp();
@@ -239,9 +241,19 @@ namespace LongevityWorldCup.Website.Controllers
                 return await BadRequestWithStatsAsync("missing_name", "Applicant name is required.").ConfigureAwait(false);
             }
 
+            var submittedProofCount = applicantData.ProofPics?.Count ?? 0;
             applicantData.ProofPics = applicantData.ProofPics?
                 .Where(proof => !string.IsNullOrWhiteSpace(proof))
+                .Distinct(StringComparer.Ordinal)
                 .ToList();
+            var duplicateProofCount = submittedProofCount - (applicantData.ProofPics?.Count ?? 0);
+            if (duplicateProofCount > 0)
+            {
+                _logger.LogInformation(
+                    "Duplicate or blank application proofs were removed before processing. SubmissionId={SubmissionId} RemovedProofCount={RemovedProofCount}",
+                    submissionId,
+                    duplicateProofCount);
+            }
 
             if (applicantData.ProofPics?.Count > MaxProofImages)
             {
@@ -404,317 +416,448 @@ namespace LongevityWorldCup.Website.Controllers
             // Once the complete request body has been accepted, finish the bounded server-side
             // work even if a mobile browser drops its response connection. An identical retry
             // waits on the submission lease and receives the cached successful response.
-            using var processingTimeout = new CancellationTokenSource(PublicRequestTimeoutPolicies.PublicWorkTimeout);
+            using var processingTimeout = new CancellationTokenSource(PublicRequestTimeoutPolicies.ApplicationSubmissionWorkTimeout);
             ct = processingTimeout.Token;
+            using var submissionWorkspace = ApplicationSubmissionWorkspace.Create();
+            string? recoverableZipPath = null;
+            string? recoverableFolderKey = null;
 
-            // Load SMTP configuration
-            Config config;
             try
             {
-                config = await Config.LoadAsync() ?? throw new InvalidOperationException("Loaded configuration is null.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Application submission failed before processing because configuration could not be loaded.");
-                return await StatusCodeWithStatsAsync(500, "config_load_failed", $"Failed to load configuration: {ex.Message}").ConfigureAwait(false);
-            }
-
-            var proofLengths = GetDataUrlLengths(applicantData.ProofPics);
-            var profilePicLength = GetDataUrlLength(applicantData.ProfilePic);
-
-            _logger.LogInformation(
-                "Application submission started. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
-                submissionId,
-                submissionKind,
-                applicantData.ProofPics?.Count ?? 0,
-                string.Join(",", proofLengths),
-                profilePicLength);
-
-            applicantData.FreePass = NormalizeFreePassValue(applicantData.FreePass);
-            applicantData.Discount = NormalizeDiscountValue(applicantData.Discount)
-                ?? NormalizeDiscountValue(applicantData.PaymentOffer?.DiscountCode);
-            if (applicantData.PaymentOffer is not null)
-            {
-                applicantData.PaymentOffer.DiscountCode = applicantData.Discount;
-                applicantData.PaymentOffer.DiscountPercent = applicantData.Discount is null
-                    ? null
-                    : MightyKlausDiscountPercent;
-            }
-            var hasFreePass = applicantData.FreePass is not null;
-
-            // Prepare the email body (excluding the images)
-            // Moved this block after processing images to include paths
-
-            // Create the email message
-            var message = new MimeMessage();
-            message.From.Add(CreateConfiguredFromAddress(config, applicantData.Name));
-            message.To.Add(CreateConfiguredToAddress(config));
-            var applicationSubject = BuildApplicationSubject(applicantData.Name);
-            message.Subject = applicationSubject;
-
-            var builder = new BodyBuilder();
-
-            var correctedPersonalLink = NormalizeSubmittedPersonalLink(applicantData.PersonalLink);
-            var trimmedDisplayName = string.IsNullOrWhiteSpace(applicantData.DisplayName) ? null : applicantData.DisplayName.Trim();
-            var displayNameOrName = trimmedDisplayName ?? applicantData.Name?.Trim();
-
-            // 1) Build a temp folder with profile + proofs + athlete.json
-            var folderKey = SanitizeFileName(applicantData.Name ?? "noname");
-            if ((isResultSubmissionOnly || isEditSubmissionOnly) && string.IsNullOrWhiteSpace(accountEmail))
-            {
-                accountEmail = ResolveExistingAthleteContactEmail(TryReadExistingAthleteFields(_environment, folderKey, applicantData.Name));
-            }
-            AddReplyToIfValid(message, accountEmail, displayNameOrName);
-
-            var tempRoot = Path.Combine(Path.GetTempPath(), "LWC", folderKey);
-            var athleteFolder = Path.Combine(tempRoot, folderKey);
-            Directory.CreateDirectory(athleteFolder);
-
-            // 1a) Write athlete.json
-
-            object? athleteJsonObject;
-            if (isResultSubmissionOnly)
-            {
-                athleteJsonObject = new { applicantData.Name, DisplayName = trimmedDisplayName, applicantData.Biomarkers };
-            }
-            else if (isEditSubmissionOnly)
-            {
-                athleteJsonObject = new
+                // Load SMTP configuration
+                Config config;
+                try
                 {
-                    applicantData.Name,
-                    DisplayName = trimmedDisplayName,
-                    applicantData.MediaContact,
-                    applicantData.Division,
-                    applicantData.Flag,
-                    applicantData.Why,
-                    PersonalLink = correctedPersonalLink
-                };
-            }
-            else
-            {
-                athleteJsonObject = (new
+                    config = await Config.LoadAsync() ?? throw new InvalidOperationException("Loaded configuration is null.");
+                }
+                catch (Exception ex)
                 {
-                    applicantData.Name,
-                    DisplayName = trimmedDisplayName,
-                    applicantData.MediaContact,
-                    applicantData.DateOfBirth,
-                    applicantData.Biomarkers,
-                    applicantData.Division,
-                    applicantData.Flag,
-                    applicantData.Why,
-                    PersonalLink = correctedPersonalLink
-                });
-            }
+                    _logger.LogError(ex, "Application submission failed before processing because configuration could not be loaded.");
+                    return await StatusCodeWithStatsAsync(500, "config_load_failed", $"Failed to load configuration: {ex.Message}").ConfigureAwait(false);
+                }
 
-            var athleteJson = JsonSerializer.Serialize(athleteJsonObject, CachedJsonSerializerOptions);
-            await System.IO.File.WriteAllTextAsync(Path.Combine(athleteFolder, "athlete.json"), athleteJson, ct);
+                var proofLengths = GetDataUrlLengths(applicantData.ProofPics);
+                var profilePicLength = GetDataUrlLength(applicantData.ProfilePic);
 
-            // 1b) Save profile picture
-            var hasSubmittedProfileImage = IsSubmittedImageData(applicantData.ProfilePic);
-            if (!string.IsNullOrWhiteSpace(applicantData.ProfilePic) && !hasSubmittedProfileImage && !isEditSubmissionOnly)
-            {
-                _logger.LogError(
-                    "Application submission rejected because profile image was present but was not image data. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
+                _logger.LogInformation(
+                    "Application submission started. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
                     submissionId,
                     submissionKind,
+                    applicantData.ProofPics?.Count ?? 0,
+                    string.Join(",", proofLengths),
                     profilePicLength);
-                return await BadRequestWithStatsAsync("invalid_profile_image", "The profile image could not be read. Please upload a smaller image and try again.").ConfigureAwait(false);
-            }
 
-            if (hasSubmittedProfileImage)
-            {
-                var parsedProfile = ParseBase64Image(applicantData.ProfilePic!);
-                if (parsedProfile.bytes is null)
+                applicantData.FreePass = NormalizeFreePassValue(applicantData.FreePass);
+                applicantData.Discount = NormalizeDiscountValue(applicantData.Discount)
+                    ?? NormalizeDiscountValue(applicantData.PaymentOffer?.DiscountCode);
+                if (applicantData.PaymentOffer is not null)
+                {
+                    applicantData.PaymentOffer.DiscountCode = applicantData.Discount;
+                    applicantData.PaymentOffer.DiscountPercent = applicantData.Discount is null
+                        ? null
+                        : MightyKlausDiscountPercent;
+                }
+                var hasFreePass = applicantData.FreePass is not null;
+
+                // Prepare the email body (excluding the images)
+                // Moved this block after processing images to include paths
+
+                // Create the email message
+                var message = new MimeMessage();
+                message.From.Add(CreateConfiguredFromAddress(config, applicantData.Name));
+                message.To.Add(CreateConfiguredToAddress(config));
+                var applicationSubject = BuildApplicationSubject(applicantData.Name);
+                message.Subject = applicationSubject;
+
+                var builder = new BodyBuilder();
+
+                var correctedPersonalLink = NormalizeSubmittedPersonalLink(applicantData.PersonalLink);
+                var trimmedDisplayName = string.IsNullOrWhiteSpace(applicantData.DisplayName) ? null : applicantData.DisplayName.Trim();
+                var displayNameOrName = trimmedDisplayName ?? applicantData.Name?.Trim();
+
+                // 1) Build a temp folder with profile + proofs + athlete.json
+                var folderKey = SanitizeFileName(applicantData.Name ?? "noname");
+                if ((isResultSubmissionOnly || isEditSubmissionOnly) && string.IsNullOrWhiteSpace(accountEmail))
+                {
+                    accountEmail = ResolveExistingAthleteContactEmail(TryReadExistingAthleteFields(_environment, folderKey, applicantData.Name));
+                }
+                AddReplyToIfValid(message, accountEmail, displayNameOrName);
+
+                var tempRoot = submissionWorkspace.RootPath;
+                var athleteFolder = Path.Combine(tempRoot, folderKey);
+                Directory.CreateDirectory(athleteFolder);
+
+                // 1a) Write athlete.json
+
+                object? athleteJsonObject;
+                if (isResultSubmissionOnly)
+                {
+                    athleteJsonObject = new { applicantData.Name, DisplayName = trimmedDisplayName, applicantData.Biomarkers };
+                }
+                else if (isEditSubmissionOnly)
+                {
+                    athleteJsonObject = new
+                    {
+                        applicantData.Name,
+                        DisplayName = trimmedDisplayName,
+                        applicantData.MediaContact,
+                        applicantData.Division,
+                        applicantData.Flag,
+                        applicantData.Why,
+                        PersonalLink = correctedPersonalLink
+                    };
+                }
+                else
+                {
+                    athleteJsonObject = (new
+                    {
+                        applicantData.Name,
+                        DisplayName = trimmedDisplayName,
+                        applicantData.MediaContact,
+                        applicantData.DateOfBirth,
+                        applicantData.Biomarkers,
+                        applicantData.Division,
+                        applicantData.Flag,
+                        applicantData.Why,
+                        PersonalLink = correctedPersonalLink
+                    });
+                }
+
+                var athleteJson = JsonSerializer.Serialize(athleteJsonObject, CachedJsonSerializerOptions);
+                await System.IO.File.WriteAllTextAsync(Path.Combine(athleteFolder, "athlete.json"), athleteJson, ct);
+
+                // 1b) Save profile picture
+                var hasSubmittedProfileImage = IsSubmittedImageData(applicantData.ProfilePic);
+                if (!string.IsNullOrWhiteSpace(applicantData.ProfilePic) && !hasSubmittedProfileImage && !isEditSubmissionOnly)
                 {
                     _logger.LogError(
-                        "Application submission rejected because profile image could not be parsed. SubmissionId={SubmissionId} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
+                        "Application submission rejected because profile image was present but was not image data. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
                         submissionId,
+                        submissionKind,
                         profilePicLength);
-                    return await BadRequestWithStatsAsync("profile_image_parse_failed", "The profile image could not be read. Please upload a smaller image and try again.").ConfigureAwait(false);
+                    return await BadRequestWithStatsAsync("invalid_profile_image", "The profile image could not be read. Please upload a smaller image and try again.").ConfigureAwait(false);
                 }
 
-                var profileImage = OptimizeProfileImage(parsedProfile, submissionId);
-                if (!profileImage.Success)
-                    return await BadRequestWithStatsAsync("profile_image_processing_failed", profileImage.ErrorMessage ?? "The profile image could not be processed.").ConfigureAwait(false);
-
-                await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, $"{folderKey}.{profileImage.Extension}"), profileImage.Bytes!, ct);
-            }
-
-            // 1c) Save each proof
-            if (applicantData.ProofPics != null)
-            {
-                int idx = 1;
-                foreach (var b64 in applicantData.ProofPics)
+                if (hasSubmittedProfileImage)
                 {
-                    var parsedProof = ParseBase64Image(b64);
-                    if (parsedProof.bytes is null)
+                    var parsedProfile = ParseBase64Image(applicantData.ProfilePic!);
+                    if (parsedProfile.bytes is null)
                     {
                         _logger.LogError(
-                            "Application submission rejected because proof image could not be parsed. SubmissionId={SubmissionId} ProofIndex={ProofIndex} ProofDataUrlLength={ProofDataUrlLength}",
+                            "Application submission rejected because profile image could not be parsed. SubmissionId={SubmissionId} ProfilePicDataUrlLength={ProfilePicDataUrlLength}",
                             submissionId,
-                            idx,
-                            b64?.Length ?? 0);
-                        return await ProofBadRequestWithStatsAsync("proof_parse_failed", $"Proof image {idx} could not be read. Please upload a smaller image or PDF page and try again.", idx).ConfigureAwait(false);
+                            profilePicLength);
+                        return await BadRequestWithStatsAsync("profile_image_parse_failed", "The profile image could not be read. Please upload a smaller image and try again.").ConfigureAwait(false);
                     }
 
-                    var proofImage = OptimizeProofImage(parsedProof, submissionId, idx);
-                    if (!proofImage.Success)
-                        return await ProofBadRequestWithStatsAsync("proof_processing_failed", proofImage.ErrorMessage ?? "Proof image could not be processed.", idx).ConfigureAwait(false);
+                    var profileImage = OptimizeProfileImage(parsedProfile, submissionId);
+                    if (!profileImage.Success)
+                        return await BadRequestWithStatsAsync("profile_image_processing_failed", profileImage.ErrorMessage ?? "The profile image could not be processed.").ConfigureAwait(false);
 
-                    if (proofImage.Bytes != null)
-                    {
-                        var proofName = $"proof_{idx}.{proofImage.Extension}";
-                        await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, proofName), proofImage.Bytes!, ct);
-                        idx++;
-                    }
+                    await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, $"{folderKey}.{profileImage.Extension}"), profileImage.Bytes!, ct);
                 }
 
-                await TrackApplicationProofEventAsync(
-                    outcome: "succeeded",
-                    submissionKind: submissionKind,
-                    proofCount: applicantData.ProofPics.Count,
-                    errorCode: null,
-                    proofIndex: null,
-                    durationMs: ElapsedMilliseconds(startedAt),
-                    ct: ct).ConfigureAwait(false);
-            }
-
-            // 2) Zip the folder
-            var zipPath = Path.Combine(tempRoot, $"{folderKey}.zip");
-            if (System.IO.File.Exists(zipPath))
-                System.IO.File.Delete(zipPath);
-            System.IO.Compression.ZipFile.CreateFromDirectory(
-                sourceDirectoryName: athleteFolder,
-                destinationArchiveFileName: zipPath,
-                compressionLevel: System.IO.Compression.CompressionLevel.Optimal,
-                includeBaseDirectory: false
-            );
-            var zipSizeBytes = new FileInfo(zipPath).Length;
-
-            // 3) Attach the ZIP
-            var attachmentFilename = $"{folderKey}.zip";
-            builder.Attachments.Add(attachmentFilename,
-                                    await System.IO.File.ReadAllBytesAsync(zipPath, ct),
-                                    new ContentType("application", "zip"));
-
-            // 3a) Prepare email body based on submission type
-            var paymentAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
-            var paymentCurrency = string.IsNullOrWhiteSpace(applicantData.PaymentOffer?.Currency)
-                ? "USD"
-                : applicantData.PaymentOffer!.Currency!.Trim().ToUpperInvariant();
-            var paymentDueText = hasFreePass
-                ? $"free pass ({paymentCurrency})"
-                : paymentAmountUsd <= 0m
-                    ? $"free ({paymentCurrency})"
-                    : $"{paymentCurrency} {paymentAmountUsd:0.##}";
-
-            var emailBody = BuildApplicationAuditEmailBody(
-                applicantData,
-                accountEmail,
-                correctedPersonalLink,
-                folderKey,
-                attachmentFilename,
-                paymentDueText,
-                chronoPhenoDifference,
-                chronoBortzDifference,
-                isResultSubmissionOnly,
-                isEditSubmissionOnly,
-                Request,
-                _environment);
-            builder.TextBody = emailBody;
-
-            message.Body = builder.ToMessageBody();
-
-            // Subscribe to newsletter using accountEmail
-            try
-            {
-                if (!string.IsNullOrWhiteSpace(accountEmail))
+                // 1c) Save each proof
+                if (applicantData.ProofPics != null)
                 {
-                    string email = accountEmail.Trim();
-
-                    // Call the static subscription method
-                    var error = await NewsletterService.SubscribeAsync(email, _logger, _environment, ct);
-
-                    if (error != null)
+                    int idx = 1;
+                    foreach (var b64 in applicantData.ProofPics)
                     {
-                        if (error.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
+                        var parsedProof = ParseBase64Image(b64);
+                        if (parsedProof.bytes is null)
                         {
-                            // Explicitly ignore "already subscribed" errors
-                            _logger.LogInformation("The applicant email is already subscribed to the newsletter.");
+                            _logger.LogError(
+                                "Application submission rejected because proof image could not be parsed. SubmissionId={SubmissionId} ProofIndex={ProofIndex} ProofDataUrlLength={ProofDataUrlLength}",
+                                submissionId,
+                                idx,
+                                b64?.Length ?? 0);
+                            return await ProofBadRequestWithStatsAsync("proof_parse_failed", $"Proof image {idx} could not be read. Please upload a smaller image or PDF page and try again.", idx).ConfigureAwait(false);
+                        }
+
+                        var proofImage = OptimizeProofImage(parsedProof, submissionId, idx);
+                        if (!proofImage.Success)
+                            return await ProofBadRequestWithStatsAsync("proof_processing_failed", proofImage.ErrorMessage ?? "Proof image could not be processed.", idx).ConfigureAwait(false);
+
+                        if (proofImage.Bytes != null)
+                        {
+                            var proofName = $"proof_{idx}.{proofImage.Extension}";
+                            await System.IO.File.WriteAllBytesAsync(Path.Combine(athleteFolder, proofName), proofImage.Bytes!, ct);
+                            idx++;
+                        }
+                    }
+
+                    await TrackApplicationProofEventAsync(
+                        outcome: "succeeded",
+                        submissionKind: submissionKind,
+                        proofCount: applicantData.ProofPics.Count,
+                        errorCode: null,
+                        proofIndex: null,
+                        durationMs: ElapsedMilliseconds(startedAt),
+                        ct: ct).ConfigureAwait(false);
+                }
+
+                // 2) Zip the folder
+                var zipPath = Path.Combine(tempRoot, $"{folderKey}.zip");
+                if (System.IO.File.Exists(zipPath))
+                    System.IO.File.Delete(zipPath);
+                System.IO.Compression.ZipFile.CreateFromDirectory(
+                    sourceDirectoryName: athleteFolder,
+                    destinationArchiveFileName: zipPath,
+                    compressionLevel: System.IO.Compression.CompressionLevel.Optimal,
+                    includeBaseDirectory: false
+                );
+                recoverableZipPath = zipPath;
+                recoverableFolderKey = folderKey;
+                var zipSizeBytes = new FileInfo(zipPath).Length;
+
+                // 3) Attach the ZIP
+                var attachmentFilename = $"{folderKey}.zip";
+                builder.Attachments.Add(attachmentFilename,
+                                        await System.IO.File.ReadAllBytesAsync(zipPath, ct),
+                                        new ContentType("application", "zip"));
+
+                // 3a) Prepare email body based on submission type
+                var paymentAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
+                var paymentCurrency = string.IsNullOrWhiteSpace(applicantData.PaymentOffer?.Currency)
+                    ? "USD"
+                    : applicantData.PaymentOffer!.Currency!.Trim().ToUpperInvariant();
+                var paymentDueText = hasFreePass
+                    ? $"free pass ({paymentCurrency})"
+                    : paymentAmountUsd <= 0m
+                        ? $"free ({paymentCurrency})"
+                        : $"{paymentCurrency} {paymentAmountUsd:0.##}";
+
+                var emailBody = BuildApplicationAuditEmailBody(
+                    applicantData,
+                    accountEmail,
+                    correctedPersonalLink,
+                    folderKey,
+                    attachmentFilename,
+                    paymentDueText,
+                    chronoPhenoDifference,
+                    chronoBortzDifference,
+                    isResultSubmissionOnly,
+                    isEditSubmissionOnly,
+                    Request,
+                    _environment);
+                builder.TextBody = emailBody;
+
+                message.Body = builder.ToMessageBody();
+
+                // Subscribe to newsletter using accountEmail
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(accountEmail))
+                    {
+                        string email = accountEmail.Trim();
+
+                        // Call the static subscription method
+                        var error = await NewsletterService.SubscribeAsync(email, _logger, _environment, ct);
+
+                        if (error != null)
+                        {
+                            if (error.Contains("already subscribed", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // Explicitly ignore "already subscribed" errors
+                                _logger.LogInformation("The applicant email is already subscribed to the newsletter.");
+                            }
+                            else
+                            {
+                                // Log and ignore any other errors silently
+                                _logger.LogWarning("Failed to subscribe applicant email to the newsletter. Error: {Error}", error);
+                            }
                         }
                         else
                         {
-                            // Log and ignore any other errors silently
-                            _logger.LogWarning("Failed to subscribe applicant email to the newsletter. Error: {Error}", error);
+                            // Subscription successful
+                            _logger.LogInformation("Successfully subscribed applicant email to the newsletter.");
                         }
                     }
-                    else
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Log and ignore any other errors silently
+                    _logger.LogWarning(ex, "Failed to subscribe applicant email to the newsletter.");
+                }
+
+                var requestedAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
+                var paymentRequired = requestedAmountUsd > 0m;
+                paymentRequiredForStats = paymentRequired;
+                string? archivedSubmissionPath = null;
+                var auditEmailDelivered = false;
+
+                // Send the admin notification email. If email auth is misconfigured, keep the
+                // already-packaged submission on disk and let the applicant continue.
+                try
+                {
+                    await SendEmailThroughSmtpAsync(config, message, ct);
+                    auditEmailDelivered = true;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    try
                     {
-                        // Subscription successful
-                        _logger.LogInformation("Successfully subscribed applicant email to the newsletter.");
+                        archivedSubmissionPath = await PersistApplicationSubmissionArchiveAsync(zipPath, folderKey, submissionId, ct);
                     }
-                }
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                // Log and ignore any other errors silently
-                _logger.LogWarning(ex, "Failed to subscribe applicant email to the newsletter.");
-            }
+                    catch (Exception archiveEx) when (archiveEx is not OperationCanceledException)
+                    {
+                        _logger.LogError(
+                            archiveEx,
+                            "Application submission email failed and archive could not be saved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind}",
+                            submissionId,
+                            submissionKind);
+                        return await StatusCodeWithStatsAsync(500, "application_archive_failed", "Internal server error: application could not be saved.").ConfigureAwait(false);
+                    }
 
-            var requestedAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
-            var paymentRequired = requestedAmountUsd > 0m;
-            paymentRequiredForStats = paymentRequired;
-            string? archivedSubmissionPath = null;
-            var auditEmailDelivered = false;
-
-            // Send the admin notification email. If email auth is misconfigured, keep the
-            // already-packaged submission on disk and let the applicant continue.
-            try
-            {
-                await SendEmailThroughSmtpAsync(config, message, ct);
-                auditEmailDelivered = true;
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                try
-                {
-                    archivedSubmissionPath = await PersistApplicationSubmissionArchiveAsync(zipPath, folderKey, submissionId, ct);
-                }
-                catch (Exception archiveEx) when (archiveEx is not OperationCanceledException)
-                {
                     _logger.LogError(
-                        archiveEx,
-                        "Application submission email failed and archive could not be saved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind}",
+                        ex,
+                        "Application submission email failed after archive was saved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ArchivePath={ArchivePath}",
                         submissionId,
-                        submissionKind);
-                    return await StatusCodeWithStatsAsync(500, "application_archive_failed", "Internal server error: application could not be saved.").ConfigureAwait(false);
+                        submissionKind,
+                        archivedSubmissionPath);
                 }
 
-                _logger.LogError(
-                    ex,
-                    "Application submission email failed after archive was saved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ArchivePath={ArchivePath}",
-                    submissionId,
-                    submissionKind,
-                    archivedSubmissionPath);
-            }
-
-            try
-            {
                 try
                 {
-                    Directory.Delete(tempRoot, recursive: true);
-                }
-                catch { /* ignore */ }
+                    if (!paymentRequired)
+                    {
+                        var freeSubmissionResponse = new ApplicationSubmissionResponse(
+                            Success: true,
+                            PaymentRequired: false,
+                            CheckoutLink: null,
+                            InvoiceId: null);
+                        submissionLease.Complete(freeSubmissionResponse);
 
-                if (!paymentRequired)
-                {
-                    await TrySendSubmissionConfirmationEmailAsync(
+                        await TrySendSubmissionConfirmationEmailAsync(
+                            config,
+                            accountEmail,
+                            displayNameOrName,
+                            isResultSubmissionOnly,
+                            isEditSubmissionOnly,
+                            ct: ct);
+
+                        await TryRecordDiscountSignupAsync(
+                            applicantData,
+                            accountEmail,
+                            folderKey,
+                            submissionId,
+                            submissionKind,
+                            requestedAmountUsd,
+                            paymentCurrency,
+                            paymentRequired: false,
+                            invoiceId: null,
+                            checkoutLink: null,
+                            ct);
+
+                        _logger.LogInformation(
+                            "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
+                            submissionId,
+                            submissionKind,
+                            applicantData.ProofPics?.Count ?? 0,
+                            zipSizeBytes,
+                            false,
+                            auditEmailDelivered,
+                            archivedSubmissionPath);
+
+                        await TrackApplicationSubmitEventAsync(
+                            outcome: "succeeded",
+                            submissionKind: submissionKind,
+                            paymentRequired: false,
+                            errorCode: null,
+                            durationMs: ElapsedMilliseconds(startedAt),
+                            metadata: new Dictionary<string, object?>
+                            {
+                                ["proofCount"] = applicantData.ProofPics?.Count ?? 0,
+                                ["auditEmailDelivered"] = auditEmailDelivered,
+                                ["archivedFallback"] = archivedSubmissionPath is not null
+                            },
+                            ct: ct).ConfigureAwait(false);
+
+                        return Ok(freeSubmissionResponse);
+                    }
+
+                    var invoiceResult = await CreateBtcpayInvoiceAsync(
                         config,
+                        applicantData,
+                        requestedAmountUsd,
                         accountEmail,
-                        displayNameOrName,
                         isResultSubmissionOnly,
                         isEditSubmissionOnly,
-                        ct: ct);
+                        ct);
+
+                    if (!invoiceResult.Success)
+                    {
+                        _logger.LogError(
+                            "Application submission was saved but BTCPay invoice creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath} Error={Error}",
+                            submissionId,
+                            submissionKind,
+                            zipSizeBytes,
+                            auditEmailDelivered,
+                            archivedSubmissionPath,
+                            invoiceResult.Error);
+                        var paymentUnavailableResponse = new ApplicationSubmissionResponse(
+                            Success: true,
+                            PaymentRequired: true,
+                            CheckoutLink: null,
+                            InvoiceId: null,
+                            PaymentUnavailable: true);
+                        submissionLease.Complete(paymentUnavailableResponse);
+
+                        await TryRecordDiscountSignupAsync(
+                            applicantData,
+                            accountEmail,
+                            folderKey,
+                            submissionId,
+                            submissionKind,
+                            requestedAmountUsd,
+                            paymentCurrency,
+                            paymentRequired: true,
+                            invoiceId: null,
+                            checkoutLink: null,
+                            ct);
+
+                        await TrySendSubmissionConfirmationEmailAsync(
+                            config,
+                            accountEmail,
+                            displayNameOrName,
+                            isResultSubmissionOnly,
+                            isEditSubmissionOnly,
+                            paymentUnavailable: true,
+                            ct: ct);
+
+                        await TrackApplicationPaymentEventAsync(
+                            eventName: "payment_unavailable",
+                            outcome: "failed",
+                            submissionKind: submissionKind,
+                            paymentRequired: true,
+                            errorCode: "invoice_create_failed",
+                            durationMs: ElapsedMilliseconds(startedAt),
+                            ct: ct).ConfigureAwait(false);
+
+                        await TrackApplicationSubmitEventAsync(
+                            outcome: "succeeded",
+                            submissionKind: submissionKind,
+                            paymentRequired: true,
+                            errorCode: null,
+                            durationMs: ElapsedMilliseconds(startedAt),
+                            metadata: new Dictionary<string, object?>
+                            {
+                                ["proofCount"] = applicantData.ProofPics?.Count ?? 0,
+                                ["auditEmailDelivered"] = auditEmailDelivered,
+                                ["archivedFallback"] = archivedSubmissionPath is not null,
+                                ["paymentState"] = "unavailable"
+                            },
+                            ct: ct).ConfigureAwait(false);
+
+                        return Ok(paymentUnavailableResponse);
+                    }
+
+                    var paidSubmissionResponse = new ApplicationSubmissionResponse(
+                        Success: true,
+                        PaymentRequired: true,
+                        CheckoutLink: invoiceResult.CheckoutLink,
+                        InvoiceId: invoiceResult.InvoiceId);
+                    submissionLease.Complete(paidSubmissionResponse);
 
                     await TryRecordDiscountSignupAsync(
                         applicantData,
@@ -724,17 +867,19 @@ namespace LongevityWorldCup.Website.Controllers
                         submissionKind,
                         requestedAmountUsd,
                         paymentCurrency,
-                        paymentRequired: false,
-                        invoiceId: null,
-                        checkoutLink: null,
+                        paymentRequired: true,
+                        invoiceResult.InvoiceId,
+                        invoiceResult.CheckoutLink,
                         ct);
 
-                    var freeSubmissionResponse = new ApplicationSubmissionResponse(
-                        Success: true,
-                        PaymentRequired: false,
-                        CheckoutLink: null,
-                        InvoiceId: null);
-                    submissionLease.Complete(freeSubmissionResponse);
+                    await TrySendSubmissionConfirmationEmailAsync(
+                        config,
+                        accountEmail,
+                        displayNameOrName,
+                        isResultSubmissionOnly,
+                        isEditSubmissionOnly,
+                        checkoutLink: invoiceResult.CheckoutLink,
+                        ct: ct);
 
                     _logger.LogInformation(
                         "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
@@ -742,82 +887,16 @@ namespace LongevityWorldCup.Website.Controllers
                         submissionKind,
                         applicantData.ProofPics?.Count ?? 0,
                         zipSizeBytes,
-                        false,
+                        true,
                         auditEmailDelivered,
                         archivedSubmissionPath);
 
-                    await TrackApplicationSubmitEventAsync(
+                    await TrackApplicationPaymentEventAsync(
+                        eventName: "checkout_redirect_started",
                         outcome: "succeeded",
                         submissionKind: submissionKind,
-                        paymentRequired: false,
+                        paymentRequired: true,
                         errorCode: null,
-                        durationMs: ElapsedMilliseconds(startedAt),
-                        metadata: new Dictionary<string, object?>
-                        {
-                            ["proofCount"] = applicantData.ProofPics?.Count ?? 0,
-                            ["auditEmailDelivered"] = auditEmailDelivered,
-                            ["archivedFallback"] = archivedSubmissionPath is not null
-                        },
-                        ct: ct).ConfigureAwait(false);
-
-                    return Ok(freeSubmissionResponse);
-                }
-
-                var invoiceResult = await CreateBtcpayInvoiceAsync(
-                    config,
-                    applicantData,
-                    requestedAmountUsd,
-                    accountEmail,
-                    isResultSubmissionOnly,
-                    isEditSubmissionOnly,
-                    ct);
-
-                if (!invoiceResult.Success)
-                {
-                    _logger.LogError(
-                        "Application submission was saved but BTCPay invoice creation failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ZipSizeBytes={ZipSizeBytes} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath} Error={Error}",
-                        submissionId,
-                        submissionKind,
-                        zipSizeBytes,
-                        auditEmailDelivered,
-                        archivedSubmissionPath,
-                        invoiceResult.Error);
-                    await TryRecordDiscountSignupAsync(
-                        applicantData,
-                        accountEmail,
-                        folderKey,
-                        submissionId,
-                        submissionKind,
-                        requestedAmountUsd,
-                        paymentCurrency,
-                        paymentRequired: true,
-                        invoiceId: null,
-                        checkoutLink: null,
-                        ct);
-
-                    await TrySendSubmissionConfirmationEmailAsync(
-                        config,
-                        accountEmail,
-                        displayNameOrName,
-                        isResultSubmissionOnly,
-                        isEditSubmissionOnly,
-                        paymentUnavailable: true,
-                        ct: ct);
-
-                    var paymentUnavailableResponse = new ApplicationSubmissionResponse(
-                        Success: true,
-                        PaymentRequired: true,
-                        CheckoutLink: null,
-                        InvoiceId: null,
-                        PaymentUnavailable: true);
-                    submissionLease.Complete(paymentUnavailableResponse);
-
-                    await TrackApplicationPaymentEventAsync(
-                        eventName: "payment_unavailable",
-                        outcome: "failed",
-                        submissionKind: submissionKind,
-                        paymentRequired: true,
-                        errorCode: "invoice_create_failed",
                         durationMs: ElapsedMilliseconds(startedAt),
                         ct: ct).ConfigureAwait(false);
 
@@ -832,90 +911,87 @@ namespace LongevityWorldCup.Website.Controllers
                             ["proofCount"] = applicantData.ProofPics?.Count ?? 0,
                             ["auditEmailDelivered"] = auditEmailDelivered,
                             ["archivedFallback"] = archivedSubmissionPath is not null,
-                            ["paymentState"] = "unavailable"
+                            ["paymentState"] = "checkout_created"
                         },
                         ct: ct).ConfigureAwait(false);
 
-                    return Ok(paymentUnavailableResponse);
+                    return Ok(paidSubmissionResponse);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(
+                        ex,
+                        "Application submission failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength} ZipSizeBytes={ZipSizeBytes}",
+                        submissionId,
+                        submissionKind,
+                        applicantData.ProofPics?.Count ?? 0,
+                        string.Join(",", proofLengths),
+                        profilePicLength,
+                        zipSizeBytes);
+                    return await StatusCodeWithStatsAsync(500, "application_processing_failed", $"Internal server error: {ex.Message}").ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException ex) when (processingTimeout.IsCancellationRequested)
+            {
+                string? recoveredArchivePath = null;
+                if (!string.IsNullOrWhiteSpace(recoverableZipPath)
+                    && !string.IsNullOrWhiteSpace(recoverableFolderKey)
+                    && System.IO.File.Exists(recoverableZipPath))
+                {
+                    try
+                    {
+                        using var archiveTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                        recoveredArchivePath = await PersistApplicationSubmissionArchiveAsync(
+                            recoverableZipPath,
+                            recoverableFolderKey,
+                            submissionId,
+                            archiveTimeout.Token).ConfigureAwait(false);
+                    }
+                    catch (Exception archiveEx)
+                    {
+                        _logger.LogError(
+                            archiveEx,
+                            "Timed-out application package could not be preserved. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind}",
+                            submissionId,
+                            submissionKind);
+                    }
                 }
 
-                await TryRecordDiscountSignupAsync(
-                    applicantData,
-                    accountEmail,
-                    folderKey,
-                    submissionId,
-                    submissionKind,
-                    requestedAmountUsd,
-                    paymentCurrency,
-                    paymentRequired: true,
-                    invoiceResult.InvoiceId,
-                    invoiceResult.CheckoutLink,
-                    ct);
-
-                await TrySendSubmissionConfirmationEmailAsync(
-                    config,
-                    accountEmail,
-                    displayNameOrName,
-                    isResultSubmissionOnly,
-                    isEditSubmissionOnly,
-                    checkoutLink: invoiceResult.CheckoutLink,
-                    ct: ct);
-
-                var paidSubmissionResponse = new ApplicationSubmissionResponse(
-                    Success: true,
-                    PaymentRequired: true,
-                    CheckoutLink: invoiceResult.CheckoutLink,
-                    InvoiceId: invoiceResult.InvoiceId);
-                submissionLease.Complete(paidSubmissionResponse);
-
-                _logger.LogInformation(
-                    "Application submission succeeded. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ZipSizeBytes={ZipSizeBytes} PaymentRequired={PaymentRequired} AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}",
-                    submissionId,
-                    submissionKind,
-                    applicantData.ProofPics?.Count ?? 0,
-                    zipSizeBytes,
-                    true,
-                    auditEmailDelivered,
-                    archivedSubmissionPath);
-
-                await TrackApplicationPaymentEventAsync(
-                    eventName: "checkout_redirect_started",
-                    outcome: "succeeded",
-                    submissionKind: submissionKind,
-                    paymentRequired: true,
-                    errorCode: null,
-                    durationMs: ElapsedMilliseconds(startedAt),
-                    ct: ct).ConfigureAwait(false);
-
-                await TrackApplicationSubmitEventAsync(
-                    outcome: "succeeded",
-                    submissionKind: submissionKind,
-                    paymentRequired: true,
-                    errorCode: null,
-                    durationMs: ElapsedMilliseconds(startedAt),
-                    metadata: new Dictionary<string, object?>
-                    {
-                        ["proofCount"] = applicantData.ProofPics?.Count ?? 0,
-                        ["auditEmailDelivered"] = auditEmailDelivered,
-                        ["archivedFallback"] = archivedSubmissionPath is not null,
-                        ["paymentState"] = "checkout_created"
-                    },
-                    ct: ct).ConfigureAwait(false);
-
-                return Ok(paidSubmissionResponse);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
                 _logger.LogError(
                     ex,
-                    "Application submission failed. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength} ZipSizeBytes={ZipSizeBytes}",
+                    "Application submission exceeded its processing budget. SubmissionId={SubmissionId} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ArchivePath={ArchivePath}",
                     submissionId,
                     submissionKind,
                     applicantData.ProofPics?.Count ?? 0,
-                    string.Join(",", proofLengths),
-                    profilePicLength,
-                    zipSizeBytes);
-                return await StatusCodeWithStatsAsync(500, "application_processing_failed", $"Internal server error: {ex.Message}").ConfigureAwait(false);
+                    recoveredArchivePath);
+
+                try
+                {
+                    using var statsTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    await TrackApplicationSubmitEventAsync(
+                        outcome: "failed",
+                        submissionKind: submissionKind,
+                        paymentRequired: paymentRequiredForStats,
+                        errorCode: "application_processing_timeout",
+                        durationMs: ElapsedMilliseconds(startedAt),
+                        metadata: new Dictionary<string, object?>
+                        {
+                            ["proofCount"] = applicantData.ProofPics?.Count ?? 0,
+                            ["archivedFallback"] = recoveredArchivePath is not null
+                        },
+                        ct: statsTimeout.Token).ConfigureAwait(false);
+                }
+                catch (Exception statsEx)
+                {
+                    _logger.LogWarning(
+                        statsEx,
+                        "Failed to record timed-out application submission statistics. SubmissionId={SubmissionId}",
+                        submissionId);
+                }
+
+                return StatusCode(
+                    StatusCodes.Status504GatewayTimeout,
+                    "The application submission took too long and was canceled.");
             }
         }
 
@@ -2414,6 +2490,7 @@ namespace LongevityWorldCup.Website.Controllers
                 maxDimension: ProfileImageMaxDimension,
                 webpQuality: null,
                 existingWebpPassthroughBytes: ExistingWebpProfilePassthroughBytes,
+                allowBoundedOriginalPassthrough: false,
                 userErrorMessage: "The profile image could not be processed. Please upload a smaller image and try again.");
         }
 
@@ -2426,6 +2503,7 @@ namespace LongevityWorldCup.Website.Controllers
                 maxDimension: ProofImageMaxDimension,
                 webpQuality: 88,
                 existingWebpPassthroughBytes: ExistingWebpProofPassthroughBytes,
+                allowBoundedOriginalPassthrough: true,
                 userErrorMessage: $"Proof image {proofIndex} could not be processed. Please upload a smaller image or PDF page and try again.");
         }
 
@@ -2436,6 +2514,7 @@ namespace LongevityWorldCup.Website.Controllers
             int maxDimension,
             int? webpQuality,
             int existingWebpPassthroughBytes,
+            bool allowBoundedOriginalPassthrough,
             string userErrorMessage)
         {
             if (imageData.bytes == null || imageData.contentType == null || imageData.extension == null)
@@ -2443,14 +2522,14 @@ namespace LongevityWorldCup.Website.Controllers
                 return ImageOptimizationResult.Failure(userErrorMessage);
             }
 
-            if (imageData.extension.Equals("webp", StringComparison.OrdinalIgnoreCase)
-                && imageData.bytes.Length <= existingWebpPassthroughBytes)
-            {
-                return ImageOptimizationResult.Ok(imageData.bytes, imageData.contentType, imageData.extension);
-            }
-
             try
             {
+                if (allowBoundedOriginalPassthrough
+                    && CanPassThroughBoundedOriginalImage(imageData, maxDimension, existingWebpPassthroughBytes))
+                {
+                    return ImageOptimizationResult.Ok(imageData.bytes, imageData.contentType, imageData.extension);
+                }
+
                 // Load the image from bytes
                 using var inputStream = new MemoryStream(imageData.bytes);
                 using var image = SixLabors.ImageSharp.Image.Load(inputStream);
@@ -2459,23 +2538,26 @@ namespace LongevityWorldCup.Website.Controllers
                     ? new WebpEncoder
                     {
                         FileFormat = WebpFileFormatType.Lossy,
-                        Quality = webpQuality.Value
+                        Quality = webpQuality.Value,
+                        SkipMetadata = true
                     }
                     : new WebpEncoder
                     {
-                        FileFormat = WebpFileFormatType.Lossy
+                        FileFormat = WebpFileFormatType.Lossy,
+                        SkipMetadata = true
                     };
 
                 using var outputStream = new MemoryStream();
 
-                image.Mutate(x =>
+                image.Mutate(x => x.AutoOrient());
+                if (Math.Max(image.Width, image.Height) > maxDimension)
                 {
-                    x.Resize(new ResizeOptions
+                    image.Mutate(x => x.Resize(new ResizeOptions
                     {
                         Mode = ResizeMode.Max,
                         Size = new SixLabors.ImageSharp.Size(maxDimension, maxDimension)
-                    });
-                });
+                    }));
+                }
 
                 image.Save(outputStream, webpEncoder);
 
@@ -2483,7 +2565,8 @@ namespace LongevityWorldCup.Website.Controllers
             }
             catch (Exception ex)
             {
-                if (CanSaveOriginalImageAfterOptimizationFailure(imageData, existingWebpPassthroughBytes))
+                if (allowBoundedOriginalPassthrough
+                    && CanPassThroughBoundedOriginalImage(imageData, maxDimension, existingWebpPassthroughBytes))
                 {
                     _logger.LogWarning(
                         "Image optimization failed with {ExceptionType}: {ExceptionMessage}. Saving original submitted image. SubmissionId={SubmissionId} ProofIndex={ProofIndex} ContentType={ContentType} Extension={Extension} Bytes={Bytes}",
@@ -2510,20 +2593,43 @@ namespace LongevityWorldCup.Website.Controllers
             }
         }
 
-        private static bool CanSaveOriginalImageAfterOptimizationFailure(
+        private static bool CanPassThroughBoundedOriginalImage(
             (byte[]? bytes, string? contentType, string? extension) imageData,
-            int maxOriginalBytes)
+            int maxDimension,
+            int maxBytes)
         {
-            if (imageData.bytes is null || imageData.contentType is null || imageData.extension is null)
+            if (imageData.bytes is null
+                || imageData.extension is null
+                || imageData.bytes.Length > maxBytes
+                || !(imageData.extension.Equals("png", StringComparison.OrdinalIgnoreCase)
+                    || imageData.extension.Equals("jpg", StringComparison.OrdinalIgnoreCase)
+                    || imageData.extension.Equals("jpeg", StringComparison.OrdinalIgnoreCase)
+                    || imageData.extension.Equals("webp", StringComparison.OrdinalIgnoreCase)))
+            {
                 return false;
+            }
 
-            if (imageData.bytes.Length > maxOriginalBytes)
+            try
+            {
+                using var inputStream = new MemoryStream(imageData.bytes);
+                var imageInfo = SixLabors.ImageSharp.Image.Identify(inputStream);
+                if (imageInfo is null
+                    || imageInfo.Width > maxDimension
+                    || imageInfo.Height > maxDimension
+                    || imageInfo.Metadata.ExifProfile is not null
+                    || imageInfo.Metadata.IptcProfile is not null
+                    || imageInfo.Metadata.XmpProfile is not null)
+                {
+                    return false;
+                }
+
+                return !imageData.extension.Equals("png", StringComparison.OrdinalIgnoreCase)
+                    || imageInfo.Metadata.GetPngMetadata().TextData.Count == 0;
+            }
+            catch
+            {
                 return false;
-
-            return imageData.extension.Equals("png", StringComparison.OrdinalIgnoreCase)
-                || imageData.extension.Equals("jpg", StringComparison.OrdinalIgnoreCase)
-                || imageData.extension.Equals("jpeg", StringComparison.OrdinalIgnoreCase)
-                || imageData.extension.Equals("webp", StringComparison.OrdinalIgnoreCase);
+            }
         }
 
         [GeneratedRegex(@"data:(?<type>.+?);base64,(?<data>.+)")]

@@ -400,11 +400,33 @@ public sealed class ApplicationControllerValidationTests
         {
             Name = "Applicant Ada",
             Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }],
-            ProofPics = Enumerable.Repeat("data:image/png;base64,AA==", 38).ToList()
+            ProofPics = Enumerable.Range(0, 38)
+                .Select(index => $"data:image/png;base64,proof-{index}")
+                .ToList()
         }, CancellationToken.None);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Equal("You can upload a maximum of 37 proof images.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task DuplicateProofsAreCollapsedBeforeCountValidation()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+        var applicant = new ApplicantData
+        {
+            Name = "Applicant Ada",
+            ProofPics = Enumerable.Repeat("data:image/png;base64,AA==", 38)
+                .Append(" ")
+                .ToList()
+        };
+
+        var result = await controller.Application(applicant, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Biomarker data is required.", badRequest.Value);
+        Assert.Equal("data:image/png;base64,AA==", Assert.Single(applicant.ProofPics!));
     }
 
     [Fact]
@@ -892,6 +914,50 @@ public sealed class ApplicationControllerValidationTests
         Assert.Contains("PaymentRequired: false", freeSubmissionBody);
         Assert.Contains("submissionLease.Complete(freeSubmissionResponse);", freeSubmissionBody);
         Assert.Contains("AuditEmailDelivered={AuditEmailDelivered} ArchivePath={ArchivePath}", freeSubmissionBody);
+    }
+
+    [Fact]
+    public void ApplicationSubmit_TimeoutPreservesACompletedPackageWithAFreshToken()
+    {
+        var source = ReadApplicationControllerSource();
+        var catchStart = source.IndexOf(
+            "catch (OperationCanceledException ex) when (processingTimeout.IsCancellationRequested)",
+            StringComparison.Ordinal);
+        var catchEnd = source.IndexOf(
+            "private Task TrackApplicationSubmitEventAsync",
+            catchStart,
+            StringComparison.Ordinal);
+
+        Assert.True(catchStart >= 0);
+        Assert.True(catchEnd > catchStart);
+
+        var timeoutBody = source[catchStart..catchEnd];
+        Assert.Contains("System.IO.File.Exists(recoverableZipPath)", timeoutBody);
+        Assert.Contains("new CancellationTokenSource(TimeSpan.FromSeconds(30))", timeoutBody);
+        Assert.Contains("PersistApplicationSubmissionArchiveAsync(", timeoutBody);
+        Assert.Contains("archiveTimeout.Token", timeoutBody);
+        Assert.Contains("\"application_processing_timeout\"", timeoutBody);
+        Assert.Contains("StatusCodes.Status504GatewayTimeout", timeoutBody);
+    }
+
+    [Fact]
+    public void ApplicationSubmit_CommitsRetryResponseBeforeOptionalPostAcceptanceWork()
+    {
+        var source = ReadApplicationControllerSource();
+
+        var freeComplete = source.IndexOf("submissionLease.Complete(freeSubmissionResponse);", StringComparison.Ordinal);
+        var freeConfirmation = source.IndexOf("await TrySendSubmissionConfirmationEmailAsync(", freeComplete, StringComparison.Ordinal);
+        var paymentUnavailableComplete = source.IndexOf("submissionLease.Complete(paymentUnavailableResponse);", StringComparison.Ordinal);
+        var paymentUnavailableReport = source.IndexOf("await TryRecordDiscountSignupAsync(", paymentUnavailableComplete, StringComparison.Ordinal);
+        var paidComplete = source.IndexOf("submissionLease.Complete(paidSubmissionResponse);", StringComparison.Ordinal);
+        var paidReport = source.IndexOf("await TryRecordDiscountSignupAsync(", paidComplete, StringComparison.Ordinal);
+
+        Assert.True(freeComplete >= 0);
+        Assert.True(freeConfirmation > freeComplete);
+        Assert.True(paymentUnavailableComplete >= 0);
+        Assert.True(paymentUnavailableReport > paymentUnavailableComplete);
+        Assert.True(paidComplete >= 0);
+        Assert.True(paidReport > paidComplete);
     }
 
     [Fact]

@@ -380,7 +380,9 @@ interface Window {
     ): Promise<OptimizedImageResult>;
     PROFILE_IMAGE_OPTIMIZATION_OPTIONS: ImageOptimizationOptions;
     __pendingApplicationSubmissionId?: string;
-    createApplicationSubmissionId(): string;
+    __pendingApplicationSubmissionFingerprint?: string;
+    createApplicationSubmissionPayloadKey(applicantData: unknown): string;
+    createApplicationSubmissionId(payloadFingerprint?: string): string;
     APPLICATION_SUBMISSION_TIMEOUT_MS: number;
     APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS: number;
     readApplicationErrorMessage(response: Response | null | undefined): Promise<string>;

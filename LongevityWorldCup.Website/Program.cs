@@ -176,6 +176,18 @@ namespace LongevityWorldCup.Website
                             CancellationToken.None);
                     }
                 });
+                options.AddPolicy(PublicRequestTimeoutPolicies.ApplicationSubmission, new RequestTimeoutPolicy
+                {
+                    Timeout = PublicRequestTimeoutPolicies.ApplicationSubmissionTimeout,
+                    TimeoutStatusCode = StatusCodes.Status504GatewayTimeout,
+                    WriteTimeoutResponse = static context =>
+                    {
+                        context.Response.ContentType = "application/json; charset=utf-8";
+                        return context.Response.WriteAsync(
+                            "{\"message\":\"The application submission took too long and was canceled.\"}",
+                            CancellationToken.None);
+                    }
+                });
             });
 
             builder.Services.AddSingleton<AssetVersionProvider>();
