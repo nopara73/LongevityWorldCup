@@ -87,10 +87,10 @@ public sealed class ProofUploadPageTests
 
         Assert.Contains("function ensurePdfJsReady(): Promise<PdfJsLibrary>", javascript);
         Assert.Contains("const pdfLib = await ensurePdfJsReady();", javascript);
-        Assert.Contains("const loadingTask = pdfLib.getDocument({ data: arrayBuffer });", javascript);
+        Assert.Contains("const loadingTask = pdfLib.getDocument({ data: fileBytes });", javascript);
         Assert.Contains("const maxProofImages = 37;", javascript);
         Assert.Contains("if (proofPics.length >= maxProofImages)", javascript);
-        Assert.DoesNotContain("const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });", javascript);
+        Assert.DoesNotContain("const loadingTask = pdfjsLib.getDocument({ data: fileBytes });", javascript);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class ProofUploadPageTests
 
         var javascript = await GetProofHelpersTypeScriptAsync(client);
         var handlerStart = javascript.IndexOf("const handleProofFiles = async function (", StringComparison.Ordinal);
-        var readerStart = javascript.IndexOf("const readDataURL: (file: File) => Promise<string>", handlerStart, StringComparison.Ordinal);
+        var readerStart = javascript.IndexOf("const readDataURL: (file: Blob) => Promise<string>", handlerStart, StringComparison.Ordinal);
         var imageCapStart = javascript.IndexOf("if (proofPics.length >= maxProofImages)", readerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
@@ -116,7 +116,8 @@ public sealed class ProofUploadPageTests
         Assert.Contains("let hitImageLimit = false;", javascript);
         Assert.Contains("hitImageLimit = true;", javascript);
         Assert.Contains("const showProofUploadNotice: (message: string) => void = message =>", javascript);
-        Assert.Contains("showProofUploadNotice('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');", javascript);
+        Assert.Contains("uploadNotices.push('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');", javascript);
+        Assert.Contains("showProofUploadNotice(uploadNotices.join(' '));", javascript);
         Assert.DoesNotContain("customAlert('You can upload a maximum of 37 images.')", javascript);
     }
 
@@ -193,9 +194,48 @@ public sealed class ProofUploadPageTests
         Assert.Contains("return dataUrl || raw;", javascript);
         Assert.Contains("} catch (_) {", javascript);
         Assert.Contains("return raw;", javascript);
-        Assert.Contains("const optimizedPage = await optimizeProofImageOrFallback(rawPage);", javascript);
         Assert.Contains("const dataUrl = await optimizeProofImageOrFallback(raw);", javascript);
-        Assert.DoesNotContain("await window.optimizeImageClient(rawPage, proofOptimizationOptions);", javascript);
+        Assert.DoesNotContain("const rawPage = canvas.toDataURL();", javascript);
+    }
+
+    [Fact]
+    public async Task ProofHelper_EncodesPdfCanvasesWithoutDependingOnImageBitmap()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
+
+        Assert.Contains("const encodeProofCanvas: (canvas: HTMLCanvasElement) => Promise<string> = async canvas =>", javascript);
+        Assert.Contains("const getPreferredProofCanvasContentType = (): Promise<'image/webp' | 'image/jpeg'> =>", javascript);
+        Assert.Contains("webpBlob?.type.toLowerCase() === 'image/webp'", javascript);
+        Assert.Contains("const maxDimension = Math.max(canvas.width, canvas.height);", javascript);
+        Assert.Contains("proofOptimizationOptions.maxSize / maxDimension", javascript);
+        Assert.Contains("blob.size <= proofOptimizationOptions.targetMaxBytes", javascript);
+        Assert.Contains("for (let attempt = 0; attempt < 12; attempt++)", javascript);
+        Assert.Contains("const optimizedPage = await encodeProofCanvas(canvas);", javascript);
+        Assert.DoesNotContain("const rawPage = canvas.toDataURL();", javascript);
+    }
+
+    [Fact]
+    public async Task ProofHelper_SkipsDuplicateEncodedProofs()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await GetProofHelpersTypeScriptAsync(client);
+
+        Assert.Contains("const knownProofImages = new Set(proofPics);", javascript);
+        Assert.Contains("const proofSourceImages = new Map<string, string>();", javascript);
+        Assert.Contains("const fingerprintProofSource = async (bytes: ArrayBuffer): Promise<string> =>", javascript);
+        Assert.Contains("const sourceKey = `${sourceFingerprint}:page:${pageNum}`;", javascript);
+        Assert.Contains("if (isKnownLiveProofSource(sourceKey))", javascript);
+        Assert.Contains("const addProofImage = (dataUrl: string): boolean =>", javascript);
+        Assert.Contains("if (knownProofImages.has(dataUrl))", javascript);
+        Assert.Contains("duplicateProofs++;", javascript);
+        Assert.Contains("addProofImage(optimizedPage);", javascript);
+        Assert.Contains("if (addProofImage(dataUrl))", javascript);
+        Assert.Contains("uploadNotices.push('Duplicate proof images were skipped.');", javascript);
     }
 
     [Fact]
@@ -448,7 +488,7 @@ public sealed class ProofUploadPageTests
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
         var parseStart = html.IndexOf("let biomarkerData = null;", StringComparison.Ordinal);
-        var parseEnd = html.IndexOf("const submissionId = window.createApplicationSubmissionId();", parseStart, StringComparison.Ordinal);
+        var parseEnd = html.IndexOf("const submissionId = window.createApplicationSubmissionId(submissionPayloadKey);", parseStart, StringComparison.Ordinal);
 
         Assert.True(parseStart >= 0);
         Assert.True(parseEnd > parseStart);
@@ -490,6 +530,27 @@ public sealed class ProofUploadPageTests
         Assert.Contains("removeSessionItem('chronoBortzDifference');", html);
         Assert.Contains("customAlert('Biomarker data is missing. Please fill out the biomarker form first.')", parseBody);
         Assert.Contains(".then(() => window.location.href = '/dashboard');", parseBody);
+    }
+
+    [Fact]
+    public async Task ResultUpload_SnapshotsPayloadAndKeysRetriesByItsContents()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/play/proof-upload.html");
+        var applicantStart = html.IndexOf("const applicantData = {", StringComparison.Ordinal);
+        var fetchStart = html.IndexOf("fetchWithTimeout('/api/application/application'", applicantStart, StringComparison.Ordinal);
+
+        Assert.True(applicantStart >= 0);
+        Assert.True(fetchStart > applicantStart);
+
+        var submissionSetup = html[applicantStart..fetchStart];
+        Assert.Contains("const submissionPayloadKey = window.createApplicationSubmissionPayloadKey(applicantData);", submissionSetup);
+        Assert.Contains("const submissionId = window.createApplicationSubmissionId(submissionPayloadKey);", submissionSetup);
+        Assert.Contains("applicantData.submissionId = submissionId;", submissionSetup);
+        Assert.Contains("const submissionBody = JSON.stringify(applicantData);", submissionSetup);
+        Assert.Contains("body: submissionBody", html[fetchStart..]);
     }
 
     [Fact]

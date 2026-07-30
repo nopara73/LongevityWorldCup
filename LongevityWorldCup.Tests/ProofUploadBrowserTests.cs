@@ -137,16 +137,24 @@ public sealed class ProofUploadBrowserTests
 
         await context.AddInitScriptAsync(
             """
+            const originalCanvasToBlob = HTMLCanvasElement.prototype.toBlob;
+            window.__proofCanvasEncodeRequests = { webp: 0, jpeg: 0 };
+            HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
+                if (type === 'image/webp') window.__proofCanvasEncodeRequests.webp++;
+                if (type === 'image/jpeg') window.__proofCanvasEncodeRequests.jpeg++;
+                const encodedType = type === 'image/webp' ? 'image/png' : type;
+                return originalCanvasToBlob.call(this, callback, encodedType, quality);
+            };
             window.pdfjsLib = {
                 GlobalWorkerOptions: {},
                 getDocument() {
                     return {
                         promise: Promise.resolve({
-                            numPages: 1,
-                            getPage: async () => ({
+                            numPages: 3,
+                            getPage: async pageNumber => ({
                                 getViewport: () => ({ width: 12, height: 12 }),
                                 render: ({ canvasContext }) => {
-                                    canvasContext.fillStyle = '#ffffff';
+                                    canvasContext.fillStyle = ['#ffffff', '#dddddd', '#bbbbbb'][pageNumber - 1];
                                     canvasContext.fillRect(0, 0, 12, 12);
                                     return { promise: Promise.resolve() };
                                 }
@@ -192,14 +200,22 @@ public sealed class ProofUploadBrowserTests
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
 
-        await page.Locator("#proofPicInput").SetInputFilesAsync(new FilePayload
+        var pdfProof = new FilePayload
         {
             Name = "lab-results.pdf",
             MimeType = "application/pdf",
             Buffer = Encoding.ASCII.GetBytes("%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF")
-        });
+        };
+        await page.Locator("#proofPicInput").SetInputFilesAsync(pdfProof);
         await page.WaitForFunctionAsync(
-            "() => !document.getElementById('submitButton')?.disabled && document.querySelectorAll('#proofImageContainer img').length === 1");
+            "() => !document.getElementById('submitButton')?.disabled && document.querySelectorAll('#proofImageContainer img').length === 3");
+        await page.Locator("#proofPicInput").SetInputFilesAsync(pdfProof);
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('#proofImageContainer .proof-upload-notice')?.textContent?.includes('Duplicate proof images were skipped.')");
+        Assert.Equal(3, await page.Locator("#proofImageContainer img").CountAsync());
+        var encodeRequests = await page.EvaluateAsync<JsonElement>("() => window.__proofCanvasEncodeRequests");
+        Assert.Equal(1, encodeRequests.GetProperty("webp").GetInt32());
+        Assert.Equal(3, encodeRequests.GetProperty("jpeg").GetInt32());
         await page.EvaluateAsync(
             """
             () => document.querySelectorAll('.biomarker-checkbox')
@@ -242,10 +258,142 @@ public sealed class ProofUploadBrowserTests
         Assert.Equal("gabor@example.test", payload.GetProperty("accountEmail").GetString());
         Assert.Equal(JsonValueKind.Null, payload.GetProperty("paymentOffer").ValueKind);
         Assert.False(string.IsNullOrWhiteSpace(payload.GetProperty("submissionId").GetString()));
-        var proof = Assert.Single(payload.GetProperty("proofPics").EnumerateArray()).GetString();
-        Assert.StartsWith("data:image/", proof);
-        Assert.Contains(";base64,", proof);
+        var proofs = payload.GetProperty("proofPics").EnumerateArray().ToList();
+        Assert.Equal(3, proofs.Count);
+        Assert.All(proofs, proof =>
+        {
+            Assert.StartsWith("data:image/jpeg;base64,", proof.GetString());
+            Assert.Contains(";base64,", proof.GetString());
+        });
         Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task ResultUpload_BoundsLargeNoisyPdfCanvasBeforeKeepingIt()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await LaunchBrowserAsync(playwright);
+        await using var context = await NewContextAsync(browser, app);
+        await RoutePageDependenciesAsync(context, delayProofHelper: false);
+
+        await context.AddInitScriptAsync(
+            """
+            window.pdfjsLib = {
+                GlobalWorkerOptions: {},
+                getDocument() {
+                    return {
+                        promise: Promise.resolve({
+                            numPages: 1,
+                            getPage: async () => ({
+                                getViewport: () => ({ width: 3000, height: 2200 }),
+                                render: ({ canvasContext }) => {
+                                    const width = canvasContext.canvas.width;
+                                    const height = canvasContext.canvas.height;
+                                    const pixels = canvasContext.createImageData(width, height);
+                                    let state = 0x12345678;
+                                    for (let index = 0; index < pixels.data.length; index += 4) {
+                                        state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+                                        pixels.data[index] = state & 255;
+                                        pixels.data[index + 1] = (state >>> 8) & 255;
+                                        pixels.data[index + 2] = (state >>> 16) & 255;
+                                        pixels.data[index + 3] = 255;
+                                    }
+                                    canvasContext.putImageData(pixels, 0, 0);
+                                    return { promise: Promise.resolve() };
+                                }
+                            })
+                        })
+                    };
+                }
+            };
+            window.sessionStorage.setItem('selectedAthlete', JSON.stringify({
+                Name: 'Canvas Bounds Athlete',
+                DisplayName: 'Canvas Bounds Athlete',
+                Biomarkers: []
+            }));
+            window.sessionStorage.setItem('biomarkerData', JSON.stringify({
+                Biomarkers: [{ Date: '2026-06-19', AlbGL: 45 }]
+            }));
+            """);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/proofs", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
+
+        await page.Locator("#proofPicInput").SetInputFilesAsync(new FilePayload
+        {
+            Name = "large-lab-results.pdf",
+            MimeType = "application/pdf",
+            Buffer = Encoding.ASCII.GetBytes("%PDF-1.4\n%%EOF")
+        });
+        await page.WaitForFunctionAsync(
+            "() => document.querySelectorAll('#proofImageContainer img').length === 1",
+            null,
+            new PageWaitForFunctionOptions { Timeout = 60_000 });
+
+        var dataUrl = await page.Locator("#proofImageContainer img").GetAttributeAsync("src");
+        Assert.NotNull(dataUrl);
+        var separator = dataUrl!.IndexOf(',');
+        Assert.True(separator > 0);
+        var bytes = Convert.FromBase64String(dataUrl[(separator + 1)..]);
+        Assert.True(bytes.Length <= (int)(1.5 * 1024 * 1024), $"Encoded proof was {bytes.Length} bytes.");
+
+        using var stream = new MemoryStream(bytes);
+        var imageInfo = SixLabors.ImageSharp.Image.Identify(stream);
+        Assert.NotNull(imageInfo);
+        Assert.True(Math.Max(imageInfo!.Width, imageInfo.Height) <= 2560);
+    }
+
+    [Fact]
+    public async Task ApplicationSubmissionId_ReusesExactPayloadAndRotatesAfterAnEdit()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await LaunchBrowserAsync(playwright);
+        await using var context = await NewContextAsync(browser, app);
+        await RoutePageDependenciesAsync(context, delayProofHelper: false);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => typeof window.createApplicationSubmissionId === 'function'");
+
+        var result = await page.EvaluateAsync<JsonElement>(
+            """
+            () => {
+                const largeProof = 'data:image/jpeg;base64,' + 'A'.repeat(2 * 1024 * 1024);
+                const applicantData = { proofPics: [largeProof] };
+                const firstPayload = window.createApplicationSubmissionPayloadKey(applicantData);
+                const editedPayload = window.createApplicationSubmissionPayloadKey({ proofPics: [largeProof, 'proof-b'] });
+                const report = window.buildApplicationSubmissionReport(
+                    applicantData,
+                    'submission-test',
+                    'started',
+                    'result-upload',
+                    null);
+                return {
+                    ids: [
+                        window.createApplicationSubmissionId(firstPayload),
+                        window.createApplicationSubmissionId(firstPayload),
+                        window.createApplicationSubmissionId(editedPayload)
+                    ],
+                    firstKeyLength: firstPayload.length,
+                    retainedKeyLength: window.__pendingApplicationSubmissionFingerprint.length,
+                    reportedBodyLength: report.jsonBodyLength,
+                    actualBodyLength: JSON.stringify(applicantData).length
+                };
+            }
+            """);
+
+        var ids = result.GetProperty("ids").EnumerateArray().Select(value => value.GetString()).ToList();
+        Assert.Equal(ids[0], ids[1]);
+        Assert.NotEqual(ids[0], ids[2]);
+        Assert.True(result.GetProperty("firstKeyLength").GetInt32() < 256);
+        Assert.True(result.GetProperty("retainedKeyLength").GetInt32() < 256);
+        Assert.Equal(
+            result.GetProperty("actualBodyLength").GetInt32(),
+            result.GetProperty("reportedBodyLength").GetInt32());
     }
 
     private static async Task<IBrowser> LaunchBrowserAsync(IPlaywright playwright)

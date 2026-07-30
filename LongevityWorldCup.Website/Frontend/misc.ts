@@ -748,9 +748,40 @@ function getErrorMessage(error: unknown): string | null {
     return error.message.slice(0, 500);
 }
 
-window.createApplicationSubmissionId = function () {
+function compactApplicationDataString(value: string): string {
+    let firstHash = 2166136261;
+    let secondHash = 0x9e3779b9;
+    for (let index = 0; index < value.length; index++) {
+        const code = value.charCodeAt(index);
+        firstHash = Math.imul(firstHash ^ code, 16777619);
+        secondHash = Math.imul(secondHash ^ code, 2246822519);
+    }
+    return `${value.length}:${(firstHash >>> 0).toString(16)}:${(secondHash >>> 0).toString(16)}`;
+}
+
+window.createApplicationSubmissionPayloadKey = function (applicantData: unknown): string {
+    const data = isRecord(applicantData) ? applicantData : {};
+    return JSON.stringify(data, (key, value: unknown) => {
+        if (key === 'proofPics' && Array.isArray(value)) {
+            return value.map(proof => typeof proof === 'string'
+                ? compactApplicationDataString(proof)
+                : proof);
+        }
+        if (key === 'profilePic' && typeof value === 'string') {
+            return compactApplicationDataString(value);
+        }
+        return value;
+    }) ?? '{}';
+};
+
+window.createApplicationSubmissionId = function (payloadFingerprint?: string) {
+    const normalizedFingerprint = typeof payloadFingerprint === 'string'
+        ? payloadFingerprint
+        : undefined;
     if (typeof window.__pendingApplicationSubmissionId === 'string'
-        && window.__pendingApplicationSubmissionId.length > 0) {
+        && window.__pendingApplicationSubmissionId.length > 0
+        && (normalizedFingerprint === undefined
+            || window.__pendingApplicationSubmissionFingerprint === normalizedFingerprint)) {
         return window.__pendingApplicationSubmissionId;
     }
 
@@ -762,10 +793,15 @@ window.createApplicationSubmissionId = function () {
     }
 
     window.__pendingApplicationSubmissionId = submissionId;
+    if (normalizedFingerprint === undefined) {
+        delete window.__pendingApplicationSubmissionFingerprint;
+    } else {
+        window.__pendingApplicationSubmissionFingerprint = normalizedFingerprint;
+    }
     return submissionId;
 };
 
-window.APPLICATION_SUBMISSION_TIMEOUT_MS = 65000;
+window.APPLICATION_SUBMISSION_TIMEOUT_MS = 310000;
 window.APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS = 2500;
 
 window.readApplicationErrorMessage = async function (response) {
@@ -842,7 +878,22 @@ window.buildApplicationSubmissionReport = function (applicantData, submissionId,
         : null;
     let jsonBodyLength = null;
     try {
-        jsonBodyLength = JSON.stringify(data).length;
+        let omittedDataLength = 0;
+        const skeleton = JSON.stringify(data, (key, value: unknown) => {
+            if (key === 'proofPics' && Array.isArray(value)) {
+                return value.map(proof => {
+                    if (typeof proof !== 'string') return proof;
+                    omittedDataLength += proof.length;
+                    return '';
+                });
+            }
+            if (key === 'profilePic' && typeof value === 'string') {
+                omittedDataLength += value.length;
+                return '';
+            }
+            return value;
+        });
+        jsonBodyLength = skeleton.length + omittedDataLength;
     } catch (_) {
         jsonBodyLength = null;
     }

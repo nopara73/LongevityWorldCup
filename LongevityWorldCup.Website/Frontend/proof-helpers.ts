@@ -267,6 +267,8 @@ window.setupProofUploadHTML = function (
         targetMaxBytes: 1.5 * 1024 * 1024
     };
     const maxProofImages = 37;
+    const proofSourceImages = new Map<string, string>();
+    let preferredProofCanvasContentType: Promise<'image/webp' | 'image/jpeg'> | null = null;
 
     ensurePdfJsReady().catch(() => {});
 
@@ -342,8 +344,8 @@ window.setupProofUploadHTML = function (
         nextButton.disabled = true;
         window.showLoading();
         try {
-            // helper to read a File as dataURL
-            const readDataURL: (file: File) => Promise<string> = file => new Promise((res, rej) => {
+            // Helper to read a File or encoded canvas Blob as a data URL.
+            const readDataURL: (file: Blob) => Promise<string> = file => new Promise((res, rej) => {
                 const r = new FileReader();
                 r.onload = () => {
                     if (typeof r.result === 'string') {
@@ -366,25 +368,141 @@ window.setupProofUploadHTML = function (
                 }
             };
 
+            const encodeCanvasBlob = (
+                canvas: HTMLCanvasElement,
+                contentType: string,
+                quality: number
+            ): Promise<Blob | null> => new Promise(resolve => canvas.toBlob(resolve, contentType, quality));
+
+            const resizeProofCanvas = (source: HTMLCanvasElement, scale: number): HTMLCanvasElement => {
+                const width = Math.max(1, Math.round(source.width * scale));
+                const height = Math.max(1, Math.round(source.height * scale));
+                if (width === source.width && height === source.height) return source;
+
+                const resized = document.createElement('canvas');
+                resized.width = width;
+                resized.height = height;
+                const context = resized.getContext('2d');
+                if (!context) throw new Error('Canvas context unavailable.');
+                context.drawImage(source, 0, 0, width, height);
+                return resized;
+            };
+
+            const getPreferredProofCanvasContentType = (): Promise<'image/webp' | 'image/jpeg'> => {
+                if (preferredProofCanvasContentType) return preferredProofCanvasContentType;
+
+                preferredProofCanvasContentType = (async () => {
+                    const probe = document.createElement('canvas');
+                    probe.width = 1;
+                    probe.height = 1;
+                    const webpBlob = await encodeCanvasBlob(
+                        probe,
+                        'image/webp',
+                        proofOptimizationOptions.quality);
+                    return webpBlob?.type.toLowerCase() === 'image/webp'
+                        ? 'image/webp'
+                        : 'image/jpeg';
+                })();
+                return preferredProofCanvasContentType;
+            };
+
+            const encodeProofCanvas: (canvas: HTMLCanvasElement) => Promise<string> = async canvas => {
+                const maxDimension = Math.max(canvas.width, canvas.height);
+                let workingCanvas = maxDimension > proofOptimizationOptions.maxSize
+                    ? resizeProofCanvas(canvas, proofOptimizationOptions.maxSize / maxDimension)
+                    : canvas;
+                const contentType = await getPreferredProofCanvasContentType();
+                let lastBlob: Blob | null = null;
+
+                // Try progressively lower quality at each size, then downscale according to
+                // the measured excess. This preserves the same bounds as normal image uploads
+                // without round-tripping a PDF canvas through createImageBitmap.
+                for (let attempt = 0; attempt < 12; attempt++) {
+                    const qualityStep = attempt % 4;
+                    const quality = Math.max(0.43, proofOptimizationOptions.quality - qualityStep * 0.15);
+                    const blob = await encodeCanvasBlob(workingCanvas, contentType, quality);
+                    if (!blob || blob.type.toLowerCase() !== contentType) {
+                        throw new Error('Proof canvas could not be encoded in a bounded image format.');
+                    }
+
+                    lastBlob = blob;
+                    if (blob.size <= proofOptimizationOptions.targetMaxBytes) {
+                        return await readDataURL(blob);
+                    }
+
+                    if (qualityStep === 3) {
+                        const measuredScale = Math.sqrt(proofOptimizationOptions.targetMaxBytes / blob.size) * 0.92;
+                        const nextScale = Math.min(0.8, Math.max(0.45, measuredScale));
+                        workingCanvas = resizeProofCanvas(workingCanvas, nextScale);
+                    }
+                }
+
+                throw new Error(
+                    `Proof canvas remained too large after bounded encoding (${lastBlob?.size ?? 0} bytes).`);
+            };
+
+            const fingerprintProofSource = async (bytes: ArrayBuffer): Promise<string> => {
+                if (window.crypto?.subtle) {
+                    const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+                    return Array.from(new Uint8Array(digest))
+                        .map(value => value.toString(16).padStart(2, '0'))
+                        .join('');
+                }
+
+                // Content-based fallback for older embedded browsers. This is a duplicate
+                // hint, not a security boundary.
+                let hash = 2166136261;
+                for (const value of new Uint8Array(bytes)) {
+                    hash = Math.imul(hash ^ value, 16777619);
+                }
+                return `${bytes.byteLength}:${(hash >>> 0).toString(16)}`;
+            };
+
+            const isKnownLiveProofSource = (sourceKey: string): boolean => {
+                const existingProof = proofSourceImages.get(sourceKey);
+                if (!existingProof) return false;
+                if (proofPics.includes(existingProof)) return true;
+
+                proofSourceImages.delete(sourceKey);
+                return false;
+            };
+
             let failedFiles = 0;
             const failedFileSamples: File[] = [];
             let hitImageLimit = false;
+            let duplicateProofs = 0;
+            const knownProofImages = new Set(proofPics);
+            const addProofImage = (dataUrl: string): boolean => {
+                if (knownProofImages.has(dataUrl)) {
+                    duplicateProofs++;
+                    return false;
+                }
+
+                knownProofImages.add(dataUrl);
+                proofPics.push(dataUrl);
+                return true;
+            };
             // process one by one to preserve order
             for (const file of supportedFiles) {
                 const proofCountBeforeFile = proofPics.length;
                 try {
+                    const fileBytes = await file.arrayBuffer();
+                    const sourceFingerprint = await fingerprintProofSource(fileBytes);
                     if (isProofPdfFile(file)) {
                         const pdfLib = await ensurePdfJsReady();
-                        // read file as arrayBuffer
-                        const arrayBuffer = await file.arrayBuffer();
                         // load PDF
-                        const loadingTask = pdfLib.getDocument({ data: arrayBuffer });
+                        const loadingTask = pdfLib.getDocument({ data: fileBytes });
                         const pdfDoc = await loadingTask.promise;
                         // render each page
                         for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
                             if (proofPics.length >= maxProofImages) {
                                 hitImageLimit = true;
                                 break;
+                            }
+                            const sourceKey = `${sourceFingerprint}:page:${pageNum}`;
+                            if (isKnownLiveProofSource(sourceKey)) {
+                                duplicateProofs++;
+                                continue;
                             }
                             const page = await pdfDoc.getPage(pageNum);
                             const viewport = page.getViewport({ scale: 1.5 });
@@ -394,10 +512,10 @@ window.setupProofUploadHTML = function (
                             const context = canvas.getContext('2d');
                             if (!context) throw new Error('Canvas context unavailable.');
                             await page.render({ canvasContext: context, viewport }).promise;
-                            const rawPage = canvas.toDataURL();
-                            const optimizedPage = await optimizeProofImageOrFallback(rawPage);
+                            const optimizedPage = await encodeProofCanvas(canvas);
                             if (optimizedPage) {
-                                proofPics.push(optimizedPage);
+                                addProofImage(optimizedPage);
+                                proofSourceImages.set(sourceKey, optimizedPage);
                             }
                         }
                         updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
@@ -410,13 +528,20 @@ window.setupProofUploadHTML = function (
                         hitImageLimit = true;
                         break;
                     }
+                    const sourceKey = `${sourceFingerprint}:image`;
+                    if (isKnownLiveProofSource(sourceKey)) {
+                        duplicateProofs++;
+                        continue;
+                    }
                     const raw = await readDataURL(file);
                     const dataUrl = await optimizeProofImageOrFallback(raw);
                     if (dataUrl) {
-                        proofPics.push(dataUrl);
-                        updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                        checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                        nextButton.disabled = true;
+                        proofSourceImages.set(sourceKey, dataUrl);
+                        if (addProofImage(dataUrl)) {
+                            updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                            checkProofImages(nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
+                            nextButton.disabled = true;
+                        }
                     } else {
                         failedFiles++;
                         failedFileSamples.push(file);
@@ -441,9 +566,16 @@ window.setupProofUploadHTML = function (
                 window.customAlert('Some proof files could not be processed. Please try them again as images or PDFs.')
                     .then(() => focusProofRetryButton(retryButton));
             }
+            const uploadNotices: string[] = [];
+            if (duplicateProofs > 0) {
+                uploadNotices.push('Duplicate proof images were skipped.');
+            }
             if (hitImageLimit) {
                 updateProofImageContainer(proofImageContainer, nextButton, proofPics, uploadProofButton, cameraButton, biomarkerChecklistContainer);
-                showProofUploadNotice('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');
+                uploadNotices.push('Only the first ' + maxProofImages + ' proof images were kept. Remove one to add another.');
+            }
+            if (uploadNotices.length > 0) {
+                showProofUploadNotice(uploadNotices.join(' '));
             }
         } catch (error) {
             trackProofFileRejected('proof_upload_failed', selectedFiles);

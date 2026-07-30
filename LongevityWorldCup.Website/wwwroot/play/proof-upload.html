@@ -1028,20 +1028,22 @@
                 const paymentOffer = readAdjustedPendingPaymentOffer();
                 if (paymentOffer === undefined) return;
 
-                const submissionId = window.createApplicationSubmissionId();
                 const submissionKind = 'result-upload';
                 const applicantData = {
                     name: athlete.Name,
                     accountEmail: readResultUploadContactEmail(),
                     chronoPhenoDifference: chronoPhenoDifference,
                     chronoBortzDifference: chronoBortzDifference,
-                    submissionId: submissionId,
                     biomarkers: biomarkerData.Biomarkers,
                     proofPics: proofPics,
                     paymentOffer: paymentOffer,
                     freePass: window.getFreePassValue ? window.getFreePassValue() : null,
                     discount: window.getDiscountValue ? window.getDiscountValue() : null
                 };
+                const submissionPayloadKey = window.createApplicationSubmissionPayloadKey(applicantData);
+                const submissionId = window.createApplicationSubmissionId(submissionPayloadKey);
+                applicantData.submissionId = submissionId;
+                const submissionBody = JSON.stringify(applicantData);
 
                 isResultUploadSubmitting = true;
                 submitButton.disabled = true;
@@ -1055,7 +1057,7 @@
                 fetchWithTimeout('/api/application/application', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(applicantData)
+                    body: submissionBody
                 }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
                     .then(response => {
                         hideLoading();
