@@ -447,6 +447,21 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public void BlankEquivalentSubmissionIdsReceiveDistinctRetryKeys()
+    {
+        var method = typeof(ApplicationController).GetMethod(
+            "NormalizeSubmissionId",
+            BindingFlags.Static | BindingFlags.NonPublic);
+
+        var first = Assert.IsType<string>(method!.Invoke(null, ["\r\n"]));
+        var second = Assert.IsType<string>(method.Invoke(null, [" \r\n\t"]));
+
+        Assert.True(Guid.TryParseExact(first, "N", out _));
+        Assert.True(Guid.TryParseExact(second, "N", out _));
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
     public void LogValueNormalizationEscapesLineBreaksBeforeTruncating()
     {
         var method = typeof(ApplicationController).GetMethod(
