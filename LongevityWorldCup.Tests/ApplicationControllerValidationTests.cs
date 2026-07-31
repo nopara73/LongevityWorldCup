@@ -429,6 +429,52 @@ public sealed class ApplicationControllerValidationTests
         Assert.Equal("data:image/png;base64,AA==", Assert.Single(applicant.ProofPics!));
     }
 
+    [Theory]
+    [InlineData("submission-safe", "submission-safe")]
+    [InlineData("submission-\r\nforged", "submission-\\r\\nforged")]
+    [InlineData("  submission-\nline  ", "submission-\\nline")]
+    public void SubmissionIdNormalizationEscapesLogLineBreaks(string submitted, string expected)
+    {
+        var method = typeof(ApplicationController).GetMethod(
+            "NormalizeSubmissionId",
+            BindingFlags.Static | BindingFlags.NonPublic);
+
+        var normalized = Assert.IsType<string>(method!.Invoke(null, [submitted]));
+
+        Assert.Equal(expected, normalized);
+        Assert.DoesNotContain('\r', normalized);
+        Assert.DoesNotContain('\n', normalized);
+    }
+
+    [Fact]
+    public void BlankEquivalentSubmissionIdsReceiveDistinctRetryKeys()
+    {
+        var method = typeof(ApplicationController).GetMethod(
+            "NormalizeSubmissionId",
+            BindingFlags.Static | BindingFlags.NonPublic);
+
+        var first = Assert.IsType<string>(method!.Invoke(null, ["\r\n"]));
+        var second = Assert.IsType<string>(method.Invoke(null, [" \r\n\t"]));
+
+        Assert.True(Guid.TryParseExact(first, "N", out _));
+        Assert.True(Guid.TryParseExact(second, "N", out _));
+        Assert.NotEqual(first, second);
+    }
+
+    [Fact]
+    public void LogValueNormalizationEscapesLineBreaksBeforeTruncating()
+    {
+        var method = typeof(ApplicationController).GetMethod(
+            "TrimForLog",
+            BindingFlags.Static | BindingFlags.NonPublic);
+
+        var normalized = Assert.IsType<string>(method!.Invoke(null, ["abc\r\ndef", 8]));
+
+        Assert.Equal("abc\\r\\nd", normalized);
+        Assert.DoesNotContain('\r', normalized);
+        Assert.DoesNotContain('\n', normalized);
+    }
+
     [Fact]
     public async Task ResultSubmissionProofValidationRecordsServerStatistics()
     {
