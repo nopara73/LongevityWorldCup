@@ -2432,10 +2432,11 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static string NormalizeSubmissionId(string? value)
         {
-            var normalized = TrimForLog(value, 80);
-            return string.IsNullOrWhiteSpace(normalized)
-                ? Guid.NewGuid().ToString("N")
-                : normalized;
+            var trimmed = value?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+                return Guid.NewGuid().ToString("N");
+
+            return TrimForLog(trimmed, 80);
         }
 
         private static string CreateApplicationSubmissionFingerprint(ApplicantData applicantData)
