@@ -2432,10 +2432,10 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static string NormalizeSubmissionId(string? value)
         {
-            var trimmed = value?.Trim();
-            return string.IsNullOrWhiteSpace(trimmed)
+            var normalized = TrimForLog(value, 80);
+            return string.IsNullOrWhiteSpace(normalized)
                 ? Guid.NewGuid().ToString("N")
-                : trimmed.Length <= 80 ? trimmed : trimmed[..80];
+                : normalized;
         }
 
         private static string CreateApplicationSubmissionFingerprint(ApplicantData applicantData)
@@ -2466,8 +2466,11 @@ namespace LongevityWorldCup.Website.Controllers
 
         private static string TrimForLog(string? value, int maxLength)
         {
-            var trimmed = value?.Trim() ?? "";
-            return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
+            var singleLine = (value ?? "")
+                .Replace("\r", "\\r", StringComparison.Ordinal)
+                .Replace("\n", "\\n", StringComparison.Ordinal)
+                .Trim();
+            return singleLine.Length <= maxLength ? singleLine : singleLine[..maxLength];
         }
 
         private static string? NormalizeFreePassValue(string? value)
