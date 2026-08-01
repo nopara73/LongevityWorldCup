@@ -46,6 +46,23 @@
         readonly dataIndex: number;
     }
 
+    interface RadarPoint {
+        readonly x: number;
+        readonly y: number;
+    }
+
+    interface RadarScale {
+        readonly xCenter: number;
+        readonly yCenter: number;
+        getPointPositionForValue(index: number, value: number): RadarPoint;
+    }
+
+    interface RadarPluginChart {
+        readonly ctx: CanvasRenderingContext2D;
+        readonly data: { readonly labels?: readonly unknown[] };
+        readonly scales?: { readonly r?: RadarScale };
+    }
+
     // Pheno Age: 5 domains (Immune first for radar; aligned with Best domain badges)
     var PHENO_DOMAINS: readonly PhenoDomain[] = [
         { key: 'immune', label: 'Immune', contributor: 'calculateImmunePhenoAgeContributor' },
@@ -268,6 +285,8 @@
     var radarResizeObserver: ResizeObserver | null = null;
     var radarResizeFrame = 0;
     const RADAR_ANIMATION_DURATION_MS = 220;
+    const RADAR_WEB_BOUNDARY_PERCENTILE = 80;
+    const RADAR_SCALE_MAX_PERCENTILE = 100;
 
     function getRadarAnimationDuration(): number {
         if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -452,9 +471,31 @@
         var radarPoint = modalStyles ? (modalStyles.getPropertyValue('--athlete-modal-cream').trim() || 'rgba(246,244,237,.92)') : 'rgba(246,244,237,.92)';
         var radarPointHitRadius = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 18 : 8;
         var contributors = data.tooltipContributors || [];
+        var radarWebSpokesPlugin = {
+            id: 'radarWebSpokes',
+            beforeDatasetsDraw: function (chart: RadarPluginChart): void {
+                var scale = chart.scales?.r;
+                var labelCount = chart.data.labels?.length ?? 0;
+                if (!scale || labelCount === 0) return;
+
+                var chartContext = chart.ctx;
+                chartContext.save();
+                chartContext.beginPath();
+                for (var index = 0; index < labelCount; index++) {
+                    var boundary = scale.getPointPositionForValue(index, RADAR_WEB_BOUNDARY_PERCENTILE);
+                    chartContext.moveTo(scale.xCenter, scale.yCenter);
+                    chartContext.lineTo(boundary.x, boundary.y);
+                }
+                chartContext.strokeStyle = radarGridColor;
+                chartContext.lineWidth = 1;
+                chartContext.stroke();
+                chartContext.restore();
+            }
+        };
 
         radarChartInstance = new ChartConstructor(ctx, {
             type: 'radar',
+            plugins: [radarWebSpokesPlugin],
             data: {
                 labels: data.labels,
                 datasets: [{
@@ -471,7 +512,8 @@
                     pointHoverBorderWidth: 2,
                     pointRadius: 5,
                     pointHoverRadius: 7,
-                    pointHitRadius: radarPointHitRadius
+                    pointHitRadius: radarPointHitRadius,
+                    clip: 8
                 }]
             },
             options: {
@@ -510,21 +552,28 @@
                 scales: {
                     r: {
                         min: 0,
-                        max: 100,
+                        max: RADAR_SCALE_MAX_PERCENTILE,
                         beginAtZero: true,
                         ticks: {
-                            stepSize: 25,
+                            stepSize: 20,
                             backdropColor: 'transparent',
                             display: false
                         },
                         pointLabels: {
                             font: { family: fontFamily, size: 11, weight: '500' },
                             color: radarLabelColor,
-                            padding: 3,
+                            padding: 8,
                             z: 1
                         },
-                        grid: { color: radarGridColor, lineWidth: 1 },
-                        angleLines: { color: radarGridColor, lineWidth: 1 }
+                        grid: {
+                            color: function (context: { readonly tick?: { readonly value?: number } }): string {
+                                return (context.tick?.value ?? 0) <= RADAR_WEB_BOUNDARY_PERCENTILE
+                                    ? radarGridColor
+                                    : 'transparent';
+                            },
+                            lineWidth: 1
+                        },
+                        angleLines: { display: false }
                     }
                 },
                 animation: { duration: getRadarAnimationDuration() },
