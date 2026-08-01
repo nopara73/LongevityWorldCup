@@ -1,0 +1,41 @@
+{
+  "Name": "Sonia Zelaya",
+  "DisplayName": null,
+  "MediaContact": "joe@photonvital.com",
+  "DateOfBirth": {
+    "Year": 1984,
+    "Month": 7,
+    "Day": 25
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-07-28",
+      "AlbGL": 46,
+      "CreatUmolL": 63.72,
+      "GluMmolL": 4.66,
+      "CrpMgL": 0.5,
+      "LymPc": 32.4,
+      "McvFL": 93.6,
+      "RdwPc": 12.3,
+      "AlpUL": 48,
+      "Wbc1000cellsuL": 4,
+      "NeutrophilPc": 56.8,
+      "MonocytePc": 9.4,
+      "Rbc10e12L": 4.52,
+      "MchPg": 30.3,
+      "UreaMmolL": 4.64,
+      "CystatinCMgL": 0.99,
+      "Hba1cMmolMol": 36.61,
+      "CholesterolMmolL": 5.48,
+      "ApoA1GL": 1.81,
+      "AltUL": 11,
+      "GgtUL": 20,
+      "ShbgNmolL": 96,
+      "VitaminDNmolL": 105
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "United States",
+  "Why": "Helping others feel their best",
+  "PersonalLink": "https://www.tiktok.com/@mymindfulpage?_r=1&_t=ZT-98Uwzk9S5BV"
+}
