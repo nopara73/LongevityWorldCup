@@ -558,17 +558,10 @@ public sealed class AthleteDialogLinkBrowserTests
             "/leaderboard",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await AssertSharedDialogInstalledAsync(page);
-        await page.WaitForFunctionAsync(
-            """
-            () => [...document.querySelectorAll(
-                '.leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name]')]
-                .some(row => window.slugifyName(row.dataset.athleteName, true) === 'michael-lustgarten'
-                    && row.getBoundingClientRect().width > 0
-                    && row.getBoundingClientRect().height > 0)
-            """);
-
         var leaderboardName = page.Locator(
             ".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name='Michael Lustgarten'] .athlete-name");
+        await leaderboardName.WaitForAsync(
+            new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
         await leaderboardName.ClickAsync();
         await WaitForOpenAthleteDialogAsync(page, MichaelSlug);
         var leaderboardDialog = await MeasureDialogAsync(page);
