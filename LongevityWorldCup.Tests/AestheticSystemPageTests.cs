@@ -71,6 +71,61 @@ public sealed class AestheticSystemPageTests
         Assert.DoesNotContain("{{ASSET_AESTHETIC_SYSTEM_CSS}}", html);
     }
 
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/leaderboard")]
+    [InlineData("/events")]
+    [InlineData("/longevitymaxxing")]
+    [InlineData("/play")]
+    [InlineData("/apply")]
+    [InlineData("/pheno-age")]
+    [InlineData("/ruleset")]
+    public async Task SharedPages_LoadVersionedSelfHostedFontAwesome(string path)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync(path);
+
+        Assert.Equal(
+            2,
+            html.Split("/vendor/font-awesome/6.7.2/css/all.min.css?v=", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("cdnjs.cloudflare.com/ajax/libs/font-awesome", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("{{ASSET_FONT_AWESOME_CSS}}", html);
+    }
+
+    [Fact]
+    public async Task SelfHostedFontAwesome_DistributionIsCompleteAndServedLocally()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var css = await client.GetStringAsync("/vendor/font-awesome/6.7.2/css/all.min.css");
+        var license = await client.GetStringAsync("/vendor/font-awesome/6.7.2/LICENSE.txt");
+
+        Assert.Contains("Font Awesome Free 6.7.2", css);
+        Assert.Contains("../webfonts/fa-solid-900.woff2", css);
+        Assert.Contains("../webfonts/fa-brands-400.woff2", css);
+        Assert.Contains("Font Awesome Free License", license);
+
+        foreach (var fileName in new[]
+                 {
+                     "fa-brands-400.ttf",
+                     "fa-brands-400.woff2",
+                     "fa-regular-400.ttf",
+                     "fa-regular-400.woff2",
+                     "fa-solid-900.ttf",
+                     "fa-solid-900.woff2",
+                     "fa-v4compatibility.ttf",
+                     "fa-v4compatibility.woff2"
+                 })
+        {
+            using var response = await client.GetAsync($"/vendor/font-awesome/6.7.2/webfonts/{fileName}");
+            response.EnsureSuccessStatusCode();
+            Assert.True((await response.Content.ReadAsByteArrayAsync()).Length > 1_000, $"{fileName} was empty.");
+        }
+    }
+
     [Fact]
     public async Task AestheticSystem_DefinesSemanticPaletteGeometryAndStateFallbacks()
     {

@@ -252,8 +252,8 @@ public sealed class HomepageChromeRegressionBrowserTests
             """);
 
         Assert.Contains("linear-gradient", cues.BackgroundImage);
-        Assert.Contains("rgb(76, 175, 80)", cues.BackgroundImage);
-        Assert.Contains("rgb(102, 187, 106)", cues.BackgroundImage);
+        Assert.Contains("rgb(31, 111, 53)", cues.BackgroundImage);
+        Assert.Contains("rgb(46, 125, 50)", cues.BackgroundImage);
         Assert.Equal("rgb(255, 255, 255)", cues.Foreground);
         Assert.Equal("700", cues.PlayWeight);
         Assert.Equal("400", cues.MiddleWeight);
@@ -720,8 +720,8 @@ public sealed class HomepageChromeRegressionBrowserTests
         Assert.True(action.BackgroundAlpha >= 0.99,
             $"{path} Play action lost its opaque fill at {viewport.Width}x{viewport.Height}.");
         Assert.Equal("rgb(255, 255, 255)", action.Foreground);
-        Assert.Contains("rgb(76, 175, 80)", action.BackgroundImage);
-        Assert.Contains("rgb(102, 187, 106)", action.BackgroundImage);
+        Assert.Contains("rgb(31, 111, 53)", action.BackgroundImage);
+        Assert.Contains("rgb(46, 125, 50)", action.BackgroundImage);
     }
 
     private sealed class HomepageHeaderDiagnostics

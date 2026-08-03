@@ -252,6 +252,7 @@ namespace LongevityWorldCup.Website.Middleware
                 .Replace("{{ASSET_APPLE_TOUCH_ICON_DARK}}", _assetVersionProvider.AppendVersion("/assets/apple-touch-icon-dark.png"))
                 .Replace("{{ASSET_SITE_WEBMANIFEST}}", _assetVersionProvider.AppendVersion("/assets/site.webmanifest"))
                 .Replace("{{ASSET_SITE_DARK_WEBMANIFEST}}", _assetVersionProvider.AppendVersion("/assets/site-dark.webmanifest"))
+                .Replace("{{ASSET_FONT_AWESOME_CSS}}", _assetVersionProvider.AppendVersion("/vendor/font-awesome/6.7.2/css/all.min.css"))
                 .Replace("{{ASSET_BADGES_CSS}}", _assetVersionProvider.AppendVersion("/css/badges.css"))
                 .Replace("{{ASSET_FLAG_ICONS_CSS}}", _assetVersionProvider.AppendVersion("/vendor/flag-icons/css/flag-icons.min.css"))
                 .Replace("{{ASSET_MISC_JS}}", _assetVersionProvider.AppendVersion("/js/misc.js"))

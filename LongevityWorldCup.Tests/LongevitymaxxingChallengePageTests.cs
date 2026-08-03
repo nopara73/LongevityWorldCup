@@ -831,7 +831,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-dashboard-category {", css);
         Assert.Contains(".lmx-category-day[data-day]::before", css);
         Assert.Contains(".lmx-category-day.partial", css);
-        Assert.Contains("background: linear-gradient(90deg, #bbf7d0 0 50%, #ffffff 50% 100%);", css);
+        Assert.Contains("background: linear-gradient(90deg, var(--lmx-success-soft) 0 50%, var(--lmx-surface) 50% 100%);", css);
         Assert.DoesNotContain("${value}</span>", javascript);
         Assert.DoesNotContain(".lmx-category-day.partial {\r\n    background: #fde68a;", css);
         Assert.Contains(".lmx-dashboard-stats", css);
