@@ -39,13 +39,13 @@
 <link rel="manifest" href="{{ASSET_SITE_WEBMANIFEST}}">
 <link rel="manifest" href="{{ASSET_SITE_DARK_WEBMANIFEST}}" media="(prefers-color-scheme: dark)">
 
-<!-- Preconnect for FontAwesome and CDN -->
+<!-- Preconnect for optional CDN-backed tools -->
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin="anonymous">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin="anonymous">
 
-<!-- Existing Stylesheets -->
-<link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" as="style" crossorigin="anonymous">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous">
+<!-- Self-hosted so core iconography survives CDN, privacy-filter, and offline failures. -->
+<link rel="preload" href="{{ASSET_FONT_AWESOME_CSS}}" as="style">
+<link rel="stylesheet" href="{{ASSET_FONT_AWESOME_CSS}}">
 
 {{OPTIONAL_HEAD_SCRIPTS}}
 

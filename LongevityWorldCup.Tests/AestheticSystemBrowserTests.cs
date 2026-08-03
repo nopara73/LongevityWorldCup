@@ -175,6 +175,99 @@ public sealed class AestheticSystemBrowserTests
     }
 
     [Fact]
+    public async Task SelfHostedFontAwesome_RendersEveryVisibleChallengeAndFooterIconWithoutExternalNetwork()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await LaunchBrowserAsync(playwright);
+        await using var context = await NewContextAsync(
+            browser,
+            app,
+            new BrowserNewContextOptions
+            {
+                ColorScheme = ColorScheme.Dark,
+                ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+            });
+
+        var page = await context.NewPageAsync();
+        await NavigateAndSettleAsync(page, "/longevitymaxxing");
+        await page.Locator(".lmx-ops-tile i").First.WaitForAsync();
+        await page.Locator(".footer .footer-link i").First.WaitForAsync();
+
+        var diagnostics = await page.EvaluateAsync<IconFontDiagnostics>(
+            """
+            () => {
+                const selector = [
+                    '.lmx-page i.fa',
+                    '.lmx-page i.fas',
+                    '.lmx-page i.fab',
+                    '.lmx-page i.fa-solid',
+                    '.lmx-page i.fa-brands',
+                    '.footer i.fa',
+                    '.footer i.fas',
+                    '.footer i.fab',
+                    '.footer i.fa-solid',
+                    '.footer i.fa-brands'
+                ].join(',');
+                const isVisible = element => {
+                    const style = getComputedStyle(element);
+                    const rect = element.getBoundingClientRect();
+                    return style.display !== 'none'
+                        && style.visibility !== 'hidden'
+                        && Number(style.opacity) > 0
+                        && rect.width > 0
+                        && rect.height > 0;
+                };
+                const icons = [...document.querySelectorAll(selector)]
+                    .filter(isVisible)
+                    .map(element => {
+                        const pseudo = getComputedStyle(element, '::before');
+                        return {
+                            Label: element.closest('a, button, [role="button"]')?.textContent?.trim()
+                                || element.className,
+                            Content: pseudo.content,
+                            FontFamily: pseudo.fontFamily,
+                            Width: element.getBoundingClientRect().width,
+                            Height: element.getBoundingClientRect().height,
+                            IsFooterIcon: Boolean(element.closest('.footer'))
+                        };
+                    });
+                const resources = performance.getEntriesByType('resource')
+                    .map(entry => entry.name)
+                    .filter(name => name.includes('font-awesome'));
+                return {
+                    SolidFaceLoaded: document.fonts.check('900 16px "Font Awesome 6 Free"'),
+                    BrandFaceLoaded: document.fonts.check('400 16px "Font Awesome 6 Brands"'),
+                    Icons: icons,
+                    FooterIconCount: icons.filter(icon => icon.IsFooterIcon).length,
+                    LocalResources: resources.filter(name => new URL(name).origin === location.origin),
+                    ExternalResources: resources.filter(name => new URL(name).origin !== location.origin)
+                };
+            }
+            """);
+
+        Assert.True(diagnostics.SolidFaceLoaded, "The self-hosted solid Font Awesome face did not load.");
+        Assert.True(diagnostics.BrandFaceLoaded, "The self-hosted brand Font Awesome face did not load.");
+        Assert.True(
+            diagnostics.Icons.Length >= 38,
+            $"Expected at least 38 visible Challenge/footer icons, found {diagnostics.Icons.Length}.");
+        Assert.Equal(12, diagnostics.FooterIconCount);
+        Assert.All(diagnostics.Icons, icon =>
+        {
+            Assert.DoesNotContain(icon.Content, new[] { "", "none", "normal", "\"\"" });
+            Assert.Contains("Font Awesome", icon.FontFamily);
+            Assert.True(icon.Width > 0 && icon.Height > 0, $"{icon.Label} has no rendered geometry.");
+        });
+        Assert.Contains(
+            diagnostics.LocalResources,
+            resource => resource.EndsWith("/vendor/font-awesome/6.7.2/webfonts/fa-solid-900.woff2", StringComparison.Ordinal));
+        Assert.Contains(
+            diagnostics.LocalResources,
+            resource => resource.EndsWith("/vendor/font-awesome/6.7.2/webfonts/fa-brands-400.woff2", StringComparison.Ordinal));
+        Assert.Empty(diagnostics.ExternalResources);
+    }
+
+    [Fact]
     public async Task ReducedMotion_DisablesThePlayEntranceMotion()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -2063,6 +2156,26 @@ public sealed class AestheticSystemBrowserTests
         public string SecondaryCopyColor { get; set; } = "";
         public string SecondaryActionBackground { get; set; } = "";
         public string SecondaryActionColor { get; set; } = "";
+    }
+
+    private sealed class IconFontDiagnostics
+    {
+        public bool SolidFaceLoaded { get; set; }
+        public bool BrandFaceLoaded { get; set; }
+        public IconGlyphDiagnostics[] Icons { get; set; } = [];
+        public int FooterIconCount { get; set; }
+        public string[] LocalResources { get; set; } = [];
+        public string[] ExternalResources { get; set; } = [];
+    }
+
+    private sealed class IconGlyphDiagnostics
+    {
+        public string Label { get; set; } = "";
+        public string Content { get; set; } = "";
+        public string FontFamily { get; set; } = "";
+        public double Width { get; set; }
+        public double Height { get; set; }
+        public bool IsFooterIcon { get; set; }
     }
 
     private sealed class MotionDiagnostics
