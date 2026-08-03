@@ -8,6 +8,87 @@ namespace LongevityWorldCup.Tests;
 public sealed class LongevitymaxxingChallengeBrowserTests
 {
     [Fact]
+    public async Task ChallengeContent_UsesReadableSemanticColorsInLightAndDarkThemes()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+
+        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                BaseURL = app.BaseAddress.ToString(),
+                ColorScheme = scheme,
+                Locale = "en-US",
+                ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+            });
+            await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+            var page = await context.NewPageAsync();
+            await page.RouteAsync(
+                "**/api/longevitymaxxing/state",
+                route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+            await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.Locator(".lmx-ops-tile").First.WaitForAsync();
+
+            var diagnostics = await BrowserContrast.MeasureVisibleTextAsync(
+                page,
+                "#lmxTitlePanel h1",
+                "#lmxHeroCopy",
+                ".lmx-question-preview-label span",
+                ".lmx-ops-label",
+                ".lmx-ops-tile strong",
+                "#lmxBoardMeta",
+                ".lmx-board-row:not(.header) .lmx-name",
+                ".lmx-board-row:not(.header) .lmx-number",
+                ".lmx-field > .lmx-label",
+                ".lmx-week-pager button:not(:disabled)");
+
+            Assert.True(diagnostics.Length >= 12, $"Expected representative Challenge copy in {scheme} mode.");
+            BrowserContrast.AssertMinimum($"{scheme} Challenge", diagnostics);
+
+            await page.CloseAsync();
+            await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
+            var participantPage = await context.NewPageAsync();
+            await participantPage.RouteAsync(
+                "**/api/longevitymaxxing/state",
+                route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+            await participantPage.RouteAsync(
+                "**/api/longevitymaxxing/participant",
+                route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(includeUpcomingCall: true))));
+            await participantPage.GotoAsync(
+                "/longevitymaxxing",
+                new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await participantPage.Locator(".lmx-dashboard-stat").First.WaitForAsync();
+
+            var participantDiagnostics = await BrowserContrast.MeasureVisibleTextAsync(
+                participantPage,
+                "#lmxTitlePanel h1",
+                "#lmxHeroCopy",
+                ".lmx-ops-label",
+                ".lmx-ops-tile strong",
+                ".lmx-dashboard-head strong",
+                ".lmx-dashboard-stat span",
+                ".lmx-dashboard-stat strong",
+                ".lmx-dashboard-stat em",
+                ".lmx-dashboard-category span",
+                ".lmx-dashboard-category strong",
+                "#lmxBoardMeta",
+                ".lmx-board-row:not(.header) .lmx-name",
+                ".lmx-board-row:not(.header) .lmx-number");
+
+            Assert.True(
+                participantDiagnostics.Length >= 20,
+                $"Expected representative participant dashboard copy in {scheme} mode.");
+            BrowserContrast.AssertMinimum($"{scheme} participant Challenge", participantDiagnostics);
+        }
+    }
+
+    [Fact]
     public async Task Leaderboard_UsesTwoWeekPagerOnMobileAndKeepsFullDesktopTimeline()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -137,10 +218,10 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         };
         var expectedCellColors = new[]
         {
-            "rgb(7, 89, 133)",
-            "rgb(153, 27, 27)",
-            "rgb(146, 64, 14)",
-            "rgb(22, 101, 52)"
+            "rgb(6, 93, 104)",
+            "rgb(180, 35, 59)",
+            "rgb(154, 103, 0)",
+            "rgb(31, 122, 56)"
         };
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-card i"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question-preview-item i"), "backgroundColor"));
@@ -154,7 +235,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 cell.innerHTML = ["sleep", "exercise", "nutrition", "vices"]
                     .map(key => `<span class="lmx-habit-mark full" data-key="${key}"></span>`)
                     .join("");
-                document.body.append(cell);
+                (document.querySelector('.lmx-page') || document.body).append(cell);
                 const colors = [
                     getComputedStyle(cell).color,
                     ...Array.from(cell.children, dot => getComputedStyle(dot).color)
