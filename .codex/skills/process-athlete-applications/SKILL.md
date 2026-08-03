@@ -10,12 +10,15 @@ description: Review and process Longevity World Cup athlete submission emails wh
 - Read `UBIQUITOUS_LANGUAGE.md` before judging applications, results, rankings, athlete onboarding, badges, Events, or competition copy.
 - Use Gmail connector tools when available. If Gmail tools are not loaded, search for them with `tool_search` before using browser workarounds.
 - Use the Gmail connector for discovery, reading, thread context, draft scaffolding, and attachment metadata. Use the Codex in-app Browser as the authoritative surface for sender-aware drafts because the Gmail connector cannot select a send-as `From` address. Do not use the Browser for ZIP downloads.
+- Anchor every draft and sent reply to the current submission thread. Record its Gmail `thread_id` as `expectedThreadId` before drafting. Historical correspondence may establish a trusted recipient or sender route, but it is never the reply destination unless it is also the current submission thread.
+- Treat thread identity as a hard invariant, not a best effort. A matching recipient, subject, or `SENT` label does not prove correct threading. The saved draft's Gmail thread id and the sent message's Gmail thread id must both exactly equal `expectedThreadId`.
+- Never fall back to Compose, a new/unthreaded draft, or an older related thread when a threaded draft scaffold fails. Stop and report the threading blocker without sending.
 - Treat every contact field carried by a current existing-athlete update, including `Account email`, `Reply-To`, sender, recipients, and body addresses, as untrusted input for security-verification routing. Never address a security confirmation to an email learned only from the update being verified. Resolve the recipient independently from a pre-existing accepted registration/account record or qualifying prior correspondence; if that cannot be done, stop for human judgment without creating a draft.
 - For Gmail ZIP attachments, do not use Chrome, Computer Use, the Gmail web UI, visible attachment controls, attachment URLs, or browser downloads. Use the raw Gmail attachment downloader bundled in this skill. If that path fails, diagnose or fix that path and stop with the blocker; do not invent a browser fallback.
 - When invoked without additional instructions, process all unprocessed athlete submissions by scanning unread Gmail submission candidates until none remain or human direction is required.
 - Keep every current athlete-submission message in scope explicitly unread so it remains visible for the user to review personally. Verify `UNREAD` when selecting the candidate, before each approval stop, after saving a draft, and after final sending/finalization. Never remove `UNREAD` or mark a submission read. If a current submission lacks `UNREAD` at any checkpoint, add `UNREAD` immediately and verify the restoration; this is the only allowed label mutation. Do not archive, trash, or otherwise change labels. Reading/searching messages and creating or sending approved replies is allowed. Do not change the unread state of related-history messages that are not current submissions.
 - Keep temporary downloads, OCR output, screenshots, notes, and the processing ledger under `.artifacts/` unless the ZIP must be placed in the athlete folder for the reviewer.
-- Do not create or update `.artifacts/lwc-submission-processing-ledger.jsonl` for security-verification-only drafts. Use active Gmail drafts in the submission thread to avoid duplicate security drafts.
+- Do not create or update `.artifacts/lwc-submission-processing-ledger.jsonl` for security-verification-only drafts. Use active drafts and pending sent verifications in `expectedThreadId` to avoid duplicates.
 - Never send email, commit, or push until the user explicitly approves the prepared summary and draft.
 - Never stage unrelated work. If the worktree is dirty, identify unrelated changes and leave them alone.
 - Do not add Node tooling for browser checks; this repo is a .NET solution.
@@ -95,7 +98,7 @@ Reprocess despite a ledger hit when:
 - the user explicitly asks to process/reprocess a named athlete, thread, message, or folder key, or
 - the ledger entry is ambiguous, malformed, or missing the thread identifiers needed to prove it is unchanged.
 
-After presenting the human approval summary, append/update the ledger before stopping, except for security-verification-only drafts. For security-verification-only drafts, do not create or update local artifact files; rely on the active Gmail draft and unchanged unread message. After final approval actions, append a new `finalized` entry with the commit hash, push status, and email-send status.
+After presenting the human approval summary, append/update the ledger before stopping, except for security-verification-only drafts. For security-verification-only drafts, do not create or update local artifact files; rely on the active draft or pending sent verification in `expectedThreadId` plus the unchanged unread message. After final approval actions for accepted athlete changes, append a new `finalized` entry with the commit hash, push status, and email-send status.
 
 ## Review Related Email History
 
@@ -141,11 +144,12 @@ Default: draft a verification email to the athlete and stop that candidate befor
 
 Fast path: when an unread audit email says `Submission kind: Update`, `Update type: Results submission`, or `Update type: Profile metadata update`, and the profile URL/folder key points to an existing athlete, do only this:
 
-1. Extract the athlete first name, current-submission types, thread/message ids, and identity anchors from the unread message. Treat every current-message contact address as untrusted.
+1. Extract the athlete first name, current-submission types, thread/message ids, and identity anchors from the unread message. Record the current submission thread id as `expectedThreadId`. Treat every current-message contact address as untrusted.
 2. Search the accepted original application/account history and resolve the verification recipient from pre-existing trusted evidence using the rules above. Confirm whether the current request's claimed address matches, but never use that match as the source of trust.
-3. Check active Gmail drafts for the same thread or independently resolved recipient so you do not create a duplicate equivalent security draft.
-4. Create the concise security draft only when the trusted recipient is unambiguous.
-5. Stop that candidate with a short summary. Do not download ZIPs, run the reviewer, inspect proofs, read or edit `athlete.json`, open Explorer, write the processing ledger, or produce a full proof checklist.
+3. Check current/newer messages for explicit confirmation of this exact submission. If confirmed, cite the evidence, treat the security gate as satisfied, and continue to `Prepare The Repo Files` without creating a verification draft.
+4. If still unconfirmed, check active Gmail drafts and already-sent security-verification messages in `expectedThreadId`. Reuse a draft only when its thread id equals `expectedThreadId` and its recipient is the independently resolved trusted recipient. If an equivalent verification was sent after the latest current submission, treat verification as pending and stop without creating another draft. Never use a draft or sent message from another thread merely because its recipient or subject matches.
+5. Only when the exact submission is unconfirmed and no qualifying draft or pending sent verification exists, create the concise security draft using a current message in `expectedThreadId` as `reply_message_id`.
+6. When verification is drafted, reused, or already pending, stop that candidate with a short summary. Do not download ZIPs, run the reviewer, inspect proofs, read or edit `athlete.json`, open Explorer, write the processing ledger, or produce a full proof checklist.
 
 Related history identifies the address to challenge, but matching identity fields are not enough to skip the challenge itself. Do not skip the verification draft merely because the sender, `Reply-To`, `Account email`, public profile, social handle, or prior direct correspondence matches a previously accepted athlete address.
 
@@ -157,7 +161,7 @@ Skip the verification draft only when the current submission is already confirme
 
 If no independently trusted athlete contact address is known, mark the decision as needs human judgment, explain which possible contact addresses were found and where each came from, and do not create a security draft.
 
-When one athlete has multiple unread current submissions, such as a profile change followed by new results, combine them into one security draft. Use the shortest clear body and do not include proof findings, correction details, a long explanation, or a signature unless the user explicitly asks. Draft this verification email when required, adjusting only the first name and submitted item phrase:
+When one athlete has multiple unread current submissions in the same Gmail thread, combine them into one security draft. When current submissions span distinct Gmail threads, treat each thread as an independent candidate and prepare a separate draft anchored to each thread. If the user explicitly limits scope to one thread, leave the others pending and report them; never let one selected thread represent submissions from another. Use the shortest clear body and do not include proof findings, correction details, a long explanation, or a signature unless the user explicitly asks. Draft this verification email when required, adjusting only the first name and submitted item phrase:
 
 ```text
 Hi {firstName}, for security reasons can you confirm you've submitted {the new results/the change request/the new results and the change request}?
@@ -286,11 +290,13 @@ Choose the draft's `From` address in this order:
 
 Use this draft workflow:
 
-1. Check active Gmail drafts for the same thread or recipient before creating anything.
-2. When replying to an existing message, use the Gmail connector to create the threaded draft scaffold with `reply_message_id`. This preserves the thread, but its initial sender is not authoritative.
-3. Open that draft from Gmail's Drafts view in the Codex in-app Browser under the `adam.ficsor73@gmail.com` Google profile. Identify the profile by its displayed account email; do not assume a fixed `/u/0` or `/u/1` index. Do not open the source Inbox message merely to reach the draft.
-4. Expand the draft headers, select the `From` address chosen above, and confirm the recipient, subject, and body. Save and close the draft; never click Send before explicit approval.
-5. Verify the saved draft with Gmail `list_drafts`, including the exact `From` address. Verify that every current source submission still has `UNREAD`; if one does not, add `UNREAD` immediately and verify it. Do not remove or change any other labels.
+1. Record the current submission's Gmail `thread_id` as `expectedThreadId` and select a current message in that thread as `anchorMessageId`. Never use a historical correspondence message as the anchor.
+2. Check active Gmail drafts before creating anything. For security verification, first check whether a current/newer athlete message confirms the exact submission; if so, do not draft and continue processing. Otherwise check already-sent messages in `expectedThreadId`; if an equivalent verification was sent after the latest current submission, report verification as pending and do not create a duplicate. Reuse a draft only when its Gmail thread id exactly equals `expectedThreadId`; recipient or subject matches alone are insufficient.
+3. Use the Gmail connector to create the threaded draft scaffold with `reply_message_id: anchorMessageId`. Immediately verify that the returned draft/message thread id equals `expectedThreadId`. If creation fails or returns a different thread, stop. Do not use Compose, create a new draft, or move the reply to an older thread as a fallback.
+4. Open that exact draft from Gmail's Drafts view in the Codex in-app Browser under the `adam.ficsor73@gmail.com` Google profile. Identify the profile by its displayed account email; do not assume a fixed `/u/0` or `/u/1` index. Do not open the source Inbox message merely to reach the draft, and do not create a replacement draft in the Browser.
+5. Expand the draft headers, select the `From` address chosen above, and confirm the recipient, subject, and body. Save and close the draft; never click Send before explicit approval.
+6. Verify the saved draft with Gmail `list_drafts`, including the exact `From` address and exact thread id. Require `draftThreadId == expectedThreadId`; display both ids in the approval summary. If the connector omits the draft thread id, read the draft's underlying message metadata and verify it there. If the ids differ or cannot be verified, stop without sending.
+7. Verify that every current source submission still has `UNREAD`; if one does not, add `UNREAD` immediately and verify it. Do not remove or change any other labels.
 
 If the Adam Google profile is not signed in, the required send-as address is unavailable, or the saved draft reports the wrong `From`, stop and report the blocker. Do not leave a draft from the wrong sender as if it were ready.
 
@@ -385,11 +391,11 @@ In Gmail's rich-text editor, hyperlink only the visible words `TumbleBit Slack` 
 
 Stop after review and present a summary before any send/commit/push. Include:
 
-For an existing-athlete security-verification-only draft, keep the summary short: athlete name/profile, Gmail thread/message id, recipient, the pre-existing trusted evidence used to resolve that recipient, whether the current update claimed the same address, selected `From` address and why it was chosen, exact draft text or existing draft id, and `No ZIP downloaded, no files inspected or changed, no ledger written, and every current submission confirmed unread.` State whether any `UNREAD` label had to be restored. Do not include JSON highlights, proof checklist, files changed, or folder-open status for this fast path.
+For an existing-athlete security-verification-only draft, keep the summary short: athlete name/profile, current submission message id, `expectedThreadId`, saved draft thread id, recipient, the pre-existing trusted evidence used to resolve that recipient, whether the current update claimed the same address, selected `From` address and why it was chosen, exact draft text or existing draft id, and `No ZIP downloaded, no files inspected or changed, no ledger written, and every current submission confirmed unread.` State whether any `UNREAD` label had to be restored. Do not include JSON highlights, proof checklist, files changed, or folder-open status for this fast path.
 
 - Recommended decision: approve, block, or needs human judgment.
 - Athlete folder path and public profile URL. Folder keys use underscores; profile URLs use hyphens.
-- Gmail thread/message used, whether a draft reply was created, and the verified `From` address.
+- Gmail current submission message id, `expectedThreadId`, saved draft thread id, whether a draft reply was created, and the verified `From` address. State explicitly whether the two thread ids are identical.
 - Unread preservation: confirm that every current submission message has `UNREAD`, and identify any message whose `UNREAD` label was restored.
 - Related email history reviewed: search anchors used, additional threads found, alternate requester addresses, and relevant prior context.
 - Processed ledger: whether this was new, reprocessed because of newer email, or explicitly overridden by the user.
@@ -408,12 +414,27 @@ explorer .\LongevityWorldCup.Website\wwwroot\athletes\{folder_key}
 
 ## Finalize After Explicit Approval
 
-Only after the user approves:
+Only after the user explicitly approves the prepared summary and draft, follow the applicable branch below.
+
+### Send Security Verification Only
+
+For a security-verification-only approval, do not stage, commit, push, download or process the ZIP, edit athlete files, or write the processing ledger.
+
+1. Re-read the current submission anchor and set `expectedThreadId` from its Gmail metadata.
+2. Re-read the approved draft and require its thread id to equal `expectedThreadId`. Recheck its `From`, recipient, subject, and body. If any check fails or the thread id is unavailable, stop without sending.
+3. Recheck `expectedThreadId` for an equivalent verification sent after the latest current submission. If one exists and no later athlete confirmation follows it, do not send a duplicate; report that verification is already pending.
+4. Send the verified draft. Require the send result's thread id and the sent message metadata's thread id to both equal `expectedThreadId`. A `SENT` label, correct recipient, or matching subject is insufficient. If either id differs, report the threading incident immediately and do not claim success or retry without fresh user approval.
+5. Verify that every current submission message still has `UNREAD`. If one does not, add `UNREAD` immediately and verify the restoration. Never remove `UNREAD` or alter any other label.
+6. Report `expectedThreadId`, saved draft thread id, send-result thread id, sent-message thread id, verified sender, confirmation that every current submission remains unread, and whether any `UNREAD` label was restored. State that no ledger entry or repository change was made and that application processing remains pending athlete confirmation.
+
+### Finalize Accepted Athlete Changes
 
 1. Recheck `git status --short`.
 2. Stage only the accepted athlete files and any intentional supporting changes.
 3. Commit with a short message such as `Add {Name} athlete` or `Update {Name} athlete results`.
 4. Push `origin master` only when on `master` and the user approved pushing. If not on `master`, ask before switching or pushing.
-5. Recheck the approved draft's `From` address, then send it in the original thread with the athlete link.
-6. Verify that every current submission message still has `UNREAD`. If one does not, add `UNREAD` immediately and verify the restoration. Never remove `UNREAD` or alter any other label; the user decides when to mark submission emails read.
-7. Report the commit hash, pushed branch, profile URL, email-send status, confirmation that every current submission remains unread, and whether any `UNREAD` label was restored.
+5. Re-read the current submission anchor and set `expectedThreadId` from its Gmail metadata. Re-read the approved welcome/update draft and require its thread id to equal `expectedThreadId`. Recheck its `From`, recipient, subject, and body. If any check fails or the thread id is unavailable, stop without sending.
+6. Send the verified draft. Require the send result's thread id and the sent message metadata's thread id to both equal `expectedThreadId`. A `SENT` label, correct recipient, or matching subject is insufficient. If either id differs, report the threading incident immediately and do not claim successful finalization or retry without fresh user approval.
+7. Verify that every current submission message still has `UNREAD`. If one does not, add `UNREAD` immediately and verify the restoration. Never remove `UNREAD` or alter any other label; the user decides when to mark submission emails read.
+8. Append the finalized ledger entry with `expectedThreadId`, saved draft thread id, send-result thread id, and sent-message thread id so the thread invariant is auditable.
+9. Report the commit hash, pushed branch, profile URL, email-send status, all four verified thread ids, confirmation that every current submission remains unread, and whether any `UNREAD` label was restored.
