@@ -201,7 +201,7 @@ video {
 .lmx-status-pill,
 .lmx-mini-label {
     background: var(--lwc-accent);
-    color: #ffffff;
+    color: var(--lwc-on-accent);
     font-weight: 700;
     text-transform: none;
 }
@@ -242,7 +242,7 @@ video {
 .lmx-ops-tile i,
 .lmx-workflow-step i {
     background: var(--lwc-accent);
-    color: #ffffff;
+    color: var(--lwc-on-accent);
 }
 
 .lmx-habit-card span,
@@ -298,7 +298,7 @@ html body #lmxParticipantTabs .lmx-tab[aria-selected="true"] {
     border: 1px solid transparent;
     border-radius: var(--lwc-radius-md);
     background: var(--lwc-accent);
-    color: #ffffff;
+    color: var(--lwc-on-accent);
     box-shadow: none;
     transition: background-color var(--lwc-duration-fast) var(--lwc-ease), border-color var(--lwc-duration-fast) var(--lwc-ease), color var(--lwc-duration-fast) var(--lwc-ease);
 }
@@ -306,6 +306,7 @@ html body #lmxParticipantTabs .lmx-tab[aria-selected="true"] {
 .lmx-button:hover:not(:disabled),
 .lmx-button:active:not(:disabled) {
     background: var(--lwc-accent-hover);
+    color: var(--lwc-on-accent);
     box-shadow: none;
     transform: none;
 }
@@ -459,7 +460,7 @@ button:active,
 .bioage-calculate-button {
     border: 1px solid transparent;
     background-color: var(--lwc-accent);
-    color: #ffffff;
+    color: var(--lwc-on-accent);
     transition: background-color var(--lwc-duration-fast) var(--lwc-ease), border-color var(--lwc-duration-fast) var(--lwc-ease), color var(--lwc-duration-fast) var(--lwc-ease);
 }
 
@@ -469,6 +470,7 @@ button:active,
 .enhanced-subscribe-btn:hover,
 .bioage-calculate-button:hover {
     background-color: var(--lwc-accent-hover);
+    color: var(--lwc-on-accent);
 }
 
 /* The homepage still has a container-level `background` shorthand. Match its
@@ -476,10 +478,12 @@ button:active,
    legacy gradient cannot leave white Subscribe text on a transparent button. */
 button.enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]) {
     background: var(--lwc-accent);
+    color: var(--lwc-on-accent);
 }
 
 button.enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]):hover {
     background: var(--lwc-accent-hover);
+    color: var(--lwc-on-accent);
 }
 
 .back-button,
@@ -495,8 +499,8 @@ select:disabled,
 textarea:disabled,
 [aria-disabled="true"] {
     opacity: 1;
-    color: #657482;
-    background-color: #e7ecef;
+    color: var(--lwc-muted);
+    background-color: var(--lwc-surface-muted);
     border-color: var(--lwc-border);
     box-shadow: none;
     cursor: not-allowed;
@@ -1069,22 +1073,22 @@ html body .leaderboard-view-switcher .view-badge {
         color: var(--lwc-ink) !important;
     }
 
-    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary),
-    html body .dialog-button,
-    html body .rankings-btn,
-    html body .enhanced-subscribe-btn,
-    html body .bioage-calculate-button {
-        background-color: #087685;
-        color: #ffffff;
+    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]),
+    html body .dialog-button:not(:disabled):not([aria-disabled="true"]),
+    html body .rankings-btn:not(:disabled):not([aria-disabled="true"]),
+    html body .enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]),
+    html body .bioage-calculate-button:not(:disabled):not([aria-disabled="true"]) {
+        background: var(--lwc-accent);
+        color: var(--lwc-on-accent);
     }
 
-    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):hover,
-    html body .dialog-button:hover,
-    html body .rankings-btn:hover,
-    html body .enhanced-subscribe-btn:hover,
-    html body .bioage-calculate-button:hover {
-        background-color: #0f8292;
-        color: #ffffff;
+    html body .option-button:not(.grey):not(.back-button):not(.flow-action--secondary):not(:disabled):not([aria-disabled="true"]):hover,
+    html body .dialog-button:not(:disabled):not([aria-disabled="true"]):hover,
+    html body .rankings-btn:not(:disabled):not([aria-disabled="true"]):hover,
+    html body .enhanced-subscribe-btn:not(:disabled):not([aria-disabled="true"]):hover,
+    html body .bioage-calculate-button:not(:disabled):not([aria-disabled="true"]):hover {
+        background: var(--lwc-accent-hover);
+        color: var(--lwc-on-accent);
     }
 
     html body .leaderboard-view-switcher input:checked + .view-badge {
@@ -1109,9 +1113,13 @@ html body .leaderboard-view-switcher .view-badge {
     html body textarea:disabled,
     html body [aria-disabled="true"] {
         border-color: var(--lwc-border);
-        background: #25313b;
-        color: #9aabb8;
+        background: var(--lwc-surface-muted);
+        color: var(--lwc-muted);
     }
+}
+
+.blood-sport-accent {
+    color: var(--lwc-danger);
 }
 
 @media (prefers-reduced-motion: reduce) {

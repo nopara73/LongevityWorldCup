@@ -8,6 +8,230 @@ namespace LongevityWorldCup.Tests;
 public sealed class LongevitymaxxingChallengeBrowserTests
 {
     [Fact]
+    public async Task ChallengeContent_UsesReadableSemanticColorsInLightAndDarkThemes()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+
+        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                BaseURL = app.BaseAddress.ToString(),
+                ColorScheme = scheme,
+                Locale = "en-US",
+                ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+            });
+            await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+            var page = await context.NewPageAsync();
+            await page.RouteAsync(
+                "**/api/data/athletes",
+                route => FulfillJsonAsync(
+                    route,
+                    JsonSerializer.Serialize(new[]
+                    {
+                        new
+                        {
+                            DisplayName = "Browser Champion",
+                            Name = "Browser Champion",
+                            AthleteSlug = "browser_champion",
+                            ProfilePicLeaderboardThumb = ""
+                        }
+                    })));
+            await page.RouteAsync(
+                "**/api/longevitymaxxing/state",
+                route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+            await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.Locator(".lmx-ops-tile").First.WaitForAsync();
+
+            var diagnostics = await BrowserContrast.MeasureVisibleTextAsync(
+                page,
+                "#lmxTitlePanel h1",
+                "#lmxHeroCopy",
+                ".lmx-question-preview-label span",
+                ".lmx-ops-label",
+                ".lmx-ops-tile strong",
+                "#lmxBoardMeta",
+                ".lmx-board-row:not(.header) .lmx-name",
+                ".lmx-board-row:not(.header) .lmx-number",
+                ".lmx-field > .lmx-label",
+                ".lmx-week-pager button:not(:disabled)");
+
+            Assert.True(diagnostics.Length >= 12, $"Expected representative Challenge copy in {scheme} mode.");
+            BrowserContrast.AssertMinimum($"{scheme} Challenge", diagnostics);
+
+            await page.Locator("label:has(input[name='lmxSignupIdentity'][value='athlete'])").ClickAsync();
+            var athleteSearch = page.Locator("#lmxSignupAthlete");
+            await athleteSearch.FillAsync("Browser");
+            var highlightedMatch = page.Locator(".lmx-athlete-option strong");
+            await highlightedMatch.WaitForAsync();
+            var highlightDiagnostics = await BrowserContrast.MeasureVisibleTextAsync(
+                page,
+                ".lmx-athlete-option strong");
+            Assert.Single(highlightDiagnostics);
+            BrowserContrast.AssertMinimum($"{scheme} athlete autocomplete highlight", highlightDiagnostics);
+
+            await page.CloseAsync();
+            await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
+            var participantPage = await context.NewPageAsync();
+            await participantPage.RouteAsync(
+                "**/api/longevitymaxxing/state",
+                route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+            await participantPage.RouteAsync(
+                "**/api/longevitymaxxing/participant",
+                route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(includeUpcomingCall: true))));
+            await participantPage.GotoAsync(
+                "/longevitymaxxing",
+                new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await participantPage.Locator(".lmx-dashboard-stat").First.WaitForAsync();
+
+            var participantDiagnostics = await BrowserContrast.MeasureVisibleTextAsync(
+                participantPage,
+                "#lmxTitlePanel h1",
+                ".lmx-status-pill:not(.muted)",
+                "#lmxHeroCopy",
+                ".lmx-ops-label",
+                ".lmx-ops-tile strong",
+                ".lmx-dashboard-head strong",
+                ".lmx-mini-label",
+                ".lmx-dashboard-stat span",
+                ".lmx-dashboard-stat strong",
+                ".lmx-dashboard-stat em",
+                ".lmx-dashboard-category span",
+                ".lmx-dashboard-category strong",
+                "#lmxBoardMeta",
+                ".lmx-board-row:not(.header) .lmx-name",
+                ".lmx-board-row:not(.header) .lmx-number");
+
+            Assert.True(
+                participantDiagnostics.Length >= 22,
+                $"Expected representative participant dashboard copy in {scheme} mode.");
+            BrowserContrast.AssertMinimum($"{scheme} participant Challenge", participantDiagnostics);
+
+            var onAccentForegrounds = await participantPage.EvaluateAsync<string[][]>(
+                """
+                () => {
+                    if (!document.querySelector('.lmx-workflow-step i')) {
+                        const workflowProbe = document.createElement('span');
+                        workflowProbe.className = 'lmx-workflow-step';
+                        workflowProbe.innerHTML = '<i aria-hidden="true"></i>';
+                        document.querySelector('.lmx-page')?.append(workflowProbe);
+                    }
+                    const probe = document.createElement('span');
+                    probe.style.color = 'var(--lwc-on-accent)';
+                    document.body.append(probe);
+                    const expected = getComputedStyle(probe).color;
+                    probe.remove();
+                    const selectors = [
+                        '.lmx-status-pill:not(.muted)',
+                        '.lmx-mini-label',
+                        '.lmx-ops-tile i',
+                        '.lmx-workflow-step i'
+                    ];
+                    return selectors.map(selector => [
+                        selector,
+                        expected,
+                        ...Array.from(document.querySelectorAll(selector), element => getComputedStyle(element).color)
+                    ]);
+                }
+                """);
+            Assert.All(onAccentForegrounds, colors =>
+            {
+                Assert.True(colors.Length > 2, $"Expected at least one {colors[0]} element.");
+                Assert.All(colors.Skip(2), color => Assert.Equal(colors[1], color));
+            });
+        }
+    }
+
+    [Fact]
+    public async Task QuoteDialogSourceLinksAndActions_MeetContrastForEveryThemeAndCategory()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+
+        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                BaseURL = app.BaseAddress.ToString(),
+                ColorScheme = scheme,
+                Locale = "en-US",
+                ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+            });
+            await BrowserTestApp.RouteExternalResourcesAsync(context);
+            var page = await context.NewPageAsync();
+            await page.RouteAsync(
+                "**/api/longevitymaxxing/state",
+                route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+            await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+            await page.Locator(".lmx-page").WaitForAsync();
+
+            foreach (var bucket in new[] { "sleep", "exercise", "nutrition", "vices", "mindset" })
+            {
+                await page.EvaluateAsync(
+                    """
+                    bucket => {
+                        document.getElementById('contrastQuoteDialog')?.remove();
+                        const dialog = document.createElement('div');
+                        dialog.id = 'contrastQuoteDialog';
+                        dialog.className = 'lmx-quote-dialog';
+                        dialog.dataset.quoteBucket = bucket;
+                        dialog.innerHTML = `
+                            <div class="lmx-quote-dialog-card">
+                                <div class="lmx-quote-dialog-main">
+                                    <div class="lmx-quote-source">
+                                        <span class="lmx-quote-athlete"><a href="#athlete">Quoted athlete</a></span>
+                                    </div>
+                                    <div class="lmx-quote-dialog-actions">
+                                        <button class="lmx-button" type="button">OK</button>
+                                    </div>
+                                </div>
+                            </div>`;
+                        document.body.append(dialog);
+                    }
+                    """,
+                    bucket);
+
+                var link = page.Locator("#contrastQuoteDialog .lmx-quote-athlete a");
+                var action = page.Locator("#contrastQuoteDialog .lmx-button");
+                await link.WaitForAsync();
+
+                var linkDefault = await BrowserContrast.MeasureVisibleTextAsync(
+                    page,
+                    "#contrastQuoteDialog .lmx-quote-athlete a");
+                var actionDefault = await BrowserContrast.MeasureVisibleTextAsync(
+                    page,
+                    "#contrastQuoteDialog .lmx-button");
+                Assert.Single(linkDefault);
+                Assert.Single(actionDefault);
+                BrowserContrast.AssertMinimum($"{scheme} {bucket} quote link", linkDefault);
+                BrowserContrast.AssertMinimum($"{scheme} {bucket} quote action", actionDefault);
+
+                await link.HoverAsync();
+                var linkHover = await BrowserContrast.MeasureVisibleTextAsync(
+                    page,
+                    "#contrastQuoteDialog .lmx-quote-athlete a");
+                BrowserContrast.AssertMinimum($"{scheme} {bucket} quote link hover", linkHover);
+
+                await action.HoverAsync();
+                var actionHover = await BrowserContrast.MeasureVisibleTextAsync(
+                    page,
+                    "#contrastQuoteDialog .lmx-button");
+                BrowserContrast.AssertMinimum($"{scheme} {bucket} quote action hover", actionHover);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Leaderboard_UsesTwoWeekPagerOnMobileAndKeepsFullDesktopTimeline()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -137,10 +361,10 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         };
         var expectedCellColors = new[]
         {
-            "rgb(7, 89, 133)",
-            "rgb(153, 27, 27)",
-            "rgb(146, 64, 14)",
-            "rgb(22, 101, 52)"
+            "rgb(6, 93, 104)",
+            "rgb(180, 35, 59)",
+            "rgb(154, 103, 0)",
+            "rgb(31, 122, 56)"
         };
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-habit-card i"), "backgroundColor"));
         Assert.Equal(expectedPalette, await ComputedColorsAsync(page.Locator(".lmx-question-preview-item i"), "backgroundColor"));
@@ -154,7 +378,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 cell.innerHTML = ["sleep", "exercise", "nutrition", "vices"]
                     .map(key => `<span class="lmx-habit-mark full" data-key="${key}"></span>`)
                     .join("");
-                document.body.append(cell);
+                (document.querySelector('.lmx-page') || document.body).append(cell);
                 const colors = [
                     getComputedStyle(cell).color,
                     ...Array.from(cell.children, dot => getComputedStyle(dot).color)
