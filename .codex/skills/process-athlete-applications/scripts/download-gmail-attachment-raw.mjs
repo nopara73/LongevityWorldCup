@@ -14,7 +14,7 @@ function printUsage() {
   node download-gmail-attachment-raw.mjs --message-id <gmail-message-id> --out <path> [--filename <name> | --attachment-id <id>] [--thread-id <codex-thread-id>] [--cwd <path>] [--overwrite]
 
 Downloads an attachment through the Codex Gmail connector without Gmail attachment ingestion.
-The helper calls gmail.read_email with include_raw_mime=true through the local Codex app-server,
+The helper calls gmail.read_email with format=raw through the local Codex app-server,
 extracts the selected MIME part bytes locally, writes them to --out, and prints JSON metadata.`);
 }
 
@@ -307,7 +307,7 @@ async function callGmailReadEmail(client, threadId, messageId) {
     tool: 'gmail.read_email',
     arguments: {
       message_id: messageId,
-      include_raw_mime: true,
+      format: 'raw',
     },
   });
 
@@ -621,11 +621,13 @@ async function main() {
     const threadId = await ensureThreadLoaded(client, args.cwd, args.threadId);
     const gmailMessage = await callGmailReadEmail(client, threadId, args.messageId);
 
-    const rawMime = gmailMessage.raw_mime_base64url
+    const rawMime = gmailMessage.raw
+      ? base64UrlToBuffer(gmailMessage.raw).toString('latin1')
+      : gmailMessage.raw_mime_base64url
       ? base64UrlToBuffer(gmailMessage.raw_mime_base64url).toString('latin1')
       : gmailMessage.raw_mime;
     if (!rawMime) {
-      throw new Error('Gmail read_email did not return raw MIME. Ensure include_raw_mime is supported for this message.');
+      throw new Error('Gmail read_email did not return raw MIME in raw format.');
     }
 
     const mimeAttachments = collectMimeAttachments(rawMime);
