@@ -76,15 +76,14 @@ public sealed class MotionRestraintPageTests
     }
 
     [Fact]
-    public void UserFacingMotionDeclarations_UseSharedDurationTokens()
+    public void FirstPartyUserFacingMotionDeclarations_UseSharedDurationTokens()
     {
         var webRoot = Path.Combine(FindRepoRoot(), "LongevityWorldCup.Website", "wwwroot");
         var failures = new List<string>();
 
         var files = Directory
             .EnumerateFiles(webRoot, "*", SearchOption.AllDirectories)
-            .Where(path => path.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
-                || path.EndsWith(".html", StringComparison.OrdinalIgnoreCase));
+            .Where(path => IsFirstPartyUserFacingAsset(path, webRoot));
 
         foreach (var path in files)
         {
@@ -155,9 +154,38 @@ public sealed class MotionRestraintPageTests
 
         Assert.True(
             failures.Count == 0,
-            "Visible motion must use --lwc-duration-fast/normal and --lwc-ease; only essential loading loops may use a longer literal duration."
+            "First-party visible motion must use --lwc-duration-fast/normal and --lwc-ease; only essential loading loops may use a longer literal duration."
             + Environment.NewLine
             + string.Join(Environment.NewLine, failures));
+    }
+
+    [Theory]
+    [InlineData("css/aesthetic-system.css", true)]
+    [InlineData("index.html", true)]
+    [InlineData("vendor-overrides.css", true)]
+    [InlineData("vendor/font-awesome/6.7.2/css/all.min.css", false)]
+    [InlineData("vendor/flag-icons/css/flag-icons.min.css", false)]
+    [InlineData("assets/logo.png", false)]
+    public void MotionAudit_ScopesToFirstPartyCssAndHtml(string relativePath, bool expected)
+    {
+        var webRoot = Path.Combine(FindRepoRoot(), "LongevityWorldCup.Website", "wwwroot");
+        var path = Path.Combine(webRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+
+        Assert.Equal(expected, IsFirstPartyUserFacingAsset(path, webRoot));
+    }
+
+    private static bool IsFirstPartyUserFacingAsset(string path, string webRoot)
+    {
+        if (!path.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
+            && !path.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var fullPath = Path.GetFullPath(path);
+        var vendorRoot = Path.GetFullPath(Path.Combine(webRoot, "vendor"));
+        return !fullPath.Equals(vendorRoot, StringComparison.OrdinalIgnoreCase)
+            && !fullPath.StartsWith(vendorRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool ResolvesToAllowedMotionValue(
