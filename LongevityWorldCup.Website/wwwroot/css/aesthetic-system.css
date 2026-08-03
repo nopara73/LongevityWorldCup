@@ -201,7 +201,7 @@ video {
 .lmx-status-pill,
 .lmx-mini-label {
     background: var(--lwc-accent);
-    color: #ffffff;
+    color: var(--lwc-on-accent);
     font-weight: 700;
     text-transform: none;
 }
@@ -242,7 +242,7 @@ video {
 .lmx-ops-tile i,
 .lmx-workflow-step i {
     background: var(--lwc-accent);
-    color: #ffffff;
+    color: var(--lwc-on-accent);
 }
 
 .lmx-habit-card span,

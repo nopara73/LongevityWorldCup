@@ -11,6 +11,16 @@ internal static class BrowserContrast
             """
             selectors => {
                 const parse = value => {
+                    const modern = value.match(/color\(srgb\s+([^)]+)\)/i);
+                    if (modern) {
+                        const parts = modern[1].split(/[\s\/]+/).filter(Boolean).map(Number);
+                        return {
+                            r: (parts[0] || 0) * 255,
+                            g: (parts[1] || 0) * 255,
+                            b: (parts[2] || 0) * 255,
+                            a: parts.length > 3 ? parts[3] : 1
+                        };
+                    }
                     const match = value.match(/rgba?\(([^)]+)\)/i);
                     if (!match) return { r: 0, g: 0, b: 0, a: 0 };
                     const parts = match[1].split(/[\s,\/]+/).filter(Boolean).map(Number);

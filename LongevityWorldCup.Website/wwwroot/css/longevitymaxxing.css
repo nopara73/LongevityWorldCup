@@ -1677,8 +1677,8 @@
 
 .lmx-athlete-option strong {
     border-radius: 4px;
-    background: rgba(0, 188, 212, 0.16);
-    color: #0f5965;
+    background: var(--lmx-accent-soft);
+    color: var(--lmx-accent-hover);
 }
 
 .lmx-athlete-empty {
@@ -2158,6 +2158,7 @@ body.lmx-photo-viewer-open {
     --lmx-quote-accent: var(--lmx-category-accent, #14b8a6);
     --lmx-quote-accent-deep: var(--lmx-category-deep, #0f766e);
     --lmx-quote-accent-soft: rgba(var(--lmx-category-soft, 20, 184, 166), 0.10);
+    --lmx-quote-link: var(--lmx-quote-accent-deep);
     position: relative;
     z-index: 1;
     width: min(100%, 43rem);
@@ -2175,6 +2176,12 @@ body.lmx-photo-viewer-open {
     --lmx-quote-accent: #6366f1;
     --lmx-quote-accent-deep: #3730a3;
     --lmx-quote-accent-soft: rgba(99, 102, 241, 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+    .lmx-quote-dialog-card {
+        --lmx-quote-link: color-mix(in srgb, var(--lmx-quote-accent) 42%, var(--lmx-ink));
+    }
 }
 
 .lmx-quote-dialog-body {
@@ -2318,12 +2325,12 @@ body.lmx-photo-viewer-open {
     min-height: 2rem;
     display: inline-flex;
     align-items: center;
-    color: var(--lmx-quote-accent-deep);
+    color: var(--lmx-quote-link);
     font-weight: 900;
 }
 
 .lmx-quote-source a:hover {
-    color: var(--lmx-quote-accent-deep);
+    color: var(--lmx-quote-link);
     text-decoration: underline;
 }
 
@@ -2395,11 +2402,14 @@ body.lmx-photo-viewer-open {
     min-width: 4.8rem;
     min-height: 2.55rem;
     background: var(--lmx-quote-accent-deep);
+    color: var(--lmx-on-inverse);
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
 }
 
 .lmx-quote-dialog-card .lmx-button:hover:not(:disabled) {
-    background: var(--lmx-quote-accent);
+    border-color: var(--lmx-quote-accent);
+    background-color: var(--lmx-quote-accent-deep);
+    color: var(--lmx-on-inverse);
 }
 
 @media (max-width: 560px) {
