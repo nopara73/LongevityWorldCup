@@ -22,6 +22,8 @@ This file records durable UI decisions for Longevity World Cup. Keep it short: a
 
 - Strong color communicates an action, selection, or named status. Structural borders stay neutral, and state meaning must also be available through text, iconography, or shape. Light and dark palettes are designed independently rather than produced with filters.
 
+- Neutral foregrounds and surfaces must be paired through the shared semantic palette; do not place a hard-coded light-palette text color on a theme-switched surface. Actions use the palette's on-accent color instead of assuming white text.
+
 - Inline informational, success, warning, and error feedback uses the same neutral message surface, semantic leading edge, spacing, and recovery-action geometry. A blocking alert keeps the dialog shell because it is a focused interruption, but reuses the same palette, type, radius, and action hierarchy.
 
 - Direct-tap controls in mobile, toolbar, footer, and modal contexts should generally be easy to hit, with about a 44px target when space allows.

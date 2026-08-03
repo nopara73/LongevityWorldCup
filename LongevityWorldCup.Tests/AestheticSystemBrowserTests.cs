@@ -138,8 +138,8 @@ public sealed class AestheticSystemBrowserTests
         Assert.True(proof.HasExpectedAthleteCopy);
         Assert.Equal("rgb(230, 237, 243)", proof.MainCopyColor);
         Assert.Equal("rgb(230, 237, 243)", proof.SupportingCopyColor);
-        Assert.Equal("rgb(8, 118, 133)", proof.FilledActionBackground);
-        Assert.Equal("rgb(255, 255, 255)", proof.FilledActionColor);
+        Assert.Equal("rgb(91, 213, 221)", proof.FilledActionBackground);
+        Assert.Equal("rgb(8, 47, 53)", proof.FilledActionColor);
         Assert.False(proof.FilledActionDisabled);
         Assert.NotEqual(readOnly.Background, proof.FilledActionBackground);
         Assert.NotEqual(readOnly.Color, proof.FilledActionColor);
@@ -847,6 +847,40 @@ public sealed class AestheticSystemBrowserTests
     }
 
     [Fact]
+    public async Task SharedPrimaryActionsAndSemanticAccentCopy_MeetTextContrastInLightAndDarkThemes()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await LaunchBrowserAsync(playwright);
+
+        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
+        {
+            await using var context = await NewContextAsync(
+                browser,
+                app,
+                new BrowserNewContextOptions
+                {
+                    ColorScheme = scheme,
+                    ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+                });
+            var page = await context.NewPageAsync();
+
+            await NavigateAndSettleAsync(page, "/");
+            var actions = await BrowserContrast.MeasureVisibleTextAsync(
+                page,
+                ".join-game:not(.scrolled-button)",
+                ".enhanced-subscribe-btn");
+            Assert.Equal(2, actions.Length);
+            BrowserContrast.AssertMinimum($"{scheme} shared action", actions);
+
+            await NavigateAndSettleAsync(page, "/pheno-age");
+            var accentCopy = await BrowserContrast.MeasureVisibleTextAsync(page, ".blood-sport-accent");
+            Assert.Single(accentCopy);
+            BrowserContrast.AssertMinimum($"{scheme} semantic danger copy", accentCopy);
+        }
+    }
+
+    [Fact]
     public async Task SlowAndOfflineEventRequests_ShowLoadingAndRecoveryStates()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -1086,7 +1120,9 @@ public sealed class AestheticSystemBrowserTests
             Assert.True(
                 state.TextContrast >= minimumTextContrast,
                 $"{mode} {state.Name} text contrast was {state.TextContrast:F2}:1; " +
-                $"expected at least {minimumTextContrast:F1}:1.");
+                $"expected at least {minimumTextContrast:F1}:1. " +
+                $"foreground={state.ForegroundColor}, background={state.BackgroundColor}, " +
+                $"outer={state.EffectiveOuterBackgroundColor}.");
             Assert.True(
                 state.HasStateEvidence,
                 $"{mode} {state.Name} state was not active or semantically exposed when measured.");
