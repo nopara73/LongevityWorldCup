@@ -2193,6 +2193,7 @@
         updateCalculateButton();
 
         let isResultCalculated = false;
+        let lastCalculatedBortzAge = NaN;
         let lastCalculatedPhenoAge = NaN;
         function hideCalculatedResult() {
             isResultCalculated = false;
@@ -2577,6 +2578,7 @@
 
             // Calculate bortz age: BAA = 10 * sum(centered * coeff), biological age = chronological age + BAA
             const bortzAge = window.BortzAge.calculateBortzAge(markerValues);
+            lastCalculatedBortzAge = bortzAge;
 
             // Compute Pheno Age (PhenoAge order: age, albumin, creatinine, glucose, crp, wbc, lymphocyte, mcv, rdw, ap)
             let phenoAge = NaN;
@@ -3257,7 +3259,7 @@
 
             // Store the data in sessionStorage
             const chronoAgeAtTimeOfTest = window.calculateAgeAtDate(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));
-            const bortzAge = parseFloat(document.getElementById('animatedAge').innerText);
+            const bortzAge = lastCalculatedBortzAge;
             const chronoBortzDifference = bortzAge - chronoAgeAtTimeOfTest;
             const phenoAge = lastCalculatedPhenoAge;
             const chronoPhenoDifference = phenoAge - chronoAgeAtTimeOfTest;

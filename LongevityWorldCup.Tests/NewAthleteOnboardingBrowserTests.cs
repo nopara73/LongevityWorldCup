@@ -1,4 +1,6 @@
 using Microsoft.Playwright;
+using LongevityWorldCup.Website.Business;
+using LongevityWorldCup.Website.Tools;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -715,6 +717,29 @@ public sealed class NewAthleteOnboardingBrowserTests
         Assert.Equal(13.4, handoff.GetProperty("rdwPc").GetDouble(), 1);
         Assert.Equal(6.54, handoff.GetProperty("wbc1000cellsuL").GetDouble(), 2);
 
+        var canonicalDifferences = SubmittedAgeDifferenceCalculator.Calculate(
+            new DateOfBirthData { Year = 1980, Month = 5, Day = 20 },
+            [new BiomarkerData
+            {
+                Date = bloodDrawDate,
+                AlbGL = 45,
+                AlpUL = 83,
+                CreatUmolL = 72,
+                CrpMgL = 1.35,
+                GluMmolL = 5,
+                LymPc = 28.6,
+                McvFL = 92,
+                RdwPc = 13.4,
+                Wbc1000cellsuL = 6.54
+            }],
+            includePheno: true,
+            includeBortz: false);
+        Assert.NotNull(canonicalDifferences.PhenoDifference);
+        Assert.Equal(
+            Math.Round(canonicalDifferences.PhenoDifference.Value, 2),
+            handoff.GetProperty("chronoPhenoDifference").GetDouble(),
+            precision: 2);
+
         var markerKeys = handoff
             .GetProperty("markerKeys")
             .EnumerateArray()
@@ -818,6 +843,47 @@ public sealed class NewAthleteOnboardingBrowserTests
         Assert.Equal(5.4, handoff.GetProperty("ureaMmolL").GetDouble(), 1);
         Assert.Equal(50, handoff.GetProperty("vitaminDNmolL").GetDouble());
         Assert.Equal(6.54, handoff.GetProperty("wbc1000cellsuL").GetDouble(), 2);
+
+        var canonicalDifferences = SubmittedAgeDifferenceCalculator.Calculate(
+            new DateOfBirthData { Year = 1980, Month = 5, Day = 20 },
+            [new BiomarkerData
+            {
+                Date = bloodDrawDate,
+                AlbGL = 45,
+                AlpUL = 83,
+                AltUL = 22,
+                ApoA1GL = 1.52,
+                CholesterolMmolL = 5.6,
+                CreatUmolL = 72,
+                CrpMgL = 1.35,
+                CystatinCMgL = 0.9,
+                GluMmolL = 5,
+                GgtUL = 29,
+                Hba1cMmolMol = 35.5,
+                LymPc = 28.6,
+                MchPg = 31.8,
+                McvFL = 92,
+                MonocytePc = 7.2,
+                NeutrophilPc = 64.2,
+                Rbc10e12L = 4.5,
+                RdwPc = 13.4,
+                ShbgNmolL = 45.6,
+                UreaMmolL = 5.4,
+                VitaminDNmolL = 50,
+                Wbc1000cellsuL = 6.54
+            }],
+            includePheno: true,
+            includeBortz: true);
+        Assert.NotNull(canonicalDifferences.PhenoDifference);
+        Assert.NotNull(canonicalDifferences.BortzDifference);
+        Assert.Equal(
+            Math.Round(canonicalDifferences.PhenoDifference.Value, 2),
+            handoff.GetProperty("chronoPhenoDifference").GetDouble(),
+            precision: 2);
+        Assert.Equal(
+            Math.Round(canonicalDifferences.BortzDifference.Value, 2),
+            handoff.GetProperty("chronoBortzDifference").GetDouble(),
+            precision: 2);
 
         var markerKeys = handoff
             .GetProperty("markerKeys")
