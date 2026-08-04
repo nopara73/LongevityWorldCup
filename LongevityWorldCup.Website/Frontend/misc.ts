@@ -481,8 +481,8 @@ window.calculateAgeAtDate = function (birthDate, atDate) {
     const utc2 = Date.UTC(atDate.getFullYear(), atDate.getMonth(), atDate.getDate());
     const totalDays = (utc2 - utc1) / msPerDay;
 
-    // Convert days to years with improved precision
-    return Math.round((totalDays / 365.2425) * 100) / 100;
+    // Keep calculation precision here. Callers round only when presenting the age.
+    return totalDays / 365.2425;
 }
 
 window.calculateCompletedYearsAtDate = function (birthDate, atDate) {

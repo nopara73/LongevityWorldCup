@@ -477,9 +477,43 @@ namespace LongevityWorldCup.Website.Controllers
 
                 // 1) Build a temp folder with profile + proofs + athlete.json
                 var folderKey = SanitizeFileName(applicantData.Name ?? "noname");
+                var existingAthleteFields = isResultSubmissionOnly || isEditSubmissionOnly
+                    ? TryReadExistingAthleteFields(_environment, folderKey, applicantData.Name)
+                    : new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
                 if ((isResultSubmissionOnly || isEditSubmissionOnly) && string.IsNullOrWhiteSpace(accountEmail))
                 {
-                    accountEmail = ResolveExistingAthleteContactEmail(TryReadExistingAthleteFields(_environment, folderKey, applicantData.Name));
+                    accountEmail = ResolveExistingAthleteContactEmail(existingAthleteFields);
+                }
+
+                var includePhenoDifference = !string.IsNullOrWhiteSpace(chronoPhenoDifference);
+                var includeBortzDifference = !string.IsNullOrWhiteSpace(chronoBortzDifference);
+                var canonicalDifferences = SubmittedAgeDifferenceCalculator.Calculate(
+                    applicantData.DateOfBirth ?? TryReadExistingAthleteDateOfBirth(existingAthleteFields),
+                    applicantData.Biomarkers,
+                    includePhenoDifference,
+                    includeBortzDifference);
+                if (includePhenoDifference && canonicalDifferences.PhenoDifference is double phenoDifference)
+                {
+                    chronoPhenoDifference = FormatSubmittedAgeDifference(phenoDifference);
+                }
+                else if (includePhenoDifference)
+                {
+                    _logger.LogWarning(
+                        "Could not recompute submitted pheno age difference. SubmissionId={SubmissionId} Athlete={Athlete}",
+                        submissionId,
+                        applicantData.Name);
+                }
+
+                if (includeBortzDifference && canonicalDifferences.BortzDifference is double bortzDifference)
+                {
+                    chronoBortzDifference = FormatSubmittedAgeDifference(bortzDifference);
+                }
+                else if (includeBortzDifference)
+                {
+                    _logger.LogWarning(
+                        "Could not recompute submitted bortz age difference. SubmissionId={SubmissionId} Athlete={Athlete}",
+                        submissionId,
+                        applicantData.Name);
                 }
                 AddReplyToIfValid(message, accountEmail, displayNameOrName);
 
@@ -1789,6 +1823,28 @@ namespace LongevityWorldCup.Website.Controllers
             => existingFields.TryGetValue("MediaContact", out var mediaContact)
                 ? NormalizeOptionalAccountEmail(mediaContact)
                 : null;
+
+        private static DateOfBirthData? TryReadExistingAthleteDateOfBirth(
+            IReadOnlyDictionary<string, string?> existingFields)
+        {
+            if (!existingFields.TryGetValue("DateOfBirth", out var serializedDateOfBirth)
+                || string.IsNullOrWhiteSpace(serializedDateOfBirth))
+            {
+                return null;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<DateOfBirthData>(serializedDateOfBirth);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        private static string FormatSubmittedAgeDifference(double difference)
+            => difference.ToString("0.00", CultureInfo.InvariantCulture);
 
         private static void AddReplyToIfValid(MimeMessage message, string? accountEmail, string? displayName)
         {

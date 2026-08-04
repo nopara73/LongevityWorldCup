@@ -137,6 +137,10 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("const setSessionItem = bioageFlow.setSessionItem;", html);
         Assert.Contains("serializedBiomarkerData = JSON.stringify(biomarkerData);", html);
         Assert.Contains("setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))", html);
+        Assert.Contains("let lastCalculatedPhenoAge = NaN;", html);
+        Assert.Contains("lastCalculatedPhenoAge = phenoAge;", html);
+        Assert.Contains("const phenoAge = lastCalculatedPhenoAge;", html);
+        Assert.DoesNotContain("const phenoAge = parseFloat(document.getElementById('animatedAge').innerText);", html);
         Assert.Contains("setSessionItem('biomarkerData', serializedBiomarkerData)", html);
         Assert.Contains("setSessionItem('bioageClock', 'pheno')", html);
         Assert.Contains("setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer)", html);
@@ -608,6 +612,10 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("serializedBiomarkerData = JSON.stringify(biomarkerData);", html);
         Assert.Contains("setSessionItem('chronoBortzDifference', chronoBortzDifference.toFixed(2))", html);
         Assert.Contains("setSessionItem('chronoPhenoDifference', chronoPhenoDifference.toFixed(2))", html);
+        Assert.Contains("let lastCalculatedBortzAge = NaN;", html);
+        Assert.Contains("lastCalculatedBortzAge = bortzAge;", html);
+        Assert.Contains("const bortzAge = lastCalculatedBortzAge;", html);
+        Assert.DoesNotContain("const bortzAge = parseFloat(document.getElementById('animatedAge').innerText);", html);
         Assert.Contains("setSessionItem('biomarkerData', serializedBiomarkerData)", html);
         Assert.Contains("setSessionItem('bioageClock', 'bortz')", html);
         Assert.Contains("setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedPaymentOffer)", html);

@@ -1813,6 +1813,7 @@
         updateCalculateButton();
 
         let isResultCalculated = false;
+        let lastCalculatedPhenoAge = NaN;
         function hideCalculatedResult() {
             isResultCalculated = false;
             document.getElementById('phenoAgeResult')?.classList.remove('show');
@@ -2003,6 +2004,7 @@
 
             // Calculate PhenoAge using the helper function
             const phenoAge = window.PhenoAge.calculatePhenoAge(markerValues);
+            lastCalculatedPhenoAge = phenoAge;
 
             // Display the result
             const resultElement = document.getElementById('phenoAgeResult');
@@ -2614,7 +2616,7 @@
 
             // Store the data in sessionStorage
             const chronoAgeAtTimeOfTest = window.calculateAgeAtDate(new Date(year, month, day), new Date(`${bloodDrawDate}T00:00:00`));
-            const phenoAge = parseFloat(document.getElementById('animatedAge').innerText);
+            const phenoAge = lastCalculatedPhenoAge;
             const chronoPhenoDifference = phenoAge - chronoAgeAtTimeOfTest;
             if (!storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference)) return;
 

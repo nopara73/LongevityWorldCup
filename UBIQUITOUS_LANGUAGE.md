@@ -9,6 +9,7 @@
 - **Rank** is current computed order; **Placement** is stored or historical position.
 - **Pheno Age**, **Bortz Age**, and **Crowd Age** are distinct clocks/views.
 - **Biological Age Difference** is biological age minus chronological age; lower is better. **Age Reduction** is the favorable public label.
+- Biological age differences use unrounded biological and chronological ages; rounding is presentation-only.
 - **Effective Age Reduction** is the Ultimate League score: Bortz for Pro, otherwise pheno.
 - **Crowd Count** is accepted realistic guesses behind Crowd Age.
 - Crowd Age competition placements compare crowd age with chronological age. The existing raw crowd age badge and its on-site BadgeAward Events remain visible, but they must not generate social posts.
