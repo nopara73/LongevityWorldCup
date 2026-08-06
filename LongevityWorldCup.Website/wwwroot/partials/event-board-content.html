@@ -705,8 +705,10 @@
     .events-board table tbody tr.custom-event-row:not(.custom-event-no-details) .custom-event-expander{
         position:absolute;
         right:0;
-        top:50%;
-        transform:translateY(-50%);
+        top:0;
+        bottom:0;
+        margin-block:auto;
+        transform:none !important;
     }
     .custom-event-expander:hover{
         background:rgba(0,188,212,.08) !important;
