@@ -50,6 +50,10 @@ public sealed class EventBoardBrowserTests
         var expander = row.Locator(".custom-event-expander");
         var details = page.Locator("#eventsTable tbody tr.custom-event-details");
 
+        await AssertExpanderIsContainedAndCenteredAsync(row, expander);
+        await expander.HoverAsync();
+        await AssertExpanderIsContainedAndCenteredAsync(row, expander);
+
         await row.Locator(".col-date").ClickAsync();
         Assert.True(await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')"));
         Assert.Equal("true", await expander.GetAttributeAsync("aria-expanded"));
@@ -67,6 +71,23 @@ public sealed class EventBoardBrowserTests
         await titleLink.ClickAsync();
         Assert.True(await row.EvaluateAsync<bool>("element => element.classList.contains('is-open')"));
         Assert.Empty(errors);
+    }
+
+    private static async Task AssertExpanderIsContainedAndCenteredAsync(
+        ILocator row,
+        ILocator expander)
+    {
+        var rowBox = Assert.IsType<LocatorBoundingBoxResult>(await row.BoundingBoxAsync());
+        var expanderBox = Assert.IsType<LocatorBoundingBoxResult>(await expander.BoundingBoxAsync());
+        var rowCenter = rowBox.Y + (rowBox.Height / 2);
+        var expanderCenter = expanderBox.Y + (expanderBox.Height / 2);
+
+        Assert.True(
+            expanderBox.Y >= rowBox.Y && expanderBox.Y + expanderBox.Height <= rowBox.Y + rowBox.Height,
+            $"Expected the expander to stay within the row. Row: {rowBox.Y}-{rowBox.Y + rowBox.Height}; expander: {expanderBox.Y}-{expanderBox.Y + expanderBox.Height}.");
+        Assert.True(
+            Math.Abs(rowCenter - expanderCenter) < 1,
+            $"Expected the expander to be vertically centered. Row center: {rowCenter}; expander center: {expanderCenter}.");
     }
 
     [Fact]
