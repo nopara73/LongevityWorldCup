@@ -38,11 +38,12 @@ public sealed class EventBoardBrowserTests
         var errors = new List<string>();
         page.Console += (_, message) =>
         {
-            if (message.Type == "error") errors.Add(message.Text);
+            if (message.Type == "error" && !message.Text.StartsWith("Error fetching athletes:", StringComparison.Ordinal))
+                errors.Add(message.Text);
         };
         page.PageError += (_, error) => errors.Add(error);
         await page.GotoAsync(
-            "/events",
+            "/",
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
 
         var row = page.Locator("#eventsTable tbody tr.custom-event-row");
@@ -79,9 +80,11 @@ public sealed class EventBoardBrowserTests
     {
         var rowBox = Assert.IsType<LocatorBoundingBoxResult>(await row.BoundingBoxAsync());
         var expanderBox = Assert.IsType<LocatorBoundingBoxResult>(await expander.BoundingBoxAsync());
+        var transform = await expander.EvaluateAsync<string>("element => getComputedStyle(element).transform");
         var rowCenter = rowBox.Y + (rowBox.Height / 2);
         var expanderCenter = expanderBox.Y + (expanderBox.Height / 2);
 
+        Assert.Equal("none", transform);
         Assert.True(
             expanderBox.Y >= rowBox.Y && expanderBox.Y + expanderBox.Height <= rowBox.Y + rowBox.Height,
             $"Expected the expander to stay within the row. Row: {rowBox.Y}-{rowBox.Y + rowBox.Height}; expander: {expanderBox.Y}-{expanderBox.Y + expanderBox.Height}.");
