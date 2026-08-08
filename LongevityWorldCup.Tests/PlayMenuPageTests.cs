@@ -194,6 +194,42 @@ public sealed class PlayMenuPageTests
     }
 
     [Fact]
+    public async Task PlayMenu_StartEntranceUsesBoundedSharedTokenChoreographyAndSkipsReducedMotion()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var css = await client.GetStringAsync("/css/play-menu.css");
+        var playMenu = await client.GetStringAsync("/js/play-menu.js");
+        var motionStart = css.IndexOf("@media (prefers-reduced-motion: no-preference)", StringComparison.Ordinal);
+        var motionEnd = css.IndexOf("body.play-start-active > .play-hub-main", motionStart, StringComparison.Ordinal);
+        var introStart = playMenu.IndexOf("function startPlayStartIntro(options = {})", StringComparison.Ordinal);
+        var introEnd = playMenu.IndexOf("function completePlayPanelTransition", introStart, StringComparison.Ordinal);
+
+        Assert.True(motionStart >= 0);
+        Assert.True(motionEnd > motionStart);
+        Assert.True(introStart >= 0);
+        Assert.True(introEnd > introStart);
+
+        var entranceMotion = css[motionStart..motionEnd];
+        var entranceScript = playMenu[introStart..introEnd];
+        Assert.Contains("--play-intro-beat: var(--lwc-duration-fast, 140ms);", entranceMotion);
+        Assert.Contains("--play-intro-phase: calc(var(--lwc-duration-normal, 220ms) + var(--lwc-duration-normal, 220ms));", entranceMotion);
+        Assert.Contains("--play-logo-settle-duration: calc(var(--play-intro-phase) + var(--lwc-duration-normal, 220ms));", entranceMotion);
+        Assert.Contains("--play-wordmark-settle-duration: var(--play-intro-phase);", entranceMotion);
+        Assert.Contains("--play-action-settle-duration: var(--lwc-duration-normal, 220ms);", entranceMotion);
+        Assert.Contains("animation: play-logo-settle var(--play-logo-settle-duration) var(--lwc-ease, ease) both;", entranceMotion);
+        Assert.Contains("animation: play-wordmark-settle var(--play-wordmark-settle-duration) var(--lwc-ease, ease) var(--play-intro-beat) both;", entranceMotion);
+        Assert.Contains("--play-action-delay: var(--play-intro-phase);", entranceMotion);
+        Assert.Contains("--play-action-delay: calc(var(--play-intro-phase) + var(--play-intro-beat));", entranceMotion);
+        Assert.Contains("animation: play-action-settle var(--play-action-settle-duration) var(--lwc-ease, ease) var(--play-action-delay) both;", entranceMotion);
+        Assert.DoesNotContain("infinite", entranceMotion);
+        Assert.DoesNotContain("animation-iteration-count", entranceMotion);
+        Assert.Contains("if (prefersReducedPlayMotion())", entranceScript);
+        Assert.Contains("finishPlayStartIntro();", entranceScript);
+    }
+
+    [Fact]
     public async Task PlayMenu_AthletePicturesUseSharedFrameAndTransitionBehavior()
     {
         using var factory = new TestWebApplicationFactory();

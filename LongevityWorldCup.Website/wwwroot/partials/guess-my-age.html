@@ -1,11 +1,12 @@
 <style>
-    /* Compact result feedback. */
+    /* Result feedback stays compact, but it should still feel like a game payoff. */
     .gma-pop-banner {
         position: fixed;
         top: max(1rem, env(safe-area-inset-top));
         left: 50%;
-        transform: translate(-50%, -0.5rem);
-        padding: 0.75rem 1rem;
+        transform: translate(-50%, -0.75rem) scale(0.96);
+        min-height: 48px;
+        padding: 0.75rem 1.1rem;
         background: var(--lwc-surface, #ffffff);
         color: var(--lwc-ink, #17212b);
         font-size: 1rem;
@@ -19,6 +20,23 @@
         gap: 0.5rem;
         z-index: 10002;
         pointer-events: none;
+        box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.18));
+    }
+
+    .gma-pop-banner__icon {
+        display: grid;
+        place-items: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 50%;
+        background: var(--lwc-accent-soft, #dff5f7);
+        color: var(--lwc-accent, #087685);
+        font-size: 0.9rem;
+    }
+
+    .gma-pop-banner--golden .gma-pop-banner__icon {
+        background: rgba(154, 103, 0, 0.12);
+        color: var(--lwc-warning, #9a6700);
     }
 
         .gma-pop-banner.show {
@@ -33,31 +51,51 @@
             background: var(--lwc-warning-soft, #fff4bf) !important;
             border-inline-start-color: var(--lwc-warning, #9a6700);
             color: var(--lwc-ink, #5f4500) !important;
-            box-shadow: none;
+            box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.18));
         }
 
     @keyframes gma-pop-slide-in {
         from {
-            transform: translate(-50%, -0.5rem);
+            transform: translate(-50%, -0.75rem) scale(0.96);
             opacity: 0;
         }
 
         to {
-            transform: translate(-50%, 0);
+            transform: translate(-50%, 0) scale(1);
             opacity: 1;
         }
     }
 
     @keyframes gma-pop-slide-out {
         from {
-            transform: translate(-50%, 0);
+            transform: translate(-50%, 0) scale(1);
             opacity: 1;
         }
 
         to {
-            transform: translate(-50%, -0.5rem);
+            transform: translate(-50%, -0.5rem) scale(0.98);
             opacity: 0;
         }
+    }
+
+    @keyframes gma-game-enter {
+        from {
+            opacity: 0;
+            transform: translateY(0.5rem) scale(0.985);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .modal-content.guess-mode #guessAgeContainer {
+        animation: gma-game-enter var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) backwards;
+    }
+
+    .modal-content.guess-mode.gma-fast #guessAgeContainer {
+        animation-duration: var(--lwc-duration-fast, 140ms);
     }
 
     /* when guessing, hide all modal-content children except the athlete-profile */
@@ -141,6 +179,22 @@
         font-weight: 700;
     }
 
+    .chrono-age-heading.is-revealing {
+        animation: gma-heading-reveal calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) both;
+    }
+
+    @keyframes gma-heading-reveal {
+        from {
+            opacity: 0;
+            transform: translateY(0.35rem) scale(0.98);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
     /* make the guess‐container fill the modal’s width */
     #guessAgeContainer {
         width: 100%;
@@ -175,8 +229,14 @@
             border-radius: 50%;
             background: var(--primary-color);
             border: 4px solid #fff;
-            box-shadow: none;
+            box-shadow: 0 0 0 1px rgba(8, 118, 133, 0.18), var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
             cursor: pointer;
+            transition: transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+        }
+
+        #gmaRange:not(:disabled):active::-webkit-slider-thumb {
+            transform: scale(1.08);
+            box-shadow: 0 0 0 5px rgba(8, 118, 133, 0.14);
         }
 
         /* Firefox track and thumb */
@@ -193,7 +253,13 @@
             border-radius: 50%;
             background: var(--primary-color);
             border: 4px solid #fff;
-            box-shadow: none;
+            box-shadow: 0 0 0 1px rgba(8, 118, 133, 0.18), var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+            transition: transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+        }
+
+        #gmaRange:not(:disabled):active::-moz-range-thumb {
+            transform: scale(1.08);
+            box-shadow: 0 0 0 5px rgba(8, 118, 133, 0.14);
         }
 
     #gmaBubble {
@@ -232,6 +298,25 @@
         pointer-events: none;
         white-space: nowrap;
         z-index: 10002;
+        opacity: 0;
+        transform: translateX(-50%) scale(0.9);
+        will-change: left, transform;
+    }
+
+    #gmaRealBubble.is-travelling {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+
+    #gmaRealBubble.is-settled {
+        opacity: 1;
+        animation: gma-real-age-settle calc(var(--lwc-duration-normal, 220ms) * 3) var(--lwc-ease, ease) both;
+    }
+
+    @keyframes gma-real-age-settle {
+        0% { transform: translateX(-50%) scale(0.92); }
+        55% { transform: translateX(-50%) scale(1.1); }
+        100% { transform: translateX(-50%) scale(1); }
     }
 
         #gmaRealBubble::after {
@@ -433,32 +518,122 @@
     @keyframes fadeOutButtons {
         from {
             opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
         }
 
         to {
             opacity: 0;
+            visibility: hidden;
+            transform: translateY(0.2rem);
         }
     }
 
     .gma-actions.gma-actions-hide {
-        display: none;
+        visibility: hidden;
         opacity: 0 !important;
-        animation: none !important;
+        animation: fadeOutButtons var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) both !important;
         pointer-events: none; /* ← prevent any mouse events */
     }
 
     /* The result sentence preserves the submitted value; hide its bubble so nearby ages cannot collide. */
     #gmaBubble.gma-bubble-inactive {
         opacity: 0;
-        transform: translateX(-50%) scale(0.8);
-        transition: none;
+        transform: translateX(-50%) scale(0.86);
     }
 
     /* Smooth transitions on track, thumb & bubbles */
     #gmaRange,
     #gmaBubble,
     #gmaRealBubble {
-        transition: background var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), border-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+        transition: background var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), border-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    }
+
+    .gma-reaction {
+        position: fixed;
+        left: var(--gma-reaction-x, 50%);
+        top: var(--gma-reaction-y, 35%);
+        z-index: 10003;
+        pointer-events: none;
+        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+        font-size: clamp(4.5rem, 12vw, 8rem);
+        line-height: 1;
+        filter: drop-shadow(0 0.5rem 1rem rgba(15, 23, 42, 0.24));
+        animation: gma-reaction-pop calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
+    }
+
+    @keyframes gma-reaction-pop {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -42%) scale(0.45) rotate(-8deg);
+        }
+        42% {
+            opacity: 1;
+            transform: translate(-50%, -58%) scale(1.12) rotate(4deg);
+        }
+        72% {
+            opacity: 1;
+            transform: translate(-50%, -55%) scale(0.98) rotate(0);
+        }
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -70%) scale(1.02) rotate(0);
+        }
+    }
+
+    .gma-celebration-spark {
+        position: fixed;
+        left: var(--gma-spark-x, 50%);
+        top: var(--gma-spark-y, 50%);
+        z-index: 10001;
+        width: 1.75rem;
+        height: 1.75rem;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: var(--lwc-surface, #fff);
+        color: var(--gma-spark-color, var(--lwc-accent, #087685));
+        box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.12));
+        pointer-events: none;
+        opacity: 0;
+        animation: gma-spark-flight calc(var(--lwc-duration-normal, 220ms) * 5) var(--lwc-ease, ease) both;
+    }
+
+    @keyframes gma-spark-flight {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.35) rotate(0);
+        }
+        18% {
+            opacity: 1;
+        }
+        68% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            transform: translate(calc(-50% + var(--gma-spark-dx, 0px)), calc(-50% + var(--gma-spark-dy, -8rem))) scale(0.9) rotate(var(--gma-spark-rotation, 120deg));
+        }
+    }
+
+    @keyframes gma-card-celebrate {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: none;
+        }
+        45% {
+            transform: scale(1.012);
+            box-shadow: 0 0 0 4px rgba(25, 195, 209, 0.18), var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.16));
+        }
+    }
+
+    .modal-content.guess-mode #guessAgeContainer.celebrate-better,
+    .modal-content.guess-mode #guessAgeContainer.celebrate-exact {
+        animation: gma-card-celebrate calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
+    }
+
+    .gma-card.celebrate-better {
+        border-color: var(--lwc-accent-bright, #19c3d1) !important;
     }
 
     /* Exact guesses receive a single restrained gold state. */
@@ -574,7 +749,6 @@
         box-shadow: none;
     }
     #detailsModal .gma-card.gma-done {
-        display: none !important;
         margin: 0;
         border: 0;
         box-shadow: none;
@@ -786,6 +960,9 @@
         .gma-pop-banner.hide,
         .gma-card,
         .gma-actions,
+        .chrono-age-heading,
+        .gma-reaction,
+        .gma-celebration-spark,
         #gmaBubble,
         #gmaRealBubble {
             animation: none !important;
@@ -793,7 +970,16 @@
         }
 
         .gma-pop-banner {
-            transform: translate(-50%, 0);
+            transform: translate(-50%, 0) scale(1);
+        }
+
+        #gmaRealBubble.is-settled {
+            transform: translateX(-50%) scale(1);
+        }
+
+        .gma-reaction,
+        .gma-celebration-spark {
+            display: none !important;
         }
     }
 </style>
@@ -801,7 +987,7 @@
 <div id="guessAgeContainer" class="gma-card">
     <h3 class="gma-heading">Guess my age!</h3>
     <h3 class="chrono-age-heading" style="display: none;">My real age is:</h3>
-    <p id="gmaStatus" class="smaller-text" role="status" hidden></p>
+    <p id="gmaStatus" class="smaller-text" role="status" aria-atomic="true" tabindex="-1" hidden></p>
     <div id="gmaTrollNote" class="gma-troll-note" role="status" aria-atomic="true" hidden>
         <img src="{{ASSET_TROLLFACE}}" alt="" width="48" height="48" loading="lazy" decoding="async" />
         <p>Nice try. Pick another age, or <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">claim your rickroll</a>.</p>
@@ -840,48 +1026,92 @@
 
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const gmaActions = gmaCard.querySelector('.gma-actions');
+    let gmaWasGuessMode = modalContent.classList.contains('guess-mode');
+    let gmaObservedAthleteSlug = modalContent.dataset.athleteSlug || '';
+    let gmaPresentationGeneration = 0;
+    let cancelCurrentGmaReveal = null;
+    let gmaExitTimer = 0;
+
+    function cancelGmaPresentation() {
+        gmaPresentationGeneration += 1;
+
+        const cancelReveal = cancelCurrentGmaReveal;
+        cancelCurrentGmaReveal = null;
+        if (cancelReveal) cancelReveal();
+
+        if (gmaExitTimer) {
+            window.clearTimeout(gmaExitTimer);
+            gmaExitTimer = 0;
+        }
+    }
+
+    function beginGmaPresentation(athleteSlug) {
+        cancelGmaPresentation();
+        return {
+            athleteSlug,
+            generation: gmaPresentationGeneration
+        };
+    }
+
+    function isCurrentGmaPresentation(presentation) {
+        return presentation.generation === gmaPresentationGeneration
+            && modalContent.classList.contains('guess-mode')
+            && modalContent.dataset.athleteSlug === presentation.athleteSlug;
+    }
 
     // whenever the modal’s class list changes, if we just opened “guess-mode”,
     // remove any lingering hide classes so buttons reappear
     const resetObserver = new MutationObserver(mutations => {
-        mutations.forEach(mutation => {
-            if (
-                mutation.attributeName === 'class' &&
-                modalContent.classList.contains('guess-mode')
-            ) {
-                setGuessMyAgeParam(true);
-                // hide the chrono prompt again
-                chronoHeading.style.display = 'none';
-                // restore the original prompt
-                heading.style.display = '';
-                gmaStatus.hidden = true;
-                gmaStatus.textContent = '';
-                gmaTrollNote.hidden = true;
-                gmaCard.removeAttribute('aria-busy');
-                gmaActions.classList.remove('gma-actions-hide');
-                gmaActions.inert = false;
-                gmaCard.classList.remove('gma-done');
+        const isGuessMode = modalContent.classList.contains('guess-mode');
+        const athleteSlug = modalContent.dataset.athleteSlug || '';
+        const guessModeWasAbsentDuringBatch = mutations.some(mutation =>
+            mutation.attributeName === 'class'
+            && !String(mutation.oldValue || '').split(/\s+/).includes('guess-mode'));
+        const openedOrChangedAthlete = isGuessMode
+            && (!gmaWasGuessMode
+                || athleteSlug !== gmaObservedAthleteSlug
+                || guessModeWasAbsentDuringBatch);
 
-                gmaBubble.classList.remove('gma-bubble-inactive');
+        if (openedOrChangedAthlete) {
+            cancelGmaPresentation();
+            setGuessMyAgeParam(true);
+            // hide the chrono prompt again
+            chronoHeading.style.display = 'none';
+            // restore the original prompt
+            heading.style.display = '';
+            chronoHeading.classList.remove('is-revealing');
+            gmaStatus.hidden = true;
+            gmaStatus.textContent = '';
+            gmaTrollNote.hidden = true;
+            gmaCard.removeAttribute('aria-busy');
+            gmaActions.classList.remove('gma-actions-hide');
+            gmaActions.inert = false;
+            gmaCard.classList.remove('gma-done');
 
-                const oldRealBubble = document.getElementById('gmaRealBubble');
-                if (oldRealBubble) oldRealBubble.remove();
+            gmaBubble.classList.remove('gma-bubble-inactive');
 
-                gmaRange.value = gmaDefaultValue;
-                gmaRange.disabled = false;
-                gmaRange.style.pointerEvents = '';
-                gmaSubmitBtn.disabled = false;
-                syncRange();
+            const oldRealBubble = document.getElementById('gmaRealBubble');
+            if (oldRealBubble) oldRealBubble.remove();
 
-                gmaCard.classList.remove('celebrate-exact');
-            }
-            if (mutation.attributeName === 'class' && !modalContent.classList.contains('guess-mode')) {
-                setGuessMyAgeParam(false);
-            }
-        });
+            gmaRange.value = gmaDefaultValue;
+            gmaRange.disabled = false;
+            gmaRange.style.pointerEvents = '';
+            gmaSubmitBtn.disabled = false;
+            syncRange();
+            gmaRange.focus({ preventScroll: true });
+
+            gmaCard.classList.remove('celebrate-exact', 'celebrate-better');
+            clearGmaEphemera();
+        } else if (!isGuessMode && gmaWasGuessMode) {
+            cancelGmaPresentation();
+            setGuessMyAgeParam(false);
+        }
+
+        gmaWasGuessMode = isGuessMode;
+        gmaObservedAthleteSlug = athleteSlug;
     });
 
-    resetObserver.observe(modalContent, { attributes: true });
+    resetObserver.observe(modalContent, { attributes: true, attributeOldValue: true });
 
     function syncRange() {
         const val = +gmaRange.value;
@@ -893,6 +1123,216 @@
     }
     gmaRange.addEventListener('input', syncRange);
     syncRange();   // initialise bubble
+
+    function prefersReducedGmaMotion() {
+        return typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    function clampGmaAge(age) {
+        return Math.min(Math.max(age, +gmaRange.min), +gmaRange.max);
+    }
+
+    function gmaPercentForAge(age) {
+        return Math.min(Math.max((age / +gmaRange.max) * 100, 5), 95);
+    }
+
+    function positionGmaRevealBubble(realBubble, age) {
+        const displayedAge = Math.round(clampGmaAge(age));
+        const percent = gmaPercentForAge(displayedAge);
+        realBubble.textContent = displayedAge;
+        realBubble.style.left = `${percent}%`;
+        gmaRange.value = displayedAge;
+        gmaRange.style.setProperty('--percent', `${percent}%`);
+    }
+
+    function animateActualAgeReveal(realBubble, startAge, actualAge, presentation) {
+        if (!isCurrentGmaPresentation(presentation)) return Promise.resolve(false);
+
+        positionGmaRevealBubble(realBubble, startAge);
+        realBubble.classList.add('is-travelling');
+
+        if (prefersReducedGmaMotion() || startAge === actualAge) {
+            positionGmaRevealBubble(realBubble, actualAge);
+            realBubble.classList.remove('is-travelling');
+            realBubble.classList.add('is-settled');
+            return Promise.resolve(true);
+        }
+
+        const distance = Math.abs(actualAge - startAge);
+        const directionToActual = Math.sign(actualAge - startAge);
+        const anticipationDistance = Math.min(6, Math.max(2, distance * 0.22));
+        const anticipationAge = clampGmaAge(startAge - (directionToActual * anticipationDistance));
+        const duration = Math.min(1400, 720 + (distance * 16));
+
+        return new Promise(resolve => {
+            let startedAt = 0;
+            let revealFrameId = 0;
+            let revealFallbackTimer = 0;
+            let isFinished = false;
+            const easeOutCubic = value => 1 - Math.pow(1 - value, 3);
+            const easeInOutCubic = value => value < 0.5
+                ? 4 * value * value * value
+                : 1 - (Math.pow(-2 * value + 2, 3) / 2);
+
+            function finishReveal(shouldSettle) {
+                if (isFinished) return;
+                isFinished = true;
+                if (revealFrameId) window.cancelAnimationFrame(revealFrameId);
+                if (revealFallbackTimer) window.clearTimeout(revealFallbackTimer);
+                if (cancelCurrentGmaReveal === cancelReveal) cancelCurrentGmaReveal = null;
+
+                const canSettle = shouldSettle && isCurrentGmaPresentation(presentation);
+                if (canSettle) {
+                    positionGmaRevealBubble(realBubble, actualAge);
+                    realBubble.classList.remove('is-travelling');
+                    realBubble.classList.add('is-settled');
+                }
+                resolve(canSettle);
+            }
+
+            function cancelReveal() {
+                finishReveal(false);
+            }
+
+            function revealFrame(timestamp) {
+                if (!isCurrentGmaPresentation(presentation)) {
+                    finishReveal(false);
+                    return;
+                }
+                if (prefersReducedGmaMotion()) {
+                    finishReveal(true);
+                    return;
+                }
+
+                if (!startedAt) startedAt = timestamp;
+                const progress = Math.min((timestamp - startedAt) / duration, 1);
+                let age;
+
+                if (progress < 0.22) {
+                    const anticipationProgress = easeOutCubic(progress / 0.22);
+                    age = startAge + ((anticipationAge - startAge) * anticipationProgress);
+                } else {
+                    const revealProgress = easeInOutCubic((progress - 0.22) / 0.78);
+                    age = anticipationAge + ((actualAge - anticipationAge) * revealProgress);
+                }
+
+                positionGmaRevealBubble(realBubble, age);
+                if (progress < 1) {
+                    revealFrameId = window.requestAnimationFrame(revealFrame);
+                    return;
+                }
+
+                finishReveal(true);
+            }
+
+            cancelCurrentGmaReveal = cancelReveal;
+            revealFallbackTimer = window.setTimeout(() => finishReveal(true), duration + 240);
+            revealFrameId = window.requestAnimationFrame(revealFrame);
+        });
+    }
+
+    function showGmaReaction(reaction) {
+        if (prefersReducedGmaMotion()) return;
+        const portrait = document.getElementById('modalProfilePic');
+        if (!portrait) return;
+
+        const rect = portrait.getBoundingClientRect();
+        const reactionElement = document.createElement('div');
+        reactionElement.className = 'gma-reaction';
+        reactionElement.setAttribute('aria-hidden', 'true');
+        reactionElement.textContent = reaction === 'exact' ? '🎯' : reaction === 'younger' ? '🙌' : '😬';
+        reactionElement.style.setProperty('--gma-reaction-x', `${rect.left + (rect.width / 2)}px`);
+        reactionElement.style.setProperty('--gma-reaction-y', `${rect.top + (rect.height / 2)}px`);
+        document.body.appendChild(reactionElement);
+        reactionElement.addEventListener('animationend', () => reactionElement.remove(), { once: true });
+        window.setTimeout(() => reactionElement.remove(), 1600);
+    }
+
+    function spawnGmaCelebration(isExact) {
+        if (prefersReducedGmaMotion()) return;
+
+        const rect = gmaCard.getBoundingClientRect();
+        const centerX = rect.left + (rect.width / 2);
+        const centerY = rect.top + Math.min(rect.height * 0.55, 220);
+        const icons = ['clock', 'stopwatch', 'hourglass-half', 'calendar-check'];
+        const sparkCount = isExact ? 14 : 9;
+
+        for (let index = 0; index < sparkCount; index++) {
+            const angle = ((Math.PI * 2) / sparkCount) * index - (Math.PI / 2);
+            const distance = 88 + ((index % 3) * 24);
+            const spark = document.createElement('i');
+            spark.className = `gma-celebration-spark fas fa-${icons[index % icons.length]}`;
+            spark.setAttribute('aria-hidden', 'true');
+            spark.style.setProperty('--gma-spark-x', `${centerX}px`);
+            spark.style.setProperty('--gma-spark-y', `${centerY}px`);
+            spark.style.setProperty('--gma-spark-dx', `${Math.cos(angle) * distance}px`);
+            spark.style.setProperty('--gma-spark-dy', `${Math.sin(angle) * distance}px`);
+            spark.style.setProperty('--gma-spark-rotation', `${index % 2 === 0 ? 140 : -140}deg`);
+            spark.style.animationDelay = `${index * 32}ms`;
+            if (isExact) spark.style.setProperty('--gma-spark-color', 'var(--lwc-warning, #9a6700)');
+            document.body.appendChild(spark);
+            spark.addEventListener('animationend', () => spark.remove(), { once: true });
+            window.setTimeout(() => spark.remove(), 2200);
+        }
+    }
+
+    function clearGmaEphemera() {
+        document.querySelectorAll('.gma-reaction, .gma-celebration-spark, .gma-pop-banner')
+            .forEach(element => element.remove());
+    }
+
+    function persistGmaGuessState(athleteSlug, guessState) {
+        try {
+            if (window.LwcGuessState) {
+                window.LwcGuessState.set(athleteSlug, guessState);
+                return true;
+            }
+
+            const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+            allGuesses[athleteSlug] = guessState;
+            localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+            return true;
+        } catch (error) {
+            console.warn('Could not persist Guess My Age state.', error);
+            return false;
+        }
+    }
+
+    function scheduleGmaExit(athleteSlug, presentationGeneration, dwell) {
+        if (gmaExitTimer) window.clearTimeout(gmaExitTimer);
+
+        const canExit = () => modalContent.classList.contains('guess-mode')
+            && modalContent.dataset.athleteSlug === athleteSlug
+            && (presentationGeneration == null || presentationGeneration === gmaPresentationGeneration);
+
+        const beginExit = () => {
+            gmaExitTimer = 0;
+            if (!canExit()) return;
+
+            gmaCard.classList.add('gma-done');
+            const exitDelay = prefersReducedGmaMotion()
+                ? 0
+                : modalContent.classList.contains('gma-fast')
+                    ? 140
+                    : 220;
+            gmaExitTimer = window.setTimeout(() => {
+                gmaExitTimer = 0;
+                if (!canExit()) return;
+
+                modalContent.classList.remove('guess-mode');
+                modalContent.scrollTop = 0;
+                modalContent.scrollLeft = 0;
+                document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
+            }, exitDelay);
+        };
+
+        if (dwell > 0) {
+            gmaExitTimer = window.setTimeout(beginExit, dwell);
+        } else {
+            beginExit();
+        }
+    }
 
     function restoreGuessControls(message, focusTarget) {
         gmaCard.removeAttribute('aria-busy');
@@ -907,9 +1347,8 @@
     }
 
     const gmaSubmitBtn = gmaCard.querySelector('.gma-btn--primary');
-    gmaSubmitBtn.addEventListener('click', async function (event) {
+    gmaSubmitBtn.addEventListener('click', async function () {
         const userGuess = +gmaRange.value;
-        const btn = event.currentTarget;
 
         if (userGuess === +gmaRange.min || userGuess === +gmaRange.max) {
             gmaTrollNote.hidden = false;
@@ -918,10 +1357,12 @@
         }
 
         gmaTrollNote.hidden = true;
+        const presentation = beginGmaPresentation(modalContent.dataset.athleteSlug);
 
         gmaCard.setAttribute('aria-busy', 'true');
         gmaStatus.hidden = false;
         gmaStatus.textContent = 'Submitting your guess…';
+        gmaStatus.focus({ preventScroll: true });
         gmaActions.classList.add('gma-actions-hide');
         gmaActions.inert = true;
         gmaRange.disabled = true;
@@ -930,7 +1371,7 @@
 
         try {
             const response = await fetch(
-                `/api/Guess/athlete-age?athleteName=${encodeURIComponent(modalContent.dataset.athleteSlug)}&ageGuess=${userGuess}`,
+                `/api/Guess/athlete-age?athleteName=${encodeURIComponent(presentation.athleteSlug)}&ageGuess=${userGuess}`,
                 { method: 'POST' }
             );
 
@@ -954,52 +1395,80 @@
             const crowdError = result.crowdAge === 0 || isFirstGuess
                 ? null
                 : Math.abs(realAge - result.crowdAge);
+            const guessState = {
+                value: userGuess,
+                skipped: false,
+                first: isFirstGuess,
+                exact: userError === 0
+            };
+
+            // The accepted result is durable before any presentation work. A reload, tab switch,
+            // or newly opened athlete must never lose or misattribute this completed round.
+            persistGmaGuessState(presentation.athleteSlug, guessState);
+            if (userError === 0
+                && window.proDiscounts
+                && typeof window.proDiscounts.setPerfectGuessMarker === 'function') {
+                window.proDiscounts.setPerfectGuessMarker();
+            }
+
+            if (!isCurrentGmaPresentation(presentation)) return;
+            updateYourGuess();
 
             updateCrowdContainer(result.crowdAge, result.crowdCount);
             heading.style.display = 'none';
             chronoHeading.style.display = 'block';
-            const reaction = userGuess === realAge
-                ? 'Right on the nose.'
+            chronoHeading.classList.remove('is-revealing');
+            void chronoHeading.offsetWidth;
+            chronoHeading.classList.add('is-revealing');
+            const reactionKind = userGuess === realAge
+                ? 'exact'
                 : userGuess < realAge
+                    ? 'younger'
+                    : 'older';
+            const reactionCopy = reactionKind === 'exact'
+                ? 'Right on the nose.'
+                : reactionKind === 'younger'
                     ? 'You guessed younger — high five.'
                     : 'You guessed older — oof.';
-            gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}. ${reaction}`;
+            gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}. ${reactionCopy}`;
+            gmaCard.removeAttribute('aria-busy');
+            gmaStatus.focus({ preventScroll: true });
 
             const sliderWrap = document.querySelector('.gma-slider-wrap');
-            const realBubble = document.createElement('output');
-            const actualPercent = Math.min(Math.max((realAge / gmaRange.max) * 100, 5), 95);
+            const realBubble = document.createElement('span');
             realBubble.id = 'gmaRealBubble';
             realBubble.className = 'gma-real-bubble';
-            realBubble.setAttribute('for', 'gmaRange');
-            realBubble.setAttribute('aria-label', `Actual age: ${realAge}`);
-            realBubble.textContent = realAge;
-            realBubble.style.left = `${actualPercent}%`;
+            realBubble.setAttribute('aria-hidden', 'true');
             sliderWrap.appendChild(realBubble);
 
-            gmaRange.value = realAge;
-            gmaRange.style.setProperty('--percent', `${actualPercent}%`);
             gmaBubble.classList.add('gma-bubble-inactive');
+            const revealCompleted = await animateActualAgeReveal(
+                realBubble,
+                userGuess,
+                realAge,
+                presentation);
+            if (!revealCompleted || !isCurrentGmaPresentation(presentation)) return;
+
+            showGmaReaction(reactionKind);
 
             if (userError === 0) {
-                if (window.proDiscounts && typeof window.proDiscounts.setPerfectGuessMarker === 'function') {
-                    window.proDiscounts.setPerfectGuessMarker();
-                }
                 gmaCard.classList.add('celebrate-exact');
                 popBanner(true, false);
+                spawnGmaCelebration(true);
             } else if (isFirstGuess) {
                 popBanner(false, true);
             } else if (crowdError !== null && userError < crowdError) {
+                gmaCard.classList.add('celebrate-better');
                 popBanner(false, false);
+                spawnGmaCelebration(false);
             }
 
-            gmaCard.removeAttribute('aria-busy');
-            setTimeout(() => hideCard({
-                currentTarget: btn,
-                originalGuess: userGuess,
-                isFirstGuess,
-                isExactGuess: userError === 0
-            }), 2400);
+            scheduleGmaExit(
+                presentation.athleteSlug,
+                presentation.generation,
+                prefersReducedGmaMotion() ? 1600 : 3000);
         } catch (error) {
+            if (!isCurrentGmaPresentation(presentation)) return;
             console.error('Error submitting guess:', error);
             restoreGuessControls('We could not submit your guess. Please try again.', gmaSubmitBtn);
         }
@@ -1012,66 +1481,62 @@
         // if they clicked “Skip All”, set global flag
         const isSkipAll = e.currentTarget.id === 'gmaSkipAll';
         if (isSkipAll) {
-            localStorage.setItem('gmaSkipAll', 'true');
+            try {
+                localStorage.setItem('gmaSkipAll', 'true');
+            } catch (error) {
+                console.warn('Could not persist the Guess My Age skip-all preference.', error);
+            }
         }
 
         const modalContent = document.querySelector('#detailsModal .modal-content');
         const athleteSlug = modalContent.dataset.athleteSlug;
-
-        // **Use the originalGuess if passed**, otherwise fall back
-        const guessValue = e.originalGuess != null
-            ? e.originalGuess
-            : gmaRange.value;
-
-        let allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-        const isSkip = e.currentTarget.classList.contains('gma-btn--ghost');
-
-        const guessState = {
-            value: isSkip ? null : guessValue,
-            skipped: isSkip,
-            first: !isSkip && Boolean(e.isFirstGuess),
-            exact: !isSkip && Boolean(e.isExactGuess)
-        };
-        if (window.LwcGuessState) {
-            window.LwcGuessState.set(athleteSlug, guessState);
-        } else {
-            allGuesses[athleteSlug] = guessState;
-            localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
-        }
-        updateYourGuess();  // ← Add this line
-
-        gmaCard.classList.add('gma-done');
-        modalContent.classList.remove('guess-mode');
-        modalContent.scrollTop = 0;
-        modalContent.scrollLeft = 0;
+        cancelGmaPresentation();
+        persistGmaGuessState(athleteSlug, {
+            value: null,
+            skipped: true,
+            first: false,
+            exact: false
+        });
+        updateYourGuess();
+        scheduleGmaExit(athleteSlug, null, 0);
     }
 
     function popBanner(isExact, isFirst) {
         const b = document.createElement('div');
         b.setAttribute('role', 'status');
         b.setAttribute('aria-live', 'polite');
-        if (isExact) {
-            b.textContent = 'Bullseye!';
-        }
-        else if (isFirst) {
-            b.textContent = 'First accepted guess!';
-        }
-        else {
-            b.textContent = 'You beat the crowd!';
-        }
         b.classList.add('gma-pop-banner');
         if (isExact) {
             b.classList.add('gma-pop-banner--golden');
         }
 
+        const icon = document.createElement('span');
+        icon.className = 'gma-pop-banner__icon';
+        icon.setAttribute('aria-hidden', 'true');
+        const iconGlyph = document.createElement('i');
+        iconGlyph.className = isExact
+            ? 'fas fa-bullseye'
+            : isFirst
+                ? 'fas fa-medal'
+                : 'fas fa-people-group';
+        icon.appendChild(iconGlyph);
+
+        const copy = document.createTextNode(isExact
+            ? 'Bullseye!'
+            : isFirst
+                ? 'First accepted guess!'
+                : 'You beat the crowd!');
+        b.append(icon, copy);
+
         document.body.appendChild(b);
         requestAnimationFrame(() => b.classList.add('show'));
 
+        const bannerDwell = prefersReducedGmaMotion() ? 1200 : 2800;
         setTimeout(() => {
             b.classList.add('hide');
             b.addEventListener('animationend', () => b.remove());
             setTimeout(() => b.remove(), 350);
-        }, 2400);
+        }, bannerDwell);
 
     }
 

@@ -322,7 +322,7 @@ public sealed class AestheticSystemPageTests
     }
 
     [Fact]
-    public async Task GuessMyAge_PreservesPersonalityWithoutRestoringHeavyEffects()
+    public async Task GuessMyAge_RestoresBoundedRevealChoreographyWithoutHeavyDependencies()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
@@ -343,6 +343,20 @@ public sealed class AestheticSystemPageTests
         Assert.DoesNotContain("canvas-confetti", html);
         Assert.DoesNotContain("spawnTimeIcons", html);
         Assert.DoesNotContain("spawnConfetti", html);
+        Assert.Contains("animateActualAgeReveal", html);
+        Assert.Contains("showGmaReaction", html);
+        Assert.Contains("spawnGmaCelebration", html);
+        Assert.Contains("const sparkCount = isExact ? 14 : 9;", html);
+        Assert.Contains("prefersReducedGmaMotion", html);
+        Assert.Contains("gma-real-age-settle", html);
+        Assert.Contains("gma-card-celebrate", html);
+        Assert.Contains("isCurrentGmaPresentation", html);
+        Assert.Contains("realBubble.setAttribute('aria-hidden', 'true');", html);
+        Assert.Contains("persistGmaGuessState(presentation.athleteSlug, guessState);", html);
+        Assert.Contains("await animateActualAgeReveal(", html);
+        Assert.True(
+            html.IndexOf("persistGmaGuessState(presentation.athleteSlug, guessState);", StringComparison.Ordinal)
+            < html.IndexOf("await animateActualAgeReveal(", StringComparison.Ordinal));
         Assert.DoesNotContain("window.location.href = 'https://www.youtube.com", html);
     }
 
