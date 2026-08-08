@@ -314,7 +314,7 @@ public sealed class AestheticSystemPageTests
         var html = await client.GetStringAsync("/leaderboard");
 
         Assert.Contains("overflow-y: auto;", html);
-        Assert.Contains("padding-top: 4.25rem; /* reserve a full row for the value bubble */", html);
+        Assert.Contains("padding-top: 5.25rem; /* reserve a full row for the larger value bubble */", html);
         Assert.Contains("#gmaBubble {", html);
         Assert.Contains("#gmaRealBubble {", html);
         Assert.Contains("top: 0;", html);
@@ -336,10 +336,9 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("result.guessAccepted === true && crowdCountBeforeGuess === 0", html);
         Assert.DoesNotContain("That guess was not accepted", html);
         Assert.Contains("#gmaBubble.gma-bubble-inactive", html);
-        Assert.Contains("opacity: 0.78;", html);
-        Assert.Contains("translateY(var(--gma-you-anchor-y, 7.75rem))", html);
-        Assert.Contains("content: 'YOU';", html);
-        Assert.Contains("content: 'ACTUAL';", html);
+        Assert.Contains("opacity: 0.4;", html);
+        Assert.DoesNotContain("content: 'YOU';", html);
+        Assert.DoesNotContain("content: 'ACTUAL';", html);
         Assert.Contains("Right on the nose.", html);
         Assert.Contains("You guessed younger — high five.", html);
         Assert.Contains("You guessed older — oof.", html);
@@ -349,10 +348,19 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("animateActualAgeReveal", html);
         Assert.Contains("showGmaReaction", html);
         Assert.Contains("spawnGmaCelebration", html);
-        Assert.Contains("const sparkCount = isExact ? 24 : isFirst ? 10 : 16;", html);
-        Assert.Contains("const desiredOvershootDistance", html);
-        Assert.Contains("realBubble.dataset.revealPhase = 'return';", html);
-        Assert.Contains("() => showGmaReaction(reactionKind)", html);
+        Assert.Contains("const sparkCount = isExact ? 64 : isFirst ? 28 : 48;", html);
+        Assert.Contains("const GMA_MAX_TRAVEL_MS = 7000;", html);
+        Assert.Contains("const detourDistance = 50 - distance;", html);
+        Assert.Contains("Math.sign(roundedActual - roundedStart) * detourDistance", html);
+        Assert.Contains("realBubble.dataset.travelBudget = String(travelBudget);", html);
+        Assert.Contains("targets.length > 1 ? 'return' : 'direct'", html);
+        Assert.Contains("const preludePromise = startGmaResultPrelude(presentation);", html);
+        Assert.Contains("showGmaReaction(reactionKind);", html);
+        Assert.Contains("const preludeCompleted = await preludePromise;", html);
+        Assert.Contains("gmaResultActions.classList.add('is-visible', 'is-pending');", html);
+        Assert.Contains("gmaResultActions.classList.add('is-promoted');", html);
+        Assert.Contains("id=\"gmaPayoffRegion\"", html);
+        Assert.Contains("gmaPayoffRegion.replaceChildren(b);", html);
         Assert.Contains("prefersReducedGmaMotion", html);
         Assert.Contains("gma-real-age-settle", html);
         Assert.Contains("gma-card-celebrate", html);

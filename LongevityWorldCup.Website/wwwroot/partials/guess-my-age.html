@@ -1,47 +1,27 @@
 <style>
-    /* Outcome feedback is intentionally bigger than a normal toast: this is the game's payoff. */
+    /* The payoff lives inside the game card so it can never cover the athlete. */
     .gma-pop-banner {
-        position: fixed;
-        top: max(calc(env(safe-area-inset-top) + 1rem), 10vh);
-        left: 50%;
-        transform: translate(-50%, -1rem) scale(0.72);
+        position: relative;
+        transform: translateY(-0.65rem) scale(0.72);
         width: max-content;
-        max-width: min(36rem, calc(100vw - 2rem));
+        max-width: 100%;
         min-height: 56px;
-        padding: 0.9rem 1.35rem;
-        background: color-mix(in srgb, var(--lwc-surface, #ffffff) 94%, transparent);
-        color: var(--lwc-ink, #17212b);
-        font-size: clamp(1.05rem, 3vw, 1.45rem);
+        padding: 0.85rem 1.4rem;
+        background: var(--lwc-accent, var(--primary-color));
+        color: var(--lwc-on-accent, #fff);
+        font-size: clamp(1.25rem, 3.4vw, 2rem);
         font-weight: 700;
         line-height: 1.15;
         text-align: center;
-        border: 1px solid color-mix(in srgb, var(--lwc-accent, var(--primary-color)) 32%, transparent);
-        border-inline-start: 5px solid var(--lwc-accent, var(--primary-color));
-        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,.32);
+        border-radius: 1rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        z-index: 10002;
+        z-index: 3;
         pointer-events: none;
-        box-shadow: 0 1.25rem 3rem rgba(2, 8, 23, 0.28), 0 0 0 1px rgba(255,255,255,.18) inset;
-        backdrop-filter: blur(14px);
-    }
-
-    .gma-pop-banner__icon {
-        display: grid;
-        place-items: center;
-        width: 2.15rem;
-        height: 2.15rem;
-        border-radius: 50%;
-        background: var(--lwc-accent-soft, #dff5f7);
-        color: var(--lwc-accent, #087685);
-        font-size: 1rem;
-    }
-
-    .gma-pop-banner--golden .gma-pop-banner__icon {
-        background: rgba(154, 103, 0, 0.12);
-        color: var(--lwc-warning, #9a6700);
+        text-shadow: 0 2px 4px rgba(0,0,0,.25);
+        box-shadow: 0 1rem 2.5rem rgba(2, 8, 23, 0.34), 0 0 0 1px rgba(255,255,255,.2) inset;
     }
 
     .gma-pop-banner.show {
@@ -53,43 +33,42 @@
     }
 
     .gma-pop-banner.gma-pop-banner--golden {
-        background: linear-gradient(135deg, #fff8cf 0%, #f5d56f 48%, #fff3b1 72%, #d7a72d 100%) !important;
+        background: linear-gradient(135deg, #fff3a1 0%, #d6a315 48%, #fff1a0 72%, #9a6700 100%) !important;
         border-color: rgba(95, 69, 0, 0.34);
-        border-inline-start-color: #8a5c00;
         color: #4f3900 !important;
-        box-shadow: 0 1.25rem 3rem rgba(63, 44, 0, 0.34), 0 0 1.5rem rgba(255, 215, 0, 0.32);
+        box-shadow: 0 1.25rem 3rem rgba(63, 44, 0, 0.42), 0 0 1.8rem rgba(255, 215, 0, 0.5);
     }
 
     @keyframes gma-pop-slide-in {
         0% {
-            transform: translate(-50%, -1rem) scale(0.72) rotate(-1.5deg);
+            transform: translateY(-0.65rem) scale(0.72) rotate(-2deg);
             opacity: 0;
         }
 
-        62% {
-            transform: translate(-50%, 0.15rem) scale(1.06) rotate(0.8deg);
+        58% {
+            transform: translateY(0.15rem) scale(1.1) rotate(1deg);
             opacity: 1;
         }
 
-        82% {
-            transform: translate(-50%, 0) scale(0.985) rotate(-0.25deg);
+        76% {
+            transform: translateY(0) scale(0.97) rotate(-0.6deg);
             opacity: 1;
         }
 
         100% {
-            transform: translate(-50%, 0) scale(1);
+            transform: translateY(0) scale(1);
             opacity: 1;
         }
     }
 
     @keyframes gma-pop-slide-out {
         from {
-            transform: translate(-50%, 0) scale(1);
+            transform: translateY(0) scale(1);
             opacity: 1;
         }
 
         to {
-            transform: translate(-50%, -0.75rem) scale(0.88);
+            transform: translateY(-0.6rem) scale(0.88);
             opacity: 0;
         }
     }
@@ -110,39 +89,50 @@
         100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
+    @keyframes gma-prompt-type {
+        from { width: 0; }
+        to { width: min(var(--gma-type-width, 17ch), 100%); }
+    }
+
     @keyframes gma-control-enter {
         from { opacity: var(--gma-control-start-opacity, 0); transform: translateY(0.8rem) scale(0.985); }
         to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    @media (prefers-reduced-motion: no-preference) {
-        .modal-content.guess-mode {
-            --gma-entry-duration: calc(var(--lwc-duration-normal, 220ms) * 3);
-            --gma-slider-delay: calc(var(--lwc-duration-fast, 140ms) * 2);
-            --gma-actions-delay: calc(var(--lwc-duration-fast, 140ms) * 3);
+    @keyframes gma-control-fade {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: no-preference) and (min-width: 769px) {
+        .modal-content.guess-mode:not(.gma-fast) {
+            --gma-entry-duration: calc(var(--lwc-duration-normal, 220ms) * 9);
+            --gma-control-duration: calc(var(--lwc-duration-fast, 140ms) * 2.5);
+            --gma-controls-delay: calc(var(--lwc-duration-fast, 140ms) * 6);
         }
 
-        .modal-content.guess-mode #guessAgeContainer {
+        .modal-content.guess-mode:not(.gma-fast) #guessAgeContainer {
             animation: gma-game-enter calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) backwards;
         }
 
-        .modal-content.guess-mode #athlete-profile .portrait-wrapper {
-            animation: gma-portrait-enter var(--gma-entry-duration, calc(var(--lwc-duration-normal, 220ms) * 3)) var(--lwc-ease, ease) both;
+        .modal-content.guess-mode:not(.gma-fast) #athlete-profile .portrait-wrapper {
+            animation: gma-portrait-enter calc(var(--lwc-duration-normal, 220ms) * 3) var(--lwc-ease, ease) both;
         }
 
-        .modal-content.guess-mode #guessAgeContainer .gma-heading {
-            animation: gma-prompt-enter var(--gma-entry-duration) var(--lwc-ease, ease) both;
+        .modal-content.guess-mode:not(.gma-fast) #guessAgeContainer .gma-heading,
+        .modal-content.guess-mode:not(.gma-fast) #guessAgeContainer .chrono-age-heading.is-revealing {
+            animation: gma-prompt-type var(--gma-entry-duration) var(--lwc-ease, ease) both;
+            animation-timing-function: steps(15, end);
         }
 
-        .modal-content.guess-mode #guessAgeContainer .gma-slider-wrap {
-            --gma-control-start-opacity: 0.28;
-            animation: gma-control-enter calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) var(--gma-slider-delay) both;
+        .modal-content.guess-mode:not(.gma-fast) #guessAgeContainer .gma-slider-wrap,
+        .modal-content.guess-mode:not(.gma-fast) #guessAgeContainer .gma-actions {
+            --gma-control-start-opacity: 0;
+            animation: gma-control-fade var(--gma-control-duration) var(--lwc-ease, ease) var(--gma-controls-delay) both;
         }
+    }
 
-        .modal-content.guess-mode #guessAgeContainer .gma-actions {
-            animation: gma-control-enter calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) var(--gma-actions-delay) both;
-        }
-
+    @media (prefers-reduced-motion: no-preference) {
         .modal-content.guess-mode.gma-fast {
             --gma-entry-duration: var(--lwc-duration-normal, 220ms);
             --gma-slider-delay: var(--lwc-duration-fast, 140ms);
@@ -150,12 +140,25 @@
         }
 
         .modal-content.guess-mode.gma-fast #guessAgeContainer {
-            animation-duration: var(--lwc-duration-fast, 140ms);
+            animation: gma-game-enter var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) backwards;
+        }
+
+        .modal-content.guess-mode.gma-fast #athlete-profile .portrait-wrapper,
+        .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-heading {
+            animation: gma-prompt-enter var(--gma-entry-duration) var(--lwc-ease, ease) both;
+        }
+
+        .modal-content.guess-mode.gma-fast #guessAgeContainer .chrono-age-heading.is-revealing {
+            animation: gma-prompt-enter calc(var(--lwc-duration-fast, 140ms) * 2) var(--lwc-ease, ease) both;
         }
 
         .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-slider-wrap,
         .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-actions {
-            animation-duration: var(--lwc-duration-normal, 220ms);
+            animation: gma-control-enter var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) var(--gma-slider-delay) both;
+        }
+
+        .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-actions {
+            animation-delay: var(--gma-actions-delay);
         }
     }
 
@@ -181,8 +184,8 @@
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile {
-        --gma-portrait-gap: clamp(1.25rem, 2.5vh, 2rem);
-        --gma-portrait-size: clamp(220px, min(52vw, 34vh), 360px);
+        --gma-portrait-gap: clamp(2rem, 4vh, 3rem);
+        --gma-portrait-size: clamp(220px, min(58vw, 40vh), 430px);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -191,7 +194,7 @@
         height: 100%;
         min-height: 0;
         box-sizing: border-box;
-        padding-block: clamp(2rem, 3vh, 3rem) clamp(0.75rem, 2vh, 1.5rem);
+        padding-block: clamp(3rem, 4.5vh, 4rem) clamp(0.75rem, 2vh, 1.5rem);
     }
 
     #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper {
@@ -204,12 +207,12 @@
         margin: 0 0 var(--gma-portrait-gap);
     }
 
-    /* The game is one task surface, not a stack of decorative cards. */
+    /* The game card is the active stage, with more depth than the profile below it. */
     .gma-card {
         width: min(420px, 90%);
         margin-inline: auto;
         background: var(--card-bg);
-        border-radius: 12px;
+        border-radius: 1.25rem;
         padding: 2rem 2.25rem 2.5rem;
         text-align: center;
     }
@@ -234,10 +237,24 @@
     /* apply the same headline styles to both */
     .gma-heading,
     .chrono-age-heading {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        white-space: nowrap;
+        box-sizing: border-box;
+        line-height: 1.08;
         font-size: 3rem;
         margin: 0;
         color: var(--dark-text-color);
         font-weight: 700;
+    }
+
+    .gma-heading {
+        --gma-type-width: 15ch;
+    }
+
+    .chrono-age-heading {
+        --gma-type-width: 17ch;
     }
 
     .chrono-age-heading.is-revealing {
@@ -267,12 +284,11 @@
 
     /* let the slider wrap fill all of that */
     .gma-slider-wrap {
-        --gma-you-anchor-y: 7.75rem;
         position: relative;
         width: 90%;
         max-width: none; /* override any upstream caps */
-        margin: 0.5rem auto 1rem;
-        padding-top: 4.25rem; /* reserve a full row for the value bubble */
+        margin: 1.25rem auto 1.5rem;
+        padding-top: 5.25rem; /* reserve a full row for the larger value bubble */
         align-self: stretch; /* <-- this forces it to span the full parent width */
         transition: padding-bottom var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), margin-bottom var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
     }
@@ -342,12 +358,12 @@
         transform: translateX(-50%);
         background: #fff;
         color: var(--primary-color);
-        font-size: 2rem;
-        font-weight: 700;
-        padding: 0.55rem 1.1rem;
+        font-size: 2.8rem;
+        font-weight: 600;
+        padding: 0.8rem 1.6rem;
         border: 2px solid var(--primary-color);
-        border-radius: 8px;
-        box-shadow: none;
+        border-radius: 2rem;
+        box-shadow: 0 0.75rem 1.8rem rgba(2, 8, 23, 0.24), 0 0 0 1px rgba(255,255,255,.12) inset;
         pointer-events: none;
         white-space: nowrap;
         z-index: 10002;
@@ -365,12 +381,11 @@
         transform: translateX(-50%);
         background: #fff;
         color: var(--primary-color);
-        font-size: 2rem;
-        font-weight: 700;
-        padding: 0.55rem 1.1rem;
+        font-size: 2.8rem;
+        font-weight: 600;
+        padding: 0.8rem 1.6rem;
         border: 2px solid var(--primary-color);
-        border-radius: 8px;
-        box-shadow: none;
+        border-radius: 2rem;
         pointer-events: none;
         white-space: nowrap;
         z-index: 10002;
@@ -380,16 +395,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 0.42rem;
         box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 0 1px rgba(255,255,255,.08) inset;
-    }
-
-    #gmaRealBubble::before {
-        content: 'ACTUAL';
-        font-size: 0.58rem;
-        line-height: 1;
-        letter-spacing: 0.12em;
-        opacity: 0.72;
     }
 
     #gmaRealBubble.is-travelling {
@@ -459,7 +465,8 @@
         display: flex;
         justify-content: center;
         min-height: 48px;
-        margin-top: 0.4rem;
+        margin-top: 0.55rem;
+        transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
     }
 
     .gma-result-actions[hidden] {
@@ -467,9 +474,40 @@
     }
 
     @media (prefers-reduced-motion: no-preference) {
-        .gma-result-actions.is-visible {
-            animation: gma-control-enter calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) both;
+        .gma-result-actions.is-visible.is-promoted {
+            animation: gma-cta-promote calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) both;
         }
+    }
+
+    @keyframes gma-cta-promote {
+        from { opacity: 0.42; transform: scale(0.94); }
+        68% { opacity: 1; transform: scale(1.035); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .gma-result-actions.is-pending {
+        opacity: 0.42;
+        transform: scale(0.94);
+    }
+
+    .gma-result-actions.is-promoted {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .gma-payoff-region {
+        width: 100%;
+        min-height: 0;
+        display: grid;
+        place-items: center;
+        margin: 0;
+        overflow: visible;
+        transition: min-height var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), margin var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    }
+
+    .gma-card.is-revealing .gma-payoff-region:not(:empty) {
+        min-height: 68px;
+        margin: 0.35rem 0 0.2rem;
     }
 
     .gma-result-actions .gma-btn {
@@ -482,10 +520,10 @@
         min-width: 140px;
         min-height: 48px;
         border: none;
-        border-radius: 8px;
+        border-radius: 999px;
         cursor: pointer;
-        font-weight: 700;
-        transition: background var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+        font-weight: 600;
+        transition: background var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), box-shadow var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
     .gma-btn--primary {
@@ -496,6 +534,7 @@
         .gma-btn--primary:hover {
             background: var(--primary-color);
             filter: brightness(1.1);
+            transform: translateY(-2px);
         }
 
     .gma-btn--ghost {
@@ -512,6 +551,7 @@
             background: var(--primary-color);
             color: #fff;
             border-color: var(--primary-color);
+            transform: translateY(-2px);
         }
 
     /* small screens - keep it tight */
@@ -576,6 +616,7 @@
             padding: 0.5rem 1rem;
             gap: 0.25rem;
         }
+
     }
 
     @keyframes gma-card-exit {
@@ -679,8 +720,9 @@
 
     .gma-heading,
     .chrono-age-heading {
-        white-space: normal;
-        display: block;
+        white-space: nowrap;
+        display: inline-block;
+        overflow: hidden;
         max-width: 100%;
         box-sizing: border-box;
         line-height: 1.08;
@@ -692,48 +734,33 @@
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
+            max-height: 8rem;
         }
 
         to {
             opacity: 0;
             visibility: hidden;
             transform: translateY(0.2rem);
+            max-height: 0;
         }
     }
 
     .gma-actions.gma-actions-hide {
         animation: fadeOutButtons var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) both !important;
         pointer-events: none; /* ← prevent any mouse events */
+        opacity: 0;
+        visibility: hidden;
+        max-height: 0;
+        overflow: hidden;
     }
 
-    /* Keep the submitted value as a quiet anchor below the track while the answer travels above it. */
+    /* Leave the submitted value where the player put it, then dim it behind the answer. */
     #gmaBubble.gma-bubble-inactive {
         top: 0;
         bottom: auto;
-        opacity: 0.78;
-        transform: translateX(-50%) translateY(var(--gma-you-anchor-y, 7.75rem)) scale(0.9);
-        padding: 0.34rem 0.58rem;
-        border-width: 1px;
-        font-size: 1rem;
+        opacity: 0.4;
+        transform: translateX(-50%) scale(0.92);
         z-index: 2;
-    }
-
-    #gmaBubble.gma-bubble-inactive::before {
-        content: 'YOU';
-        font-size: 0.54rem;
-        line-height: 1;
-        letter-spacing: 0.12em;
-        opacity: 0.7;
-    }
-
-    #gmaBubble.gma-bubble-inactive::after {
-        top: -6px;
-        bottom: auto;
-        width: 10px;
-        height: 10px;
-        border: 0;
-        border-left: 2px solid var(--primary-color);
-        border-top: 2px solid var(--primary-color);
     }
 
     /* Smooth transitions on track, thumb & bubbles */
@@ -755,15 +782,15 @@
         z-index: 10003;
         pointer-events: none;
         font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-        font-size: clamp(7rem, 24vw, 13rem);
+        font-size: clamp(7rem, 18vw, 12rem);
         line-height: 1;
         filter: drop-shadow(0 0.5rem 1rem rgba(15, 23, 42, 0.24));
-        animation: gma-reaction-pop calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) both;
+        animation: gma-reaction-pop calc(var(--lwc-duration-normal, 220ms) * 5) var(--lwc-ease, ease) both;
     }
 
     /* The exact-guess eyes punctuate the feint, then clear before the Bullseye banner. */
     .gma-reaction--exact {
-        animation-duration: calc(var(--lwc-duration-normal, 220ms) * 2);
+        animation-duration: calc(var(--lwc-duration-normal, 220ms) * 4);
     }
 
     @keyframes gma-reaction-pop {
@@ -785,6 +812,13 @@
         }
     }
 
+    /* This override must follow the base reaction rule or the desktop clamp wins the cascade. */
+    @media (max-width: 420px) {
+        .gma-reaction {
+            font-size: clamp(3.25rem, 16vw, 4.25rem);
+        }
+    }
+
     .gma-celebration-spark {
         position: fixed;
         left: var(--gma-spark-x, 50%);
@@ -800,7 +834,7 @@
         box-shadow: 0 0.45rem 1rem rgba(2, 8, 23, 0.2), 0 0 0 1px rgba(255,255,255,.42) inset;
         pointer-events: none;
         opacity: 0;
-        animation: gma-spark-flight calc(var(--lwc-duration-normal, 220ms) * 7) var(--lwc-ease, ease) both;
+        animation: gma-spark-flight calc(var(--lwc-duration-normal, 220ms) * 10) var(--lwc-ease, ease) both;
     }
 
     @keyframes gma-spark-flight {
@@ -888,11 +922,11 @@
         margin-top: 0;
         margin-bottom: 0;
         box-sizing: border-box;
-        background: rgba(255,255,255,.06);
+        background: linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.055));
         color: var(--athlete-modal-text, rgba(255,255,255,.94));
         border: 1px solid var(--athlete-modal-cream-border, rgba(246,244,237,.52));
-        box-shadow: none;
-        padding: 1.4rem 2rem 1.65rem;
+        box-shadow: 0 1.15rem 2.65rem rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.08) inset;
+        padding: 1.65rem 2rem 2rem;
     }
     #detailsModal .gma-avatar {
         background: rgba(255,255,255,.08);
@@ -902,8 +936,8 @@
     #detailsModal .chrono-age-heading {
         color: var(--athlete-modal-text, rgba(255,255,255,.94));
         font-size: clamp(2rem, 4vw, 2.5rem);
-        margin-bottom: 0.25rem;
-        text-shadow: none;
+        margin-bottom: clamp(1.25rem, 2.5vh, 2rem);
+        text-shadow: 0 0.25rem 0.8rem rgba(0,0,0,.3);
     }
     #detailsModal #gmaStatus {
         color: var(--athlete-modal-cream, rgba(246,244,237,.92));
@@ -933,14 +967,14 @@
         background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
     }
     #detailsModal #gmaRange::-webkit-slider-thumb {
-        background: rgba(246,244,237,.98);
+        background: linear-gradient(145deg, #fffef9, #d9d5c9);
         border-color: rgba(255,255,255,.95);
-        box-shadow: none;
+        box-shadow: 0 0.5rem 1.25rem rgba(0,0,0,.35), 0 0 0 1px rgba(10,12,12,.16);
     }
     #detailsModal #gmaRange::-moz-range-thumb {
-        background: rgba(246,244,237,.98);
+        background: linear-gradient(145deg, #fffef9, #d9d5c9);
         border-color: rgba(255,255,255,.95);
-        box-shadow: none;
+        box-shadow: 0 0.5rem 1.25rem rgba(0,0,0,.35), 0 0 0 1px rgba(10,12,12,.16);
     }
     #detailsModal #gmaRange:focus-visible::-webkit-slider-thumb {
         box-shadow: 0 0 0 3px rgba(10,12,12,.96), 0 0 0 7px var(--lwc-accent-bright, #19c3d1);
@@ -953,7 +987,7 @@
         background: rgba(10,12,12,.96);
         color: var(--athlete-modal-cream, rgba(246,244,237,.92));
         border-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
-        box-shadow: none;
+        box-shadow: 0 0.75rem 1.75rem rgba(0,0,0,.38), 0 0 0 1px rgba(255,255,255,.08) inset;
     }
     #detailsModal #gmaBubble::after,
     #detailsModal #gmaRealBubble::after {
@@ -962,7 +996,7 @@
         border-bottom-color: var(--athlete-modal-cream-border, rgba(246,244,237,.52));
     }
     #detailsModal .gma-btn {
-        box-shadow: none;
+        box-shadow: 0 0.55rem 1.35rem rgba(0,0,0,.26);
     }
     #detailsModal .gma-btn:focus-visible {
         outline: none;
@@ -981,7 +1015,7 @@
     #detailsModal .gma-btn--primary {
         background: var(--athlete-modal-cream, rgba(246,244,237,.92));
         color: rgba(12,16,16,.94);
-        box-shadow: none;
+        box-shadow: 0 0.65rem 1.55rem rgba(0,0,0,.32), 0 1px 0 rgba(255,255,255,.68) inset;
     }
     #detailsModal .gma-btn--primary:hover,
     #detailsModal .gma-btn--primary:focus-visible {
@@ -1038,12 +1072,17 @@
             width: 100%;
             padding: 1.75rem 1.25rem 2rem;
         }
-        #detailsModal .modal-content.guess-mode .gma-heading {
+        #detailsModal .modal-content.guess-mode .gma-heading,
+        #detailsModal .modal-content.guess-mode .chrono-age-heading {
             display: block;
             width: 100%;
             min-width: 100%;
             overflow: visible;
             white-space: normal;
+        }
+
+        #detailsModal .modal-content.guess-mode .chrono-age-heading.is-revealing {
+            animation: none;
         }
         #detailsModal .gma-slider-wrap {
             width: 86%;
@@ -1237,6 +1276,7 @@
         .gma-actions,
         .gma-actions.gma-actions-hide,
         .gma-result-actions,
+        .gma-payoff-region,
         .gma-slider-wrap,
         #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper,
         .chrono-age-heading,
@@ -1251,7 +1291,7 @@
         }
 
         .gma-pop-banner {
-            transform: translate(-50%, 0) scale(1);
+            transform: translateY(0) scale(1);
         }
 
         #gmaRealBubble.is-settled {
@@ -1295,6 +1335,8 @@
         <output for="gmaRange" id="gmaBubble">33</output>
     </div>
 
+    <div id="gmaPayoffRegion" class="gma-payoff-region" aria-hidden="true"></div>
+
     <div class="gma-actions">
         <button id="gmaSkipAll" class="gma-btn gma-btn--ghost" style="display: none;" title="The Guess my age game will no longer appear for any athlete">Skip all</button>
         <button class="gma-btn gma-btn--ghost">Skip</button>
@@ -1323,6 +1365,9 @@
     const gmaActions = gmaCard.querySelector('.gma-actions');
     const gmaResultActions = gmaCard.querySelector('.gma-result-actions');
     const gmaContinueBtn = document.getElementById('gmaContinueBtn');
+    const gmaPayoffRegion = document.getElementById('gmaPayoffRegion');
+    const GMA_RESULT_PRELUDE_MS = 1980;
+    const GMA_MAX_TRAVEL_MS = 7000;
     let gmaWasGuessMode = modalContent.classList.contains('guess-mode');
     let gmaObservedAthleteSlug = modalContent.dataset.athleteSlug || '';
     let gmaPresentationGeneration = 0;
@@ -1386,7 +1431,7 @@
             gmaActions.classList.remove('gma-actions-hide');
             gmaActions.inert = false;
             gmaResultActions.hidden = true;
-            gmaResultActions.classList.remove('is-visible');
+            gmaResultActions.classList.remove('is-visible', 'is-pending', 'is-promoted');
             gmaCard.classList.remove('gma-done');
             gmaCard.style.removeProperty('--gma-exit-height');
             gmaCard.classList.remove('is-submitting', 'is-revealing');
@@ -1399,6 +1444,7 @@
             gmaRange.value = gmaDefaultValue;
             gmaRange.disabled = false;
             gmaRange.style.pointerEvents = '';
+            setGmaRangeResultState(false);
             gmaSubmitBtn.disabled = false;
             syncRange();
             gmaRange.focus({ preventScroll: true });
@@ -1463,6 +1509,18 @@
         positionGmaBubble(gmaBubble, val);
         setGmaRangeProgress(val);
     }
+
+    function setGmaRangeResultState(isResult) {
+        if (isResult) {
+            gmaRange.setAttribute('aria-hidden', 'true');
+            gmaRange.inert = true;
+            return;
+        }
+
+        gmaRange.removeAttribute('aria-hidden');
+        gmaRange.inert = false;
+    }
+
     gmaRange.addEventListener('input', syncRange);
     syncRange();   // initialise bubble
 
@@ -1499,53 +1557,26 @@
 
     window.addEventListener('resize', () => window.requestAnimationFrame(syncGmaGeometry), { passive: true });
 
-    function animateActualAgeReveal(realBubble, startAge, actualAge, presentation, onRevealBeat) {
-        if (!isCurrentGmaPresentation(presentation)) return Promise.resolve(false);
+    function startGmaResultPrelude(presentation) {
+        heading.style.display = 'none';
+        chronoHeading.style.display = 'inline-block';
+        chronoHeading.classList.remove('is-revealing');
+        void chronoHeading.offsetWidth;
+        chronoHeading.classList.add('is-revealing');
 
-        positionGmaRevealBubble(realBubble, startAge);
-        realBubble.dataset.revealPhase = 'staged';
-
-        if (prefersReducedGmaMotion()) {
-            positionGmaRevealBubble(realBubble, actualAge);
-            realBubble.classList.add('is-settled');
-            realBubble.dataset.revealPhase = 'settled';
-            return Promise.resolve(true);
-        }
-
-        const distance = Math.abs(actualAge - startAge);
-        const isExact = distance === 0;
-        const roomBelow = actualAge - +gmaRange.min;
-        const roomAbove = +gmaRange.max - actualAge;
-        const directionToActual = isExact
-            ? (roomAbove >= roomBelow ? 1 : -1)
-            : Math.sign(actualAge - startAge);
-        const desiredOvershootDistance = isExact
-            ? 6
-            : Math.min(34, Math.max(16, 34 - (distance * 0.45)));
-        const overshootAge = clampGmaAge(actualAge + (directionToActual * desiredOvershootDistance));
-        const overshootDistance = Math.abs(overshootAge - actualAge);
-        const usesOvershoot = (isExact || distance < 50) && overshootDistance >= 4;
-        const totalTravel = usesOvershoot
-            ? Math.abs(overshootAge - startAge) + overshootDistance
-            : distance;
-        const duration = isExact
-            ? 1100
-            : usesOvershoot
-            ? Math.min(3400, Math.max(2600, 2250 + (totalTravel * 12)))
-            : Math.min(2700, Math.max(1650, 1200 + (distance * 24)));
-        const leadIn = isExact ? 300 : 440;
+        const isImmediate = prefersReducedGmaMotion()
+            || (typeof window.matchMedia === 'function'
+                && window.matchMedia('(max-width: 768px)').matches);
+        const duration = isImmediate
+            ? 0
+            : modalContent.classList.contains('gma-fast')
+                ? 300
+                : GMA_RESULT_PRELUDE_MS;
+        if (duration === 0) return Promise.resolve(isCurrentGmaPresentation(presentation));
 
         return new Promise(resolve => {
-            let startedAt = 0;
-            let revealFrameId = 0;
-            let revealLeadTimer = 0;
-            let revealFallbackTimer = 0;
+            let preludeTimer = 0;
             let isFinished = false;
-            let hasEmittedRevealBeat = false;
-            const easeInOutCubic = value => value < 0.5
-                ? 4 * value * value * value
-                : 1 - (Math.pow(-2 * value + 2, 3) / 2);
-            const easeOutQuint = value => 1 - Math.pow(1 - value, 5);
             const motionQuery = typeof window.matchMedia === 'function'
                 ? window.matchMedia('(prefers-reduced-motion: reduce)')
                 : null;
@@ -1559,25 +1590,116 @@
                 }
             }
 
-            function emitRevealBeat() {
-                if (hasEmittedRevealBeat || prefersReducedGmaMotion() || !isCurrentGmaPresentation(presentation)) return;
-                hasEmittedRevealBeat = true;
-                if (typeof onRevealBeat === 'function') onRevealBeat();
+            function finishPrelude(shouldComplete) {
+                if (isFinished) return;
+                isFinished = true;
+                if (preludeTimer) window.clearTimeout(preludeTimer);
+                clearMotionListener();
+                if (cancelCurrentGmaReveal === cancelPrelude) cancelCurrentGmaReveal = null;
+                resolve(shouldComplete && isCurrentGmaPresentation(presentation));
+            }
+
+            function cancelPrelude() {
+                finishPrelude(false);
+            }
+
+            function handleMotionChange(event) {
+                if (event.matches) finishPrelude(true);
+            }
+
+            cancelCurrentGmaReveal = cancelPrelude;
+            if (motionQuery) {
+                if (typeof motionQuery.addEventListener === 'function') {
+                    motionQuery.addEventListener('change', handleMotionChange);
+                } else if (typeof motionQuery.addListener === 'function') {
+                    motionQuery.addListener(handleMotionChange);
+                }
+            }
+            preludeTimer = window.setTimeout(() => finishPrelude(true), duration);
+        });
+    }
+
+    function animateActualAgeReveal(realBubble, startAge, actualAge, presentation) {
+        if (!isCurrentGmaPresentation(presentation)) return Promise.resolve(false);
+
+        const roundedStart = Math.round(clampGmaAge(startAge));
+        const roundedActual = Math.round(clampGmaAge(actualAge));
+        positionGmaRevealBubble(realBubble, roundedStart);
+        realBubble.dataset.revealPhase = 'staged';
+
+        if (prefersReducedGmaMotion()) {
+            positionGmaRevealBubble(realBubble, roundedActual);
+            realBubble.classList.add('is-settled');
+            realBubble.dataset.revealPhase = 'settled';
+            return Promise.resolve(true);
+        }
+
+        const distance = Math.abs(roundedActual - roundedStart);
+        const isExact = distance === 0;
+        let detourAge = roundedActual;
+        if (isExact) {
+            const roomBelow = roundedActual - +gmaRange.min;
+            const roomAbove = +gmaRange.max - roundedActual;
+            detourAge = clampGmaAge(roundedActual + (roomAbove >= roomBelow ? 50 : -50));
+        } else if (distance < 50) {
+            const detourDistance = 50 - distance;
+            detourAge = clampGmaAge(
+                roundedStart + (Math.sign(roundedActual - roundedStart) * detourDistance));
+        }
+
+        const targets = detourAge !== roundedActual
+            ? [Math.round(detourAge), roundedActual]
+            : [roundedActual];
+        const segments = targets.map((target, index) => ({
+            start: index === 0 ? roundedStart : targets[index - 1],
+            end: target,
+            phase: index === 0 && targets.length > 1 ? 'detour' : targets.length > 1 ? 'return' : 'direct'
+        }));
+        const totalSteps = segments.reduce(
+            (total, segment) => total + Math.abs(segment.end - segment.start),
+            0);
+        const travelBudget = Math.min(
+            GMA_MAX_TRAVEL_MS,
+            Math.max(3200, 1900 + (totalSteps * 55)));
+        const delayWeights = Array.from(
+            { length: Math.max(totalSteps, 1) },
+            (_, index) => 0.3 + (0.7 * Math.pow((index + 1) / Math.max(totalSteps, 1), 2)));
+        const weightTotal = delayWeights.reduce((total, weight) => total + weight, 0);
+
+        realBubble.dataset.travelSteps = String(totalSteps);
+        realBubble.dataset.travelBudget = String(travelBudget);
+
+        return new Promise(resolve => {
+            let revealTimer = 0;
+            let revealFallbackTimer = 0;
+            let isFinished = false;
+            let segmentIndex = 0;
+            let currentAge = roundedStart;
+            let completedSteps = 0;
+            const motionQuery = typeof window.matchMedia === 'function'
+                ? window.matchMedia('(prefers-reduced-motion: reduce)')
+                : null;
+
+            function clearMotionListener() {
+                if (!motionQuery) return;
+                if (typeof motionQuery.removeEventListener === 'function') {
+                    motionQuery.removeEventListener('change', handleMotionChange);
+                } else if (typeof motionQuery.removeListener === 'function') {
+                    motionQuery.removeListener(handleMotionChange);
+                }
             }
 
             function finishReveal(shouldSettle) {
                 if (isFinished) return;
                 isFinished = true;
-                if (revealFrameId) window.cancelAnimationFrame(revealFrameId);
-                if (revealLeadTimer) window.clearTimeout(revealLeadTimer);
+                if (revealTimer) window.clearTimeout(revealTimer);
                 if (revealFallbackTimer) window.clearTimeout(revealFallbackTimer);
                 clearMotionListener();
                 if (cancelCurrentGmaReveal === cancelReveal) cancelCurrentGmaReveal = null;
 
                 const canSettle = shouldSettle && isCurrentGmaPresentation(presentation);
                 if (canSettle) {
-                    emitRevealBeat();
-                    positionGmaRevealBubble(realBubble, actualAge);
+                    positionGmaRevealBubble(realBubble, roundedActual);
                     realBubble.classList.remove('is-travelling', 'is-returning');
                     realBubble.classList.add('is-settled');
                     realBubble.dataset.revealPhase = 'settled';
@@ -1593,7 +1715,7 @@
                 if (event.matches) finishReveal(true);
             }
 
-            function revealFrame(timestamp) {
+            function scheduleNextTick() {
                 if (!isCurrentGmaPresentation(presentation)) {
                     finishReveal(false);
                     return;
@@ -1603,52 +1725,28 @@
                     return;
                 }
 
-                if (!startedAt) startedAt = timestamp;
-                const progress = Math.min((timestamp - startedAt) / duration, 1);
-                let age;
-
-                if (usesOvershoot && progress < 0.58) {
-                    const outboundProgress = easeInOutCubic(progress / 0.58);
-                    age = startAge + ((overshootAge - startAge) * outboundProgress);
-                    realBubble.dataset.revealPhase = 'overshoot';
-                } else if (usesOvershoot) {
-                    const returnProgress = easeOutQuint((progress - 0.58) / 0.42);
-                    age = overshootAge + ((actualAge - overshootAge) * returnProgress);
-                    if (!realBubble.classList.contains('is-returning')) {
-                        realBubble.classList.add('is-returning');
-                        emitRevealBeat();
-                    }
-                    realBubble.dataset.revealPhase = 'return';
-                } else {
-                    const revealProgress = easeInOutCubic(progress);
-                    age = startAge + ((actualAge - startAge) * revealProgress);
-                    realBubble.dataset.revealPhase = 'direct';
-                    if (progress >= 0.62) emitRevealBeat();
-                }
-
-                positionGmaRevealBubble(realBubble, age);
-                if (progress < 1) {
-                    revealFrameId = window.requestAnimationFrame(revealFrame);
-                    return;
-                }
-
-                finishReveal(true);
-            }
-
-            function beginTravel() {
-                revealLeadTimer = 0;
-                if (!isCurrentGmaPresentation(presentation)) {
-                    finishReveal(false);
-                    return;
-                }
-                if (prefersReducedGmaMotion()) {
+                const segment = segments[segmentIndex];
+                if (!segment) {
                     finishReveal(true);
                     return;
                 }
+                if (currentAge === segment.end) {
+                    segmentIndex += 1;
+                    scheduleNextTick();
+                    return;
+                }
 
-                realBubble.classList.add('is-travelling');
-                realBubble.dataset.revealPhase = usesOvershoot ? 'overshoot' : 'direct';
-                revealFrameId = window.requestAnimationFrame(revealFrame);
+                const step = Math.sign(segment.end - currentAge);
+                const delay = travelBudget * (delayWeights[completedSteps] / weightTotal);
+                revealTimer = window.setTimeout(() => {
+                    revealTimer = 0;
+                    currentAge += step;
+                    completedSteps += 1;
+                    realBubble.dataset.revealPhase = segment.phase;
+                    realBubble.classList.toggle('is-returning', segment.phase === 'return');
+                    positionGmaRevealBubble(realBubble, currentAge);
+                    scheduleNextTick();
+                }, delay);
             }
 
             cancelCurrentGmaReveal = cancelReveal;
@@ -1659,8 +1757,12 @@
                     motionQuery.addListener(handleMotionChange);
                 }
             }
-            revealFallbackTimer = window.setTimeout(() => finishReveal(true), leadIn + duration + 480);
-            revealLeadTimer = window.setTimeout(beginTravel, leadIn);
+            realBubble.classList.add('is-travelling');
+            realBubble.dataset.revealPhase = segments[0]?.phase || 'direct';
+            revealFallbackTimer = window.setTimeout(
+                () => finishReveal(true),
+                GMA_MAX_TRAVEL_MS + 200);
+            scheduleNextTick();
         });
     }
 
@@ -1674,9 +1776,35 @@
         reactionElement.className = `gma-reaction gma-reaction--${reaction}`;
         reactionElement.setAttribute('aria-hidden', 'true');
         reactionElement.textContent = reaction === 'exact' ? '👀' : reaction === 'younger' ? '🙌' : '😭';
-        reactionElement.style.setProperty('--gma-reaction-x', `${rect.left + (rect.width / 2)}px`);
-        reactionElement.style.setProperty('--gma-reaction-y', `${rect.top + (rect.height / 2)}px`);
+        const isNarrowPhone = window.innerWidth <= 420;
+        const desiredX = isNarrowPhone
+            ? rect.left - Math.min(30, rect.width * 0.12)
+            : rect.right + Math.min(96, rect.width * 0.26);
+        const desiredY = rect.top + (rect.height * (isNarrowPhone ? 0.28 : 0.44));
+        reactionElement.dataset.placement = 'beside-portrait';
         document.body.appendChild(reactionElement);
+
+        let reactionX = Math.min(window.innerWidth - 72, desiredX);
+        let reactionY = desiredY;
+        if (isNarrowPhone) {
+            // Clamp the complete animated glyph, not just its anchor. The reaction reaches
+            // 1.16x scale with a small rotation, so 1.25x is a safe visual envelope.
+            const horizontalInset = Math.min(
+                window.innerWidth / 2,
+                (reactionElement.offsetWidth * 1.25 / 2) + 8);
+            const verticalInset = Math.min(
+                window.innerHeight / 2,
+                (reactionElement.offsetHeight * 1.25) + 8);
+            reactionX = Math.min(
+                window.innerWidth - horizontalInset,
+                Math.max(horizontalInset, desiredX));
+            reactionY = Math.min(
+                window.innerHeight - verticalInset,
+                Math.max(verticalInset, desiredY));
+        }
+
+        reactionElement.style.setProperty('--gma-reaction-x', `${reactionX}px`);
+        reactionElement.style.setProperty('--gma-reaction-y', `${reactionY}px`);
         reactionElement.addEventListener('animationend', () => reactionElement.remove(), { once: true });
         window.setTimeout(() => reactionElement.remove(), 2200);
     }
@@ -1696,9 +1824,20 @@
         troll.src = source.currentSrc || source.src;
         troll.style.setProperty('--gma-reaction-x', `${rect.left + (rect.width / 2)}px`);
         troll.style.setProperty('--gma-reaction-y', `${rect.top + (rect.height / 2)}px`);
+        troll.style.animationPlayState = 'paused';
+        troll.dataset.animationState = 'queued';
         document.body.appendChild(troll);
         troll.addEventListener('animationend', () => troll.remove(), { once: true });
-        window.setTimeout(() => troll.remove(), 2200);
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+            if (!troll.isConnected) return;
+
+            // Start the bounded reaction only after the browser has had a paint opportunity.
+            // Otherwise a loaded main thread can advance the entire CSS animation between
+            // frames and remove the easter egg before the player ever sees it.
+            troll.dataset.animationState = 'running';
+            troll.style.animationPlayState = 'running';
+            window.setTimeout(() => troll.remove(), 2200);
+        }));
     }
 
     function spawnGmaCelebration(kind) {
@@ -1708,30 +1847,36 @@
         const isFirst = kind === 'first';
         const origin = document.getElementById('gmaRealBubble') || gmaCard;
         const rect = origin.getBoundingClientRect();
+        const modalRect = modalContent.getBoundingClientRect();
         const centerX = rect.left + (rect.width / 2);
         const centerY = rect.top + (rect.height / 2);
         const icons = isFirst
             ? ['medal', 'flag-checkered', 'stopwatch', 'calendar-check']
             : ['clock', 'stopwatch', 'hourglass-half', 'calendar-check'];
-        const sparkCount = isExact ? 24 : isFirst ? 10 : 16;
+        const sparkCount = isExact ? 64 : isFirst ? 28 : 48;
+        const radiusX = Math.min(360, modalRect.width * 0.46);
+        const radiusY = Math.min(420, modalRect.height * 0.38);
 
         for (let index = 0; index < sparkCount; index++) {
             const angle = ((Math.PI * 2) / sparkCount) * index - (Math.PI / 2);
-            const distance = (isExact ? 118 : 96) + ((index % 4) * 24);
+            const distanceScale = 0.68 + ((index % 5) * 0.08);
+            const deltaX = Math.cos(angle) * radiusX * distanceScale;
+            const deltaY = Math.sin(angle) * radiusY * distanceScale;
             const spark = document.createElement('i');
             spark.className = `gma-celebration-spark fas fa-${icons[index % icons.length]}`;
             spark.setAttribute('aria-hidden', 'true');
+            spark.dataset.quadrant = `${deltaX >= 0 ? 'right' : 'left'}-${deltaY >= 0 ? 'bottom' : 'top'}`;
             spark.style.setProperty('--gma-spark-x', `${centerX}px`);
             spark.style.setProperty('--gma-spark-y', `${centerY}px`);
-            spark.style.setProperty('--gma-spark-dx', `${Math.cos(angle) * distance}px`);
-            spark.style.setProperty('--gma-spark-dy', `${Math.sin(angle) * distance * 0.82}px`);
+            spark.style.setProperty('--gma-spark-dx', `${deltaX}px`);
+            spark.style.setProperty('--gma-spark-dy', `${deltaY}px`);
             spark.style.setProperty('--gma-spark-rotation', `${index % 2 === 0 ? 140 : -140}deg`);
-            spark.style.setProperty('--gma-spark-size', `${1.35 + ((index % 4) * 0.16)}rem`);
-            spark.style.animationDelay = `${index * 32}ms`;
+            spark.style.setProperty('--gma-spark-size', `${1.3 + ((index % 4) * 0.2)}rem`);
+            spark.style.animationDelay = `${(index % 2) * 140}ms`;
             if (isExact || isFirst) spark.style.setProperty('--gma-spark-color', '#9a6700');
             document.body.appendChild(spark);
             spark.addEventListener('animationend', () => spark.remove(), { once: true });
-            window.setTimeout(() => spark.remove(), 2800);
+            window.setTimeout(() => spark.remove(), 3400);
         }
     }
 
@@ -1799,18 +1944,23 @@
     function restoreGuessControls(message, focusTarget) {
         gmaCard.removeAttribute('aria-busy');
         gmaCard.classList.remove('is-submitting', 'is-revealing');
+        heading.style.display = '';
+        chronoHeading.style.display = 'none';
+        chronoHeading.classList.remove('is-revealing');
         gmaStatus.classList.remove('gma-status--semantic');
         gmaStatus.hidden = !message;
         gmaStatus.textContent = message || '';
         gmaActions.classList.remove('gma-actions-hide');
         gmaActions.inert = false;
         gmaResultActions.hidden = true;
-        gmaResultActions.classList.remove('is-visible');
+        gmaResultActions.classList.remove('is-visible', 'is-pending', 'is-promoted');
         gmaRange.disabled = false;
         gmaRange.style.pointerEvents = '';
+        setGmaRangeResultState(false);
         gmaSubmitBtn.disabled = false;
         gmaBubble.classList.remove('gma-bubble-inactive');
         document.getElementById('gmaRealBubble')?.remove();
+        clearGmaEphemera();
         syncRange();
         (focusTarget || gmaRange).focus();
     }
@@ -1824,8 +1974,8 @@
             gmaTrollNote.classList.remove('is-visible');
             void gmaTrollNote.offsetWidth;
             gmaTrollNote.classList.add('is-visible');
-            showGmaTrollReaction();
             restoreGuessControls('', gmaRange);
+            showGmaTrollReaction();
             return;
         }
 
@@ -1833,6 +1983,7 @@
         gmaTrollNote.classList.remove('is-visible');
         clearGmaEphemera();
         const presentation = beginGmaPresentation(modalContent.dataset.athleteSlug);
+        const preludePromise = startGmaResultPrelude(presentation);
 
         gmaCard.setAttribute('aria-busy', 'true');
         gmaCard.classList.add('is-submitting');
@@ -1844,6 +1995,7 @@
         gmaActions.inert = true;
         gmaRange.disabled = true;
         gmaRange.style.pointerEvents = 'none';
+        setGmaRangeResultState(true);
         gmaSubmitBtn.disabled = true;
 
         try {
@@ -1898,11 +2050,6 @@
             updateCrowdContainer(result.crowdAge, result.crowdCount);
             gmaCard.classList.remove('is-submitting');
             gmaCard.classList.add('is-revealing');
-            heading.style.display = 'none';
-            chronoHeading.style.display = 'block';
-            chronoHeading.classList.remove('is-revealing');
-            void chronoHeading.offsetWidth;
-            chronoHeading.classList.add('is-revealing');
             const reactionKind = userGuess === realAge
                 ? 'exact'
                 : userGuess < realAge
@@ -1924,8 +2071,12 @@
             gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}. ${reactionCopy}${outcomeCopy}`;
             gmaCard.removeAttribute('aria-busy');
             gmaResultActions.hidden = false;
-            gmaResultActions.classList.add('is-visible');
-            gmaContinueBtn.focus({ preventScroll: true });
+            gmaResultActions.classList.remove('is-promoted');
+            gmaResultActions.classList.add('is-visible', 'is-pending');
+            showGmaReaction(reactionKind);
+
+            const preludeCompleted = await preludePromise;
+            if (!preludeCompleted || !isCurrentGmaPresentation(presentation)) return;
 
             const realBubble = document.createElement('span');
             realBubble.id = 'gmaRealBubble';
@@ -1938,25 +2089,27 @@
                 realBubble,
                 userGuess,
                 realAge,
-                presentation,
-                () => showGmaReaction(reactionKind));
+                presentation);
             if (!revealCompleted || !isCurrentGmaPresentation(presentation)) return;
 
-            let outcomeDwell = 2700;
+            gmaResultActions.classList.remove('is-pending');
+            gmaResultActions.classList.add('is-promoted');
+            gmaContinueBtn.focus({ preventScroll: true });
+            document.querySelectorAll('.gma-reaction').forEach(element => element.remove());
+
+            let outcomeDwell = 5000;
             if (userError === 0) {
                 gmaCard.classList.add('celebrate-exact');
-                popBanner(true, false);
+                outcomeDwell = 6000;
+                popBanner(true, false, outcomeDwell);
                 spawnGmaCelebration('exact');
-                outcomeDwell = 4600;
             } else if (isFirstGuess) {
-                popBanner(false, true);
+                popBanner(false, true, outcomeDwell);
                 spawnGmaCelebration('first');
-                outcomeDwell = 3900;
             } else if (crowdError !== null && userError < crowdError) {
                 gmaCard.classList.add('celebrate-better');
-                popBanner(false, false);
+                popBanner(false, false, outcomeDwell);
                 spawnGmaCelebration('crowd');
-                outcomeDwell = 3900;
             }
 
             scheduleGmaExit(
@@ -1965,6 +2118,7 @@
                 outcomeDwell);
         } catch (error) {
             if (!isCurrentGmaPresentation(presentation)) return;
+            cancelGmaPresentation();
             console.error('Error submitting guess:', error);
             restoreGuessControls('We could not submit your guess. Please try again.', gmaSubmitBtn);
         }
@@ -2004,7 +2158,7 @@
         scheduleGmaExit(athleteSlug, null, 0);
     }
 
-    function popBanner(isExact, isFirst) {
+    function popBanner(isExact, isFirst, outcomeDwell) {
         const b = document.createElement('div');
         b.setAttribute('aria-hidden', 'true');
         b.classList.add('gma-pop-banner');
@@ -2012,31 +2166,25 @@
             b.classList.add('gma-pop-banner--golden');
         }
 
-        const icon = document.createElement('span');
-        icon.className = 'gma-pop-banner__icon';
-        icon.setAttribute('aria-hidden', 'true');
-        const iconGlyph = document.createElement('i');
-        iconGlyph.className = isExact
-            ? 'fas fa-bullseye'
-            : isFirst
-                ? 'fas fa-medal'
-                : 'fas fa-people-group';
-        icon.appendChild(iconGlyph);
-
-        const copy = document.createTextNode(isExact
+        const bannerCopy = document.createElement('span');
+        bannerCopy.textContent = isExact
             ? 'Bullseye!'
             : isFirst
                 ? 'First accepted guess!'
-                : 'You beat the crowd!');
-        b.append(icon, copy);
+                : 'You beat the crowd!';
+        const leadingEmoji = isExact ? '🎯🎯🎯 ' : isFirst ? '🥇 ' : '🎉 ';
+        const trailingEmoji = isExact ? ' 🎯🎯🎯' : isFirst ? ' 🥇' : ' 🏆';
+        b.append(document.createTextNode(leadingEmoji), bannerCopy, document.createTextNode(trailingEmoji));
 
-        document.body.appendChild(b);
+        gmaPayoffRegion.replaceChildren(b);
         requestAnimationFrame(() => b.classList.add('show'));
 
-        const bannerDwell = prefersReducedGmaMotion() ? 1200 : 3400;
+        const bannerDwell = prefersReducedGmaMotion()
+            ? 1200
+            : Math.max(2000, outcomeDwell - 600);
         setTimeout(() => {
             b.classList.add('hide');
-            b.addEventListener('animationend', () => b.remove());
+            b.addEventListener('animationend', () => b.remove(), { once: true });
             setTimeout(() => b.remove(), 600);
         }, bannerDwell);
 
