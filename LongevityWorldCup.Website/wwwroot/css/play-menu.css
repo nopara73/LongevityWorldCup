@@ -82,6 +82,14 @@ body.play-start-active .play-logo-watermark {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+    body.play-start-active.play-start-intro {
+        --play-intro-beat: var(--lwc-duration-fast, 140ms);
+        --play-intro-phase: calc(var(--lwc-duration-normal, 220ms) + var(--lwc-duration-normal, 220ms));
+        --play-logo-settle-duration: calc(var(--play-intro-phase) + var(--lwc-duration-normal, 220ms));
+        --play-wordmark-settle-duration: var(--play-intro-phase);
+        --play-action-settle-duration: var(--lwc-duration-normal, 220ms);
+    }
+
     body.play-start-active.play-start-preintro .play-logo-watermark {
         opacity: 0.14;
         transform: translate(-50%, -50%) scale(0.985);
@@ -97,33 +105,29 @@ body.play-start-active .play-logo-watermark {
         transform: none;
     }
 
-    body.play-start-active.play-start-preintro .play-menu-actions {
-        opacity: 1;
-        transform: none;
+    body.play-start-active.play-start-preintro .play-menu-actions .flow-action {
+        opacity: 0.92;
+        transform: translate3d(0, 0.12rem, 0);
     }
 
     body.play-start-active.play-start-intro .play-logo-watermark {
-        animation: play-logo-settle var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+        animation: play-logo-settle var(--play-logo-settle-duration) var(--lwc-ease, ease) both;
         will-change: opacity, transform;
     }
 
     body.play-start-active.play-start-intro .play-menu-wordmark {
-        animation: play-wordmark-settle var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both;
+        animation: play-wordmark-settle var(--play-wordmark-settle-duration) var(--lwc-ease, ease) var(--play-intro-beat) both;
         will-change: opacity, transform;
     }
 
     body.play-start-active.play-start-intro .play-menu-actions .flow-action {
-        --play-action-delay: 0ms;
-        animation: play-action-settle var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) var(--play-action-delay) both;
+        --play-action-delay: var(--play-intro-phase);
+        animation: play-action-settle var(--play-action-settle-duration) var(--lwc-ease, ease) var(--play-action-delay) both;
         will-change: opacity, transform;
     }
 
-    body.play-start-active.play-start-intro .play-menu-actions .flow-action:nth-child(1) {
-        --play-action-delay: 0ms;
-    }
-
     body.play-start-active.play-start-intro .play-menu-actions .flow-action:nth-child(2) {
-        --play-action-delay: 0ms;
+        --play-action-delay: calc(var(--play-intro-phase) + var(--play-intro-beat));
     }
 }
 

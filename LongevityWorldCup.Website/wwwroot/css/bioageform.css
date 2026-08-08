@@ -16,6 +16,332 @@
     box-sizing: border-box;
 }
 
+.bioage-result-value-stack {
+    --bioage-result-reveal-color: var(--lwc-accent, #087685);
+    --bioage-result-halo-color: rgba(8, 118, 133, 0.28);
+    --bioage-result-count-duration: calc(var(--lwc-duration-normal, 220ms) * 4);
+    --bioage-result-settle-duration: calc(var(--lwc-duration-normal, 220ms) * 3);
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    place-items: center;
+    min-width: min(100%, 8ch);
+}
+
+.bioage-result-value-stack::after {
+    content: '';
+    position: absolute;
+    z-index: 3;
+    right: 12%;
+    bottom: -0.75rem;
+    left: 12%;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--bioage-result-reveal-color) 22%,
+        var(--bioage-result-reveal-color) 78%,
+        transparent);
+    opacity: 0;
+    pointer-events: none;
+    transform: scaleX(0.08);
+}
+
+.bioage-result-value-stack > #animatedAge,
+.bioage-result-visual {
+    grid-area: 1 / 1;
+}
+
+.bioage-result-visual {
+    position: relative;
+    z-index: 2;
+    display: block;
+    color: var(--bioage-result-reveal-color);
+    font-family: 'Roboto', sans-serif;
+    font-size: 6.5rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    text-align: center;
+    transform: scale(1);
+    transform-origin: center 60%;
+    white-space: nowrap;
+}
+
+.bioage-result-halo {
+    position: absolute;
+    z-index: 0;
+    width: min(9rem, 34vw);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--bioage-result-halo-color) 0%, transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.65);
+}
+
+.bio-age-number-container[data-bioage-reveal-tone="excellent"] .bioage-result-value-stack {
+    --bioage-result-reveal-color: var(--lwc-success, #1f7a38);
+    --bioage-result-halo-color: rgba(31, 122, 56, 0.28);
+}
+
+.bio-age-number-container[data-bioage-reveal-tone="average"] .bioage-result-value-stack {
+    --bioage-result-reveal-color: var(--lwc-warning, #9a6700);
+    --bioage-result-halo-color: rgba(154, 103, 0, 0.26);
+}
+
+.bio-age-number-container.bioage-result-reveal--waiting .bioage-result-value-stack,
+.bio-age-number-container.bioage-result-reveal--counting .bioage-result-value-stack {
+    --bioage-result-reveal-color: var(--lwc-accent, #087685);
+    --bioage-result-halo-color: rgba(8, 118, 133, 0.28);
+}
+
+.bio-age-number-container.bioage-result-reveal--waiting #animatedAge,
+.bio-age-number-container.bioage-result-reveal--counting #animatedAge {
+    opacity: 0 !important;
+    transition: none !important;
+}
+
+.bio-age-number-container.bioage-result-reveal--waiting .bioage-result-visual,
+.bio-age-number-container.bioage-result-reveal--counting .bioage-result-visual {
+    opacity: 1;
+}
+
+.bio-age-number-container.bioage-result-reveal--counting .bioage-result-visual {
+    animation: bioage-result-count var(--bioage-result-count-duration) var(--lwc-ease, ease) both;
+}
+
+.bio-age-number-container.bioage-result-reveal--counting .bioage-result-halo {
+    animation: bioage-result-count-halo var(--bioage-result-count-duration) var(--lwc-ease, ease) both;
+}
+
+.bio-age-number-container.bioage-result-reveal--counting .bioage-result-value-stack::after {
+    animation: bioage-result-track var(--bioage-result-count-duration) var(--lwc-ease, ease) both;
+}
+
+.bio-age-number-container.bioage-result-reveal--settling .bioage-result-visual {
+    animation: bioage-result-settle var(--bioage-result-settle-duration) var(--lwc-ease, ease) both;
+}
+
+.bio-age-number-container.bioage-result-reveal--settling .bioage-result-halo {
+    animation: bioage-result-halo var(--bioage-result-settle-duration) var(--lwc-ease, ease) both;
+}
+
+.bio-age-number-container.bioage-result-reveal--settling .bioage-result-value-stack::after {
+    animation: bioage-result-track-lock var(--bioage-result-settle-duration) var(--lwc-ease, ease) both;
+}
+
+/*
+ * The result is published to the DOM and accessibility tree before motion starts.
+ * These stages sequence only its visual reading order after the age count lands.
+ */
+.bioageform.show[data-bioage-result-stage] [data-bioage-result-difference],
+.bioageform.show[data-bioage-result-stage] [data-bioage-result-context],
+.bioageform.show[data-bioage-result-stage] [data-bioage-result-rank] {
+    opacity: 0 !important;
+    transform: translateY(4px) !important;
+    transition: none !important;
+}
+
+.bioageform.show:is(
+    [data-bioage-result-stage="difference"],
+    [data-bioage-result-stage="context"],
+    [data-bioage-result-stage="rank"]
+) [data-bioage-result-difference],
+.bioageform.show:is(
+    [data-bioage-result-stage="context"],
+    [data-bioage-result-stage="rank"]
+) [data-bioage-result-context],
+.bioageform.show[data-bioage-result-stage="rank"] [data-bioage-result-rank] {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    transition:
+        opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) !important;
+}
+
+@keyframes bioage-result-count {
+    0% {
+        opacity: 0.48;
+        transform: translateY(10px) scale(0.9);
+    }
+
+    14% {
+        opacity: 1;
+        transform: translateY(0) scale(1.025);
+    }
+
+    28%, 58%, 88% {
+        transform: translateY(0) scale(1);
+    }
+
+    48% {
+        transform: translateY(0) scale(1.018);
+    }
+
+    78% {
+        transform: translateY(0) scale(1.012);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes bioage-result-count-halo {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    18% {
+        opacity: 0.24;
+        transform: scale(0.72);
+    }
+
+    52% {
+        opacity: 0.1;
+        transform: scale(0.9);
+    }
+
+    82% {
+        opacity: 0.2;
+        transform: scale(1.04);
+    }
+
+    100% {
+        opacity: 0.08;
+        transform: scale(1.1);
+    }
+}
+
+@keyframes bioage-result-track {
+    0% {
+        opacity: 0;
+        transform: scaleX(0.08);
+    }
+
+    16% {
+        opacity: 0.52;
+    }
+
+    86% {
+        opacity: 0.78;
+        transform: scaleX(1);
+    }
+
+    100% {
+        opacity: 0.48;
+        transform: scaleX(1);
+    }
+}
+
+@keyframes bioage-result-settle {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    22% {
+        opacity: 1;
+        transform: translateY(-3px) scale(1.13);
+    }
+
+    48% {
+        opacity: 1;
+        transform: translateY(1px) scale(0.985);
+    }
+
+    72% {
+        opacity: 0.82;
+        transform: translateY(0) scale(1.035);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes bioage-result-halo {
+    0% {
+        opacity: 0.08;
+        transform: scale(0.55);
+    }
+
+    26% {
+        opacity: 0.62;
+        transform: scale(0.9);
+    }
+
+    60% {
+        opacity: 0.25;
+        transform: scale(1.22);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.55);
+    }
+}
+
+@keyframes bioage-result-track-lock {
+    0% {
+        opacity: 0.62;
+        transform: scaleX(1);
+    }
+
+    32% {
+        opacity: 1;
+        transform: scaleX(0.58);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scaleX(0.12);
+    }
+}
+
+@media (max-width: 768px) {
+    .bioage-result-visual {
+        font-size: 5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .bioage-result-visual {
+        font-size: 4rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bio-age-number-container.bioage-result-reveal--waiting #animatedAge,
+    .bio-age-number-container.bioage-result-reveal--counting #animatedAge {
+        opacity: 1 !important;
+    }
+
+    .bioage-result-visual,
+    .bioage-result-halo,
+    .bioage-result-value-stack::after {
+        animation: none !important;
+        opacity: 0 !important;
+        transition: none !important;
+    }
+
+    .bioageform.show[data-bioage-result-stage] [data-bioage-result-difference],
+    .bioageform.show[data-bioage-result-stage] [data-bioage-result-context],
+    .bioageform.show[data-bioage-result-stage] [data-bioage-result-rank] {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+}
+
     .bioageform label {
         display: block;
         margin-top: 1rem;

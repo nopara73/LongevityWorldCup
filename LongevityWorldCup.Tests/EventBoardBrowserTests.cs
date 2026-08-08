@@ -233,6 +233,17 @@ public sealed class EventBoardBrowserTests
                     return;
                 }
 
+                if (uri.AbsolutePath.Equals("/api/bitcoin/total-received", StringComparison.OrdinalIgnoreCase))
+                {
+                    await route.FulfillAsync(new RouteFulfillOptions
+                    {
+                        Status = 200,
+                        ContentType = "application/json",
+                        Body = """{"totalReceivedSatoshis":210000}"""
+                    });
+                    return;
+                }
+
                 await route.ContinueAsync();
                 return;
             }

@@ -1336,20 +1336,25 @@
         </div>
         <div id="bortzAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400" inert aria-hidden="true">
             <div id="validAgeInput">
-                <div>Bortz Age:</div>
+                <div>bortz age:</div>
                 <div class="bio-age-number-container">
-                    <span id="animatedAge">0</span>
+                    <span class="bioage-result-value-stack">
+                        <span id="animatedAge">0</span>
+                        <span class="bioage-result-visual" data-bioage-result-visual aria-hidden="true">0.0</span>
+                        <span class="bioage-result-halo" aria-hidden="true"></span>
+                    </span>
                 </div>
                 <div class="result-years-block">
-                    <div id="yearsText">years</div>
-                    <div id="phenoAgeRow">Pheno Age: <span id="phenoAgeValue">0</span> years <span id="phenoAgeDelta"></span></div>
+                    <div id="yearsText" data-bioage-result-difference>years</div>
+                    <div id="phenoAgeRow" data-bioage-result-context>pheno age: <span id="phenoAgeValue">0</span> years <span id="phenoAgeDelta"></span></div>
                 </div>
+                <span class="visually-hidden" data-bioage-result-announcement role="status" aria-live="polite" aria-atomic="true"></span>
             </div>
             <div id="ensureCorrectInputSuggestion" class="bioage-inline-notice" role="alert" aria-live="assertive" style="display: none;">
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
                 <i class="fas fa-ambulance" aria-hidden="true"></i> <i class="fas fa-hospital" aria-hidden="true"></i> <i class="fas fa-clinic-medical" aria-hidden="true"></i>
             </div>
-            <div id="bortzAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
+            <div id="bortzAgeRankPreview" class="bioage-rank-preview" data-bioage-result-rank hidden aria-live="polite"></div>
         </div>
 
         <div class="options-container bioage-result-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body.bioage-result-ready" data-aos="fade" data-aos-duration="700" data-aos-delay="450" hidden>
@@ -2637,6 +2642,8 @@
             // Check if the result is not infinite
             if (!isFinite(bortzAge)) {
                 resultElement.classList.add('show');
+                bioageFlow.syncBioageResultVisibility();
+                bioageFlow.animateBioageResult(resultElement, bortzAge, { instant: true });
                 ensureCorrectInputSuggestion.style.display = 'block';
                 validAgeInput.style.display = 'none';
                 if (window.LwcBioAgeRankPreview) window.LwcBioAgeRankPreview.clear('bortzAgeRankPreview');
@@ -2670,6 +2677,9 @@
             }
             
             resultElement.classList.add('show');
+            bioageFlow.announceBioageResult(
+                resultElement,
+                `Your Bortz Age is ${bortzAge.toFixed(1)} years.`);
             animatedAgeElement.innerText = bortzAge.toFixed(1);
             animatedAgeElement.classList.remove('age-excellent', 'age-good', 'age-average');
             animatedAgeElement.classList.add(ageCategory);
@@ -2698,6 +2708,7 @@
 
             document.getElementById('continueButton').classList.add('show');
             updateCalculateButton();
+            bioageFlow.animateBioageResult(resultElement, bortzAge);
 
             isResultCalculated = true;
         }
