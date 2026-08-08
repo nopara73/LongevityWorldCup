@@ -3088,6 +3088,11 @@ public sealed class FlowActionDockBrowserTests
         await page.WaitForSelectorAsync("#phenoAgeResult.show");
         await page.WaitForFunctionAsync(
             "() => document.getElementById('phenoAgeRankPreview')?.getAttribute('aria-busy') === 'true'");
+        await page.WaitForFunctionAsync(
+            """
+            () => document.getElementById('phenoAgeResult')?.dataset.bioageResultStage === 'rank'
+                && document.querySelector('#phenoAgeResult .bio-age-number-container')?.dataset.bioageRevealState === 'complete'
+            """);
         await ExpectActionStackDockedInViewportAsync(page, ".phenoage-result-actions");
         await ExpectBioageResultReadableWithDockAsync(page, "#phenoAgeResult", ".phenoage-result-actions");
 
@@ -3111,27 +3116,21 @@ public sealed class FlowActionDockBrowserTests
             """);
         Assert.InRange(initialLayout[2] - initialLayout[1], 8, 16);
 
-        await page.EvaluateAsync(
-            """
-            async () => {
-                const athletes = await fetch('/api/data/athletes', {
-                    cache: 'no-store',
-                    headers: { accept: 'application/json' }
-                }).then(response => response.json());
-                window.__releaseRankPreview(athletes);
-            }
-            """);
+        await page.EvaluateAsync("() => window.__releaseRankPreview([])");
         await page.WaitForFunctionAsync(
             """
-            () => {
+            initialResultHeight => {
                 const preview = document.getElementById('phenoAgeRankPreview');
                 const result = document.getElementById('phenoAgeResult');
                 if (preview?.getAttribute('aria-busy') !== 'false'
                     || !preview.querySelector('.bioage-rank-neighbors')
                     || !result) return false;
-                return result.getBoundingClientRect().height >= 300;
+                return result.getBoundingClientRect().height >= Number(initialResultHeight) + 50;
             }
-            """);
+            """,
+            initialLayout[0]);
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
 
         var finalLayout = await page.EvaluateAsync<double[]>(
             """
