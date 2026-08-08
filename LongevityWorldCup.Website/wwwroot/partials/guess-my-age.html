@@ -1,37 +1,42 @@
 <style>
-    /* Result feedback stays compact, but it should still feel like a game payoff. */
+    /* Outcome feedback is intentionally bigger than a normal toast: this is the game's payoff. */
     .gma-pop-banner {
         position: fixed;
-        top: max(1rem, env(safe-area-inset-top));
+        top: max(calc(env(safe-area-inset-top) + 1rem), 10vh);
         left: 50%;
-        transform: translate(-50%, -0.75rem) scale(0.96);
-        min-height: 48px;
-        padding: 0.75rem 1.1rem;
-        background: var(--lwc-surface, #ffffff);
+        transform: translate(-50%, -1rem) scale(0.72);
+        width: max-content;
+        max-width: min(36rem, calc(100vw - 2rem));
+        min-height: 56px;
+        padding: 0.9rem 1.35rem;
+        background: color-mix(in srgb, var(--lwc-surface, #ffffff) 94%, transparent);
         color: var(--lwc-ink, #17212b);
-        font-size: 1rem;
+        font-size: clamp(1.05rem, 3vw, 1.45rem);
         font-weight: 700;
-        border: 0;
-        border-inline-start: 4px solid var(--lwc-accent, var(--primary-color));
-        border-radius: 8px;
+        line-height: 1.15;
+        text-align: center;
+        border: 1px solid color-mix(in srgb, var(--lwc-accent, var(--primary-color)) 32%, transparent);
+        border-inline-start: 5px solid var(--lwc-accent, var(--primary-color));
+        border-radius: 12px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 0.5rem;
         z-index: 10002;
         pointer-events: none;
-        box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.18));
+        box-shadow: 0 1.25rem 3rem rgba(2, 8, 23, 0.28), 0 0 0 1px rgba(255,255,255,.18) inset;
+        backdrop-filter: blur(14px);
     }
 
     .gma-pop-banner__icon {
         display: grid;
         place-items: center;
-        width: 1.75rem;
-        height: 1.75rem;
+        width: 2.15rem;
+        height: 2.15rem;
         border-radius: 50%;
         background: var(--lwc-accent-soft, #dff5f7);
         color: var(--lwc-accent, #087685);
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
 
     .gma-pop-banner--golden .gma-pop-banner__icon {
@@ -39,28 +44,39 @@
         color: var(--lwc-warning, #9a6700);
     }
 
-        .gma-pop-banner.show {
-            animation: gma-pop-slide-in var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) forwards;
-        }
+    .gma-pop-banner.show {
+        animation: gma-pop-slide-in calc(var(--lwc-duration-normal, 220ms) * 3) var(--lwc-ease, ease) forwards;
+    }
 
-        .gma-pop-banner.hide {
-            animation: gma-pop-slide-out var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) forwards;
-        }
+    .gma-pop-banner.hide {
+        animation: gma-pop-slide-out calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) forwards;
+    }
 
-        .gma-pop-banner.gma-pop-banner--golden {
-            background: var(--lwc-warning-soft, #fff4bf) !important;
-            border-inline-start-color: var(--lwc-warning, #9a6700);
-            color: var(--lwc-ink, #5f4500) !important;
-            box-shadow: var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.18));
-        }
+    .gma-pop-banner.gma-pop-banner--golden {
+        background: linear-gradient(135deg, #fff8cf 0%, #f5d56f 48%, #fff3b1 72%, #d7a72d 100%) !important;
+        border-color: rgba(95, 69, 0, 0.34);
+        border-inline-start-color: #8a5c00;
+        color: #4f3900 !important;
+        box-shadow: 0 1.25rem 3rem rgba(63, 44, 0, 0.34), 0 0 1.5rem rgba(255, 215, 0, 0.32);
+    }
 
     @keyframes gma-pop-slide-in {
-        from {
-            transform: translate(-50%, -0.75rem) scale(0.96);
+        0% {
+            transform: translate(-50%, -1rem) scale(0.72) rotate(-1.5deg);
             opacity: 0;
         }
 
-        to {
+        62% {
+            transform: translate(-50%, 0.15rem) scale(1.06) rotate(0.8deg);
+            opacity: 1;
+        }
+
+        82% {
+            transform: translate(-50%, 0) scale(0.985) rotate(-0.25deg);
+            opacity: 1;
+        }
+
+        100% {
             transform: translate(-50%, 0) scale(1);
             opacity: 1;
         }
@@ -73,29 +89,74 @@
         }
 
         to {
-            transform: translate(-50%, -0.5rem) scale(0.98);
+            transform: translate(-50%, -0.75rem) scale(0.88);
             opacity: 0;
         }
     }
 
     @keyframes gma-game-enter {
-        from {
-            opacity: 0;
-            transform: translateY(0.5rem) scale(0.985);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
+        from { opacity: 0.72; transform: translateY(0.65rem) scale(0.985); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .modal-content.guess-mode #guessAgeContainer {
-        animation: gma-game-enter var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) backwards;
+    @keyframes gma-portrait-enter {
+        from { opacity: 0.45; transform: scale(0.92); }
+        to { opacity: 1; transform: scale(1); }
     }
 
-    .modal-content.guess-mode.gma-fast #guessAgeContainer {
-        animation-duration: var(--lwc-duration-fast, 140ms);
+    @keyframes gma-prompt-enter {
+        0% { opacity: 0; transform: translateY(0.55rem) scale(0.72); }
+        68% { opacity: 1; transform: translateY(-0.08rem) scale(1.075); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes gma-control-enter {
+        from { opacity: var(--gma-control-start-opacity, 0); transform: translateY(0.8rem) scale(0.985); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .modal-content.guess-mode {
+            --gma-entry-duration: calc(var(--lwc-duration-normal, 220ms) * 3);
+            --gma-slider-delay: calc(var(--lwc-duration-fast, 140ms) * 2);
+            --gma-actions-delay: calc(var(--lwc-duration-fast, 140ms) * 3);
+        }
+
+        .modal-content.guess-mode #guessAgeContainer {
+            animation: gma-game-enter calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) backwards;
+        }
+
+        .modal-content.guess-mode #athlete-profile .portrait-wrapper {
+            animation: gma-portrait-enter var(--gma-entry-duration, calc(var(--lwc-duration-normal, 220ms) * 3)) var(--lwc-ease, ease) both;
+        }
+
+        .modal-content.guess-mode #guessAgeContainer .gma-heading {
+            animation: gma-prompt-enter var(--gma-entry-duration) var(--lwc-ease, ease) both;
+        }
+
+        .modal-content.guess-mode #guessAgeContainer .gma-slider-wrap {
+            --gma-control-start-opacity: 0.28;
+            animation: gma-control-enter calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) var(--gma-slider-delay) both;
+        }
+
+        .modal-content.guess-mode #guessAgeContainer .gma-actions {
+            animation: gma-control-enter calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) var(--gma-actions-delay) both;
+        }
+
+        .modal-content.guess-mode.gma-fast {
+            --gma-entry-duration: var(--lwc-duration-normal, 220ms);
+            --gma-slider-delay: var(--lwc-duration-fast, 140ms);
+            --gma-actions-delay: calc(var(--lwc-duration-fast, 140ms) * 2);
+        }
+
+        .modal-content.guess-mode.gma-fast #guessAgeContainer {
+            animation-duration: var(--lwc-duration-fast, 140ms);
+        }
+
+        .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-slider-wrap,
+        .modal-content.guess-mode.gma-fast #guessAgeContainer .gma-actions {
+            animation-duration: var(--lwc-duration-normal, 220ms);
+        }
     }
 
     /* when guessing, hide all modal-content children except the athlete-profile */
@@ -180,16 +241,19 @@
     }
 
     .chrono-age-heading.is-revealing {
-        animation: gma-heading-reveal calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) both;
+        animation: gma-heading-reveal calc(var(--lwc-duration-normal, 220ms) * 3) var(--lwc-ease, ease) both;
     }
 
     @keyframes gma-heading-reveal {
-        from {
+        0% {
             opacity: 0;
-            transform: translateY(0.35rem) scale(0.98);
+            transform: translateY(0.55rem) scale(0.76);
         }
-
-        to {
+        68% {
+            opacity: 1;
+            transform: translateY(-0.08rem) scale(1.06);
+        }
+        100% {
             opacity: 1;
             transform: translateY(0) scale(1);
         }
@@ -203,16 +267,24 @@
 
     /* let the slider wrap fill all of that */
     .gma-slider-wrap {
+        --gma-you-anchor-y: 7.75rem;
         position: relative;
         width: 90%;
         max-width: none; /* override any upstream caps */
         margin: 0.5rem auto 1rem;
         padding-top: 4.25rem; /* reserve a full row for the value bubble */
         align-self: stretch; /* <-- this forces it to span the full parent width */
+        transition: padding-bottom var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), margin-bottom var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+    }
+
+    .gma-card.is-revealing .gma-slider-wrap {
+        padding-bottom: 2.85rem;
+        margin-bottom: 0.35rem;
     }
 
     /* slider track */
     #gmaRange {
+        --gma-thumb-size: 64px;
         width: 100%;
         height: 3rem;
         appearance: none;
@@ -279,6 +351,10 @@
         pointer-events: none;
         white-space: nowrap;
         z-index: 10002;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.38rem;
     }
 
     #gmaRealBubble {
@@ -299,8 +375,21 @@
         white-space: nowrap;
         z-index: 10002;
         opacity: 0;
-        transform: translateX(-50%) scale(0.9);
+        transform: translateX(-50%) scale(0.62);
         will-change: left, transform;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.42rem;
+        box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 0 1px rgba(255,255,255,.08) inset;
+    }
+
+    #gmaRealBubble::before {
+        content: 'ACTUAL';
+        font-size: 0.58rem;
+        line-height: 1;
+        letter-spacing: 0.12em;
+        opacity: 0.72;
     }
 
     #gmaRealBubble.is-travelling {
@@ -310,13 +399,26 @@
 
     #gmaRealBubble.is-settled {
         opacity: 1;
-        animation: gma-real-age-settle calc(var(--lwc-duration-normal, 220ms) * 3) var(--lwc-ease, ease) both;
+        animation: gma-real-age-settle calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
     }
 
     @keyframes gma-real-age-settle {
-        0% { transform: translateX(-50%) scale(0.92); }
-        55% { transform: translateX(-50%) scale(1.1); }
-        100% { transform: translateX(-50%) scale(1); }
+        0% {
+            transform: translateX(-50%) scale(0.86);
+            box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 0 rgba(25, 195, 209, 0);
+        }
+        48% {
+            transform: translateX(-50%) scale(1.24);
+            box-shadow: 0 1rem 2rem rgba(2, 8, 23, 0.3), 0 0 2.4rem var(--gma-settle-glow, rgba(25, 195, 209, 0.72));
+        }
+        74% {
+            transform: translateX(-50%) scale(0.97);
+            box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 1rem var(--gma-settle-afterglow, rgba(25, 195, 209, 0.28));
+        }
+        100% {
+            transform: translateX(-50%) scale(1);
+            box-shadow: 0 0.8rem 1.75rem rgba(2, 8, 23, 0.28), 0 0 0 rgba(25, 195, 209, 0);
+        }
     }
 
         #gmaRealBubble::after {
@@ -351,6 +453,27 @@
         justify-content: center;
         gap: 1rem;
         transition: opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
+    }
+
+    .gma-result-actions {
+        display: flex;
+        justify-content: center;
+        min-height: 48px;
+        margin-top: 0.4rem;
+    }
+
+    .gma-result-actions[hidden] {
+        display: none;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .gma-result-actions.is-visible {
+            animation: gma-control-enter calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) both;
+        }
+    }
+
+    .gma-result-actions .gma-btn {
+        min-width: 160px;
     }
 
     .gma-btn {
@@ -414,6 +537,11 @@
             padding: 0.6rem 1.2rem;
         }
 
+        .gma-result-actions .gma-btn {
+            font-size: 1rem;
+            padding: 0.75rem 1.25rem;
+        }
+
         .gma-card {
             padding: 1.5rem 1.25rem;
         }
@@ -450,19 +578,31 @@
         }
     }
 
-    /* fade-out and remove when done */
-    .gma-card.gma-done {
-        opacity: 0;
-        height: 0;
-        padding: 0; /* collapse the padding too */
+    @keyframes gma-card-exit {
+        from {
+            opacity: 1;
+            max-height: var(--gma-exit-height, 60rem);
+            transform: translateY(0) scale(1);
+        }
+        to {
+            opacity: 0;
+            max-height: 0;
+            padding-block: 0;
+            margin-block: 0;
+            border-width: 0;
+            transform: translateY(0.35rem) scale(0.985);
+        }
+    }
+
+    /* Exit is a measured max-height animation: auto -> 0 would only hard-cut. */
+    #detailsModal .modal-content #guessAgeContainer.gma-done {
         overflow: hidden;
-        transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), height var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
+        animation: gma-card-exit var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) both !important;
         pointer-events: none;
     }
 
-    .modal-content.gma-fast .gma-card.gma-done {
-        /* collapse WAY faster on repeat visits */
-        transition: opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), height var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease), padding var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) !important;
+    #detailsModal .modal-content.gma-fast #guessAgeContainer.gma-done {
+        animation-duration: var(--lwc-duration-fast, 140ms) !important;
     }
 
     .gma-troll-note {
@@ -505,6 +645,38 @@
         text-underline-offset: 0.14em;
     }
 
+    @keyframes gma-troll-note-enter {
+        0% { opacity: 0; transform: translateY(-0.45rem) scale(0.9); }
+        58% { opacity: 1; transform: translateY(0.08rem) scale(1.035); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        .gma-troll-note.is-visible {
+            animation: gma-troll-note-enter calc(var(--lwc-duration-normal, 220ms) * 3) var(--lwc-ease, ease) both;
+        }
+    }
+
+    .gma-troll-reaction {
+        position: fixed;
+        left: var(--gma-reaction-x, 50%);
+        top: var(--gma-reaction-y, 35%);
+        z-index: 10004;
+        width: clamp(8rem, 28vw, 15rem);
+        height: clamp(8rem, 28vw, 15rem);
+        object-fit: contain;
+        pointer-events: none;
+        filter: drop-shadow(0 0.8rem 1.3rem rgba(2, 8, 23, 0.34));
+        animation: gma-troll-reaction-pop calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) both;
+    }
+
+    @keyframes gma-troll-reaction-pop {
+        0% { opacity: 0; transform: translate(-50%, -45%) scale(0.15) rotate(-16deg); }
+        38% { opacity: 1; transform: translate(-50%, -55%) scale(1.08) rotate(3deg); }
+        70% { opacity: 1; transform: translate(-50%, -53%) scale(0.98) rotate(-1deg); }
+        100% { opacity: 0; transform: translate(-50%, -68%) scale(1.02) rotate(1deg); }
+    }
+
     .gma-heading,
     .chrono-age-heading {
         white-space: normal;
@@ -530,16 +702,38 @@
     }
 
     .gma-actions.gma-actions-hide {
-        visibility: hidden;
-        opacity: 0 !important;
         animation: fadeOutButtons var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease) both !important;
         pointer-events: none; /* ← prevent any mouse events */
     }
 
-    /* The result sentence preserves the submitted value; hide its bubble so nearby ages cannot collide. */
+    /* Keep the submitted value as a quiet anchor below the track while the answer travels above it. */
     #gmaBubble.gma-bubble-inactive {
-        opacity: 0;
-        transform: translateX(-50%) scale(0.86);
+        top: 0;
+        bottom: auto;
+        opacity: 0.78;
+        transform: translateX(-50%) translateY(var(--gma-you-anchor-y, 7.75rem)) scale(0.9);
+        padding: 0.34rem 0.58rem;
+        border-width: 1px;
+        font-size: 1rem;
+        z-index: 2;
+    }
+
+    #gmaBubble.gma-bubble-inactive::before {
+        content: 'YOU';
+        font-size: 0.54rem;
+        line-height: 1;
+        letter-spacing: 0.12em;
+        opacity: 0.7;
+    }
+
+    #gmaBubble.gma-bubble-inactive::after {
+        top: -6px;
+        bottom: auto;
+        width: 10px;
+        height: 10px;
+        border: 0;
+        border-left: 2px solid var(--primary-color);
+        border-top: 2px solid var(--primary-color);
     }
 
     /* Smooth transitions on track, thumb & bubbles */
@@ -549,6 +743,11 @@
         transition: background var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), border-color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), color var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
     }
 
+    #gmaBubble {
+        transition-duration: var(--lwc-duration-normal, 220ms), var(--lwc-duration-normal, 220ms), var(--lwc-duration-normal, 220ms), var(--lwc-duration-normal, 220ms), calc(var(--lwc-duration-normal, 220ms) * 2);
+        transition-timing-function: var(--lwc-ease, ease), var(--lwc-ease, ease), var(--lwc-ease, ease), var(--lwc-ease, ease), cubic-bezier(.45, 0, .55, 1);
+    }
+
     .gma-reaction {
         position: fixed;
         left: var(--gma-reaction-x, 50%);
@@ -556,28 +755,33 @@
         z-index: 10003;
         pointer-events: none;
         font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-        font-size: clamp(4.5rem, 12vw, 8rem);
+        font-size: clamp(7rem, 24vw, 13rem);
         line-height: 1;
         filter: drop-shadow(0 0.5rem 1rem rgba(15, 23, 42, 0.24));
-        animation: gma-reaction-pop calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
+        animation: gma-reaction-pop calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) both;
+    }
+
+    /* The exact-guess eyes punctuate the feint, then clear before the Bullseye banner. */
+    .gma-reaction--exact {
+        animation-duration: calc(var(--lwc-duration-normal, 220ms) * 2);
     }
 
     @keyframes gma-reaction-pop {
         0% {
             opacity: 0;
-            transform: translate(-50%, -42%) scale(0.45) rotate(-8deg);
+            transform: translate(-50%, -42%) scale(0.18) rotate(-18deg);
         }
-        42% {
+        38% {
             opacity: 1;
-            transform: translate(-50%, -58%) scale(1.12) rotate(4deg);
+            transform: translate(-50%, -58%) scale(1.16) rotate(5deg);
         }
-        72% {
+        68% {
             opacity: 1;
-            transform: translate(-50%, -55%) scale(0.98) rotate(0);
+            transform: translate(-50%, -55%) scale(0.98) rotate(-1deg);
         }
         100% {
             opacity: 0;
-            transform: translate(-50%, -70%) scale(1.02) rotate(0);
+            transform: translate(-50%, -72%) scale(1.04) rotate(2deg);
         }
     }
 
@@ -586,17 +790,17 @@
         left: var(--gma-spark-x, 50%);
         top: var(--gma-spark-y, 50%);
         z-index: 10001;
-        width: 1.75rem;
-        height: 1.75rem;
+        width: var(--gma-spark-size, 1.75rem);
+        height: var(--gma-spark-size, 1.75rem);
         display: grid;
         place-items: center;
         border-radius: 50%;
-        background: var(--lwc-surface, #fff);
+        background: color-mix(in srgb, var(--lwc-surface, #fff) 90%, transparent);
         color: var(--gma-spark-color, var(--lwc-accent, #087685));
-        box-shadow: var(--lwc-shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.12));
+        box-shadow: 0 0.45rem 1rem rgba(2, 8, 23, 0.2), 0 0 0 1px rgba(255,255,255,.42) inset;
         pointer-events: none;
         opacity: 0;
-        animation: gma-spark-flight calc(var(--lwc-duration-normal, 220ms) * 5) var(--lwc-ease, ease) both;
+        animation: gma-spark-flight calc(var(--lwc-duration-normal, 220ms) * 7) var(--lwc-ease, ease) both;
     }
 
     @keyframes gma-spark-flight {
@@ -604,10 +808,10 @@
             opacity: 0;
             transform: translate(-50%, -50%) scale(0.35) rotate(0);
         }
-        18% {
+        14% {
             opacity: 1;
         }
-        68% {
+        62% {
             opacity: 1;
         }
         100% {
@@ -619,46 +823,64 @@
     @keyframes gma-card-celebrate {
         0%, 100% {
             transform: scale(1);
-            box-shadow: none;
+            box-shadow: 0 0 0 rgba(25, 195, 209, 0);
         }
-        45% {
-            transform: scale(1.012);
-            box-shadow: 0 0 0 4px rgba(25, 195, 209, 0.18), var(--lwc-shadow-md, 0 10px 28px rgba(15, 23, 42, 0.16));
+        38% {
+            transform: scale(var(--gma-card-celebrate-scale, 1.026));
+            box-shadow: 0 0 0 5px rgba(25, 195, 209, 0.2), 0 1.5rem 3.5rem rgba(0,0,0,.3);
+        }
+        68% {
+            transform: scale(0.995);
+            box-shadow: 0 0 0 2px rgba(25, 195, 209, 0.1), 0 1rem 2rem rgba(0,0,0,.22);
         }
     }
 
     .modal-content.guess-mode #guessAgeContainer.celebrate-better,
     .modal-content.guess-mode #guessAgeContainer.celebrate-exact {
-        animation: gma-card-celebrate calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
+        animation: gma-card-celebrate calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) both;
     }
 
     .gma-card.celebrate-better {
         border-color: var(--lwc-accent-bright, #19c3d1) !important;
     }
 
-    /* Exact guesses receive a single restrained gold state. */
+    /* Exact guesses get a bounded metallic finish—one payoff, never a loop. */
     .gma-card.celebrate-exact #gmaRange {
-        background: #ead58b !important;
-        box-shadow: none;
+        background: linear-gradient(90deg, #8a5c00 0%, #d5a928 23%, #fff0a6 48%, #c18b11 70%, #fff1aa 88%, #d1d5db 100%) !important;
+        box-shadow: inset 0 0 0.45rem rgba(72, 48, 0, 0.35), 0 0 1.3rem rgba(255, 215, 0, 0.52);
+        animation: gma-exact-track-flash calc(var(--lwc-duration-normal, 220ms) * 7) var(--lwc-ease, ease) both;
+    }
+
+    @keyframes gma-exact-track-flash {
+        0%, 100% { filter: saturate(1); }
+        42% { filter: saturate(1.35) brightness(1.16); }
     }
 
         /* GOLDEN THUMB for WebKit */
         .gma-card.celebrate-exact #gmaRange::-webkit-slider-thumb {
-            background: #9a6700 !important;
+            background: linear-gradient(145deg, #fff2a8, #c58c12 56%, #7c5000) !important;
+            box-shadow: 0 0 0 3px rgba(255,255,255,.92), 0 0 1.2rem rgba(255,215,0,.8);
         }
 
         /* GOLDEN THUMB for Firefox */
         .gma-card.celebrate-exact #gmaRange::-moz-range-thumb {
-            background: #9a6700 !important;
+            background: linear-gradient(145deg, #fff2a8, #c58c12 56%, #7c5000) !important;
+            box-shadow: 0 0 0 3px rgba(255,255,255,.92), 0 0 1.2rem rgba(255,215,0,.8);
         }
 
     /* GOLDEN BUBBLES */
     .gma-card.celebrate-exact #gmaBubble,
     .gma-card.celebrate-exact #gmaRealBubble {
-        background: #fff4bf !important;
-        border-color: #9a6700 !important;
-        color: #5f4500 !important;
-        box-shadow: none;
+        background: linear-gradient(135deg, #fff8cf 0%, #f4d260 48%, #fff3b2 72%, #bc8208 100%) !important;
+        border-color: #8a5c00 !important;
+        color: #473200 !important;
+        box-shadow: 0 0.7rem 1.5rem rgba(64, 43, 0, 0.28), 0 0 1.4rem rgba(255, 215, 0, 0.56);
+    }
+
+    .gma-card.celebrate-exact #gmaBubble::after,
+    .gma-card.celebrate-exact #gmaRealBubble::after {
+        background: #f4d260 !important;
+        border-color: #8a5c00 !important;
     }
 
     #detailsModal .gma-card {
@@ -689,8 +911,23 @@
         margin: 0.25rem auto 1rem;
         max-width: 34rem;
     }
+    #detailsModal #gmaStatus.gma-status--semantic {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+    }
     #detailsModal #gmaRange {
         background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
+    }
+    #detailsModal #gmaRange:focus-visible {
+        outline: 3px solid var(--lwc-accent-bright, #19c3d1);
+        outline-offset: 5px;
     }
     #detailsModal #gmaRange::-moz-range-track {
         background: linear-gradient(90deg, rgba(246,244,237,.88) 0%, rgba(246,244,237,.88) var(--percent, 50%), rgba(255,255,255,.24) var(--percent, 50%), rgba(255,255,255,.24) 100%);
@@ -704,6 +941,12 @@
         background: rgba(246,244,237,.98);
         border-color: rgba(255,255,255,.95);
         box-shadow: none;
+    }
+    #detailsModal #gmaRange:focus-visible::-webkit-slider-thumb {
+        box-shadow: 0 0 0 3px rgba(10,12,12,.96), 0 0 0 7px var(--lwc-accent-bright, #19c3d1);
+    }
+    #detailsModal #gmaRange:focus-visible::-moz-range-thumb {
+        box-shadow: 0 0 0 3px rgba(10,12,12,.96), 0 0 0 7px var(--lwc-accent-bright, #19c3d1);
     }
     #detailsModal #gmaBubble,
     #detailsModal #gmaRealBubble {
@@ -745,8 +988,32 @@
         filter: brightness(1.04);
     }
     #detailsModal .gma-card.celebrate-exact {
+        --gma-settle-glow: rgba(255, 215, 0, 0.82);
+        --gma-settle-afterglow: rgba(255, 215, 0, 0.38);
         border-color: rgba(255,215,0,.52);
-        box-shadow: none;
+    }
+    #detailsModal .gma-card.celebrate-exact #gmaRange {
+        background: linear-gradient(90deg, #8a5c00 0%, #d5a928 23%, #fff0a6 48%, #c18b11 70%, #fff1aa 88%, #d1d5db 100%) !important;
+        box-shadow: inset 0 0 0.45rem rgba(72, 48, 0, 0.35), 0 0 1.3rem rgba(255, 215, 0, 0.52);
+    }
+    #detailsModal .gma-card.celebrate-exact #gmaRange::-webkit-slider-thumb {
+        background: linear-gradient(145deg, #fff2a8, #c58c12 56%, #7c5000) !important;
+        box-shadow: 0 0 0 3px rgba(255,255,255,.92), 0 0 1.2rem rgba(255,215,0,.8);
+    }
+    #detailsModal .gma-card.celebrate-exact #gmaRange::-moz-range-thumb {
+        background: linear-gradient(145deg, #fff2a8, #c58c12 56%, #7c5000) !important;
+        box-shadow: 0 0 0 3px rgba(255,255,255,.92), 0 0 1.2rem rgba(255,215,0,.8);
+    }
+    #detailsModal .gma-card.celebrate-exact #gmaBubble,
+    #detailsModal .gma-card.celebrate-exact #gmaRealBubble {
+        background: linear-gradient(135deg, #fff8cf 0%, #f4d260 48%, #fff3b2 72%, #bc8208 100%) !important;
+        border-color: #8a5c00 !important;
+        color: #473200 !important;
+    }
+    #detailsModal .gma-card.celebrate-exact #gmaBubble::after,
+    #detailsModal .gma-card.celebrate-exact #gmaRealBubble::after {
+        background: #f4d260 !important;
+        border-color: #8a5c00 !important;
     }
     #detailsModal .gma-card.gma-done {
         margin: 0;
@@ -754,6 +1021,10 @@
         box-shadow: none;
     }
     @media (max-width: 768px) {
+        #detailsModal .modal-content.guess-mode #guessAgeContainer {
+            --gma-card-celebrate-scale: 1;
+        }
+
         #detailsModal .modal-content.guess-mode #athlete-profile {
             --gma-portrait-gap: clamp(1.5rem, 3.5vh, 2.5rem);
             --gma-portrait-size: clamp(180px, min(70vw, 36vh), 320px);
@@ -773,8 +1044,6 @@
             min-width: 100%;
             overflow: visible;
             white-space: normal;
-            animation: none !important;
-            opacity: 1;
         }
         #detailsModal .gma-slider-wrap {
             width: 86%;
@@ -800,10 +1069,12 @@
             margin-bottom: 1.25rem;
         }
         #detailsModal .modal-content.guess-mode .gma-slider-wrap {
+            --gma-you-anchor-y: 6.65rem;
             margin: 0.25rem auto 0.75rem;
             padding-top: 3.75rem;
         }
         #detailsModal .modal-content.guess-mode #gmaRange {
+            --gma-thumb-size: 52px;
             height: 2.5rem;
         }
         #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
@@ -843,11 +1114,13 @@
             margin-bottom: .9rem;
         }
         #detailsModal .modal-content.guess-mode .gma-slider-wrap {
+            --gma-you-anchor-y: 6.25rem;
             width: 84%;
             margin: .25rem auto .75rem;
             padding-top: 3.5rem;
         }
         #detailsModal .modal-content.guess-mode #gmaRange {
+            --gma-thumb-size: 50px;
             height: 2.35rem;
         }
         #detailsModal .modal-content.guess-mode #gmaRange::-webkit-slider-thumb {
@@ -914,17 +1187,17 @@
             min-width: 100%;
             overflow: visible;
             white-space: normal;
-            animation: none !important;
-            opacity: 1;
         }
 
         #detailsModal .modal-content.guess-mode .gma-slider-wrap {
+            --gma-you-anchor-y: 5.4rem;
             width: 82%;
             margin: .35rem auto .55rem;
             padding-top: 3rem;
         }
 
         #detailsModal .modal-content.guess-mode #gmaRange {
+            --gma-thumb-size: 44px;
             height: 2rem;
         }
 
@@ -959,10 +1232,18 @@
         .gma-pop-banner.show,
         .gma-pop-banner.hide,
         .gma-card,
+        #detailsModal .modal-content #guessAgeContainer.gma-done,
+        .gma-heading,
         .gma-actions,
+        .gma-actions.gma-actions-hide,
+        .gma-result-actions,
+        .gma-slider-wrap,
+        #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper,
         .chrono-age-heading,
         .gma-reaction,
+        .gma-troll-reaction,
         .gma-celebration-spark,
+        #gmaRange,
         #gmaBubble,
         #gmaRealBubble {
             animation: none !important;
@@ -978,8 +1259,18 @@
         }
 
         .gma-reaction,
+        .gma-troll-reaction,
         .gma-celebration-spark {
             display: none !important;
+        }
+
+        #detailsModal .modal-content #guessAgeContainer.gma-done {
+            opacity: 0;
+            max-height: 0;
+            padding-block: 0;
+            margin-block: 0;
+            border-width: 0;
+            overflow: hidden;
         }
     }
 </style>
@@ -1009,6 +1300,9 @@
         <button class="gma-btn gma-btn--ghost">Skip</button>
         <button class="gma-btn gma-btn--primary">Submit</button>
     </div>
+    <div class="gma-result-actions" hidden>
+        <button id="gmaContinueBtn" class="gma-btn gma-btn--ghost">See profile</button>
+    </div>
 </div>
 
 <script>
@@ -1018,6 +1312,7 @@
 
     const gmaBubble = document.getElementById('gmaBubble');
     const gmaCard = document.querySelector('.gma-card');
+    const gmaSliderWrap = gmaCard.querySelector('.gma-slider-wrap');
 
     const heading = gmaCard.querySelector('.gma-heading');
     const chronoHeading = gmaCard.querySelector('.chrono-age-heading');
@@ -1026,6 +1321,8 @@
 
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const gmaActions = gmaCard.querySelector('.gma-actions');
+    const gmaResultActions = gmaCard.querySelector('.gma-result-actions');
+    const gmaContinueBtn = document.getElementById('gmaContinueBtn');
     let gmaWasGuessMode = modalContent.classList.contains('guess-mode');
     let gmaObservedAthleteSlug = modalContent.dataset.athleteSlug || '';
     let gmaPresentationGeneration = 0;
@@ -1081,12 +1378,18 @@
             heading.style.display = '';
             chronoHeading.classList.remove('is-revealing');
             gmaStatus.hidden = true;
+            gmaStatus.classList.remove('gma-status--semantic');
             gmaStatus.textContent = '';
             gmaTrollNote.hidden = true;
+            gmaTrollNote.classList.remove('is-visible');
             gmaCard.removeAttribute('aria-busy');
             gmaActions.classList.remove('gma-actions-hide');
             gmaActions.inert = false;
+            gmaResultActions.hidden = true;
+            gmaResultActions.classList.remove('is-visible');
             gmaCard.classList.remove('gma-done');
+            gmaCard.style.removeProperty('--gma-exit-height');
+            gmaCard.classList.remove('is-submitting', 'is-revealing');
 
             gmaBubble.classList.remove('gma-bubble-inactive');
 
@@ -1104,6 +1407,7 @@
             clearGmaEphemera();
         } else if (!isGuessMode && gmaWasGuessMode) {
             cancelGmaPresentation();
+            clearGmaEphemera();
             setGuessMyAgeParam(false);
         }
 
@@ -1113,13 +1417,51 @@
 
     resetObserver.observe(modalContent, { attributes: true, attributeOldValue: true });
 
+    function gmaGeometryForAge(age) {
+        const min = +gmaRange.min;
+        const max = +gmaRange.max;
+        const clampedAge = clampGmaAge(age);
+        const ratio = max === min ? 0 : (clampedAge - min) / (max - min);
+        const rangeRect = gmaRange.getBoundingClientRect();
+        const wrapRect = gmaSliderWrap.getBoundingClientRect();
+        const thumbSize = Number.parseFloat(
+            getComputedStyle(gmaRange).getPropertyValue('--gma-thumb-size')) || 64;
+
+        if (rangeRect.width <= 0 || wrapRect.width <= 0) {
+            return {
+                bubbleLeft: null,
+                fillPercent: ratio * 100
+            };
+        }
+
+        const thumbCenter = (thumbSize / 2)
+            + (ratio * Math.max(0, rangeRect.width - thumbSize));
+        return {
+            bubbleLeft: (rangeRect.left - wrapRect.left) + thumbCenter,
+            fillPercent: (thumbCenter / rangeRect.width) * 100
+        };
+    }
+
+    function positionGmaBubble(element, age) {
+        const geometry = gmaGeometryForAge(age);
+        element.dataset.age = String(age);
+        element.style.left = geometry.bubbleLeft == null
+            ? `${geometry.fillPercent}%`
+            : `${geometry.bubbleLeft}px`;
+        return geometry;
+    }
+
+    function setGmaRangeProgress(age) {
+        const geometry = gmaGeometryForAge(age);
+        gmaRange.dataset.visualAge = String(age);
+        gmaRange.style.setProperty('--percent', `${geometry.fillPercent}%`);
+    }
+
     function syncRange() {
         const val = +gmaRange.value;
-        const pct = (val / gmaRange.max) * 100;
-        gmaRange.style.setProperty('--percent', `${pct}%`);
         gmaBubble.textContent = val;
-        const clampedPct = Math.min(Math.max(pct, 5), 95);
-        gmaBubble.style.left = `${clampedPct}%`;
+        positionGmaBubble(gmaBubble, val);
+        setGmaRangeProgress(val);
     }
     gmaRange.addEventListener('input', syncRange);
     syncRange();   // initialise bubble
@@ -1133,66 +1475,122 @@
         return Math.min(Math.max(age, +gmaRange.min), +gmaRange.max);
     }
 
-    function gmaPercentForAge(age) {
-        return Math.min(Math.max((age / +gmaRange.max) * 100, 5), 95);
-    }
-
     function positionGmaRevealBubble(realBubble, age) {
-        const displayedAge = Math.round(clampGmaAge(age));
-        const percent = gmaPercentForAge(displayedAge);
+        const clampedAge = clampGmaAge(age);
+        const displayedAge = Math.round(clampedAge);
         realBubble.textContent = displayedAge;
-        realBubble.style.left = `${percent}%`;
+        positionGmaBubble(realBubble, clampedAge);
         gmaRange.value = displayedAge;
-        gmaRange.style.setProperty('--percent', `${percent}%`);
+        setGmaRangeProgress(clampedAge);
     }
 
-    function animateActualAgeReveal(realBubble, startAge, actualAge, presentation) {
+    function syncGmaGeometry() {
+        const submittedAge = Number.parseFloat(gmaBubble.dataset.age || gmaBubble.textContent);
+        if (Number.isFinite(submittedAge)) positionGmaBubble(gmaBubble, submittedAge);
+
+        const visualAge = Number.parseFloat(gmaRange.dataset.visualAge || gmaRange.value);
+        if (Number.isFinite(visualAge)) setGmaRangeProgress(visualAge);
+
+        const realBubble = document.getElementById('gmaRealBubble');
+        if (!realBubble) return;
+        const revealedAge = Number.parseFloat(realBubble.dataset.age || realBubble.textContent);
+        if (Number.isFinite(revealedAge)) positionGmaBubble(realBubble, revealedAge);
+    }
+
+    window.addEventListener('resize', () => window.requestAnimationFrame(syncGmaGeometry), { passive: true });
+
+    function animateActualAgeReveal(realBubble, startAge, actualAge, presentation, onRevealBeat) {
         if (!isCurrentGmaPresentation(presentation)) return Promise.resolve(false);
 
         positionGmaRevealBubble(realBubble, startAge);
-        realBubble.classList.add('is-travelling');
+        realBubble.dataset.revealPhase = 'staged';
 
-        if (prefersReducedGmaMotion() || startAge === actualAge) {
+        if (prefersReducedGmaMotion()) {
             positionGmaRevealBubble(realBubble, actualAge);
-            realBubble.classList.remove('is-travelling');
             realBubble.classList.add('is-settled');
+            realBubble.dataset.revealPhase = 'settled';
             return Promise.resolve(true);
         }
 
         const distance = Math.abs(actualAge - startAge);
-        const directionToActual = Math.sign(actualAge - startAge);
-        const anticipationDistance = Math.min(6, Math.max(2, distance * 0.22));
-        const anticipationAge = clampGmaAge(startAge - (directionToActual * anticipationDistance));
-        const duration = Math.min(1400, 720 + (distance * 16));
+        const isExact = distance === 0;
+        const roomBelow = actualAge - +gmaRange.min;
+        const roomAbove = +gmaRange.max - actualAge;
+        const directionToActual = isExact
+            ? (roomAbove >= roomBelow ? 1 : -1)
+            : Math.sign(actualAge - startAge);
+        const desiredOvershootDistance = isExact
+            ? 6
+            : Math.min(34, Math.max(16, 34 - (distance * 0.45)));
+        const overshootAge = clampGmaAge(actualAge + (directionToActual * desiredOvershootDistance));
+        const overshootDistance = Math.abs(overshootAge - actualAge);
+        const usesOvershoot = (isExact || distance < 50) && overshootDistance >= 4;
+        const totalTravel = usesOvershoot
+            ? Math.abs(overshootAge - startAge) + overshootDistance
+            : distance;
+        const duration = isExact
+            ? 1100
+            : usesOvershoot
+            ? Math.min(3400, Math.max(2600, 2250 + (totalTravel * 12)))
+            : Math.min(2700, Math.max(1650, 1200 + (distance * 24)));
+        const leadIn = isExact ? 300 : 440;
 
         return new Promise(resolve => {
             let startedAt = 0;
             let revealFrameId = 0;
+            let revealLeadTimer = 0;
             let revealFallbackTimer = 0;
             let isFinished = false;
-            const easeOutCubic = value => 1 - Math.pow(1 - value, 3);
+            let hasEmittedRevealBeat = false;
             const easeInOutCubic = value => value < 0.5
                 ? 4 * value * value * value
                 : 1 - (Math.pow(-2 * value + 2, 3) / 2);
+            const easeOutQuint = value => 1 - Math.pow(1 - value, 5);
+            const motionQuery = typeof window.matchMedia === 'function'
+                ? window.matchMedia('(prefers-reduced-motion: reduce)')
+                : null;
+
+            function clearMotionListener() {
+                if (!motionQuery) return;
+                if (typeof motionQuery.removeEventListener === 'function') {
+                    motionQuery.removeEventListener('change', handleMotionChange);
+                } else if (typeof motionQuery.removeListener === 'function') {
+                    motionQuery.removeListener(handleMotionChange);
+                }
+            }
+
+            function emitRevealBeat() {
+                if (hasEmittedRevealBeat || prefersReducedGmaMotion() || !isCurrentGmaPresentation(presentation)) return;
+                hasEmittedRevealBeat = true;
+                if (typeof onRevealBeat === 'function') onRevealBeat();
+            }
 
             function finishReveal(shouldSettle) {
                 if (isFinished) return;
                 isFinished = true;
                 if (revealFrameId) window.cancelAnimationFrame(revealFrameId);
+                if (revealLeadTimer) window.clearTimeout(revealLeadTimer);
                 if (revealFallbackTimer) window.clearTimeout(revealFallbackTimer);
+                clearMotionListener();
                 if (cancelCurrentGmaReveal === cancelReveal) cancelCurrentGmaReveal = null;
 
                 const canSettle = shouldSettle && isCurrentGmaPresentation(presentation);
                 if (canSettle) {
+                    emitRevealBeat();
                     positionGmaRevealBubble(realBubble, actualAge);
-                    realBubble.classList.remove('is-travelling');
+                    realBubble.classList.remove('is-travelling', 'is-returning');
                     realBubble.classList.add('is-settled');
+                    realBubble.dataset.revealPhase = 'settled';
                 }
                 resolve(canSettle);
             }
 
             function cancelReveal() {
                 finishReveal(false);
+            }
+
+            function handleMotionChange(event) {
+                if (event.matches) finishReveal(true);
             }
 
             function revealFrame(timestamp) {
@@ -1209,12 +1607,23 @@
                 const progress = Math.min((timestamp - startedAt) / duration, 1);
                 let age;
 
-                if (progress < 0.22) {
-                    const anticipationProgress = easeOutCubic(progress / 0.22);
-                    age = startAge + ((anticipationAge - startAge) * anticipationProgress);
+                if (usesOvershoot && progress < 0.58) {
+                    const outboundProgress = easeInOutCubic(progress / 0.58);
+                    age = startAge + ((overshootAge - startAge) * outboundProgress);
+                    realBubble.dataset.revealPhase = 'overshoot';
+                } else if (usesOvershoot) {
+                    const returnProgress = easeOutQuint((progress - 0.58) / 0.42);
+                    age = overshootAge + ((actualAge - overshootAge) * returnProgress);
+                    if (!realBubble.classList.contains('is-returning')) {
+                        realBubble.classList.add('is-returning');
+                        emitRevealBeat();
+                    }
+                    realBubble.dataset.revealPhase = 'return';
                 } else {
-                    const revealProgress = easeInOutCubic((progress - 0.22) / 0.78);
-                    age = anticipationAge + ((actualAge - anticipationAge) * revealProgress);
+                    const revealProgress = easeInOutCubic(progress);
+                    age = startAge + ((actualAge - startAge) * revealProgress);
+                    realBubble.dataset.revealPhase = 'direct';
+                    if (progress >= 0.62) emitRevealBeat();
                 }
 
                 positionGmaRevealBubble(realBubble, age);
@@ -1226,9 +1635,32 @@
                 finishReveal(true);
             }
 
+            function beginTravel() {
+                revealLeadTimer = 0;
+                if (!isCurrentGmaPresentation(presentation)) {
+                    finishReveal(false);
+                    return;
+                }
+                if (prefersReducedGmaMotion()) {
+                    finishReveal(true);
+                    return;
+                }
+
+                realBubble.classList.add('is-travelling');
+                realBubble.dataset.revealPhase = usesOvershoot ? 'overshoot' : 'direct';
+                revealFrameId = window.requestAnimationFrame(revealFrame);
+            }
+
             cancelCurrentGmaReveal = cancelReveal;
-            revealFallbackTimer = window.setTimeout(() => finishReveal(true), duration + 240);
-            revealFrameId = window.requestAnimationFrame(revealFrame);
+            if (motionQuery) {
+                if (typeof motionQuery.addEventListener === 'function') {
+                    motionQuery.addEventListener('change', handleMotionChange);
+                } else if (typeof motionQuery.addListener === 'function') {
+                    motionQuery.addListener(handleMotionChange);
+                }
+            }
+            revealFallbackTimer = window.setTimeout(() => finishReveal(true), leadIn + duration + 480);
+            revealLeadTimer = window.setTimeout(beginTravel, leadIn);
         });
     }
 
@@ -1239,46 +1671,72 @@
 
         const rect = portrait.getBoundingClientRect();
         const reactionElement = document.createElement('div');
-        reactionElement.className = 'gma-reaction';
+        reactionElement.className = `gma-reaction gma-reaction--${reaction}`;
         reactionElement.setAttribute('aria-hidden', 'true');
-        reactionElement.textContent = reaction === 'exact' ? '🎯' : reaction === 'younger' ? '🙌' : '😬';
+        reactionElement.textContent = reaction === 'exact' ? '👀' : reaction === 'younger' ? '🙌' : '😭';
         reactionElement.style.setProperty('--gma-reaction-x', `${rect.left + (rect.width / 2)}px`);
         reactionElement.style.setProperty('--gma-reaction-y', `${rect.top + (rect.height / 2)}px`);
         document.body.appendChild(reactionElement);
         reactionElement.addEventListener('animationend', () => reactionElement.remove(), { once: true });
-        window.setTimeout(() => reactionElement.remove(), 1600);
+        window.setTimeout(() => reactionElement.remove(), 2200);
     }
 
-    function spawnGmaCelebration(isExact) {
+    function showGmaTrollReaction() {
+        if (prefersReducedGmaMotion()) return;
+        const portrait = document.getElementById('modalProfilePic');
+        const source = gmaTrollNote.querySelector('img');
+        if (!portrait || !source) return;
+
+        document.querySelectorAll('.gma-troll-reaction').forEach(element => element.remove());
+        const rect = portrait.getBoundingClientRect();
+        const troll = document.createElement('img');
+        troll.className = 'gma-troll-reaction';
+        troll.setAttribute('aria-hidden', 'true');
+        troll.alt = '';
+        troll.src = source.currentSrc || source.src;
+        troll.style.setProperty('--gma-reaction-x', `${rect.left + (rect.width / 2)}px`);
+        troll.style.setProperty('--gma-reaction-y', `${rect.top + (rect.height / 2)}px`);
+        document.body.appendChild(troll);
+        troll.addEventListener('animationend', () => troll.remove(), { once: true });
+        window.setTimeout(() => troll.remove(), 2200);
+    }
+
+    function spawnGmaCelebration(kind) {
         if (prefersReducedGmaMotion()) return;
 
-        const rect = gmaCard.getBoundingClientRect();
+        const isExact = kind === 'exact';
+        const isFirst = kind === 'first';
+        const origin = document.getElementById('gmaRealBubble') || gmaCard;
+        const rect = origin.getBoundingClientRect();
         const centerX = rect.left + (rect.width / 2);
-        const centerY = rect.top + Math.min(rect.height * 0.55, 220);
-        const icons = ['clock', 'stopwatch', 'hourglass-half', 'calendar-check'];
-        const sparkCount = isExact ? 14 : 9;
+        const centerY = rect.top + (rect.height / 2);
+        const icons = isFirst
+            ? ['medal', 'flag-checkered', 'stopwatch', 'calendar-check']
+            : ['clock', 'stopwatch', 'hourglass-half', 'calendar-check'];
+        const sparkCount = isExact ? 24 : isFirst ? 10 : 16;
 
         for (let index = 0; index < sparkCount; index++) {
             const angle = ((Math.PI * 2) / sparkCount) * index - (Math.PI / 2);
-            const distance = 88 + ((index % 3) * 24);
+            const distance = (isExact ? 118 : 96) + ((index % 4) * 24);
             const spark = document.createElement('i');
             spark.className = `gma-celebration-spark fas fa-${icons[index % icons.length]}`;
             spark.setAttribute('aria-hidden', 'true');
             spark.style.setProperty('--gma-spark-x', `${centerX}px`);
             spark.style.setProperty('--gma-spark-y', `${centerY}px`);
             spark.style.setProperty('--gma-spark-dx', `${Math.cos(angle) * distance}px`);
-            spark.style.setProperty('--gma-spark-dy', `${Math.sin(angle) * distance}px`);
+            spark.style.setProperty('--gma-spark-dy', `${Math.sin(angle) * distance * 0.82}px`);
             spark.style.setProperty('--gma-spark-rotation', `${index % 2 === 0 ? 140 : -140}deg`);
+            spark.style.setProperty('--gma-spark-size', `${1.35 + ((index % 4) * 0.16)}rem`);
             spark.style.animationDelay = `${index * 32}ms`;
-            if (isExact) spark.style.setProperty('--gma-spark-color', 'var(--lwc-warning, #9a6700)');
+            if (isExact || isFirst) spark.style.setProperty('--gma-spark-color', '#9a6700');
             document.body.appendChild(spark);
             spark.addEventListener('animationend', () => spark.remove(), { once: true });
-            window.setTimeout(() => spark.remove(), 2200);
+            window.setTimeout(() => spark.remove(), 2800);
         }
     }
 
     function clearGmaEphemera() {
-        document.querySelectorAll('.gma-reaction, .gma-celebration-spark, .gma-pop-banner')
+        document.querySelectorAll('.gma-reaction, .gma-troll-reaction, .gma-celebration-spark, .gma-pop-banner')
             .forEach(element => element.remove());
     }
 
@@ -1310,16 +1768,20 @@
             gmaExitTimer = 0;
             if (!canExit()) return;
 
+            gmaCard.style.setProperty(
+                '--gma-exit-height',
+                `${Math.ceil(gmaCard.getBoundingClientRect().height)}px`);
             gmaCard.classList.add('gma-done');
             const exitDelay = prefersReducedGmaMotion()
                 ? 0
                 : modalContent.classList.contains('gma-fast')
-                    ? 140
-                    : 220;
+                    ? 180
+                    : 260;
             gmaExitTimer = window.setTimeout(() => {
                 gmaExitTimer = 0;
                 if (!canExit()) return;
 
+                clearGmaEphemera();
                 modalContent.classList.remove('guess-mode');
                 modalContent.scrollTop = 0;
                 modalContent.scrollLeft = 0;
@@ -1336,13 +1798,20 @@
 
     function restoreGuessControls(message, focusTarget) {
         gmaCard.removeAttribute('aria-busy');
+        gmaCard.classList.remove('is-submitting', 'is-revealing');
+        gmaStatus.classList.remove('gma-status--semantic');
         gmaStatus.hidden = !message;
         gmaStatus.textContent = message || '';
         gmaActions.classList.remove('gma-actions-hide');
         gmaActions.inert = false;
+        gmaResultActions.hidden = true;
+        gmaResultActions.classList.remove('is-visible');
         gmaRange.disabled = false;
         gmaRange.style.pointerEvents = '';
         gmaSubmitBtn.disabled = false;
+        gmaBubble.classList.remove('gma-bubble-inactive');
+        document.getElementById('gmaRealBubble')?.remove();
+        syncRange();
         (focusTarget || gmaRange).focus();
     }
 
@@ -1352,14 +1821,22 @@
 
         if (userGuess === +gmaRange.min || userGuess === +gmaRange.max) {
             gmaTrollNote.hidden = false;
+            gmaTrollNote.classList.remove('is-visible');
+            void gmaTrollNote.offsetWidth;
+            gmaTrollNote.classList.add('is-visible');
+            showGmaTrollReaction();
             restoreGuessControls('', gmaRange);
             return;
         }
 
         gmaTrollNote.hidden = true;
+        gmaTrollNote.classList.remove('is-visible');
+        clearGmaEphemera();
         const presentation = beginGmaPresentation(modalContent.dataset.athleteSlug);
 
         gmaCard.setAttribute('aria-busy', 'true');
+        gmaCard.classList.add('is-submitting');
+        gmaStatus.classList.remove('gma-status--semantic');
         gmaStatus.hidden = false;
         gmaStatus.textContent = 'Submitting your guess…';
         gmaStatus.focus({ preventScroll: true });
@@ -1408,13 +1885,19 @@
             if (userError === 0
                 && window.proDiscounts
                 && typeof window.proDiscounts.setPerfectGuessMarker === 'function') {
-                window.proDiscounts.setPerfectGuessMarker();
+                try {
+                    window.proDiscounts.setPerfectGuessMarker();
+                } catch (error) {
+                    console.warn('Could not persist the perfect Guess My Age marker.', error);
+                }
             }
 
             if (!isCurrentGmaPresentation(presentation)) return;
             updateYourGuess();
 
             updateCrowdContainer(result.crowdAge, result.crowdCount);
+            gmaCard.classList.remove('is-submitting');
+            gmaCard.classList.add('is-revealing');
             heading.style.display = 'none';
             chronoHeading.style.display = 'block';
             chronoHeading.classList.remove('is-revealing');
@@ -1430,43 +1913,56 @@
                 : reactionKind === 'younger'
                     ? 'You guessed younger — high five.'
                     : 'You guessed older — oof.';
-            gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}. ${reactionCopy}`;
+            const outcomeCopy = userError === 0
+                ? ' Bullseye!'
+                : isFirstGuess
+                    ? ' First accepted guess!'
+                    : crowdError !== null && userError < crowdError
+                        ? ' You beat the crowd!'
+                        : '';
+            gmaStatus.classList.add('gma-status--semantic');
+            gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}. ${reactionCopy}${outcomeCopy}`;
             gmaCard.removeAttribute('aria-busy');
-            gmaStatus.focus({ preventScroll: true });
+            gmaResultActions.hidden = false;
+            gmaResultActions.classList.add('is-visible');
+            gmaContinueBtn.focus({ preventScroll: true });
 
-            const sliderWrap = document.querySelector('.gma-slider-wrap');
             const realBubble = document.createElement('span');
             realBubble.id = 'gmaRealBubble';
             realBubble.className = 'gma-real-bubble';
             realBubble.setAttribute('aria-hidden', 'true');
-            sliderWrap.appendChild(realBubble);
+            gmaSliderWrap.appendChild(realBubble);
 
             gmaBubble.classList.add('gma-bubble-inactive');
             const revealCompleted = await animateActualAgeReveal(
                 realBubble,
                 userGuess,
                 realAge,
-                presentation);
+                presentation,
+                () => showGmaReaction(reactionKind));
             if (!revealCompleted || !isCurrentGmaPresentation(presentation)) return;
 
-            showGmaReaction(reactionKind);
-
+            let outcomeDwell = 2700;
             if (userError === 0) {
                 gmaCard.classList.add('celebrate-exact');
                 popBanner(true, false);
-                spawnGmaCelebration(true);
+                spawnGmaCelebration('exact');
+                outcomeDwell = 4600;
             } else if (isFirstGuess) {
                 popBanner(false, true);
+                spawnGmaCelebration('first');
+                outcomeDwell = 3900;
             } else if (crowdError !== null && userError < crowdError) {
                 gmaCard.classList.add('celebrate-better');
                 popBanner(false, false);
-                spawnGmaCelebration(false);
+                spawnGmaCelebration('crowd');
+                outcomeDwell = 3900;
             }
 
             scheduleGmaExit(
                 presentation.athleteSlug,
                 presentation.generation,
-                prefersReducedGmaMotion() ? 1600 : 3000);
+                outcomeDwell);
         } catch (error) {
             if (!isCurrentGmaPresentation(presentation)) return;
             console.error('Error submitting guess:', error);
@@ -1474,8 +1970,15 @@
         }
     });
 
+    gmaContinueBtn.addEventListener('click', () => {
+        const athleteSlug = modalContent.dataset.athleteSlug;
+        cancelGmaPresentation();
+        clearGmaEphemera();
+        scheduleGmaExit(athleteSlug, null, 0);
+    });
+
     // bind hideCard to _all_ ghost buttons (Skip & Skip All)
-    gmaCard.querySelectorAll('.gma-btn--ghost')
+    gmaActions.querySelectorAll('.gma-btn--ghost')
         .forEach(btn => btn.addEventListener('click', hideCard));
     function hideCard(e) {
         // if they clicked “Skip All”, set global flag
@@ -1503,8 +2006,7 @@
 
     function popBanner(isExact, isFirst) {
         const b = document.createElement('div');
-        b.setAttribute('role', 'status');
-        b.setAttribute('aria-live', 'polite');
+        b.setAttribute('aria-hidden', 'true');
         b.classList.add('gma-pop-banner');
         if (isExact) {
             b.classList.add('gma-pop-banner--golden');
@@ -1531,11 +2033,11 @@
         document.body.appendChild(b);
         requestAnimationFrame(() => b.classList.add('show'));
 
-        const bannerDwell = prefersReducedGmaMotion() ? 1200 : 2800;
+        const bannerDwell = prefersReducedGmaMotion() ? 1200 : 3400;
         setTimeout(() => {
             b.classList.add('hide');
             b.addEventListener('animationend', () => b.remove());
-            setTimeout(() => b.remove(), 350);
+            setTimeout(() => b.remove(), 600);
         }, bannerDwell);
 
     }

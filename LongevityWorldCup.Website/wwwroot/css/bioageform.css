@@ -19,11 +19,33 @@
 .bioage-result-value-stack {
     --bioage-result-reveal-color: var(--lwc-accent, #087685);
     --bioage-result-halo-color: rgba(8, 118, 133, 0.28);
+    --bioage-result-count-duration: calc(var(--lwc-duration-normal, 220ms) * 4);
+    --bioage-result-settle-duration: calc(var(--lwc-duration-normal, 220ms) * 3);
     position: relative;
     isolation: isolate;
     display: grid;
     place-items: center;
     min-width: min(100%, 8ch);
+}
+
+.bioage-result-value-stack::after {
+    content: '';
+    position: absolute;
+    z-index: 3;
+    right: 12%;
+    bottom: -0.75rem;
+    left: 12%;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--bioage-result-reveal-color) 22%,
+        var(--bioage-result-reveal-color) 78%,
+        transparent);
+    opacity: 0;
+    pointer-events: none;
+    transform: scaleX(0.08);
 }
 
 .bioage-result-value-stack > #animatedAge,
@@ -46,6 +68,7 @@
     pointer-events: none;
     text-align: center;
     transform: scale(1);
+    transform-origin: center 60%;
     white-space: nowrap;
 }
 
@@ -71,6 +94,12 @@
     --bioage-result-halo-color: rgba(154, 103, 0, 0.26);
 }
 
+.bio-age-number-container.bioage-result-reveal--waiting .bioage-result-value-stack,
+.bio-age-number-container.bioage-result-reveal--counting .bioage-result-value-stack {
+    --bioage-result-reveal-color: var(--lwc-accent, #087685);
+    --bioage-result-halo-color: rgba(8, 118, 133, 0.28);
+}
+
 .bio-age-number-container.bioage-result-reveal--waiting #animatedAge,
 .bio-age-number-container.bioage-result-reveal--counting #animatedAge {
     opacity: 0 !important;
@@ -82,12 +111,105 @@
     opacity: 1;
 }
 
+.bio-age-number-container.bioage-result-reveal--counting .bioage-result-visual {
+    animation: bioage-result-count var(--bioage-result-count-duration) var(--lwc-ease, ease) both;
+}
+
+.bio-age-number-container.bioage-result-reveal--counting .bioage-result-halo {
+    animation: bioage-result-count-halo var(--bioage-result-count-duration) var(--lwc-ease, ease) both;
+}
+
+.bio-age-number-container.bioage-result-reveal--counting .bioage-result-value-stack::after {
+    animation: bioage-result-track var(--bioage-result-count-duration) var(--lwc-ease, ease) both;
+}
+
 .bio-age-number-container.bioage-result-reveal--settling .bioage-result-visual {
-    animation: bioage-result-settle var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) forwards;
+    animation: bioage-result-settle var(--bioage-result-settle-duration) var(--lwc-ease, ease) both;
 }
 
 .bio-age-number-container.bioage-result-reveal--settling .bioage-result-halo {
-    animation: bioage-result-halo var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) forwards;
+    animation: bioage-result-halo var(--bioage-result-settle-duration) var(--lwc-ease, ease) both;
+}
+
+.bio-age-number-container.bioage-result-reveal--settling .bioage-result-value-stack::after {
+    animation: bioage-result-track-lock var(--bioage-result-settle-duration) var(--lwc-ease, ease) both;
+}
+
+@keyframes bioage-result-count {
+    0% {
+        opacity: 0.48;
+        transform: translateY(10px) scale(0.9);
+    }
+
+    14% {
+        opacity: 1;
+        transform: translateY(0) scale(1.025);
+    }
+
+    28%, 58%, 88% {
+        transform: translateY(0) scale(1);
+    }
+
+    48% {
+        transform: translateY(0) scale(1.018);
+    }
+
+    78% {
+        transform: translateY(0) scale(1.012);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes bioage-result-count-halo {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    18% {
+        opacity: 0.24;
+        transform: scale(0.72);
+    }
+
+    52% {
+        opacity: 0.1;
+        transform: scale(0.9);
+    }
+
+    82% {
+        opacity: 0.2;
+        transform: scale(1.04);
+    }
+
+    100% {
+        opacity: 0.08;
+        transform: scale(1.1);
+    }
+}
+
+@keyframes bioage-result-track {
+    0% {
+        opacity: 0;
+        transform: scaleX(0.08);
+    }
+
+    16% {
+        opacity: 0.52;
+    }
+
+    86% {
+        opacity: 0.78;
+        transform: scaleX(1);
+    }
+
+    100% {
+        opacity: 0.48;
+        transform: scaleX(1);
+    }
 }
 
 @keyframes bioage-result-settle {
@@ -96,30 +218,63 @@
         transform: scale(1);
     }
 
-    45% {
+    22% {
         opacity: 1;
-        transform: scale(1.06);
+        transform: translateY(-3px) scale(1.13);
+    }
+
+    48% {
+        opacity: 1;
+        transform: translateY(1px) scale(0.985);
+    }
+
+    72% {
+        opacity: 0.82;
+        transform: translateY(0) scale(1.035);
     }
 
     100% {
         opacity: 0;
-        transform: scale(1);
+        transform: translateY(0) scale(1);
     }
 }
 
 @keyframes bioage-result-halo {
     0% {
-        opacity: 0;
-        transform: scale(0.65);
+        opacity: 0.08;
+        transform: scale(0.55);
     }
 
-    45% {
-        opacity: 0.7;
+    26% {
+        opacity: 0.62;
+        transform: scale(0.9);
+    }
+
+    60% {
+        opacity: 0.25;
+        transform: scale(1.22);
     }
 
     100% {
         opacity: 0;
-        transform: scale(1.25);
+        transform: scale(1.55);
+    }
+}
+
+@keyframes bioage-result-track-lock {
+    0% {
+        opacity: 0.62;
+        transform: scaleX(1);
+    }
+
+    32% {
+        opacity: 1;
+        transform: scaleX(0.58);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scaleX(0.12);
     }
 }
 
@@ -142,7 +297,8 @@
     }
 
     .bioage-result-visual,
-    .bioage-result-halo {
+    .bioage-result-halo,
+    .bioage-result-value-stack::after {
         animation: none !important;
         opacity: 0 !important;
         transition: none !important;

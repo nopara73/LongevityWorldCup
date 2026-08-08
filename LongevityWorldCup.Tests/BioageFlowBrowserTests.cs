@@ -344,6 +344,7 @@ public sealed class BioageFlowBrowserTests
                 const halo = result.querySelector('.bioage-result-halo');
                 const announcement = result.querySelector('[data-bioage-result-announcement]');
                 const container = result.querySelector('.bio-age-number-container');
+                const valueStack = result.querySelector('.bioage-result-value-stack');
                 const continueButton = document.getElementById('continueButton');
                 const spacer = document.createElement('div');
                 spacer.style.height = '1600px';
@@ -356,8 +357,21 @@ public sealed class BioageFlowBrowserTests
                     SettlingAt: null,
                     CompleteAt: null,
                     ValueVisibleWhenCounting: null,
-                    VisualMutationCount: 0
+                    VisualMutationCount: 0,
+                    CountAnimationName: '',
+                    CountAnimationDurationMs: null,
+                    CountTrackAnimationName: '',
+                    CountTrackAnimationDurationMs: null,
+                    CountToneColor: '',
+                    SettleAnimationName: '',
+                    SettleAnimationDurationMs: null,
+                    SettleTrackAnimationName: '',
+                    SettleTrackAnimationDurationMs: null,
+                    SettleToneColor: ''
                 };
+                const motionDurationMs = value => value.endsWith('ms')
+                    ? Number.parseFloat(value)
+                    : Number.parseFloat(value) * 1000;
                 window.__bioageRevealTimeline = timeline;
                 new MutationObserver(records => {
                     timeline.VisualMutationCount += records.length;
@@ -369,8 +383,22 @@ public sealed class BioageFlowBrowserTests
                         const valueRect = container.getBoundingClientRect();
                         timeline.ValueVisibleWhenCounting = valueRect.top >= 0
                             && valueRect.bottom <= window.innerHeight;
+                        const visualStyle = getComputedStyle(visualValue);
+                        const trackStyle = getComputedStyle(valueStack, '::after');
+                        timeline.CountAnimationName = visualStyle.animationName;
+                        timeline.CountAnimationDurationMs = motionDurationMs(visualStyle.animationDuration);
+                        timeline.CountTrackAnimationName = trackStyle.animationName;
+                        timeline.CountTrackAnimationDurationMs = motionDurationMs(trackStyle.animationDuration);
+                        timeline.CountToneColor = visualStyle.color;
                     } else if (state === 'settling' && timeline.SettlingAt === null) {
                         timeline.SettlingAt = performance.now();
+                        const visualStyle = getComputedStyle(visualValue);
+                        const trackStyle = getComputedStyle(valueStack, '::after');
+                        timeline.SettleAnimationName = visualStyle.animationName;
+                        timeline.SettleAnimationDurationMs = motionDurationMs(visualStyle.animationDuration);
+                        timeline.SettleTrackAnimationName = trackStyle.animationName;
+                        timeline.SettleTrackAnimationDurationMs = motionDurationMs(trackStyle.animationDuration);
+                        timeline.SettleToneColor = visualStyle.color;
                     } else if (state === 'complete') {
                         timeline.CompleteAt ??= performance.now();
                     }
@@ -446,6 +474,11 @@ public sealed class BioageFlowBrowserTests
                         ?.dataset.bioageRevealState === 'counting'
                 """,
                 new { resultSelector });
+            await page.WaitForTimeoutAsync(400);
+            var midpointValue = await page.Locator(
+                $"{resultSelector} [data-bioage-result-visual]").EvaluateAsync<double>(
+                "element => Number.parseFloat(element.textContent || '0')");
+            Assert.InRange(midpointValue, 10, 30);
             await page.WaitForFunctionAsync("() => window.__bioageRevealTimeline?.SettlingAt !== null");
         }
 
@@ -479,7 +512,17 @@ public sealed class BioageFlowBrowserTests
                     SettlingAt: timeline.SettlingAt,
                     CompleteAt: timeline.CompleteAt,
                     ValueVisibleWhenCounting: timeline.ValueVisibleWhenCounting === true,
-                    VisualMutationCount: timeline.VisualMutationCount
+                    VisualMutationCount: timeline.VisualMutationCount,
+                    CountAnimationName: timeline.CountAnimationName,
+                    CountAnimationDurationMs: timeline.CountAnimationDurationMs,
+                    CountTrackAnimationName: timeline.CountTrackAnimationName,
+                    CountTrackAnimationDurationMs: timeline.CountTrackAnimationDurationMs,
+                    CountToneColor: timeline.CountToneColor,
+                    SettleAnimationName: timeline.SettleAnimationName,
+                    SettleAnimationDurationMs: timeline.SettleAnimationDurationMs,
+                    SettleTrackAnimationName: timeline.SettleTrackAnimationName,
+                    SettleTrackAnimationDurationMs: timeline.SettleTrackAnimationDurationMs,
+                    SettleToneColor: timeline.SettleToneColor
                 };
             }
             """,
@@ -507,7 +550,17 @@ public sealed class BioageFlowBrowserTests
             Assert.True(completed.ValueVisibleWhenCounting);
             Assert.InRange(completed.CountingAt!.Value - completed.CalledAt, 300, 1000);
             Assert.InRange(completed.SettlingAt!.Value - completed.CountingAt.Value, 800, 1300);
-            Assert.InRange(completed.VisualMutationCount, 2, 72);
+            Assert.InRange(completed.CompleteAt!.Value - completed.SettlingAt.Value, 580, 950);
+            Assert.InRange(completed.VisualMutationCount, 2, 43);
+            Assert.Equal("bioage-result-count", completed.CountAnimationName);
+            Assert.InRange(completed.CountAnimationDurationMs, 870, 890);
+            Assert.Equal("bioage-result-track", completed.CountTrackAnimationName);
+            Assert.InRange(completed.CountTrackAnimationDurationMs, 870, 890);
+            Assert.Equal("bioage-result-settle", completed.SettleAnimationName);
+            Assert.InRange(completed.SettleAnimationDurationMs, 650, 670);
+            Assert.Equal("bioage-result-track-lock", completed.SettleTrackAnimationName);
+            Assert.InRange(completed.SettleTrackAnimationDurationMs, 650, 670);
+            Assert.NotEqual(completed.CountToneColor, completed.SettleToneColor);
         }
 
         Assert.Empty(errors);
@@ -635,6 +688,16 @@ public sealed class BioageFlowBrowserTests
         public double? CompleteAt { get; set; }
         public bool ValueVisibleWhenCounting { get; set; }
         public int VisualMutationCount { get; set; }
+        public string CountAnimationName { get; set; } = "";
+        public double CountAnimationDurationMs { get; set; }
+        public string CountTrackAnimationName { get; set; } = "";
+        public double CountTrackAnimationDurationMs { get; set; }
+        public string CountToneColor { get; set; } = "";
+        public string SettleAnimationName { get; set; } = "";
+        public double SettleAnimationDurationMs { get; set; }
+        public string SettleTrackAnimationName { get; set; } = "";
+        public double SettleTrackAnimationDurationMs { get; set; }
+        public string SettleToneColor { get; set; } = "";
     }
 
     private sealed class BioageReentryDiagnostics

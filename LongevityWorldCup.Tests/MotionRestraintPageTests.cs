@@ -116,18 +116,30 @@ public sealed class MotionRestraintPageTests
 
         Assert.Contains("const BIOAGE_RESULT_COUNTUP_DURATION_MS = 900;", flow);
         Assert.Contains("const BIOAGE_RESULT_MAX_VISUAL_UPDATES = 72;", flow);
+        Assert.Contains("const BIOAGE_RESULT_MIN_VISUAL_UPDATES = 24;", flow);
+        Assert.Contains("const BIOAGE_RESULT_SETTLE_CLEANUP_MS = 700;", flow);
         Assert.Contains("const BIOAGE_RESULT_START_AFTER_SCROLL_MS = BIOAGE_RESULT_SCROLL_SETTLE_MS + 40;", flow);
         Assert.Contains("window.requestAnimationFrame(countFrame)", animation);
         Assert.Contains("prefersReducedBioageResultMotion()", animation);
         Assert.Contains("clearBioageResultAnimation(resultElement)", animation);
         Assert.Contains("(timestamp - startedAt) / BIOAGE_RESULT_COUNTUP_DURATION_MS", animation);
-        Assert.Contains("progress * (BIOAGE_RESULT_MAX_VISUAL_UPDATES - 1)", animation);
+        Assert.Contains("getBioageResultVisualUpdateBudget(finalAge)", animation);
+        Assert.Contains("progress * (visualUpdateBudget - 1)", animation);
+        Assert.Contains("renderedBucket / (visualUpdateBudget - 1)", animation);
         Assert.Contains("bioage-result-reveal--waiting", animation);
         Assert.DoesNotContain("boundedFrameProgress", animation);
         Assert.DoesNotContain("frameCount /", animation);
+        Assert.DoesNotContain("Math.pow(1 - progress", animation);
         Assert.DoesNotContain("setInterval(", animation);
+        Assert.Contains("--bioage-result-count-duration: calc(var(--lwc-duration-normal, 220ms) * 4);", css);
+        Assert.Contains("--bioage-result-settle-duration: calc(var(--lwc-duration-normal, 220ms) * 3);", css);
+        Assert.Contains("@keyframes bioage-result-count", css);
+        Assert.Contains("@keyframes bioage-result-count-halo", css);
+        Assert.Contains("@keyframes bioage-result-track", css);
+        Assert.Contains("@keyframes bioage-result-track-lock", css);
         Assert.Contains("@keyframes bioage-result-settle", css);
         Assert.Contains("@keyframes bioage-result-halo", css);
+        Assert.Contains("transform: translateY(-3px) scale(1.13);", css);
         Assert.Contains("@media (prefers-reduced-motion: reduce)", css);
         Assert.DoesNotContain("infinite", Slice(css, ".bioage-result-value-stack", ".bioageform label"));
     }

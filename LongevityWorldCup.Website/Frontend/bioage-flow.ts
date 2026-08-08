@@ -1250,9 +1250,10 @@ interface Window {
     let pendingResultRevealInstant = false;
     const BIOAGE_RESULT_COUNTUP_DURATION_MS = 900;
     const BIOAGE_RESULT_MAX_VISUAL_UPDATES = 72;
+    const BIOAGE_RESULT_MIN_VISUAL_UPDATES = 24;
     const BIOAGE_RESULT_SCROLL_SETTLE_MS = 360;
     const BIOAGE_RESULT_START_AFTER_SCROLL_MS = BIOAGE_RESULT_SCROLL_SETTLE_MS + 40;
-    const BIOAGE_RESULT_SETTLE_CLEANUP_MS = 280;
+    const BIOAGE_RESULT_SETTLE_CLEANUP_MS = 700;
     const bioageResultAnimationStates = new WeakMap<HTMLElement, BioageResultAnimationState>();
 
     function getBioageResultAnimationState(resultElement: HTMLElement): BioageResultAnimationState {
@@ -1320,6 +1321,12 @@ interface Window {
         return (Math.abs(value) < 0.05 ? 0 : value).toFixed(1);
     }
 
+    function getBioageResultVisualUpdateBudget(finalAge: number): number {
+        return Math.min(
+            BIOAGE_RESULT_MAX_VISUAL_UPDATES,
+            Math.max(BIOAGE_RESULT_MIN_VISUAL_UPDATES, Math.ceil(Math.abs(finalAge))));
+    }
+
     function syncBioageResultRevealTone(resultElement: HTMLElement, container: HTMLElement): void {
         const semanticValue = resultElement.querySelector<HTMLElement>('#animatedAge');
         const tone = semanticValue?.classList.contains('age-excellent')
@@ -1360,6 +1367,7 @@ interface Window {
         visualValue.textContent = '0.0';
         let startedAt = 0;
         let lastRenderedBucket = 0;
+        const visualUpdateBudget = getBioageResultVisualUpdateBudget(finalAge);
         const finish = (settle: boolean): void => {
             if (state.generation !== generation) return;
 
@@ -1398,14 +1406,14 @@ interface Window {
                 return;
             }
 
-            // Drive progress only from elapsed time. Bucket DOM writes separately so
-            // high-refresh displays cannot shorten the choreography or create more
-            // than 72 visual value updates, including the initial and final values.
-            const renderedBucket = Math.floor(progress * (BIOAGE_RESULT_MAX_VISUAL_UPDATES - 1));
+            // Keep the old reveal's satisfying near-year cadence without coupling
+            // duration to intervals or refresh rate. Typical results advance about
+            // one year per visual update; all results remain capped at 72 writes.
+            const renderedBucket = Math.floor(progress * (visualUpdateBudget - 1));
             if (renderedBucket > lastRenderedBucket) {
                 lastRenderedBucket = renderedBucket;
-                const easedProgress = 1 - Math.pow(1 - progress, 3);
-                visualValue.textContent = formatBioageResultVisualValue(finalAge * easedProgress);
+                const displayedProgress = renderedBucket / (visualUpdateBudget - 1);
+                visualValue.textContent = formatBioageResultVisualValue(finalAge * displayedProgress);
             }
 
             state.frame = window.requestAnimationFrame(countFrame);
