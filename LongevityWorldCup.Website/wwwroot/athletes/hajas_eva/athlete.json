@@ -1,0 +1,28 @@
+{
+  "Name": "Hajas Éva",
+  "DisplayName": null,
+  "MediaContact": "mail.eva.hajas@gmail.com",
+  "DateOfBirth": {
+    "Year": 1981,
+    "Month": 10,
+    "Day": 22
+  },
+  "Biomarkers": [
+    {
+      "Date": "2024-11-30",
+      "AlbGL": 41,
+      "CreatUmolL": 73,
+      "GluMmolL": 5,
+      "CrpMgL": 8.4,
+      "LymPc": 22.3,
+      "McvFL": 89.7,
+      "RdwPc": 12,
+      "AlpUL": 62,
+      "Wbc1000cellsuL": 8
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Magyarország",
+  "Why": "My health and well-being. Taking care of myself.",
+  "PersonalLink": null
+}
