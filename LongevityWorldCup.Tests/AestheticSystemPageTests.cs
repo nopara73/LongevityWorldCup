@@ -336,7 +336,10 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("result.guessAccepted === true && crowdCountBeforeGuess === 0", html);
         Assert.DoesNotContain("That guess was not accepted", html);
         Assert.Contains("#gmaBubble.gma-bubble-inactive", html);
-        Assert.Contains("opacity: 0;", html);
+        Assert.Contains("opacity: 0.78;", html);
+        Assert.Contains("translateY(var(--gma-you-anchor-y, 7.75rem))", html);
+        Assert.Contains("content: 'YOU';", html);
+        Assert.Contains("content: 'ACTUAL';", html);
         Assert.Contains("Right on the nose.", html);
         Assert.Contains("You guessed younger — high five.", html);
         Assert.Contains("You guessed older — oof.", html);
@@ -346,12 +349,25 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("animateActualAgeReveal", html);
         Assert.Contains("showGmaReaction", html);
         Assert.Contains("spawnGmaCelebration", html);
-        Assert.Contains("const sparkCount = isExact ? 14 : 9;", html);
+        Assert.Contains("const sparkCount = isExact ? 24 : isFirst ? 10 : 16;", html);
+        Assert.Contains("const desiredOvershootDistance", html);
+        Assert.Contains("realBubble.dataset.revealPhase = 'return';", html);
+        Assert.Contains("() => showGmaReaction(reactionKind)", html);
         Assert.Contains("prefersReducedGmaMotion", html);
         Assert.Contains("gma-real-age-settle", html);
         Assert.Contains("gma-card-celebrate", html);
+        Assert.Contains("gma-card-exit", html);
+        Assert.Contains("--gma-exit-height", html);
+        Assert.Contains("gmaGeometryForAge", html);
+        Assert.Contains("--gma-thumb-size", html);
+        Assert.Contains("#detailsModal #gmaRange:focus-visible", html);
+        Assert.DoesNotContain("opacity: 0 !important;", html);
+        Assert.DoesNotContain("height: 0;\n        padding: 0;", html);
         Assert.Contains("isCurrentGmaPresentation", html);
         Assert.Contains("realBubble.setAttribute('aria-hidden', 'true');", html);
+        Assert.Contains("id=\"gmaContinueBtn\"", html);
+        Assert.Contains("gmaStatus.classList.add('gma-status--semantic');", html);
+        Assert.Contains("gmaActions.querySelectorAll('.gma-btn--ghost')", html);
         Assert.Contains("persistGmaGuessState(presentation.athleteSlug, guessState);", html);
         Assert.Contains("await animateActualAgeReveal(", html);
         Assert.True(
