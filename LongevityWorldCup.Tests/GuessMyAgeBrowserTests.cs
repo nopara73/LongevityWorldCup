@@ -202,6 +202,8 @@ public sealed class GuessMyAgeBrowserTests
             await submit.ClickAsync();
             await page.WaitForFunctionAsync("() => document.querySelector('#guessAgeContainer .gma-btn--primary')?.disabled === true");
             Assert.True(await page.Locator("#guessAgeContainer .gma-actions").EvaluateAsync<bool>("element => element.inert"));
+            Assert.True(await status.EvaluateAsync<bool>("element => element === document.activeElement"));
+            Assert.Equal("Submitting your guess…", await status.InnerTextAsync());
             await page.Keyboard.PressAsync("Enter");
             await page.WaitForTimeoutAsync(100);
             Assert.Equal(1, guessRequests);
@@ -211,6 +213,7 @@ public sealed class GuessMyAgeBrowserTests
             releaseFirstGuess.TrySetResult(true);
         }
         await page.WaitForFunctionAsync("() => document.getElementById('gmaStatus')?.textContent.includes('Actual age: 41')");
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRealBubble')?.classList.contains('is-settled') === true");
 
         Assert.Equal(1, guessRequests);
         Assert.False(await trollNote.IsVisibleAsync());
@@ -266,6 +269,440 @@ public sealed class GuessMyAgeBrowserTests
                 return guess?.value === 50 && guess.first === true && guess.exact === false;
             }
             """));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_AnimatesThroughTheRevealAndBoundsCelebrationWork()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200,
+            ContentType = "application/json",
+            Body = """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+        }));
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'animated-history-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+
+        var range = page.Locator("#gmaRange");
+        await range.EvaluateAsync(
+            "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('gmaRealBubble')?.classList.contains('is-travelling') === true && document.getElementById('gmaRealBubble').textContent !== '41'");
+        Assert.NotEqual("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
+        Assert.Equal("true", await page.Locator("#gmaRealBubble").GetAttributeAsync("aria-hidden"));
+        Assert.Equal(0, await page.Locator(".gma-reaction").CountAsync());
+        Assert.True(await page.Locator("#gmaStatus").EvaluateAsync<bool>("element => element === document.activeElement"));
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['animated-history-test']?.value === 54"));
+
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('gmaRealBubble')?.classList.contains('is-settled') === true");
+        await page.WaitForFunctionAsync("() => document.querySelectorAll('.gma-reaction').length === 1");
+        Assert.Equal("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
+        await page.GetByText("You beat the crowd!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
+
+        var sparkCount = await page.Locator(".gma-celebration-spark").CountAsync();
+        Assert.Equal(9, sparkCount);
+        await page.WaitForFunctionAsync("() => document.querySelectorAll('.gma-celebration-spark').length === 0");
+        await page.WaitForFunctionAsync(
+            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['animated-history-test']?.value === 54");
+
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modalContent = document.querySelector('#detailsModal .modal-content');
+                modalContent.dataset.athleteSlug = 'exact-animation-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.EvaluateAsync(
+            """
+            () => {
+                window.proDiscounts = {
+                    setPerfectGuessMarker: () => localStorage.setItem('gmaHasPerfectGuess', '1')
+                };
+            }
+            """);
+        await range.EvaluateAsync(
+            "range => { range.value = '41'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
+
+        Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
+            "element => element.classList.contains('celebrate-exact')"));
+        Assert.Equal(14, await page.Locator(".gma-celebration-spark").CountAsync());
+        Assert.NotNull(await page.EvaluateAsync<string?>("() => localStorage.getItem('gmaHasPerfectGuess')"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_StaleResponseCannotMutateOrCloseAnotherAthletesGame()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var requestStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseResponse = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/Guess/athlete-age**", async route =>
+        {
+            requestStarted.TrySetResult(true);
+            await releaseResponse.Task;
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = """{"crowdAge":39,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+            });
+        });
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'stale-athlete-a';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.Locator("#gmaRange").EvaluateAsync(
+            "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modalContent = document.querySelector('#detailsModal .modal-content');
+                modalContent.classList.remove('guess-mode');
+                modalContent.dataset.athleteSlug = 'current-athlete-b';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('gmaRange')?.disabled === false && document.getElementById('gmaRange').value === '33'");
+        Assert.True(await page.Locator("#gmaRange").EvaluateAsync<bool>(
+            "element => element === document.activeElement"));
+
+        releaseResponse.TrySetResult(true);
+        await page.WaitForFunctionAsync(
+            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['stale-athlete-a']?.value === 54");
+        await page.WaitForTimeoutAsync(250);
+
+        Assert.True(await page.EvaluateAsync<bool>(
+            """
+            () => {
+                const guesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+                const modalContent = document.querySelector('#detailsModal .modal-content');
+                return guesses['stale-athlete-a']?.value === 54
+                    && !guesses['current-athlete-b']
+                    && modalContent.dataset.athleteSlug === 'current-athlete-b'
+                    && modalContent.classList.contains('guess-mode')
+                    && document.getElementById('gmaRange').value === '33'
+                    && document.getElementById('gmaRange').disabled === false
+                    && !document.getElementById('gmaRealBubble')
+                    && document.getElementById('gmaStatus').hidden;
+            }
+            """));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_SameAthleteReopenCancelsThePreviousExitTimer()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200,
+            ContentType = "application/json",
+            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+        }));
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'same-athlete-reopen-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.Locator("#gmaRange").EvaluateAsync(
+            "range => { range.value = '41'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
+
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modalContent = document.querySelector('#detailsModal .modal-content');
+                modalContent.classList.remove('guess-mode');
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('gmaRange')?.disabled === false && document.getElementById('gmaRange').value === '33' && !document.getElementById('gmaRealBubble')");
+        await page.WaitForTimeoutAsync(3500);
+
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('guess-mode')"));
+        Assert.True(await page.Locator("#gmaRange").EvaluateAsync<bool>(
+            "element => element === document.activeElement"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_StorageFailureStillRevealsAndAllowsEveryExit()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ReducedMotion = ReducedMotion.Reduce,
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200,
+            ContentType = "application/json",
+            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+        }));
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const originalSetItem = Storage.prototype.setItem;
+                Storage.prototype.setItem = function (key, value) {
+                    if (key === 'gmaAllGuesses') throw new DOMException('Storage unavailable', 'QuotaExceededError');
+                    return originalSetItem.call(this, key, value);
+                };
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'storage-failure-submit-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.Locator("#gmaRange").EvaluateAsync(
+            "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('gmaStatus')?.textContent.includes('Actual age: 41')");
+        await page.WaitForFunctionAsync(
+            "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");
+        Assert.Null(await page.EvaluateAsync<string?>(
+            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['storage-failure-submit-test']?.value ?? null"));
+
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modalContent = document.querySelector('#detailsModal .modal-content');
+                modalContent.dataset.athleteSlug = 'storage-failure-skip-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.Locator("#guessAgeContainer .gma-btn--ghost:not(#gmaSkipAll)").ClickAsync();
+        await page.WaitForFunctionAsync(
+            "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");
+
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
+            "element => element === document.activeElement"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_ReducedMotionRevealsImmediatelyWithoutReactionParticles()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ReducedMotion = ReducedMotion.Reduce,
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200,
+            ContentType = "application/json",
+            Body = """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+        }));
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'reduced-motion-history-test';
+                modalContent.classList.add('guess-mode');
+                const range = document.getElementById('gmaRange');
+                range.value = '54';
+                range.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            """);
+
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('gmaRealBubble')?.classList.contains('is-settled') === true");
+
+        Assert.Equal("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
+        Assert.Equal(0, await page.Locator(".gma-reaction").CountAsync());
+        Assert.Equal(0, await page.Locator(".gma-celebration-spark").CountAsync());
+        await page.GetByText("You beat the crowd!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
+        await page.WaitForFunctionAsync(
+            "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
+            "element => element === document.activeElement"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_SettlesAnActiveRevealWhenReducedMotionTurnsOn()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200,
+            ContentType = "application/json",
+            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+        }));
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'motion-change-history-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.Locator("#gmaRange").EvaluateAsync(
+            "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('gmaRealBubble')?.classList.contains('is-travelling') === true");
+
+        await page.EmulateMediaAsync(new PageEmulateMediaOptions { ReducedMotion = ReducedMotion.Reduce });
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('gmaRealBubble')?.classList.contains('is-settled') === true");
+
+        Assert.Equal("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
+        Assert.Equal(0, await page.Locator(".gma-reaction, .gma-celebration-spark").CountAsync());
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['motion-change-history-test']?.value === 54"));
         Assert.Empty(errors);
     }
 

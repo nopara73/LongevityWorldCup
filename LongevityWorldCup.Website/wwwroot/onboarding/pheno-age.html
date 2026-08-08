@@ -1162,9 +1162,14 @@
             <div id="validAgeInput">
                 <div>Your biological age is:</div>
                 <div class="bio-age-number-container">
-                    <span id="animatedAge">0</span>
+                    <span class="bioage-result-value-stack">
+                        <span id="animatedAge">0</span>
+                        <span class="bioage-result-visual" data-bioage-result-visual aria-hidden="true">0.0</span>
+                        <span class="bioage-result-halo" aria-hidden="true"></span>
+                    </span>
                 </div>
                 <div id="yearsText">years</div>
+                <span class="visually-hidden" data-bioage-result-announcement role="status" aria-live="polite" aria-atomic="true"></span>
             </div>
             <div id="ensureCorrectInputSuggestion" class="bioage-inline-notice" role="alert" aria-live="assertive" style="display: none;">
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
@@ -2014,6 +2019,8 @@
             // Check if the result is not infinite
             if (!isFinite(phenoAge)) {
                 resultElement.classList.add('show');
+                bioageFlow.syncBioageResultVisibility();
+                bioageFlow.animateBioageResult(resultElement, phenoAge, { instant: true });
                 ensureCorrectInputSuggestion.style.display = 'block';
                 validAgeInput.style.display = 'none';
                 if (window.LwcBioAgeRankPreview) window.LwcBioAgeRankPreview.clear('phenoAgeRankPreview');
@@ -2047,6 +2054,9 @@
             }
             
             resultElement.classList.add('show');
+            bioageFlow.announceBioageResult(
+                resultElement,
+                `Your biological age is ${phenoAge.toFixed(1)} years.`);
             animatedAgeElement.innerText = phenoAge.toFixed(1);
             animatedAgeElement.classList.remove('age-excellent', 'age-good', 'age-average');
             animatedAgeElement.classList.add(ageCategory);
@@ -2057,6 +2067,7 @@
 
             document.getElementById('continueButton').classList.add('show');
             updateCalculateButton();
+            bioageFlow.animateBioageResult(resultElement, phenoAge);
 
             isResultCalculated = true;
         }

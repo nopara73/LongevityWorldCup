@@ -20,6 +20,8 @@ This file records durable UI decisions for Longevity World Cup. Keep it short: a
 
 - The default transition is 140ms and the longer state transition is 220ms, using the shared standard easing. Motion should explain continuity or state change; focused tasks do not use scroll entrances, looping decoration, delayed typewriter reveals, or unbounded celebration particles.
 
+- High-value outcome moments may compose the shared durations into one bounded choreography when motion makes the result easier to follow: for example, a guessed value travelling to the answer, a calculated age counting to its result, or a leaderboard place visibly moving. Publish the semantic result and available actions immediately, never gate progress on `animationend`, cap generated decoration, and provide an immediate reduced-motion state.
+
 - Strong color communicates an action, selection, or named status. Structural borders stay neutral, and state meaning must also be available through text, iconography, or shape. Light and dark palettes are designed independently rather than produced with filters.
 
 - Neutral foregrounds and surfaces must be paired through the shared semantic palette; do not place a hard-coded light-palette text color on a theme-switched surface. Actions use the palette's on-accent color instead of assuming white text.

@@ -673,20 +673,20 @@
         border-color:#3B82F6;
         box-shadow:0 0 0 2px rgba(59,130,246,.16);
     }
+    .leaderboard tr.is-new-athlete.is-new-revealed,
+    .leaderboard tr.is-rank-up-athlete.is-rank-up-revealed{
+        --leaderboard-change-duration:calc(var(--lwc-duration-normal, 220ms) * 4);
+    }
     .leaderboard tr.is-new-athlete.is-new-revealed > td{
-        animation:newAthleteEntrySlide var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) 1 both;
+        animation:newAthleteEntrySlide var(--leaderboard-change-duration) var(--lwc-ease, ease) 1 both;
     }
     .leaderboard tr.is-rank-up-athlete.is-rank-up-revealed > td{
-        animation:rankUpAthleteClimb var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) 1 both;
+        animation:rankUpAthleteClimb var(--leaderboard-change-duration) var(--lwc-ease, ease) 1 both;
     }
     @keyframes newAthleteEntrySlide{
         0%{
-            transform:translateX(-4px);
-            opacity:1;
-        }
-        44%{
-            transform:translateX(0);
-            opacity:1;
+            transform:translateX(-24px);
+            opacity:.72;
         }
         100%{
             transform:translateX(0);
@@ -695,12 +695,8 @@
     }
     @keyframes rankUpAthleteClimb{
         0%{
-            transform:translateY(4px);
-            opacity:1;
-        }
-        48%{
-            transform:translateY(0);
-            opacity:1;
+            transform:translateY(16px);
+            opacity:.72;
         }
         100%{
             transform:translateY(0);
