@@ -357,8 +357,8 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("const preludePromise = startGmaResultPrelude(presentation);", html);
         Assert.Contains("showGmaReaction(reactionKind);", html);
         Assert.Contains("const preludeCompleted = await preludePromise;", html);
-        Assert.Contains("gmaResultActions.classList.add('is-visible', 'is-pending');", html);
-        Assert.Contains("gmaResultActions.classList.add('is-promoted');", html);
+        Assert.Contains("modalContent.classList.add('gma-result-ready');", html);
+        Assert.Contains("isGuessMyAgeDismissBlocked", html);
         Assert.Contains("id=\"gmaPayoffRegion\"", html);
         Assert.Contains("gmaPayoffRegion.replaceChildren(b);", html);
         Assert.Contains("prefersReducedGmaMotion", html);
@@ -373,7 +373,8 @@ public sealed class AestheticSystemPageTests
         Assert.DoesNotContain("height: 0;\n        padding: 0;", html);
         Assert.Contains("isCurrentGmaPresentation", html);
         Assert.Contains("realBubble.setAttribute('aria-hidden', 'true');", html);
-        Assert.Contains("id=\"gmaContinueBtn\"", html);
+        Assert.DoesNotContain("id=\"gmaContinueBtn\"", html);
+        Assert.DoesNotContain("See profile", html);
         Assert.Contains("gmaStatus.classList.add('gma-status--semantic');", html);
         Assert.Contains("gmaActions.querySelectorAll('.gma-btn--ghost')", html);
         Assert.Contains("persistGmaGuessState(presentation.athleteSlug, guessState);", html);
