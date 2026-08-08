@@ -428,9 +428,10 @@ public sealed class GuessMyAgeBrowserTests
         Assert.Equal("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
         Assert.True(await page.Locator("#gmaBubble").EvaluateAsync<bool>(
             "element => { const opacity = Number.parseFloat(getComputedStyle(element).opacity); return opacity >= 0.35 && opacity <= 0.5; }"));
-        Assert.True(await page.Locator("#gmaContinueBtn").IsVisibleAsync());
-        Assert.True(await page.Locator("#gmaContinueBtn").EvaluateAsync<bool>(
-            "element => element === document.activeElement"));
+        Assert.Equal(0, await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "See profile", Exact = true }).CountAsync());
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('gma-result-ready')"));
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
         Assert.True(await page.EvaluateAsync<bool>(
             """
             () => {
@@ -459,18 +460,15 @@ public sealed class GuessMyAgeBrowserTests
                 const slider = rect('.gma-slider-wrap');
                 const payoff = rect('#gmaPayoffRegion');
                 const oldActions = rect('#guessAgeContainer > .gma-actions');
-                const resultActions = rect('.gma-result-actions');
                 const card = rect('#guessAgeContainer');
-                const continueButton = rect('#gmaContinueBtn');
                 return [
                     payoff.height,
                     payoff.childElementCount,
                     oldActions.height,
-                    resultActions.top - slider.bottom,
-                    continueButton.bottom,
                     card.bottom,
                     window.innerHeight,
-                    document.documentElement.scrollWidth - document.documentElement.clientWidth
+                    document.documentElement.scrollWidth - document.documentElement.clientWidth,
+                    card.bottom - slider.bottom
                 ];
             }
             """;
@@ -479,10 +477,9 @@ public sealed class GuessMyAgeBrowserTests
         Assert.InRange(phoneResultLayout[0], 0, 0.5);
         Assert.Equal(0, phoneResultLayout[1]);
         Assert.InRange(phoneResultLayout[2], 0, 0.5);
-        Assert.InRange(phoneResultLayout[3], 0, 28);
-        Assert.True(phoneResultLayout[4] <= phoneResultLayout[6] + 1);
-        Assert.True(phoneResultLayout[5] <= phoneResultLayout[6] + 1);
-        Assert.InRange(phoneResultLayout[7], -0.5, 0.5);
+        Assert.True(phoneResultLayout[3] <= phoneResultLayout[4] + 1);
+        Assert.InRange(phoneResultLayout[5], -0.5, 0.5);
+        Assert.InRange(phoneResultLayout[6], 0, 80);
 
         await page.SetViewportSizeAsync(1280, 720);
         await page.EvaluateAsync(
@@ -491,10 +488,9 @@ public sealed class GuessMyAgeBrowserTests
         Assert.InRange(compactDesktopResultLayout[0], 0, 0.5);
         Assert.Equal(0, compactDesktopResultLayout[1]);
         Assert.InRange(compactDesktopResultLayout[2], 0, 0.5);
-        Assert.InRange(compactDesktopResultLayout[3], 0, 28);
-        Assert.True(compactDesktopResultLayout[4] <= compactDesktopResultLayout[6] + 1);
-        Assert.True(compactDesktopResultLayout[5] <= compactDesktopResultLayout[6] + 1);
-        Assert.InRange(compactDesktopResultLayout[7], -0.5, 0.5);
+        Assert.True(compactDesktopResultLayout[3] <= compactDesktopResultLayout[4] + 1);
+        Assert.InRange(compactDesktopResultLayout[5], -0.5, 0.5);
+        Assert.InRange(compactDesktopResultLayout[6], 0, 80);
 
         await page.SetViewportSizeAsync(390, 844);
         await page.EvaluateAsync(
@@ -598,10 +594,11 @@ public sealed class GuessMyAgeBrowserTests
             "1.98s",
             await page.Locator(".chrono-age-heading").EvaluateAsync<string>(
                 "element => getComputedStyle(element).animationDuration"));
-        Assert.True(await page.Locator("#gmaContinueBtn").IsVisibleAsync());
-        Assert.True(await page.Locator(".gma-result-actions").EvaluateAsync<bool>(
-            "element => element.classList.contains('is-pending') && !element.classList.contains('is-promoted')"));
-        Assert.False(await page.Locator("#gmaContinueBtn").EvaluateAsync<bool>(
+        Assert.Equal(0, await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "See profile", Exact = true }).CountAsync());
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('gma-result-ready')"));
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
+        Assert.False(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
             "element => element === document.activeElement"));
         Assert.Equal(0, await page.Locator("#gmaRealBubble").CountAsync());
         Assert.Equal(1, await page.Locator(".gma-reaction").CountAsync());
@@ -612,8 +609,8 @@ public sealed class GuessMyAgeBrowserTests
         Assert.NotEqual("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
         Assert.Equal("true", await page.Locator("#gmaRealBubble").GetAttributeAsync("aria-hidden"));
         Assert.Equal(0, await page.Locator(".gma-reaction").CountAsync());
-        Assert.True(await page.Locator("#gmaContinueBtn").IsVisibleAsync());
-        Assert.False(await page.Locator("#gmaContinueBtn").EvaluateAsync<bool>("element => element === document.activeElement"));
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
+        Assert.False(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>("element => element === document.activeElement"));
         Assert.True(await page.EvaluateAsync<bool>(
             "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['animated-history-test']?.value === 54"));
         await page.WaitForFunctionAsync(
@@ -636,9 +633,8 @@ public sealed class GuessMyAgeBrowserTests
             "() => [window.__gmaRevealTimes[0] - window.__gmaSubmitAt, Number(document.getElementById('gmaRealBubble').dataset.travelBudget)]");
         Assert.InRange(timing[0], 1750, 2800);
         Assert.InRange(timing[1], 3200, 7000);
-        Assert.True(await page.Locator(".gma-result-actions").EvaluateAsync<bool>(
-            "element => !element.classList.contains('is-pending') && element.classList.contains('is-promoted')"));
-        Assert.True(await page.Locator("#gmaContinueBtn").EvaluateAsync<bool>(
+        Assert.Equal(0, await page.Locator(".gma-result-actions").CountAsync());
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
             "element => element === document.activeElement"));
         Assert.Equal(0, await page.Locator(".gma-reaction").CountAsync());
         Assert.True(await page.Locator("#gmaBubble").EvaluateAsync<bool>(
@@ -685,7 +681,7 @@ public sealed class GuessMyAgeBrowserTests
                     '#guessAgeContainer',
                     '#gmaRealBubble',
                     '#gmaBubble',
-                    '#gmaContinueBtn',
+                    '#closeAthleteDetailsModal',
                     '.gma-pop-banner'
                 ];
                 const insideViewport = selectors.every(selector => {
@@ -740,8 +736,10 @@ public sealed class GuessMyAgeBrowserTests
         Assert.Empty(errors);
     }
 
-    [Fact]
-    public async Task GuessSubmission_ContinueIsImmediateAndPreservesTheCompletedGuess()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task GuessSubmission_UsesExistingDismissalWithoutAddingAResultAction(bool useEscape)
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -756,12 +754,19 @@ public sealed class GuessMyAgeBrowserTests
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        var requestStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseResponse = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/Guess/athlete-age**", async route =>
         {
-            Status = 200,
-            ContentType = "application/json",
-            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
-        }));
+            requestStarted.TrySetResult(true);
+            await releaseResponse.Task;
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+            });
+        });
 
         var page = await context.NewPageAsync();
         var errors = new List<string>();
@@ -774,70 +779,71 @@ public sealed class GuessMyAgeBrowserTests
                 const modal = document.getElementById('detailsModal');
                 const modalContent = modal.querySelector('.modal-content');
                 modal.style.display = 'block';
-                modalContent.dataset.athleteSlug = 'continue-history-test';
+                modalContent.dataset.athleteSlug = 'dismissal-history-test';
                 modalContent.classList.add('guess-mode');
             }
             """);
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        Assert.False(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
+        Assert.Equal(0, await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "See profile", Exact = true }).CountAsync());
         await page.Locator("#gmaRange").EvaluateAsync(
             "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        try
+        {
+            await page.Keyboard.PressAsync("Escape");
+            await page.WaitForTimeoutAsync(100);
+            Assert.Equal("block", await page.Locator("#detailsModal").EvaluateAsync<string>(
+                "element => getComputedStyle(element).display"));
+            Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+                "element => element.classList.contains('guess-mode') && !element.classList.contains('gma-result-ready')"));
+            Assert.False(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
+        }
+        finally
+        {
+            releaseResponse.TrySetResult(true);
+        }
 
         await page.WaitForFunctionAsync(
-            "() => document.getElementById('gmaRealBubble')?.classList.contains('is-travelling') === true");
-        Assert.True(await page.Locator("#gmaContinueBtn").IsVisibleAsync());
-        Assert.True(await page.Locator(".gma-result-actions").EvaluateAsync<bool>(
-            "element => element.classList.contains('is-pending') && !element.classList.contains('is-promoted')"));
-        Assert.False(await page.Locator("#gmaContinueBtn").EvaluateAsync<bool>(
-            "element => element === document.activeElement"));
+            "() => document.querySelector('#detailsModal .modal-content')?.classList.contains('gma-result-ready') === true");
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
+        Assert.Equal(0, await page.Locator("#gmaContinueBtn, .gma-result-actions").CountAsync());
+        await page.EvaluateAsync("() => document.getElementById('detailsModal').click()");
+        await page.WaitForTimeoutAsync(100);
+        Assert.Equal("block", await page.Locator("#detailsModal").EvaluateAsync<string>(
+            "element => getComputedStyle(element).display"));
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('guess-mode') && element.classList.contains('gma-result-ready')"));
         Assert.True(await page.EvaluateAsync<bool>(
             """
             () => {
-                const guess = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['continue-history-test'];
+                const guess = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['dismissal-history-test'];
                 return guess?.value === 54 && guess.skipped === false;
             }
             """));
 
-        var exitHeights = await page.EvaluateAsync<double[]>(
-            """
-            () => new Promise(resolve => {
-                const card = document.getElementById('guessAgeContainer');
-                const heights = [card.getBoundingClientRect().height];
-                document.getElementById('gmaContinueBtn').click();
-                let frames = 0;
-                const sample = () => {
-                    heights.push(card.getBoundingClientRect().height);
-                    frames += 1;
-                    if (frames < 18) {
-                        requestAnimationFrame(sample);
-                        return;
-                    }
-                    resolve(heights);
-                };
-                requestAnimationFrame(sample);
-            })
-            """);
-        Assert.True(exitHeights[0] > 100);
-        Assert.True(exitHeights.Count(height => height > 1) >= 4);
-        Assert.True(exitHeights.Select(height => Math.Round(height, 1)).Distinct().Count() >= 4);
-        Assert.All(
-            exitHeights.Zip(exitHeights.Skip(1)),
-            pair => Assert.True(pair.Second <= pair.First + 1));
-        Assert.InRange(exitHeights[^1], 0, 2);
-        await page.WaitForFunctionAsync(
-            "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");
-        await page.WaitForTimeoutAsync(500);
+        if (useEscape)
+        {
+            await page.Keyboard.PressAsync("Escape");
+        }
+        else
+        {
+            await page.Locator("#closeAthleteDetailsModal").ClickAsync();
+        }
+        await page.WaitForFunctionAsync("() => getComputedStyle(document.getElementById('detailsModal')).display === 'none'");
 
         Assert.True(await page.EvaluateAsync<bool>(
             """
             () => {
-                const guess = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['continue-history-test'];
+                const guess = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['dismissal-history-test'];
                 return guess?.value === 54 && guess.skipped === false;
             }
             """));
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => !element.classList.contains('guess-mode') && !element.classList.contains('gma-result-ready')"));
         Assert.Equal(0, await page.Locator(".gma-reaction, .gma-celebration-spark, .gma-pop-banner").CountAsync());
-        Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
-            "element => element === document.activeElement"));
         Assert.Empty(errors);
     }
 
@@ -921,12 +927,14 @@ public sealed class GuessMyAgeBrowserTests
                     && !guesses['current-athlete-b']
                     && modalContent.dataset.athleteSlug === 'current-athlete-b'
                     && modalContent.classList.contains('guess-mode')
+                    && !modalContent.classList.contains('gma-result-ready')
                     && document.getElementById('gmaRange').value === '33'
                     && document.getElementById('gmaRange').disabled === false
                     && !document.getElementById('gmaRealBubble')
                     && document.getElementById('gmaStatus').hidden;
             }
             """));
+        Assert.False(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
         Assert.Empty(errors);
     }
 
@@ -1048,6 +1056,10 @@ public sealed class GuessMyAgeBrowserTests
 
         await page.WaitForFunctionAsync(
             "() => document.getElementById('gmaStatus')?.textContent.includes('Actual age: 41')");
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('gma-result-ready')"));
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
+        Assert.Equal(0, await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "See profile", Exact = true }).CountAsync());
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");
         Assert.Null(await page.EvaluateAsync<string?>(
@@ -1131,7 +1143,10 @@ public sealed class GuessMyAgeBrowserTests
         await page.WaitForTimeoutAsync(1800);
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
             "element => element.classList.contains('guess-mode')"));
-        Assert.True(await page.Locator("#gmaContinueBtn").IsVisibleAsync());
+        Assert.Equal(0, await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "See profile", Exact = true }).CountAsync());
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
+            "element => element === document.activeElement"));
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");
         await page.EvaluateAsync(
@@ -1256,6 +1271,9 @@ public sealed class GuessMyAgeBrowserTests
         Assert.True(await page.EvaluateAsync<bool>(
             "() => !JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['failed-history-test']"));
         Assert.Equal(0, await page.Locator("#gmaRealBubble").CountAsync());
+        Assert.False(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('gma-result-ready')"));
+        Assert.False(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
         Assert.Empty(errors);
     }
 

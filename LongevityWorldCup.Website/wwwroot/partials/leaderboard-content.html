@@ -6155,6 +6155,12 @@
 
     // Initialize keyboard navigation
     setupModalKeyboardNavigation();
+
+    function isGuessMyAgeDismissBlocked(modalContent) {
+        return !!modalContent
+            && modalContent.classList.contains('guess-mode')
+            && !modalContent.classList.contains('gma-result-ready');
+    }
     
     // Set up sticky header close button
     const stickyCloseBtn = document.getElementById('stickyCloseBtn');
@@ -6167,9 +6173,9 @@
     }
 
     closeBtn.onclick = function () {
-        // don't let them close mid-game
+        // Keep an unresolved round locked; a confirmed result reuses this standard close control.
         const modalContent = document.querySelector('.modal-content');
-        if (modalContent && modalContent.classList.contains('guess-mode')) return;
+        if (isGuessMyAgeDismissBlocked(modalContent)) return;
         closeModal();
     };
 
@@ -6183,6 +6189,10 @@
     function closeModal() {
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return;
+
+        if (modalContent.classList.contains('gma-result-ready')) {
+            modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
+        }
 
         currentAthleteModalRequestId++;
         const returnFocusElement = athleteDialogReturnFocusElement;
@@ -7478,10 +7488,10 @@
             if (!closeAll) return;
         }
 
-        // Don't close the parent details modal mid-guess. Its nested image viewer
-        // and share menu remain independently dismissible above this guard.
+        // Keep the parent details modal locked until the Guess My Age response is confirmed.
+        // Its nested image viewer and share menu remain independently dismissible above this guard.
         const modalContent = document.querySelector('.modal-content');
-        if (modalContent && modalContent.classList.contains('guess-mode')) return;
+        if (isGuessMyAgeDismissBlocked(modalContent)) return;
 
         if (modal.style.display === "block") {
             closeModal();
@@ -8133,7 +8143,7 @@
                 const gmaCard = document.getElementById('guessAgeContainer');
 
                 // always reset the Guess-My-Age UI first:
-                modalContent.classList.remove('guess-mode', 'gma-fast');
+                modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
                 gmaCard.classList.remove('gma-done');
                 // read your guesses from localStorage
                 const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');

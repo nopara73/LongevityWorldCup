@@ -167,9 +167,13 @@
         display: none;
     }
 
-    #detailsModal .modal-content.guess-mode > #closeAthleteDetailsModal,
+    #detailsModal .modal-content.guess-mode:not(.gma-result-ready) > #closeAthleteDetailsModal,
     #detailsModal .modal-content.guess-mode > .modal-sticky-header {
         display: none !important;
+    }
+
+    #detailsModal .modal-content.guess-mode.gma-result-ready > #closeAthleteDetailsModal {
+        display: inline-flex !important;
     }
 
     /* during guess mode, hide everything under athlete-profile except pic, name & slider */
@@ -461,40 +465,6 @@
         transition: opacity var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
     }
 
-    .gma-result-actions {
-        display: flex;
-        justify-content: center;
-        min-height: 48px;
-        margin-top: 0.55rem;
-        transition: opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-    }
-
-    .gma-result-actions[hidden] {
-        display: none;
-    }
-
-    @media (prefers-reduced-motion: no-preference) {
-        .gma-result-actions.is-visible.is-promoted {
-            animation: gma-cta-promote calc(var(--lwc-duration-normal, 220ms) * 2) var(--lwc-ease, ease) both;
-        }
-    }
-
-    @keyframes gma-cta-promote {
-        from { opacity: 0.42; transform: scale(0.94); }
-        68% { opacity: 1; transform: scale(1.035); }
-        to { opacity: 1; transform: scale(1); }
-    }
-
-    .gma-result-actions.is-pending {
-        opacity: 0.42;
-        transform: scale(0.94);
-    }
-
-    .gma-result-actions.is-promoted {
-        opacity: 1;
-        transform: scale(1);
-    }
-
     .gma-payoff-region {
         width: 100%;
         min-height: 0;
@@ -508,10 +478,6 @@
     .gma-card.is-revealing .gma-payoff-region:not(:empty) {
         min-height: 68px;
         margin: 0.35rem 0 0.2rem;
-    }
-
-    .gma-result-actions .gma-btn {
-        min-width: 160px;
     }
 
     .gma-btn {
@@ -575,11 +541,6 @@
         .gma-btn--primary {
             font-size: 1.1rem;
             padding: 0.6rem 1.2rem;
-        }
-
-        .gma-result-actions .gma-btn {
-            font-size: 1rem;
-            padding: 0.75rem 1.25rem;
         }
 
         .gma-card {
@@ -1275,7 +1236,6 @@
         .gma-heading,
         .gma-actions,
         .gma-actions.gma-actions-hide,
-        .gma-result-actions,
         .gma-payoff-region,
         .gma-slider-wrap,
         #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper,
@@ -1342,9 +1302,6 @@
         <button class="gma-btn gma-btn--ghost">Skip</button>
         <button class="gma-btn gma-btn--primary">Submit</button>
     </div>
-    <div class="gma-result-actions" hidden>
-        <button id="gmaContinueBtn" class="gma-btn gma-btn--ghost">See profile</button>
-    </div>
 </div>
 
 <script>
@@ -1363,8 +1320,6 @@
 
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const gmaActions = gmaCard.querySelector('.gma-actions');
-    const gmaResultActions = gmaCard.querySelector('.gma-result-actions');
-    const gmaContinueBtn = document.getElementById('gmaContinueBtn');
     const gmaPayoffRegion = document.getElementById('gmaPayoffRegion');
     const GMA_RESULT_PRELUDE_MS = 1980;
     const GMA_MAX_TRAVEL_MS = 7000;
@@ -1430,8 +1385,7 @@
             gmaCard.removeAttribute('aria-busy');
             gmaActions.classList.remove('gma-actions-hide');
             gmaActions.inert = false;
-            gmaResultActions.hidden = true;
-            gmaResultActions.classList.remove('is-visible', 'is-pending', 'is-promoted');
+            modalContent.classList.remove('gma-result-ready');
             gmaCard.classList.remove('gma-done');
             gmaCard.style.removeProperty('--gma-exit-height');
             gmaCard.classList.remove('is-submitting', 'is-revealing');
@@ -1927,7 +1881,7 @@
                 if (!canExit()) return;
 
                 clearGmaEphemera();
-                modalContent.classList.remove('guess-mode');
+                modalContent.classList.remove('guess-mode', 'gma-result-ready');
                 modalContent.scrollTop = 0;
                 modalContent.scrollLeft = 0;
                 document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
@@ -1952,8 +1906,7 @@
         gmaStatus.textContent = message || '';
         gmaActions.classList.remove('gma-actions-hide');
         gmaActions.inert = false;
-        gmaResultActions.hidden = true;
-        gmaResultActions.classList.remove('is-visible', 'is-pending', 'is-promoted');
+        modalContent.classList.remove('gma-result-ready');
         gmaRange.disabled = false;
         gmaRange.style.pointerEvents = '';
         setGmaRangeResultState(false);
@@ -2070,9 +2023,7 @@
             gmaStatus.classList.add('gma-status--semantic');
             gmaStatus.textContent = `Actual age: ${realAge}. Your guess: ${userGuess}. ${reactionCopy}${outcomeCopy}`;
             gmaCard.removeAttribute('aria-busy');
-            gmaResultActions.hidden = false;
-            gmaResultActions.classList.remove('is-promoted');
-            gmaResultActions.classList.add('is-visible', 'is-pending');
+            modalContent.classList.add('gma-result-ready');
             showGmaReaction(reactionKind);
 
             const preludeCompleted = await preludePromise;
@@ -2092,10 +2043,8 @@
                 presentation);
             if (!revealCompleted || !isCurrentGmaPresentation(presentation)) return;
 
-            gmaResultActions.classList.remove('is-pending');
-            gmaResultActions.classList.add('is-promoted');
-            gmaContinueBtn.focus({ preventScroll: true });
             document.querySelectorAll('.gma-reaction').forEach(element => element.remove());
+            document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
 
             let outcomeDwell = 5000;
             if (userError === 0) {
@@ -2122,13 +2071,6 @@
             console.error('Error submitting guess:', error);
             restoreGuessControls('We could not submit your guess. Please try again.', gmaSubmitBtn);
         }
-    });
-
-    gmaContinueBtn.addEventListener('click', () => {
-        const athleteSlug = modalContent.dataset.athleteSlug;
-        cancelGmaPresentation();
-        clearGmaEphemera();
-        scheduleGmaExit(athleteSlug, null, 0);
     });
 
     // bind hideCard to _all_ ghost buttons (Skip & Skip All)
