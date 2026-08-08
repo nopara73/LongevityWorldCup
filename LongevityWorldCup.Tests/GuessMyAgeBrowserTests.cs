@@ -548,9 +548,16 @@ public sealed class GuessMyAgeBrowserTests
         await page.WaitForFunctionAsync("() => window.__gmaSubmittedBubbleTops?.length === 16");
         var submittedBubbleTops = await page.EvaluateAsync<double[]>("() => window.__gmaSubmittedBubbleTops");
         Assert.True(submittedBubbleTops[^1] > submittedBubbleTops[0] + 24);
+        Assert.True(submittedBubbleTops.Select(position => Math.Round(position, 1)).Distinct().Count() >= 4);
         Assert.All(
             submittedBubbleTops.Zip(submittedBubbleTops.Skip(1)),
-            pair => Assert.InRange(pair.Second - pair.First, -5, 18));
+            // A loaded CI runner can coalesce animation frames, so do not turn elapsed
+            // time between RAF callbacks into a false per-frame velocity requirement.
+            pair => Assert.True(pair.Second >= pair.First - 5));
+        Assert.Contains(
+            "0.44s",
+            await page.Locator("#gmaBubble").EvaluateAsync<string>(
+                "element => getComputedStyle(element).transitionDuration"));
         var settledBubbleThumbDelta = await page.EvaluateAsync<double>(
             """
             () => {
