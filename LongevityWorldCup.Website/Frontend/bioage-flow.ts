@@ -44,6 +44,7 @@ interface BioageResultAnimationOptions {
 }
 
 interface BioageResultAnimationState {
+    detailTimers: number[];
     frame: number;
     generation: number;
     settleTimer: number;
@@ -1254,6 +1255,8 @@ interface Window {
     const BIOAGE_RESULT_SCROLL_SETTLE_MS = 360;
     const BIOAGE_RESULT_START_AFTER_SCROLL_MS = BIOAGE_RESULT_SCROLL_SETTLE_MS + 40;
     const BIOAGE_RESULT_SETTLE_CLEANUP_MS = 700;
+    const BIOAGE_RESULT_DETAIL_LEAD_MS = 140;
+    const BIOAGE_RESULT_DETAIL_STEP_MS = 220;
     const bioageResultAnimationStates = new WeakMap<HTMLElement, BioageResultAnimationState>();
 
     function getBioageResultAnimationState(resultElement: HTMLElement): BioageResultAnimationState {
@@ -1261,6 +1264,7 @@ interface Window {
         if (existing) return existing;
 
         const state: BioageResultAnimationState = {
+            detailTimers: [],
             frame: 0,
             generation: 0,
             settleTimer: 0,
@@ -1289,6 +1293,8 @@ interface Window {
             window.clearTimeout(state.startTimer);
             state.startTimer = 0;
         }
+        state.detailTimers.forEach(timer => window.clearTimeout(timer));
+        state.detailTimers.length = 0;
 
         const container = getBioageResultValueContainer(resultElement);
         container?.classList.remove(
@@ -1296,7 +1302,38 @@ interface Window {
             'bioage-result-reveal--counting',
             'bioage-result-reveal--settling');
         if (container) container.dataset.bioageRevealState = 'idle';
+        delete resultElement.dataset.bioageResultStage;
         return state;
+    }
+
+    function setBioageResultStage(
+        resultElement: HTMLElement,
+        stage: 'age' | 'difference' | 'context' | 'rank'
+    ): void {
+        // The complete result remains in the accessibility tree throughout. This
+        // attribute sequences only the visible presentation of its existing nodes.
+        resultElement.dataset.bioageResultStage = stage;
+    }
+
+    function scheduleBioageResultDetails(
+        resultElement: HTMLElement,
+        state: BioageResultAnimationState,
+        generation: number
+    ): void {
+        const scheduleStage = (
+            stage: 'difference' | 'context' | 'rank',
+            delay: number
+        ): void => {
+            const timer = window.setTimeout(() => {
+                if (state.generation !== generation) return;
+                setBioageResultStage(resultElement, stage);
+            }, delay);
+            state.detailTimers.push(timer);
+        };
+
+        scheduleStage('difference', BIOAGE_RESULT_DETAIL_LEAD_MS);
+        scheduleStage('context', BIOAGE_RESULT_DETAIL_LEAD_MS + BIOAGE_RESULT_DETAIL_STEP_MS);
+        scheduleStage('rank', BIOAGE_RESULT_DETAIL_LEAD_MS + (BIOAGE_RESULT_DETAIL_STEP_MS * 2));
     }
 
     function announceBioageResult(
@@ -1358,9 +1395,11 @@ interface Window {
         }
 
         const finalText = formatBioageResultVisualValue(finalAge);
+        setBioageResultStage(resultElement, 'age');
         if (animationOptions.instant || prefersReducedBioageResultMotion()) {
             visualValue.textContent = finalText;
             container.dataset.bioageRevealState = 'complete';
+            setBioageResultStage(resultElement, 'rank');
             return;
         }
 
@@ -1377,6 +1416,7 @@ interface Window {
             if (!settle) {
                 container.classList.remove('bioage-result-reveal--settling');
                 container.dataset.bioageRevealState = 'complete';
+                setBioageResultStage(resultElement, 'rank');
                 return;
             }
 
@@ -1387,6 +1427,7 @@ interface Window {
                 state.settleTimer = 0;
                 container.classList.remove('bioage-result-reveal--settling');
                 container.dataset.bioageRevealState = 'complete';
+                scheduleBioageResultDetails(resultElement, state, generation);
             }, BIOAGE_RESULT_SETTLE_CLEANUP_MS);
         };
 

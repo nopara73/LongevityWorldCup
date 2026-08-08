@@ -79,9 +79,9 @@ public sealed class MotionRestraintPageTests
     }
 
     [Theory]
-    [InlineData("pheno-age.html")]
-    [InlineData("bortz-age.html")]
-    public void BioAgeResult_UsesASeparateAriaHiddenVisualValue(string pageName)
+    [InlineData("pheno-age.html", "pheno age:")]
+    [InlineData("bortz-age.html", "bortz age:")]
+    public void BioAgeResult_UsesASeparateAriaHiddenVisualValue(string pageName, string titleLabel)
     {
         var html = ReadPage("onboarding", pageName);
 
@@ -91,7 +91,18 @@ public sealed class MotionRestraintPageTests
         Assert.Contains(
             "data-bioage-result-announcement role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"",
             html);
+        Assert.Contains("data-bioage-result-difference", html);
+        Assert.Contains($">{titleLabel}</div>", html);
+        Assert.Contains("data-bioage-result-context", html);
+        Assert.Contains("data-bioage-result-rank hidden aria-live=\"polite\"", html);
         Assert.Single(Regex.Matches(html, "id=\"animatedAge\"").Cast<Match>());
+
+        if (pageName == "bortz-age.html")
+        {
+            Assert.Contains("id=\"yearsText\" data-bioage-result-difference", html);
+            Assert.Contains("id=\"phenoAgeRow\" data-bioage-result-context>pheno age:", html);
+            Assert.DoesNotContain("class=\"result-years-block\" data-bioage-result-difference", html);
+        }
     }
 
     [Fact]
@@ -118,7 +129,12 @@ public sealed class MotionRestraintPageTests
         Assert.Contains("const BIOAGE_RESULT_MAX_VISUAL_UPDATES = 72;", flow);
         Assert.Contains("const BIOAGE_RESULT_MIN_VISUAL_UPDATES = 24;", flow);
         Assert.Contains("const BIOAGE_RESULT_SETTLE_CLEANUP_MS = 700;", flow);
+        Assert.Contains("const BIOAGE_RESULT_DETAIL_LEAD_MS = 140;", flow);
+        Assert.Contains("const BIOAGE_RESULT_DETAIL_STEP_MS = 220;", flow);
         Assert.Contains("const BIOAGE_RESULT_START_AFTER_SCROLL_MS = BIOAGE_RESULT_SCROLL_SETTLE_MS + 40;", flow);
+        Assert.Contains("state.detailTimers.forEach(timer => window.clearTimeout(timer));", flow);
+        Assert.Contains("scheduleBioageResultDetails(resultElement, state, generation);", animation);
+        Assert.Contains("setBioageResultStage(resultElement, 'rank');", animation);
         Assert.Contains("window.requestAnimationFrame(countFrame)", animation);
         Assert.Contains("prefersReducedBioageResultMotion()", animation);
         Assert.Contains("clearBioageResultAnimation(resultElement)", animation);
@@ -140,6 +156,12 @@ public sealed class MotionRestraintPageTests
         Assert.Contains("@keyframes bioage-result-settle", css);
         Assert.Contains("@keyframes bioage-result-halo", css);
         Assert.Contains("transform: translateY(-3px) scale(1.13);", css);
+        Assert.Contains("[data-bioage-result-stage=\"difference\"]", css);
+        Assert.Contains("[data-bioage-result-stage=\"context\"]", css);
+        Assert.Contains("[data-bioage-result-stage=\"rank\"]", css);
+        Assert.Contains("[data-bioage-result-difference]", css);
+        Assert.Contains("[data-bioage-result-context]", css);
+        Assert.Contains("[data-bioage-result-rank]", css);
         Assert.Contains("@media (prefers-reduced-motion: reduce)", css);
         Assert.DoesNotContain("infinite", Slice(css, ".bioage-result-value-stack", ".bioageform label"));
     }

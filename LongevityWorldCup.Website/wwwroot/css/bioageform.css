@@ -135,6 +135,35 @@
     animation: bioage-result-track-lock var(--bioage-result-settle-duration) var(--lwc-ease, ease) both;
 }
 
+/*
+ * The result is published to the DOM and accessibility tree before motion starts.
+ * These stages sequence only its visual reading order after the age count lands.
+ */
+.bioageform.show[data-bioage-result-stage] [data-bioage-result-difference],
+.bioageform.show[data-bioage-result-stage] [data-bioage-result-context],
+.bioageform.show[data-bioage-result-stage] [data-bioage-result-rank] {
+    opacity: 0 !important;
+    transform: translateY(4px) !important;
+    transition: none !important;
+}
+
+.bioageform.show:is(
+    [data-bioage-result-stage="difference"],
+    [data-bioage-result-stage="context"],
+    [data-bioage-result-stage="rank"]
+) [data-bioage-result-difference],
+.bioageform.show:is(
+    [data-bioage-result-stage="context"],
+    [data-bioage-result-stage="rank"]
+) [data-bioage-result-context],
+.bioageform.show[data-bioage-result-stage="rank"] [data-bioage-result-rank] {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    transition:
+        opacity var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease),
+        transform var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) !important;
+}
+
 @keyframes bioage-result-count {
     0% {
         opacity: 0.48;
@@ -301,6 +330,14 @@
     .bioage-result-value-stack::after {
         animation: none !important;
         opacity: 0 !important;
+        transition: none !important;
+    }
+
+    .bioageform.show[data-bioage-result-stage] [data-bioage-result-difference],
+    .bioageform.show[data-bioage-result-stage] [data-bioage-result-context],
+    .bioageform.show[data-bioage-result-stage] [data-bioage-result-rank] {
+        opacity: 1 !important;
+        transform: none !important;
         transition: none !important;
     }
 }

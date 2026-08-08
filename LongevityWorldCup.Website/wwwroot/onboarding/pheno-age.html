@@ -1160,7 +1160,7 @@
         </div>
         <div id="phenoAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400" inert aria-hidden="true">
             <div id="validAgeInput">
-                <div>Your biological age is:</div>
+                <div data-bioage-result-context>pheno age:</div>
                 <div class="bio-age-number-container">
                     <span class="bioage-result-value-stack">
                         <span id="animatedAge">0</span>
@@ -1168,14 +1168,14 @@
                         <span class="bioage-result-halo" aria-hidden="true"></span>
                     </span>
                 </div>
-                <div id="yearsText">years</div>
+                <div id="yearsText" data-bioage-result-difference>years</div>
                 <span class="visually-hidden" data-bioage-result-announcement role="status" aria-live="polite" aria-atomic="true"></span>
             </div>
             <div id="ensureCorrectInputSuggestion" class="bioage-inline-notice" role="alert" aria-live="assertive" style="display: none;">
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
                 <i class="fas fa-ambulance" aria-hidden="true"></i> <i class="fas fa-hospital" aria-hidden="true"></i> <i class="fas fa-clinic-medical" aria-hidden="true"></i>
             </div>
-            <div id="phenoAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
+            <div id="phenoAgeRankPreview" class="bioage-rank-preview" data-bioage-result-rank hidden aria-live="polite"></div>
         </div>
 
         <div class="options-container phenoage-result-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body.bioage-result-ready" data-aos="fade" data-aos-duration="700" data-aos-delay="450" hidden>

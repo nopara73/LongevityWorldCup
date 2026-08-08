@@ -1336,7 +1336,7 @@
         </div>
         <div id="bortzAgeResult" class="bioageform" data-aos="fade" data-aos-duration="700" data-aos-delay="400" inert aria-hidden="true">
             <div id="validAgeInput">
-                <div>Bortz Age:</div>
+                <div>bortz age:</div>
                 <div class="bio-age-number-container">
                     <span class="bioage-result-value-stack">
                         <span id="animatedAge">0</span>
@@ -1345,8 +1345,8 @@
                     </span>
                 </div>
                 <div class="result-years-block">
-                    <div id="yearsText">years</div>
-                    <div id="phenoAgeRow">Pheno Age: <span id="phenoAgeValue">0</span> years <span id="phenoAgeDelta"></span></div>
+                    <div id="yearsText" data-bioage-result-difference>years</div>
+                    <div id="phenoAgeRow" data-bioage-result-context>pheno age: <span id="phenoAgeValue">0</span> years <span id="phenoAgeDelta"></span></div>
                 </div>
                 <span class="visually-hidden" data-bioage-result-announcement role="status" aria-live="polite" aria-atomic="true"></span>
             </div>
@@ -1354,7 +1354,7 @@
                 The calculated result seems wrong. Double-check all your input values and units. If everything looks correct, drop everything and rush to a hospital NOW!!!
                 <i class="fas fa-ambulance" aria-hidden="true"></i> <i class="fas fa-hospital" aria-hidden="true"></i> <i class="fas fa-clinic-medical" aria-hidden="true"></i>
             </div>
-            <div id="bortzAgeRankPreview" class="bioage-rank-preview" hidden aria-live="polite"></div>
+            <div id="bortzAgeRankPreview" class="bioage-rank-preview" data-bioage-result-rank hidden aria-live="polite"></div>
         </div>
 
         <div class="options-container bioage-result-actions flow-action-stack" data-flow-dock="auto" data-flow-dock-when="body.bioage-result-ready" data-aos="fade" data-aos-duration="700" data-aos-delay="450" hidden>
