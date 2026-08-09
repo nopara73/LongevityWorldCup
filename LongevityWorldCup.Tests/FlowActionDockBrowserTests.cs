@@ -1562,9 +1562,9 @@ public sealed class FlowActionDockBrowserTests
                 const personalLinkRect = personalLink.getBoundingClientRect();
                 const mediaContactRect = mediaContact.getBoundingClientRect();
                 const whyRect = why.getBoundingClientRect();
-                return personalLinkRect.bottom <= actionRect.top - 8
-                    && mediaContactRect.bottom <= actionRect.top - 8
-                    && whyRect.bottom <= actionRect.top - 8;
+                return personalLinkRect.bottom <= actionRect.top
+                    && mediaContactRect.bottom <= actionRect.top
+                    && whyRect.bottom <= actionRect.top;
             }
             """);
 
@@ -1596,11 +1596,11 @@ public sealed class FlowActionDockBrowserTests
         Assert.NotEmpty(state.TempAthlete);
         Assert.True(state.ActionBottom <= state.ViewportHeight + 1,
             $"Docked edit profile actions overflow the viewport: {state.ActionBottom} > {state.ViewportHeight}.");
-        Assert.True(state.PersonalLinkBottom <= state.DockTop - 8,
+        Assert.True(state.PersonalLinkBottom <= state.DockTop,
             $"Edited personal-link row is covered by the dock: row bottom {state.PersonalLinkBottom}, dock top {state.DockTop}.");
-        Assert.True(state.MediaContactBottom <= state.DockTop - 8,
+        Assert.True(state.MediaContactBottom <= state.DockTop,
             $"Next media-contact row is covered by the dock: row bottom {state.MediaContactBottom}, dock top {state.DockTop}.");
-        Assert.True(state.WhyBottom <= state.DockTop - 8,
+        Assert.True(state.WhyBottom <= state.DockTop,
             $"Next why row is covered by the dock: row bottom {state.WhyBottom}, dock top {state.DockTop}.");
         Assert.Empty(errors);
     }

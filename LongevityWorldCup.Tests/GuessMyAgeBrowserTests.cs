@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Xunit;
 
@@ -229,8 +230,294 @@ public sealed class GuessMyAgeBrowserTests
         Assert.Equal(new[] { "0.22s", "0.22s", "0.14s", "0.28s" }, fastTiming);
     }
 
+    [Theory]
+    [InlineData("min")]
+    [InlineData("max")]
+    public async Task GuessSubmission_EndpointRestoresTheOriginalTrollfaceAndForcedRickroll(string endpoint)
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var guessRequests = 0;
+        await context.RouteAsync("**/api/Guess/athlete-age**", route =>
+        {
+            guessRequests++;
+            return route.AbortAsync();
+        });
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+
+        var rickrollAttempt = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var rickrollRequests = 0;
+        string? rickrollMethod = null;
+        var rickrollWasMainFrameNavigation = false;
+        await page.RouteAsync(
+            new Regex("^https://www\\.youtube\\.com/watch\\?v=dQw4w9WgXcQ$", RegexOptions.IgnoreCase),
+            async route =>
+            {
+                rickrollRequests++;
+                rickrollMethod = route.Request.Method;
+                rickrollWasMainFrameNavigation = route.Request.IsNavigationRequest
+                    && route.Request.Frame == page.MainFrame;
+                rickrollAttempt.TrySetResult(true);
+                await route.FulfillAsync(new RouteFulfillOptions { Status = 204 });
+            });
+
+        await page.Clock.InstallAsync();
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'rickroll-history-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        var pauseAt = await page.EvaluateAsync<string>("() => new Date(Date.now() + 5000).toISOString()");
+        await page.Clock.PauseAtAsync(pauseAt);
+
+        await page.Locator("#gmaRange").EvaluateAsync(
+            "(range, endpoint) => { range.value = range[endpoint]; range.dispatchEvent(new Event('input', { bubbles: true })); }",
+            endpoint);
+        await page.Locator("#guessAgeContainer .gma-btn--primary").EvaluateAsync("button => button.click()");
+
+        var takeover = page.Locator("#gmaTrollfaceContainer.gma-trollface-container");
+        await takeover.WaitForAsync();
+        Assert.Equal(1, await takeover.CountAsync());
+        Assert.Equal(0, guessRequests);
+        Assert.Equal("status", await takeover.GetAttributeAsync("role"));
+        Assert.Equal("Trollface. Redirecting to the Rickroll.", await takeover.GetAttributeAsync("aria-label"));
+        Assert.True(await takeover.EvaluateAsync<bool>("element => element === document.activeElement"));
+        Assert.True(await page.Locator("#athlete-profile").EvaluateAsync<bool>("element => element.inert"));
+        Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>("element => element.inert"));
+        Assert.False(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('gma-result-ready')"));
+        await page.Keyboard.PressAsync("Tab");
+        Assert.True(await takeover.EvaluateAsync<bool>("element => element === document.activeElement"));
+        await page.Keyboard.PressAsync("Shift+Tab");
+        Assert.True(await takeover.EvaluateAsync<bool>("element => element === document.activeElement"));
+
+        var trollImage = takeover.Locator("img");
+        Assert.Contains("/assets/content-images/trollface.png?v=", await trollImage.GetAttributeAsync("src"));
+        Assert.Equal("Trollface", await trollImage.GetAttributeAsync("alt"));
+        Assert.Equal("true", await trollImage.GetAttributeAsync("aria-hidden"));
+        Assert.True(await trollImage.EvaluateAsync<bool>(
+            """
+            image => image.complete
+                ? image.naturalWidth > 0
+                : new Promise(resolve => {
+                    image.addEventListener('load', () => resolve(image.naturalWidth > 0), { once: true });
+                    image.addEventListener('error', () => resolve(false), { once: true });
+                })
+            """));
+        var style = await takeover.EvaluateAsync<string[]>(
+            """
+            element => {
+                const overlay = getComputedStyle(element);
+                const image = getComputedStyle(element.querySelector('img'));
+                return [
+                    overlay.position,
+                    overlay.animationName,
+                    overlay.animationDuration,
+                    overlay.animationTimingFunction,
+                    overlay.animationFillMode,
+                    overlay.zIndex,
+                    image.objectFit
+                ];
+            }
+            """);
+        Assert.Equal(
+            new[] { "absolute", "gmaTrollSlideUpOverlay", "2s", "ease-out", "forwards", "10000", "cover" },
+            style);
+
+        var geometry = await takeover.EvaluateAsync<double[]>(
+            """
+            element => {
+                const animation = element.getAnimations()[0];
+                const modal = element.parentElement.getBoundingClientRect();
+                animation.pause();
+                const sample = time => {
+                    animation.currentTime = time;
+                    return element.getBoundingClientRect().top;
+                };
+                const startTop = sample(0);
+                const middleTop = sample(1000);
+                const endTop = sample(2000);
+                const overlay = element.getBoundingClientRect();
+                const image = element.querySelector('img').getBoundingClientRect();
+                return [
+                    startTop,
+                    middleTop,
+                    endTop,
+                    modal.top,
+                    modal.bottom,
+                    modal.width,
+                    modal.height,
+                    overlay.width,
+                    overlay.height,
+                    image.width,
+                    image.height
+                ];
+            }
+            """);
+        Assert.InRange(Math.Abs(geometry[0] - geometry[4]), 0, 2);
+        Assert.True(geometry[1] < geometry[0] - (geometry[6] * 0.35));
+        Assert.True(geometry[1] > geometry[2] + (geometry[6] * 0.15));
+        Assert.InRange(Math.Abs(geometry[2] - geometry[3]), 0, 2);
+        Assert.InRange(Math.Abs(geometry[7] - geometry[5]), 0, 3);
+        Assert.InRange(Math.Abs(geometry[8] - geometry[6]), 0, 3);
+        Assert.InRange(Math.Abs(geometry[9] - geometry[7]), 0, 1);
+        Assert.InRange(Math.Abs(geometry[10] - geometry[8]), 0, 1);
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => document.elementFromPoint(innerWidth / 2, innerHeight / 2)?.closest('#gmaTrollfaceContainer') !== null"));
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => !sessionStorage.getItem('gmaSubmittedOnce') && !JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['rickroll-history-test']"));
+
+        await page.Clock.RunForAsync(1990);
+        Assert.False(rickrollAttempt.Task.IsCompleted);
+        await page.Clock.RunForAsync(20);
+        await rickrollAttempt.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(1, rickrollRequests);
+        Assert.Equal("GET", rickrollMethod);
+        Assert.True(rickrollWasMainFrameNavigation);
+        Assert.Equal(0, guessRequests);
+        await page.Clock.RunForAsync(2000);
+        Assert.Equal(0, await page.Locator(".gma-trollface-container").CountAsync());
+        Assert.False(await page.Locator("#athlete-profile").EvaluateAsync<bool>("element => element.inert"));
+        Assert.False(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>("element => element.inert"));
+        Assert.True(await page.Locator("#gmaRange").EvaluateAsync<bool>("element => element === document.activeElement"));
+        Assert.Equal(1, rickrollRequests);
+        Assert.Empty(errors);
+    }
+
     [Fact]
-    public async Task GuessSubmission_PreservesEasterEggAndCompletesFilteredAndAcceptedGuesses()
+    public async Task GuessSubmission_EndpointCancelsOnReopenAndIsStaticUnderReducedMotion()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ReducedMotion = ReducedMotion.Reduce,
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var rickrollAttempt = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var rickrollRequests = 0;
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.RouteAsync(
+            new Regex("^https://www\\.youtube\\.com/watch\\?v=dQw4w9WgXcQ$", RegexOptions.IgnoreCase),
+            async route =>
+            {
+                rickrollRequests++;
+                rickrollAttempt.TrySetResult(true);
+                await route.FulfillAsync(new RouteFulfillOptions { Status = 204 });
+            });
+
+        await page.Clock.InstallAsync();
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'reduced-rickroll-history-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        var pauseAt = await page.EvaluateAsync<string>("() => new Date(Date.now() + 5000).toISOString()");
+        await page.Clock.PauseAtAsync(pauseAt);
+
+        var range = page.Locator("#gmaRange");
+        var submit = page.Locator("#guessAgeContainer .gma-btn--primary");
+        await range.EvaluateAsync(
+            "range => { range.value = range.min; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await submit.EvaluateAsync("button => button.click()");
+        await page.Locator("#gmaTrollfaceContainer").WaitForAsync();
+
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modalContent = document.querySelector('#detailsModal .modal-content');
+                modalContent.dataset.athleteSlug = 'reduced-rickroll-history-test-reopened';
+                modalContent.classList.remove('guess-mode');
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.EvaluateAsync("() => new Promise(resolve => queueMicrotask(resolve))");
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => !document.querySelector('.gma-trollface-container') && !document.getElementById('athlete-profile').inert && !document.getElementById('guessAgeContainer').inert"));
+        await page.Clock.RunForAsync(2100);
+        Assert.Equal(0, rickrollRequests);
+
+        await range.EvaluateAsync(
+            "range => { range.value = range.max; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await submit.EvaluateAsync("button => button.click()");
+        var takeover = page.Locator("#gmaTrollfaceContainer");
+        await takeover.WaitForAsync();
+
+        Assert.Equal("none", await takeover.EvaluateAsync<string>(
+            "element => getComputedStyle(element).animationName"));
+        Assert.Equal("0px", await takeover.EvaluateAsync<string>(
+            "element => getComputedStyle(element).bottom"));
+        Assert.Equal(0, await takeover.EvaluateAsync<int>(
+            "element => element.getAnimations({ subtree: true }).length"));
+        var settledGeometry = await takeover.EvaluateAsync<double[]>(
+            """
+            element => {
+                const overlay = element.getBoundingClientRect();
+                const modal = element.parentElement.getBoundingClientRect();
+                return [overlay.top, modal.top, overlay.width, modal.width, overlay.height, modal.height];
+            }
+            """);
+        Assert.InRange(Math.Abs(settledGeometry[0] - settledGeometry[1]), 0, 1);
+        Assert.InRange(Math.Abs(settledGeometry[2] - settledGeometry[3]), 0, 3);
+        Assert.InRange(Math.Abs(settledGeometry[4] - settledGeometry[5]), 0, 3);
+
+        await page.Clock.RunForAsync(1990);
+        Assert.False(rickrollAttempt.Task.IsCompleted);
+        await page.Clock.RunForAsync(20);
+        await rickrollAttempt.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(1, rickrollRequests);
+
+        await page.Clock.RunForAsync(2000);
+        Assert.Equal(0, await page.Locator(".gma-trollface-container").CountAsync());
+        Assert.False(await page.Locator("#athlete-profile").EvaluateAsync<bool>("element => element.inert"));
+        Assert.False(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>("element => element.inert"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_CompletesFilteredAndAcceptedGuesses()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -290,62 +577,7 @@ public sealed class GuessMyAgeBrowserTests
         var range = page.Locator("#gmaRange");
         var submit = page.Locator("#guessAgeContainer .gma-btn--primary");
         var status = page.Locator("#gmaStatus");
-        var trollNote = page.Locator("#gmaTrollNote");
-
-        foreach (var endpoint in new[] { "min", "max" })
-        {
-            await range.EvaluateAsync(
-                "(range, endpoint) => { range.value = range[endpoint]; range.dispatchEvent(new Event('input', { bubbles: true })); }",
-                endpoint);
-            await submit.ClickAsync();
-
-            Assert.True(await trollNote.IsVisibleAsync());
-            Assert.Equal(0, guessRequests);
-            Assert.DoesNotContain("youtube.com", page.Url, StringComparison.OrdinalIgnoreCase);
-            Assert.True(await range.EvaluateAsync<bool>("range => range === document.activeElement && !range.disabled"));
-            await page.WaitForFunctionAsync(
-                "() => document.querySelector('.gma-troll-reaction')?.dataset.animationState === 'running'");
-            Assert.Equal(1, await page.Locator(".gma-troll-reaction").CountAsync());
-            Assert.Equal(
-                "gma-troll-reaction-pop",
-                await page.Locator(".gma-troll-reaction").EvaluateAsync<string>(
-                    "element => getComputedStyle(element).animationName"));
-            Assert.Equal(
-                "running",
-                await page.Locator(".gma-troll-reaction").EvaluateAsync<string>(
-                    "element => getComputedStyle(element).animationPlayState"));
-
-            if (endpoint == "min")
-            {
-                await page.WaitForFunctionAsync(
-                    "() => document.querySelectorAll('.gma-troll-reaction').length === 0");
-            }
-        }
-
-        Assert.Contains("/assets/content-images/trollface.png?v=", await trollNote.Locator("img").GetAttributeAsync("src"));
-        Assert.Equal("https://www.youtube.com/watch?v=dQw4w9WgXcQ", await trollNote.Locator("a").GetAttributeAsync("href"));
-        Assert.Equal("_blank", await trollNote.Locator("a").GetAttributeAsync("target"));
-        Assert.Equal("noopener noreferrer", await trollNote.Locator("a").GetAttributeAsync("rel"));
         Assert.Null(await page.Locator("#guessAgeContainer").GetAttributeAsync("aria-live"));
-
-        var containment = await trollNote.EvaluateAsync<ContainmentDiagnostics>(
-            """
-            element => {
-                const note = element.getBoundingClientRect();
-                const card = element.closest('#guessAgeContainer').getBoundingClientRect();
-                return {
-                    NoteLeft: note.left,
-                    NoteRight: note.right,
-                    CardLeft: card.left,
-                    CardRight: card.right,
-                    PageScrollWidth: document.documentElement.scrollWidth,
-                    PageClientWidth: document.documentElement.clientWidth
-                };
-            }
-            """);
-        Assert.True(containment.NoteLeft >= containment.CardLeft - 0.5);
-        Assert.True(containment.NoteRight <= containment.CardRight + 0.5);
-        Assert.True(containment.PageScrollWidth <= containment.PageClientWidth);
 
         await range.EvaluateAsync(
             "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
@@ -419,7 +651,6 @@ public sealed class GuessMyAgeBrowserTests
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRealBubble')?.classList.contains('is-settled') === true");
 
         Assert.Equal(1, guessRequests);
-        Assert.False(await trollNote.IsVisibleAsync());
         Assert.DoesNotContain("not accepted", await status.InnerTextAsync(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("You guessed older — oof.", await status.InnerTextAsync());
         Assert.False(await range.IsEnabledAsync());
@@ -529,6 +760,118 @@ public sealed class GuessMyAgeBrowserTests
     }
 
     [Fact]
+    public async Task GuessSubmission_HeldResponseCannotRevealUntilBothGatesOpen()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1440, Height = 1000 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var guessRequests = 0;
+        var requestStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseResponse = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await context.RouteAsync("**/api/Guess/athlete-age**", async route =>
+        {
+            guessRequests++;
+            requestStarted.TrySetResult(true);
+            await releaseResponse.Task;
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = """{"crowdAge":100,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+            });
+        });
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.Clock.InstallAsync();
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'held-response-gate-test';
+                modalContent.classList.add('guess-mode');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.Locator("#gmaRange").EvaluateAsync(
+            "range => { range.value = '54'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const slider = document.querySelector('#guessAgeContainer .gma-slider-wrap');
+                window.__gmaHeldFirstRevealPromise = new Promise(resolve => {
+                    const resolveWhenPresent = () => {
+                        const bubble = document.getElementById('gmaRealBubble');
+                        if (!bubble) return false;
+                        observer.disconnect();
+                        resolve(performance.now());
+                        return true;
+                    };
+                    const observer = new MutationObserver(resolveWhenPresent);
+                    observer.observe(slider, { childList: true });
+                    resolveWhenPresent();
+                });
+                window.__gmaHeldClickAt = Number.NaN;
+                document.querySelector('#guessAgeContainer .gma-btn--primary')
+                    .addEventListener('click', () => {
+                        window.__gmaHeldClickAt = performance.now();
+                    }, { capture: true, once: true });
+            }
+            """);
+
+        var pauseAt = await page.EvaluateAsync<string>("() => new Date(Date.now() + 100).toISOString()");
+        await page.Clock.PauseAtAsync(pauseAt);
+        await page.Locator("#guessAgeContainer .gma-btn--primary").EvaluateAsync("button => button.click()");
+        await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        try
+        {
+            await page.Clock.RunForAsync(2500);
+            Assert.Equal(0, await page.Locator("#gmaRealBubble").CountAsync());
+            Assert.Equal("Submitting your guess…", await page.Locator("#gmaStatus").InnerTextAsync());
+            Assert.InRange(
+                await page.EvaluateAsync<double>("() => performance.now() - window.__gmaHeldClickAt"),
+                2499,
+                2501);
+
+            var releaseAt = await page.EvaluateAsync<double>("() => performance.now()");
+            releaseResponse.TrySetResult(true);
+            var firstRevealAt = await page.EvaluateAsync<double>("() => window.__gmaHeldFirstRevealPromise");
+
+            Assert.InRange(firstRevealAt - releaseAt, 0, 1);
+            Assert.Equal(1, guessRequests);
+            Assert.True(await page.Locator("#gmaRealBubble").EvaluateAsync<bool>(
+                "element => element.classList.contains('is-travelling') && element.textContent !== '41'"));
+            Assert.InRange(
+                await page.Locator("#gmaRealBubble").EvaluateAsync<double>(
+                    "element => Number(element.dataset.travelBudget)"),
+                3200,
+                7000);
+            Assert.Empty(errors);
+        }
+        finally
+        {
+            releaseResponse.TrySetResult(true);
+        }
+    }
+
+    [Fact]
     public async Task GuessSubmission_AnimatesThroughTheRevealAndBoundsCelebrationWork()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -554,6 +897,7 @@ public sealed class GuessMyAgeBrowserTests
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
+        await page.Clock.InstallAsync();
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
         await page.EvaluateAsync(
@@ -574,22 +918,45 @@ public sealed class GuessMyAgeBrowserTests
             """
             () => {
                 window.__gmaRevealAges = [];
-                window.__gmaRevealTimes = [];
-                window.__gmaSubmitAt = performance.now();
+                window.__gmaSubmitAt = Number.NaN;
+                let resolveFirstReveal;
+                window.__gmaFirstRevealPromise = new Promise(resolve => {
+                    resolveFirstReveal = resolve;
+                });
+                window.__gmaResultAppliedPromise = new Promise(resolve => {
+                    const status = document.getElementById('gmaStatus');
+                    const resolveWhenApplied = () => {
+                        if (!status.textContent.includes('Actual age: 41')) return false;
+                        observer.disconnect();
+                        resolve(true);
+                        return true;
+                    };
+                    const observer = new MutationObserver(resolveWhenApplied);
+                    observer.observe(status, { childList: true, characterData: true, subtree: true });
+                    resolveWhenApplied();
+                });
+                document.querySelector('#guessAgeContainer .gma-btn--primary')
+                    .addEventListener('click', () => {
+                        window.__gmaSubmitAt = performance.now();
+                    }, { capture: true, once: true });
                 const original = window.positionGmaRevealBubble;
                 window.positionGmaRevealBubble = (bubble, age) => {
                     if (bubble?.id === 'gmaRealBubble') {
                         window.__gmaRevealAges.push(Math.round(age));
-                        window.__gmaRevealTimes.push(performance.now());
+                        if (resolveFirstReveal) {
+                            resolveFirstReveal(performance.now());
+                            resolveFirstReveal = null;
+                        }
                     }
                     return original(bubble, age);
                 };
             }
             """);
-        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        var pauseAt = await page.EvaluateAsync<string>("() => new Date(Date.now() + 100).toISOString()");
+        await page.Clock.PauseAtAsync(pauseAt);
+        await page.Locator("#guessAgeContainer .gma-btn--primary").EvaluateAsync("button => button.click()");
 
-        await page.WaitForFunctionAsync(
-            "() => document.getElementById('gmaStatus')?.textContent.includes('Actual age: 41')");
+        Assert.True(await page.EvaluateAsync<bool>("() => window.__gmaResultAppliedPromise"));
         Assert.Equal(
             "1.98s",
             await page.Locator(".chrono-age-heading").EvaluateAsync<string>(
@@ -603,6 +970,16 @@ public sealed class GuessMyAgeBrowserTests
         Assert.Equal(0, await page.Locator("#gmaRealBubble").CountAsync());
         Assert.Equal(1, await page.Locator(".gma-reaction").CountAsync());
         Assert.Equal("beside-portrait", await page.Locator(".gma-reaction").GetAttributeAsync("data-placement"));
+
+        await page.Clock.RunForAsync(1979);
+        Assert.Equal(0, await page.Locator("#gmaRealBubble").CountAsync());
+        await page.Clock.RunForAsync(1);
+        var firstRevealAt = await page.EvaluateAsync<double>("() => window.__gmaFirstRevealPromise");
+        var submitAt = await page.EvaluateAsync<double>("() => window.__gmaSubmitAt");
+        Assert.InRange(firstRevealAt - submitAt, 1979, 1981);
+        await page.Clock.RunForAsync(250);
+        Assert.Equal(0, await page.Locator(".gma-reaction").CountAsync());
+        await page.Clock.ResumeAsync();
 
         await page.WaitForFunctionAsync(
             "() => document.getElementById('gmaRealBubble')?.classList.contains('is-travelling') === true && document.getElementById('gmaRealBubble').textContent !== '41'");
@@ -629,10 +1006,9 @@ public sealed class GuessMyAgeBrowserTests
             .ToArray();
         Assert.Equal(1, directions.Zip(directions.Skip(1)).Count(pair => pair.First != pair.Second));
         Assert.InRange(changedAges.Min(), 16, 18);
-        var timing = await page.EvaluateAsync<double[]>(
-            "() => [window.__gmaRevealTimes[0] - window.__gmaSubmitAt, Number(document.getElementById('gmaRealBubble').dataset.travelBudget)]");
-        Assert.InRange(timing[0], 1750, 2800);
-        Assert.InRange(timing[1], 3200, 7000);
+        var travelBudget = await page.EvaluateAsync<double>(
+            "() => Number(document.getElementById('gmaRealBubble').dataset.travelBudget)");
+        Assert.InRange(travelBudget, 3200, 7000);
         Assert.Equal(0, await page.Locator(".gma-result-actions").CountAsync());
         Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
             "element => element === document.activeElement"));
@@ -1599,13 +1975,4 @@ public sealed class GuessMyAgeBrowserTests
         Assert.Empty(errors);
     }
 
-    private sealed class ContainmentDiagnostics
-    {
-        public double NoteLeft { get; set; }
-        public double NoteRight { get; set; }
-        public double CardLeft { get; set; }
-        public double CardRight { get; set; }
-        public double PageScrollWidth { get; set; }
-        public double PageClientWidth { get; set; }
-    }
 }
