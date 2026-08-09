@@ -1664,7 +1664,13 @@ public sealed class GuessMyAgeBrowserTests
         await page.EvaluateAsync(
             """
             () => {
+                const originalGetItem = Storage.prototype.getItem;
                 const originalSetItem = Storage.prototype.setItem;
+                window.__gmaOriginalStorageGetItem = originalGetItem;
+                Storage.prototype.getItem = function (key) {
+                    if (key === 'gmaAllGuesses') throw new DOMException('Storage unavailable', 'SecurityError');
+                    return originalGetItem.call(this, key);
+                };
                 Storage.prototype.setItem = function (key, value) {
                     if (key === 'gmaAllGuesses') throw new DOMException('Storage unavailable', 'QuotaExceededError');
                     return originalSetItem.call(this, key, value);
@@ -1687,14 +1693,18 @@ public sealed class GuessMyAgeBrowserTests
             "element => element.classList.contains('gma-result-ready')"));
         Assert.True(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
         Assert.Equal(0, await page.GetByRole(AriaRole.Button, new PageGetByRoleOptions { Name = "See profile", Exact = true }).CountAsync());
+        Assert.DoesNotContain(
+            "could not submit",
+            (await page.Locator("#gmaStatus").InnerTextAsync()).ToLowerInvariant());
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");
         Assert.Null(await page.EvaluateAsync<string?>(
-            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['storage-failure-submit-test']?.value ?? null"));
+            "() => JSON.parse(window.__gmaOriginalStorageGetItem.call(localStorage, 'gmaAllGuesses') || '{}')['storage-failure-submit-test']?.value ?? null"));
 
         await page.EvaluateAsync(
             """
             () => {
+                Storage.prototype.getItem = window.__gmaOriginalStorageGetItem;
                 const modalContent = document.querySelector('#detailsModal .modal-content');
                 modalContent.dataset.athleteSlug = 'storage-failure-skip-test';
                 modalContent.classList.add('guess-mode');
@@ -1822,6 +1832,12 @@ public sealed class GuessMyAgeBrowserTests
             () => {
                 const modal = document.getElementById('detailsModal');
                 const modalContent = modal.querySelector('.modal-content');
+                const originalSetTimeout = window.setTimeout.bind(window);
+                window.__gmaScheduledDelays = [];
+                window.setTimeout = (callback, delay, ...args) => {
+                    window.__gmaScheduledDelays.push(Number(delay));
+                    return originalSetTimeout(callback, delay, ...args);
+                };
                 modal.style.display = 'block';
                 modalContent.dataset.athleteSlug = 'reduced-exact-history-test';
                 modalContent.classList.add('guess-mode');
@@ -1859,6 +1875,10 @@ public sealed class GuessMyAgeBrowserTests
             """));
         Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
             "element => element.getAnimations({ subtree: true }).length === 0"));
+        var reducedExactDelays = await page.EvaluateAsync<double[]>(
+            "() => window.__gmaScheduledDelays");
+        Assert.Contains(5000, reducedExactDelays);
+        Assert.DoesNotContain(16000, reducedExactDelays);
         Assert.True(await page.EvaluateAsync<bool>(
             "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['reduced-exact-history-test']?.exact === true"));
         Assert.NotNull(await page.EvaluateAsync<string?>("() => localStorage.getItem('gmaHasPerfectGuess')"));
