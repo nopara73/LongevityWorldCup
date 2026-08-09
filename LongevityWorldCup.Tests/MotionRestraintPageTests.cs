@@ -42,10 +42,12 @@ public sealed class MotionRestraintPageTests
             "isResultCalculated = true;");
 
         Assert.Contains("resultElement.classList.add('show');", presentation);
+        Assert.Contains("bioageFlow.announceBioageResult(", presentation);
         Assert.Contains($"animatedAgeElement.innerText = {ageVariable}.toFixed(1);", presentation);
         Assert.Contains(rankPreviewCall, presentation);
         Assert.Contains("document.getElementById('continueButton').classList.add('show');", presentation);
         Assert.Contains("updateCalculateButton();", presentation);
+        Assert.Contains($"bioageFlow.animateBioageResult(resultElement, {ageVariable});", presentation);
         Assert.DoesNotContain("setTimeout(", presentation);
         Assert.DoesNotContain("setInterval(", presentation);
 
@@ -54,6 +56,114 @@ public sealed class MotionRestraintPageTests
         Assert.DoesNotContain("bioAgePulse", html);
         Assert.DoesNotContain("bioAgeFinalReveal", html);
         Assert.DoesNotContain("final-reveal", html);
+
+        var showIndex = presentation.IndexOf("resultElement.classList.add('show');", StringComparison.Ordinal);
+        var announcementIndex = presentation.IndexOf("bioageFlow.announceBioageResult(", StringComparison.Ordinal);
+        var semanticIndex = presentation.IndexOf(
+            $"animatedAgeElement.innerText = {ageVariable}.toFixed(1);",
+            StringComparison.Ordinal);
+        var rankIndex = presentation.IndexOf(rankPreviewCall, StringComparison.Ordinal);
+        var nextIndex = presentation.IndexOf(
+            "document.getElementById('continueButton').classList.add('show');",
+            StringComparison.Ordinal);
+        var animationIndex = presentation.IndexOf(
+            $"bioageFlow.animateBioageResult(resultElement, {ageVariable});",
+            StringComparison.Ordinal);
+        Assert.True(
+            showIndex < announcementIndex
+            && announcementIndex < semanticIndex
+            && semanticIndex < rankIndex
+            && rankIndex < nextIndex
+            && nextIndex < animationIndex,
+            "The accessible result, semantic value, rank preview, and Next action must publish before visual choreography starts.");
+    }
+
+    [Theory]
+    [InlineData("pheno-age.html", "pheno age:")]
+    [InlineData("bortz-age.html", "bortz age:")]
+    public void BioAgeResult_UsesASeparateAriaHiddenVisualValue(string pageName, string titleLabel)
+    {
+        var html = ReadPage("onboarding", pageName);
+
+        Assert.Contains("class=\"bioage-result-value-stack\"", html);
+        Assert.Contains("data-bioage-result-visual aria-hidden=\"true\"", html);
+        Assert.Contains("class=\"bioage-result-halo\" aria-hidden=\"true\"", html);
+        Assert.Contains(
+            "data-bioage-result-announcement role=\"status\" aria-live=\"polite\" aria-atomic=\"true\"",
+            html);
+        Assert.Contains("data-bioage-result-difference", html);
+        Assert.Contains($">{titleLabel}</div>", html);
+        Assert.Contains("data-bioage-result-context", html);
+        Assert.Contains("data-bioage-result-rank hidden aria-live=\"polite\"", html);
+        Assert.Single(Regex.Matches(html, "id=\"animatedAge\"").Cast<Match>());
+
+        if (pageName == "bortz-age.html")
+        {
+            Assert.Contains("id=\"yearsText\" data-bioage-result-difference", html);
+            Assert.Contains("id=\"phenoAgeRow\" data-bioage-result-context>pheno age:", html);
+            Assert.DoesNotContain("class=\"result-years-block\" data-bioage-result-difference", html);
+        }
+    }
+
+    [Fact]
+    public void BioAgeResultVisualReveal_IsBoundedSharedAndReducedMotionAware()
+    {
+        var root = FindRepoRoot();
+        var flow = File.ReadAllText(Path.Combine(
+            root,
+            "LongevityWorldCup.Website",
+            "Frontend",
+            "bioage-flow.ts"));
+        var css = File.ReadAllText(Path.Combine(
+            root,
+            "LongevityWorldCup.Website",
+            "wwwroot",
+            "css",
+            "bioageform.css"));
+        var animation = Slice(
+            flow,
+            "function animateBioageResult(",
+            "function getShownBioageResultElement");
+
+        Assert.Contains("const BIOAGE_RESULT_COUNTUP_DURATION_MS = 900;", flow);
+        Assert.Contains("const BIOAGE_RESULT_MAX_VISUAL_UPDATES = 72;", flow);
+        Assert.Contains("const BIOAGE_RESULT_MIN_VISUAL_UPDATES = 24;", flow);
+        Assert.Contains("const BIOAGE_RESULT_SETTLE_CLEANUP_MS = 700;", flow);
+        Assert.Contains("const BIOAGE_RESULT_DETAIL_LEAD_MS = 140;", flow);
+        Assert.Contains("const BIOAGE_RESULT_DETAIL_STEP_MS = 220;", flow);
+        Assert.Contains("const BIOAGE_RESULT_START_AFTER_SCROLL_MS = BIOAGE_RESULT_SCROLL_SETTLE_MS + 40;", flow);
+        Assert.Contains("state.detailTimers.forEach(timer => window.clearTimeout(timer));", flow);
+        Assert.Contains("scheduleBioageResultDetails(resultElement, state, generation);", animation);
+        Assert.Contains("setBioageResultStage(resultElement, 'rank');", animation);
+        Assert.Contains("window.requestAnimationFrame(countFrame)", animation);
+        Assert.Contains("prefersReducedBioageResultMotion()", animation);
+        Assert.Contains("clearBioageResultAnimation(resultElement)", animation);
+        Assert.Contains("(timestamp - startedAt) / BIOAGE_RESULT_COUNTUP_DURATION_MS", animation);
+        Assert.Contains("getBioageResultVisualUpdateBudget(finalAge)", animation);
+        Assert.Contains("progress * (visualUpdateBudget - 1)", animation);
+        Assert.Contains("renderedBucket / (visualUpdateBudget - 1)", animation);
+        Assert.Contains("bioage-result-reveal--waiting", animation);
+        Assert.DoesNotContain("boundedFrameProgress", animation);
+        Assert.DoesNotContain("frameCount /", animation);
+        Assert.DoesNotContain("Math.pow(1 - progress", animation);
+        Assert.DoesNotContain("setInterval(", animation);
+        Assert.Contains("--bioage-result-count-duration: calc(var(--lwc-duration-normal, 220ms) * 4);", css);
+        Assert.Contains("--bioage-result-settle-duration: calc(var(--lwc-duration-normal, 220ms) * 3);", css);
+        Assert.Contains("@keyframes bioage-result-count", css);
+        Assert.Contains("@keyframes bioage-result-count-halo", css);
+        Assert.Contains("@keyframes bioage-result-track", css);
+        Assert.Contains("@keyframes bioage-result-track-lock", css);
+        Assert.Contains("@keyframes bioage-result-settle", css);
+        Assert.Contains("@keyframes bioage-result-halo", css);
+        Assert.Contains("transform: translateY(-3px) scale(1.13);", css);
+        Assert.Contains("[data-bioage-result-stage=\"difference\"]", css);
+        Assert.Contains("[data-bioage-result-stage=\"context\"]", css);
+        Assert.Contains("[data-bioage-result-stage=\"rank\"]", css);
+        Assert.Contains("[data-bioage-result-difference]", css);
+        Assert.Contains("[data-bioage-result-context]", css);
+        Assert.Contains("[data-bioage-result-rank]", css);
+        Assert.Contains("@media (prefers-reduced-motion: reduce)", css);
+        Assert.DoesNotContain("infinite", Slice(css, ".bioage-result-value-stack", ".bioageform label"));
     }
 
     [Fact]
@@ -73,6 +183,31 @@ public sealed class MotionRestraintPageTests
         Assert.DoesNotContain("rotationId", carouselScript);
         Assert.DoesNotContain("startRotation", carouselScript);
         Assert.DoesNotContain("stopRotation", carouselScript);
+    }
+
+    [Fact]
+    public void LeaderboardChangeCues_AreLegibleBoundedAndReducedMotionSafe()
+    {
+        var html = ReadPage("partials", "leaderboard-content.html");
+        var motion = Slice(
+            html,
+            "/* Rank-change wrapper */",
+            "/* Rank-up and new-athlete arrow bubbles */");
+
+        var durationMatch = Regex.Match(
+            motion,
+            @"--leaderboard-change-duration\s*:\s*calc\(var\(--lwc-duration-normal,\s*220ms\)\s*\*\s*(?<multiplier>[0-9.]+)\)");
+        Assert.True(durationMatch.Success, "Leaderboard change motion must derive its duration from the shared normal-motion token.");
+
+        var multiplier = double.Parse(durationMatch.Groups["multiplier"].Value, CultureInfo.InvariantCulture);
+        Assert.InRange(220 * multiplier, 700, 1000);
+        Assert.Contains("animation:newAthleteEntrySlide var(--leaderboard-change-duration)", motion);
+        Assert.Contains("animation:rankUpAthleteClimb var(--leaderboard-change-duration)", motion);
+        Assert.Contains("transform:translateX(-24px);", motion);
+        Assert.Contains("transform:translateY(16px);", motion);
+        Assert.DoesNotContain("infinite", motion);
+        Assert.Contains("@media (prefers-reduced-motion: reduce)", motion);
+        Assert.Contains(".leaderboard tr.is-rank-up-athlete.is-rank-up-revealed > td{ animation:none; }", motion);
     }
 
     [Fact]
