@@ -780,6 +780,270 @@
         }
     }
 
+    /*
+     * An exact hit is intentionally ridiculous. The historical version achieved this by
+     * allocating thousands of DOM nodes and third-party confetti particles; this layer keeps
+     * the same wall-to-wall jackpot energy with one canvas and a finite, reusable icon field.
+     */
+    .gma-exact-jackpot {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        overflow: hidden;
+        pointer-events: auto;
+        isolation: isolate;
+        background:
+            radial-gradient(circle at 50% 46%, rgba(255, 247, 166, 0.4), transparent 28%),
+            radial-gradient(circle at 12% 18%, rgba(255, 66, 173, 0.2), transparent 24%),
+            radial-gradient(circle at 88% 22%, rgba(25, 195, 209, 0.22), transparent 25%),
+            linear-gradient(135deg, rgba(50, 28, 0, 0.34), rgba(5, 8, 14, 0.12));
+        animation: gma-exact-jackpot-enter calc(var(--lwc-duration-normal, 220ms) * 4) var(--lwc-ease, ease) both;
+    }
+
+    /* The generic guess-mode child rule hides everything except the profile. This exact-only
+       stage is deliberately full-screen, but remains below the existing z-index 60 close X. */
+    #detailsModal .modal-content.guess-mode > .gma-exact-jackpot {
+        display: block !important;
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 40 !important;
+    }
+
+    /* The homepage modal otherwise uses its legacy fallback layer (3), below sticky chrome. */
+    #detailsModal.gma-exact-takeover-active {
+        z-index: var(--athlete-dialog-layer, 10020);
+    }
+
+    .gma-exact-jackpot::before {
+        content: '';
+        position: absolute;
+        z-index: 0;
+        inset: -8vmin;
+        transform-origin: 50% 50%;
+        background: repeating-conic-gradient(
+            from -4deg,
+            rgba(255, 236, 126, 0.28) 0deg 5deg,
+            rgba(255, 255, 255, 0.03) 5deg 11deg,
+            rgba(25, 195, 209, 0.12) 11deg 15deg,
+            transparent 15deg 22deg);
+        animation: gma-exact-rays calc(var(--lwc-duration-normal, 220ms) * 40) var(--lwc-ease, ease) both;
+    }
+
+    .gma-exact-jackpot::after {
+        content: '';
+        position: absolute;
+        z-index: 1;
+        inset: 0;
+        background: rgba(255, 247, 188, 0.52);
+        opacity: 0;
+        /* Three broad pulses over 4.6s keep the casino impact below a 3Hz flash cadence. */
+        animation: gma-exact-screen-flash calc(var(--lwc-duration-normal, 220ms) * 7) var(--lwc-ease, ease) 3 both;
+    }
+
+    @keyframes gma-exact-jackpot-enter {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes gma-exact-rays {
+        0% { transform: rotate(0deg) scale(0.86); opacity: 0; }
+        8% { opacity: 1; }
+        88% { opacity: 0.72; }
+        100% { transform: rotate(112deg) scale(1.05); opacity: 0; }
+    }
+
+    @keyframes gma-exact-screen-flash {
+        0%, 100% { opacity: 0; }
+        16% { opacity: 0.72; }
+        44% { opacity: 0.08; }
+    }
+
+    .gma-exact-confetti-canvas {
+        position: absolute;
+        z-index: 2;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .gma-exact-jackpot-copy {
+        position: absolute;
+        z-index: 6;
+        left: 50%;
+        top: clamp(25%, 34vh, 38%);
+        width: min(94vw, 78rem);
+        transform: translate(-50%, -50%);
+        display: grid;
+        justify-items: center;
+        gap: clamp(0.25rem, 1vw, 0.75rem);
+        text-align: center;
+        color: #fff7b5;
+        filter: drop-shadow(0 0.8rem 1rem rgba(0, 0, 0, 0.62));
+    }
+
+    .gma-exact-jackpot-kicker,
+    .gma-exact-jackpot-subtitle {
+        display: block;
+        padding: 0.35rem 0.9rem;
+        background: rgba(6, 9, 15, 0.82);
+        border: 2px solid rgba(255, 231, 102, 0.82);
+        border-radius: 999px;
+        color: #fff5ac;
+        font-weight: 700;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        box-shadow: 0 0 1.5rem rgba(255, 213, 0, 0.55);
+    }
+
+    .gma-exact-jackpot-kicker {
+        font-size: clamp(0.78rem, 2.1vw, 1.45rem);
+        animation: gma-exact-cheese-drop calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) both;
+    }
+
+    .gma-exact-jackpot-title {
+        display: block;
+        max-width: 100%;
+        font-family: Orbitron, Roboto, sans-serif;
+        font-size: clamp(4rem, 14vw, 11rem);
+        font-weight: 900;
+        line-height: 0.86;
+        letter-spacing: -0.06em;
+        color: #fff4a3;
+        background: linear-gradient(180deg, #fffbd6 4%, #ffd83d 42%, #ff8a00 72%, #fff1a0 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 2px rgba(94, 43, 0, 0.72);
+        text-shadow: 0 0 2.5rem rgba(255, 203, 0, 0.86);
+        animation: gma-exact-title-slam calc(var(--lwc-duration-normal, 220ms) * 8) var(--lwc-ease, ease) both;
+    }
+
+    .gma-exact-jackpot-subtitle {
+        font-size: clamp(0.72rem, 1.8vw, 1.2rem);
+        animation: gma-exact-cheese-rise calc(var(--lwc-duration-normal, 220ms) * 8) var(--lwc-ease, ease) calc(var(--lwc-duration-fast, 140ms) * 3) both;
+    }
+
+    @keyframes gma-exact-title-slam {
+        0% { opacity: 0; transform: scale(4.5) rotate(-8deg); filter: blur(0.4rem); }
+        42% { opacity: 1; transform: scale(0.82) rotate(3deg); filter: blur(0); }
+        62% { transform: scale(1.14) rotate(-1deg); }
+        78% { transform: scale(0.96) rotate(0.5deg); }
+        100% { opacity: 1; transform: scale(1) rotate(0); filter: blur(0); }
+    }
+
+    @keyframes gma-exact-cheese-drop {
+        0% { opacity: 0; transform: translateY(-4rem) rotate(-8deg); }
+        64% { opacity: 1; transform: translateY(0.35rem) rotate(2deg); }
+        100% { opacity: 1; transform: translateY(0) rotate(0); }
+    }
+
+    @keyframes gma-exact-cheese-rise {
+        0% { opacity: 0; transform: translateY(3rem) scale(0.76); }
+        68% { opacity: 1; transform: translateY(-0.2rem) scale(1.06); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .gma-exact-jackpot-marquee {
+        position: absolute;
+        z-index: 5;
+        left: -24%;
+        width: 148%;
+        padding: 0.5rem 0;
+        overflow: hidden;
+        white-space: nowrap;
+        background: linear-gradient(90deg, #ffda32, #ff4e91, #19c3d1, #ffda32);
+        border-block: 3px solid rgba(255, 255, 255, 0.82);
+        color: #101418;
+        font-family: Orbitron, Roboto, sans-serif;
+        font-size: clamp(0.75rem, 2vw, 1.35rem);
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        box-shadow: 0 0 2rem rgba(255, 209, 0, 0.62);
+    }
+
+    .gma-exact-jackpot-marquee--top {
+        top: 7%;
+        transform: rotate(-4deg);
+        animation: gma-exact-marquee-top calc(var(--lwc-duration-normal, 220ms) * 40) var(--lwc-ease, ease) both;
+    }
+
+    .gma-exact-jackpot-marquee--bottom {
+        bottom: 7%;
+        transform: rotate(4deg);
+        animation: gma-exact-marquee-bottom calc(var(--lwc-duration-normal, 220ms) * 40) var(--lwc-ease, ease) both;
+    }
+
+    @keyframes gma-exact-marquee-top {
+        from { translate: -10% 0; }
+        to { translate: 10% 0; }
+    }
+
+    @keyframes gma-exact-marquee-bottom {
+        from { translate: 10% 0; }
+        to { translate: -10% 0; }
+    }
+
+    .gma-exact-time-icon {
+        --gma-time-duration: calc(var(--lwc-duration-normal, 220ms) * 18);
+        --gma-time-delay: 0ms;
+        position: absolute;
+        z-index: 4;
+        left: var(--gma-time-x, 50%);
+        top: -14vh;
+        color: var(--gma-time-color, #ffd83d);
+        font-size: var(--gma-time-size, 2rem);
+        line-height: 1;
+        opacity: 0;
+        text-shadow: 0 0.35rem 0.45rem rgba(0, 0, 0, 0.65);
+        animation: gma-exact-clock-rain var(--gma-time-duration, calc(var(--lwc-duration-normal, 220ms) * 18)) var(--lwc-ease, ease) var(--gma-time-delay, 0ms) both;
+    }
+
+    @keyframes gma-exact-clock-rain {
+        0% { opacity: 0; transform: translate3d(0, -8vh, 0) scale(0.45) rotate(0deg); }
+        8% { opacity: 1; }
+        72% { opacity: 1; }
+        100% { opacity: 0; transform: translate3d(var(--gma-time-drift, 0), 124vh, 0) scale(1.15) rotate(var(--gma-time-rotation, 520deg)); }
+    }
+
+    .gma-exact-target {
+        --gma-target-delay: 0ms;
+        position: absolute;
+        z-index: 5;
+        left: 50%;
+        top: 48%;
+        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+        font-size: var(--gma-target-size, 3rem);
+        line-height: 1;
+        opacity: 0;
+        text-shadow: 0 0.4rem 0.55rem rgba(0, 0, 0, 0.5);
+        animation: gma-exact-target-burst calc(var(--lwc-duration-normal, 220ms) * 22) var(--lwc-ease, ease) var(--gma-target-delay, 0ms) both;
+    }
+
+    @keyframes gma-exact-target-burst {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(-30deg); }
+        14% { opacity: 1; }
+        45% { opacity: 1; transform: translate(calc(-50% + var(--gma-target-dx, 0px)), calc(-50% + var(--gma-target-dy, 0px))) scale(1.3) rotate(18deg); }
+        78% { opacity: 1; }
+        100% { opacity: 0; transform: translate(calc(-50% + var(--gma-target-dx, 0px)), calc(-50% + var(--gma-target-dy, 0px) + 6rem)) scale(0.8) rotate(390deg); }
+    }
+
+    @media (max-width: 540px) {
+        .gma-exact-jackpot-copy {
+            top: 36%;
+        }
+
+        .gma-exact-jackpot-title {
+            font-size: clamp(2.75rem, 14vw, 5.2rem);
+            -webkit-text-stroke-width: 1px;
+        }
+
+        .gma-exact-jackpot-subtitle {
+            max-width: 92vw;
+            white-space: normal;
+        }
+    }
+
     .gma-celebration-spark {
         position: fixed;
         left: var(--gma-spark-x, 50%);
@@ -830,25 +1094,42 @@
         }
     }
 
-    .modal-content.guess-mode #guessAgeContainer.celebrate-better,
-    .modal-content.guess-mode #guessAgeContainer.celebrate-exact {
+    .modal-content.guess-mode #guessAgeContainer.celebrate-better {
         animation: gma-card-celebrate calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) both;
+    }
+
+    .modal-content.guess-mode #guessAgeContainer.celebrate-exact {
+        animation: gma-exact-card-jackpot calc(var(--lwc-duration-normal, 220ms) * 36) var(--lwc-ease, ease) both;
+    }
+
+    @keyframes gma-exact-card-jackpot {
+        0%, 100% { transform: scale(1) rotate(0); }
+        5% { transform: scale(var(--gma-exact-card-peak-scale, 1.055)) rotate(calc(-1.1deg * var(--gma-exact-card-tilt, 1))); box-shadow: 0 0 0 7px rgba(255, 220, 53, 0.46), 0 0 4rem rgba(255, 187, 0, 0.72); }
+        10% { transform: scale(var(--gma-exact-card-trough-scale, 0.985)) rotate(calc(0.8deg * var(--gma-exact-card-tilt, 1))); }
+        16% { transform: scale(var(--gma-exact-card-second-scale, 1.04)) rotate(calc(-0.55deg * var(--gma-exact-card-tilt, 1))); box-shadow: 0 0 0 4px rgba(255, 78, 145, 0.38), 0 0 3.5rem rgba(255, 216, 61, 0.66); }
+        24% { transform: scale(1) rotate(0); }
+        48% { transform: scale(var(--gma-exact-card-third-scale, 1.025)) rotate(calc(0.4deg * var(--gma-exact-card-tilt, 1))); box-shadow: 0 0 0 6px rgba(25, 195, 209, 0.38), 0 0 4.5rem rgba(255, 205, 24, 0.68); }
+        68% { transform: scale(var(--gma-exact-card-late-trough-scale, 0.995)) rotate(calc(-0.3deg * var(--gma-exact-card-tilt, 1))); }
+        84% { transform: scale(var(--gma-exact-card-fourth-scale, 1.018)) rotate(calc(0.2deg * var(--gma-exact-card-tilt, 1))); box-shadow: 0 0 0 3px rgba(255, 220, 75, 0.28), 0 0 3rem rgba(255, 190, 0, 0.48); }
     }
 
     .gma-card.celebrate-better {
         border-color: var(--lwc-accent-bright, #19c3d1) !important;
     }
 
-    /* Exact guesses get a bounded metallic finish—one payoff, never a loop. */
+    /* Exact guesses get a bounded metallic takeover—loud for one payoff, never infinite. */
     .gma-card.celebrate-exact #gmaRange {
         background: linear-gradient(90deg, #8a5c00 0%, #d5a928 23%, #fff0a6 48%, #c18b11 70%, #fff1aa 88%, #d1d5db 100%) !important;
+        background-size: 220% 100% !important;
         box-shadow: inset 0 0 0.45rem rgba(72, 48, 0, 0.35), 0 0 1.3rem rgba(255, 215, 0, 0.52);
-        animation: gma-exact-track-flash calc(var(--lwc-duration-normal, 220ms) * 7) var(--lwc-ease, ease) both;
+        animation: gma-exact-track-flash calc(var(--lwc-duration-normal, 220ms) * 36) var(--lwc-ease, ease) both;
     }
 
     @keyframes gma-exact-track-flash {
-        0%, 100% { filter: saturate(1); }
-        42% { filter: saturate(1.35) brightness(1.16); }
+        0%, 100% { filter: saturate(1); background-position: 0 0; }
+        18% { filter: saturate(1.5) brightness(1.24); }
+        48% { filter: saturate(1.15) brightness(1.05); background-position: 100% 0; }
+        72% { filter: saturate(1.6) brightness(1.2); }
     }
 
         /* GOLDEN THUMB for WebKit */
@@ -870,6 +1151,22 @@
         border-color: #8a5c00 !important;
         color: #473200 !important;
         box-shadow: 0 0.7rem 1.5rem rgba(64, 43, 0, 0.28), 0 0 1.4rem rgba(255, 215, 0, 0.56);
+        animation: gma-exact-bubble-rave calc(var(--lwc-duration-normal, 220ms) * 34) var(--lwc-ease, ease) both;
+    }
+
+    .gma-card.celebrate-exact #gmaRealBubble {
+        transform: translateX(-50%) scale(1);
+    }
+
+    @keyframes gma-exact-bubble-rave {
+        0%, 100% { filter: brightness(1); }
+        8% { filter: brightness(1.35) saturate(1.4); box-shadow: 0 0.9rem 2rem rgba(64, 43, 0, 0.3), 0 0 3rem rgba(255, 217, 0, 0.92); }
+        18% { filter: brightness(1.03); }
+        32% { filter: brightness(1.3) saturate(1.55); box-shadow: 0 0.9rem 2rem rgba(64, 43, 0, 0.3), 0 0 3.4rem rgba(255, 83, 169, 0.7); }
+        48% { filter: brightness(1.04); }
+        64% { filter: brightness(1.32) saturate(1.5); box-shadow: 0 0.9rem 2rem rgba(64, 43, 0, 0.3), 0 0 3.4rem rgba(25, 195, 209, 0.78); }
+        80% { filter: brightness(1.06); }
+        90% { filter: brightness(1.28) saturate(1.45); box-shadow: 0 0.9rem 2rem rgba(64, 43, 0, 0.3), 0 0 3rem rgba(255, 217, 0, 0.78); }
     }
 
     .gma-card.celebrate-exact #gmaBubble::after,
@@ -1018,6 +1315,13 @@
     @media (max-width: 768px) {
         #detailsModal .modal-content.guess-mode #guessAgeContainer {
             --gma-card-celebrate-scale: 1;
+            --gma-exact-card-peak-scale: 1;
+            --gma-exact-card-trough-scale: 1;
+            --gma-exact-card-second-scale: 1;
+            --gma-exact-card-third-scale: 1;
+            --gma-exact-card-late-trough-scale: 1;
+            --gma-exact-card-fourth-scale: 1;
+            --gma-exact-card-tilt: 0;
         }
 
         #detailsModal .modal-content.guess-mode #athlete-profile {
@@ -1243,6 +1547,9 @@
         .gma-reaction,
         .gma-troll-reaction,
         .gma-celebration-spark,
+        .gma-exact-jackpot,
+        .gma-exact-time-icon,
+        .gma-exact-target,
         #gmaRange,
         #gmaBubble,
         #gmaRealBubble {
@@ -1260,7 +1567,9 @@
 
         .gma-reaction,
         .gma-troll-reaction,
-        .gma-celebration-spark {
+        .gma-celebration-spark,
+        #detailsModal .modal-content.guess-mode > .gma-exact-jackpot,
+        .gma-exact-jackpot {
             display: none !important;
         }
 
@@ -1323,14 +1632,21 @@
     const gmaPayoffRegion = document.getElementById('gmaPayoffRegion');
     const GMA_RESULT_PRELUDE_MS = 1980;
     const GMA_MAX_TRAVEL_MS = 7000;
+    const GMA_EXACT_JACKPOT_MS = 9000;
+    const GMA_EXACT_WAVE_COUNT = 18;
+    const GMA_EXACT_CONFETTI_CAP = 420;
+    const GMA_EXACT_TIME_ICON_CAP = 160;
+    const GMA_EXACT_CANVAS_PIXEL_CAP = 3000000;
     let gmaWasGuessMode = modalContent.classList.contains('guess-mode');
     let gmaObservedAthleteSlug = modalContent.dataset.athleteSlug || '';
     let gmaPresentationGeneration = 0;
     let cancelCurrentGmaReveal = null;
     let gmaExitTimer = 0;
+    let gmaExactJackpotController = null;
 
     function cancelGmaPresentation() {
         gmaPresentationGeneration += 1;
+        cancelGmaExactJackpot();
 
         const cancelReveal = cancelCurrentGmaReveal;
         cancelCurrentGmaReveal = null;
@@ -1794,10 +2110,374 @@
         }));
     }
 
-    function spawnGmaCelebration(kind) {
+    function gmaJackpotUnit(index, salt) {
+        const value = Math.sin(((index + 1) * 91.713) + (salt * 37.119)) * 43758.5453;
+        return value - Math.floor(value);
+    }
+
+    function cancelGmaExactJackpot() {
+        gmaExactJackpotController?.cancel();
+    }
+
+    function launchGmaExactJackpot(presentation) {
+        if (document.hidden
+            || prefersReducedGmaMotion()
+            || !isCurrentGmaPresentation(presentation)) return;
+
+        cancelGmaExactJackpot();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'gma-exact-jackpot';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.dataset.gmaKind = 'exact-jackpot';
+        overlay.dataset.waveCount = String(GMA_EXACT_WAVE_COUNT);
+        overlay.dataset.wavesFired = '0';
+        overlay.dataset.duration = String(GMA_EXACT_JACKPOT_MS);
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'gma-exact-confetti-canvas';
+        canvas.setAttribute('aria-hidden', 'true');
+        canvas.dataset.gmaMotif = 'confetti';
+        canvas.dataset.particleCap = String(GMA_EXACT_CONFETTI_CAP);
+        canvas.dataset.activeParticles = '0';
+        canvas.dataset.totalSpawned = '0';
+        canvas.dataset.burstsFired = '0';
+        overlay.appendChild(canvas);
+
+        const topMarquee = document.createElement('div');
+        topMarquee.className = 'gma-exact-jackpot-marquee gma-exact-jackpot-marquee--top';
+        topMarquee.dataset.gmaMotif = 'victory-ribbon';
+        topMarquee.textContent = '🎯 PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • PERFECT GUESS • ZERO YEARS OFF • TEMPORAL GENIUS • ';
+        overlay.appendChild(topMarquee);
+
+        const bottomMarquee = document.createElement('div');
+        bottomMarquee.className = 'gma-exact-jackpot-marquee gma-exact-jackpot-marquee--bottom';
+        bottomMarquee.dataset.gmaMotif = 'victory-ribbon';
+        bottomMarquee.textContent = '⏱️ ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • NO NOTES • ABSOLUTE TIME LORD • CONFETTI CANNONS ENGAGED • ';
+        overlay.appendChild(bottomMarquee);
+
+        const copy = document.createElement('div');
+        copy.className = 'gma-exact-jackpot-copy';
+        copy.dataset.gmaMotif = 'jackpot-copy';
+
+        const kicker = document.createElement('span');
+        kicker.className = 'gma-exact-jackpot-kicker';
+        kicker.textContent = '🎯 perfect guess 🎯';
+        const title = document.createElement('strong');
+        title.className = 'gma-exact-jackpot-title';
+        title.textContent = 'BULLSEYE!!!';
+        const subtitle = document.createElement('span');
+        subtitle.className = 'gma-exact-jackpot-subtitle';
+        subtitle.textContent = 'ZERO YEARS OFF · ABSOLUTE TIME LORD';
+        copy.append(kicker, title, subtitle);
+        overlay.appendChild(copy);
+
+        const clockNames = [
+            'clock',
+            'stopwatch',
+            'history',
+            'hourglass-start',
+            'hourglass-half',
+            'hourglass-end',
+            'calendar',
+            'calendar-check',
+            'calendar-alt'
+        ];
+        const clockColors = ['#ffd83d', '#fff7b2', '#ff4e91', '#19c3d1', '#ff8a00'];
+        const timeIconCount = window.innerWidth <= 540
+            ? Math.min(112, GMA_EXACT_TIME_ICON_CAP)
+            : GMA_EXACT_TIME_ICON_CAP;
+        const iconFragment = document.createDocumentFragment();
+        for (let index = 0; index < timeIconCount; index++) {
+            const icon = document.createElement('i');
+            icon.className = `gma-exact-time-icon fas fa-${clockNames[index % clockNames.length]}`;
+            icon.setAttribute('aria-hidden', 'true');
+            icon.dataset.gmaMotif = 'clock-rain';
+            icon.dataset.gmaWave = String(index % GMA_EXACT_WAVE_COUNT);
+            icon.style.setProperty('--gma-time-x', `${2 + (gmaJackpotUnit(index, 1) * 96)}%`);
+            icon.style.setProperty('--gma-time-size', `${1.15 + (gmaJackpotUnit(index, 2) * 2.65)}rem`);
+            icon.style.setProperty('--gma-time-drift', `${-12 + (gmaJackpotUnit(index, 3) * 24)}vw`);
+            icon.style.setProperty('--gma-time-rotation', `${index % 2 === 0 ? 420 : -520}deg`);
+            icon.style.setProperty('--gma-time-color', clockColors[index % clockColors.length]);
+            icon.style.setProperty(
+                '--gma-time-duration',
+                `calc(var(--lwc-duration-normal, 220ms) * ${14 + Math.floor(gmaJackpotUnit(index, 4) * 10)})`);
+            icon.style.setProperty(
+                '--gma-time-delay',
+                `${Math.round((index % GMA_EXACT_WAVE_COUNT) * 260 + (gmaJackpotUnit(index, 5) * 460))}ms`);
+            iconFragment.appendChild(icon);
+        }
+        overlay.appendChild(iconFragment);
+
+        const targetElements = [];
+        const targetFragment = document.createDocumentFragment();
+        for (let index = 0; index < 32; index++) {
+            const target = document.createElement('span');
+            target.className = 'gma-exact-target';
+            target.setAttribute('aria-hidden', 'true');
+            target.dataset.gmaMotif = 'target-burst';
+            target.dataset.gmaWave = String(index % 8);
+            target.dataset.angle = String(((Math.PI * 2) / 32) * index);
+            target.dataset.radius = String(0.7 + ((index % 4) * 0.1));
+            target.textContent = index % 5 === 0 ? '🏆' : '🎯';
+            target.style.setProperty('--gma-target-size', `${2 + ((index % 5) * 0.38)}rem`);
+            target.style.setProperty('--gma-target-delay', `${(index % 8) * 140}ms`);
+            targetElements.push(target);
+            targetFragment.appendChild(target);
+        }
+        overlay.appendChild(targetFragment);
+
+        modalContent.appendChild(overlay);
+
+        const context = canvas.getContext('2d', { alpha: true });
+        if (!context) {
+            overlay.remove();
+            return;
+        }
+
+        const particles = [];
+        const waveTimers = [];
+        const palette = ['#ffd83d', '#fff7b2', '#ff4e91', '#19c3d1', '#ff8a00', '#b98cff', '#8cff7a'];
+        const detailsModal = modalContent.closest('#detailsModal');
+        const portrait = document.getElementById('modalProfilePic');
+        const portraitWasInert = Boolean(portrait?.inert);
+        const motionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+        let frameId = 0;
+        let cleanupTimer = 0;
+        let lastFrameAt = performance.now();
+        let seed = 0x9e3779b9;
+        let isCancelled = false;
+
+        function random() {
+            seed = ((seed * 1664525) + 1013904223) >>> 0;
+            return seed / 4294967296;
+        }
+
+        function layoutTargets() {
+            const radiusX = Math.min(window.innerWidth * 0.47, 650);
+            const radiusY = Math.min(window.innerHeight * 0.43, 480);
+            targetElements.forEach(target => {
+                const angle = Number(target.dataset.angle);
+                const radius = Number(target.dataset.radius);
+                target.style.setProperty('--gma-target-dx', `${Math.cos(angle) * radiusX * radius}px`);
+                target.style.setProperty('--gma-target-dy', `${Math.sin(angle) * radiusY * radius}px`);
+            });
+        }
+
+        function resizeCanvas() {
+            const cssWidth = Math.max(1, window.innerWidth);
+            const cssHeight = Math.max(1, window.innerHeight);
+            const pixelRatioCap = Math.sqrt(GMA_EXACT_CANVAS_PIXEL_CAP / (cssWidth * cssHeight));
+            const pixelRatio = Math.min(window.devicePixelRatio || 1, 2, pixelRatioCap);
+            canvas.width = Math.max(1, Math.floor(cssWidth * pixelRatio));
+            canvas.height = Math.max(1, Math.floor(cssHeight * pixelRatio));
+            canvas.style.width = `${cssWidth}px`;
+            canvas.style.height = `${cssHeight}px`;
+            canvas.dataset.backingPixels = String(canvas.width * canvas.height);
+            context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+            layoutTargets();
+        }
+
+        function removeMotionListener() {
+            if (!motionQuery) return;
+            if (typeof motionQuery.removeEventListener === 'function') {
+                motionQuery.removeEventListener('change', handleMotionChange);
+            } else if (typeof motionQuery.removeListener === 'function') {
+                motionQuery.removeListener(handleMotionChange);
+            }
+        }
+
+        function cancel() {
+            if (isCancelled) return;
+            isCancelled = true;
+            waveTimers.forEach(timer => window.clearTimeout(timer));
+            if (cleanupTimer) window.clearTimeout(cleanupTimer);
+            if (frameId) window.cancelAnimationFrame(frameId);
+            window.removeEventListener('resize', resizeCanvas);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            removeMotionListener();
+            particles.length = 0;
+            overlay.remove();
+            if (portrait) portrait.inert = portraitWasInert;
+            detailsModal?.classList.remove('gma-exact-takeover-active');
+            modalContent.classList.remove('gma-exact-takeover');
+            if (gmaExactJackpotController === controller) gmaExactJackpotController = null;
+        }
+
+        function handleMotionChange(event) {
+            if (event.matches) cancel();
+        }
+
+        function handleVisibilityChange() {
+            if (document.hidden) cancel();
+        }
+
+        const controller = { cancel };
+        gmaExactJackpotController = controller;
+        if (portrait) portrait.inert = true;
+        detailsModal?.classList.add('gma-exact-takeover-active');
+        modalContent.classList.add('gma-exact-takeover');
+
+        function addParticle(originX, originY, waveIndex, particleIndex) {
+            if (particles.length >= GMA_EXACT_CONFETTI_CAP) return false;
+            const comesFromBottom = originY > window.innerHeight * 0.62;
+            const baseAngle = comesFromBottom ? -Math.PI / 2 : random() * Math.PI * 2;
+            const spread = comesFromBottom ? (random() - 0.5) * 1.9 : 0;
+            const angle = baseAngle + spread;
+            const speed = 6 + (random() * 12);
+            const life = 1900 + (random() * 900);
+            particles.push({
+                x: originX,
+                y: originY,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                gravity: 0.1 + (random() * 0.12),
+                drag: 0.986 + (random() * 0.01),
+                rotation: random() * Math.PI * 2,
+                rotationSpeed: (random() - 0.5) * 0.32,
+                size: 4 + (random() * 8),
+                age: 0,
+                bornAt: performance.now(),
+                life,
+                color: palette[(waveIndex + particleIndex) % palette.length],
+                shape: particleIndex % 3
+            });
+            return true;
+        }
+
+        function discardExpiredParticles(now) {
+            let writeIndex = 0;
+            for (let index = 0; index < particles.length; index++) {
+                const particle = particles[index];
+                if (now - particle.bornAt >= particle.life) continue;
+                particles[writeIndex++] = particle;
+            }
+            particles.length = writeIndex;
+        }
+
+        function fireWave(waveIndex) {
+            if (isCancelled
+                || prefersReducedGmaMotion()
+                || !isCurrentGmaPresentation(presentation)) {
+                cancel();
+                return;
+            }
+
+            const origins = [
+                [0.06, 0.9],
+                [0.94, 0.9],
+                [0.5, 0.82],
+                [0.08, 0.32],
+                [0.92, 0.32],
+                [0.5, 0.12]
+            ];
+            const origin = origins[waveIndex % origins.length];
+            const particlesPerWave = window.innerWidth <= 540 ? 64 : 90;
+            discardExpiredParticles(performance.now());
+            const roomForThisWave = GMA_EXACT_CONFETTI_CAP - particlesPerWave;
+            if (particles.length > roomForThisWave) {
+                // Retire the oldest pieces so every cannon firing produces a visible new wave,
+                // even when a loaded renderer has not painted often enough to age them out.
+                particles.splice(0, particles.length - roomForThisWave);
+            }
+            let spawnedThisWave = 0;
+            for (let particleIndex = 0; particleIndex < particlesPerWave; particleIndex++) {
+                if (addParticle(
+                    origin[0] * window.innerWidth,
+                    origin[1] * window.innerHeight,
+                    waveIndex,
+                    particleIndex)) {
+                    spawnedThisWave += 1;
+                }
+            }
+
+            overlay.dataset.lastWave = String(waveIndex);
+            overlay.dataset.wavesFired = String(waveIndex + 1);
+            canvas.dataset.burstsFired = String(waveIndex + 1);
+            canvas.dataset.totalSpawned = String(
+                Number(canvas.dataset.totalSpawned || 0) + spawnedThisWave);
+            window.dispatchEvent(new CustomEvent('gma:exact-wave', {
+                detail: { wave: waveIndex, spawned: spawnedThisWave }
+            }));
+        }
+
+        function drawFrame(now) {
+            if (isCancelled) return;
+            if (prefersReducedGmaMotion() || !isCurrentGmaPresentation(presentation)) {
+                cancel();
+                return;
+            }
+
+            const frameScale = Math.min(2.2, Math.max(0.35, (now - lastFrameAt) / (1000 / 60)));
+            lastFrameAt = now;
+            context.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+            let writeIndex = 0;
+            for (let index = 0; index < particles.length; index++) {
+                const particle = particles[index];
+                particle.age = Math.max(0, now - particle.bornAt);
+                if (particle.age >= particle.life) continue;
+
+                particle.vx *= Math.pow(particle.drag, frameScale);
+                particle.vy = (particle.vy * Math.pow(particle.drag, frameScale))
+                    + (particle.gravity * frameScale);
+                particle.x += particle.vx * frameScale;
+                particle.y += particle.vy * frameScale;
+                particle.rotation += particle.rotationSpeed * frameScale;
+                particles[writeIndex++] = particle;
+
+                const progress = particle.age / particle.life;
+                const alpha = Math.min(1, (1 - progress) * 2.4);
+                context.save();
+                context.globalAlpha = alpha;
+                context.translate(particle.x, particle.y);
+                context.rotate(particle.rotation);
+                context.fillStyle = particle.color;
+                context.strokeStyle = particle.color;
+                context.lineWidth = Math.max(2, particle.size * 0.28);
+                if (particle.shape === 0) {
+                    context.fillRect(-particle.size / 2, -particle.size / 3, particle.size, particle.size * 0.66);
+                } else if (particle.shape === 1) {
+                    context.beginPath();
+                    context.arc(0, 0, particle.size * 0.45, 0, Math.PI * 2);
+                    context.fill();
+                } else {
+                    context.beginPath();
+                    context.moveTo(-particle.size, 0);
+                    context.quadraticCurveTo(0, particle.size, particle.size, 0);
+                    context.stroke();
+                }
+                context.restore();
+            }
+            particles.length = writeIndex;
+            canvas.dataset.activeParticles = String(particles.length);
+            frameId = window.requestAnimationFrame(drawFrame);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        if (motionQuery) {
+            if (typeof motionQuery.addEventListener === 'function') {
+                motionQuery.addEventListener('change', handleMotionChange);
+            } else if (typeof motionQuery.addListener === 'function') {
+                motionQuery.addListener(handleMotionChange);
+            }
+        }
+        frameId = window.requestAnimationFrame(drawFrame);
+        for (let waveIndex = 0; waveIndex < GMA_EXACT_WAVE_COUNT; waveIndex++) {
+            waveTimers.push(window.setTimeout(() => fireWave(waveIndex), waveIndex * 360));
+        }
+        cleanupTimer = window.setTimeout(cancel, GMA_EXACT_JACKPOT_MS);
+    }
+
+    function spawnGmaCelebration(kind, presentation) {
+        if (kind === 'exact') {
+            launchGmaExactJackpot(presentation);
+            return;
+        }
         if (prefersReducedGmaMotion()) return;
 
-        const isExact = kind === 'exact';
         const isFirst = kind === 'first';
         const origin = document.getElementById('gmaRealBubble') || gmaCard;
         const rect = origin.getBoundingClientRect();
@@ -1807,7 +2487,7 @@
         const icons = isFirst
             ? ['medal', 'flag-checkered', 'stopwatch', 'calendar-check']
             : ['clock', 'stopwatch', 'hourglass-half', 'calendar-check'];
-        const sparkCount = isExact ? 64 : isFirst ? 28 : 48;
+        const sparkCount = isFirst ? 28 : 48;
         const radiusX = Math.min(360, modalRect.width * 0.46);
         const radiusY = Math.min(420, modalRect.height * 0.38);
 
@@ -1827,7 +2507,7 @@
             spark.style.setProperty('--gma-spark-rotation', `${index % 2 === 0 ? 140 : -140}deg`);
             spark.style.setProperty('--gma-spark-size', `${1.3 + ((index % 4) * 0.2)}rem`);
             spark.style.animationDelay = `${(index % 2) * 140}ms`;
-            if (isExact || isFirst) spark.style.setProperty('--gma-spark-color', '#9a6700');
+            if (isFirst) spark.style.setProperty('--gma-spark-color', '#9a6700');
             document.body.appendChild(spark);
             spark.addEventListener('animationend', () => spark.remove(), { once: true });
             window.setTimeout(() => spark.remove(), 3400);
@@ -1835,7 +2515,8 @@
     }
 
     function clearGmaEphemera() {
-        document.querySelectorAll('.gma-reaction, .gma-troll-reaction, .gma-celebration-spark, .gma-pop-banner')
+        cancelGmaExactJackpot();
+        document.querySelectorAll('.gma-reaction, .gma-troll-reaction, .gma-celebration-spark, .gma-pop-banner, .gma-exact-jackpot')
             .forEach(element => element.remove());
     }
 
@@ -2046,19 +2727,28 @@
             document.querySelectorAll('.gma-reaction').forEach(element => element.remove());
             document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
 
-            let outcomeDwell = 5000;
-            if (userError === 0) {
-                gmaCard.classList.add('celebrate-exact');
-                outcomeDwell = 6000;
-                popBanner(true, false, outcomeDwell);
-                spawnGmaCelebration('exact');
-            } else if (isFirstGuess) {
-                popBanner(false, true, outcomeDwell);
-                spawnGmaCelebration('first');
-            } else if (crowdError !== null && userError < crowdError) {
-                gmaCard.classList.add('celebrate-better');
-                popBanner(false, false, outcomeDwell);
-                spawnGmaCelebration('crowd');
+            const outcomeDwell = userError === 0 ? 9600 : 5000;
+            try {
+                if (userError === 0) {
+                    gmaCard.classList.add('celebrate-exact');
+                    popBanner(true, false, outcomeDwell);
+                    spawnGmaCelebration('exact', presentation);
+                } else if (isFirstGuess) {
+                    popBanner(false, true, outcomeDwell);
+                    spawnGmaCelebration('first');
+                } else if (crowdError !== null && userError < crowdError) {
+                    gmaCard.classList.add('celebrate-better');
+                    popBanner(false, false, outcomeDwell);
+                    spawnGmaCelebration('crowd');
+                }
+            } catch (presentationError) {
+                // The server result and local completion are already durable. A decorative
+                // renderer failure must never turn that success back into a retryable error.
+                cancelGmaExactJackpot();
+                document.querySelectorAll('.gma-celebration-spark, .gma-exact-jackpot')
+                    .forEach(element => element.remove());
+                modalContent.classList.remove('gma-exact-takeover');
+                console.warn('Could not play the Guess My Age celebration.', presentationError);
             }
 
             scheduleGmaExit(

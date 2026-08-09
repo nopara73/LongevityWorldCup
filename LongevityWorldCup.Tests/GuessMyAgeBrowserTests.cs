@@ -704,6 +704,9 @@ public sealed class GuessMyAgeBrowserTests
                 const modalContent = document.querySelector('#detailsModal .modal-content');
                 modalContent.dataset.athleteSlug = 'exact-animation-test';
                 modalContent.classList.add('guess-mode');
+                document.getElementById('site-sticky-header')?.classList.add('visible');
+                const scrolledPlayButton = document.querySelector('.scrolled-button');
+                if (scrolledPlayButton) scrolledPlayButton.style.display = 'block';
             }
             """);
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
@@ -731,8 +734,231 @@ public sealed class GuessMyAgeBrowserTests
         Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
             "element => element.classList.contains('celebrate-exact')"));
         Assert.Equal(0, await page.Locator(".gma-reaction--exact").CountAsync());
-        Assert.Equal(64, await page.Locator(".gma-celebration-spark").CountAsync());
+        Assert.Equal(0, await page.Locator(".gma-celebration-spark").CountAsync());
+        await page.WaitForFunctionAsync(
+            "() => Number(document.querySelector('.gma-exact-confetti-canvas')?.dataset.burstsFired || 0) >= 4");
+
+        var jackpot = page.Locator(".gma-exact-jackpot");
+        var canvas = page.Locator(".gma-exact-confetti-canvas");
+        Assert.Equal(1, await jackpot.CountAsync());
+        Assert.Equal(1, await canvas.CountAsync());
+        Assert.Equal("true", await jackpot.GetAttributeAsync("aria-hidden"));
+        Assert.Equal("true", await canvas.GetAttributeAsync("aria-hidden"));
+        Assert.True(await page.Locator("#gmaStatus").EvaluateAsync<bool>(
+            """
+            element => !element.hidden
+                && !element.closest('[aria-hidden="true"], [inert]')
+                && element.textContent.includes('Actual age: 41')
+                && element.textContent.includes('Bullseye!')
+            """));
+        Assert.Equal("exact-jackpot", await jackpot.GetAttributeAsync("data-gma-kind"));
+        Assert.Equal("18", await jackpot.GetAttributeAsync("data-wave-count"));
+        Assert.Equal("9000", await jackpot.GetAttributeAsync("data-duration"));
+        Assert.Equal("420", await canvas.GetAttributeAsync("data-particle-cap"));
+        Assert.Equal("auto", await jackpot.EvaluateAsync<string>(
+            "element => getComputedStyle(element).pointerEvents"));
+        Assert.True(await page.Locator("#modalProfilePic").EvaluateAsync<bool>("element => element.inert"));
+        Assert.Equal(160, await page.Locator(".gma-exact-time-icon").CountAsync());
+        Assert.Equal(32, await page.Locator(".gma-exact-target").CountAsync());
+        Assert.True((await page.Locator("[data-gma-motif]").EvaluateAllAsync<string[]>(
+            "elements => [...new Set(elements.map(element => element.dataset.gmaMotif))]" )).Length >= 5);
+        Assert.Equal(
+            "BULLSEYE!!!",
+            await page.Locator(".gma-exact-jackpot-title").InnerTextAsync());
+        Assert.True(await page.Locator(".gma-exact-jackpot-title").EvaluateAsync<bool>(
+            "element => Number.parseFloat(getComputedStyle(element).fontSize) >= 48"));
+        var spectacleGeometry = await page.EvaluateAsync<bool[]>(
+            """
+            () => {
+                const overlay = document.querySelector('.gma-exact-jackpot');
+                const close = document.getElementById('closeAthleteDetailsModal');
+                const overlayRect = overlay.getBoundingClientRect();
+                const closeRect = close.getBoundingClientRect();
+                const portrait = document.getElementById('modalProfilePic');
+                const portraitRect = portrait.getBoundingClientRect();
+                const modalLayer = Number.parseFloat(getComputedStyle(document.getElementById('detailsModal')).zIndex);
+                const stickyHeader = document.getElementById('site-sticky-header');
+                const scrolledPlayButton = document.querySelector('.scrolled-button');
+                const timeXs = [...document.querySelectorAll('.gma-exact-time-icon')]
+                    .map(element => Number.parseFloat(element.style.getPropertyValue('--gma-time-x')));
+                return [
+                    overlayRect.width >= window.innerWidth * 0.98,
+                    overlayRect.height >= window.innerHeight * 0.98,
+                    overlayRect.left <= 1 && overlayRect.top <= 1,
+                    Math.max(...timeXs) - Math.min(...timeXs) >= 90,
+                    modalLayer > Number.parseFloat(getComputedStyle(stickyHeader).zIndex)
+                        && modalLayer > Number.parseFloat(getComputedStyle(scrolledPlayButton).zIndex),
+                    close.contains(document.elementFromPoint(
+                        closeRect.left + closeRect.width / 2,
+                        closeRect.top + closeRect.height / 2)),
+                    !portrait.contains(document.elementFromPoint(
+                        portraitRect.left + portraitRect.width / 2,
+                        portraitRect.top + portraitRect.height / 2)),
+                    overlay.getAnimations({ subtree: true }).every(
+                        animation => animation.effect.getTiming().iterations !== Infinity),
+                    document.documentElement.scrollWidth <= document.documentElement.clientWidth
+                ];
+            }
+            """);
+        Assert.True(spectacleGeometry[0], "Jackpot width does not cover the viewport.");
+        Assert.True(spectacleGeometry[1], "Jackpot height does not cover the viewport.");
+        Assert.True(spectacleGeometry[2], "Jackpot is not anchored to the viewport origin.");
+        Assert.True(spectacleGeometry[3], "Clock rain does not span the screen.");
+        Assert.True(spectacleGeometry[4], "Athlete modal does not outrank visible site chrome.");
+        Assert.True(spectacleGeometry[5], "Close control is not hit-testable above the jackpot.");
+        Assert.True(spectacleGeometry[6], "Jackpot does not shield the interactive portrait.");
+        Assert.True(spectacleGeometry[7], "Jackpot contains an unbounded animation.");
+        Assert.True(spectacleGeometry[8], "Jackpot introduces horizontal document overflow.");
+
+        var earlyCanvasWork = await canvas.EvaluateAsync<double[]>(
+            """
+            element => [
+                Number(element.dataset.activeParticles),
+                Number(element.dataset.totalSpawned),
+                Number(element.dataset.backingPixels)
+            ]
+            """);
+        Assert.InRange(earlyCanvasWork[0], 1, 420);
+        Assert.InRange(earlyCanvasWork[1], 256, 1_620);
+        Assert.InRange(earlyCanvasWork[2], 1, 3_000_000);
+
+        foreach (var viewport in new[]
+                 {
+                     new ViewportSize { Width = 390, Height = 844 },
+                     new ViewportSize { Width = 1280, Height = 720 }
+                 })
+        {
+            await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
+            await page.WaitForFunctionAsync(
+                """
+                () => {
+                    const canvas = document.querySelector('.gma-exact-confetti-canvas');
+                    return canvas
+                        && Number.parseFloat(canvas.style.width) === window.innerWidth
+                        && Number.parseFloat(canvas.style.height) === window.innerHeight;
+                }
+                """);
+            Assert.True(await page.EvaluateAsync<bool>(
+                """
+                () => {
+                    const overlay = document.querySelector('.gma-exact-jackpot').getBoundingClientRect();
+                    const canvas = document.querySelector('.gma-exact-confetti-canvas');
+                    const title = document.querySelector('.gma-exact-jackpot-title').getBoundingClientRect();
+                    return overlay.width >= window.innerWidth * 0.98
+                        && overlay.height >= window.innerHeight * 0.98
+                        && title.left >= -1
+                        && title.right <= window.innerWidth + 1
+                        && document.querySelector('.gma-exact-jackpot-title').scrollWidth
+                            <= document.querySelector('.gma-exact-jackpot-title').clientWidth + 1
+                        && Number(canvas.dataset.backingPixels) <= 3000000
+                        && document.documentElement.scrollWidth <= document.documentElement.clientWidth;
+                }
+                """));
+        }
+
+        // The exact result is a sustained jackpot, not a single decorative pop.
+        await page.WaitForFunctionAsync(
+            "() => Number(document.querySelector('.gma-exact-confetti-canvas')?.dataset.burstsFired || 0) === 18");
+        var completedWaves = await canvas.EvaluateAsync<double[]>(
+            "element => [Number(element.dataset.activeParticles), Number(element.dataset.totalSpawned)]");
+        Assert.InRange(completedWaves[0], 1, 420);
+        Assert.InRange(completedWaves[1], 421, 1_620);
+
+        await page.EmulateMediaAsync(new PageEmulateMediaOptions { ReducedMotion = ReducedMotion.Reduce });
+        await page.WaitForFunctionAsync(
+            "() => !document.querySelector('.gma-exact-jackpot') && !document.querySelector('#detailsModal .modal-content')?.classList.contains('gma-exact-takeover') && !document.getElementById('detailsModal')?.classList.contains('gma-exact-takeover-active')");
+        await page.WaitForTimeoutAsync(500);
+        Assert.Equal(
+            0,
+            await page.Locator(".gma-exact-jackpot, .gma-exact-confetti-canvas, .gma-exact-time-icon, .gma-exact-target").CountAsync());
+        Assert.False(await page.Locator("#modalProfilePic").EvaluateAsync<bool>("element => element.inert"));
         Assert.NotNull(await page.EvaluateAsync<string?>("() => localStorage.getItem('gmaHasPerfectGuess')"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_AcceptedExactResultSurvivesCelebrationRendererFailure()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200,
+            ContentType = "application/json",
+            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+        }));
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'celebration-renderer-failure-test';
+                modalContent.classList.add('guess-mode', 'gma-fast');
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.EvaluateAsync(
+            """
+            () => {
+                window.proDiscounts = {
+                    setPerfectGuessMarker: () => localStorage.setItem('gmaHasPerfectGuess', '1')
+                };
+                window.animateActualAgeReveal = async (bubble, _startAge, actualAge) => {
+                    bubble.textContent = String(actualAge);
+                    bubble.dataset.revealPhase = 'settled';
+                    bubble.classList.remove('is-travelling');
+                    bubble.classList.add('is-settled');
+                    window.positionGmaRevealBubble(bubble, actualAge);
+                    return true;
+                };
+                HTMLCanvasElement.prototype.getContext = () => {
+                    throw new Error('Synthetic jackpot renderer failure');
+                };
+                const range = document.getElementById('gmaRange');
+                range.value = '41';
+                range.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            """);
+
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
+
+        var statusCopy = await page.Locator("#gmaStatus").InnerTextAsync();
+        Assert.Contains("Actual age: 41", statusCopy);
+        Assert.Contains("Bullseye!", statusCopy);
+        Assert.DoesNotContain("could not submit", statusCopy.ToLowerInvariant());
+        Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
+            "element => element.classList.contains('guess-mode') && element.classList.contains('gma-result-ready')"));
+        Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
+            "element => element.classList.contains('celebrate-exact') && !element.classList.contains('is-submitting')"));
+        Assert.True(await page.Locator("#gmaRange").IsDisabledAsync());
+        Assert.Equal(0, await page.Locator(".gma-exact-jackpot, .gma-exact-confetti-canvas").CountAsync());
+        Assert.False(await page.Locator("#modalProfilePic").EvaluateAsync<bool>("element => element.inert"));
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['celebration-renderer-failure-test']?.exact === true"));
+        Assert.NotNull(await page.EvaluateAsync<string?>("() => localStorage.getItem('gmaHasPerfectGuess')"));
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").IsVisibleAsync());
+
+        await page.Keyboard.PressAsync("Escape");
+        await page.WaitForFunctionAsync("() => getComputedStyle(document.getElementById('detailsModal')).display === 'none'");
         Assert.Empty(errors);
     }
 
@@ -843,7 +1069,7 @@ public sealed class GuessMyAgeBrowserTests
             """));
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
             "element => !element.classList.contains('guess-mode') && !element.classList.contains('gma-result-ready')"));
-        Assert.Equal(0, await page.Locator(".gma-reaction, .gma-celebration-spark, .gma-pop-banner").CountAsync());
+        Assert.Equal(0, await page.Locator(".gma-reaction, .gma-celebration-spark, .gma-pop-banner, .gma-exact-jackpot").CountAsync());
         Assert.Empty(errors);
     }
 
@@ -981,6 +1207,16 @@ public sealed class GuessMyAgeBrowserTests
             "range => { range.value = '41'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
         await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
+        Assert.Equal(1, await page.Locator(".gma-exact-jackpot").CountAsync());
+        Assert.Equal(112, await page.Locator(".gma-exact-time-icon").CountAsync());
+        await page.WaitForTimeoutAsync(420);
+        Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
+            """
+            element => {
+                const rect = element.getBoundingClientRect();
+                return rect.left >= -1 && rect.right <= window.innerWidth + 1;
+            }
+            """));
 
         await page.EvaluateAsync(
             """
@@ -992,9 +1228,13 @@ public sealed class GuessMyAgeBrowserTests
             """);
         await page.WaitForFunctionAsync(
             "() => document.getElementById('gmaRange')?.disabled === false && document.getElementById('gmaRange').value === '33' && !document.getElementById('gmaRealBubble')");
-        // Exact outcomes dwell for 6000ms, then take 260ms to exit at normal motion.
+        Assert.Equal(
+            0,
+            await page.Locator(".gma-exact-jackpot, .gma-exact-confetti-canvas, .gma-exact-time-icon, .gma-exact-target").CountAsync());
+        Assert.False(await page.Locator("#modalProfilePic").EvaluateAsync<bool>("element => element.inert"));
+        // Exact outcomes dwell for 9600ms, then take 260ms to exit at normal motion.
         // Waiting beyond that full threshold proves the stale exit cannot close the reopen.
-        await page.WaitForTimeoutAsync(6600);
+        await page.WaitForTimeoutAsync(10200);
 
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
             "element => element.classList.contains('guess-mode')"));
@@ -1153,11 +1393,93 @@ public sealed class GuessMyAgeBrowserTests
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
         Assert.Equal(
             0,
-            await page.Locator(".gma-pop-banner, .gma-reaction, .gma-celebration-spark").CountAsync());
+            await page.Locator(".gma-pop-banner, .gma-reaction, .gma-celebration-spark, .gma-exact-jackpot").CountAsync());
         Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
             "element => getComputedStyle(element).animationName === 'none' && element.getAnimations().length === 0"));
         Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
             "element => element === document.activeElement"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task GuessSubmission_ExactResultSuppressesTheJackpotOverlayUnderReducedMotion()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ReducedMotion = ReducedMotion.Reduce,
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.RouteAsync("**/api/Guess/athlete-age**", route => route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200,
+            ContentType = "application/json",
+            Body = """{"crowdAge":40,"crowdCount":12,"actualAge":41,"guessAccepted":true}"""
+        }));
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.PageError += (_, error) => errors.Add(error);
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange') && typeof updateYourGuess === 'function'");
+        await page.EvaluateAsync(
+            """
+            () => {
+                const modal = document.getElementById('detailsModal');
+                const modalContent = modal.querySelector('.modal-content');
+                modal.style.display = 'block';
+                modalContent.dataset.athleteSlug = 'reduced-exact-history-test';
+                modalContent.classList.add('guess-mode');
+                window.proDiscounts = {
+                    setPerfectGuessMarker: () => localStorage.setItem('gmaHasPerfectGuess', '1')
+                };
+            }
+            """);
+        await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
+        await page.Locator("#gmaRange").EvaluateAsync(
+            "range => { range.value = '41'; range.dispatchEvent(new Event('input', { bubbles: true })); }");
+
+        await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
+        await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
+
+        Assert.Equal("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
+        Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
+            "element => element.classList.contains('celebrate-exact')"));
+        Assert.True(await page.Locator("#closeAthleteDetailsModal").EvaluateAsync<bool>(
+            "element => element === document.activeElement"));
+        Assert.Equal(
+            0,
+            await page.Locator(".gma-reaction, .gma-celebration-spark, .gma-exact-jackpot, .gma-exact-confetti-canvas, .gma-exact-time-icon, .gma-exact-target").CountAsync());
+        Assert.False(await page.Locator("#modalProfilePic").EvaluateAsync<bool>("element => element.inert"));
+        Assert.Equal("none", await page.EvaluateAsync<string>(
+            """
+            () => {
+                const probe = document.createElement('div');
+                probe.className = 'gma-exact-jackpot';
+                document.querySelector('#detailsModal .modal-content').appendChild(probe);
+                const display = getComputedStyle(probe).display;
+                probe.remove();
+                return display;
+            }
+            """));
+        Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
+            "element => element.getAnimations({ subtree: true }).length === 0"));
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['reduced-exact-history-test']?.exact === true"));
+        Assert.NotNull(await page.EvaluateAsync<string?>("() => localStorage.getItem('gmaHasPerfectGuess')"));
+
+        await page.Keyboard.PressAsync("Escape");
+        await page.WaitForFunctionAsync("() => getComputedStyle(document.getElementById('detailsModal')).display === 'none'");
+        await page.WaitForTimeoutAsync(500);
+        Assert.Equal(0, await page.Locator(".gma-exact-jackpot, .gma-exact-confetti-canvas").CountAsync());
         Assert.Empty(errors);
     }
 
@@ -1211,7 +1533,7 @@ public sealed class GuessMyAgeBrowserTests
             "() => document.getElementById('gmaRealBubble')?.classList.contains('is-settled') === true");
 
         Assert.Equal("41", await page.Locator("#gmaRealBubble").InnerTextAsync());
-        Assert.Equal(0, await page.Locator(".gma-reaction, .gma-celebration-spark").CountAsync());
+        Assert.Equal(0, await page.Locator(".gma-reaction, .gma-celebration-spark, .gma-exact-jackpot").CountAsync());
         Assert.True(await page.EvaluateAsync<bool>(
             "() => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['motion-change-history-test']?.value === 54"));
         Assert.Empty(errors);
