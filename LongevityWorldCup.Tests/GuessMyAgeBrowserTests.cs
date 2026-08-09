@@ -1128,14 +1128,14 @@ public sealed class GuessMyAgeBrowserTests
                 && element.textContent.includes('Bullseye!')
             """));
         Assert.Equal("exact-jackpot", await jackpot.GetAttributeAsync("data-gma-kind"));
-        Assert.Equal("18", await jackpot.GetAttributeAsync("data-wave-count"));
-        Assert.Equal("9000", await jackpot.GetAttributeAsync("data-duration"));
-        Assert.Equal("420", await canvas.GetAttributeAsync("data-particle-cap"));
+        Assert.Equal("30", await jackpot.GetAttributeAsync("data-wave-count"));
+        Assert.Equal("15000", await jackpot.GetAttributeAsync("data-duration"));
+        Assert.Equal("2200", await canvas.GetAttributeAsync("data-particle-cap"));
         Assert.Equal("auto", await jackpot.EvaluateAsync<string>(
             "element => getComputedStyle(element).pointerEvents"));
         Assert.True(await page.Locator("#modalProfilePic").EvaluateAsync<bool>("element => element.inert"));
-        Assert.Equal(160, await page.Locator(".gma-exact-time-icon").CountAsync());
-        Assert.Equal(32, await page.Locator(".gma-exact-target").CountAsync());
+        Assert.Equal(420, await page.Locator(".gma-exact-time-icon").CountAsync());
+        Assert.Equal(60, await page.Locator(".gma-exact-target").CountAsync());
         Assert.True((await page.Locator("[data-gma-motif]").EvaluateAllAsync<string[]>(
             "elements => [...new Set(elements.map(element => element.dataset.gmaMotif))]" )).Length >= 5);
         Assert.Equal(
@@ -1191,12 +1191,22 @@ public sealed class GuessMyAgeBrowserTests
             element => [
                 Number(element.dataset.activeParticles),
                 Number(element.dataset.totalSpawned),
-                Number(element.dataset.backingPixels)
+                Number(element.dataset.backingPixels),
+                Number(element.dataset.burstsFired)
             ]
             """);
-        Assert.InRange(earlyCanvasWork[0], 1, 420);
-        Assert.InRange(earlyCanvasWork[1], 256, 1_620);
+        Assert.InRange(earlyCanvasWork[0], 1, 2_200);
         Assert.InRange(earlyCanvasWork[2], 1, 3_000_000);
+        var observedWaveCount = (int)earlyCanvasWork[3];
+        Assert.InRange(observedWaveCount, 4, 30);
+        var expectedDesktopParticles = observedWaveCount switch
+        {
+            <= 5 => observedWaveCount * 110,
+            <= 13 => 550 + ((observedWaveCount - 5) * 190),
+            <= 24 => 2_070 + ((observedWaveCount - 13) * 290),
+            _ => 5_260 + ((observedWaveCount - 24) * 460)
+        };
+        Assert.Equal(expectedDesktopParticles, earlyCanvasWork[1]);
 
         foreach (var viewport in new[]
                  {
@@ -1234,11 +1244,12 @@ public sealed class GuessMyAgeBrowserTests
 
         // The exact result is a sustained jackpot, not a single decorative pop.
         await page.WaitForFunctionAsync(
-            "() => Number(document.querySelector('.gma-exact-confetti-canvas')?.dataset.burstsFired || 0) === 18");
+            "() => Number(document.querySelector('.gma-exact-confetti-canvas')?.dataset.burstsFired || 0) === 30");
         var completedWaves = await canvas.EvaluateAsync<double[]>(
             "element => [Number(element.dataset.activeParticles), Number(element.dataset.totalSpawned)]");
-        Assert.InRange(completedWaves[0], 1, 420);
-        Assert.InRange(completedWaves[1], 421, 1_620);
+        Assert.InRange(completedWaves[0], 1, 2_200);
+        Assert.InRange(completedWaves[1], 5_000, 8_500);
+        Assert.Equal("finale", await jackpot.GetAttributeAsync("data-phase"));
 
         await page.EmulateMediaAsync(new PageEmulateMediaOptions { ReducedMotion = ReducedMotion.Reduce });
         await page.WaitForFunctionAsync(
@@ -1584,7 +1595,7 @@ public sealed class GuessMyAgeBrowserTests
         await page.Locator("#guessAgeContainer .gma-btn--primary").ClickAsync();
         await page.GetByText("Bullseye!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
         Assert.Equal(1, await page.Locator(".gma-exact-jackpot").CountAsync());
-        Assert.Equal(112, await page.Locator(".gma-exact-time-icon").CountAsync());
+        Assert.Equal(240, await page.Locator(".gma-exact-time-icon").CountAsync());
         await page.WaitForTimeoutAsync(420);
         Assert.True(await page.Locator("#guessAgeContainer").EvaluateAsync<bool>(
             """
@@ -1608,9 +1619,9 @@ public sealed class GuessMyAgeBrowserTests
             0,
             await page.Locator(".gma-exact-jackpot, .gma-exact-confetti-canvas, .gma-exact-time-icon, .gma-exact-target").CountAsync());
         Assert.False(await page.Locator("#modalProfilePic").EvaluateAsync<bool>("element => element.inert"));
-        // Exact outcomes dwell for 9600ms, then take 260ms to exit at normal motion.
+        // Exact outcomes dwell for 16000ms, then take 260ms to exit at normal motion.
         // Waiting beyond that full threshold proves the stale exit cannot close the reopen.
-        await page.WaitForTimeoutAsync(10200);
+        await page.WaitForTimeoutAsync(16600);
 
         Assert.True(await page.Locator("#detailsModal .modal-content").EvaluateAsync<bool>(
             "element => element.classList.contains('guess-mode')"));
