@@ -39,6 +39,18 @@ interface BioageResultRevealOptions {
     instant?: boolean;
 }
 
+interface BioageResultAnimationOptions {
+    instant?: boolean;
+}
+
+interface BioageResultAnimationState {
+    detailTimers: number[];
+    frame: number;
+    generation: number;
+    settleTimer: number;
+    startTimer: number;
+}
+
 interface BioageBiomarkerEntryOptions {
     clock: BioageClock;
     form: HTMLFormElement;
@@ -80,6 +92,15 @@ interface BioageBiomarkerEntryController {
 }
 
 interface LwcBioageFlowApi {
+    announceBioageResult: (
+        resultElement: HTMLElement | null,
+        announcement: string
+    ) => void;
+    animateBioageResult: (
+        resultElement: HTMLElement | null,
+        finalAge: number,
+        animationOptions?: BioageResultAnimationOptions
+    ) => void;
     bindBiomarkerComparison: (inputId: string, getState: BioageBiomarkerComparisonGetter) => void;
     clearBioageDraft: (clock?: BioageClock) => void;
     clearStoredBiomarkerHandoff: (removeItem?: BioageStorageRemover) => void;
@@ -1228,6 +1249,253 @@ interface Window {
     let resultRevealFrame = 0;
     let pendingResultRevealElement: HTMLElement | null = null;
     let pendingResultRevealInstant = false;
+    const BIOAGE_RESULT_COUNTUP_DURATION_MS = 900;
+    const BIOAGE_RESULT_MAX_VISUAL_UPDATES = 72;
+    const BIOAGE_RESULT_MIN_VISUAL_UPDATES = 24;
+    const BIOAGE_RESULT_SCROLL_SETTLE_MS = 360;
+    const BIOAGE_RESULT_START_AFTER_SCROLL_MS = BIOAGE_RESULT_SCROLL_SETTLE_MS + 40;
+    const BIOAGE_RESULT_SETTLE_CLEANUP_MS = 700;
+    const BIOAGE_RESULT_DETAIL_LEAD_MS = 140;
+    const BIOAGE_RESULT_DETAIL_STEP_MS = 220;
+    const bioageResultAnimationStates = new WeakMap<HTMLElement, BioageResultAnimationState>();
+
+    function getBioageResultAnimationState(resultElement: HTMLElement): BioageResultAnimationState {
+        const existing = bioageResultAnimationStates.get(resultElement);
+        if (existing) return existing;
+
+        const state: BioageResultAnimationState = {
+            detailTimers: [],
+            frame: 0,
+            generation: 0,
+            settleTimer: 0,
+            startTimer: 0
+        };
+        bioageResultAnimationStates.set(resultElement, state);
+        return state;
+    }
+
+    function getBioageResultValueContainer(resultElement: HTMLElement): HTMLElement | null {
+        return resultElement.querySelector<HTMLElement>('.bio-age-number-container');
+    }
+
+    function clearBioageResultAnimation(resultElement: HTMLElement): BioageResultAnimationState {
+        const state = getBioageResultAnimationState(resultElement);
+        state.generation += 1;
+        if (state.frame) {
+            window.cancelAnimationFrame(state.frame);
+            state.frame = 0;
+        }
+        if (state.settleTimer) {
+            window.clearTimeout(state.settleTimer);
+            state.settleTimer = 0;
+        }
+        if (state.startTimer) {
+            window.clearTimeout(state.startTimer);
+            state.startTimer = 0;
+        }
+        state.detailTimers.forEach(timer => window.clearTimeout(timer));
+        state.detailTimers.length = 0;
+
+        const container = getBioageResultValueContainer(resultElement);
+        container?.classList.remove(
+            'bioage-result-reveal--waiting',
+            'bioage-result-reveal--counting',
+            'bioage-result-reveal--settling');
+        if (container) container.dataset.bioageRevealState = 'idle';
+        delete resultElement.dataset.bioageResultStage;
+        return state;
+    }
+
+    function setBioageResultStage(
+        resultElement: HTMLElement,
+        stage: 'age' | 'difference' | 'context' | 'rank'
+    ): void {
+        // The complete result remains in the accessibility tree throughout. This
+        // attribute sequences only the visible presentation of its existing nodes.
+        resultElement.dataset.bioageResultStage = stage;
+    }
+
+    function scheduleBioageResultDetails(
+        resultElement: HTMLElement,
+        state: BioageResultAnimationState,
+        generation: number
+    ): void {
+        const scheduleStage = (
+            stage: 'difference' | 'context' | 'rank',
+            delay: number
+        ): void => {
+            const timer = window.setTimeout(() => {
+                if (state.generation !== generation) return;
+                setBioageResultStage(resultElement, stage);
+            }, delay);
+            state.detailTimers.push(timer);
+        };
+
+        scheduleStage('difference', BIOAGE_RESULT_DETAIL_LEAD_MS);
+        scheduleStage('context', BIOAGE_RESULT_DETAIL_LEAD_MS + BIOAGE_RESULT_DETAIL_STEP_MS);
+        scheduleStage('rank', BIOAGE_RESULT_DETAIL_LEAD_MS + (BIOAGE_RESULT_DETAIL_STEP_MS * 2));
+    }
+
+    function announceBioageResult(
+        resultElement: HTMLElement | null,
+        announcement: string
+    ): void {
+        if (!resultElement?.classList.contains('show')) return;
+
+        // Expose the status region before changing its text so assistive technology
+        // observes a live-region update rather than newly unhidden static content.
+        syncBioageResultVisibility();
+        const liveRegion = resultElement.querySelector<HTMLElement>('[data-bioage-result-announcement]');
+        if (liveRegion) liveRegion.textContent = announcement;
+    }
+
+    function prefersReducedBioageResultMotion(): boolean {
+        return typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    function formatBioageResultVisualValue(value: number): string {
+        return (Math.abs(value) < 0.05 ? 0 : value).toFixed(1);
+    }
+
+    function getBioageResultVisualUpdateBudget(finalAge: number): number {
+        return Math.min(
+            BIOAGE_RESULT_MAX_VISUAL_UPDATES,
+            Math.max(BIOAGE_RESULT_MIN_VISUAL_UPDATES, Math.ceil(Math.abs(finalAge))));
+    }
+
+    function syncBioageResultRevealTone(resultElement: HTMLElement, container: HTMLElement): void {
+        const semanticValue = resultElement.querySelector<HTMLElement>('#animatedAge');
+        const tone = semanticValue?.classList.contains('age-excellent')
+            ? 'excellent'
+            : semanticValue?.classList.contains('age-average')
+                ? 'average'
+                : 'good';
+        container.dataset.bioageRevealTone = tone;
+    }
+
+    function animateBioageResult(
+        resultElement: HTMLElement | null,
+        finalAge: number,
+        animationOptions: BioageResultAnimationOptions = {}
+    ): void {
+        if (!resultElement) return;
+
+        const state = clearBioageResultAnimation(resultElement);
+        const generation = state.generation;
+        const container = getBioageResultValueContainer(resultElement);
+        const visualValue = container?.querySelector<HTMLElement>('[data-bioage-result-visual]') || null;
+        if (!container || !visualValue) return;
+
+        syncBioageResultRevealTone(resultElement, container);
+        if (!Number.isFinite(finalAge)) {
+            visualValue.textContent = '';
+            container.dataset.bioageRevealState = 'idle';
+            return;
+        }
+
+        const finalText = formatBioageResultVisualValue(finalAge);
+        setBioageResultStage(resultElement, 'age');
+        if (animationOptions.instant || prefersReducedBioageResultMotion()) {
+            visualValue.textContent = finalText;
+            container.dataset.bioageRevealState = 'complete';
+            setBioageResultStage(resultElement, 'rank');
+            return;
+        }
+
+        visualValue.textContent = '0.0';
+        let startedAt = 0;
+        let lastRenderedBucket = 0;
+        const visualUpdateBudget = getBioageResultVisualUpdateBudget(finalAge);
+        const finish = (settle: boolean): void => {
+            if (state.generation !== generation) return;
+
+            state.frame = 0;
+            visualValue.textContent = finalText;
+            container.classList.remove('bioage-result-reveal--waiting', 'bioage-result-reveal--counting');
+            if (!settle) {
+                container.classList.remove('bioage-result-reveal--settling');
+                container.dataset.bioageRevealState = 'complete';
+                setBioageResultStage(resultElement, 'rank');
+                return;
+            }
+
+            container.classList.add('bioage-result-reveal--settling');
+            container.dataset.bioageRevealState = 'settling';
+            state.settleTimer = window.setTimeout(() => {
+                if (state.generation !== generation) return;
+                state.settleTimer = 0;
+                container.classList.remove('bioage-result-reveal--settling');
+                container.dataset.bioageRevealState = 'complete';
+                scheduleBioageResultDetails(resultElement, state, generation);
+            }, BIOAGE_RESULT_SETTLE_CLEANUP_MS);
+        };
+
+        const countFrame = (timestamp: number): void => {
+            if (state.generation !== generation) return;
+            if (animationOptions.instant || prefersReducedBioageResultMotion()) {
+                finish(false);
+                return;
+            }
+
+            const progress = Math.min(
+                1,
+                Math.max(0, (timestamp - startedAt) / BIOAGE_RESULT_COUNTUP_DURATION_MS));
+
+            if (progress >= 1) {
+                finish(true);
+                return;
+            }
+
+            // Keep the old reveal's satisfying near-year cadence without coupling
+            // duration to intervals or refresh rate. Typical results advance about
+            // one year per visual update; all results remain capped at 72 writes.
+            const renderedBucket = Math.floor(progress * (visualUpdateBudget - 1));
+            if (renderedBucket > lastRenderedBucket) {
+                lastRenderedBucket = renderedBucket;
+                const displayedProgress = renderedBucket / (visualUpdateBudget - 1);
+                visualValue.textContent = formatBioageResultVisualValue(finalAge * displayedProgress);
+            }
+
+            state.frame = window.requestAnimationFrame(countFrame);
+        };
+
+        const startCounting = (): void => {
+            if (state.generation !== generation) return;
+            if (animationOptions.instant || prefersReducedBioageResultMotion()) {
+                finish(false);
+                return;
+            }
+
+            state.frame = 0;
+            container.classList.remove('bioage-result-reveal--waiting');
+            container.classList.add('bioage-result-reveal--counting');
+            container.dataset.bioageRevealState = 'counting';
+            startedAt = window.performance.now();
+            state.frame = window.requestAnimationFrame(countFrame);
+        };
+
+        if (isBioageResultComfortablyVisible(resultElement)) {
+            startCounting();
+            return;
+        }
+
+        container.classList.add('bioage-result-reveal--waiting');
+        container.dataset.bioageRevealState = 'waiting';
+        state.startTimer = window.setTimeout(() => {
+            state.startTimer = 0;
+            if (state.generation !== generation) return;
+            if (!resultElement.classList.contains('show')) {
+                clearBioageResultAnimation(resultElement);
+                return;
+            }
+
+            if (!isBioageResultComfortablyVisible(resultElement)) {
+                revealBioageResult(resultElement, { instant: true });
+            }
+            state.frame = window.requestAnimationFrame(startCounting);
+        }, BIOAGE_RESULT_START_AFTER_SCROLL_MS);
+    }
 
     function getShownBioageResultElement(): HTMLElement | null {
         return document.querySelector<HTMLElement>('#phenoAgeResult.show, #bortzAgeResult.show');
@@ -1314,7 +1582,9 @@ interface Window {
             behavior: prefersReducedMotion || revealOptions.instant ? 'auto' : 'smooth',
         });
 
-        window.setTimeout(() => getFlowActionDock()?.refresh?.(), prefersReducedMotion ? 0 : 360);
+        window.setTimeout(
+            () => getFlowActionDock()?.refresh?.(),
+            prefersReducedMotion ? 0 : BIOAGE_RESULT_SCROLL_SETTLE_MS);
     }
 
     function clearScheduledBioageResultReveals(): void {
@@ -1358,7 +1628,12 @@ interface Window {
                 const isShown = candidate.classList.contains('show');
                 candidate.toggleAttribute('inert', !isShown);
                 if (isShown) candidate.removeAttribute('aria-hidden');
-                else candidate.setAttribute('aria-hidden', 'true');
+                else {
+                    candidate.setAttribute('aria-hidden', 'true');
+                    const announcement = candidate.querySelector<HTMLElement>('[data-bioage-result-announcement]');
+                    if (announcement) announcement.textContent = '';
+                    clearBioageResultAnimation(candidate);
+                }
             });
 
         const resultElement = getShownBioageResultElement();
@@ -1403,6 +1678,8 @@ interface Window {
     }
 
     window.LwcBioageFlow = {
+        announceBioageResult,
+        animateBioageResult,
         bindBiomarkerComparison,
         clearBioageDraft,
         clearStoredBiomarkerHandoff,

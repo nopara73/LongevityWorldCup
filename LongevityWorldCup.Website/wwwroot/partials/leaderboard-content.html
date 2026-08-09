@@ -673,20 +673,20 @@
         border-color:#3B82F6;
         box-shadow:0 0 0 2px rgba(59,130,246,.16);
     }
+    .leaderboard tr.is-new-athlete.is-new-revealed,
+    .leaderboard tr.is-rank-up-athlete.is-rank-up-revealed{
+        --leaderboard-change-duration:calc(var(--lwc-duration-normal, 220ms) * 4);
+    }
     .leaderboard tr.is-new-athlete.is-new-revealed > td{
-        animation:newAthleteEntrySlide var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) 1 both;
+        animation:newAthleteEntrySlide var(--leaderboard-change-duration) var(--lwc-ease, ease) 1 both;
     }
     .leaderboard tr.is-rank-up-athlete.is-rank-up-revealed > td{
-        animation:rankUpAthleteClimb var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease) 1 both;
+        animation:rankUpAthleteClimb var(--leaderboard-change-duration) var(--lwc-ease, ease) 1 both;
     }
     @keyframes newAthleteEntrySlide{
         0%{
-            transform:translateX(-4px);
-            opacity:1;
-        }
-        44%{
-            transform:translateX(0);
-            opacity:1;
+            transform:translateX(-24px);
+            opacity:.72;
         }
         100%{
             transform:translateX(0);
@@ -695,12 +695,8 @@
     }
     @keyframes rankUpAthleteClimb{
         0%{
-            transform:translateY(4px);
-            opacity:1;
-        }
-        48%{
-            transform:translateY(0);
-            opacity:1;
+            transform:translateY(16px);
+            opacity:.72;
         }
         100%{
             transform:translateY(0);
@@ -6159,6 +6155,12 @@
 
     // Initialize keyboard navigation
     setupModalKeyboardNavigation();
+
+    function isGuessMyAgeDismissBlocked(modalContent) {
+        return !!modalContent
+            && modalContent.classList.contains('guess-mode')
+            && !modalContent.classList.contains('gma-result-ready');
+    }
     
     // Set up sticky header close button
     const stickyCloseBtn = document.getElementById('stickyCloseBtn');
@@ -6171,9 +6173,9 @@
     }
 
     closeBtn.onclick = function () {
-        // don't let them close mid-game
+        // Keep an unresolved round locked; a confirmed result reuses this standard close control.
         const modalContent = document.querySelector('.modal-content');
-        if (modalContent && modalContent.classList.contains('guess-mode')) return;
+        if (isGuessMyAgeDismissBlocked(modalContent)) return;
         closeModal();
     };
 
@@ -6187,6 +6189,10 @@
     function closeModal() {
         const modalContent = document.querySelector('.modal-content');
         if (!modalContent) return;
+
+        if (modalContent.classList.contains('gma-result-ready')) {
+            modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
+        }
 
         currentAthleteModalRequestId++;
         const returnFocusElement = athleteDialogReturnFocusElement;
@@ -7482,10 +7488,10 @@
             if (!closeAll) return;
         }
 
-        // Don't close the parent details modal mid-guess. Its nested image viewer
-        // and share menu remain independently dismissible above this guard.
+        // Keep the parent details modal locked until the Guess My Age response is confirmed.
+        // Its nested image viewer and share menu remain independently dismissible above this guard.
         const modalContent = document.querySelector('.modal-content');
-        if (modalContent && modalContent.classList.contains('guess-mode')) return;
+        if (isGuessMyAgeDismissBlocked(modalContent)) return;
 
         if (modal.style.display === "block") {
             closeModal();
@@ -8137,7 +8143,7 @@
                 const gmaCard = document.getElementById('guessAgeContainer');
 
                 // always reset the Guess-My-Age UI first:
-                modalContent.classList.remove('guess-mode', 'gma-fast');
+                modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
                 gmaCard.classList.remove('gma-done');
                 // read your guesses from localStorage
                 const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
