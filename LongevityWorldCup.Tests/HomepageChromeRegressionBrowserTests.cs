@@ -336,20 +336,19 @@ public sealed class HomepageChromeRegressionBrowserTests
                      })
             {
                 await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
-                await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-                await page.EvaluateAsync("window.scrollTo({ top: 0, behavior: 'instant' })");
-                await SettleLayoutAsync(page);
+                await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.Load });
+                await ScrollToStablePositionAsync(page, 0);
 
                 var atTopActions = await MeasurePlayActionsAsync(page);
-                var atTop = atTopActions.Where(action => action.Visible).ToArray();
+                var atTop = atTopActions
+                    .Where(action => IsActionFullyInsideViewport(viewport, action))
+                    .ToArray();
                 Assert.True(atTop.Length > 0,
-                    $"{path} had no visible Play action at the top of {viewport.Width}x{viewport.Height}. " +
+                    $"{path} had no fully visible Play action at the top of {viewport.Width}x{viewport.Height}. " +
                     DescribeActions(atTopActions));
                 Assert.All(atTop, action => AssertActionInsideViewport(path, viewport, action));
 
-                await page.EvaluateAsync(
-                    "window.scrollTo({ top: Math.min(52, document.documentElement.scrollHeight - innerHeight), behavior: 'instant' })");
-                await SettleLayoutAsync(page);
+                await ScrollToStablePositionAsync(page, 52);
                 var stickyHeaderVisible = await page.EvaluateAsync<bool>(
                     "() => document.getElementById('site-sticky-header')?.classList.contains('visible') === true");
                 if (stickyHeaderVisible)
@@ -361,13 +360,13 @@ public sealed class HomepageChromeRegressionBrowserTests
                     AssertActionInsideViewport(path, viewport, stickyAction);
                 }
 
-                await page.EvaluateAsync(
-                    "window.scrollTo({ top: Math.min(700, document.documentElement.scrollHeight - innerHeight), behavior: 'instant' })");
-                await SettleLayoutAsync(page);
+                await ScrollToStablePositionAsync(page, 700);
                 var afterScrollActions = await MeasurePlayActionsAsync(page);
-                var afterScroll = afterScrollActions.Where(action => action.Visible).ToArray();
+                var afterScroll = afterScrollActions
+                    .Where(action => IsActionFullyInsideViewport(viewport, action))
+                    .ToArray();
                 Assert.True(afterScroll.Length > 0,
-                    $"{path} had no visible Play action after scrolling at {viewport.Width}x{viewport.Height}. " +
+                    $"{path} had no fully visible Play action after scrolling at {viewport.Width}x{viewport.Height}. " +
                     DescribeActions(afterScrollActions));
                 Assert.All(afterScroll, action => AssertActionInsideViewport(path, viewport, action));
             }
@@ -615,6 +614,71 @@ public sealed class HomepageChromeRegressionBrowserTests
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     }
 
+    private static async Task ScrollToStablePositionAsync(IPage page, int requestedTop)
+    {
+        await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
+        await page.EvaluateAsync(
+            """
+            requestedTop => new Promise((resolve, reject) => {
+                const positionTolerance = 0.5;
+                const stableDuration = 180;
+                const minimumStableSamples = 4;
+                const timeout = 5000;
+                const startedAt = performance.now();
+                let stableSince = null;
+                let stableSamples = 0;
+                let previousTarget = null;
+
+                const sample = now => {
+                    const maxScroll = Math.max(0, document.documentElement.scrollHeight - innerHeight);
+                    const target = Math.min(Math.max(0, requestedTop), maxScroll);
+                    const targetChanged = previousTarget === null
+                        || Math.abs(target - previousTarget) > positionTolerance;
+                    const atTarget = Math.abs(scrollY - target) <= positionTolerance;
+
+                    if (!atTarget) {
+                        window.scrollTo({ top: target, behavior: 'instant' });
+                        stableSince = null;
+                        stableSamples = 0;
+                    } else if (targetChanged) {
+                        stableSince = now;
+                        stableSamples = 1;
+                    } else {
+                        stableSince ??= now;
+                        stableSamples += 1;
+                    }
+
+                    previousTarget = target;
+                    if (stableSince !== null
+                        && stableSamples >= minimumStableSamples
+                        && now - stableSince >= stableDuration) {
+                        resolve();
+                        return;
+                    }
+
+                    if (now - startedAt >= timeout) {
+                        reject(new Error(
+                            `Scroll position did not stabilize: requested=${requestedTop}, `
+                            + `target=${target}, scrollY=${scrollY}, maxScroll=${maxScroll}.`));
+                        return;
+                    }
+
+                    requestAnimationFrame(sample);
+                };
+
+                const initialMaxScroll = Math.max(0, document.documentElement.scrollHeight - innerHeight);
+                window.scrollTo({
+                    top: Math.min(Math.max(0, requestedTop), initialMaxScroll),
+                    behavior: 'instant'
+                });
+                requestAnimationFrame(sample);
+            })
+            """,
+            requestedTop);
+        await page.EvaluateAsync(
+            "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+    }
+
     private static Task<HomepageHeaderDiagnostics> MeasureHomepageHeaderAsync(IPage page) =>
         page.EvaluateAsync<HomepageHeaderDiagnostics>(
             """
@@ -666,6 +730,8 @@ public sealed class HomepageChromeRegressionBrowserTests
                         IsScrolled: action.classList.contains('scrolled-button'),
                         Display: style.display,
                         Visibility: style.visibility,
+                        ScrollY: scrollY,
+                        MaxScroll: Math.max(0, document.documentElement.scrollHeight - innerHeight),
                         Visible: style.display !== 'none' && style.visibility !== 'hidden'
                             && rect.width > 0 && rect.height > 0
                             && rect.right > 0 && rect.left < innerWidth
@@ -688,7 +754,18 @@ public sealed class HomepageChromeRegressionBrowserTests
     private static string DescribeActions(IEnumerable<VisibleActionDiagnostics> actions) =>
         string.Join("; ", actions.Select(action =>
             $"{action.Name} ({action.Text}): display={action.Display}, visibility={action.Visibility}, " +
-            $"rect={action.Left:F1},{action.Top:F1} {action.Width:F1}x{action.Height:F1}"));
+            $"scrolled={action.IsScrolled}, scrollY={action.ScrollY:F1}/{action.MaxScroll:F1}, " +
+            $"rect={action.Left:F1},{action.Top:F1} " +
+            $"{action.Width:F1}x{action.Height:F1}"));
+
+    private static bool IsActionFullyInsideViewport(
+        ViewportSize viewport,
+        VisibleActionDiagnostics action) =>
+        action.Visible
+        && action.Left >= -0.5
+        && action.Right <= viewport.Width + 0.5
+        && action.Top >= -0.5
+        && action.Bottom <= viewport.Height + 0.5;
 
     private static void AssertActionInsideViewport(
         string path,
@@ -749,6 +826,8 @@ public sealed class HomepageChromeRegressionBrowserTests
         public bool IsScrolled { get; set; }
         public string Display { get; set; } = "";
         public string Visibility { get; set; } = "";
+        public double ScrollY { get; set; }
+        public double MaxScroll { get; set; }
         public bool Visible { get; set; }
         public double Left { get; set; }
         public double Right { get; set; }

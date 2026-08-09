@@ -330,9 +330,27 @@ public sealed class AestheticSystemPageTests
         var html = await client.GetStringAsync("/leaderboard");
 
         Assert.Contains("/assets/content-images/trollface.png?v=", html);
-        Assert.Contains("claim your rickroll", html);
-        Assert.Contains("target=\"_blank\" rel=\"noopener noreferrer\"", html);
+        Assert.DoesNotContain("claim your rickroll", html);
+        Assert.DoesNotContain("id=\"gmaTrollNote\"", html);
         Assert.Contains("userGuess === +gmaRange.min || userGuess === +gmaRange.max", html);
+        Assert.Contains("gmaTriggerTrollAnimation();", html);
+        Assert.Contains("className = 'gma-trollface-container';", html);
+        Assert.Contains("@keyframes gmaTrollSlideUpOverlay", html);
+        Assert.Contains("from { bottom: -100%; }", html);
+        Assert.Contains("to { bottom: 0; }", html);
+        Assert.Contains("animation-timing-function: ease-out;", html);
+        Assert.Contains("animation-fill-mode: forwards;", html);
+        Assert.Contains("object-fit: cover;", html);
+        Assert.Contains("const GMA_TROLL_REDIRECT_MS = 2000;", html);
+        Assert.Contains("const GMA_TROLL_RECOVERY_MS = 2000;", html);
+        Assert.Contains("trollImg.alt = 'Trollface';", html);
+        Assert.Contains("trollImg.setAttribute('aria-hidden', 'true');", html);
+        Assert.Contains("if (athleteProfile) athleteProfile.inert = true;", html);
+        Assert.Contains("if (athleteProfile) athleteProfile.inert = profileWasInert;", html);
+        Assert.Contains("trollDiv.addEventListener('keydown', keepTrollFocus);", html);
+        Assert.Contains("trollDiv.removeEventListener('keydown', keepTrollFocus);", html);
+        Assert.Contains("if (recoveryTimer) window.clearTimeout(recoveryTimer);", html);
+        Assert.Contains("window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';", html);
         Assert.Contains("result.guessAccepted === true && crowdCountBeforeGuess === 0", html);
         Assert.DoesNotContain("That guess was not accepted", html);
         Assert.Contains("#gmaBubble.gma-bubble-inactive", html);
@@ -410,7 +428,9 @@ public sealed class AestheticSystemPageTests
         Assert.True(
             html.IndexOf("persistGmaGuessState(presentation.athleteSlug, guessState);", StringComparison.Ordinal)
             < html.IndexOf("await animateActualAgeReveal(", StringComparison.Ordinal));
-        Assert.DoesNotContain("window.location.href = 'https://www.youtube.com", html);
+        Assert.True(
+            html.IndexOf("gmaTriggerTrollAnimation();", StringComparison.Ordinal)
+            < html.IndexOf("const response = await fetch(", StringComparison.Ordinal));
     }
 
     [Fact]

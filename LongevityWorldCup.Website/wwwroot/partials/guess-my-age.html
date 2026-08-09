@@ -607,76 +607,39 @@
         animation-duration: var(--lwc-duration-fast, 140ms) !important;
     }
 
-    .gma-troll-note {
-        box-sizing: border-box;
-        display: grid;
-        grid-template-columns: 48px minmax(0, 1fr);
+    /* The original endpoint gag: a modal-covering trollface rises from below. */
+    #detailsModal .modal-content > .gma-trollface-container {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 100%;
+        bottom: -100%;
+        background: transparent;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
         align-items: center;
-        gap: 0.75rem;
-        width: min(100%, 32rem);
-        margin: 0 auto 1rem;
-        padding: 0.65rem 0.75rem;
-        border: 1px solid var(--athlete-modal-cream-border, var(--lwc-border, rgba(255, 255, 255, 0.24)));
-        border-inline-start: 4px solid var(--lwc-accent-bright, #19c3d1);
-        border-radius: var(--lwc-radius-md, 8px);
-        background: rgba(255, 255, 255, 0.08);
-        color: inherit;
-        text-align: left;
+        z-index: 10000;
+        animation-name: gmaTrollSlideUpOverlay;
+        animation-duration: calc(var(--lwc-duration-normal, 220ms) * 9.0909090909);
+        animation-timing-function: ease-out;
+        animation-fill-mode: forwards;
     }
 
-    .gma-troll-note[hidden] {
-        display: none;
+    /* Guess mode normally hides direct modal children; this takeover is intentional. */
+    #detailsModal .modal-content.guess-mode > .gma-trollface-container {
+        display: flex !important;
     }
 
-    .gma-troll-note img {
-        display: block;
-        width: 48px;
-        height: 48px;
-        object-fit: contain;
+    @keyframes gmaTrollSlideUpOverlay {
+        from { bottom: -100%; }
+        to { bottom: 0; }
     }
 
-    .gma-troll-note p {
-        margin: 0;
-        line-height: 1.4;
-    }
-
-    .gma-troll-note a {
-        color: inherit;
-        font-weight: 700;
-        text-decoration-thickness: 0.1em;
-        text-underline-offset: 0.14em;
-    }
-
-    @keyframes gma-troll-note-enter {
-        0% { opacity: 0; transform: translateY(-0.45rem) scale(0.9); }
-        58% { opacity: 1; transform: translateY(0.08rem) scale(1.035); }
-        100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    @media (prefers-reduced-motion: no-preference) {
-        .gma-troll-note.is-visible {
-            animation: gma-troll-note-enter calc(var(--lwc-duration-normal, 220ms) * 3) var(--lwc-ease, ease) both;
-        }
-    }
-
-    .gma-troll-reaction {
-        position: fixed;
-        left: var(--gma-reaction-x, 50%);
-        top: var(--gma-reaction-y, 35%);
-        z-index: 10004;
-        width: clamp(8rem, 28vw, 15rem);
-        height: clamp(8rem, 28vw, 15rem);
-        object-fit: contain;
-        pointer-events: none;
-        filter: drop-shadow(0 0.8rem 1.3rem rgba(2, 8, 23, 0.34));
-        animation: gma-troll-reaction-pop calc(var(--lwc-duration-normal, 220ms) * 6) var(--lwc-ease, ease) both;
-    }
-
-    @keyframes gma-troll-reaction-pop {
-        0% { opacity: 0; transform: translate(-50%, -45%) scale(0.15) rotate(-16deg); }
-        38% { opacity: 1; transform: translate(-50%, -55%) scale(1.08) rotate(3deg); }
-        70% { opacity: 1; transform: translate(-50%, -53%) scale(0.98) rotate(-1deg); }
-        100% { opacity: 0; transform: translate(-50%, -68%) scale(1.02) rotate(1deg); }
+    .gma-trollface-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 
     .gma-heading,
@@ -1545,7 +1508,7 @@
         #detailsModal .modal-content.guess-mode #athlete-profile .portrait-wrapper,
         .chrono-age-heading,
         .gma-reaction,
-        .gma-troll-reaction,
+        .gma-trollface-container,
         .gma-celebration-spark,
         .gma-exact-jackpot,
         .gma-exact-time-icon,
@@ -1566,7 +1529,6 @@
         }
 
         .gma-reaction,
-        .gma-troll-reaction,
         .gma-celebration-spark,
         #detailsModal .modal-content.guess-mode > .gma-exact-jackpot,
         .gma-exact-jackpot {
@@ -1581,6 +1543,10 @@
             border-width: 0;
             overflow: hidden;
         }
+
+        #detailsModal .modal-content.guess-mode > .gma-trollface-container {
+            bottom: 0;
+        }
     }
 </style>
 
@@ -1588,11 +1554,6 @@
     <h3 class="gma-heading">Guess my age!</h3>
     <h3 class="chrono-age-heading" style="display: none;">My real age is:</h3>
     <p id="gmaStatus" class="smaller-text" role="status" aria-atomic="true" tabindex="-1" hidden></p>
-    <div id="gmaTrollNote" class="gma-troll-note" role="status" aria-atomic="true" hidden>
-        <img src="{{ASSET_TROLLFACE}}" alt="" width="48" height="48" loading="lazy" decoding="async" />
-        <p>Nice try. Pick another age, or <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">claim your rickroll</a>.</p>
-    </div>
-
     <div class="gma-slider-wrap">
         <input type="range"
                min="1"
@@ -1625,7 +1586,6 @@
     const heading = gmaCard.querySelector('.gma-heading');
     const chronoHeading = gmaCard.querySelector('.chrono-age-heading');
     const gmaStatus = document.getElementById('gmaStatus');
-    const gmaTrollNote = document.getElementById('gmaTrollNote');
 
     const modalContent = document.querySelector('#detailsModal .modal-content');
     const gmaActions = gmaCard.querySelector('.gma-actions');
@@ -1637,16 +1597,20 @@
     const GMA_EXACT_CONFETTI_CAP = 420;
     const GMA_EXACT_TIME_ICON_CAP = 160;
     const GMA_EXACT_CANVAS_PIXEL_CAP = 3000000;
+    const GMA_TROLL_REDIRECT_MS = 2000;
+    const GMA_TROLL_RECOVERY_MS = 2000;
     let gmaWasGuessMode = modalContent.classList.contains('guess-mode');
     let gmaObservedAthleteSlug = modalContent.dataset.athleteSlug || '';
     let gmaPresentationGeneration = 0;
     let cancelCurrentGmaReveal = null;
     let gmaExitTimer = 0;
     let gmaExactJackpotController = null;
+    let gmaTrollController = null;
 
     function cancelGmaPresentation() {
         gmaPresentationGeneration += 1;
         cancelGmaExactJackpot();
+        cancelGmaTrollTakeover();
 
         const cancelReveal = cancelCurrentGmaReveal;
         cancelCurrentGmaReveal = null;
@@ -1696,8 +1660,6 @@
             gmaStatus.hidden = true;
             gmaStatus.classList.remove('gma-status--semantic');
             gmaStatus.textContent = '';
-            gmaTrollNote.hidden = true;
-            gmaTrollNote.classList.remove('is-visible');
             gmaCard.removeAttribute('aria-busy');
             gmaActions.classList.remove('gma-actions-hide');
             gmaActions.inert = false;
@@ -2079,35 +2041,79 @@
         window.setTimeout(() => reactionElement.remove(), 2200);
     }
 
-    function showGmaTrollReaction() {
-        if (prefersReducedGmaMotion()) return;
-        const portrait = document.getElementById('modalProfilePic');
-        const source = gmaTrollNote.querySelector('img');
-        if (!portrait || !source) return;
+    function cancelGmaTrollTakeover() {
+        gmaTrollController?.cancel();
+    }
 
-        document.querySelectorAll('.gma-troll-reaction').forEach(element => element.remove());
-        const rect = portrait.getBoundingClientRect();
-        const troll = document.createElement('img');
-        troll.className = 'gma-troll-reaction';
-        troll.setAttribute('aria-hidden', 'true');
-        troll.alt = '';
-        troll.src = source.currentSrc || source.src;
-        troll.style.setProperty('--gma-reaction-x', `${rect.left + (rect.width / 2)}px`);
-        troll.style.setProperty('--gma-reaction-y', `${rect.top + (rect.height / 2)}px`);
-        troll.style.animationPlayState = 'paused';
-        troll.dataset.animationState = 'queued';
-        document.body.appendChild(troll);
-        troll.addEventListener('animationend', () => troll.remove(), { once: true });
-        window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-            if (!troll.isConnected) return;
+    function gmaTriggerTrollAnimation() {
+        const presentation = beginGmaPresentation(modalContent.dataset.athleteSlug);
+        const previousPosition = modalContent.style.position;
+        const athleteProfile = document.getElementById('athlete-profile');
+        const profileWasInert = athleteProfile?.inert ?? false;
+        const cardWasInert = gmaCard.inert;
+        let redirectTimer = 0;
+        let recoveryTimer = 0;
+        let cancelled = false;
 
-            // Start the bounded reaction only after the browser has had a paint opportunity.
-            // Otherwise a loaded main thread can advance the entire CSS animation between
-            // frames and remove the easter egg before the player ever sees it.
-            troll.dataset.animationState = 'running';
-            troll.style.animationPlayState = 'running';
-            window.setTimeout(() => troll.remove(), 2200);
-        }));
+        modalContent.style.position = 'relative';
+        modalContent.classList.remove('gma-result-ready');
+        if (athleteProfile) athleteProfile.inert = true;
+        gmaCard.inert = true;
+
+        const trollDiv = document.createElement('div');
+        trollDiv.id = 'gmaTrollfaceContainer';
+        trollDiv.className = 'gma-trollface-container';
+        trollDiv.setAttribute('role', 'status');
+        trollDiv.setAttribute('aria-label', 'Trollface. Redirecting to the Rickroll.');
+        trollDiv.tabIndex = -1;
+
+        const trollImg = document.createElement('img');
+        trollImg.src = '{{ASSET_TROLLFACE}}';
+        trollImg.alt = 'Trollface';
+        trollImg.setAttribute('aria-hidden', 'true');
+        trollDiv.appendChild(trollImg);
+        modalContent.appendChild(trollDiv);
+        trollDiv.focus({ preventScroll: true });
+
+        const keepTrollFocus = event => {
+            if (event.key !== 'Tab') return;
+            event.preventDefault();
+            trollDiv.focus({ preventScroll: true });
+        };
+        trollDiv.addEventListener('keydown', keepTrollFocus);
+
+        const cancel = () => {
+            if (cancelled) return;
+            cancelled = true;
+            if (redirectTimer) window.clearTimeout(redirectTimer);
+            if (recoveryTimer) window.clearTimeout(recoveryTimer);
+            trollDiv.removeEventListener('keydown', keepTrollFocus);
+            trollDiv.remove();
+            if (athleteProfile) athleteProfile.inert = profileWasInert;
+            gmaCard.inert = cardWasInert;
+            modalContent.style.position = previousPosition;
+            if (gmaTrollController?.cancel === cancel) gmaTrollController = null;
+        };
+
+        gmaTrollController = { cancel };
+        redirectTimer = window.setTimeout(() => {
+            redirectTimer = 0;
+            if (!isCurrentGmaPresentation(presentation)) {
+                cancel();
+                return;
+            }
+
+            window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+            recoveryTimer = window.setTimeout(() => {
+                if (!isCurrentGmaPresentation(presentation)) {
+                    cancel();
+                    return;
+                }
+
+                cancel();
+                gmaRange.focus({ preventScroll: true });
+            }, GMA_TROLL_RECOVERY_MS);
+        }, GMA_TROLL_REDIRECT_MS);
     }
 
     function gmaJackpotUnit(index, salt) {
@@ -2516,7 +2522,8 @@
 
     function clearGmaEphemera() {
         cancelGmaExactJackpot();
-        document.querySelectorAll('.gma-reaction, .gma-troll-reaction, .gma-celebration-spark, .gma-pop-banner, .gma-exact-jackpot')
+        cancelGmaTrollTakeover();
+        document.querySelectorAll('.gma-reaction, .gma-celebration-spark, .gma-pop-banner, .gma-exact-jackpot')
             .forEach(element => element.remove());
     }
 
@@ -2604,17 +2611,10 @@
         const userGuess = +gmaRange.value;
 
         if (userGuess === +gmaRange.min || userGuess === +gmaRange.max) {
-            gmaTrollNote.hidden = false;
-            gmaTrollNote.classList.remove('is-visible');
-            void gmaTrollNote.offsetWidth;
-            gmaTrollNote.classList.add('is-visible');
-            restoreGuessControls('', gmaRange);
-            showGmaTrollReaction();
+            gmaTriggerTrollAnimation();
             return;
         }
 
-        gmaTrollNote.hidden = true;
-        gmaTrollNote.classList.remove('is-visible');
         clearGmaEphemera();
         const presentation = beginGmaPresentation(modalContent.dataset.athleteSlug);
         const preludePromise = startGmaResultPrelude(presentation);
