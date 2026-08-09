@@ -392,7 +392,10 @@ public sealed class AestheticSystemPageTests
         Assert.Contains("detailsModal?.classList.add('gma-exact-takeover-active');", html);
         Assert.Contains("detailsModal?.classList.remove('gma-exact-takeover-active');", html);
         Assert.Contains("Could not play the Guess My Age celebration.", html);
-        Assert.Contains("const outcomeDwell = userError === 0 ? 16000 : 5000;", html);
+        Assert.Contains("Could not refresh the Guess My Age profile row.", html);
+        Assert.Contains("const outcomeDwell = userError === 0 && !prefersReducedGmaMotion()", html);
+        Assert.Contains("? 16000", html);
+        Assert.Contains(": 5000;", html);
         Assert.Contains("Math.sqrt(GMA_EXACT_CANVAS_PIXEL_CAP / (cssWidth * cssHeight))", html);
         Assert.Contains("Math.min(window.devicePixelRatio || 1, 2, pixelRatioCap)", html);
         Assert.Contains("if (document.hidden", html);

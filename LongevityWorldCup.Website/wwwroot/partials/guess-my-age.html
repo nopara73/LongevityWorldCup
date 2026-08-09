@@ -2842,7 +2842,14 @@
             }
 
             if (!isCurrentGmaPresentation(presentation)) return;
-            updateYourGuess();
+            try {
+                updateYourGuess();
+            } catch (profileRefreshError) {
+                // The profile comparison row is optional presentation. Storage may become
+                // unavailable after the accepted result was persisted best-effort; that must
+                // not turn a successful server response into a retryable submission failure.
+                console.warn('Could not refresh the Guess My Age profile row.', profileRefreshError);
+            }
 
             updateCrowdContainer(result.crowdAge, result.crowdCount);
             gmaCard.classList.remove('is-submitting');
@@ -2890,7 +2897,9 @@
             document.querySelectorAll('.gma-reaction').forEach(element => element.remove());
             document.getElementById('closeAthleteDetailsModal')?.focus({ preventScroll: true });
 
-            const outcomeDwell = userError === 0 ? 16000 : 5000;
+            const outcomeDwell = userError === 0 && !prefersReducedGmaMotion()
+                ? 16000
+                : 5000;
             try {
                 if (userError === 0) {
                     gmaCard.classList.add('celebrate-exact');
