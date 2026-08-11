@@ -128,18 +128,31 @@ public sealed class SwaggerOpenApiTests
     public async Task SwaggerJson_DocumentsAthletesAsArray()
     {
         using var document = await LoadSwaggerDocumentAsync();
-        var schema = document.RootElement
+        var responseMediaType = document.RootElement
             .GetProperty("paths")
             .GetProperty("/api/data/athletes")
             .GetProperty("get")
             .GetProperty("responses")
             .GetProperty("200")
             .GetProperty("content")
-            .GetProperty("application/json")
-            .GetProperty("schema");
+            .GetProperty("application/json");
+        var schema = responseMediaType.GetProperty("schema");
 
         Assert.Equal("array", schema.GetProperty("type").GetString());
         AssertSchemaReferences(schema.GetProperty("items"), "PublicAthleteApiDocument");
+
+        var example = responseMediaType.GetProperty("example")[0];
+        const string profileImageId = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        Assert.Equal(profileImageId, example.GetProperty("ProfileImageId").GetString());
+        Assert.Equal(
+            $"/generated/profiles/athletes/example_athlete_{profileImageId}.webp?v={profileImageId}",
+            example.GetProperty("ProfilePic").GetString());
+        Assert.Equal(
+            $"/generated/thumbs/athletes/example_athlete_thumb_sm_{profileImageId}.webp?v={profileImageId}",
+            example.GetProperty("ProfilePicThumb").GetString());
+        Assert.Equal(
+            $"/generated/thumbs/athletes/example_athlete_thumb_md_{profileImageId}.webp?v={profileImageId}",
+            example.GetProperty("ProfilePicLeaderboardThumb").GetString());
 
         var operation = document.RootElement
             .GetProperty("paths")
@@ -227,6 +240,8 @@ public sealed class SwaggerOpenApiTests
         Assert.Contains("hydrated public longevity athlete record", athleteSchema.GetProperty("description").GetString());
         Assert.True(athleteProperties.TryGetProperty("Name", out _));
         Assert.True(athleteProperties.TryGetProperty("AthleteSlug", out _));
+        Assert.True(athleteProperties.TryGetProperty("ProfileImageId", out var profileImageId));
+        Assert.Contains("SHA-256 content identity", profileImageId.GetProperty("description").GetString());
         Assert.True(athleteProperties.TryGetProperty("Biomarkers", out _));
         Assert.False(athleteProperties.TryGetProperty("name", out _));
         Assert.False(athleteProperties.TryGetProperty("athleteSlug", out _));

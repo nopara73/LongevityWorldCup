@@ -136,12 +136,18 @@ const GUESS_MY_AGE_STORAGE_KEY = 'gmaAllGuesses';
 interface GuessStateIdentity {
     readonly canonicalSlug: string;
     readonly aliasSlugs: readonly string[];
+    readonly profileImageId: string;
 }
 
 interface GuessStateMigration {
     readonly canonicalSlug: string;
+    readonly profileImageId: string;
     readonly state: unknown;
     readonly changed: boolean;
+}
+
+interface StoredGuessHistory {
+    byImage: Record<string, unknown>;
 }
 
 function firstGuessStateString(values: readonly unknown[]): string {
@@ -158,11 +164,16 @@ function normalizeGuessStateSlug(value: unknown): string {
     return routeSlug ? window.slugifyName(routeSlug, true) : '';
 }
 
+function normalizeGuessStateProfileImageId(value: unknown): string {
+    return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
 function getGuessStateIdentity(athleteOrSlug: unknown): GuessStateIdentity {
     if (!isRecord(athleteOrSlug)) {
         return {
             canonicalSlug: normalizeGuessStateSlug(athleteOrSlug),
-            aliasSlugs: []
+            aliasSlugs: [],
+            profileImageId: ''
         };
     }
 
@@ -181,8 +192,10 @@ function getGuessStateIdentity(athleteOrSlug: unknown): GuessStateIdentity {
     const aliasSlugs = [...new Set([name, displayName]
         .map(normalizeGuessStateSlug)
         .filter(slug => slug && slug !== canonicalSlug))];
+    const profileImageId = normalizeGuessStateProfileImageId(
+        athleteOrSlug.ProfileImageId ?? athleteOrSlug.profileImageId);
 
-    return { canonicalSlug, aliasSlugs };
+    return { canonicalSlug, aliasSlugs, profileImageId };
 }
 
 function readGuessStateStore(): Record<string, unknown> {
@@ -206,43 +219,116 @@ function guessStatePriority(state: unknown): number {
     return 1;
 }
 
+function isStoredGuessHistory(value: unknown): value is StoredGuessHistory {
+    return isRecord(value) && isRecord(value.byImage);
+}
+
+function isStoredGuessState(value: unknown): value is Record<string, unknown> {
+    return isRecord(value) && (
+        Object.prototype.hasOwnProperty.call(value, 'value') ||
+        typeof value.skipped === 'boolean' ||
+        typeof value.first === 'boolean' ||
+        typeof value.exact === 'boolean');
+}
+
+function createGuessHistory(entry: unknown, profileImageId: string): StoredGuessHistory {
+    if (isStoredGuessHistory(entry)) {
+        return entry;
+    }
+
+    const history: StoredGuessHistory = { byImage: {} };
+    if (profileImageId && isStoredGuessState(entry)) {
+        history.byImage[profileImageId] = entry;
+    }
+    return history;
+}
+
+function mergeGuessHistory(
+    target: StoredGuessHistory,
+    source: StoredGuessHistory
+): boolean {
+    let changed = false;
+    for (const [profileImageId, sourceState] of Object.entries(source.byImage)) {
+        const targetState = target.byImage[profileImageId];
+        if (!isStoredGuessState(targetState) ||
+            guessStatePriority(sourceState) > guessStatePriority(targetState)) {
+            target.byImage[profileImageId] = sourceState;
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+function normalizeGuessHistoryImageIds(history: StoredGuessHistory): boolean {
+    let changed = false;
+    for (const rawProfileImageId of Object.keys(history.byImage)) {
+        const profileImageId = normalizeGuessStateProfileImageId(rawProfileImageId);
+        if (!profileImageId || profileImageId === rawProfileImageId) continue;
+
+        const state = history.byImage[rawProfileImageId];
+        const existingState = history.byImage[profileImageId];
+        if (!isStoredGuessState(existingState) ||
+            guessStatePriority(state) > guessStatePriority(existingState)) {
+            history.byImage[profileImageId] = state;
+        }
+        delete history.byImage[rawProfileImageId];
+        changed = true;
+    }
+    return changed;
+}
+
 function migrateGuessState(
     store: Record<string, unknown>,
     athleteOrSlug: unknown
 ): GuessStateMigration {
     const identity = getGuessStateIdentity(athleteOrSlug);
-    if (!identity.canonicalSlug) {
-        return { canonicalSlug: '', state: null, changed: false };
+    if (!identity.canonicalSlug || !identity.profileImageId) {
+        return {
+            canonicalSlug: identity.canonicalSlug,
+            profileImageId: identity.profileImageId,
+            state: null,
+            changed: false
+        };
     }
 
     const hasOwn = (key: string) =>
         Object.prototype.hasOwnProperty.call(store, key);
-    let hasCanonicalState = hasOwn(identity.canonicalSlug);
-    let state = hasCanonicalState ? store[identity.canonicalSlug] : null;
-    let changed = false;
+    const hadCanonicalEntry = hasOwn(identity.canonicalSlug);
+    const canonicalEntry = hadCanonicalEntry ? store[identity.canonicalSlug] : null;
+    const history = createGuessHistory(canonicalEntry, identity.profileImageId);
+    let changed = hadCanonicalEntry
+        ? !isStoredGuessHistory(canonicalEntry)
+        : false;
+    changed = normalizeGuessHistoryImageIds(history) || changed;
 
     for (const aliasSlug of identity.aliasSlugs) {
         if (!hasOwn(aliasSlug)) continue;
 
-        const aliasState = store[aliasSlug];
-        if (!hasCanonicalState ||
-            guessStatePriority(aliasState) > guessStatePriority(state)) {
-            state = aliasState;
-            store[identity.canonicalSlug] = aliasState;
-            hasCanonicalState = true;
-            changed = true;
-        }
-
+        const aliasHistory = createGuessHistory(store[aliasSlug], identity.profileImageId);
+        changed = normalizeGuessHistoryImageIds(aliasHistory) || changed;
+        changed = mergeGuessHistory(history, aliasHistory) || changed;
         delete store[aliasSlug];
         changed = true;
     }
 
-    return { canonicalSlug: identity.canonicalSlug, state, changed };
+    if (hadCanonicalEntry || Object.keys(history.byImage).length > 0) {
+        store[identity.canonicalSlug] = history;
+    }
+
+    return {
+        canonicalSlug: identity.canonicalSlug,
+        profileImageId: identity.profileImageId,
+        state: history.byImage[identity.profileImageId] ?? null,
+        changed
+    };
 }
 
 window.LwcGuessState = {
     getAthleteSlug(athleteOrSlug) {
         return getGuessStateIdentity(athleteOrSlug).canonicalSlug;
+    },
+    getProfileImageId(athleteOrSlug) {
+        return getGuessStateIdentity(athleteOrSlug).profileImageId;
     },
     get(athleteOrSlug) {
         const store = readGuessStateStore();
@@ -257,15 +343,17 @@ window.LwcGuessState = {
     set(athleteOrSlug, state) {
         const store = readGuessStateStore();
         const migration = migrateGuessState(store, athleteOrSlug);
-        if (!migration.canonicalSlug) return;
+        if (!migration.canonicalSlug || !migration.profileImageId) return;
 
-        store[migration.canonicalSlug] = state;
+        const history = createGuessHistory(store[migration.canonicalSlug], migration.profileImageId);
+        history.byImage[migration.profileImageId] = state;
+        store[migration.canonicalSlug] = history;
         writeGuessStateStore(store);
     },
     ensureSkipped(athleteOrSlug) {
         const store = readGuessStateStore();
         const migration = migrateGuessState(store, athleteOrSlug);
-        if (!migration.canonicalSlug) return null;
+        if (!migration.canonicalSlug || !migration.profileImageId) return null;
 
         if (isRecord(migration.state)) {
             if (migration.changed) {
@@ -280,7 +368,9 @@ window.LwcGuessState = {
             first: false,
             exact: false
         };
-        store[migration.canonicalSlug] = skippedState;
+        const history = createGuessHistory(store[migration.canonicalSlug], migration.profileImageId);
+        history.byImage[migration.profileImageId] = skippedState;
+        store[migration.canonicalSlug] = history;
         writeGuessStateStore(store);
         return skippedState;
     },
@@ -292,20 +382,57 @@ window.LwcGuessState = {
         for (const athlete of athletes) {
             const migration = migrateGuessState(store, athlete);
             changed = changed || migration.changed;
-            if (!migration.canonicalSlug || isRecord(migration.state)) continue;
+            if (!migration.canonicalSlug ||
+                !migration.profileImageId ||
+                isRecord(migration.state)) continue;
 
-            store[migration.canonicalSlug] = {
+            const history = createGuessHistory(
+                store[migration.canonicalSlug],
+                migration.profileImageId);
+            history.byImage[migration.profileImageId] = {
                 value: null,
                 skipped: true,
                 first: false,
                 exact: false
             };
+            store[migration.canonicalSlug] = history;
             changed = true;
         }
 
         if (changed) {
             writeGuessStateStore(store);
         }
+    },
+    getAll() {
+        const store = readGuessStateStore();
+        const entries: GuessMyAgeStoredEntry[] = [];
+
+        for (const [rawSlug, entry] of Object.entries(store)) {
+            const athleteSlug = normalizeGuessStateSlug(rawSlug);
+            if (!athleteSlug) continue;
+
+            if (isStoredGuessHistory(entry)) {
+                for (const [rawProfileImageId, state] of Object.entries(entry.byImage)) {
+                    const profileImageId = normalizeGuessStateProfileImageId(rawProfileImageId);
+                    if (!profileImageId || !isStoredGuessState(state)) continue;
+                    entries.push({
+                        athleteSlug,
+                        profileImageId,
+                        state: state as unknown as GuessMyAgeState
+                    });
+                }
+            } else if (isStoredGuessState(entry)) {
+                // Keep pre-image-versioning achievements discoverable until this
+                // athlete is next loaded and the state can be bound to an image.
+                entries.push({
+                    athleteSlug,
+                    profileImageId: null,
+                    state: entry as unknown as GuessMyAgeState
+                });
+            }
+        }
+
+        return entries;
     }
 };
 

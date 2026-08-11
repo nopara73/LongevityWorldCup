@@ -263,6 +263,8 @@ interface BadgeAthlete extends AgeVisualizationAthlete {
     readonly displayName?: unknown;
     readonly AthleteSlug?: unknown;
     readonly athleteSlug?: unknown;
+    readonly ProfileImageId?: unknown;
+    readonly profileImageId?: unknown;
     readonly Slug?: unknown;
     readonly slug?: unknown;
     readonly DisplayName?: unknown;
@@ -338,12 +340,20 @@ interface GuessMyAgeState {
     exact: boolean;
 }
 
+interface GuessMyAgeStoredEntry {
+    readonly athleteSlug: string;
+    readonly profileImageId: string | null;
+    readonly state: GuessMyAgeState;
+}
+
 interface LwcGuessStateApi {
     getAthleteSlug(athleteOrSlug: unknown): string;
+    getProfileImageId(athleteOrSlug: unknown): string;
     get(athleteOrSlug: unknown): GuessMyAgeState | null;
     set(athleteOrSlug: unknown, state: GuessMyAgeState): void;
     ensureSkipped(athleteOrSlug: unknown): GuessMyAgeState | null;
     ensureSkippedMany(athletes: readonly unknown[]): void;
+    getAll(): readonly GuessMyAgeStoredEntry[];
 }
 
 interface Window {
@@ -357,6 +367,7 @@ interface Window {
     __lwcPlayFlowScrollInitialized?: boolean;
     LwcFlowActionDock?: LwcFlowActionDockApi;
     LwcGuessState?: LwcGuessStateApi;
+    refreshAthleteAfterStaleGuess?: ((athleteSlug: string) => Promise<boolean>) | undefined;
     getIcon(link: string): string;
     slugifyName(name: string, encode?: boolean): string;
     normalizeString?: ((value: string) => string) | undefined;

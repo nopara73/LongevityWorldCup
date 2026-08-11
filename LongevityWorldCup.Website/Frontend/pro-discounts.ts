@@ -104,9 +104,8 @@ function getPersonalLinkUrl(athlete: BadgeAthlete | null | undefined): string | 
 function hasPerfectGuessMarker() {
     try {
         if (localStorage.getItem(PERFECT_GUESS_KEY) === "1") return true;
-        const parsed: unknown = JSON.parse(localStorage.getItem("gmaAllGuesses") || "{}");
-        const allGuesses = isRecord(parsed) ? parsed : {};
-        const hasExact = Object.values(allGuesses).some(g => isRecord(g) && g.exact === true);
+        const hasExact = (window.LwcGuessState?.getAll() || [])
+            .some(entry => entry.state.exact === true);
         if (hasExact) {
             setPerfectGuessMarker();
             return true;
@@ -137,12 +136,10 @@ function slugToDisplayName(slug: unknown): string {
 function getExactGuessAthleteNames(currentAthlete: BadgeAthlete | null | undefined): string[] {
     try {
         window.LwcGuessState?.get(currentAthlete);
-        const parsed: unknown = JSON.parse(localStorage.getItem("gmaAllGuesses") || "{}");
-        const allGuesses = isRecord(parsed) ? parsed : {};
-        const exactSlugs = Object.entries(allGuesses)
-            .filter(([_, guess]) => isRecord(guess) && guess.exact === true)
-            .map(([slug]) => slug)
-            .filter(Boolean);
+        const exactSlugs = [...new Set((window.LwcGuessState?.getAll() || [])
+            .filter(entry => entry.state.exact === true)
+            .map(entry => entry.athleteSlug)
+            .filter(Boolean))];
 
         if (exactSlugs.length === 0) return [];
 

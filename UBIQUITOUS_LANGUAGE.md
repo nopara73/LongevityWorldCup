@@ -12,6 +12,9 @@
 - Biological age differences use unrounded biological and chronological ages; rounding is presentation-only.
 - **Effective Age Reduction** is the Ultimate League score: Bortz for Pro, otherwise pheno.
 - **Crowd Count** is accepted realistic guesses behind Crowd Age.
+- Each Crowd Age guess belongs to the exact published profile-picture content identified by `ProfileImageId`; Crowd Age and Crowd Count use only guesses for the athlete's current image.
+- Historical guesses remain attached to their image. Publishing byte-identical image content preserves or restores that image's Crowd Age history, while any byte-different image, including a re-encoded version of the same picture, starts with no active guesses.
+- Crowd Age qualification, placements, and badges use only the current image's guesses. An image change silently recomputes current placement state; previously published Events remain historical records.
 - Crowd Age competition placements compare crowd age with chronological age. The existing raw crowd age badge and its on-site BadgeAward Events remain visible, but they must not generate social posts.
 - **Proof** is evidence for an athlete, profile, or result. **Profile picture** is the public display image.
 - **Event** is persisted public/social output; **Custom Event** is admin-created. **Badge** is a computed award.

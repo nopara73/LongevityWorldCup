@@ -22,7 +22,12 @@ public sealed class CrowdAgeGuessRateLimiter
         _window = window;
     }
 
-    public bool TryAccept(string clientIdentifier, string athleteSlug, DateTimeOffset nowUtc, out TimeSpan retryAfter)
+    public bool TryAccept(
+        string clientIdentifier,
+        string athleteSlug,
+        string profileImageId,
+        DateTimeOffset nowUtc,
+        out TimeSpan retryAfter)
     {
         retryAfter = TimeSpan.Zero;
 
@@ -30,8 +35,10 @@ public sealed class CrowdAgeGuessRateLimiter
             clientIdentifier = "unknown";
         if (string.IsNullOrWhiteSpace(athleteSlug))
             return false;
+        if (string.IsNullOrWhiteSpace(profileImageId))
+            return false;
 
-        var key = BuildKey(clientIdentifier, athleteSlug);
+        var key = BuildKey(clientIdentifier, athleteSlug, profileImageId);
 
         lock (_lock)
         {
@@ -50,14 +57,19 @@ public sealed class CrowdAgeGuessRateLimiter
         }
     }
 
-    public bool TryAccept(string clientIdentifier, string athleteSlug, out TimeSpan retryAfter)
-        => TryAccept(clientIdentifier, athleteSlug, DateTimeOffset.UtcNow, out retryAfter);
+    public bool TryAccept(
+        string clientIdentifier,
+        string athleteSlug,
+        string profileImageId,
+        out TimeSpan retryAfter)
+        => TryAccept(clientIdentifier, athleteSlug, profileImageId, DateTimeOffset.UtcNow, out retryAfter);
 
-    private static string BuildKey(string clientIdentifier, string athleteSlug)
+    private static string BuildKey(string clientIdentifier, string athleteSlug, string profileImageId)
         => string.Join(
             '|',
             clientIdentifier.Trim().ToUpperInvariant(),
-            athleteSlug.Trim().Replace('-', '_').ToUpperInvariant());
+            athleteSlug.Trim().Replace('-', '_').ToUpperInvariant(),
+            profileImageId.Trim().ToUpperInvariant());
 
     private void RemoveExpiredEntries(DateTimeOffset nowUtc)
     {

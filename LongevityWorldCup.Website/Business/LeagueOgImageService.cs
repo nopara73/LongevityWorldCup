@@ -645,14 +645,14 @@ public sealed class LeagueOgImageService
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
         var boldFontTicks = File.Exists(_boldFontPath) ? File.GetLastWriteTimeUtc(_boldFontPath).Ticks : 0L;
         var regularFontTicks = File.Exists(_regularFontPath) ? File.GetLastWriteTimeUtc(_regularFontPath).Ticks : 0L;
-        var top3ProfileTicks = top3Slugs.Select(GetProfileTicks).ToArray();
+        var top3ProfileImageIds = GetProfileImageIds(top3Slugs);
 
         var raw = string.Join("|",
-            "league-og-v35",
+            "league-og-v36",
             leagueSlug,
             leagueDisplayName,
             string.Join(",", top3Slugs),
-            string.Join(",", top3ProfileTicks.Select(t => t.ToString(CultureInfo.InvariantCulture))),
+            string.Join(",", top3ProfileImageIds),
             logoTicks.ToString(CultureInfo.InvariantCulture),
             boldFontTicks.ToString(CultureInfo.InvariantCulture),
             regularFontTicks.ToString(CultureInfo.InvariantCulture));
@@ -661,11 +661,26 @@ public sealed class LeagueOgImageService
         return Convert.ToHexString(bytes).ToLowerInvariant()[..12];
     }
 
-    private long GetProfileTicks(string athleteSlug)
+    private IReadOnlyList<string> GetProfileImageIds(IEnumerable<string> athleteSlugs)
     {
-        return TryResolveProfilePath(athleteSlug, out var path)
-            ? File.GetLastWriteTimeUtc(path).Ticks
-            : 0L;
+        var snapshot = _athletes.GetAthletesSnapshot();
+        var bySlug = snapshot
+            .OfType<JsonObject>()
+            .Select(o => new
+            {
+                Slug = NormalizeAthleteSlug(o["AthleteSlug"]?.GetValue<string>()),
+                ProfileImageId = o["ProfileImageId"]?.GetValue<string>()
+                    ?? o["ProfilePic"]?.GetValue<string>()
+                    ?? ""
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.Slug))
+            .GroupBy(x => x.Slug, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First().ProfileImageId, StringComparer.Ordinal);
+
+        return athleteSlugs
+            .Select(NormalizeAthleteSlug)
+            .Select(s => bySlug.TryGetValue(s, out var profileImageId) ? profileImageId : "")
+            .ToArray();
     }
 
     private bool TryResolveProfilePath(string athleteSlug, out string fullPath)

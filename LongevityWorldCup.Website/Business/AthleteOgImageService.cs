@@ -134,9 +134,10 @@ public sealed class AthleteOgImageService
             : stats.AgeReduction ?? ageReductionFromRanking;
         var leagueName = ResolveLeagueDisplayName(leagueSlug);
         var profilePicUrl = athlete["ProfilePic"]?.GetValue<string>();
+        var profileImageId = athlete["ProfileImageId"]?.GetValue<string>();
         var metricValue = FormatReduction(ageReduction);
         var description = $"{leagueName} rank #{rank}. {metricValue} years.";
-        var signature = ComputeSignature(normalized, leagueSlug, rank, ageReduction, name, leagueName, "Current rank", metricValue, "Age Reduction", description, profilePicUrl);
+        var signature = ComputeSignature(normalized, leagueSlug, rank, ageReduction, name, leagueName, "Current rank", metricValue, "Age Reduction", description, profilePicUrl, profileImageId);
 
         payload = new AthleteOgPayload(
             InternalSlug: normalized,
@@ -475,17 +476,14 @@ public sealed class AthleteOgImageService
         string metricValue,
         string metricLabel,
         string description,
-        string? profilePicUrl)
+        string? profilePicUrl,
+        string? profileImageId)
     {
         var logoTicks = File.Exists(_logoPath) ? File.GetLastWriteTimeUtc(_logoPath).Ticks : 0L;
         var fontTicks = File.Exists(_fontPath) ? File.GetLastWriteTimeUtc(_fontPath).Ticks : 0L;
-        var profilePath = ResolveProfilePath(profilePicUrl);
-        var profileTicks = !string.IsNullOrWhiteSpace(profilePath) && File.Exists(profilePath)
-            ? File.GetLastWriteTimeUtc(profilePath).Ticks
-            : 0L;
 
         var raw = string.Join("|",
-            "athlete-og-v33",
+            "athlete-og-v34",
             normalizedSlug,
             leagueSlug,
             rank.ToString(CultureInfo.InvariantCulture),
@@ -497,9 +495,9 @@ public sealed class AthleteOgImageService
             metricLabel,
             description,
             profilePicUrl ?? "",
+            profileImageId ?? "",
             logoTicks.ToString(CultureInfo.InvariantCulture),
-            fontTicks.ToString(CultureInfo.InvariantCulture),
-            profileTicks.ToString(CultureInfo.InvariantCulture));
+            fontTicks.ToString(CultureInfo.InvariantCulture));
 
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
         return Convert.ToHexString(bytes).ToLowerInvariant()[..12];
@@ -518,6 +516,7 @@ public sealed class AthleteOgImageService
             return false;
 
         var profilePicUrl = athlete["ProfilePic"]?.GetValue<string>();
+        var profileImageId = athlete["ProfileImageId"]?.GetValue<string>();
 
         if (string.Equals(context, "chronological-oldest", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(context, "chronological-youngest", StringComparison.OrdinalIgnoreCase))
@@ -552,7 +551,8 @@ public sealed class AthleteOgImageService
                 age,
                 "Chronological age",
                 description,
-                profilePicUrl);
+                profilePicUrl,
+                profileImageId);
 
             payload = new AthleteOgPayload(
                 InternalSlug: normalizedSlug,
@@ -596,7 +596,8 @@ public sealed class AthleteOgImageService
                 "#1",
                 metricLabel,
                 description,
-                profilePicUrl);
+                profilePicUrl,
+                profileImageId);
 
             payload = new AthleteOgPayload(
                 InternalSlug: normalizedSlug,
@@ -641,7 +642,8 @@ public sealed class AthleteOgImageService
                 biologicalAge,
                 clockLabel,
                 description,
-                profilePicUrl);
+                profilePicUrl,
+                profileImageId);
 
             payload = new AthleteOgPayload(
                 InternalSlug: normalizedSlug,
@@ -680,7 +682,8 @@ public sealed class AthleteOgImageService
                 metricValue,
                 "Crowd Age",
                 crowdDescription,
-                profilePicUrl);
+                profilePicUrl,
+                profileImageId);
 
             payload = new AthleteOgPayload(
                 InternalSlug: normalizedSlug,
@@ -726,7 +729,8 @@ public sealed class AthleteOgImageService
                 baselineMetric,
                 "Baseline improvement",
                 description,
-                profilePicUrl);
+                profilePicUrl,
+                profileImageId);
 
             payload = new AthleteOgPayload(
                 InternalSlug: normalizedSlug,
@@ -777,7 +781,8 @@ public sealed class AthleteOgImageService
             metric,
             "Improvement",
             improvementDescription,
-            profilePicUrl);
+            profilePicUrl,
+            profileImageId);
 
         payload = new AthleteOgPayload(
             InternalSlug: normalizedSlug,

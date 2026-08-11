@@ -104,8 +104,9 @@ public sealed class SocialImageRenderingTests
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
 
+        Assert.True(athletes.TryGetProfileImageId("ron_lugbill", out var profileImageId));
         for (var i = 0; i < 100; i++)
-            athletes.AddAgeGuess("ron_lugbill", 68);
+            Assert.True(athletes.TryAddAgeGuess("ron_lugbill", profileImageId, 68));
 
         Assert.True(athleteImages.TryGetCurrentPayload("ron-lugbill", "crowd", out var payload));
         Assert.Equal("crowd", payload.LeagueSlug);
