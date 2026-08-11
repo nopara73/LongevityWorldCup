@@ -61,8 +61,9 @@ public sealed class SharePreviewMetadataTests
     {
         using var factory = CreateFactory();
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        Assert.True(athletes.TryGetProfileImageId("ron_lugbill", out var profileImageId));
         for (var i = 0; i < 100; i++)
-            athletes.AddAgeGuess("ron_lugbill", 68);
+            Assert.True(athletes.TryAddAgeGuess("ron_lugbill", profileImageId, 68));
 
         using var client = factory.CreateClient();
         var html = await client.GetStringAsync("/athlete/ron-lugbill?ctx=crowd");

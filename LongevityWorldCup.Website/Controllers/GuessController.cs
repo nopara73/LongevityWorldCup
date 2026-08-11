@@ -19,11 +19,42 @@ namespace LongevityWorldCup.Website.Controllers
         private readonly ILogger<GuessController> _logger = logger;
 
         [HttpPost("athlete-age")]
-        public IActionResult PostAthleteAgeGuess(string athleteName, int ageGuess)
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public IActionResult PostAthleteAgeGuess(
+            [FromQuery] string athleteName,
+            [FromQuery] int ageGuess,
+            [FromQuery] string? profileImageId)
         {
             // normalize incoming name (hyphens → underscores)
             var key = athleteName.Replace('-', '_');
             var actualAge = _svc.GetActualAge(key);
+            if (actualAge <= 0)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Athlete not found."
+                });
+            }
+
+            if (!IsSha256Hex(profileImageId))
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "A valid profile image ID is required."
+                });
+            }
+
+            var normalizedProfileImageId = profileImageId!.ToLowerInvariant();
+            if (!_svc.TryGetProfileImageId(key, out var currentProfileImageId) ||
+                !string.Equals(currentProfileImageId, normalizedProfileImageId, StringComparison.Ordinal))
+            {
+                return ProfileImageChanged();
+            }
 
             // rejection rules ─ hard limits + asymmetric “too old” cap
             const int MinGuess = 10;
@@ -42,9 +73,17 @@ namespace LongevityWorldCup.Website.Controllers
             if (!unrealistic)
             {
                 var clientIdentifier = ClientIdentifier.From(HttpContext);
-                if (_crowdAgeGuessRateLimiter.TryAccept(clientIdentifier, key, out var retryAfter))
+                if (_crowdAgeGuessRateLimiter.TryAccept(
+                        clientIdentifier,
+                        key,
+                        normalizedProfileImageId,
+                        out var retryAfter))
                 {
-                    _svc.AddAgeGuess(key, ageGuess);
+                    // Revalidate under AthleteDataService's reload lock so a picture
+                    // replacement between the initial check and persistence is rejected.
+                    if (!_svc.TryAddAgeGuess(key, normalizedProfileImageId, ageGuess))
+                        return ProfileImageChanged();
+
                     accepted = true;
                 }
                 else
@@ -57,16 +96,34 @@ namespace LongevityWorldCup.Website.Controllers
                 }
             }
 
-            // always return fresh crowd stats (median‑based)
-            var (median, count) = _svc.GetCrowdStats(key);
+            // Rate-limited and unrealistic guesses do not enter TryAddAgeGuess, so
+            // recheck them too before disclosing the athlete's chronological age.
+            if (!_svc.TryGetCrowdStatsForProfileImage(
+                    key,
+                    normalizedProfileImageId,
+                    out var crowdStats))
+            {
+                return ProfileImageChanged();
+            }
 
             return Ok(new
             {
-                CrowdAge = median,
-                CrowdCount = count,
+                CrowdAge = crowdStats.Median,
+                CrowdCount = crowdStats.Count,
                 ActualAge = actualAge,
-                GuessAccepted = accepted
+                GuessAccepted = accepted,
+                ProfileImageId = normalizedProfileImageId
             });
         }
+
+        private IActionResult ProfileImageChanged()
+            => Conflict(new
+            {
+                Code = "profile_image_changed",
+                Message = "This athlete's profile picture changed. Please guess again from the current picture."
+            });
+
+        private static bool IsSha256Hex(string? value)
+            => value is { Length: 64 } && value.All(Uri.IsHexDigit);
     }
 }

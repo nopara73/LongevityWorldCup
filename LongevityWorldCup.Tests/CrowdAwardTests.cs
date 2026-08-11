@@ -15,7 +15,8 @@ public sealed class CrowdAwardTests
         var badges = factory.Services.GetRequiredService<BadgeDataService>();
         var database = factory.Services.GetRequiredService<DatabaseManager>();
 
-        athletes.AddAgeGuess("ron_lugbill", 40);
+        Assert.True(athletes.TryGetProfileImageId("ron_lugbill", out var profileImageId));
+        Assert.True(athletes.TryAddAgeGuess("ron_lugbill", profileImageId, 40));
         badges.ComputeAndPersistAwards();
 
         var labels = database.Run(sqlite =>

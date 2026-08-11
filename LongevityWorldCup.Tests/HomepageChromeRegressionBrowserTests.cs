@@ -16,10 +16,10 @@ public sealed class HomepageChromeRegressionBrowserTests
         });
         await using var context = await NewContextAsync(browser, app);
         await context.RouteAsync(
-            "**/generated/thumbs/athletes/devarajan_narayanan_thumb_md.webp*",
+            "**/generated/thumbs/athletes/devarajan_narayanan_thumb_md_*.webp*",
             route => route.AbortAsync());
         await context.RouteAsync(
-            "**/generated/thumbs/athletes/devarajan_narayanan_thumb_sm.webp*",
+            "**/generated/thumbs/athletes/devarajan_narayanan_thumb_sm_*.webp*",
             route => route.AbortAsync());
 
         var page = await context.NewPageAsync();
@@ -36,7 +36,8 @@ public sealed class HomepageChromeRegressionBrowserTests
                 const image = document.querySelector('tr[data-athlete-name="Devarajan Narayanan"] img.portrait');
                 return image?.complete
                     && image.naturalWidth > 0
-                    && image.src.includes('/athletes/devarajan_narayanan/devarajan_narayanan.webp');
+                    && image.src.includes('/generated/profiles/athletes/devarajan_narayanan_')
+                    && image.src.includes('.webp');
             }
             """);
 
@@ -50,7 +51,8 @@ public sealed class HomepageChromeRegressionBrowserTests
                 return document.getElementById('detailsModal')?.style.display === 'block'
                     && image?.complete
                     && image.naturalWidth > 0
-                    && image.src.includes('/athletes/devarajan_narayanan/devarajan_narayanan.webp');
+                    && image.src.includes('/generated/profiles/athletes/devarajan_narayanan_')
+                    && image.src.includes('.webp');
             }
             """);
 

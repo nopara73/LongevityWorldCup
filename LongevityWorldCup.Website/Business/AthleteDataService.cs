@@ -44,6 +44,8 @@ public sealed record BiologicalAgeLeaderboardEntry(
 public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 {
     private static readonly Regex IsoDateLike = new(@"^\d{4}-\d{1,2}-\d{1,2}$", RegexOptions.Compiled);
+    private static readonly HashSet<string> ProfileImageExtensions =
+        new([".webp", ".png", ".jpg", ".jpeg"], StringComparer.OrdinalIgnoreCase);
     internal static readonly IReadOnlyList<int> AthleteCountMilestoneThresholds =
     [
         10,
@@ -61,6 +63,9 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private const int LeaderboardThumbSizePx = 320;
     private const int LeaderboardThumbQuality = 84;
     private const int CrowdAgeLeaderboardMinimumGuessCount = 100;
+    private static readonly TimeSpan GeneratedProfileAssetRetention = TimeSpan.FromDays(7);
+    private const string ProfileImageIdProperty = "ProfileImageId";
+    private const string LegacyWithoutProfileImageId = "legacy-without-profile-image";
 
     private JsonArray _athletes = []; // Initialize to avoid nullability issue
 
@@ -99,6 +104,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private readonly string _athletesRootDir;
     private readonly string _profileThumbDir;
+    private readonly string _publishedProfileDir;
     private readonly object _pendingLock = new();
     private readonly HashSet<string> _pendingChangedSlugs = new(StringComparer.OrdinalIgnoreCase);
 
@@ -109,6 +115,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private const string LastLowestBortzAgeColumn = "LastLowestBortzAge";
     private const string LastLowestPhenoAgeDateColumn = "LastLowestPhenoAgeDate";
     private const string LastLowestBortzAgeDateColumn = "LastLowestBortzAgeDate";
+    private const string CrowdAgeProfileImageIdColumn = "CrowdAgeProfileImageId";
     private const string CrowdAgeTop10PlacementColumn = "CrowdAgeTop10Placement";
     private const string PhenoImprovementTop10PlacementColumn = "PhenoImprovementTop10Placement";
     private const string BortzImprovementTop10PlacementColumn = "BortzImprovementTop10Placement";
@@ -128,6 +135,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         Directory.CreateDirectory(dataDir);
         _profileThumbDir = Path.Combine(env.WebRootPath, "generated", "thumbs", "athletes");
         Directory.CreateDirectory(_profileThumbDir);
+        _publishedProfileDir = Path.Combine(env.WebRootPath, "generated", "profiles", "athletes");
+        Directory.CreateDirectory(_publishedProfileDir);
 
         _db.Run(sqlite =>
         {
@@ -153,6 +162,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 var hasLastLowestBortzAge = false;
                 var hasLastLowestPhenoAgeDate = false;
                 var hasLastLowestBortzAgeDate = false;
+                var hasCrowdAgeProfileImageId = false;
                 var hasCrowdAgeTop10Placement = false;
                 var hasPhenoImprovementTop10Placement = false;
                 var hasBortzImprovementTop10Placement = false;
@@ -179,6 +189,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                             hasLastLowestPhenoAgeDate = true;
                         if (string.Equals(colName, LastLowestBortzAgeDateColumn, StringComparison.OrdinalIgnoreCase))
                             hasLastLowestBortzAgeDate = true;
+                        if (string.Equals(colName, CrowdAgeProfileImageIdColumn, StringComparison.OrdinalIgnoreCase))
+                            hasCrowdAgeProfileImageId = true;
                         if (string.Equals(colName, CrowdAgeTop10PlacementColumn, StringComparison.OrdinalIgnoreCase))
                             hasCrowdAgeTop10Placement = true;
                         if (string.Equals(colName, PhenoImprovementTop10PlacementColumn, StringComparison.OrdinalIgnoreCase))
@@ -238,6 +250,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     TryAddAthletesColumn(sqlite, $"{LastLowestBortzAgeDateColumn} TEXT NULL");
                 }
 
+                if (!hasCrowdAgeProfileImageId)
+                {
+                    TryAddAthletesColumn(sqlite, $"{CrowdAgeProfileImageIdColumn} TEXT NULL");
+                }
+
                 if (!hasCrowdAgeTop10Placement)
                 {
                     TryAddAthletesColumn(sqlite, $"{CrowdAgeTop10PlacementColumn} INTEGER NULL");
@@ -259,6 +276,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         LoadAthletesAsync().GetAwaiter().GetResult();
 
         var newlyJoined = EnsureDbRowsForNewAthletes();
+
+        // Existing guesses predate profile-image versioning. Treat the image that is
+        // public at migration time as their continuity baseline; future image changes
+        // then create a clean boundary without deleting the historical guesses.
+        SyncAgeGuessProfileImageIds(migrateLegacyGuesses: true);
 
         // Finally, set JoinedAt=now for any that are still null
         if (newlyJoined.Count > 0)
@@ -335,6 +357,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         _db.DatabaseChanged += OnDatabaseChanged;
 
         PushAthleteDirectoryToEvents();
+
+        // Close the startup gap between the initial snapshot and watcher activation.
+        // Run after constructor initialization so the rescan cannot overlap startup work.
+        DebounceReload();
     }
 
     private static void TryAddAthletesColumn(SqliteConnection sqlite, string columnDefinition)
@@ -415,6 +441,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     {
         // Build up a JsonArray by reading every athlete.json under wwwroot/athletes
         var athletesRoot = new JsonArray();
+        var activeGeneratedProfileAssets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var athletesDir = Path.Combine(_env.WebRootPath, "athletes");
         var files = Directory.EnumerateFiles(athletesDir, "athlete.json", SearchOption.AllDirectories);
 
@@ -450,24 +477,39 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             // PROFILE PIC: look for "{key}.*" in that same folder
             var pic = Directory
                 .EnumerateFiles(folder, $"{folderName}.*", SearchOption.TopDirectoryOnly)
+                .Where(path => ProfileImageExtensions.Contains(Path.GetExtension(path)))
                 .OrderByDescending(File.GetLastWriteTimeUtc)
+                .ThenBy(path => GetProfileImageExtensionPriority(Path.GetExtension(path)))
                 .FirstOrDefault();
-            var profilePicUrl = pic is null
+            var publishedProfile = pic is null
                 ? null
-                : BuildVersionedAthleteAssetUrl(folderName, Path.GetFileName(pic), File.GetLastWriteTimeUtc(pic).Ticks);
+                : await PublishProfileImageSnapshotAsync(pic, folderName).ConfigureAwait(false);
+            var profileImageId = publishedProfile?.ImageId;
+            athlete[ProfileImageIdProperty] = profileImageId;
+            var profilePicUrl = publishedProfile?.Url;
+            if (publishedProfile is not null)
+            {
+                activeGeneratedProfileAssets.Add(Path.GetFullPath(publishedProfile.Path));
+                activeGeneratedProfileAssets.Add(Path.GetFullPath(
+                    GetProfileThumbPath(folderName, "_thumb_sm", publishedProfile.ImageId)));
+                activeGeneratedProfileAssets.Add(Path.GetFullPath(
+                    GetProfileThumbPath(folderName, "_thumb_md", publishedProfile.ImageId)));
+            }
             athlete["ProfilePic"] = profilePicUrl;
-            athlete["ProfilePicThumb"] = pic is null
+            athlete["ProfilePicThumb"] = publishedProfile is null
                 ? profilePicUrl
                 : BuildOrGetProfileThumbUrl(
-                    sourceImagePath: pic,
+                    sourceImagePath: publishedProfile.Path,
+                    sourceImageId: publishedProfile.ImageId,
                     folderName: folderName,
                     thumbSuffix: "_thumb_sm",
                     sizePx: EventThumbSizePx,
                     quality: EventThumbQuality) ?? profilePicUrl;
-            athlete["ProfilePicLeaderboardThumb"] = pic is null
+            athlete["ProfilePicLeaderboardThumb"] = publishedProfile is null
                 ? profilePicUrl
                 : BuildOrGetProfileThumbUrl(
-                    sourceImagePath: pic,
+                    sourceImagePath: publishedProfile.Path,
+                    sourceImageId: publishedProfile.ImageId,
                     folderName: folderName,
                     thumbSuffix: "_thumb_md",
                     sizePx: LeaderboardThumbSizePx,
@@ -479,7 +521,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 .EnumerateFiles(folder, "proof_*.*", SearchOption.TopDirectoryOnly)
                 .OrderBy(f => ExtractNumber(Path.GetFileNameWithoutExtension(f)));
             foreach (var p in proofFiles)
-                proofs.Add(BuildVersionedAthleteAssetUrl(folderName, Path.GetFileName(p), File.GetLastWriteTimeUtc(p).Ticks));
+                proofs.Add(BuildVersionedAthleteAssetUrl(
+                    folderName,
+                    Path.GetFileName(p),
+                    File.GetLastWriteTimeUtc(p).Ticks.ToString(CultureInfo.InvariantCulture)));
             athlete["Proofs"] = proofs;
 
             CanonicalizeIsoDatesInPlace(athlete);
@@ -487,31 +532,127 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
 
         lock (_athletesJsonLock) _athletes = athletesRoot;
+        PruneStaleGeneratedProfileAssets(activeGeneratedProfileAssets);
     }
 
-    private static string BuildVersionedAthleteAssetUrl(string folderName, string fileName, long version)
+    private static string BuildVersionedAthleteAssetUrl(string folderName, string fileName, string version)
         => $"/athletes/{folderName}/{fileName}?v={version}";
 
-    private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string folderName, string thumbSuffix, int sizePx, int quality)
+    private static int GetProfileImageExtensionPriority(string extension)
+        => extension.ToLowerInvariant() switch
+        {
+            ".webp" => 0,
+            ".png" => 1,
+            ".jpg" => 2,
+            ".jpeg" => 3,
+            _ => int.MaxValue
+        };
+
+    private async Task<PublishedProfileImage> PublishProfileImageSnapshotAsync(
+        string sourcePath,
+        string folderName)
     {
-        if (string.IsNullOrWhiteSpace(sourceImagePath) || !File.Exists(sourceImagePath))
+        byte[] sourceBytes;
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                await using var stream = new FileStream(
+                    sourcePath,
+                    FileMode.Open,
+                    FileAccess.Read,
+                    FileShare.Read | FileShare.Delete,
+                    bufferSize: 64 * 1024,
+                    options: FileOptions.Asynchronous | FileOptions.SequentialScan);
+                using var buffer = new MemoryStream();
+                await stream.CopyToAsync(buffer).ConfigureAwait(false);
+                sourceBytes = buffer.ToArray();
+                break;
+            }
+            catch (IOException) when (attempt < 5)
+            {
+                await Task.Delay(50).ConfigureAwait(false);
+            }
+        }
+
+        var imageId = Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant();
+        var extension = Path.GetExtension(sourcePath).ToLowerInvariant();
+        var publishedFileName = $"{folderName}_{imageId}{extension}";
+        var publishedPath = Path.Combine(_publishedProfileDir, publishedFileName);
+        if (!HasExpectedLength(publishedPath, sourceBytes.Length))
+        {
+            var pendingPath = Path.Combine(
+                _publishedProfileDir,
+                $".{publishedFileName}.{Guid.NewGuid():N}.tmp");
+            try
+            {
+                await File.WriteAllBytesAsync(pendingPath, sourceBytes).ConfigureAwait(false);
+                try
+                {
+                    File.Move(pendingPath, publishedPath, overwrite: false);
+                }
+                catch (IOException) when (HasExpectedLength(publishedPath, sourceBytes.Length))
+                {
+                    // Another app instance atomically published these same hash-bound bytes.
+                }
+                catch (UnauthorizedAccessException) when (HasExpectedLength(publishedPath, sourceBytes.Length))
+                {
+                    // Windows can report access denied while another instance has just
+                    // opened the winning immutable file. Its hash-bound length is enough
+                    // to treat this publisher as the idempotent loser.
+                }
+            }
+            finally
+            {
+                if (File.Exists(pendingPath))
+                    File.Delete(pendingPath);
+            }
+        }
+
+        return new PublishedProfileImage(
+            imageId,
+            publishedPath,
+            $"/generated/profiles/athletes/{publishedFileName}?v={imageId}");
+    }
+
+    private static bool HasExpectedLength(string path, long expectedLength)
+    {
+        try
+        {
+            var file = new FileInfo(path);
+            return file.Exists && file.Length == expectedLength;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private sealed record PublishedProfileImage(string ImageId, string Path, string Url);
+
+    private string? BuildOrGetProfileThumbUrl(string sourceImagePath, string sourceImageId, string folderName, string thumbSuffix, int sizePx, int quality)
+    {
+        if (string.IsNullOrWhiteSpace(sourceImagePath) ||
+            string.IsNullOrWhiteSpace(sourceImageId) ||
+            !File.Exists(sourceImagePath))
             return null;
 
-        var sourceInfo = new FileInfo(sourceImagePath);
-        var thumbFileName = $"{folderName}{thumbSuffix}.webp";
-        var thumbPath = Path.Combine(_profileThumbDir, thumbFileName);
+        // Content-addressed filenames keep old immutable URLs bound to the exact
+        // portrait bytes they were generated from.
+        var thumbFileName = $"{folderName}{thumbSuffix}_{sourceImageId}.webp";
+        var thumbPath = GetProfileThumbPath(folderName, thumbSuffix, sourceImageId);
         if (string.IsNullOrWhiteSpace(thumbPath))
             return null;
 
         string? pendingThumbPath = null;
         try
         {
-            var needsGenerate = !File.Exists(thumbPath);
-            if (!needsGenerate)
-            {
-                var thumbInfo = new FileInfo(thumbPath);
-                needsGenerate = thumbInfo.Length <= 0 || thumbInfo.LastWriteTimeUtc < sourceInfo.LastWriteTimeUtc;
-            }
+            var needsGenerate = !File.Exists(thumbPath) ||
+                                new FileInfo(thumbPath).Length <= 0;
 
             if (needsGenerate)
             {
@@ -534,15 +675,30 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     FileFormat = WebpFileFormatType.Lossy,
                     Quality = quality
                 });
-                File.Move(pendingThumbPath, thumbPath, overwrite: true);
-                pendingThumbPath = null;
+                var expectedThumbLength = new FileInfo(pendingThumbPath).Length;
+                if (File.Exists(thumbPath) && !HasExpectedLength(thumbPath, expectedThumbLength))
+                    File.Delete(thumbPath);
+
+                try
+                {
+                    File.Move(pendingThumbPath, thumbPath, overwrite: false);
+                    pendingThumbPath = null;
+                }
+                catch (IOException) when (HasExpectedLength(thumbPath, expectedThumbLength))
+                {
+                    // Another instance published the same content-addressed thumbnail.
+                }
+                catch (UnauthorizedAccessException) when (HasExpectedLength(thumbPath, expectedThumbLength))
+                {
+                    // Treat the already-published immutable file as the winner.
+                }
             }
 
             var publishedThumbInfo = new FileInfo(thumbPath);
             if (!publishedThumbInfo.Exists || publishedThumbInfo.Length <= 0)
                 return null;
 
-            return $"/generated/thumbs/athletes/{thumbFileName}?v={publishedThumbInfo.LastWriteTimeUtc.Ticks}";
+            return $"/generated/thumbs/athletes/{thumbFileName}?v={sourceImageId}";
         }
         catch
         {
@@ -560,6 +716,91 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 {
                     // A failed cleanup must not hide the usable original portrait fallback.
                 }
+            }
+
+        }
+    }
+
+    private string GetProfileThumbPath(string folderName, string thumbSuffix, string sourceImageId)
+        => Path.Combine(_profileThumbDir, $"{folderName}{thumbSuffix}_{sourceImageId}.webp");
+
+    private void PruneStaleGeneratedProfileAssets(IReadOnlySet<string> activePaths)
+    {
+        var cutoffUtc = DateTime.UtcNow - GeneratedProfileAssetRetention;
+        PruneDirectory(_publishedProfileDir, activePaths, cutoffUtc);
+        PruneDirectory(_profileThumbDir, activePaths, cutoffUtc);
+    }
+
+    private static void PruneDirectory(
+        string directory,
+        IReadOnlySet<string> activePaths,
+        DateTime cutoffUtc)
+    {
+        foreach (var path in Directory
+                     .EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly)
+                     .Where(path => !path.EndsWith(".inactive", StringComparison.OrdinalIgnoreCase)))
+        {
+            var inactiveMarkerPath = path + ".inactive";
+            try
+            {
+                if (activePaths.Contains(Path.GetFullPath(path)))
+                {
+                    if (File.Exists(inactiveMarkerPath))
+                        File.Delete(inactiveMarkerPath);
+                    continue;
+                }
+
+                if (!File.Exists(inactiveMarkerPath))
+                {
+                    try
+                    {
+                        using var marker = new FileStream(
+                            inactiveMarkerPath,
+                            FileMode.CreateNew,
+                            FileAccess.Write,
+                            FileShare.Read);
+                    }
+                    catch (IOException) when (File.Exists(inactiveMarkerPath))
+                    {
+                        // Another instance recorded the same deactivation boundary.
+                    }
+
+                    continue;
+                }
+
+                if (File.GetLastWriteTimeUtc(inactiveMarkerPath) > cutoffUtc)
+                    continue;
+
+                File.Delete(path);
+                File.Delete(inactiveMarkerPath);
+            }
+            catch (IOException)
+            {
+                // A concurrent render or static response can retain the file until
+                // the next full athlete reload.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort retention cleanup must never block athlete hydration.
+            }
+        }
+
+        foreach (var markerPath in Directory.EnumerateFiles(
+                     directory,
+                     "*.inactive",
+                     SearchOption.TopDirectoryOnly))
+        {
+            try
+            {
+                var assetPath = markerPath[..^".inactive".Length];
+                if (!File.Exists(assetPath))
+                    File.Delete(markerPath);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
             }
         }
     }
@@ -657,7 +898,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
             var newlyJoined = EnsureDbRowsForNewAthletes();
 
+            SyncAgeGuessProfileImageIds(migrateLegacyGuesses: false);
             ReloadCrowdStats();
+            // A new profile image can remove the athlete from the Crowd Age field.
+            // Keep stored placements current without publishing incidental social events.
+            SyncCrowdAgeTop10Placements(emitEvents: false);
             HydrateAgeImprovementIntoAthletesJson();
             HydratePlacementsIntoAthletesJson();
             HydrateNewFlagsIntoAthletesJson();
@@ -719,6 +964,9 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         watcher.EnableRaisingEvents = false;
         watcher.EnableRaisingEvents = true;
+        // An Error event means one or more filesystem notifications may already
+        // have been lost, so restarting the watcher alone is not sufficient.
+        DebounceReload();
     }
 
     private static int ExtractNumber(string fileNameWithoutExtension)
@@ -730,10 +978,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     }
 
     /// <summary>
-    /// Adds a timestamped age guess for the given athleteSlug, updates
-    /// that athlete’s CrowdAge (median) and CrowdCount in the loaded JSON.
+    /// Adds a timestamped age guess for the profile image the visitor saw, then
+    /// updates that athlete's current CrowdAge (median) and CrowdCount.
     /// </summary>
-    public void AddAgeGuess(string athleteSlug, int ageGuess)
+    public bool TryAddAgeGuess(string athleteSlug, string profileImageId, int ageGuess)
     {
         int cnt;
         double median;
@@ -741,56 +989,52 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         _reloadLock.Wait();
         try
         {
+            if (!TryGetProfileImageIdentity(athleteSlug, out var canonicalAthleteSlug, out var currentProfileImageId) ||
+                !string.Equals(currentProfileImageId, profileImageId, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
             cnt = 0;
             median = 0;
 
-            _db.Run(sqlite =>
+            var persisted = _db.Run(sqlite =>
             {
-                // insert the new guess
+                using var transaction = sqlite.BeginTransaction(deferred: false);
                 using var selectJsonCmd = sqlite.CreateCommand();
+                selectJsonCmd.Transaction = transaction;
                 selectJsonCmd.CommandText =
                     "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
-                selectJsonCmd.Parameters.AddWithValue("@key", athleteSlug);
-                var existingJson = (selectJsonCmd.ExecuteScalar() as string) ?? "[]";
+                selectJsonCmd.Parameters.AddWithValue("@key", canonicalAthleteSlug);
+                if (selectJsonCmd.ExecuteScalar() is not string existingJson)
+                    return false;
 
-                var ageArray = JsonSerializer.Deserialize<List<JsonObject>>(existingJson)!;
+                var ageArray = JsonSerializer.Deserialize<List<JsonObject>>(existingJson) ?? [];
                 ageArray.Add(new JsonObject
                 {
                     ["TimestampUtc"] = DateTime.UtcNow.ToString("o"),
-                    ["AgeGuess"] = ageGuess
+                    ["AgeGuess"] = ageGuess,
+                    [ProfileImageIdProperty] = currentProfileImageId
                 });
 
                 // store back
                 var updatedJson = JsonSerializer.Serialize(ageArray);
                 using var updateCmd = sqlite.CreateCommand();
+                updateCmd.Transaction = transaction;
                 updateCmd.CommandText =
                     "UPDATE Athletes SET AgeGuesses = @ages WHERE Key = @key";
                 updateCmd.Parameters.AddWithValue("@ages", updatedJson);
-                updateCmd.Parameters.AddWithValue("@key", athleteSlug);
-                updateCmd.ExecuteNonQuery();
+                updateCmd.Parameters.AddWithValue("@key", canonicalAthleteSlug);
+                if (updateCmd.ExecuteNonQuery() != 1)
+                    return false;
 
-                // re-read and compute median and count
-                using var selectCmd = sqlite.CreateCommand();
-                selectCmd.CommandText =
-                    "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
-                selectCmd.Parameters.AddWithValue("@key", athleteSlug);
-                var allJson = (selectCmd.ExecuteScalar() as string) ?? "[]";
-
-                var allGuesses = JsonSerializer.Deserialize<List<JsonObject>>(allJson)!;
-                var ages = allGuesses
-                    .Select(node => node["AgeGuess"]!.GetValue<int>())
-                    .OrderBy(val => val)
-                    .ToList();
-
-                cnt = ages.Count;
-                median = 0;
-                if (cnt > 0)
-                {
-                    median = (cnt % 2 == 1)
-                        ? ages[cnt / 2]
-                        : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
-                }
+                transaction.Commit();
+                (median, cnt) = CalculateCrowdStats(ageArray, currentProfileImageId);
+                return true;
             });
+
+            if (!persisted)
+                return false;
 
             lock (_athletesJsonLock)
             {
@@ -798,7 +1042,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                     .OfType<JsonObject>()
                     .FirstOrDefault(o => string.Equals(
                         o["AthleteSlug"]?.GetValue<string>(),
-                        athleteSlug,
+                        canonicalAthleteSlug,
                         StringComparison.OrdinalIgnoreCase));
 
                 if (athleteJson != null)
@@ -808,7 +1052,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
                 }
             }
 
-            SyncCrowdAgeTop10Placements(emitEvents: true, eventSubjectSlugs: new[] { athleteSlug });
+            SyncCrowdAgeTop10Placements(emitEvents: true, eventSubjectSlugs: new[] { canonicalAthleteSlug });
         }
         finally
         {
@@ -817,6 +1061,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         PushAthleteDirectoryToEvents();
         AthletesChanged?.Invoke();
+        return true;
     }
 
     /// <summary>
@@ -855,34 +1100,117 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     }
 
     /// <summary>
-    /// Returns (Median, Count) for all guesses recorded so far for athleteSlug.
+    /// Returns (Median, Count) for guesses tied to the athlete's current profile image.
     /// </summary>
     public (double Median, int Count) GetCrowdStats(string athleteSlug)
+    {
+        if (!TryGetProfileImageIdentity(
+                athleteSlug,
+                out var canonicalAthleteSlug,
+                out var currentProfileImageId))
+            return (0, 0);
+
+        return ReadCrowdStats(canonicalAthleteSlug, currentProfileImageId);
+    }
+
+    public bool TryGetCrowdStatsForProfileImage(
+        string athleteSlug,
+        string expectedProfileImageId,
+        out (double Median, int Count) stats)
+    {
+        stats = (0, 0);
+        _reloadLock.Wait();
+        try
+        {
+            if (!TryGetProfileImageIdentity(
+                    athleteSlug,
+                    out var canonicalAthleteSlug,
+                    out var currentProfileImageId) ||
+                !string.Equals(currentProfileImageId, expectedProfileImageId, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            stats = ReadCrowdStats(canonicalAthleteSlug, currentProfileImageId);
+            return true;
+        }
+        finally
+        {
+            _reloadLock.Release();
+        }
+    }
+
+    private (double Median, int Count) ReadCrowdStats(
+        string canonicalAthleteSlug,
+        string profileImageId)
     {
         return _db.Run(sqlite =>
         {
             using var selectAgesJson = sqlite.CreateCommand();
             selectAgesJson.CommandText =
                 "SELECT AgeGuesses FROM Athletes WHERE Key = @key";
-            selectAgesJson.Parameters.AddWithValue("@key", athleteSlug);
+            selectAgesJson.Parameters.AddWithValue("@key", canonicalAthleteSlug);
             var agesJsonText = (selectAgesJson.ExecuteScalar() as string) ?? "[]";
             var allGuesses = JsonSerializer.Deserialize<List<JsonObject>>(agesJsonText)!;
-            var ages = allGuesses
-                .Select(node => node["AgeGuess"]!.GetValue<int>())
-                .OrderBy(val => val)
-                .ToList();
+            return CalculateCrowdStats(allGuesses, profileImageId);
+        });
+    }
 
-            int cnt = ages.Count;
-            double median = 0;
-            if (cnt > 0)
+    public bool TryGetProfileImageId(string athleteSlug, out string profileImageId)
+        => TryGetProfileImageIdentity(athleteSlug, out _, out profileImageId);
+
+    private bool TryGetProfileImageIdentity(
+        string athleteSlug,
+        out string canonicalAthleteSlug,
+        out string profileImageId)
+    {
+        canonicalAthleteSlug = "";
+        profileImageId = "";
+        lock (_athletesJsonLock)
+        {
+            var athlete = _athletes
+                .OfType<JsonObject>()
+                .FirstOrDefault(o => string.Equals(
+                    o["AthleteSlug"]?.GetValue<string>(),
+                    athleteSlug,
+                    StringComparison.OrdinalIgnoreCase));
+            if (athlete?[ProfileImageIdProperty] is not JsonValue imageIdValue ||
+                !imageIdValue.TryGetValue<string>(out var imageId) ||
+                string.IsNullOrWhiteSpace(imageId))
             {
-                median = (cnt % 2 == 1)
-                    ? ages[cnt / 2]
-                    : (ages[cnt / 2 - 1] + ages[cnt / 2]) / 2.0;
+                return false;
             }
 
-            return (median, cnt);
-        });
+            canonicalAthleteSlug = athlete["AthleteSlug"]?.GetValue<string>() ?? "";
+            if (string.IsNullOrWhiteSpace(canonicalAthleteSlug))
+                return false;
+
+            profileImageId = imageId;
+            return true;
+        }
+    }
+
+    private static (double Median, int Count) CalculateCrowdStats(
+        IEnumerable<JsonObject> guesses,
+        string profileImageId)
+    {
+        var ages = guesses
+            .Where(node =>
+                node[ProfileImageIdProperty] is JsonValue imageIdValue &&
+                imageIdValue.TryGetValue<string>(out var guessProfileImageId) &&
+                string.Equals(guessProfileImageId, profileImageId, StringComparison.Ordinal))
+            .Select(node => node["AgeGuess"]!.GetValue<int>())
+            .OrderBy(val => val)
+            .ToList();
+
+        var count = ages.Count;
+        if (count == 0)
+            return (0, 0);
+
+        var median = count % 2 == 1
+            ? ages[count / 2]
+            : (ages[count / 2 - 1] + ages[count / 2]) / 2.0;
+        return (median, count);
     }
 
     public int GetActualAge(string athleteSlug)
@@ -2240,6 +2568,115 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
 
         return newlyJoined;
+    }
+
+    private void SyncAgeGuessProfileImageIds(bool migrateLegacyGuesses)
+    {
+        Dictionary<string, string> currentImageIds;
+        lock (_athletesJsonLock)
+        {
+            currentImageIds = _athletes
+                .OfType<JsonObject>()
+                .Select(athlete => (
+                    Slug: athlete["AthleteSlug"]?.GetValue<string>() ?? "",
+                    ImageId: athlete[ProfileImageIdProperty] is JsonValue imageIdValue &&
+                             imageIdValue.TryGetValue<string>(out var imageId)
+                        ? imageId
+                        : ""))
+                .Where(item => !string.IsNullOrWhiteSpace(item.Slug))
+                .ToDictionary(item => item.Slug, item => item.ImageId, StringComparer.OrdinalIgnoreCase);
+        }
+
+        _db.Run(sqlite =>
+        {
+            // Acquire the write reservation before reading whole-row JSON so a
+            // second app instance cannot append a guess that this migration then
+            // overwrites with its stale pre-transaction copy.
+            using var transaction = sqlite.BeginTransaction(deferred: false);
+            var rows = new List<(string Slug, string AgeGuesses, string? StoredImageId)>();
+            using (var select = sqlite.CreateCommand())
+            {
+                select.Transaction = transaction;
+                select.CommandText = $"SELECT Key, AgeGuesses, {CrowdAgeProfileImageIdColumn} FROM Athletes";
+                using var reader = select.ExecuteReader();
+                while (reader.Read())
+                {
+                    rows.Add((
+                        reader.GetString(0),
+                        reader.IsDBNull(1) ? "[]" : reader.GetString(1),
+                        reader.IsDBNull(2) ? null : reader.GetString(2)));
+                }
+            }
+
+            using var update = sqlite.CreateCommand();
+            update.Transaction = transaction;
+            update.CommandText =
+                $"UPDATE Athletes SET AgeGuesses=@ageGuesses, {CrowdAgeProfileImageIdColumn}=@imageId WHERE Key=@slug";
+            var ageGuessesParameter = update.Parameters.Add("@ageGuesses", SqliteType.Text);
+            var imageIdParameter = update.Parameters.Add("@imageId", SqliteType.Text);
+            var slugParameter = update.Parameters.Add("@slug", SqliteType.Text);
+
+            foreach (var row in rows)
+            {
+                var currentImageId = currentImageIds.GetValueOrDefault(row.Slug, "");
+                var ageGuessesJson = row.AgeGuesses;
+                var guessesChanged = false;
+
+                // A NULL stored image ID means this row has never crossed the migration
+                // boundary. Missing-ID guesses written during a compatible rollback are
+                // safe to bind only while the stored and current image identities agree.
+                // If they differ, stamp the guesses with the inert sentinel immediately;
+                // otherwise updating the row marker could make a later restart mistake
+                // those ambiguous guesses for guesses made against the new portrait.
+                var storedMarkerMatchesCurrent =
+                    row.StoredImageId is not null &&
+                    string.Equals(row.StoredImageId, currentImageId, StringComparison.Ordinal);
+                var storedImageMatchesCurrent =
+                    storedMarkerMatchesCurrent &&
+                    !string.IsNullOrWhiteSpace(currentImageId);
+                var shouldProcessMissingGuessIds =
+                    row.StoredImageId is null ||
+                    (migrateLegacyGuesses && storedMarkerMatchesCurrent) ||
+                    (row.StoredImageId is not null && !storedMarkerMatchesCurrent);
+                if (shouldProcessMissingGuessIds)
+                {
+                    var guesses = JsonSerializer.Deserialize<List<JsonObject>>(ageGuessesJson) ?? [];
+                    var migrationImageId = row.StoredImageId is null || storedImageMatchesCurrent
+                        ? (string.IsNullOrWhiteSpace(currentImageId)
+                            ? LegacyWithoutProfileImageId
+                            : currentImageId)
+                        : LegacyWithoutProfileImageId;
+                    foreach (var guess in guesses)
+                    {
+                        if (guess[ProfileImageIdProperty] is JsonValue existingImageId &&
+                            existingImageId.TryGetValue<string>(out var value) &&
+                            !string.IsNullOrWhiteSpace(value))
+                        {
+                            continue;
+                        }
+
+                        guess[ProfileImageIdProperty] = migrationImageId;
+                        guessesChanged = true;
+                    }
+
+                    if (guessesChanged)
+                        ageGuessesJson = JsonSerializer.Serialize(guesses);
+                }
+
+                if (!guessesChanged &&
+                    string.Equals(row.StoredImageId, currentImageId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                ageGuessesParameter.Value = ageGuessesJson;
+                imageIdParameter.Value = currentImageId;
+                slugParameter.Value = row.Slug;
+                update.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+        });
     }
 
     private Dictionary<string, int> BuildRankMap(int limit = int.MaxValue)

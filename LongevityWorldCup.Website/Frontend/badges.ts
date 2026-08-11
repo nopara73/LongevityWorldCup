@@ -780,9 +780,10 @@ window.setBadges = function (athlete, athleteCell) {
     try {
         const slug = getAthleteProfileSlug(athlete);
         if (slug) {
-            const parsedGuesses: unknown = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-            const allGuesses = isRecord(parsedGuesses) ? parsedGuesses : {};
-            const g = window.LwcGuessState?.get(athlete) ?? allGuesses[slug];
+            // A bullseye belongs to the portrait the player actually judged.
+            // Historical exact guesses still count toward the lifetime Pro
+            // discount, but must not decorate a replacement portrait.
+            const g = window.LwcGuessState?.get(athlete);
             const guessed = (isRecord(g) && g.value != null) ? parseInt(String(g.value), 10) : null;
 
             const chrono = athlete.chronologicalAge ?? athlete.ChronoAge ?? null;

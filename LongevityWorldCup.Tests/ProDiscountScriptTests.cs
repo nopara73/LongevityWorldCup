@@ -21,7 +21,8 @@ public sealed class ProDiscountScriptTests
 
         var markerBody = script[markerStart..setterStart];
 
-        Assert.Contains("const hasExact = Object.values(allGuesses).some(g => isRecord(g) && g.exact === true);", markerBody);
+        Assert.Contains("window.LwcGuessState?.getAll()", markerBody);
+        Assert.Contains(".some(entry => entry.state.exact === true);", markerBody);
         Assert.Contains("if (hasExact) {", markerBody);
         Assert.Contains("setPerfectGuessMarker();", markerBody);
         Assert.Contains("return true;", markerBody);

@@ -77,9 +77,10 @@ public sealed class PublicDataSwaggerExamples : IOperationFilter
                         "CrowdAge": 39,
                         "CrowdCount": 128,
                         "IsNew": false,
-                        "ProfilePic": "/athletes/example_athlete/example_athlete.webp?v=123",
-                        "ProfilePicThumb": "/generated/profile-thumbs/example_athlete_thumb_sm.webp?v=123",
-                        "ProfilePicLeaderboardThumb": "/generated/profile-thumbs/example_athlete_thumb_md.webp?v=123",
+                        "ProfileImageId": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                        "ProfilePic": "/generated/profiles/athletes/example_athlete_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.webp?v=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                        "ProfilePicThumb": "/generated/thumbs/athletes/example_athlete_thumb_sm_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.webp?v=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                        "ProfilePicLeaderboardThumb": "/generated/thumbs/athletes/example_athlete_thumb_md_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef.webp?v=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
                         "Proofs": [
                           "/athletes/example_athlete/proof_1.webp?v=123"
                         ],

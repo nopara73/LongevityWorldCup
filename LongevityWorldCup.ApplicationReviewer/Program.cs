@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
@@ -13,6 +14,8 @@ internal class Program
 {
     private static readonly TimeSpan ServerStartupTimeout = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan AthleteReloadTimeout = TimeSpan.FromSeconds(15);
+    private static readonly HashSet<string> ProfileImageExtensions =
+        new([".webp", ".png", ".jpg", ".jpeg"], StringComparer.OrdinalIgnoreCase);
 
     private static void Main()
     {
@@ -80,7 +83,12 @@ internal class Program
                 }
 
                 File.Delete(zip);
-                WaitForAthleteVisible(serverUrl, folderName, AthleteReloadTimeout);
+                var expectedProfileImageId = GetActiveProfileImageId(athleteFolder);
+                WaitForAthleteVisible(
+                    serverUrl,
+                    folderName,
+                    expectedProfileImageId,
+                    AthleteReloadTimeout);
 
                 // open in Chrome incognito to ensure no browser caching bs messes things up
                 Process.Start(new ProcessStartInfo
@@ -187,13 +195,112 @@ internal class Program
             }
             else
             {
-                File.Copy(file, destPath, overwrite: true);
+                var athleteFolderName = Path.GetFileName(athleteFolder);
+                if (string.Equals(Path.GetFileNameWithoutExtension(fileName), athleteFolderName, StringComparison.OrdinalIgnoreCase) &&
+                    ProfileImageExtensions.Contains(Path.GetExtension(fileName)))
+                {
+                    PublishProfileImageAtomically(file, destPath);
+                    DeleteObsoleteProfileImages(athleteFolder, athleteFolderName, destPath);
+                }
+                else
+                {
+                    File.Copy(file, destPath, overwrite: true);
+                }
             }
         }
 
         // clean up
         Directory.Delete(tempDir, recursive: true);
     }
+
+    private static void PublishProfileImageAtomically(string sourcePath, string destinationPath)
+    {
+        var destinationDirectory = Path.GetDirectoryName(destinationPath)!;
+        var pendingPath = Path.Combine(
+            destinationDirectory,
+            $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            File.Copy(sourcePath, pendingPath, overwrite: false);
+            File.SetLastWriteTimeUtc(pendingPath, DateTime.UtcNow);
+            RetryFileMutation(() => File.Move(pendingPath, destinationPath, overwrite: true));
+        }
+        finally
+        {
+            if (File.Exists(pendingPath))
+                File.Delete(pendingPath);
+        }
+    }
+
+    private static void DeleteObsoleteProfileImages(
+        string athleteFolder,
+        string athleteFolderName,
+        string activeProfilePath)
+    {
+        foreach (var candidate in Directory.EnumerateFiles(
+                     athleteFolder,
+                     $"{athleteFolderName}.*",
+                     SearchOption.TopDirectoryOnly))
+        {
+            if (string.Equals(candidate, activeProfilePath, StringComparison.OrdinalIgnoreCase) ||
+                !ProfileImageExtensions.Contains(Path.GetExtension(candidate)))
+            {
+                continue;
+            }
+
+            RetryFileMutation(() => File.Delete(candidate));
+        }
+    }
+
+    private static void RetryFileMutation(Action mutation)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                mutation();
+                return;
+            }
+            catch (IOException) when (attempt < 5)
+            {
+                Thread.Sleep(50);
+            }
+            catch (UnauthorizedAccessException) when (attempt < 5)
+            {
+                Thread.Sleep(50);
+            }
+        }
+    }
+
+    private static string? GetActiveProfileImageId(string athleteFolder)
+    {
+        var folderName = Path.GetFileName(athleteFolder);
+        var profilePath = Directory
+            .EnumerateFiles(athleteFolder, $"{folderName}.*", SearchOption.TopDirectoryOnly)
+            .Where(path => ProfileImageExtensions.Contains(Path.GetExtension(path)))
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .ThenBy(path => GetProfileImageExtensionPriority(Path.GetExtension(path)))
+            .FirstOrDefault();
+        if (profilePath is null)
+            return null;
+
+        using var stream = new FileStream(
+            profilePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read | FileShare.Delete);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+    }
+
+    private static int GetProfileImageExtensionPriority(string extension)
+        => extension.ToLowerInvariant() switch
+        {
+            ".webp" => 0,
+            ".png" => 1,
+            ".jpg" => 2,
+            ".jpeg" => 3,
+            _ => int.MaxValue
+        };
 
     private static string CreateTempDirectory()
     {
@@ -232,7 +339,11 @@ internal class Program
         throw new TimeoutException($"Website did not become available at {url} within {timeout.TotalSeconds:0} seconds.");
     }
 
-    private static void WaitForAthleteVisible(string serverUrl, string folderName, TimeSpan timeout)
+    private static void WaitForAthleteVisible(
+        string serverUrl,
+        string folderName,
+        string? expectedProfileImageId,
+        TimeSpan timeout)
     {
         var athleteSlug = folderName.Replace('-', '_');
         var deadline = DateTime.UtcNow + timeout;
@@ -242,7 +353,7 @@ internal class Program
         {
             try
             {
-                if (IsAthleteVisible(serverUrl, athleteSlug))
+                if (IsAthleteVisible(serverUrl, athleteSlug, expectedProfileImageId))
                     return;
             }
             catch (Exception ex)
@@ -253,14 +364,23 @@ internal class Program
             Thread.Sleep(250);
         }
 
+        var expectedDetail = expectedProfileImageId is null
+            ? ""
+            : $" with profile image {expectedProfileImageId}";
         var detail = lastError is null ? "" : $" Last error: {lastError.Message}";
-        Console.WriteLine($"Warning: {athleteSlug} was not visible through /api/data/athletes within {timeout.TotalSeconds:0} seconds.{detail}");
+        throw new TimeoutException(
+            $"{athleteSlug} was not published{expectedDetail} through /api/data/athletes within {timeout.TotalSeconds:0} seconds.{detail}");
     }
 
-    private static bool IsAthleteVisible(string serverUrl, string athleteSlug)
+    private static bool IsAthleteVisible(
+        string serverUrl,
+        string athleteSlug,
+        string? expectedProfileImageId)
     {
         using var httpClient = new HttpClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{serverUrl.TrimEnd('/')}/api/data/athletes");
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{serverUrl.TrimEnd('/')}/api/data/athletes?review={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
         request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
         request.Headers.Pragma.ParseAdd("no-cache");
 
@@ -272,12 +392,20 @@ internal class Program
         if (JsonNode.Parse(body) is not JsonArray athletes)
             return false;
 
-        return athletes
+        var athlete = athletes
             .OfType<JsonObject>()
-            .Any(athlete =>
+            .FirstOrDefault(candidate =>
                 string.Equals(
-                    athlete["AthleteSlug"]?.GetValue<string>(),
+                    candidate["AthleteSlug"]?.GetValue<string>(),
                     athleteSlug,
                     StringComparison.OrdinalIgnoreCase));
+        if (athlete is null)
+            return false;
+
+        return expectedProfileImageId is null ||
+               string.Equals(
+                   athlete["ProfileImageId"]?.GetValue<string>(),
+                   expectedProfileImageId,
+                   StringComparison.Ordinal);
     }
 }

@@ -310,13 +310,35 @@ sqlite3 LongevityWorldCup.db "DELETE FROM Athletes WHERE Key = 'athlete_key';"
 ```
 
 ### Age Guesses
-#### Check Age Guesses
+
+Crowd Age guesses are retained per profile-image content identity. `CrowdAgeProfileImageId` is the athlete's current image identity, and each item in `AgeGuesses` has its own `ProfileImageId`. A byte-identical re-upload reuses its history; a byte-different image starts with zero active guesses while older image histories remain stored.
+
+Content-addressed public portrait and thumbnail files that are no longer active are retained locally for seven days to keep recently opened pages stable, then pruned on a subsequent athlete reload. The guess history retains only image hashes. A privacy removal may also require purging upstream caches that already hold an immutable URL.
+
+On the first deployment of image-bound guessing, unversioned legacy guesses are assigned to the profile image that is live during migration. If no profile image exists then, they stay historical and are not attached to a later upload. Do not bulk-rewrite historical `ProfileImageId` values to the current ID, because that would mix guesses made against different pictures.
+
+The new binary can safely recover unversioned guesses written by a rollback only while `CrowdAgeProfileImageId` still matches the live image. If a rollback is necessary after a profile picture changes, restore the database backup from the same release before bringing the image-aware binary forward again; otherwise those ambiguous rollback-era guesses intentionally remain outside the active aggregate.
+
+#### Check Current Image and Total Historical Guesses
+
 ```sh
-sqlite3 LongevityWorldCup.db "SELECT Key, AgeGuesses FROM Athletes WHERE Key = 'athlete_key';"
+sqlite3 LongevityWorldCup.db "SELECT Key, CrowdAgeProfileImageId, json_array_length(AgeGuesses) AS HistoricalGuessCount FROM Athletes WHERE Key = 'athlete_key';"
 ```
-#### Reset Age Guesses
+
+#### Count Guesses by Profile Image
+
 ```sh
+sqlite3 LongevityWorldCup.db "SELECT COALESCE(json_extract(guess.value, '$.ProfileImageId'), '<legacy>') AS ProfileImageId, COUNT(*) AS GuessCount FROM Athletes AS athlete, json_each(athlete.AgeGuesses) AS guess WHERE athlete.Key = 'athlete_key' GROUP BY ProfileImageId ORDER BY GuessCount DESC;"
+```
+
+#### Reset All Age Guess History
+
+This is a destructive reset across every profile image, not only the current one. Stop the service before changing the database so its in-memory athlete snapshot cannot continue serving stale Crowd Age state, then restart it to recompute public data, placements, and badges.
+
+```sh
+sudo systemctl stop longevityworldcup.service
 sqlite3 LongevityWorldCup.db "UPDATE Athletes SET AgeGuesses = '[]' WHERE Key = 'athlete_key';"
+sudo systemctl start longevityworldcup.service
 ```
 
 ## Events

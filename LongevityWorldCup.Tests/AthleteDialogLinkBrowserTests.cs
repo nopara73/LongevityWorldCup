@@ -7,6 +7,7 @@ namespace LongevityWorldCup.Tests;
 public sealed class AthleteDialogLinkBrowserTests
 {
     private const string MichaelSlug = "michael-lustgarten";
+    private const string ProfileImageA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
     [Theory]
     [InlineData("/about")]
@@ -192,17 +193,23 @@ public sealed class AthleteDialogLinkBrowserTests
 
             var skippedGuess = await page.EvaluateAsync<SkippedGuessDiagnostics>(
                 """
-                slug => {
+                args => {
                     const guesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-                    const guess = guesses[slug];
+                    const history = guesses[args.slug];
+                    const guess = history?.byImage?.[args.imageId];
                     return {
-                        Exists: Object.prototype.hasOwnProperty.call(guesses, slug),
+                        Exists: Object.prototype.hasOwnProperty.call(guesses, args.slug),
                         Skipped: guess?.skipped === true,
                         ValueIsNull: guess?.value === null
                     };
                 }
                 """,
-                MichaelSlug);
+                new
+                {
+                    slug = MichaelSlug,
+                    imageId = await page.Locator("#detailsModal .modal-content")
+                        .GetAttributeAsync("data-profile-image-id")
+                });
             Assert.True(skippedGuess.Exists);
             Assert.True(skippedGuess.Skipped);
             Assert.True(skippedGuess.ValueIsNull);
@@ -397,6 +404,7 @@ public sealed class AthleteDialogLinkBrowserTests
                 .Single(athlete =>
                     athlete["Name"]?.GetValue<string>() == "Michael Lustgarten");
             michael["AthleteSlug"] = canonicalSlug.Replace('-', '_');
+            michael["ProfileImageId"] = ProfileImageA;
             michael["DateOfBirth"] = new JsonObject
             {
                 ["Year"] = 1976,
@@ -435,17 +443,18 @@ public sealed class AthleteDialogLinkBrowserTests
         Assert.StartsWith("Michael Lustgarten, PhD", await page.Locator("#athleteName").InnerTextAsync());
         var migratedGuess = await page.EvaluateAsync<GuessMigrationDiagnostics>(
             """
-            slugs => {
+            args => {
                 const guesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
+                const guess = guesses[args.canonical]?.byImage?.[args.imageId];
                 return {
-                    CanonicalExists: Object.prototype.hasOwnProperty.call(guesses, slugs.canonical),
-                    LegacyExists: Object.prototype.hasOwnProperty.call(guesses, slugs.legacy),
-                    Value: guesses[slugs.canonical]?.value,
-                    Exact: guesses[slugs.canonical]?.exact === true
+                    CanonicalExists: Object.prototype.hasOwnProperty.call(guesses, args.canonical),
+                    LegacyExists: Object.prototype.hasOwnProperty.call(guesses, args.legacy),
+                    Value: guess?.value,
+                    Exact: guess?.exact === true
                 };
             }
             """,
-            new { canonical = canonicalSlug, legacy = legacyNameSlug });
+            new { canonical = canonicalSlug, legacy = legacyNameSlug, imageId = ProfileImageA });
         Assert.True(migratedGuess.CanonicalExists);
         Assert.False(migratedGuess.LegacyExists);
         Assert.Equal(50, migratedGuess.Value);
@@ -461,9 +470,9 @@ public sealed class AthleteDialogLinkBrowserTests
             new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
             """
-            slug => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')[slug]?.skipped === true
+            args => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')[args.slug]?.byImage?.[args.imageId]?.skipped === true
             """,
-            canonicalSlug);
+            new { slug = canonicalSlug, imageId = ProfileImageA });
         Assert.False(await page.EvaluateAsync<bool>(
             """
             legacySlug => Object.prototype.hasOwnProperty.call(

@@ -3463,7 +3463,9 @@
 
     const currentSeasonStartDate = new Date(new Date().getFullYear(), 0, 1);
 
-    markAthleteSkippedIfInURL();
+    // Capture this before opening a modal mutates the route. The skip itself is
+    // deferred until the athlete snapshot supplies the portrait content ID.
+    let initialAthleteSlugToSkipForGuessMyAge = getAthleteSlugToSkipFromURL();
 
     function orderByNumberDesc(items, selector) {
         return [...items].sort((a, b) => {
@@ -3907,25 +3909,12 @@
         };
     }
 
-    function markAthleteSkippedForGuessMyAge(athleteSlug) {
-        if (!athleteSlug) {
+    function markAthleteSkippedForGuessMyAge(athlete) {
+        if (!athlete) {
             return;
         }
 
-        if (window.LwcGuessState) {
-            window.LwcGuessState.ensureSkipped(athleteSlug);
-            return;
-        }
-
-        const routeSlug = String(athleteSlug).replace(/_/g, '-');
-        const normalizedAthleteSlug = typeof window.slugifyName === 'function'
-            ? window.slugifyName(routeSlug, true)
-            : routeSlug;
-        const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-        if (allGuesses[normalizedAthleteSlug]) return;
-
-        allGuesses[normalizedAthleteSlug] = { value: null, skipped: true, first: false, exact: false };
-        localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+        window.LwcGuessState?.ensureSkipped(athlete);
     }
 
     function markAthletesSkippedForGuessMyAgeIfUnset(athletes) {
@@ -3933,34 +3922,10 @@
             return;
         }
 
-        if (window.LwcGuessState) {
-            window.LwcGuessState.ensureSkippedMany(athletes);
-            return;
-        }
-
-        const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-        let changed = false;
-        athletes.forEach(athlete => {
-            const athleteSlug = athlete &&
-                (athlete.athleteSlug || athlete.AthleteSlug || athlete.name || athlete.Name);
-            if (!athleteSlug) return;
-
-            const routeSlug = String(athleteSlug).replace(/_/g, '-');
-            const normalizedAthleteSlug = typeof window.slugifyName === 'function'
-                ? window.slugifyName(routeSlug, true)
-                : routeSlug;
-            if (allGuesses[normalizedAthleteSlug]) return;
-
-            allGuesses[normalizedAthleteSlug] = { value: null, skipped: true, first: false, exact: false };
-            changed = true;
-        });
-
-        if (changed) {
-            localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
-        }
+        window.LwcGuessState?.ensureSkippedMany(athletes);
     }
 
-    function markAthleteSkippedIfInURL() {
+    function getAthleteSlugToSkipFromURL() {
         const params = new URLSearchParams(window.location.search);
         let athleteSlug = null;
 
@@ -3970,11 +3935,9 @@
             athleteSlug = window.location.pathname.split('/athlete/')[1].split('/')[0];
         }
 
-        if (athleteSlug !== null) {
-            if (params.get('guessmyage') != '1') {
-                markAthleteSkippedForGuessMyAge(athleteSlug);
-            }
-        }
+        return athleteSlug !== null && params.get('guessmyage') != '1'
+            ? normalizeAthleteSlugForLookup(athleteSlug)
+            : '';
     }
 
     function getLeagueRouteState(pathname) {
@@ -4749,6 +4712,7 @@
                         personalLink: athlete.PersonalLink,
                         profilePic: athlete.ProfilePic,
                         profilePicThumb: athlete.ProfilePicLeaderboardThumb || athlete.ProfilePicThumb || athlete.ProfilePic,
+                        profileImageId: athlete.ProfileImageId,
                         flag: rawFlag,
                         canonicalFlag: canonicalFlag,
                         flagFilterKey: getFlagFilterKey(canonicalFlag),
@@ -5902,6 +5866,7 @@
         modalContent.classList.remove('has-load-error');
         modalContent.classList.add('is-loading');
         modalContent.dataset.athleteSlug = athleteSlug;
+        delete modalContent.dataset.profileImageId;
         modalContent.scrollTop = 0;
 
         const loadError = document.getElementById('athleteLoadError');
@@ -8029,7 +7994,7 @@
         const requestId = ++currentAthleteModalRequestId;
         const modalContent = resetModalForLoading(athleteSlug);
 
-        window.getSharedAthletes()
+        return window.getSharedAthletes()
             .then(athletes => {
                 if (requestId !== currentAthleteModalRequestId) return;
                 const fullAthleteData = athletes.find(a => {
@@ -8041,12 +8006,39 @@
                     throw new Error(`Full athlete data not found for ${athleteSlug}`);
                 }
 
-                window.LwcGuessState?.get({
+                const profileImageId = String(fullAthleteData.ProfileImageId || '').trim().toLowerCase();
+                const guessStateIdentity = {
                     ...athleteData,
                     AthleteSlug: fullAthleteData.AthleteSlug,
                     Name: fullAthleteData.Name,
-                    DisplayName: fullAthleteData.DisplayName
-                });
+                    DisplayName: fullAthleteData.DisplayName,
+                    ProfileImageId: profileImageId
+                };
+                athleteData.profileImageId = profileImageId;
+                if (modalContent) {
+                    modalContent.dataset.athleteSlug = athleteSlug;
+                    if (profileImageId) modalContent.dataset.profileImageId = profileImageId;
+                    else delete modalContent.dataset.profileImageId;
+                }
+
+                const canonicalGuessSlug = window.LwcGuessState?.getAthleteSlug(guessStateIdentity)
+                    || athleteSlug;
+                const initialRouteMatchesGuessIdentity = [
+                    canonicalGuessSlug,
+                    normalizeAthleteSlugForLookup(fullAthleteData.Name),
+                    normalizeAthleteSlugForLookup(fullAthleteData.DisplayName)
+                ].includes(initialAthleteSlugToSkipForGuessMyAge);
+                if (initialAthleteSlugToSkipForGuessMyAge &&
+                    initialRouteMatchesGuessIdentity) {
+                    markAthleteSkippedForGuessMyAge(guessStateIdentity);
+                    // This intent belongs only to the portrait resolved for the
+                    // initial direct route, not every later image for this athlete.
+                    initialAthleteSlugToSkipForGuessMyAge = '';
+                } else {
+                    // Trigger the one-time legacy slug/name migration before badges
+                    // and modal state read from the content-addressed history.
+                    window.LwcGuessState?.get(guessStateIdentity);
+                }
                 const rankSummary = computeBestLeagueRank(athleteData);
 
                 // Populate the modal with athlete data
@@ -8111,8 +8103,10 @@
                     return;
                 }
                 modalContent.classList.remove('is-loading');
-                
+
                 modalContent.dataset.athleteSlug = athleteSlug;
+                if (profileImageId) modalContent.dataset.profileImageId = profileImageId;
+                else delete modalContent.dataset.profileImageId;
                 
                 // Always start at top when modal opens
                 modalContent.scrollTop = 0;
@@ -8145,17 +8139,19 @@
                 // always reset the Guess-My-Age UI first:
                 modalContent.classList.remove('guess-mode', 'gma-fast', 'gma-result-ready');
                 gmaCard.classList.remove('gma-done');
-                // read your guesses from localStorage
-                const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-                const athleteGuessState = window.LwcGuessState?.get(athleteData)
-                    || allGuesses[athleteSlug];
+                const athleteGuessState = window.LwcGuessState?.get(guessStateIdentity);
                 // check if the user has hit “Skip All”
                 const skipAll = localStorage.getItem('gmaSkipAll') === 'true';
 
                 const seen = sessionStorage.getItem('gmaSeen');
 
                 if (suppressGuessMyAge) {
-                    markAthleteSkippedForGuessMyAge(athleteSlug);
+                    markAthleteSkippedForGuessMyAge(guessStateIdentity);
+                    modalContent.classList.remove('guess-mode');
+                    gmaCard.classList.add('gma-done');
+                } else if (!profileImageId) {
+                    // The game cannot safely accept a guess unless it can prove
+                    // which portrait the visitor saw.
                     modalContent.classList.remove('guess-mode');
                     gmaCard.classList.add('gma-done');
                 } else if (skipAll) {
@@ -8176,7 +8172,9 @@
                 if (gmaSkipAllBtn) {
                     // reveal “Skip All” once they've skipped at least one athlete,
                     // but hide it if they already chose skip-all
-                    if (!skipAll && Object.values(allGuesses).some(g => g.skipped)) {
+                    const hasSkippedGuess = (window.LwcGuessState?.getAll() || [])
+                        .some(entry => entry.state.skipped === true);
+                    if (!skipAll && hasSkippedGuess) {
                         gmaSkipAllBtn.style.display = 'inline-block';
                     } else {
                         gmaSkipAllBtn.style.display = 'none';
@@ -8243,6 +8241,63 @@
                 if (requestId !== currentAthleteModalRequestId) return;
                 handleAthleteModalLoadFailure(modalContent, athleteSlug, options, error);
             });
+    }
+
+    async function refreshAthleteAfterStaleGuess(athleteSlug) {
+        const normalizedSlug = normalizeAthleteSlugForLookup(athleteSlug);
+        if (!normalizedSlug) return false;
+
+        try {
+            const refreshUrl = `/api/data/athletes?profileImageRefresh=${Date.now()}`;
+            const response = await fetchWithTimeout(refreshUrl, {
+                cache: 'no-store',
+                headers: { accept: 'application/json' }
+            }, 10000);
+            if (!response.ok) return false;
+
+            const athletes = await response.json();
+            if (!Array.isArray(athletes)) return false;
+
+            const fullAthleteData = athletes.find(athlete =>
+                normalizeAthleteSlugForLookup(athlete.AthleteSlug) === normalizedSlug ||
+                normalizeAthleteSlugForLookup(athlete.Name) === normalizedSlug);
+            const athleteData = findAthleteDataBySlug(normalizedSlug);
+            if (!fullAthleteData || !athleteData) return false;
+
+            // Replace the shared snapshot so the ordinary modal loader consumes
+            // the same fresh portrait identity we just fetched.
+            window.__sharedAthletesRequest = Promise.resolve(athletes);
+            const crowdAge = Number(fullAthleteData.CrowdAge);
+            const crowdCount = Number(fullAthleteData.CrowdCount);
+            athleteData.profilePic = fullAthleteData.ProfilePic;
+            athleteData.profilePicThumb = fullAthleteData.ProfilePicLeaderboardThumb
+                || fullAthleteData.ProfilePicThumb
+                || fullAthleteData.ProfilePic;
+            athleteData.profileImageId = fullAthleteData.ProfileImageId;
+            athleteData.crowdAge = Number.isFinite(crowdAge) ? crowdAge : 0;
+            athleteData.crowdCount = Number.isFinite(crowdCount) ? crowdCount : 0;
+            athleteData.crowdAgeReduction = Number.isFinite(crowdAge)
+                ? crowdAge - athleteData.chronologicalAge
+                : null;
+            athleteData.Badges = Array.isArray(fullAthleteData.Badges)
+                ? fullAthleteData.Badges
+                : [];
+
+            await fetchFullAthleteData(athleteData.name, athleteData, {
+                historyMode: 'preserve'
+            });
+            const refreshedModalContent = document.querySelector('#detailsModal .modal-content');
+            const refreshedProfileImageId = String(fullAthleteData.ProfileImageId || '')
+                .trim()
+                .toLowerCase();
+            return refreshedProfileImageId.length > 0 &&
+                refreshedModalContent?.dataset.profileImageId === refreshedProfileImageId &&
+                !refreshedModalContent.classList.contains('has-load-error');
+        } catch (error) {
+            console.error('Error refreshing athlete after profile image change:', error);
+            window.__sharedAthletesRequest = null;
+            return false;
+        }
     }
 
     function computeBestLeagueRank(athleteData) {
@@ -9451,9 +9506,11 @@
     function updateYourGuess() {
         const yourGuessContainer = document.getElementById('yourGuessContainer');
         const yourGuessSpan = document.getElementById('yourGuess');
-        const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-        const athleteSlug = document.querySelector('.modal-content').dataset.athleteSlug;
-        const guessData = window.LwcGuessState?.get(athleteSlug) || allGuesses[athleteSlug];
+        const modalContent = document.querySelector('#detailsModal .modal-content');
+        const guessData = window.LwcGuessState?.get({
+            AthleteSlug: modalContent?.dataset.athleteSlug,
+            ProfileImageId: modalContent?.dataset.profileImageId
+        });
 
         if (guessData && guessData.value != null) {
             // show the row (use '' so table layout is preserved; mobile CSS overrides tr to block)
@@ -9507,6 +9564,7 @@
     window.closeModal = closeModal;
     window.updateCrowdContainer = updateCrowdContainer;
     window.updateYourGuess = updateYourGuess;
+    window.refreshAthleteAfterStaleGuess = refreshAthleteAfterStaleGuess;
     })();
 </script>
 

@@ -54,11 +54,11 @@ public sealed class PublicAthleteApiDocument
     [JsonPropertyName("ExclusiveLeague")]
     public string? ExclusiveLeague { get; init; }
 
-    /// <summary>Median realistic age guessed by visitors in Guess My Age.</summary>
+    /// <summary>Median realistic age guessed from the current profile picture.</summary>
     [JsonPropertyName("CrowdAge")]
     public double CrowdAge { get; init; }
 
-    /// <summary>Number of accepted realistic crowd age guesses.</summary>
+    /// <summary>Number of accepted realistic guesses for the current profile picture.</summary>
     [JsonPropertyName("CrowdCount")]
     public int CrowdCount { get; init; }
 
@@ -77,6 +77,10 @@ public sealed class PublicAthleteApiDocument
     /// <summary>Stable slug used by API clients and public athlete URLs.</summary>
     [JsonPropertyName("AthleteSlug")]
     public string? AthleteSlug { get; init; }
+
+    /// <summary>SHA-256 content identity of the current public profile picture.</summary>
+    [JsonPropertyName("ProfileImageId")]
+    public string? ProfileImageId { get; init; }
 
     /// <summary>Versioned public profile picture URL when available.</summary>
     [JsonPropertyName("ProfilePic")]

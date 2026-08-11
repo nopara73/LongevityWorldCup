@@ -1682,6 +1682,7 @@
     const GMA_TROLL_RECOVERY_MS = 2000;
     let gmaWasGuessMode = modalContent.classList.contains('guess-mode');
     let gmaObservedAthleteSlug = modalContent.dataset.athleteSlug || '';
+    let gmaObservedProfileImageId = modalContent.dataset.profileImageId || '';
     let gmaPresentationGeneration = 0;
     let cancelCurrentGmaReveal = null;
     let gmaExitTimer = 0;
@@ -1703,10 +1704,11 @@
         }
     }
 
-    function beginGmaPresentation(athleteSlug) {
+    function beginGmaPresentation(athleteSlug, profileImageId) {
         cancelGmaPresentation();
         return {
             athleteSlug,
+            profileImageId,
             generation: gmaPresentationGeneration
         };
     }
@@ -1714,7 +1716,8 @@
     function isCurrentGmaPresentation(presentation) {
         return presentation.generation === gmaPresentationGeneration
             && modalContent.classList.contains('guess-mode')
-            && modalContent.dataset.athleteSlug === presentation.athleteSlug;
+            && modalContent.dataset.athleteSlug === presentation.athleteSlug
+            && modalContent.dataset.profileImageId === presentation.profileImageId;
     }
 
     // whenever the modal’s class list changes, if we just opened “guess-mode”,
@@ -1722,12 +1725,14 @@
     const resetObserver = new MutationObserver(mutations => {
         const isGuessMode = modalContent.classList.contains('guess-mode');
         const athleteSlug = modalContent.dataset.athleteSlug || '';
+        const profileImageId = modalContent.dataset.profileImageId || '';
         const guessModeWasAbsentDuringBatch = mutations.some(mutation =>
             mutation.attributeName === 'class'
             && !String(mutation.oldValue || '').split(/\s+/).includes('guess-mode'));
         const openedOrChangedAthlete = isGuessMode
             && (!gmaWasGuessMode
                 || athleteSlug !== gmaObservedAthleteSlug
+                || profileImageId !== gmaObservedProfileImageId
                 || guessModeWasAbsentDuringBatch);
 
         if (openedOrChangedAthlete) {
@@ -1772,6 +1777,7 @@
 
         gmaWasGuessMode = isGuessMode;
         gmaObservedAthleteSlug = athleteSlug;
+        gmaObservedProfileImageId = profileImageId;
     });
 
     resetObserver.observe(modalContent, { attributes: true, attributeOldValue: true });
@@ -2127,7 +2133,9 @@
     }
 
     function gmaTriggerTrollAnimation() {
-        const presentation = beginGmaPresentation(modalContent.dataset.athleteSlug);
+        const presentation = beginGmaPresentation(
+            modalContent.dataset.athleteSlug,
+            modalContent.dataset.profileImageId);
         const previousPosition = modalContent.style.position;
         const athleteProfile = document.getElementById('athlete-profile');
         const profileWasInert = athleteProfile?.inert ?? false;
@@ -2690,16 +2698,13 @@
             .forEach(element => element.remove());
     }
 
-    function persistGmaGuessState(athleteSlug, guessState) {
+    function persistGmaGuessState(athleteSlug, profileImageId, guessState) {
         try {
-            if (window.LwcGuessState) {
-                window.LwcGuessState.set(athleteSlug, guessState);
-                return true;
-            }
-
-            const allGuesses = JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}');
-            allGuesses[athleteSlug] = guessState;
-            localStorage.setItem('gmaAllGuesses', JSON.stringify(allGuesses));
+            if (!athleteSlug || !profileImageId || !window.LwcGuessState) return false;
+            window.LwcGuessState.set({
+                AthleteSlug: athleteSlug,
+                ProfileImageId: profileImageId
+            }, guessState);
             return true;
         } catch (error) {
             console.warn('Could not persist Guess My Age state.', error);
@@ -2707,11 +2712,12 @@
         }
     }
 
-    function scheduleGmaExit(athleteSlug, presentationGeneration, dwell) {
+    function scheduleGmaExit(athleteSlug, profileImageId, presentationGeneration, dwell) {
         if (gmaExitTimer) window.clearTimeout(gmaExitTimer);
 
         const canExit = () => modalContent.classList.contains('guess-mode')
             && modalContent.dataset.athleteSlug === athleteSlug
+            && modalContent.dataset.profileImageId === profileImageId
             && (presentationGeneration == null || presentationGeneration === gmaPresentationGeneration);
 
         const beginExit = () => {
@@ -2772,14 +2778,21 @@
     const gmaSubmitBtn = gmaCard.querySelector('.gma-btn--primary');
     gmaSubmitBtn.addEventListener('click', async function () {
         const userGuess = +gmaRange.value;
+        const submittedAthleteSlug = modalContent.dataset.athleteSlug || '';
+        const submittedProfileImageId = modalContent.dataset.profileImageId || '';
 
         if (userGuess === +gmaRange.min || userGuess === +gmaRange.max) {
             gmaTriggerTrollAnimation();
             return;
         }
 
+        if (!submittedAthleteSlug || !submittedProfileImageId) {
+            restoreGuessControls('We could not verify which profile picture you saw. Please reopen this profile.', gmaSubmitBtn);
+            return;
+        }
+
         clearGmaEphemera();
-        const presentation = beginGmaPresentation(modalContent.dataset.athleteSlug);
+        const presentation = beginGmaPresentation(submittedAthleteSlug, submittedProfileImageId);
         const preludePromise = startGmaResultPrelude(presentation);
 
         gmaCard.setAttribute('aria-busy', 'true');
@@ -2796,10 +2809,26 @@
         gmaSubmitBtn.disabled = true;
 
         try {
-            const response = await fetch(
-                `/api/Guess/athlete-age?athleteName=${encodeURIComponent(presentation.athleteSlug)}&ageGuess=${userGuess}`,
-                { method: 'POST' }
-            );
+            const query = new URLSearchParams({
+                athleteName: presentation.athleteSlug,
+                profileImageId: presentation.profileImageId,
+                ageGuess: String(userGuess)
+            });
+            const response = await fetch(`/api/Guess/athlete-age?${query}`, { method: 'POST' });
+
+            if (response.status === 409) {
+                // The server must not disclose actual age for a portrait that is
+                // no longer current. Reload the athlete snapshot and let the
+                // visitor judge the replacement image before retrying.
+                cancelGmaPresentation();
+                clearGmaEphemera();
+                const refreshed = typeof window.refreshAthleteAfterStaleGuess === 'function'
+                    && await window.refreshAthleteAfterStaleGuess(presentation.athleteSlug);
+                if (!refreshed) {
+                    restoreGuessControls('The profile picture changed. Reopen this profile and try again.', gmaSubmitBtn);
+                }
+                return;
+            }
 
             if (!response.ok) {
                 throw new Error(`Guess submission failed with status ${response.status}`);
@@ -2830,7 +2859,7 @@
 
             // The accepted result is durable before any presentation work. A reload, tab switch,
             // or newly opened athlete must never lose or misattribute this completed round.
-            persistGmaGuessState(presentation.athleteSlug, guessState);
+            persistGmaGuessState(presentation.athleteSlug, presentation.profileImageId, guessState);
             if (userError === 0
                 && window.proDiscounts
                 && typeof window.proDiscounts.setPerfectGuessMarker === 'function') {
@@ -2925,6 +2954,7 @@
 
             scheduleGmaExit(
                 presentation.athleteSlug,
+                presentation.profileImageId,
                 presentation.generation,
                 outcomeDwell);
         } catch (error) {
@@ -2951,15 +2981,16 @@
 
         const modalContent = document.querySelector('#detailsModal .modal-content');
         const athleteSlug = modalContent.dataset.athleteSlug;
+        const profileImageId = modalContent.dataset.profileImageId;
         cancelGmaPresentation();
-        persistGmaGuessState(athleteSlug, {
+        persistGmaGuessState(athleteSlug, profileImageId, {
             value: null,
             skipped: true,
             first: false,
             exact: false
         });
         updateYourGuess();
-        scheduleGmaExit(athleteSlug, null, 0);
+        scheduleGmaExit(athleteSlug, profileImageId, null, 0);
     }
 
     function popBanner(isExact, isFirst, outcomeDwell) {
