@@ -434,10 +434,12 @@ public sealed class AestheticSystemPageTests
         Assert.DoesNotContain("See profile", html);
         Assert.Contains("gmaStatus.classList.add('gma-status--semantic');", html);
         Assert.Contains("gmaActions.querySelectorAll('.gma-btn--ghost')", html);
-        Assert.Contains("persistGmaGuessState(presentation.athleteSlug, guessState);", html);
+        const string persistGuessStateCall =
+            "persistGmaGuessState(presentation.athleteSlug, presentation.profileImageId, guessState);";
+        Assert.Contains(persistGuessStateCall, html);
         Assert.Contains("await animateActualAgeReveal(", html);
         Assert.True(
-            html.IndexOf("persistGmaGuessState(presentation.athleteSlug, guessState);", StringComparison.Ordinal)
+            html.IndexOf(persistGuessStateCall, StringComparison.Ordinal)
             < html.IndexOf("await animateActualAgeReveal(", StringComparison.Ordinal));
         Assert.True(
             html.IndexOf("gmaTriggerTrollAnimation();", StringComparison.Ordinal)
