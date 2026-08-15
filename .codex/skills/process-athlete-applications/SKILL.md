@@ -243,7 +243,10 @@ For each JSON biomarker record:
 - Confirm all values in the record are from one blood draw or one coherent lab report for the same test date. Do not accept a single JSON record assembled from different blood tests, different dates, or unrelated documents.
 - Confirm that required biomarkers for the claimed result are actually supported.
 - Correct obvious JSON clerical mismatches locally instead of blocking. Examples: use the blood draw/collection date instead of a report/submission date when the report clearly shows both; fix a mistyped numeric value such as `ShbgNmolL` when the proof value and unit are unambiguous. Report the correction in the human approval summary.
-- Censor proof files locally instead of blocking when nonessential identifiers are visible. Redact client phone numbers, client addresses, client ID numbers, patient IDs, order IDs, accession/specimen numbers, barcodes, QR codes, and similar identifiers while preserving the applicant name, test date, and biomarker values needed for verification.
+- Censor proof files locally instead of blocking when nonessential information is visible. Apply a strict public-proof allowlist: preserve the applicant name, test/sample/report date needed to tie the result to the record, biomarker names and values with their units/reference ranges, and minimal laboratory/report provenance only when it helps establish authenticity. Redact everything else unless it is required to validate the result.
+- Redact nonessential applicant data and administrative metadata, including exact date of birth, sex, citizenship, phone numbers, email addresses, home addresses, client/patient/health/insurance IDs, payer and care-event details, diagnoses and referral reasons, order/accession/specimen/report/account IDs, barcodes, and QR codes.
+- Redact nonessential third-party and provider data too. This includes clinician, referrer, validator, technician, and signer names; professional or registry IDs; facility and organization identifiers; facility addresses and contact details; and renderer/generator/footer metadata. Third-party professional details are not public verification evidence merely because they appear on a medical report.
+- After redaction, visually inspect every page at a readable size and confirm no text fragments remain at rectangle edges. When proofs are re-encoded, use a decoded-pixel comparison or an equivalent check to verify that no pixels outside the intended redaction regions changed.
 - When `athlete.json` uses a `12/31` DOB privacy placeholder and a proof exposes the exact DOB, censor the exact DOB on the proof. Preserve only the applicant name, test date, and required biomarker values; do not use the proof DOB to overwrite the JSON placeholder.
 - Confirm the proof belongs to the applicant when the document exposes a name or other safe identity signal.
 
@@ -304,7 +307,17 @@ If the Adam Google profile is not signed in, the required send-as address is una
 
 Draft replies in Gmail, do not send them before approval.
 
-Before drafting, read the latest direct exchange with the athlete and continue that conversation naturally. Treat the templates below as starting points, not scripts. If Adam and the athlete have already exchanged messages, do not reintroduce Adam or write as though this is the first contact. Briefly acknowledge the athlete's latest relevant action—such as sending requested proof or a correction—using only details present in the thread.
+Write athlete-facing replies in a warm, casual, conversational voice. Keep them concise and accurate; avoid stiff support-language, forced slang, or unnecessary formality. Treat the templates below as starting points, not scripts.
+
+Choose the reply language in this order:
+
+1. If the athlete's `Why` field is clearly written in a language other than English, write the entire reply naturally in that language. This applies to welcome, update, correction-disclosure, and blocked-submission drafts; do not translate only the greeting.
+2. Otherwise, follow the language used by the athlete/requester in the latest direct exchange.
+3. If neither signal is clear, use English. An explicit language instruction from the user or athlete overrides these defaults.
+
+Do not infer reply language from the laboratory report alone; a report's language may reflect the provider rather than the athlete's preference. Preserve proper names, URLs, biomarker labels, and exact submitted/corrected values when localizing a draft.
+
+Before drafting, read the latest direct exchange with the athlete and continue that conversation naturally. Briefly acknowledge the athlete's latest relevant action—such as sending requested proof or a correction—using only details present in the thread. For every accepted full-application welcome, introduce the sender briefly as Adam, the founder of LWC, in the reply's language. Keep this personal introduction even when the applicant supplied a requested item before acceptance; result/profile-update replies do not need to repeat it.
 
 When blocked, keep the message concise and specific:
 
@@ -358,7 +371,7 @@ For an accepted full application after the athlete supplied a requested item or 
 ```text
 Hey {name},
 
-Thanks for sending {the requested item}. I reviewed {the complete report/the update}, and your application looks good to me.
+I'm Adam, the founder of LWC. Thanks for sending {the requested item}. I reviewed {the complete report/the update}, and your application looks good to me.
 
 {Include the Changes I made during the review section here only when required by the preceding instructions.}
 
