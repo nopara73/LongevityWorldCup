@@ -140,6 +140,23 @@
         browsers?: RawTrafficBreakdown[] | null;
     }
 
+    interface DashboardFilters {
+        range?: string | null;
+        flow?: string | null;
+        device?: string | null;
+        source?: string | null;
+        fromUtc?: string | null;
+        toUtc?: string | null;
+        previousFromUtc?: string | null;
+        previousToUtc?: string | null;
+        limit?: number | null;
+    }
+
+    interface DashboardEventPage {
+        hasMore?: boolean;
+        nextCursor?: string | null;
+    }
+
     type RawTrafficRecord<T, TextKey extends keyof T = never> =
         { [Key in Exclude<keyof T, TextKey>]?: unknown }
         & { [Key in TextKey]?: string | null };
@@ -151,10 +168,17 @@
 
     interface DashboardPayload {
         generatedAtUtc?: string | null;
-        filters?: { limit?: number | null } | null;
+        filters?: DashboardFilters | null;
         events?: RawDashboardEvent[] | null;
         previousEvents?: RawDashboardEvent[] | null;
+        eventsPage?: DashboardEventPage | null;
+        previousEventsPage?: DashboardEventPage | null;
         trafficSummary?: RawTrafficSummary | null;
+    }
+
+    interface DashboardEventsPagePayload {
+        events?: RawDashboardEvent[] | null;
+        page?: DashboardEventPage | null;
     }
 
     interface DecisionInsight {
@@ -239,7 +263,13 @@
         previousEvents: DashboardEvent[];
         previousDefaultEvents: DashboardEvent[];
         trafficSummary: TrafficSummary;
-        loadedEventLimit: number;
+        filters: DashboardFilters | null;
+        eventsPage: DashboardEventPage | null;
+        previousEventsPage: DashboardEventPage | null;
+        currentWindowComplete: boolean;
+        previousWindowComplete: boolean;
+        diagnosticWindowsLoaded: boolean;
+        generatedAtUtc: string | null;
         decisionActions: DecisionAction[];
         selectedEventName: string | null;
         selectedSession: string | null;
@@ -272,12 +302,19 @@
         previousEvents: [],
         previousDefaultEvents: [],
         trafficSummary: emptyTrafficSummary(),
-        loadedEventLimit: 0,
+        filters: null,
+        eventsPage: null,
+        previousEventsPage: null,
+        currentWindowComplete: false,
+        previousWindowComplete: false,
+        diagnosticWindowsLoaded: false,
+        generatedAtUtc: null,
         decisionActions: [],
         selectedEventName: null,
         selectedSession: null,
         selectedLabel: "all events"
     };
+    let loadGeneration = 0;
 
     function calculatorFunnel(selectionLabel: string): FunnelDefinition[] {
         return [
@@ -459,46 +496,136 @@
     }
 
     async function loadDashboard(): Promise<void> {
+        const generation = ++loadGeneration;
+        const requestedTab = state.tab;
+        const loadCompleteDiagnostics = requestedTab !== trafficOverviewTab;
+        setDashboardLoading(true);
         setStatus("Loading redacted analytics...");
         const params = new URLSearchParams({
             range: el("statsRange").value,
             flow: el("statsFlow").value,
             device: el("statsDevice").value,
             source: el("statsSource").value,
-            limit: String(dashboardEventLimit())
+            limit: String(loadCompleteDiagnostics ? diagnosticEventLimit : trafficOverviewEventLimit)
         });
 
         try {
             const response = await fetch(`/api/site-statistics/dashboard?${params.toString()}`, { headers: { "Accept": "application/json" } });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const payload = await response.json() as DashboardPayload;
-            state.events = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
-            state.previousEvents = Array.isArray(payload.previousEvents) ? payload.previousEvents.map(normalizeEvent) : [];
+            if (generation !== loadGeneration) return;
+
+            const filters = payload.filters || null;
+            const initialEvents = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
+            const initialPreviousEvents = Array.isArray(payload.previousEvents) ? payload.previousEvents.map(normalizeEvent) : [];
+            let events = initialEvents;
+            let previousEvents = initialPreviousEvents;
+
+            if (loadCompleteDiagnostics) {
+                setStatus(`Loading the complete ${selectedRangeLabel()} diagnostic windows...`);
+                [events, previousEvents] = await Promise.all([
+                    loadCompleteEventWindow(initialEvents, payload.eventsPage, filters, false, generation),
+                    loadCompleteEventWindow(initialPreviousEvents, payload.previousEventsPage, filters, true, generation)
+                ]);
+                if (generation !== loadGeneration) return;
+            }
+
+            state.events = events;
+            state.previousEvents = previousEvents;
             state.trafficSummary = normalizeTrafficSummary(payload.trafficSummary);
-            state.loadedEventLimit = Number(payload.filters && payload.filters.limit) || dashboardEventLimit();
+            state.filters = filters;
+            state.eventsPage = payload.eventsPage || null;
+            state.previousEventsPage = payload.previousEventsPage || null;
+            state.currentWindowComplete = loadCompleteDiagnostics || !hasMoreEvents(payload.eventsPage);
+            state.previousWindowComplete = loadCompleteDiagnostics || !hasMoreEvents(payload.previousEventsPage);
+            state.diagnosticWindowsLoaded = loadCompleteDiagnostics;
+            state.generatedAtUtc = payload.generatedAtUtc || null;
             state.defaultEvents = collapseRepeatedPageViewBursts(state.events);
             state.previousDefaultEvents = collapseRepeatedPageViewBursts(state.previousEvents);
-            const totals = state.trafficSummary.totals;
-            setStatus(`${formatNumber(totals.sessions)} visitor sessions and ${formatNumber(totals.pageViews)} page views loaded. ${state.events.length} recent diagnostic rows available. Generated ${formatTime(payload.generatedAtUtc)}.`);
+            setDashboardLoading(false);
+            renderLoadedStatus();
             renderAll();
         } catch (error) {
+            if (generation !== loadGeneration) return;
             state.events = [];
             state.defaultEvents = [];
             state.previousEvents = [];
             state.previousDefaultEvents = [];
             state.trafficSummary = emptyTrafficSummary();
-            state.loadedEventLimit = 0;
+            state.filters = null;
+            state.eventsPage = null;
+            state.previousEventsPage = null;
+            state.currentWindowComplete = false;
+            state.previousWindowComplete = false;
+            state.diagnosticWindowsLoaded = false;
+            state.generatedAtUtc = null;
+            setDashboardLoading(false);
             setStatus(`Dashboard data could not be loaded: ${errorMessage(error)}.`, true);
             renderAll();
         }
     }
 
-    function dashboardEventLimit(): number {
-        return state.tab === trafficOverviewTab ? trafficOverviewEventLimit : diagnosticEventLimit;
+    async function loadCompleteEventWindow(
+        initialEvents: DashboardEvent[],
+        initialPage: DashboardEventPage | null | undefined,
+        filters: DashboardFilters | null,
+        previous: boolean,
+        generation: number): Promise<DashboardEvent[]> {
+        const events = initialEvents.slice();
+        let page = initialPage || null;
+        let cursor = page && page.nextCursor;
+        while (hasMoreEvents(page)) {
+            if (!filters || !cursor)
+                throw new Error("The dashboard returned an incomplete event window without a continuation cursor.");
+
+            const fromUtc = previous ? filters.previousFromUtc : filters.fromUtc;
+            const toUtc = previous ? filters.previousToUtc : filters.toUtc;
+            if (!fromUtc || !toUtc)
+                throw new Error("The dashboard returned an incomplete event window without stable boundaries.");
+
+            const params = new URLSearchParams({
+                fromUtc,
+                toUtc,
+                flow: filters.flow || "all",
+                device: filters.device || "all",
+                source: filters.source || "all",
+                limit: String(diagnosticEventLimit),
+                cursor
+            });
+            const response = await fetch(`/api/site-statistics/dashboard/events?${params.toString()}`, { headers: { "Accept": "application/json" } });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const payload = await response.json() as DashboardEventsPagePayload;
+            if (generation !== loadGeneration) return [];
+
+            const nextEvents = Array.isArray(payload.events) ? payload.events.map(normalizeEvent) : [];
+            events.push(...nextEvents);
+            page = payload.page || null;
+            const nextCursor = page && page.nextCursor;
+            if (hasMoreEvents(page) && (!nextEvents.length || !nextCursor || nextCursor === cursor))
+                throw new Error("Dashboard event pagination did not advance.");
+            cursor = nextCursor;
+        }
+
+        return events;
+    }
+
+    function hasMoreEvents(page: DashboardEventPage | null | undefined): boolean {
+        return Boolean(page && page.hasMore);
+    }
+
+    function renderLoadedStatus(): void {
+        const totals = state.trafficSummary.totals;
+        setStatus(state.tab !== trafficOverviewTab
+            ? `Complete ${selectedRangeLabel()} diagnostic windows loaded: ${formatNumber(state.events.length)} current and ${formatNumber(state.previousEvents.length)} previous redacted events. Generated ${formatTime(state.generatedAtUtc)}.`
+            : `Complete ${selectedRangeLabel()} traffic window loaded: ${formatNumber(totals.sessions)} visitor sessions and ${formatNumber(totals.pageViews)} page views. ${formatNumber(state.events.length)} recent redacted rows retained for export and drilldown. Generated ${formatTime(state.generatedAtUtc)}.`);
+    }
+
+    function setDashboardLoading(loading: boolean): void {
+        (el("statsExport") as HTMLButtonElement).disabled = loading;
     }
 
     function needsDiagnosticEventReload(): boolean {
-        return state.tab !== trafficOverviewTab && state.loadedEventLimit < diagnosticEventLimit;
+        return state.tab !== trafficOverviewTab && !state.diagnosticWindowsLoaded;
     }
 
     function renderAll(): void {
@@ -1327,7 +1454,10 @@
                 state.selectedEventName = null;
                 state.selectedLabel = `${tab} / all events`;
                 if (needsDiagnosticEventReload()) loadDashboard();
-                else renderAll();
+                else {
+                    renderLoadedStatus();
+                    renderAll();
+                }
             });
             host.appendChild(button);
         });
@@ -2647,7 +2777,31 @@
         host.classList.toggle("error", !!error);
     }
 
-    function exportCsv(): void {
+    async function exportCsv(): Promise<void> {
+        if (!state.currentWindowComplete) {
+            const generation = ++loadGeneration;
+            setDashboardLoading(true);
+            setStatus(`Loading the complete ${selectedRangeLabel()} event window for export...`);
+            try {
+                state.events = await loadCompleteEventWindow(
+                    state.events,
+                    state.eventsPage,
+                    state.filters,
+                    false,
+                    generation);
+                if (generation !== loadGeneration) return;
+                state.defaultEvents = collapseRepeatedPageViewBursts(state.events);
+                state.currentWindowComplete = true;
+                state.eventsPage = { hasMore: false, nextCursor: null };
+                setDashboardLoading(false);
+            } catch (error) {
+                if (generation !== loadGeneration) return;
+                setDashboardLoading(false);
+                setStatus(`The complete event window could not be exported: ${errorMessage(error)}.`, true);
+                return;
+            }
+        }
+
         const events = selectedRawEvents();
         const headers: (keyof RawDashboardEvent)[] = ["occurredAtUtc", "sessionHash", "actorHash", "eventName", "flow", "route", "component", "step", "outcome", "errorCode", "durationMs", "deviceClass", "browserFamily", "referrerDomain", "source", "landingRoute", "firstReferrerDomain", "firstSource", "firstCampaign", "firstUtmSource", "firstUtmMedium", "firstUtmCampaign", "firstUtmTerm", "firstUtmContent"];
         const lines = [headers.join(",")].concat(events.map(e => headers.map(h => csv(e[h])).join(",")));
@@ -2658,6 +2812,7 @@
         a.download = "site-statistics-redacted.csv";
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 500);
+        setStatus(`Exported ${formatNumber(events.length)} redacted events from the complete ${selectedRangeLabel()} window.`);
     }
 
     async function copyLink(): Promise<void> {

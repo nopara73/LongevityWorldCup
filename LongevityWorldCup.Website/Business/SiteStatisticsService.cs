@@ -216,22 +216,56 @@ public sealed class SiteStatisticsService : IHostedService
                 GeneratedAtUtc: now.ToString("O", CultureInfo.InvariantCulture),
                 Filters: filters,
                 TrafficSummary: trafficSummary,
-                Events: events,
-                PreviousEvents: previousEvents));
+                Events: events.Events,
+                PreviousEvents: previousEvents.Events,
+                EventsPage: events.Page,
+                PreviousEventsPage: previousEvents.Page));
         }, ct).ConfigureAwait(false);
     }
 
-    private static List<SiteStatisticsDashboardEvent> ReadDashboardEvents(
+    public async Task<SiteStatisticsDashboardEventsPageResponse> GetDashboardEventsPageAsync(
+        SiteStatisticsDashboardEventsPageQuery query,
+        CancellationToken ct = default)
+    {
+        EnsureInitialized();
+        await FlushQueuedEventsAsync(ct).ConfigureAwait(false);
+
+        if (query.FromUtc is null || query.ToUtc is null)
+            throw new ArgumentException("Both fromUtc and toUtc are required.", nameof(query));
+
+        var from = query.FromUtc.Value.ToUniversalTime();
+        var to = query.ToUtc.Value.ToUniversalTime();
+        if (from < AllTimeDashboardStartUtc || from >= to)
+            throw new ArgumentException("The dashboard event window is invalid.", nameof(query));
+
+        var limit = Math.Clamp(query.Limit ?? DefaultDashboardLimit, 1, MaxDashboardLimit);
+        var filters = new SiteStatisticsDashboardQuery
+        {
+            Flow = query.Flow,
+            Device = query.Device,
+            Source = query.Source
+        };
+
+        return await _database.RunAsync(sqlite =>
+        {
+            var page = ReadDashboardEvents(sqlite, from, to, filters, limit, query.Cursor);
+            return Task.FromResult(new SiteStatisticsDashboardEventsPageResponse(page.Events, page.Page));
+        }, ct).ConfigureAwait(false);
+    }
+
+    private static DashboardEventPageResult ReadDashboardEvents(
         SqliteConnection sqlite,
         DateTimeOffset from,
         DateTimeOffset to,
         SiteStatisticsDashboardQuery query,
-        int limit)
+        int limit,
+        string? cursor = null)
     {
+        var decodedCursor = DecodeDashboardEventCursor(cursor, from, to, query);
         using var cmd = sqlite.CreateCommand();
         cmd.CommandText =
             """
-            SELECT e.OccurredAtUtc, e.SessionHash, e.ActorHash, e.EventName, e.Flow, e.Route, e.Component, e.Step, e.Outcome,
+            SELECT e.Id, e.OccurredAtUtc, e.SessionHash, e.ActorHash, e.EventName, e.Flow, e.Route, e.Component, e.Step, e.Outcome,
                    e.ErrorCode, e.DurationMs, e.DeviceClass, e.BrowserFamily, e.ReferrerDomain, e.Source, e.MetadataJson,
                    s.LandingRoute, s.FirstReferrerDomain, s.FirstSource, s.FirstCampaign, s.FirstUtmSource,
                    s.FirstUtmMedium, s.FirstUtmCampaign, s.FirstUtmTerm, s.FirstUtmContent
@@ -239,6 +273,8 @@ public sealed class SiteStatisticsService : IHostedService
             LEFT JOIN SiteStatisticSessions s ON s.SessionHash = e.SessionHash
             WHERE e.OccurredAtUtc >= @from
               AND e.OccurredAtUtc < @to
+              AND (@cursorOccurred = '' OR e.OccurredAtUtc < @cursorOccurred
+                   OR (e.OccurredAtUtc = @cursorOccurred AND e.Id < @cursorId))
               AND (@flow = '' OR e.Flow = @flow)
               AND (@device = '' OR e.DeviceClass = @device)
               AND (@source = '' OR (
@@ -273,25 +309,29 @@ public sealed class SiteStatisticsService : IHostedService
                         ELSE coalesce(e.Source, 'direct')
                     END
                   ) = @source)
-            ORDER BY e.OccurredAtUtc DESC
-            LIMIT @limit;
+            ORDER BY e.OccurredAtUtc DESC, e.Id DESC
+            LIMIT @fetchLimit;
             """;
         Add(cmd, "@from", from.ToString("O", CultureInfo.InvariantCulture));
         Add(cmd, "@to", to.ToString("O", CultureInfo.InvariantCulture));
+        Add(cmd, "@cursorOccurred", decodedCursor?.OccurredAtUtc ?? string.Empty);
+        Add(cmd, "@cursorId", decodedCursor?.Id ?? string.Empty);
         Add(cmd, "@flow", NormalizeFilter(query.Flow));
         Add(cmd, "@device", NormalizeFilter(query.Device));
         Add(cmd, "@source", NormalizeFilter(query.Source));
-        Add(cmd, "@limit", limit);
+        Add(cmd, "@fetchLimit", limit + 1);
 
-        var events = new List<SiteStatisticsDashboardEvent>();
+        var rows = new List<DashboardEventRow>();
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
         {
-            var referrerDomain = ReadNullableString(reader, 13);
-            var firstReferrerDomain = ReadNullableString(reader, 17);
-            var routeProjection = BuildRouteProjection(ReadNullableString(reader, 5));
-            var landingRouteProjection = BuildRouteProjection(ReadNullableString(reader, 16));
-            var metadata = ReadMetadata(ReadNullableString(reader, 15));
+            var id = ReadString(reader, 0);
+            var occurredAtUtc = ReadString(reader, 1);
+            var referrerDomain = ReadNullableString(reader, 14);
+            var firstReferrerDomain = ReadNullableString(reader, 18);
+            var routeProjection = BuildRouteProjection(ReadNullableString(reader, 6));
+            var landingRouteProjection = BuildRouteProjection(ReadNullableString(reader, 17));
+            var metadata = ReadMetadata(ReadNullableString(reader, 16));
             if (!string.IsNullOrWhiteSpace(routeProjection.EntryMode) && !metadata.ContainsKey("entryMode"))
             {
                 metadata = new Dictionary<string, string>(metadata, StringComparer.OrdinalIgnoreCase)
@@ -300,35 +340,46 @@ public sealed class SiteStatisticsService : IHostedService
                 };
             }
 
-            events.Add(new SiteStatisticsDashboardEvent(
-                OccurredAtUtc: RoundToMinute(ReadString(reader, 0)),
-                SessionHash: ReadString(reader, 1),
-                ActorHash: ReadNullableString(reader, 2),
-                EventName: ReadString(reader, 3),
-                Flow: ReadNullableString(reader, 4),
+            rows.Add(new DashboardEventRow(
+                Event: new SiteStatisticsDashboardEvent(
+                OccurredAtUtc: RoundToMinute(occurredAtUtc),
+                SessionHash: ReadString(reader, 2),
+                ActorHash: ReadNullableString(reader, 3),
+                EventName: ReadString(reader, 4),
+                Flow: ReadNullableString(reader, 5),
                 Route: routeProjection.Route,
-                Component: ReadNullableString(reader, 6),
-                Step: ReadNullableString(reader, 7),
-                Outcome: ReadNullableString(reader, 8),
-                ErrorCode: ReadNullableString(reader, 9),
-                DurationMs: reader.IsDBNull(10) ? null : reader.GetInt64(10),
-                DeviceClass: ReadNullableString(reader, 11),
-                BrowserFamily: ReadNullableString(reader, 12),
+                Component: ReadNullableString(reader, 7),
+                Step: ReadNullableString(reader, 8),
+                Outcome: ReadNullableString(reader, 9),
+                ErrorCode: ReadNullableString(reader, 10),
+                DurationMs: reader.IsDBNull(11) ? null : reader.GetInt64(11),
+                DeviceClass: ReadNullableString(reader, 12),
+                BrowserFamily: ReadNullableString(reader, 13),
                 ReferrerDomain: referrerDomain,
-                Source: NormalizeSource(ReadNullableString(reader, 14), referrerDomain),
+                Source: NormalizeSource(ReadNullableString(reader, 15), referrerDomain),
                 LandingRoute: landingRouteProjection.Route,
                 FirstReferrerDomain: firstReferrerDomain,
-                FirstSource: NormalizeSource(ReadNullableString(reader, 18), firstReferrerDomain),
-                FirstCampaign: ReadNullableString(reader, 19),
-                FirstUtmSource: ReadNullableString(reader, 20),
-                FirstUtmMedium: ReadNullableString(reader, 21),
-                FirstUtmCampaign: ReadNullableString(reader, 22),
-                FirstUtmTerm: ReadNullableString(reader, 23),
-                FirstUtmContent: ReadNullableString(reader, 24),
-                Metadata: metadata));
+                FirstSource: NormalizeSource(ReadNullableString(reader, 19), firstReferrerDomain),
+                FirstCampaign: ReadNullableString(reader, 20),
+                FirstUtmSource: ReadNullableString(reader, 21),
+                FirstUtmMedium: ReadNullableString(reader, 22),
+                FirstUtmCampaign: ReadNullableString(reader, 23),
+                FirstUtmTerm: ReadNullableString(reader, 24),
+                FirstUtmContent: ReadNullableString(reader, 25),
+                Metadata: metadata),
+                Cursor: new DashboardEventPosition(occurredAtUtc, id)));
         }
 
-        return events;
+        var hasMore = rows.Count > limit;
+        if (hasMore)
+            rows.RemoveAt(rows.Count - 1);
+
+        var nextCursor = hasMore && rows.Count > 0
+            ? EncodeDashboardEventCursor(rows[^1].Cursor, from, to, query)
+            : null;
+        return new DashboardEventPageResult(
+            rows.Select(static row => row.Event).ToList(),
+            new SiteStatisticsDashboardEventPage(HasMore: hasMore, NextCursor: nextCursor));
     }
 
     private static SiteStatisticsTrafficSummary ReadTrafficSummary(
@@ -1478,6 +1529,64 @@ public sealed class SiteStatisticsService : IHostedService
         return string.IsNullOrWhiteSpace(ua) ? "unknown" : "other";
     }
 
+    private static string EncodeDashboardEventCursor(
+        DashboardEventPosition position,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        SiteStatisticsDashboardQuery query)
+    {
+        var cursor = new DashboardEventCursor(
+            position.OccurredAtUtc,
+            position.Id,
+            from.ToString("O", CultureInfo.InvariantCulture),
+            to.ToString("O", CultureInfo.InvariantCulture),
+            NormalizeFilter(query.Flow),
+            NormalizeFilter(query.Device),
+            NormalizeFilter(query.Source));
+        return WebEncoders.Base64UrlEncode(JsonSerializer.SerializeToUtf8Bytes(cursor, JsonOptions));
+    }
+
+    private static DashboardEventCursor? DecodeDashboardEventCursor(
+        string? cursor,
+        DateTimeOffset from,
+        DateTimeOffset to,
+        SiteStatisticsDashboardQuery query)
+    {
+        if (string.IsNullOrWhiteSpace(cursor))
+            return null;
+
+        try
+        {
+            var decoded = JsonSerializer.Deserialize<DashboardEventCursor>(
+                WebEncoders.Base64UrlDecode(cursor),
+                JsonOptions);
+            if (decoded is null)
+                throw new FormatException();
+
+            if (!DateTimeOffset.TryParse(
+                    decoded.OccurredAtUtc,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal,
+                    out _) ||
+                decoded.Id.Length != 32 ||
+                !decoded.Id.All(Uri.IsHexDigit) ||
+                !string.Equals(decoded.FromUtc, from.ToString("O", CultureInfo.InvariantCulture), StringComparison.Ordinal) ||
+                !string.Equals(decoded.ToUtc, to.ToString("O", CultureInfo.InvariantCulture), StringComparison.Ordinal) ||
+                !string.Equals(decoded.Flow, NormalizeFilter(query.Flow), StringComparison.Ordinal) ||
+                !string.Equals(decoded.Device, NormalizeFilter(query.Device), StringComparison.Ordinal) ||
+                !string.Equals(decoded.Source, NormalizeFilter(query.Source), StringComparison.Ordinal))
+            {
+                throw new FormatException();
+            }
+
+            return decoded;
+        }
+        catch (Exception ex) when (ex is FormatException or ArgumentException or JsonException)
+        {
+            throw new ArgumentException("The dashboard event cursor is invalid.", nameof(cursor), ex);
+        }
+    }
+
     private static DateTimeOffset ResolveFrom(string? range, DateTimeOffset now)
         => (range ?? "30d").Trim().ToLowerInvariant() switch
         {
@@ -1536,6 +1645,25 @@ public sealed class SiteStatisticsService : IHostedService
         long Events,
         long PageViews,
         long LargestRepeatedPageViews);
+
+    private sealed record DashboardEventCursor(
+        string OccurredAtUtc,
+        string Id,
+        string FromUtc,
+        string ToUtc,
+        string Flow,
+        string Device,
+        string Source);
+
+    private sealed record DashboardEventPosition(string OccurredAtUtc, string Id);
+
+    private sealed record DashboardEventRow(
+        SiteStatisticsDashboardEvent Event,
+        DashboardEventPosition Cursor);
+
+    private sealed record DashboardEventPageResult(
+        IReadOnlyList<SiteStatisticsDashboardEvent> Events,
+        SiteStatisticsDashboardEventPage Page);
 }
 
 internal sealed record SessionFirstTouch(
@@ -1616,12 +1744,33 @@ public sealed class SiteStatisticsDashboardQuery
     public int? Limit { get; set; }
 }
 
+public sealed class SiteStatisticsDashboardEventsPageQuery
+{
+    public DateTimeOffset? FromUtc { get; set; }
+    public DateTimeOffset? ToUtc { get; set; }
+    public string? Flow { get; set; }
+    public string? Device { get; set; }
+    public string? Source { get; set; }
+    public int? Limit { get; set; }
+    public string? Cursor { get; set; }
+}
+
 public sealed record SiteStatisticsDashboardResponse(
     string GeneratedAtUtc,
     SiteStatisticsDashboardFilters Filters,
     SiteStatisticsTrafficSummary TrafficSummary,
     IReadOnlyList<SiteStatisticsDashboardEvent> Events,
-    IReadOnlyList<SiteStatisticsDashboardEvent> PreviousEvents);
+    IReadOnlyList<SiteStatisticsDashboardEvent> PreviousEvents,
+    SiteStatisticsDashboardEventPage EventsPage,
+    SiteStatisticsDashboardEventPage PreviousEventsPage);
+
+public sealed record SiteStatisticsDashboardEventsPageResponse(
+    IReadOnlyList<SiteStatisticsDashboardEvent> Events,
+    SiteStatisticsDashboardEventPage Page);
+
+public sealed record SiteStatisticsDashboardEventPage(
+    bool HasMore,
+    string? NextCursor);
 
 public sealed record SiteStatisticsDashboardFilters(
     string Range,
