@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Http;
@@ -152,6 +153,9 @@ public sealed class SiteStatisticsServiceTests
         var dashboard = await service.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d", Limit = 1 });
 
         Assert.Single(dashboard.Events);
+        Assert.True(dashboard.EventsPage.HasMore);
+        Assert.NotNull(dashboard.EventsPage.NextCursor);
+        Assert.False(dashboard.PreviousEventsPage.HasMore);
         Assert.Equal(5006, dashboard.TrafficSummary.Totals.Events);
         Assert.Equal(5006, dashboard.TrafficSummary.Totals.PageViews);
         Assert.Equal(5006, dashboard.TrafficSummary.Totals.Sessions);
@@ -179,6 +183,107 @@ public sealed class SiteStatisticsServiceTests
         Assert.Equal("search", source.Label);
         var referrer = Assert.Single(searchOnly.TrafficSummary.Referrers);
         Assert.Equal("www.google.com", referrer.Label);
+
+        var stableTo = DateTimeOffset.Parse(dashboard.Filters.ToUtc, CultureInfo.InvariantCulture);
+        InsertDashboardEvent(
+            database,
+            stableTo.AddMilliseconds(1),
+            "S-AFTER-SNAPSHOT",
+            "site_page_viewed",
+            "site",
+            route: "/after-snapshot");
+
+        var continuation = await service.GetDashboardEventsPageAsync(new SiteStatisticsDashboardEventsPageQuery
+        {
+            FromUtc = DateTimeOffset.Parse(dashboard.Filters.FromUtc, CultureInfo.InvariantCulture),
+            ToUtc = stableTo,
+            Flow = dashboard.Filters.Flow,
+            Device = dashboard.Filters.Device,
+            Source = dashboard.Filters.Source,
+            Limit = 5000,
+            Cursor = dashboard.EventsPage.NextCursor
+        });
+        Assert.Equal(5000, continuation.Events.Count);
+        Assert.True(continuation.Page.HasMore);
+        Assert.NotNull(continuation.Page.NextCursor);
+
+        var finalPage = await service.GetDashboardEventsPageAsync(new SiteStatisticsDashboardEventsPageQuery
+        {
+            FromUtc = DateTimeOffset.Parse(dashboard.Filters.FromUtc, CultureInfo.InvariantCulture),
+            ToUtc = stableTo,
+            Flow = dashboard.Filters.Flow,
+            Device = dashboard.Filters.Device,
+            Source = dashboard.Filters.Source,
+            Limit = 5000,
+            Cursor = continuation.Page.NextCursor
+        });
+        Assert.Equal(5, finalPage.Events.Count);
+        Assert.False(finalPage.Page.HasMore);
+        Assert.Null(finalPage.Page.NextCursor);
+        var completeWindow = dashboard.Events.Concat(continuation.Events).Concat(finalPage.Events).ToList();
+        Assert.Equal(5006, completeWindow.Count);
+        Assert.Equal(5006, completeWindow.Select(ev => ev.SessionHash).Distinct(StringComparer.Ordinal).Count());
+        Assert.DoesNotContain(completeWindow, ev => ev.SessionHash == "S-AFTER-SNAPSHOT");
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetDashboardEventsPageAsync(new SiteStatisticsDashboardEventsPageQuery
+        {
+            FromUtc = DateTimeOffset.Parse(dashboard.Filters.FromUtc, CultureInfo.InvariantCulture),
+            ToUtc = stableTo,
+            Flow = dashboard.Filters.Flow,
+            Device = dashboard.Filters.Device,
+            Source = "search",
+            Limit = 5000,
+            Cursor = dashboard.EventsPage.NextCursor
+        }));
+    }
+
+    [Fact]
+    public async Task DashboardEventsEndpoint_PagesStableWindowsAndRejectsInvalidRequests()
+    {
+        await using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        foreach (var sessionId in new[] { "endpoint-page-a", "endpoint-page-b" })
+        {
+            using var response = await client.PostAsync(
+                "/api/site-statistics/event",
+                JsonContent.Create(new SiteStatisticsEventRequest
+                {
+                    EventName = "site_page_viewed",
+                    SessionId = sessionId,
+                    Flow = "site",
+                    Route = "/",
+                    DeviceClass = "desktop",
+                    Source = "direct"
+                }));
+            response.EnsureSuccessStatusCode();
+        }
+
+        var dashboard = await client.GetFromJsonAsync<SiteStatisticsDashboardResponse>(
+            "/api/site-statistics/dashboard?range=7d&limit=1");
+        Assert.NotNull(dashboard);
+        Assert.True(dashboard.EventsPage.HasMore);
+        Assert.NotNull(dashboard.EventsPage.NextCursor);
+
+        var continuationUrl =
+            $"/api/site-statistics/dashboard/events?fromUtc={Uri.EscapeDataString(dashboard.Filters.FromUtc)}" +
+            $"&toUtc={Uri.EscapeDataString(dashboard.Filters.ToUtc)}" +
+            $"&flow={Uri.EscapeDataString(dashboard.Filters.Flow ?? "all")}" +
+            $"&device={Uri.EscapeDataString(dashboard.Filters.Device ?? "all")}" +
+            $"&source={Uri.EscapeDataString(dashboard.Filters.Source ?? "all")}" +
+            $"&limit=1&cursor={Uri.EscapeDataString(dashboard.EventsPage.NextCursor)}";
+        var continuation = await client.GetFromJsonAsync<SiteStatisticsDashboardEventsPageResponse>(continuationUrl);
+        Assert.NotNull(continuation);
+        Assert.Single(continuation.Events);
+        Assert.False(continuation.Page.HasMore);
+
+        var now = DateTimeOffset.UtcNow;
+
+        using var missingWindow = await client.GetAsync("/api/site-statistics/dashboard/events?cursor=invalid");
+        Assert.Equal(HttpStatusCode.BadRequest, missingWindow.StatusCode);
+
+        var invalidCursorUrl = $"/api/site-statistics/dashboard/events?fromUtc={Uri.EscapeDataString(now.AddDays(-1).ToString("O"))}&toUtc={Uri.EscapeDataString(now.ToString("O"))}&cursor=invalid";
+        using var invalidCursor = await client.GetAsync(invalidCursorUrl);
+        Assert.Equal(HttpStatusCode.BadRequest, invalidCursor.StatusCode);
     }
 
     [Fact]

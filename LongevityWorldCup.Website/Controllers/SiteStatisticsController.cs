@@ -22,4 +22,24 @@ public sealed class SiteStatisticsController(SiteStatisticsService statistics) :
     [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard([FromQuery] SiteStatisticsDashboardQuery query, CancellationToken ct)
         => Ok(await _statistics.GetDashboardAsync(query, ct).ConfigureAwait(false));
+
+    [HttpGet("dashboard/events")]
+    public async Task<IActionResult> DashboardEvents(
+        [FromQuery] SiteStatisticsDashboardEventsPageQuery query,
+        CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _statistics.GetDashboardEventsPageAsync(query, ct).ConfigureAwait(false));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Invalid dashboard event window",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+    }
 }
