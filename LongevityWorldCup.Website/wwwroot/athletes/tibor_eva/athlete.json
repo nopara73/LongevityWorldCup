@@ -1,0 +1,28 @@
+{
+  "Name": "Tibor Éva",
+  "DisplayName": null,
+  "MediaContact": "tiboreva@gmail.com",
+  "DateOfBirth": {
+    "Year": 1952,
+    "Month": 1,
+    "Day": 10
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-02-16",
+      "AlbGL": 42,
+      "CreatUmolL": 65,
+      "GluMmolL": 5.3,
+      "CrpMgL": 1.89,
+      "LymPc": 34.3,
+      "McvFL": 96,
+      "RdwPc": 12.8,
+      "AlpUL": 80,
+      "Wbc1000cellsuL": 4.6
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Hungary",
+  "Why": "I am interested in Longevity and a community interested in it.\nI like to follow my results in this field.",
+  "PersonalLink": "https://www.facebook.com/eva.tibor.3"
+}
