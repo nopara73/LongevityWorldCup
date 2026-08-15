@@ -164,6 +164,91 @@ public sealed class SiteStatisticsDashboardBrowserTests
     }
 
     [Fact]
+    public async Task Dashboard_DiagnosticsLoadCompleteCurrentAndPreviousWindows()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1440, Height = 980 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        var paginationRequests = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        await RoutePagedDashboardAsync(page, paginationRequests);
+
+        await page.GotoAsync(
+            "/internal/site-statistics.html?tab=Onboarding%20Diagnostics",
+            new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#statsStatus").GetByText("2 current and 2 previous redacted events", new() { Exact = false }).WaitForAsync();
+
+        Assert.Equal(2, paginationRequests.Count);
+        Assert.Contains(paginationRequests, url => url.Contains("cursor=current-cursor", StringComparison.Ordinal));
+        Assert.Contains(paginationRequests, url => url.Contains("cursor=previous-cursor", StringComparison.Ordinal));
+        Assert.Contains(paginationRequests, url => url.Contains("fromUtc=2026-08-08", StringComparison.Ordinal));
+        Assert.Contains(paginationRequests, url => url.Contains("fromUtc=2026-08-01", StringComparison.Ordinal));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task Dashboard_ExportLoadsCompleteCurrentWindow()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1440, Height = 980 },
+            AcceptDownloads = true
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        var paginationRequests = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+        await RoutePagedDashboardAsync(page, paginationRequests);
+
+        await page.GotoAsync("/internal/site-statistics.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#trafficOverview").GetByText("Visitor sessions", new() { Exact = true }).WaitForAsync();
+        var downloadTask = page.WaitForDownloadAsync();
+        await page.Locator("#statsExport").ClickAsync();
+        var download = await downloadTask;
+        await page.Locator("#statsStatus").GetByText("Exported 2 redacted events from the complete 7D window.", new() { Exact = true }).WaitForAsync();
+
+        Assert.Equal("site-statistics-redacted.csv", download.SuggestedFilename);
+        var request = Assert.Single(paginationRequests);
+        Assert.Contains("cursor=current-cursor", request, StringComparison.Ordinal);
+        Assert.DoesNotContain("cursor=previous-cursor", request, StringComparison.Ordinal);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task ApplyPage_RecordsOnlyTheCoarseApplicationStage()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -301,4 +386,115 @@ public sealed class SiteStatisticsDashboardBrowserTests
 
         response.EnsureSuccessStatusCode();
     }
+
+    private static Task RoutePagedDashboardAsync(IPage page, List<string> paginationRequests)
+        => page.RouteAsync("**/api/site-statistics/dashboard**", async route =>
+        {
+            var url = route.Request.Url;
+            if (url.Contains("/dashboard/events", StringComparison.Ordinal))
+            {
+                paginationRequests.Add(url);
+                var previous = url.Contains("fromUtc=2026-08-01", StringComparison.Ordinal);
+                await route.FulfillAsync(new RouteFulfillOptions
+                {
+                    Status = 200,
+                    ContentType = "application/json",
+                    Body = JsonSerializer.Serialize(new
+                    {
+                        events = new[]
+                        {
+                            DashboardEventPayload(
+                                "onboarding_clock_selected",
+                                previous ? "previous-session" : "current-session",
+                                previous ? "2026-08-07T12:00:00Z" : "2026-08-14T12:00:00Z")
+                        },
+                        page = new { hasMore = false, nextCursor = (string?)null }
+                    })
+                });
+                return;
+            }
+
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = JsonSerializer.Serialize(new
+                {
+                    generatedAtUtc = "2026-08-15T00:00:00Z",
+                    filters = new
+                    {
+                        range = "7d",
+                        flow = "all",
+                        device = "all",
+                        source = "all",
+                        fromUtc = "2026-08-08T00:00:00Z",
+                        toUtc = "2026-08-15T00:00:00Z",
+                        previousFromUtc = "2026-08-01T00:00:00Z",
+                        previousToUtc = "2026-08-08T00:00:00Z",
+                        limit = 5000
+                    },
+                    trafficSummary = EmptyTrafficSummaryPayload(),
+                    events = new[] { DashboardEventPayload("onboarding_entry_viewed", "current-session", "2026-08-14T11:00:00Z") },
+                    previousEvents = new[] { DashboardEventPayload("onboarding_entry_viewed", "previous-session", "2026-08-07T11:00:00Z") },
+                    eventsPage = new { hasMore = true, nextCursor = "current-cursor" },
+                    previousEventsPage = new { hasMore = true, nextCursor = "previous-cursor" }
+                })
+            });
+        });
+
+    private static object DashboardEventPayload(string eventName, string sessionHash, string occurredAtUtc)
+        => new
+        {
+            occurredAtUtc,
+            sessionHash,
+            actorHash = (string?)null,
+            eventName,
+            flow = "onboarding",
+            route = "/join",
+            component = "join_game",
+            step = "amateur",
+            outcome = "selected",
+            errorCode = (string?)null,
+            durationMs = (long?)null,
+            deviceClass = "desktop",
+            browserFamily = "Chromium",
+            referrerDomain = (string?)null,
+            source = "direct",
+            landingRoute = "/join",
+            firstReferrerDomain = (string?)null,
+            firstSource = "direct",
+            firstCampaign = (string?)null,
+            firstUtmSource = (string?)null,
+            firstUtmMedium = (string?)null,
+            firstUtmCampaign = (string?)null,
+            firstUtmTerm = (string?)null,
+            firstUtmContent = (string?)null,
+            metadata = new Dictionary<string, string>()
+        };
+
+    private static object EmptyTrafficSummaryPayload()
+        => new
+        {
+            totals = new { sessions = 0, pageViews = 0, events = 0 },
+            previousTotals = new { sessions = 0, pageViews = 0, events = 0 },
+            cleanTotals = new { sessions = 0, pageViews = 0, events = 0 },
+            quality = new
+            {
+                rawSessions = 0,
+                cleanSessions = 0,
+                noisySessions = 0,
+                topSessionEvents = 0,
+                topSessionShare = 0,
+                repeatedPageViewSessions = 0,
+                pageViewDominantSessions = 0,
+                noisyPageViews = 0,
+                noisyPageViewShare = 0
+            },
+            daily = Array.Empty<object>(),
+            topPages = Array.Empty<object>(),
+            sources = Array.Empty<object>(),
+            referrers = Array.Empty<object>(),
+            devices = Array.Empty<object>(),
+            browsers = Array.Empty<object>()
+        };
 }
