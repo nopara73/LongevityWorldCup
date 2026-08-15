@@ -88,11 +88,15 @@ public sealed class SiteStatisticsDashboardPageTests
         var tracker = ReadFrontendSource("site-statistics-tracking.ts");
 
         Assert.Contains("id=\"joinStartAmateurBtn\"", menu);
+        Assert.Contains("id=\"joinMobileStartAmateurBtn\"", menu);
         Assert.Contains("id=\"joinGoProButton\"", menu);
+        Assert.Contains("id=\"joinMobileGoProButton\"", menu);
         Assert.Contains("id=\"joinStartChallengeLink\"", menu);
         Assert.Contains("play-join-biomarkers", menu);
         Assert.Contains("joinStartAmateurBtn", tracker);
+        Assert.Contains("joinMobileStartAmateurBtn", tracker);
         Assert.Contains("joinGoProButton", tracker);
+        Assert.Contains("joinMobileGoProButton", tracker);
         Assert.Contains("joinStartChallengeLink", tracker);
         Assert.Contains("onboarding_challenge_selected", tracker);
         Assert.Contains("crypto.getRandomValues(new Uint8Array(16))", tracker);

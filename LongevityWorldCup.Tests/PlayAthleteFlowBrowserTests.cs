@@ -38,6 +38,51 @@ public sealed class PlayAthleteFlowBrowserTests
         await ExpectGreenPlayActionAsync(page.Locator("#joinGoProButton"));
     }
 
+    [Theory]
+    [InlineData("joinMobileStartAmateurBtn", "pheno", "amateur")]
+    [InlineData("joinMobileGoProButton", "bortz", "pro")]
+    public async Task MobileJoinTrackActions_RecordClockSelection(
+        string controlId,
+        string expectedFlow,
+        string expectedTrack)
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "controlId => !document.getElementById(controlId)?.disabled",
+            controlId);
+
+        var selectionRequestTask = page.WaitForRequestAsync(request =>
+            request.Url.Contains("/api/site-statistics/event", StringComparison.OrdinalIgnoreCase) &&
+            (request.PostData ?? string.Empty).Contains("\"eventName\":\"onboarding_clock_selected\"", StringComparison.Ordinal));
+
+        await page.Locator($"#{controlId}").ClickAsync();
+        var selectionRequest = await selectionRequestTask;
+        using var payload = JsonDocument.Parse(selectionRequest.PostData ?? "{}");
+        var root = payload.RootElement;
+
+        Assert.Equal("onboarding_clock_selected", root.GetProperty("eventName").GetString());
+        Assert.Equal(expectedFlow, root.GetProperty("flow").GetString());
+        Assert.Equal(expectedTrack, root.GetProperty("step").GetString());
+        Assert.Equal("join_game", root.GetProperty("component").GetString());
+        Assert.Equal("selected", root.GetProperty("outcome").GetString());
+        Assert.Equal(expectedTrack, root.GetProperty("metadata").GetProperty("track").GetString());
+    }
+
     [Fact]
     public async Task PaymentOfferFailures_DistinguishPreparationFromStorage()
     {
