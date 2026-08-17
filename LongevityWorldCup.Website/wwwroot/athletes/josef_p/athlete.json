@@ -1,0 +1,28 @@
+{
+  "Name": "Josef P",
+  "DisplayName": null,
+  "MediaContact": "pajskr@gmail.com",
+  "DateOfBirth": {
+    "Year": 1978,
+    "Month": 6,
+    "Day": 27
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-03-09",
+      "AlbGL": 51,
+      "CreatUmolL": 100,
+      "GluMmolL": 4.72,
+      "CrpMgL": 0.5,
+      "LymPc": 45.1,
+      "McvFL": 90.5,
+      "RdwPc": 11.9,
+      "AlpUL": 70.2,
+      "Wbc1000cellsuL": 4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Czech Republic",
+  "Why": "It's just rational thing to do",
+  "PersonalLink": null
+}
