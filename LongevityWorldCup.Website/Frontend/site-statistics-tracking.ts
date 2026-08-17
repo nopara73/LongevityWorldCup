@@ -5,9 +5,15 @@
     const sessionKey = "lwcSiteStatsSessionId";
     const firstTouchKey = "lwcSiteStatsFirstTouch";
     const sessionHeader = "X-LWC-Stats-Session";
+    const googleKeyEventNames = new Set<string>([
+        "calculator_result_generated",
+        "application_submit_succeeded",
+        "challenge_signup_succeeded"
+    ]);
     const originalFetch = window.fetch ? window.fetch.bind(window) : null;
     const pageStartedAt = now();
     const sentOnce = new Set<string>();
+    const sentGoogleKeyEvents = new Set<string>();
     const trackedPageViews = new Set<string>();
     const completedFields = new Set<string>();
     const touchedFields = new Set<string>();
@@ -35,6 +41,7 @@
         step: string;
         successEvent(response: Response): string | null;
         failureEvent: string;
+        googleKeyEvent?: string;
     }
 
     type RequiredCalculatorControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
@@ -191,9 +198,23 @@
         return touch;
     }
 
+    function trackGoogleKeyEvent(eventName: string | null): void {
+        if (!eventName || !googleKeyEventNames.has(eventName) || sentGoogleKeyEvents.has(eventName)) return;
+
+        safe(() => {
+            const googleTag = Reflect.get(window, "gtag");
+            if (typeof googleTag !== "function") return;
+
+            Reflect.apply(googleTag, window, ["event", eventName]);
+            sentGoogleKeyEvents.add(eventName);
+        });
+    }
+
     function track(eventName: string | null, options?: LwcSiteStatisticsTrackOptions): void {
         safe(() => {
-            if (!eventName || !originalFetch) return;
+            if (!eventName) return;
+            trackGoogleKeyEvent(eventName);
+            if (!originalFetch) return;
             const firstTouch = getFirstTouch();
             const payload = Object.assign({
                 eventName,
@@ -1012,6 +1033,9 @@
                         errorCode: response.ok ? null : `http_${response.status}`,
                         durationMs: Math.round(now() - started)
                     });
+                    if (response.ok && observed.googleKeyEvent) {
+                        trackGoogleKeyEvent(observed.googleKeyEvent);
+                    }
                 });
                 return response;
             }, error => {
@@ -1046,7 +1070,8 @@
                 component: "application",
                 step: "submit",
                 successEvent: (response: Response) => response.ok ? null : "api_request_failed",
-                failureEvent: "api_request_failed"
+                failureEvent: "api_request_failed",
+                googleKeyEvent: "application_submit_succeeded"
             };
         }
         if (url.includes("/api/application/payment-status")) {
@@ -1070,7 +1095,8 @@
                 component: "signup",
                 step: "submit",
                 successEvent: (response: Response) => response.ok ? null : "api_request_failed",
-                failureEvent: "api_request_failed"
+                failureEvent: "api_request_failed",
+                googleKeyEvent: "challenge_signup_succeeded"
             };
         }
         if (url.includes("/api/longevitymaxxing/participant")) {
