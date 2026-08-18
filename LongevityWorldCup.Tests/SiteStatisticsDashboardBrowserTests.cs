@@ -321,8 +321,7 @@ public sealed class SiteStatisticsDashboardBrowserTests
             new Dictionary<string, JsonElement>
             {
                 ["email"] = JsonSerializer.SerializeToElement("athlete@example.test"),
-                ["identityMode"] = JsonSerializer.SerializeToElement("new_participant"),
-                ["pledgeBucket"] = JsonSerializer.SerializeToElement("$300_999")
+                ["identityMode"] = JsonSerializer.SerializeToElement("new_participant")
             });
         await PostEventAsync(client, "challenge_practice_checkin_submitted", "challenge", "challenge-session", "/longevitymaxxing", "checkin", "succeeded",
             new Dictionary<string, JsonElement>

@@ -23,7 +23,7 @@ These files must remain classic scripts with no import or export syntax because 
 
 Type-only browser contracts belong in `types/*.d.ts`, where entry points can share them without adding runtime imports or emitted code. The emitted entry points intentionally remain self-contained: adding shared browser chunks would change request ordering, cache-version coverage, and the current ability of one optional script to fail without preventing another from starting.
 
-Domain-sensitive ranking fallbacks in `longevitymaxxing`, commitment-payment markup and state transitions, and athlete-picture transition paths retain their local implementations. Their apparent duplication protects distinct failure, privacy, or timing behavior; consolidate them only with dedicated equivalence and browser coverage.
+Domain-sensitive ranking fallbacks in `longevitymaxxing` and athlete-picture transition paths retain their local implementations. Their apparent duplication protects distinct failure, privacy, or timing behavior; consolidate them only with dedicated equivalence and browser coverage.
 
 ## Intentionally retained inline JavaScript
 

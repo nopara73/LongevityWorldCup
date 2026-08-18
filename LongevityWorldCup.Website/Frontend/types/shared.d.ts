@@ -183,9 +183,7 @@ interface LwcSiteStatisticsMetadata {
     sourceControl?: string;
     track?: string;
     identityMode?: string;
-    pledgeBucket?: string;
     checkinKind?: string;
-    commitmentState?: string;
     clock?: "bortz" | "pheno";
     stageNumber?: string;
 }

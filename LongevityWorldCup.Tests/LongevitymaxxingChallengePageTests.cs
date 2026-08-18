@@ -178,27 +178,6 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
-    public void ChallengeStandaloneButtonHelper_IgnoresDuplicateBusyButtons()
-    {
-        var source = ReadFrontendSource();
-        var helperStart = source.IndexOf("async function withStandaloneButton(", StringComparison.Ordinal);
-        var helperEnd = source.IndexOf("function setCommitmentStatus(", helperStart, StringComparison.Ordinal);
-
-        Assert.True(helperStart >= 0);
-        Assert.True(helperEnd > helperStart);
-
-        var helperBody = source[helperStart..helperEnd];
-        var guardIndex = helperBody.IndexOf("if (button && (button.disabled || button.getAttribute(\"aria-busy\") === \"true\")) return;", StringComparison.Ordinal);
-        var originalIndex = helperBody.IndexOf("const original = button ? button.innerHTML : \"\";", StringComparison.Ordinal);
-
-        Assert.True(guardIndex >= 0);
-        Assert.True(originalIndex > guardIndex);
-        Assert.Contains("if (button) {", helperBody);
-        Assert.Contains("await work();", helperBody);
-        Assert.Contains("checkCommitmentPayment(null, {", source);
-    }
-
-    [Fact]
     public void ChallengeProfilePicturePreparation_IsCoveredByUploadRetryHandling()
     {
         var source = ReadFrontendSource();
@@ -541,7 +520,7 @@ public sealed class LongevitymaxxingChallengePageTests
     }
 
     [Fact]
-    public async Task LongevitymaxxingScript_KeepsCommitmentBlockedLeaderboardVisibleAndFocusesDueCheckIn()
+    public async Task LongevitymaxxingScript_KeepsLeaderboardVisibleAndFocusesDueCheckIn()
     {
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
@@ -562,20 +541,18 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("throw Object.assign(new Error(message || fallback), { status: response.status });", javascript);
         Assert.Contains("function isAuthFailure(err: unknown): boolean", javascript);
         Assert.Contains("const activeParticipantTab = currentParticipantState ? ensureParticipantTab(currentParticipantState) : null;", javascript);
-        Assert.Contains("const commitmentBlocked = hasCommitmentBlock(currentParticipantState);", javascript);
-        Assert.Contains("const checkInOnly = !commitmentBlocked && pendingCheckInDays.length > 0 && activeParticipantTab === \"checkin\";", javascript);
         Assert.Contains("const PARTICIPANT_TABS: readonly ParticipantTab[] = [\"checkin\", \"profile\", \"home\"];", javascript);
         Assert.Contains("setParticipantTab(button.dataset.lmxTab, true);", javascript);
         Assert.Contains("return getPendingCheckInDays(state).length ? \"checkin\" : \"home\";", javascript);
         Assert.DoesNotContain("publicClosed", javascript);
         Assert.DoesNotContain("public-board-only", javascript);
-        Assert.Contains("const participantGateOnly = commitmentBlocked || checkInOnly;", javascript);
+        Assert.Contains("const checkInOnly = pendingCheckInDays.length > 0 && activeParticipantTab === \"checkin\";", javascript);
+        Assert.Contains("const participantGateOnly = checkInOnly;", javascript);
+        Assert.Contains("toggle(\"lmxParticipantTools\", hasParticipant && activeParticipantTab === \"home\");", javascript);
+        Assert.Contains("toggle(\"lmxParticipantCalls\", hasParticipant && activeParticipantTab === \"home\");", javascript);
         Assert.Contains("const publicContentHidden = checkInOnly;", javascript);
         Assert.Contains("hero.classList.toggle(\"checkin-only\", publicContentHidden);", javascript);
         Assert.Contains("toggle(\"lmxBoardSection\", !publicContentHidden);", javascript);
-        Assert.Contains("toggle(\"lmxCommitmentPanel\", currentParticipantState !== null && activeParticipantTab !== null && shouldShowCommitmentPanel(currentParticipantState, activeParticipantTab));", javascript);
-        Assert.Contains("toggle(\"lmxParticipantTools\", hasParticipant && !commitmentBlocked && activeParticipantTab === \"home\");", javascript);
-        Assert.Contains("toggle(\"lmxParticipantCalls\", hasParticipant && !commitmentBlocked && activeParticipantTab === \"home\");", javascript);
         Assert.Contains("toggle(\"lmxParticipantKicker\", !!kicker);", javascript);
         Assert.Contains("function isParticipantTabLocked", javascript);
         Assert.Contains("if (isParticipantTabLocked(tab, participantState)) return;", javascript);
@@ -604,14 +581,12 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("toggle(\"lmxResendPanel\", !hasParticipant && !isAccessLoading && accessTab === \"signin\");", javascript);
         Assert.Contains("toggle(\"lmxHabitHeading\", !hasParticipant);", javascript);
         Assert.Contains("toggle(\"lmxHabitGrid\", !hasParticipant);", javascript);
-        Assert.Contains("toggle(\"lmxQuestionPreview\", !commitmentBlocked && (!hasParticipant || pendingCheckInDays.length > 0));", javascript);
         Assert.Contains("toggle(\"lmxTrack\", hasParticipant && dashboardMode && !participantGateOnly);", javascript);
         Assert.Contains("toggle(\"lmxNotesPanel\", dashboardMode && !publicContentHidden);", javascript);
         Assert.Contains("renderNotes(state.notes || [], false);", javascript);
         Assert.Contains("renderNotes(state.notes || state.public.notes || [], true);", javascript);
         Assert.Contains("const RECENT_REMARK_LIMIT = 3;", javascript);
         Assert.Contains("renderCheckIns(state.eligibleDays || [], undefined, recentPublicRemarks(state));", javascript);
-        Assert.Contains("renderCheckIns(editableDays, \"lmxCommitmentCheckinList\", recentPublicRemarks(state));", javascript);
         Assert.Contains("function recentPublicRemarks(state: ParticipantState): ParticipantNote[]", javascript);
         Assert.Contains("function recentRemarksHtml(notes: ParticipantNote[]): string", javascript);
         Assert.Contains("function hasParticipantNoteContent(note: ParticipantNote): boolean", javascript);
@@ -636,72 +611,23 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("<h2>Category dashboard</h2>", javascript);
         Assert.DoesNotContain("<div role=\"columnheader\">Category</div>", javascript);
         Assert.Contains("<span class=\"lmx-mini-label\">your trend</span>", javascript);
-        Assert.Contains("participantState.trendGuidance?.text", javascript);
-        Assert.Contains("function renderCommitmentPanel", javascript);
-        Assert.Contains("function payCommitment", javascript);
-        Assert.Contains("function shouldShowCommitmentPanel", javascript);
-        Assert.Contains("function shouldShowCheckInPledgePrompt", javascript);
-        Assert.Contains("Number(state.trendGuidance?.priorScoredDays || 0) >= 3", javascript);
-        Assert.Contains("commitmentAmountUsd: parseCommitmentAmount", javascript);
-        Assert.Contains("commitmentAmountUsd: parseOptionalCommitmentAmount(\"lmxEditCommitmentAmount\")", javascript);
-        Assert.Contains("function parseOptionalCommitmentAmount", javascript);
-        Assert.DoesNotContain("lmxSignupCommitmentAmount", javascript);
         Assert.DoesNotContain("displayName: getIdentityDisplayName(\"edit\")", javascript);
         Assert.DoesNotContain("athleteLink: getIdentityAthletePayload(\"edit\")", javascript);
         Assert.Contains("renderCheckIns(orderedDays, containerId, recentRemarks);", javascript);
-        Assert.Contains("if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || [], undefined, recentPublicRemarks(state));", javascript);
         Assert.Contains("function renderParticipantNotice", javascript);
-        Assert.Contains("setAttribute(\"aria-invalid\", \"true\")", javascript);
-        Assert.Contains("Payment confirmed. You're unlocked.", javascript);
-        Assert.Contains("Redeem yourself", javascript);
-        Assert.DoesNotContain(": \"Make a pledge\";", javascript);
-        Assert.DoesNotContain("Make a pledge to continue", javascript);
-        Assert.Contains("<strong>Set a real stake</strong>", javascript);
         Assert.DoesNotContain("needs-amount", javascript);
-        Assert.DoesNotContain("lmxBlockedCommitmentAmount", javascript);
         Assert.DoesNotContain("Choose an amount that would hurt.", javascript);
-        Assert.Contains("Make a pledge", javascript);
-        Assert.Contains("Fall below your recent average and either pay it or stop longevitymaxxing. You can keep checking in without a pledge.", javascript);
-        Assert.Contains("data-commitment-prompt=\"optional\"", javascript);
-        Assert.Contains("data-commitment-block=\"true\"", javascript);
-        Assert.Contains("id=\"lmxPledgeCommitmentAmount\"", javascript);
-        Assert.Contains("Check again", javascript);
-        Assert.Contains("Waiting for payment confirmation...", javascript);
-        Assert.Contains("Still waiting. This can take a minute.", javascript);
-        Assert.Contains("function startCommitmentPaymentPolling", javascript);
-        Assert.Contains("function checkCommitmentPayment", javascript);
-        Assert.DoesNotContain("Create invoice", javascript);
-        Assert.DoesNotContain("Open invoice", javascript);
-        Assert.DoesNotContain("Open BTCPay invoice", javascript);
-        Assert.DoesNotContain("Refresh payment", javascript);
-        Assert.DoesNotContain("Invoice:", javascript);
-        Assert.DoesNotContain("Create a BTCPay invoice. The amount is locked until this commitment is cleared.", javascript);
-        Assert.DoesNotContain("lmx-commitment-hint", javascript);
         Assert.DoesNotContain("lmx-payment-link", javascript);
-        Assert.DoesNotContain(".lmx-commitment-hint", css);
         Assert.DoesNotContain(".lmx-payment-link", css);
-        Assert.Contains("const checkoutWindow = window.open(\"\", \"_blank\", \"noopener\");", javascript);
-        Assert.Contains("function normalizeCheckoutLink(value: unknown): string", javascript);
-        Assert.Contains("const checkoutUrl = new URL(raw, window.location.origin);", javascript);
-        Assert.Contains("return checkoutUrl.protocol === \"http:\" || checkoutUrl.protocol === \"https:\"", javascript);
-        Assert.Contains("const checkoutLink = normalizeCheckoutLink(result.commitment && result.commitment.checkoutLink);", javascript);
-        Assert.DoesNotContain("const checkoutLink = result.commitment && result.commitment.checkoutLink;", javascript);
-        Assert.Contains("checkoutWindow.location = checkoutLink;", javascript);
-        Assert.Contains("window.location.href = checkoutLink;", javascript);
-        Assert.Contains("function sanitizeCommitmentAmountInput", javascript);
-        Assert.Contains("<span aria-hidden=\"true\">$</span>", javascript);
-        Assert.Contains("placeholder=\"100\"", javascript);
         var html = await client.GetStringAsync("/longevitymaxxing");
-        Assert.DoesNotContain("id=\"lmxSignupCommitmentAmount\"", html);
-        Assert.Contains("id=\"lmxEditCommitmentAmount\"", html);
-        Assert.Contains("Set a real stake. Fall below your recent average and either pay it or stop longevitymaxxing.", html);
-        Assert.DoesNotContain("You can keep checking in without a pledge.", html);
+        Assert.DoesNotContain("pledge", javascript, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("commitment", javascript, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("pledge", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("commitment", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("commitment", css, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Choose an amount that would hurt.", html);
-        Assert.Contains("<span aria-hidden=\"true\">$</span>", html);
-        Assert.Contains("placeholder=\"100\"", html);
         Assert.DoesNotContain("placeholder=\"$100\"", html);
         Assert.DoesNotContain("placeholder=\"$100\"", javascript);
-        Assert.Contains("id=\"lmxCommitmentPanel\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("id=\"lmxParticipantNotice\"", await client.GetStringAsync("/longevitymaxxing"));
         Assert.Contains("class=\"lmx-dashboard-scroll\"", javascript);
         Assert.Contains("class=\"lmx-dashboard-corner\" role=\"columnheader\">Agency", javascript);
@@ -968,7 +894,6 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("class=\"lmx-call-link\"", javascript);
         Assert.Contains(".lmx-call-link", css);
         Assert.Contains(".lmx-call-link:focus-visible", css);
-        Assert.Contains(".lmx-commitment-meta span {", css);
         Assert.Contains("justify-content: center;", css);
         Assert.Contains(".lmx-checkin-switcher button:focus-visible", css);
         Assert.Contains(".lmx-lever-input:focus-visible", css);

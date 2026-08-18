@@ -580,34 +580,6 @@
     line-height: 1.1;
 }
 
-.lmx-trend-guidance {
-    min-height: 2.4rem;
-    display: grid;
-    grid-template-columns: 1.6rem minmax(0, 1fr);
-    gap: 0.5rem;
-    align-items: center;
-    margin: -0.2rem 0 0.75rem;
-    padding: 0.55rem 0.65rem;
-    border: 1px solid var(--lmx-border);
-    border-radius: 8px;
-    background: var(--lmx-warning-soft);
-    color: var(--lmx-warning);
-    font-size: 0.84rem;
-    font-weight: 800;
-    line-height: 1.35;
-}
-
-.lmx-trend-guidance i {
-    width: 1.6rem;
-    height: 1.6rem;
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--lmx-warning-soft);
-    color: var(--lmx-warning);
-}
-
 .lmx-dashboard-scroll {
     min-width: 0;
     width: 100%;
@@ -1023,20 +995,6 @@
     line-height: 1.35;
 }
 
-.lmx-commitment-help,
-.lmx-commitment-copy {
-    padding: 0.58rem 0.65rem;
-    border: 1px solid var(--lmx-border);
-    border-radius: 8px;
-    background: var(--lmx-surface-muted);
-    color: var(--lmx-ink);
-    text-wrap: pretty;
-}
-
-.lmx-commitment-copy {
-    margin-top: 0.35rem;
-}
-
 .lmx-field input,
 .lmx-field select,
 .lmx-field textarea {
@@ -1049,52 +1007,6 @@
     font: inherit;
     background: var(--lmx-surface);
     color: var(--lmx-ink);
-}
-
-.lmx-money-input {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    border: 1px solid var(--lmx-border-strong);
-    border-radius: 8px;
-    background: var(--lmx-surface);
-    color: var(--lmx-ink);
-    overflow: hidden;
-}
-
-.lmx-money-input span {
-    flex: 0 0 auto;
-    padding-left: 0.75rem;
-    color: var(--lmx-ink);
-    font: inherit;
-    font-weight: 700;
-}
-
-.lmx-money-input input {
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 42px;
-    border: 0;
-    border-radius: 0;
-    padding-left: 0.35rem;
-}
-
-.lmx-money-input input:focus {
-    outline: none;
-}
-
-.lmx-money-input:focus-within {
-    border-color: #67e8f9;
-    box-shadow: 0 0 0 4px rgba(103, 232, 249, 0.32);
-}
-
-.lmx-money-input:has(input[aria-invalid="true"]) {
-    border-color: #ef4444;
-}
-
-.lmx-money-input:has(input:disabled) {
-    background: var(--lmx-surface-muted);
-    color: var(--lmx-muted);
 }
 
 .lmx-field textarea {
@@ -1472,12 +1384,6 @@
 .lmx-field textarea:focus {
     outline: 3px solid rgba(0, 188, 212, 0.22);
     border-color: rgba(0, 188, 212, 0.72);
-}
-
-.lmx-field .lmx-money-input input:focus {
-    outline: none;
-    border-color: transparent;
-    box-shadow: none;
 }
 
 .lmx-field input[aria-invalid="true"] {
@@ -2727,106 +2633,6 @@ a.lmx-note-mention:focus-visible {
     border-color: rgba(185, 28, 28, 0.22);
     background: var(--lmx-danger-soft);
     color: var(--lmx-danger);
-}
-
-.lmx-commitment-panel {
-    display: grid;
-    gap: 0.75rem;
-}
-
-.lmx-commitment-card {
-    display: grid;
-    gap: 0.75rem;
-    padding: 0.85rem;
-    border: 1px solid rgba(185, 28, 28, 0.18);
-    border-radius: 8px;
-    background: var(--lmx-warning-soft);
-}
-
-.lmx-commitment-card > div > strong,
-.lmx-commitment-main > div > strong,
-.lmx-commitment-edit > strong {
-    display: block;
-    color: var(--lmx-ink);
-    font-size: 1rem;
-    line-height: 1.2;
-}
-
-.lmx-commitment-card > div > span,
-.lmx-commitment-main > div > span {
-    display: block;
-    margin-top: 0.18rem;
-    color: var(--lmx-muted);
-    line-height: 1.4;
-}
-
-.lmx-commitment-card.due {
-    background: var(--lmx-danger-soft);
-}
-
-.lmx-commitment-card.setup {
-    border-color: rgba(217, 119, 6, 0.28);
-    background: var(--lmx-warning-soft);
-}
-
-.lmx-commitment-main {
-    display: grid;
-    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
-    gap: 0.65rem 0.75rem;
-    align-items: center;
-}
-
-.lmx-commitment-main > i {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #dc2626;
-    color: #ffffff;
-}
-
-.lmx-commitment-card.setup .lmx-commitment-main > i {
-    background: #d97706;
-}
-
-.lmx-commitment-main b {
-    min-width: 4.5rem;
-    padding: 0.35rem 0.55rem;
-    border-radius: 999px;
-    background: #991b1b;
-    color: #ffffff;
-    text-align: center;
-    white-space: nowrap;
-}
-
-.lmx-commitment-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    flex-wrap: wrap;
-}
-
-.lmx-commitment-meta span {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 1.8rem;
-    padding: 0.22rem 0.7rem;
-    border-radius: 999px;
-    background: var(--lmx-surface);
-    color: var(--lmx-ink);
-    font-size: 0.78rem;
-    font-weight: 900;
-    line-height: 1;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.lmx-commitment-edit {
-    display: grid;
-    gap: 0.55rem;
 }
 
 .lmx-board-wrap {
@@ -4117,20 +3923,6 @@ a.lmx-note-mention:focus-visible {
 
     .lmx-tab i {
         width: 1rem;
-    }
-
-    .lmx-commitment-main {
-        grid-template-columns: 2.25rem minmax(0, 1fr);
-        align-items: start;
-    }
-
-    .lmx-commitment-main b {
-        grid-column: 2;
-        justify-self: start;
-    }
-
-    .lmx-commitment-meta span {
-        min-height: 2rem;
     }
 
     .lmx-button-row .lmx-button {

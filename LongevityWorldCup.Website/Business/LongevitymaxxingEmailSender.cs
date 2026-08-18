@@ -82,31 +82,6 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         string checkInUrl,
         string stopUrl)
     {
-        if (reminder.IsCommitmentPaymentReminder)
-        {
-            var amount = reminder.CommitmentOwedAmountUsd is decimal owed
-                ? $"USD {owed:0.##}"
-                : "your configured amount";
-            var triggerDay = reminder.CommitmentTriggerChallengeDay;
-            var triggerDayText = triggerDay is int day ? $"Day {day}" : "the triggering day";
-            var scoreLine = reminder.CommitmentTriggerScore is int triggerScore && reminder.CommitmentThresholdAverage is decimal thresholdAverage
-                ? $"{triggerDayText} scored {triggerScore} points. Your recent average was {thresholdAverage:0.##}, so the commitment is due: {amount}.\n\n"
-                : $"Your Longevitymaxxing commitment is due: {amount}.\n\n";
-            var paymentBody =
-                $"Hi {SafeName(reminder.DisplayName)},\n\n" +
-                $"{scoreLine}" +
-                $"You can either pay the locked amount, or edit {triggerDayText} while it is still eligible. You also can quit, but you'll still have to live with yourself.\n\n" +
-                "Open your participant page:\n" +
-                $"{checkInUrl}\n\n" +
-                $"Stop Challenge reminder emails: {stopUrl}\n\n" +
-                "Longevity World Cup";
-
-            return new LongevitymaxxingEmailContent(
-                "Longevitymaxxing commitment due",
-                paymentBody,
-                []);
-        }
-
         var isPractice = !reminder.CountsForScore;
         var lead = isPractice
             ? $"Day {reminder.ChallengeDay} practice check-in is ready. Check in for {reminder.TargetDate}:"
