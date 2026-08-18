@@ -816,8 +816,16 @@ public sealed class BioageFlowBrowserTests
                 semanticValue.textContent = '81.1';
                 result.scrollIntoView({ block: 'center', behavior: 'auto' });
                 window.__bioageRevealStates = [];
+                window.__bioageReplacementStarted = false;
                 new MutationObserver(() => {
-                    window.__bioageRevealStates.push(container.dataset.bioageRevealState);
+                    const state = container.dataset.bioageRevealState;
+                    window.__bioageRevealStates.push(state);
+                    if (state !== 'counting' || window.__bioageReplacementStarted) return;
+
+                    window.__bioageReplacementStarted = true;
+                    semanticValue.textContent = '37.4';
+                    window.LwcBioageFlow.announceBioageResult(result, 'Your biological age is 37.4 years.');
+                    window.LwcBioageFlow.animateBioageResult(result, 37.4);
                 }).observe(container, {
                     attributes: true,
                     attributeFilter: ['data-bioage-reveal-state']
@@ -826,21 +834,9 @@ public sealed class BioageFlowBrowserTests
             }
             """);
         await page.WaitForFunctionAsync(
-            "() => document.querySelector('.bio-age-number-container')?.dataset.bioageRevealState === 'counting'");
-        await page.WaitForTimeoutAsync(100);
-
-        await page.EvaluateAsync(
             """
-            () => {
-                const result = document.getElementById('phenoAgeResult');
-                result.querySelector('#animatedAge').textContent = '37.4';
-                window.LwcBioageFlow.announceBioageResult(result, 'Your biological age is 37.4 years.');
-                window.LwcBioageFlow.animateBioageResult(result, 37.4);
-            }
-            """);
-        await page.WaitForFunctionAsync(
-            """
-            () => document.querySelector('.bio-age-number-container')?.dataset.bioageRevealState === 'complete'
+            () => window.__bioageReplacementStarted
+                && document.querySelector('.bio-age-number-container')?.dataset.bioageRevealState === 'complete'
             """);
 
         var diagnostics = await page.EvaluateAsync<BioageReentryDiagnostics>(
@@ -898,33 +894,38 @@ public sealed class BioageFlowBrowserTests
                 result.scrollIntoView({ block: 'center', behavior: 'auto' });
                 result.querySelector('#animatedAge').textContent = '81.1';
                 window.LwcBioageFlow.announceBioageResult(result, 'Your biological age is 81.1 years.');
+                const container = result.querySelector('.bio-age-number-container');
+                window.__bioageReplacementStarted = false;
+                window.__bioageUnexpectedReplacementStages = [];
+                new MutationObserver(() => {
+                    const stage = result.dataset.bioageResultStage;
+                    if (!window.__bioageReplacementStarted && stage === 'difference') {
+                        window.__bioageReplacementStarted = true;
+                        result.querySelector('#animatedAge').textContent = '37.4';
+                        window.LwcBioageFlow.announceBioageResult(result, 'Your biological age is 37.4 years.');
+                        window.LwcBioageFlow.animateBioageResult(result, 37.4);
+                        return;
+                    }
+
+                    if (window.__bioageReplacementStarted
+                        && stage !== 'age'
+                        && container.dataset.bioageRevealState !== 'complete') {
+                        window.__bioageUnexpectedReplacementStages.push(stage);
+                    }
+                }).observe(result, {
+                    attributes: true,
+                    attributeFilter: ['data-bioage-result-stage']
+                });
                 window.LwcBioageFlow.animateBioageResult(result, 81.1);
             }
             """);
-        await page.WaitForFunctionAsync(
-            "() => document.getElementById('phenoAgeResult')?.dataset.bioageResultStage === 'difference'");
-
-        await page.EvaluateAsync(
-            """
-            () => {
-                const result = document.getElementById('phenoAgeResult');
-                result.querySelector('#animatedAge').textContent = '37.4';
-                window.LwcBioageFlow.announceBioageResult(result, 'Your biological age is 37.4 years.');
-                window.LwcBioageFlow.animateBioageResult(result, 37.4);
-            }
-            """);
-        await page.WaitForTimeoutAsync(300);
-
-        var stageWhileReplacementCounts = await page.EvaluateAsync<string>(
-            "() => document.getElementById('phenoAgeResult')?.dataset.bioageResultStage || ''");
-        Assert.Equal("age", stageWhileReplacementCounts);
-
         await page.WaitForFunctionAsync(
             """
             () => {
                 const result = document.getElementById('phenoAgeResult');
                 const container = result?.querySelector('.bio-age-number-container');
-                return result?.dataset.bioageResultStage === 'rank'
+                return window.__bioageReplacementStarted
+                    && result?.dataset.bioageResultStage === 'rank'
                     && container?.dataset.bioageRevealState === 'complete';
             }
             """);
@@ -934,11 +935,13 @@ public sealed class BioageFlowBrowserTests
                 const result = document.getElementById('phenoAgeResult');
                 return [
                     result.querySelector('[data-bioage-result-visual]').textContent,
-                    result.querySelector('[data-bioage-result-announcement]').textContent
+                    result.querySelector('[data-bioage-result-announcement]').textContent,
+                    ...window.__bioageUnexpectedReplacementStages
                 ];
             }
             """);
 
+        Assert.Equal(2, finalValues.Length);
         Assert.Equal("37.4", finalValues[0]);
         Assert.Equal("Your biological age is 37.4 years.", finalValues[1]);
         Assert.Empty(errors);
