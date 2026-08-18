@@ -38,7 +38,10 @@ public sealed class BtcpayInvoiceClientTests
                 "order-1",
                 "buyer@example.test",
                 "Buyer Name",
-                new Dictionary<string, object?> { ["athleteSlug"] = "alice" }));
+                new Dictionary<string, object?> { ["athleteSlug"] = "alice" },
+                RedirectUrl: " https://longevityworldcup.example.test/review ",
+                RedirectAutomatically: true,
+                ExpirationMinutes: BtcpayInvoiceClient.MaximumInvoiceExpirationMinutes));
 
         Assert.True(result.Success);
         Assert.Equal("invoice-123", result.InvoiceId);
@@ -57,6 +60,9 @@ public sealed class BtcpayInvoiceClientTests
         var checkout = root.GetProperty("checkout");
         Assert.Equal("STRIPE", checkout.GetProperty("defaultPaymentMethod").GetString());
         Assert.Equal("HighSpeed", checkout.GetProperty("speedPolicy").GetString());
+        Assert.Equal(34_560, checkout.GetProperty("expirationMinutes").GetInt32());
+        Assert.Equal("https://longevityworldcup.example.test/review", checkout.GetProperty("redirectURL").GetString());
+        Assert.True(checkout.GetProperty("redirectAutomatically").GetBoolean());
         Assert.False(checkout.TryGetProperty("paymentMethods", out _));
         Assert.Equal("buyer@example.test", root.GetProperty("buyer").GetProperty("email").GetString());
 
@@ -65,6 +71,33 @@ public sealed class BtcpayInvoiceClientTests
         Assert.Equal("order-1", metadata.GetProperty("orderId").GetString());
         Assert.Equal("Buyer Name", metadata.GetProperty("buyerName").GetString());
         Assert.Equal("buyer@example.test", metadata.GetProperty("buyerEmail").GetString());
+    }
+
+    [Fact]
+    public async Task CreateInvoiceAsync_RejectsExpirationBeyondBtcpayMaximum()
+    {
+        var client = new BtcpayInvoiceClient(new RecordingHttpClientFactory(new RecordingHandler(_ =>
+            throw new InvalidOperationException("No request should be sent."))));
+        var config = new Config
+        {
+            BTCPayBaseUrl = "https://btcpay.example.test",
+            BTCPayStoreId = "store",
+            BTCPayGreenfieldApiKey = "secret-token"
+        };
+
+        var result = await client.CreateInvoiceAsync(
+            config,
+            new BtcpayInvoiceCreateRequest(
+                25m,
+                "USD",
+                "order-1",
+                "buyer@example.test",
+                "Buyer Name",
+                new Dictionary<string, object?>(),
+                ExpirationMinutes: BtcpayInvoiceClient.MaximumInvoiceExpirationMinutes + 1));
+
+        Assert.False(result.Success);
+        Assert.Equal("Invoice expiration must be between 1 and 34560 minutes.", result.Error);
     }
 
     [Fact]

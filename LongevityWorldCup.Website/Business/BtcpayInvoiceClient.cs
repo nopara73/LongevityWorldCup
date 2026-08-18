@@ -14,6 +14,7 @@ public interface IBtcpayInvoiceClient
 public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : IBtcpayInvoiceClient
 {
     internal const string DefaultPaymentMethod = "STRIPE";
+    internal const int MaximumInvoiceExpirationMinutes = 24 * 24 * 60;
 
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
 
@@ -29,35 +30,13 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
             return BtcpayInvoiceCreateResult.Failure("Invoice amount must be positive.");
         if (string.IsNullOrWhiteSpace(request.Currency))
             return BtcpayInvoiceCreateResult.Failure("Invoice currency is required.");
+        if (request.ExpirationMinutes is <= 0 or > MaximumInvoiceExpirationMinutes)
+            return BtcpayInvoiceCreateResult.Failure($"Invoice expiration must be between 1 and {MaximumInvoiceExpirationMinutes} minutes.");
 
         var baseUrl = config.BTCPayBaseUrl!.TrimEnd('/');
         var endpoint = $"{baseUrl}/api/v1/stores/{Uri.EscapeDataString(config.BTCPayStoreId!)}/invoices";
         var client = _httpClientFactory.CreateClient(nameof(BtcpayInvoiceClient));
-        var metadata = new Dictionary<string, object?>(request.Metadata, StringComparer.OrdinalIgnoreCase)
-        {
-            ["orderId"] = request.OrderId,
-            ["buyerName"] = request.BuyerName,
-            ["buyerEmail"] = request.BuyerEmail
-        };
-        var payload = new Dictionary<string, object?>
-        {
-            ["amount"] = request.Amount,
-            ["currency"] = request.Currency.Trim().ToUpperInvariant(),
-            ["metadata"] = metadata,
-            ["checkout"] = new Dictionary<string, object?>
-            {
-                ["speedPolicy"] = "HighSpeed",
-                ["defaultPaymentMethod"] = DefaultPaymentMethod
-            }
-        };
-
-        if (!string.IsNullOrWhiteSpace(request.BuyerEmail))
-        {
-            payload["buyer"] = new Dictionary<string, object?>
-            {
-                ["email"] = request.BuyerEmail!.Trim()
-            };
-        }
+        var payload = BuildCreateInvoicePayload(request);
 
         using var message = new HttpRequestMessage(HttpMethod.Post, endpoint);
         message.Headers.Authorization = new AuthenticationHeaderValue("token", config.BTCPayGreenfieldApiKey);
@@ -75,6 +54,50 @@ public sealed class BtcpayInvoiceClient(IHttpClientFactory httpClientFactory) : 
             return BtcpayInvoiceCreateResult.Failure("BTCPay response missing invoice id.");
 
         return new BtcpayInvoiceCreateResult(true, PreferDefaultPaymentMethod(checkoutLink), invoiceId, null);
+    }
+
+    internal static Dictionary<string, object?> BuildCreateInvoicePayload(BtcpayInvoiceCreateRequest request)
+    {
+        var metadata = new Dictionary<string, object?>(request.Metadata, StringComparer.OrdinalIgnoreCase)
+        {
+            ["orderId"] = request.OrderId,
+            ["buyerName"] = request.BuyerName,
+            ["buyerEmail"] = request.BuyerEmail
+        };
+        var checkout = new Dictionary<string, object?>
+        {
+            ["speedPolicy"] = "HighSpeed",
+            ["defaultPaymentMethod"] = DefaultPaymentMethod
+        };
+
+        if (request.ExpirationMinutes.HasValue)
+        {
+            checkout["expirationMinutes"] = request.ExpirationMinutes.Value;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.RedirectUrl))
+        {
+            checkout["redirectURL"] = request.RedirectUrl.Trim();
+            checkout["redirectAutomatically"] = request.RedirectAutomatically;
+        }
+
+        var payload = new Dictionary<string, object?>
+        {
+            ["amount"] = request.Amount,
+            ["currency"] = request.Currency.Trim().ToUpperInvariant(),
+            ["metadata"] = metadata,
+            ["checkout"] = checkout
+        };
+
+        if (!string.IsNullOrWhiteSpace(request.BuyerEmail))
+        {
+            payload["buyer"] = new Dictionary<string, object?>
+            {
+                ["email"] = request.BuyerEmail!.Trim()
+            };
+        }
+
+        return payload;
     }
 
     public async Task<BtcpayInvoiceLookupResult> GetInvoiceAsync(Config config, string invoiceId, CancellationToken ct = default)
@@ -224,7 +247,10 @@ public sealed record BtcpayInvoiceCreateRequest(
     string OrderId,
     string? BuyerEmail,
     string? BuyerName,
-    IReadOnlyDictionary<string, object?> Metadata);
+    IReadOnlyDictionary<string, object?> Metadata,
+    string? RedirectUrl = null,
+    bool RedirectAutomatically = false,
+    int? ExpirationMinutes = null);
 
 public sealed record BtcpayInvoiceCreateResult(
     bool Success,

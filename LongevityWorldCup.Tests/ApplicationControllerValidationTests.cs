@@ -963,6 +963,21 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public void ApplicationPayments_UseBtcpaysMaximumInvoiceLifetime()
+    {
+        var source = ReadApplicationControllerSource();
+        var firstReference = source.IndexOf("CreateBtcpayInvoiceAsync(", StringComparison.Ordinal);
+        var methodStart = source.IndexOf("CreateBtcpayInvoiceAsync(", firstReference + 1, StringComparison.Ordinal);
+        var methodEnd = source.IndexOf("private string BuildReviewRedirectUrlForCurrentRequest", methodStart, StringComparison.Ordinal);
+
+        Assert.True(methodStart >= 0);
+        Assert.True(methodEnd > methodStart);
+
+        var methodBody = source[methodStart..methodEnd];
+        Assert.Contains("ExpirationMinutes: BtcpayInvoiceClient.MaximumInvoiceExpirationMinutes", methodBody);
+    }
+
+    [Fact]
     public void ApplicationSubmit_TimeoutPreservesACompletedPackageWithAFreshToken()
     {
         var source = ReadApplicationControllerSource();
@@ -1044,13 +1059,13 @@ public sealed class ApplicationControllerValidationTests
     public void BtcpayInvoicePayload_PreservesAccountEmailInMetadata()
     {
         var source = ReadApplicationControllerSource();
-        var metadataStart = source.IndexOf("[\"metadata\"] = new Dictionary<string, object?>", StringComparison.Ordinal);
-        var payloadEnd = source.IndexOf("using var client = new HttpClient();", metadataStart, StringComparison.Ordinal);
+        var invoiceRequestStart = source.IndexOf("var invoiceRequest = new BtcpayInvoiceCreateRequest(", StringComparison.Ordinal);
+        var payloadEnd = source.IndexOf("using var client = new HttpClient();", invoiceRequestStart, StringComparison.Ordinal);
 
-        Assert.True(metadataStart >= 0);
-        Assert.True(payloadEnd > metadataStart);
+        Assert.True(invoiceRequestStart >= 0);
+        Assert.True(payloadEnd > invoiceRequestStart);
 
-        var metadataBody = source[metadataStart..payloadEnd];
+        var metadataBody = source[invoiceRequestStart..payloadEnd];
 
         Assert.Contains("[\"buyerEmail\"] = accountEmail", metadataBody);
     }
