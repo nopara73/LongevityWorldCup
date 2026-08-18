@@ -646,11 +646,11 @@ public sealed class GuessMyAgeBrowserTests
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRealBubble')?.dataset.revealPhase === 'detour'");
         Assert.Equal("true", await range.GetAttributeAsync("aria-hidden"));
         Assert.True(await range.EvaluateAsync<bool>("element => element.inert"));
-        await page.WaitForFunctionAsync("() => document.querySelector('.gma-reaction') !== null");
-        await page.WaitForTimeoutAsync(400);
-        var phoneReaction = await page.Locator(".gma-reaction").EvaluateAsync<double[]>(
+        var phoneReactionHandle = await page.WaitForFunctionAsync(
             """
-            element => {
+            () => {
+                const element = document.querySelector('.gma-reaction');
+                if (!element) return null;
                 const rect = element.getBoundingClientRect();
                 return [
                     Number.parseFloat(getComputedStyle(element).fontSize),
@@ -663,6 +663,7 @@ public sealed class GuessMyAgeBrowserTests
                 ];
             }
             """);
+        var phoneReaction = await phoneReactionHandle.JsonValueAsync<double[]>();
         Assert.InRange(phoneReaction[0], 50, 70);
         Assert.True(phoneReaction[1] >= -0.5);
         Assert.True(phoneReaction[2] <= phoneReaction[5] + 0.5);
