@@ -1663,23 +1663,14 @@ namespace LongevityWorldCup.Website.Controllers
                 ? "USD"
                 : applicantData.PaymentOffer!.Currency!.Trim().ToUpperInvariant();
 
-            var invoicePayload = new Dictionary<string, object?>
-            {
-                ["amount"] = amount.ToString("0.##", CultureInfo.InvariantCulture),
-                ["currency"] = currency,
-                ["buyer"] = new Dictionary<string, object?>
+            var invoiceRequest = new BtcpayInvoiceCreateRequest(
+                amount,
+                currency,
+                orderId,
+                accountEmail,
+                applicantData.Name?.Trim(),
+                new Dictionary<string, object?>
                 {
-                    ["email"] = accountEmail
-                },
-                ["checkout"] = new Dictionary<string, object?>
-                {
-                    ["defaultPaymentMethod"] = BtcpayInvoiceClient.DefaultPaymentMethod,
-                    ["redirectURL"] = BuildReviewRedirectUrlForCurrentRequest(isResultSubmissionOnly, isEditSubmissionOnly),
-                    ["redirectAutomatically"] = true
-                },
-                ["metadata"] = new Dictionary<string, object?>
-                {
-                    ["orderId"] = orderId,
                     ["source"] = source,
                     ["offerType"] = offerType,
                     ["discountCode"] = applicantData.Discount,
@@ -1687,8 +1678,18 @@ namespace LongevityWorldCup.Website.Controllers
                     ["submissionType"] = isEditSubmissionOnly ? "edit" : isResultSubmissionOnly ? "result" : "application",
                     ["athleteName"] = applicantData.Name?.Trim(),
                     ["buyerEmail"] = accountEmail
-                }
-            };
+                },
+                RedirectUrl: BuildReviewRedirectUrlForCurrentRequest(isResultSubmissionOnly, isEditSubmissionOnly),
+                RedirectAutomatically: true,
+                ExpirationMinutes: BtcpayInvoiceClient.MaximumInvoiceExpirationMinutes);
+
+            if (_btcpayInvoices is not null)
+            {
+                var invoiceResult = await _btcpayInvoices.CreateInvoiceAsync(config, invoiceRequest, ct);
+                return (invoiceResult.Success, invoiceResult.CheckoutLink, invoiceResult.InvoiceId, invoiceResult.Error);
+            }
+
+            var invoicePayload = BtcpayInvoiceClient.BuildCreateInvoicePayload(invoiceRequest);
 
             using var client = new HttpClient();
             var baseUrl = config.BTCPayBaseUrl!.TrimEnd('/');
