@@ -615,6 +615,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("athleteLink: getIdentityAthletePayload(\"edit\")", javascript);
         Assert.Contains("renderCheckIns(orderedDays, containerId, recentRemarks);", javascript);
         Assert.Contains("function renderParticipantNotice", javascript);
+        Assert.Contains("Did you do what you reasonably could yesterday to eat in a way you consider healthy?", javascript);
+        Assert.DoesNotContain("By your own standards, did you eat healthy yesterday?", javascript);
         Assert.DoesNotContain("needs-amount", javascript);
         Assert.DoesNotContain("Choose an amount that would hurt.", javascript);
         Assert.DoesNotContain("lmx-payment-link", javascript);

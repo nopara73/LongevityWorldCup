@@ -473,7 +473,7 @@
     const QUESTIONS: readonly ChallengeQuestion[] = [
         { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you set yourself up for good sleep last night?" },
         { key: "exercise", icon: "fa-dumbbell", title: "Exercise", text: "Did you challenge or intentionally rest your body yesterday?" },
-        { key: "nutrition", icon: "fa-bowl-food", title: "Nutrition", text: "By your own standards, did you eat healthy yesterday?" },
+        { key: "nutrition", icon: "fa-bowl-food", title: "Nutrition", text: "Did you do what you reasonably could yesterday to eat in a way you consider healthy?" },
         { key: "vices", icon: "fa-shield-halved", title: "Vices", text: "Were your vices under control yesterday?" }
     ];
     const LMX_QUOTES: Record<QuoteBucket, readonly Quote[]> = {
