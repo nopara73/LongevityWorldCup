@@ -794,7 +794,6 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 profileImageUrl = (string?)null,
                 challengeEmailsStopped = false,
                 challengeInactive = false,
-                commitmentAmountUsd = 25m,
                 daysIn = 22
             },
             eligibleDays = includeUpcomingCall
@@ -829,30 +828,6 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                     }
                 }
                 : Array.Empty<object>(),
-            commitment = new
-            {
-                status = "current",
-                blocksParticipant = false,
-                canEditAmount = true,
-                canPay = false,
-                amountUsd = 25m,
-                owedAmountUsd = (decimal?)null,
-                triggerChallengeDay = (int?)null,
-                triggerScore = (int?)null,
-                thresholdAverage = (decimal?)null,
-                invoiceId = (string?)null,
-                checkoutLink = (string?)null,
-                invoiceStatus = (string?)null,
-                message = (string?)null
-            },
-            trendGuidance = new
-            {
-                enforced = true,
-                priorScoredDays = 14,
-                averagePoints = 8m,
-                neededPoints = 7,
-                text = ""
-            },
             garden = BuildGardenState(emptyGarden)
         };
 
@@ -921,8 +896,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                     badges = Array.Empty<string>(),
                     latestCheckInAtUtc = "2026-06-28T07:00:00Z",
                     challengeEmailsStopped = false,
-                    challengeInactive = false,
-                    commitmentStatus = (string?)null
+                    challengeInactive = false
                 }
             }.Concat(includeMentionParticipants
                 ? new object[]
@@ -982,8 +956,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             badges = Array.Empty<string>(),
             latestCheckInAtUtc = "2026-06-28T07:00:00Z",
             challengeEmailsStopped = false,
-            challengeInactive = false,
-            commitmentStatus = (string?)null
+            challengeInactive = false
         };
 
     private static object Note(

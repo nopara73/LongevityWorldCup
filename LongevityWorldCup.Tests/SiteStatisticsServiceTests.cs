@@ -33,7 +33,7 @@ public sealed class SiteStatisticsServiceTests
             Flow = "challenge",
             Route = "/longevitymaxxing?token=secret-access-token&confirm=secret-confirm&campaign=abc",
             Component = "signup",
-            Step = "pledge",
+            Step = "submit",
             Outcome = "succeeded",
             ErrorCode = "private-token-error",
             DeviceClass = "desktop",
@@ -45,7 +45,7 @@ public sealed class SiteStatisticsServiceTests
                 ["accessToken"] = JsonSerializer.SerializeToElement("private-token"),
                 ["invoiceId"] = JsonSerializer.SerializeToElement("invoice-123"),
                 ["safeEcho"] = JsonSerializer.SerializeToElement("fallback@example.test"),
-                ["pledgeBucket"] = JsonSerializer.SerializeToElement("$300_999"),
+                ["resultBucket"] = JsonSerializer.SerializeToElement("30_39"),
                 ["identityMode"] = JsonSerializer.SerializeToElement("participant")
             }
         };
@@ -67,7 +67,7 @@ public sealed class SiteStatisticsServiceTests
         Assert.Null(ev.ErrorCode);
         Assert.False(ev.Metadata.ContainsKey("safeEcho"));
         Assert.Equal("/longevitymaxxing?campaign=redacted", ev.Route);
-        Assert.Equal("$300_999", ev.Metadata["pledgeBucket"]);
+        Assert.Equal("30_39", ev.Metadata["resultBucket"]);
         Assert.Equal("participant", ev.Metadata["identityMode"]);
     }
 

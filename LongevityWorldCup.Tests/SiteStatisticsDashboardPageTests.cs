@@ -133,7 +133,6 @@ public sealed class SiteStatisticsDashboardPageTests
             "rank_preview_requested",
             "proof_file_rejected",
             "challenge_athlete_search_result_selected",
-            "challenge_commitment_block_seen",
             "homepage_highlight_viewed",
             "homepage_highlight_clicked",
             "event_viewed",
@@ -148,7 +147,6 @@ public sealed class SiteStatisticsDashboardPageTests
         }
 
         Assert.Contains("challenge_athlete_search_result_selected", tracker);
-        Assert.Contains("challenge_commitment_block_seen", tracker);
         Assert.Contains("homepage_highlight_viewed", tracker);
         Assert.Contains("homepage_highlight_clicked", tracker);
         Assert.Contains("event_viewed", tracker);
@@ -159,9 +157,6 @@ public sealed class SiteStatisticsDashboardPageTests
         Assert.Contains("rank_preview_failed", rankPreview);
         Assert.Contains("proof_file_rejected", proofHelpers);
         Assert.Contains("#lmxSignupAthlete-autocomplete-list .lmx-athlete-option", tracker);
-        Assert.Contains("lmxCommitmentPanel", tracker);
-        Assert.Contains("querySelector(\".lmx-commitment-card[data-commitment-block='true']\")", tracker);
-        Assert.DoesNotContain("querySelector(\".lmx-commitment-card\")", tracker);
         Assert.Contains("setupPublicContentTracking", tracker);
         Assert.Contains("trackPublicPageViews", tracker);
         Assert.Contains("function isIgnoredClientError(e: DashboardEvent | null | undefined): boolean", dashboard);

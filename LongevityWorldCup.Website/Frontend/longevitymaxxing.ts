@@ -6,7 +6,6 @@
     type AccessTab = "signup" | "signin";
     type QuoteBucket = HabitKey | "mindset";
     type ButtonWork = () => Promise<void>;
-    type ErrorHandler = (error: unknown) => void;
     type Quote = readonly [text: string, author: string, athleteSlug: string, sourceUrl: string];
 
     interface AnswerOption {
@@ -121,7 +120,6 @@
         latestCheckInAtUtc: string | null;
         challengeEmailsStopped: boolean;
         challengeInactive: boolean;
-        commitmentStatus: string | null;
     }
 
     interface PodiumRow {
@@ -181,32 +179,7 @@
         profileImageUrl: string | null;
         challengeEmailsStopped: boolean;
         challengeInactive: boolean;
-        commitmentAmountUsd: number | null;
         daysIn: number;
-    }
-
-    interface CommitmentState {
-        status: string;
-        blocksParticipant: boolean;
-        canEditAmount: boolean;
-        canPay: boolean;
-        amountUsd: number | null;
-        owedAmountUsd: number | null;
-        triggerChallengeDay: number | null;
-        triggerScore: number | null;
-        thresholdAverage: number | null;
-        invoiceId: string | null;
-        checkoutLink: string | null;
-        invoiceStatus: string | null;
-        message: string | null;
-    }
-
-    interface CommitmentTrendGuidance {
-        enforced: boolean;
-        priorScoredDays: number;
-        averagePoints: number | null;
-        neededPoints: number | null;
-        text: string;
     }
 
     interface GardenHabitState {
@@ -235,8 +208,6 @@
         eligibleDays: EligibleDay[];
         notes: ParticipantNote[];
         calls: ParticipantCall[];
-        commitment: CommitmentState;
-        trendGuidance: CommitmentTrendGuidance;
         garden: GardenState;
     }
 
@@ -475,11 +446,6 @@
         slugifyName?: (name: string, encode?: boolean) => string;
     }
 
-    interface CommitmentPaymentCheckOptions {
-        showWaiting?: boolean;
-        finalWaitingMessage?: string;
-    }
-
     interface RefreshPublicOptions {
         keepParticipant?: boolean;
     }
@@ -504,7 +470,6 @@
     const NOTE_PHOTO_MAX_DIMENSION = 1600;
     const LEADERBOARD_SCORING_WINDOW_DAYS = 14;
     const MOBILE_LEADERBOARD_QUERY = "(max-width: 760px)";
-    const COMMITMENT_PAYMENT_POLL_DELAYS_MS = [2500, 5000, 8000, 12000];
     const QUESTIONS: readonly ChallengeQuestion[] = [
         { key: "sleep", icon: "fa-moon", title: "Sleep", text: "Did you set yourself up for good sleep last night?" },
         { key: "exercise", icon: "fa-dumbbell", title: "Exercise", text: "Did you challenge or intentionally rest your body yesterday?" },
@@ -675,7 +640,6 @@
     let participantTabManual = false;
     let participantNotice: ParticipantNotice | null = null;
     let showInactiveLeaderboard = false;
-    let commitmentPaymentPollRun = 0;
     let accessTab: AccessTab = "signup";
     let accessLoading = !!accessToken;
     let timeZoneCountryCodes: Map<string, string[]> | null = null;
@@ -806,7 +770,6 @@
         const inactiveToggle = optionalElement("lmxInactiveToggle", HTMLButtonElement);
         wireEmailValidityReset(signupEmailInput);
         wireEmailValidityReset(resendEmailInput);
-        wireCommitmentAmountValidation("lmxEditCommitmentAmount");
 
         signupForm.addEventListener("submit", async event => {
             event.preventDefault();
@@ -877,8 +840,7 @@
             await withButton(editForm.querySelector("button[type='submit']"), async () => {
                 const result = await postJson(`${API}/edit`, {
                     accessToken,
-                    timeZoneId: requiredSelect("lmxEditTimeZone").value,
-                    commitmentAmountUsd: parseOptionalCommitmentAmount("lmxEditCommitmentAmount")
+                    timeZoneId: requiredSelect("lmxEditTimeZone").value
                 });
                 participantState = result;
                 publicState = result.public;
@@ -1376,7 +1338,6 @@
                 ${dashboardStat("Locked-in days", String(fullDays), "", "fa-calendar-check")}
                 ${dashboardStat("Points", scoredCells.length ? String(totalPoints) : "-", "", "fa-chart-line")}
             </div>
-            ${participantState.trendGuidance?.text ? `<div class="lmx-trend-guidance"><i class="fas fa-scale-balanced" aria-hidden="true"></i><span>${esc(participantState.trendGuidance.text)}</span></div>` : ""}
             <div class="lmx-dashboard-scroll">
                 <div class="lmx-dashboard-grid" role="table" aria-label="Sleep, exercise, nutrition, and vices over time" style="--lmx-dashboard-day-columns: repeat(${dayCount}, 2.15rem); --lmx-dashboard-min-width: ${(13.05 + (dayCount * 2.5)).toFixed(2)}rem;">
                     <div class="lmx-dashboard-row lmx-dashboard-row-head" role="row">
@@ -1485,10 +1446,9 @@
         const hasParticipant = currentParticipantState !== null;
         const isAccessLoading = accessLoading && !hasParticipant;
         const pendingCheckInDays = currentParticipantState ? getPendingCheckInDays(currentParticipantState) : [];
-        const commitmentBlocked = hasCommitmentBlock(currentParticipantState);
         const activeParticipantTab = currentParticipantState ? ensureParticipantTab(currentParticipantState) : null;
-        const checkInOnly = !commitmentBlocked && pendingCheckInDays.length > 0 && activeParticipantTab === "checkin";
-        const participantGateOnly = commitmentBlocked || checkInOnly;
+        const checkInOnly = pendingCheckInDays.length > 0 && activeParticipantTab === "checkin";
+        const participantGateOnly = checkInOnly;
         const publicContentHidden = checkInOnly;
         const dashboardMode = hasParticipant || !isPreStartSignup(state);
         const hero = document.getElementById("lmxHeroLayout");
@@ -1507,17 +1467,16 @@
         toggle("lmxSignupDonePanel", signupSubmitted);
         toggle("lmxHabitHeading", !hasParticipant);
         toggle("lmxHabitGrid", !hasParticipant);
-        toggle("lmxQuestionPreview", !commitmentBlocked && (!hasParticipant || pendingCheckInDays.length > 0));
+        toggle("lmxQuestionPreview", !hasParticipant || pendingCheckInDays.length > 0);
         toggle("lmxTrack", hasParticipant && dashboardMode && !participantGateOnly);
         toggle("lmxMetrics", hasParticipant && dashboardMode && !participantGateOnly);
         toggle("lmxBoardSection", !publicContentHidden);
-        toggle("lmxParticipantTabs", hasParticipant && !commitmentBlocked);
-        toggle("lmxCommitmentPanel", currentParticipantState !== null && activeParticipantTab !== null && shouldShowCommitmentPanel(currentParticipantState, activeParticipantTab));
-        toggle("lmxCheckinPanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "checkin");
-        toggle("lmxEditForm", hasParticipant && !commitmentBlocked && activeParticipantTab === "profile");
-        toggle("lmxHomePanel", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
-        toggle("lmxParticipantTools", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
-        toggle("lmxParticipantCalls", hasParticipant && !commitmentBlocked && activeParticipantTab === "home");
+        toggle("lmxParticipantTabs", hasParticipant);
+        toggle("lmxCheckinPanel", hasParticipant && activeParticipantTab === "checkin");
+        toggle("lmxEditForm", hasParticipant && activeParticipantTab === "profile");
+        toggle("lmxHomePanel", hasParticipant && activeParticipantTab === "home");
+        toggle("lmxParticipantTools", hasParticipant && activeParticipantTab === "home");
+        toggle("lmxParticipantCalls", hasParticipant && activeParticipantTab === "home");
         renderParticipantTabs();
         if (!hasParticipant) {
             participantActiveTab = null;
@@ -1556,32 +1515,19 @@
         setText("lmxParticipantKicker", kicker);
         toggle("lmxParticipantKicker", !!kicker);
         setText("lmxParticipantTitle", title);
-        renderCommitmentPanel(state, activeTab);
         renderParticipantNotice();
 
         renderProfileIdentity(participant);
         setSelectValue(requiredSelect("lmxEditTimeZone"), participant.timeZoneId);
-        setCommitmentInputValue("lmxEditCommitmentAmount", participant.commitmentAmountUsd ?? state.commitment?.amountUsd);
-        toggle("lmxEditCommitmentField", shouldShowCommitmentAmountField(state));
-        const commitmentInput = optionalInput("lmxEditCommitmentAmount");
-        if (commitmentInput) {
-            const showCommitment = shouldShowCommitmentAmountField(state);
-            commitmentInput.disabled = !showCommitment || state.commitment?.canEditAmount === false;
-            commitmentInput.required = hasConfiguredCommitmentAmount(state);
-        }
         renderProfilePictureControls(participant);
         renderParticipantCalls(state.calls || [], state.public.callSelectionClosesAtUtc);
-        if (!hasCommitmentBlock(state)) renderCheckIns(state.eligibleDays || [], undefined, recentPublicRemarks(state));
+        renderCheckIns(state.eligibleDays || [], undefined, recentPublicRemarks(state));
         renderNotes(state.notes || state.public.notes || [], true);
         renderParticipantTabs();
     }
 
     function participantPanelTitle(activeTab: ParticipantTab, pendingCheckInDays: EligibleDay[], participant: ParticipantSummary, phase: string): string {
         const name = participant.displayName || "participant";
-        const commitment = participantState?.commitment;
-        if (commitment?.blocksParticipant) {
-            return `Commitment due, ${name}`;
-        }
         if (activeTab === "profile") return `Profile, ${name}`;
         if (activeTab === "home") {
             return "Home";
@@ -1591,7 +1537,6 @@
     }
 
     function participantPanelKicker(activeTab: ParticipantTab, pendingCheckInDays: EligibleDay[], phase: string): string {
-        if (hasCommitmentBlock(participantState)) return "pledge";
         if (activeTab === "profile") return "profile";
         if (activeTab === "home") {
             return "";
@@ -1605,7 +1550,7 @@
         if (!notice) return;
 
         const currentNotice = participantNotice;
-        const visible = !!(currentNotice?.message && participantState && !hasCommitmentBlock(participantState));
+        const visible = !!(currentNotice?.message && participantState);
         notice.textContent = visible ? currentNotice?.message ?? "" : "";
         notice.classList.toggle("lmx-hidden", !visible);
         notice.classList.toggle("error", visible && !!currentNotice?.isError);
@@ -1699,23 +1644,6 @@
     function renderParticipantTabs() {
         const currentParticipantState = participantState;
         if (!currentParticipantState) return;
-        if (hasCommitmentBlock(currentParticipantState)) {
-            PARTICIPANT_TABS.forEach(tab => {
-                const panel = getParticipantTabPanel(tab);
-                const button = document.querySelector<HTMLButtonElement>(`[data-lmx-tab="${tab}"]`);
-                if (button) {
-                    button.setAttribute("aria-selected", "false");
-                    button.setAttribute("tabindex", "-1");
-                    button.hidden = true;
-                }
-                if (panel) {
-                    panel.classList.add("lmx-hidden");
-                    panel.toggleAttribute("hidden", true);
-                }
-            });
-            return;
-        }
-
         const activeTab = ensureParticipantTab(currentParticipantState);
         PARTICIPANT_TABS.forEach(tab => {
             const button = document.querySelector<HTMLButtonElement>(`[data-lmx-tab="${tab}"]`);
@@ -1746,7 +1674,7 @@
 
     function handleParticipantTabKeydown(event: KeyboardEvent, button: HTMLButtonElement): void {
         const currentParticipantState = participantState;
-        if (!currentParticipantState || hasCommitmentBlock(currentParticipantState)) return;
+        if (!currentParticipantState) return;
 
         const availableTabs = PARTICIPANT_TABS.filter(tab => !isParticipantTabLocked(tab, currentParticipantState));
         const requestedTab = button.dataset.lmxTab;
@@ -1778,271 +1706,6 @@
         return tab !== "checkin" && getPendingCheckInDays(state).length > 0;
     }
 
-    function renderCommitmentPanel(state: ParticipantState, activeTab: ParticipantTab): void {
-        const panel = document.getElementById("lmxCommitmentPanel");
-        if (!panel) return;
-
-        const commitment = state.commitment || {};
-        if (shouldShowCheckInPledgePrompt(state, activeTab)) {
-            panel.innerHTML = `
-                <form id="lmxCommitmentAmountForm" class="lmx-commitment-card setup" data-commitment-prompt="optional">
-                    <div class="lmx-commitment-main">
-                        <i class="fas fa-pen-nib" aria-hidden="true"></i>
-                        <div>
-                            <strong>Set a real stake</strong>
-                            <span id="lmxPledgeCommitmentHelp">Fall below your recent average and either pay it or stop longevitymaxxing. You can keep checking in without a pledge.</span>
-                        </div>
-                    </div>
-                    <div class="lmx-field">
-                        <label for="lmxPledgeCommitmentAmount">Pledge</label>
-                        <div class="lmx-money-input">
-                            <span aria-hidden="true">$</span>
-                            <input id="lmxPledgeCommitmentAmount" type="text" inputmode="decimal" required placeholder="100" aria-describedby="lmxPledgeCommitmentHelp">
-                        </div>
-                    </div>
-                    <button class="lmx-button secondary" type="submit">
-                        <i class="fas fa-pen-nib" aria-hidden="true"></i>
-                        Make a pledge
-                    </button>
-                    <div class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
-                </form>`;
-            panel.querySelector("form")?.addEventListener("submit", event => {
-                event.preventDefault();
-                saveCommitmentAmountFromPanel("lmxPledgeCommitmentAmount", panel.querySelector<HTMLButtonElement>("button[type='submit']"), "Pledge saved.");
-            });
-            wireCommitmentAmountValidation("lmxPledgeCommitmentAmount");
-            return;
-        }
-
-        if (!commitment.blocksParticipant) {
-            panel.innerHTML = "";
-            return;
-        }
-
-        const invoiceStatus = String(commitment.invoiceStatus || "");
-        const hasInvoice = !!(commitment.invoiceId || commitment.checkoutLink || invoiceStatus);
-        const replacesInvoice = ["expired", "failed", "invalid"].includes(invoiceStatus.toLowerCase());
-        const payText = "Redeem yourself";
-        const payBusyText = hasInvoice && !replacesInvoice ? "Opening..." : "Preparing...";
-        const showCheckAgain = hasInvoice && !replacesInvoice;
-        const editableDays = getCommitmentEditableDays(state);
-        panel.innerHTML = `
-            <div class="lmx-commitment-card due" data-commitment-block="true">
-                <div class="lmx-commitment-main">
-                    <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-                    <div>
-                        <strong>Commitment due</strong>
-                        <span>${esc(commitment.message || "This check-in landed below your recent average. Pay the locked amount, or improve the editable check-in enough to clear it.")}</span>
-                    </div>
-                    <b aria-label="${escAttr(`Commitment due amount ${formatUsd(commitment.owedAmountUsd)}`)}">${esc(formatUsd(commitment.owedAmountUsd))}</b>
-                </div>
-                <div class="lmx-commitment-meta">
-                    <span>Trigger: Day ${esc(commitment.triggerChallengeDay || "-")}</span>
-                    <span>Score: ${esc(commitment.triggerScore ?? "-")}</span>
-                    <span>Baseline: ${esc(formatNumber(commitment.thresholdAverage))}</span>
-                </div>
-                <div class="lmx-button-row">
-                    <button id="lmxCommitmentPayButton" class="lmx-button" type="button" data-busy-text="${escAttr(payBusyText)}">
-                        <i class="fas fa-credit-card" aria-hidden="true"></i>
-                        ${esc(payText)}
-                    </button>
-                    <button id="lmxCommitmentCheckButton" class="lmx-button secondary${showCheckAgain ? "" : " lmx-hidden"}" type="button">
-                        <i class="fas fa-rotate" aria-hidden="true"></i>
-                        Check again
-                    </button>
-                </div>
-                <div id="lmxCommitmentStatus" class="lmx-status" role="status" aria-live="polite" aria-atomic="true"></div>
-            </div>
-            <div class="lmx-commitment-edit">
-                <strong>Eligible fixes</strong>
-                <div id="lmxCommitmentCheckinList" class="lmx-checkin-list"></div>
-            </div>`;
-
-        panel.querySelector("#lmxCommitmentPayButton")?.addEventListener("click", event => {
-            payCommitment(isButton(event.currentTarget) ? event.currentTarget : null);
-        });
-        panel.querySelector("#lmxCommitmentCheckButton")?.addEventListener("click", event => {
-            checkCommitmentPayment(isButton(event.currentTarget) ? event.currentTarget : null, { showWaiting: true, finalWaitingMessage: "Still waiting. This can take a minute." });
-        });
-        if (editableDays.length) {
-            renderCheckIns(editableDays, "lmxCommitmentCheckinList", recentPublicRemarks(state));
-        } else {
-            const list = document.getElementById("lmxCommitmentCheckinList");
-            if (list) {
-                list.innerHTML = `<div class="lmx-empty-state">
-                    <i class="fas fa-lock" aria-hidden="true"></i>
-                    <strong>No editable fix available.</strong>
-                    <span>The edit window closed, so payment is required to continue.</span>
-                </div>`;
-            }
-        }
-    }
-
-    function hasCommitmentBlock(state: ParticipantState | null): boolean {
-        return !!(state && state.commitment && state.commitment.blocksParticipant);
-    }
-
-    function shouldShowCommitmentPanel(state: ParticipantState, activeTab: ParticipantTab): boolean {
-        return !!(state && state.commitment && (state.commitment.blocksParticipant || shouldShowCheckInPledgePrompt(state, activeTab)));
-    }
-
-    function shouldShowCheckInPledgePrompt(state: ParticipantState, activeTab: ParticipantTab): boolean {
-        if (activeTab !== "checkin") return false;
-        if (state?.commitment?.status !== "deferred") return false;
-        const pendingScoredDays = getPendingCheckInDays(state).filter(day => day.countsForScore !== false);
-        if (!pendingScoredDays.length) return false;
-        return Number(state.trendGuidance?.priorScoredDays || 0) >= 3;
-    }
-
-    function shouldShowCommitmentAmountField(state: ParticipantState): boolean {
-        return !!(state && state.commitment);
-    }
-
-    function hasConfiguredCommitmentAmount(state: ParticipantState): boolean {
-        return Number(state?.participant?.commitmentAmountUsd ?? state?.commitment?.amountUsd ?? 0) >= 1;
-    }
-
-    function getCommitmentEditableDays(state: ParticipantState): EligibleDay[] {
-        const triggerDay = Number(state?.commitment?.triggerChallengeDay || 0);
-        return ((state && state.eligibleDays) || [])
-            .filter(day => day.existing && (!triggerDay || day.challengeDay === triggerDay));
-    }
-
-    async function saveCommitmentAmountFromPanel(inputId: string, button: HTMLButtonElement | null, successMessage: string): Promise<void> {
-        if (!accessToken || !participantState) return;
-        const currentParticipantState = participantState;
-        const currentAccessToken = accessToken;
-        await withButton(button, async () => {
-            const participant = currentParticipantState.participant;
-            const result = await postJson(`${API}/edit`, {
-                accessToken: currentAccessToken,
-                displayName: participant.displayName || "",
-                timeZoneId: participant.timeZoneId || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-                athleteLink: participant.athleteSlug || participant.athleteUrl || null,
-                commitmentAmountUsd: parseCommitmentAmount(inputId)
-            });
-            participantState = result;
-            publicState = result.public;
-            if (!hasCommitmentBlock(result)) {
-                participantNotice = { message: successMessage, isError: false };
-                participantActiveTab = null;
-                participantTabManual = false;
-            }
-            renderAll();
-        }, "Saving...");
-    }
-
-    function normalizeCheckoutLink(value: unknown): string {
-        const raw = typeof value === "string" ? value.trim() : "";
-        if (!raw) return "";
-
-        try {
-            const checkoutUrl = new URL(raw, window.location.origin);
-            return checkoutUrl.protocol === "http:" || checkoutUrl.protocol === "https:"
-                ? checkoutUrl.href
-                : "";
-        } catch (_) {
-            return "";
-        }
-    }
-
-    async function payCommitment(button: HTMLButtonElement | null): Promise<void> {
-        if (!accessToken) return;
-        const checkoutWindow = window.open("", "_blank", "noopener");
-        await withStandaloneButton(button, button?.dataset.busyText || "Creating invoice...", async () => {
-            const result = await postJson(`${API}/commitment-payment`, { accessToken });
-            participantState = result;
-            publicState = result.public;
-            const checkoutLink = normalizeCheckoutLink(result.commitment && result.commitment.checkoutLink);
-            if (!checkoutLink) throw new Error("The payment invoice did not return a usable checkout link.");
-            if (checkoutWindow) {
-                checkoutWindow.location = checkoutLink;
-            } else {
-                window.location.href = checkoutLink;
-            }
-            renderAll();
-            setCommitmentStatus("Waiting for payment confirmation...", false);
-            startCommitmentPaymentPolling();
-        }, err => {
-            if (checkoutWindow) checkoutWindow.close();
-            setCommitmentStatus(messageOf(err), true);
-        });
-    }
-
-    async function checkCommitmentPayment(button: HTMLButtonElement | null, options: CommitmentPaymentCheckOptions = {}): Promise<void> {
-        if (!accessToken) return;
-        if (options.showWaiting) setCommitmentStatus("Waiting for payment confirmation...", false);
-        await withStandaloneButton(button, "Checking...", async () => {
-            const result = await postJson(`${API}/commitment-payment/status`, { accessToken });
-            participantState = result;
-            publicState = result.public;
-            if (!hasCommitmentBlock(result)) {
-                commitmentPaymentPollRun += 1;
-                participantNotice = { message: "Payment confirmed. You're unlocked.", isError: false };
-                participantActiveTab = null;
-                participantTabManual = false;
-                renderAll();
-                return;
-            }
-            renderAll();
-            setCommitmentStatus(commitmentWaitingMessage(result.commitment, options.finalWaitingMessage), true);
-        }, err => setCommitmentStatus(messageOf(err), true));
-    }
-
-    function startCommitmentPaymentPolling() {
-        const run = ++commitmentPaymentPollRun;
-        COMMITMENT_PAYMENT_POLL_DELAYS_MS.forEach((delay, index) => {
-            window.setTimeout(() => {
-                if (run !== commitmentPaymentPollRun || !hasCommitmentBlock(participantState)) return;
-                checkCommitmentPayment(null, {
-                    finalWaitingMessage: index === COMMITMENT_PAYMENT_POLL_DELAYS_MS.length - 1
-                        ? "Still waiting. This can take a minute."
-                        : ""
-                });
-            }, delay);
-        });
-    }
-
-    function commitmentWaitingMessage(commitment: CommitmentState, fallback = ""): string {
-        const status = String(commitment?.invoiceStatus || "").trim();
-        const normalized = status.toLowerCase();
-        if (["expired", "failed", "invalid"].includes(normalized)) {
-            return "That payment attempt expired. Try again when ready.";
-        }
-
-        return fallback || "Waiting for payment confirmation...";
-    }
-
-    async function withStandaloneButton(button: HTMLButtonElement | null, busyText: string, work: ButtonWork, onError?: ErrorHandler): Promise<void> {
-        if (button && (button.disabled || button.getAttribute("aria-busy") === "true")) return;
-
-        const original = button ? button.innerHTML : "";
-        if (button) {
-            button.disabled = true;
-            button.setAttribute("aria-busy", "true");
-            button.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>${busyText}`;
-        }
-
-        try {
-            await work();
-        } catch (err) {
-            if (onError) onError(err);
-        } finally {
-            if (button) {
-                button.disabled = false;
-                button.removeAttribute("aria-busy");
-                button.innerHTML = original;
-            }
-        }
-    }
-
-    function setCommitmentStatus(message: string, isError: boolean): void {
-        const status = document.getElementById("lmxCommitmentStatus");
-        if (!status) return;
-        status.textContent = message || "";
-        status.classList.toggle("error", !!isError);
-        status.classList.toggle("success", !!message && !isError);
-    }
 
     function renderProfileIdentity(participant: ParticipantSummary): void {
         const container = document.getElementById("lmxProfileIdentity");
@@ -4093,109 +3756,6 @@
         }).join("");
     }
 
-    function parseCommitmentAmount(inputId: string): number {
-        const input = optionalInput(inputId);
-        if (input) sanitizeCommitmentAmountInput(input);
-        const raw = String(input?.value || "").trim();
-        const normalized = raw;
-        const value = Number(normalized);
-        if (!Number.isFinite(value) || value < 1) {
-            const message = raw ? "Commitment amount must be at least USD 1." : "Enter a commitment amount of at least USD 1.";
-            markCommitmentAmountInvalid(input, message, true);
-            input?.focus();
-            throw new Error(message);
-        }
-
-        clearCommitmentAmountValidity(input);
-        return Math.round(value * 100) / 100;
-    }
-
-    function parseOptionalCommitmentAmount(inputId: string): number | null {
-        const input = optionalInput(inputId);
-        if (input) sanitizeCommitmentAmountInput(input);
-        const raw = String(input?.value || "").trim();
-        if (!raw) {
-            clearCommitmentAmountValidity(input);
-            return null;
-        }
-
-        return parseCommitmentAmount(inputId);
-    }
-
-    function wireCommitmentAmountValidation(inputId: string): void {
-        const input = optionalInput(inputId);
-        if (!input || input.dataset.commitmentValidationWired) return;
-        input.dataset.commitmentValidationWired = "true";
-        input.addEventListener("input", () => {
-            sanitizeCommitmentAmountInput(input);
-            clearCommitmentAmountValidity(input);
-        });
-        input.addEventListener("invalid", () => {
-            const raw = String(input.value || "").trim();
-            markCommitmentAmountInvalid(input, raw ? "Commitment amount must be at least USD 1." : "Enter a commitment amount of at least USD 1.");
-        });
-    }
-
-    function sanitizeCommitmentAmountInput(input: HTMLInputElement): void {
-        const original = String(input.value || "");
-        let next = "";
-        let hasDecimal = false;
-        let decimals = 0;
-
-        for (const char of original.replace(",", ".")) {
-            if (char >= "0" && char <= "9") {
-                if (hasDecimal) {
-                    if (decimals >= 2) continue;
-                    decimals += 1;
-                }
-                next += char;
-            } else if (char === "." && !hasDecimal) {
-                hasDecimal = true;
-                next += char;
-            }
-        }
-
-        if (next.startsWith(".")) next = `0${next}`;
-        if (input.value !== next) input.value = next;
-    }
-
-    function markCommitmentAmountInvalid(input: HTMLInputElement | null, message: string, report = false): void {
-        if (!input) return;
-        input.setAttribute("aria-invalid", "true");
-        if (typeof input.setCustomValidity === "function") {
-            input.setCustomValidity(message);
-            if (report) input.reportValidity?.();
-        }
-    }
-
-    function clearCommitmentAmountValidity(input: HTMLInputElement | null): void {
-        if (!input) return;
-        input.removeAttribute("aria-invalid");
-        if (typeof input.setCustomValidity === "function") input.setCustomValidity("");
-    }
-
-    function setCommitmentInputValue(inputId: string, value: number | null): void {
-        const input = optionalInput(inputId);
-        if (!input) return;
-        input.value = value === null || value === undefined ? "" : String(value);
-    }
-
-    function formatUsd(value: unknown): string {
-        const amount = Number(value);
-        if (!Number.isFinite(amount)) return "USD -";
-        return new Intl.NumberFormat("en-US", {
-            style: "currency",
-            currency: "USD",
-            minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
-            maximumFractionDigits: 2
-        }).format(amount);
-    }
-
-    function formatNumber(value: unknown): string {
-        const number = Number(value);
-        if (!Number.isFinite(number)) return "-";
-        return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(number);
-    }
 
     function participantNameHtml(row: LeaderboardRow, nameHtml: string, rank: number): string {
         const athlete = findAthleteForParticipant(row);
@@ -4205,10 +3765,7 @@
         const hasProfileImage = !!(athleteProfileImage || profileImage);
         const avatarClass = hasProfileImage ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
         const alt = hasProfileImage ? `${row.displayName || "Participant"} profile picture` : "";
-        const badges = [
-            row.commitmentStatus === "commitment-due" ? "Commitment due" : "",
-            row.challengeInactive ? "Resting" : ""
-        ].filter(Boolean);
+        const badges = [row.challengeInactive ? "Resting" : ""].filter(Boolean);
         const rankNumber = Number.isFinite(Number(rank)) ? Math.trunc(Number(rank)) : null;
         const rankHtml = rankNumber && rankNumber > 0
             ? `<span class="lmx-rank" aria-label="Rank ${rankNumber}">#${rankNumber}</span>`
@@ -5338,14 +4895,14 @@
     }
 
     function isLeaderboardRow(value: unknown): value is LeaderboardRow {
-        return hasProperties(value, "participantId", "displayName", "athleteUrl", "profileImageUrl", "checkedInDays", "totalPoints", "currentStreak", "cells", "badges", "latestCheckInAtUtc", "challengeEmailsStopped", "challengeInactive", "commitmentStatus") &&
+        return hasProperties(value, "participantId", "displayName", "athleteUrl", "profileImageUrl", "checkedInDays", "totalPoints", "currentStreak", "cells", "badges", "latestCheckInAtUtc", "challengeEmailsStopped", "challengeInactive") &&
             typeof value.participantId === "string" && typeof value.displayName === "string" &&
             isNullableString(value.athleteUrl) && isNullableString(value.profileImageUrl) &&
             typeof value.checkedInDays === "number" && typeof value.totalPoints === "number" &&
             typeof value.currentStreak === "number" && isArrayOf(value.cells, isDayCell) &&
             Array.isArray(value.badges) && value.badges.every(badge => typeof badge === "string") &&
             isNullableString(value.latestCheckInAtUtc) && typeof value.challengeEmailsStopped === "boolean" &&
-            typeof value.challengeInactive === "boolean" && isNullableString(value.commitmentStatus);
+            typeof value.challengeInactive === "boolean";
     }
 
     function isPodiumRow(value: unknown): value is PodiumRow {
@@ -5386,30 +4943,13 @@
     }
 
     function isParticipantSummary(value: unknown): value is ParticipantSummary {
-        return hasProperties(value, "id", "email", "displayName", "timeZoneId", "athleteSlug", "athleteUrl", "profileImageUrl", "challengeEmailsStopped", "challengeInactive", "commitmentAmountUsd", "daysIn") &&
+        return hasProperties(value, "id", "email", "displayName", "timeZoneId", "athleteSlug", "athleteUrl", "profileImageUrl", "challengeEmailsStopped", "challengeInactive", "daysIn") &&
             typeof value.id === "string" && typeof value.email === "string" &&
             typeof value.displayName === "string" && typeof value.timeZoneId === "string" &&
             isNullableString(value.athleteSlug) && isNullableString(value.athleteUrl) &&
             isNullableString(value.profileImageUrl) && typeof value.challengeEmailsStopped === "boolean" &&
-            typeof value.challengeInactive === "boolean" && isNullableNumber(value.commitmentAmountUsd) &&
+            typeof value.challengeInactive === "boolean" &&
             typeof value.daysIn === "number";
-    }
-
-    function isCommitmentState(value: unknown): value is CommitmentState {
-        return hasProperties(value, "status", "blocksParticipant", "canEditAmount", "canPay", "amountUsd", "owedAmountUsd", "triggerChallengeDay", "triggerScore", "thresholdAverage", "invoiceId", "checkoutLink", "invoiceStatus", "message") &&
-            typeof value.status === "string" && typeof value.blocksParticipant === "boolean" &&
-            typeof value.canEditAmount === "boolean" && typeof value.canPay === "boolean" &&
-            isNullableNumber(value.amountUsd) && isNullableNumber(value.owedAmountUsd) &&
-            isNullableNumber(value.triggerChallengeDay) && isNullableNumber(value.triggerScore) &&
-            isNullableNumber(value.thresholdAverage) && isNullableString(value.invoiceId) &&
-            isNullableString(value.checkoutLink) && isNullableString(value.invoiceStatus) &&
-            isNullableString(value.message);
-    }
-
-    function isCommitmentTrendGuidance(value: unknown): value is CommitmentTrendGuidance {
-        return hasProperties(value, "enforced", "priorScoredDays", "averagePoints", "neededPoints", "text") &&
-            typeof value.enforced === "boolean" && typeof value.priorScoredDays === "number" &&
-            isNullableNumber(value.averagePoints) && isNullableNumber(value.neededPoints) && typeof value.text === "string";
     }
 
     function isGardenHabitState(value: unknown): value is GardenHabitState {
@@ -5428,11 +4968,10 @@
     }
 
     function isParticipantState(value: unknown): value is ParticipantState {
-        return hasProperties(value, "public", "participant", "eligibleDays", "notes", "calls", "commitment", "trendGuidance", "garden") &&
+        return hasProperties(value, "public", "participant", "eligibleDays", "notes", "calls", "garden") &&
             isPublicState(value.public) && isParticipantSummary(value.participant) &&
             isArrayOf(value.eligibleDays, isEligibleDay) && isArrayOf(value.notes, isParticipantNote) &&
-            isArrayOf(value.calls, isParticipantCall) && isCommitmentState(value.commitment) &&
-            isCommitmentTrendGuidance(value.trendGuidance) && isGardenState(value.garden);
+            isArrayOf(value.calls, isParticipantCall) && isGardenState(value.garden);
     }
 
     function isSignupResult(value: unknown): value is SignupResult {
@@ -5460,7 +4999,7 @@
     async function postJson(url: `${typeof API}/signup` | `${typeof API}/resend`, payload: object): Promise<SignupResult>;
     async function postJson(url: `${typeof API}/confirm`, payload: object): Promise<AccessResult>;
     async function postJson(
-        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/commitment-payment` | `${typeof API}/commitment-payment/status` | `${typeof API}/check-in`,
+        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in`,
         payload: object
     ): Promise<ParticipantState>;
     async function postJson(
@@ -5480,7 +5019,7 @@
         const data = await readJsonResponse(response, url);
         if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
-        if ((url === `${API}/edit` || url === `${API}/participant` || url === `${API}/commitment-payment` || url === `${API}/commitment-payment/status` || url === `${API}/check-in`) && !isParticipantState(data)) {
+        if ((url === `${API}/edit` || url === `${API}/participant` || url === `${API}/check-in`) && !isParticipantState(data)) {
             throw invalidApiResponse(url);
         }
         return data;

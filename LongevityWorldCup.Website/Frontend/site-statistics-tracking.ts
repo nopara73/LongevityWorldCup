@@ -879,32 +879,6 @@
             }, { passive: true });
         });
 
-        listen(document, "input", (event: Event) => {
-            const target = event.target;
-            if (!(target instanceof HTMLInputElement) || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
-            const component = target.id === "lmxEditCommitmentAmount" ? "profile" : "commitment";
-            trackOnce(`challenge-pledge-touched-${component}`, "challenge_pledge_touched", { component, step: "pledge", outcome: "touched" });
-            if (target.value) {
-                track("challenge_pledge_completed", {
-                    component,
-                    step: "pledge",
-                    outcome: "completed",
-                    metadata: { pledgeBucket: amountBucket(target.value) }
-                });
-            }
-        }, { passive: true });
-
-        listen(document, "invalid", (event: Event) => {
-            const target = event.target;
-            if (!(target instanceof HTMLInputElement) || (target.id !== "lmxPledgeCommitmentAmount" && target.id !== "lmxEditCommitmentAmount")) return;
-            track("challenge_pledge_validation_failed", {
-                component: target.id === "lmxEditCommitmentAmount" ? "profile" : "commitment",
-                step: safeFieldKey(target),
-                outcome: "failed",
-                errorCode: "browser_validation"
-            });
-        }, true);
-
         listen(document.getElementById("lmxSignupAthlete"), "input", () => {
             trackOnce("challenge-athlete-search-started", "challenge_athlete_search_started", { component: "signup", step: "athlete_search", outcome: "started" });
         }, { passive: true });
@@ -943,23 +917,6 @@
             });
         }, true);
 
-        const commitmentPanel = document.getElementById("lmxCommitmentPanel");
-        if (commitmentPanel && typeof MutationObserver === "function") {
-            const trackCommitmentBlock = () => {
-                if (commitmentPanel.classList.contains("lmx-hidden")) return;
-                const card = commitmentPanel.querySelector(".lmx-commitment-card[data-commitment-block='true']");
-                if (!card) return;
-                trackOnce("challenge-commitment-block-seen", "challenge_commitment_block_seen", {
-                    component: "commitment",
-                    step: "block",
-                    outcome: "viewed",
-                    metadata: { commitmentState: card.classList.contains("setup") ? "needs_amount" : "due" }
-                });
-            };
-            const observer = new MutationObserver(trackCommitmentBlock);
-            observer.observe(commitmentPanel, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
-            trackCommitmentBlock();
-        }
     }
 
     function setupPublicContentTracking(): void {
@@ -1111,22 +1068,6 @@
             return {
                 component: "checkin",
                 step: "submit",
-                successEvent: (response: Response) => response.ok ? null : "api_request_failed",
-                failureEvent: "api_request_failed"
-            };
-        }
-        if (url.includes("/api/longevitymaxxing/commitment-payment/status")) {
-            return {
-                component: "commitment",
-                step: "status",
-                successEvent: (response: Response) => response.ok ? null : "api_request_failed",
-                failureEvent: "api_request_failed"
-            };
-        }
-        if (url.includes("/api/longevitymaxxing/commitment-payment")) {
-            return {
-                component: "commitment",
-                step: "payment",
                 successEvent: (response: Response) => response.ok ? null : "api_request_failed",
                 failureEvent: "api_request_failed"
             };

@@ -51,14 +51,12 @@ Critical reminders:
 - Challenge signup stays open during the ongoing challenge; new signups join the same global leaderboard and may only check in from their local signup date onward.
 - Each participant's first eligible Challenge check-in is practice: it counts for checked-in days and streak, but not habit points, category leader badges, point tie-breaks, or missed-scored-day reminder stops.
 - Challenge daily reminders continue indefinitely and stop only after 3 consecutive missed scored days; practice and days before local signup do not count.
-- Challenge commitment payment blocks save the triggering check-in, lock the owed amount, and block the participant panel until payment or an eligible edit passes the original threshold.
 - Ranking logic exists in both backend and frontend. If one side changes, review and align the other.
 - Bioage calculator rank previews are clock-specific: pheno age shows the Pheno-only field rank, and bortz age shows the Bortz-only field rank.
 - Ultimate League Pro/Amateur ordering is domain behavior: Pro entries appear before Amateur entries.
 - Crowd Age requires at least 100 accepted guesses and ranks by `CrowdAge - chronologicalAge`, then `CrowdCount`, date of birth, and name.
 - Improvement leaderboards are separate from Ultimate League and rank `latest eligible age - worst eligible age` for the selected clock.
 - Biological-age improvement Events, Crowd Age placement Events, and Pheno/Bortz Improvement placement Events are separate behaviors.
-- Challenge commitment amounts are private; public rows may show only that a commitment is due.
 - Challenge uploads and Gravatar fallbacks are challenge-only profile pictures; linked Longevity athlete profile pictures remain the display priority.
 
 ## Static Assets

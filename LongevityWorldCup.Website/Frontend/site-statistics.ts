@@ -374,9 +374,6 @@
             ["challenge_identity_selected", "Identity selected"],
             ["challenge_athlete_search_started", "Athlete search started"],
             ["challenge_athlete_search_result_selected", "Athlete selected"],
-            ["challenge_pledge_touched", "Pledge touched"],
-            ["challenge_pledge_validation_failed", "Pledge validation failed"],
-            ["challenge_pledge_completed", "Pledge completed"],
             ["challenge_timezone_picker_opened", "Timezone opened"],
             ["challenge_timezone_selected", "Timezone selected"],
             ["challenge_signup_submitted", "Signup submitted"],
@@ -389,9 +386,7 @@
             ["challenge_practice_checkin_submitted", "Practice submitted"],
             ["challenge_scored_checkin_started", "Scored check-in started"],
             ["challenge_scored_checkin_submitted", "Scored check-in submitted"],
-            ["challenge_stop_email_clicked", "Stop emails clicked"],
-            ["challenge_commitment_payment_opened", "Commitment payment opened"],
-            ["challenge_commitment_resolved", "Commitment resolved"]
+            ["challenge_stop_email_clicked", "Stop emails clicked"]
         ]
     };
 
@@ -1641,8 +1636,7 @@
         if (state.tab === challengeDiagnosticsTab) {
             host.innerHTML = [
                 detailPanel("Challenge activation", challengeActivationTable(events)),
-                detailPanel("Check-in detail", groupedTable(events, ["challenge_practice_checkin_started", "challenge_practice_checkin_submitted", "challenge_scored_checkin_started", "challenge_scored_checkin_submitted", "challenge_scored_checkin_failed"])),
-                detailPanel("Commitment status", groupedTable(events, ["challenge_commitment_block_seen", "challenge_commitment_payment_opened", "challenge_commitment_payment_status_checked", "challenge_commitment_resolved"]))
+                detailPanel("Check-in detail", groupedTable(events, ["challenge_practice_checkin_started", "challenge_practice_checkin_submitted", "challenge_scored_checkin_started", "challenge_scored_checkin_submitted", "challenge_scored_checkin_failed"]))
             ].join("");
             return;
         }
@@ -2151,7 +2145,7 @@
         if (/missing_handoff|context_missing/.test(eventName)) return "Browser storage or handoff recovery is failing for some sessions.";
         if (/proof|upload|file_rejected/.test(eventName)) return "File type, file size, camera, or PDF processing may be blocking submission.";
         if (/rank_preview/.test(eventName)) return "Rank preview latency or API failure may be weakening result confidence.";
-        if (/payment|checkout|commitment/.test(eventName)) return "Payment handoff or commitment recovery may be interrupting continuation.";
+        if (/payment|checkout/.test(eventName)) return "Payment handoff or recovery may be interrupting continuation.";
         if (/challenge_.*signup|practice|checkin/.test(eventName)) return "Challenge activation may not make the next required action obvious.";
         if (/calculator_continue|biomarker_handoff/.test(eventName)) return "The result-to-application transition may not be durable enough.";
         return "This step is behaving worse than nearby steps or segments.";
@@ -2162,7 +2156,7 @@
         if (/missing_handoff|context_missing/.test(eventName)) return "Inspect affected timelines and add a visible recovery path for missing context.";
         if (/proof|upload|file_rejected/.test(eventName)) return "Compare failed uploads by device and file bucket, then improve upload guidance or fallback handling.";
         if (/rank_preview/.test(eventName)) return "Check API latency/failures and keep the result state useful when preview is unavailable.";
-        if (/payment|checkout|commitment/.test(eventName)) return "Verify handoff state, failure copy, and retry paths before changing payment logic.";
+        if (/payment|checkout/.test(eventName)) return "Verify handoff state, failure copy, and retry paths before changing payment logic.";
         if (/challenge_.*signup|practice|checkin/.test(eventName)) return "Inspect signup-to-practice sessions and sharpen the first check-in call to action.";
         if (/calculator_continue|biomarker_handoff/.test(eventName)) return "Inspect stopped calculator sessions and harden the continue/handoff state.";
         return "Open supporting sessions and compare the failing step against healthier cohorts.";
