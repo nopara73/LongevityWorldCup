@@ -1057,7 +1057,8 @@ public sealed class PlayAthleteFlowBrowserTests
         await ExpectActivePlayPanelAsync(page, "athleteSelectionPanel");
         await ExpectNoPlayPanelTransitionAsync(page);
         Assert.Equal("/select-athlete", new Uri(page.Url).AbsolutePath);
-        Assert.Equal("Athlete selection", await page.Locator("#athleteSelectionTitle").InnerTextAsync());
+        await Assertions.Expect(page.Locator("#athleteSelectionTitle"))
+            .ToHaveTextAsync("Athlete selection");
 
         Assert.Empty(errors);
     }
