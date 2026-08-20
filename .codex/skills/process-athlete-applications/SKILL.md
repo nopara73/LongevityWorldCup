@@ -18,6 +18,7 @@ description: Review and process Longevity World Cup athlete submission emails wh
 - When invoked without additional instructions, process all unprocessed athlete submissions by scanning unread Gmail submission candidates until none remain or human direction is required.
 - Keep every current athlete-submission message in scope explicitly unread so it remains visible for the user to review personally. Verify `UNREAD` when selecting the candidate, before each approval stop, after saving a draft, and after final sending/finalization. Never remove `UNREAD` or mark a submission read. If a current submission lacks `UNREAD` at any checkpoint, add `UNREAD` immediately and verify the restoration; this is the only allowed label mutation. Do not archive, trash, or otherwise change labels. Reading/searching messages and creating or sending approved replies is allowed. Do not change the unread state of related-history messages that are not current submissions.
 - Keep temporary downloads, OCR output, screenshots, notes, and the processing ledger under `.artifacts/` unless the ZIP must be placed in the athlete folder for the reviewer.
+- Treat a new applicant folder as temporary until the user approves it. Before every approval stop and whenever a new application is blocked or needs human judgment, move its untracked folder out of `LongevityWorldCup.Website/wwwroot/athletes/` to `.artifacts/pending-athlete-reviews/{folder_key}/`. Do not leave an untracked, final-looking athlete folder in the publish tree between turns. This rule does not apply to tracked folders for existing athletes.
 - Do not create or update `.artifacts/lwc-submission-processing-ledger.jsonl` for security-verification-only drafts. Use active drafts and pending sent verifications in `expectedThreadId` to avoid duplicates.
 - Never send email, commit, or push until the user explicitly approves the prepared summary and draft.
 - Never stage unrelated work. If the worktree is dirty, identify unrelated changes and leave them alone.
@@ -187,6 +188,8 @@ Save full application ZIPs and result/profile ZIPs into:
 LongevityWorldCup.Website\wwwroot\athletes\
 ```
 
+For a reprocessed new applicant, first check `.artifacts/pending-athlete-reviews/{folder_key}/`. If it exists and no tracked athlete folder exists for that key, move it back to `LongevityWorldCup.Website/wwwroot/athletes/{folder_key}/` for the active reviewer run. Never merge a pending folder over a tracked athlete folder or an unrelated working-tree folder.
+
 First search/read the parent Gmail message with connector tools and copy the Gmail message id plus the exact attachment filename from message metadata. Prefer `--filename` for ZIPs because Gmail attachment ids may be reissued between connector reads; use `--attachment-id` only when filenames are absent or ambiguous. Then run from the solution root:
 
 ```powershell
@@ -210,6 +213,8 @@ dotnet run --project .\LongevityWorldCup.ApplicationReviewer\LongevityWorldCup.A
 The reviewer scans `LongevityWorldCup.Website\wwwroot\athletes` for `*.zip`, extracts or merges the athlete folder, deletes the ZIP, starts the website on `https://localhost:7080` if needed, opens the athlete page in Chrome incognito, and opens the athlete folder in Explorer. If it fails because projects are not built, build the solution or relevant projects, then rerun the reviewer.
 
 After the reviewer runs, identify the changed athlete folder from the email folder key, ZIP filename, or `git status`.
+
+After proof review and local validation, but before presenting the human approval summary, check whether this is a new applicant whose entire athlete folder is untracked. Move that folder to `.artifacts/pending-athlete-reviews/{folder_key}/`, verify the original `wwwroot/athletes/{folder_key}/` path is absent, and re-run `git status --short`. Keep the pending files there while awaiting approval or corrected proof. Report the pending artifact path instead of presenting it as a published athlete folder.
 
 ## Review athlete.json
 
@@ -407,7 +412,7 @@ Stop after review and present a summary before any send/commit/push. Include:
 For an existing-athlete security-verification-only draft, keep the summary short: athlete name/profile, current submission message id, `expectedThreadId`, saved draft thread id, recipient, the pre-existing trusted evidence used to resolve that recipient, whether the current update claimed the same address, selected `From` address and why it was chosen, exact draft text or existing draft id, and `No ZIP downloaded, no files inspected or changed, no ledger written, and every current submission confirmed unread.` State whether any `UNREAD` label had to be restored. Do not include JSON highlights, proof checklist, files changed, or folder-open status for this fast path.
 
 - Recommended decision: approve, block, or needs human judgment.
-- Athlete folder path and public profile URL. Folder keys use underscores; profile URLs use hyphens.
+- Athlete folder or pending-review artifact path and public profile URL. Folder keys use underscores; profile URLs use hyphens. For a new applicant awaiting approval or corrected proof, the folder must be under `.artifacts/pending-athlete-reviews/`, not `wwwroot/athletes/`.
 - Gmail current submission message id, `expectedThreadId`, saved draft thread id, whether a draft reply was created, and the verified `From` address. State explicitly whether the two thread ids are identical.
 - Unread preservation: confirm that every current submission message has `UNREAD`, and identify any message whose `UNREAD` label was restored.
 - Related email history reviewed: search anchors used, additional threads found, alternate requester addresses, and relevant prior context.
@@ -419,10 +424,10 @@ For an existing-athlete security-verification-only draft, keep the summary short
 - Proof checklist: for each biomarker record, list proof files reviewed, date match, value match, same-test status, censoring status, and any missing evidence. For existing-athlete submissions stopped at the security gate, say proof/files were intentionally not downloaded or reviewed pending confirmation.
 - Exact next actions you will take if the user says to approve.
 
-If the athlete folder is not already open and this is not a security-verification-only draft, open it in Explorer before presenting the summary:
+If the athlete or pending-review folder is not already open and this is not a security-verification-only draft, open the actual current folder in Explorer before presenting the summary. New applicants awaiting approval should be opened from `.artifacts/pending-athlete-reviews/{folder_key}`.
 
 ```powershell
-explorer .\LongevityWorldCup.Website\wwwroot\athletes\{folder_key}
+explorer .\.artifacts\pending-athlete-reviews\{folder_key}
 ```
 
 ## Finalize After Explicit Approval
@@ -442,12 +447,13 @@ For a security-verification-only approval, do not stage, commit, push, download 
 
 ### Finalize Accepted Athlete Changes
 
-1. Recheck `git status --short`.
-2. Stage only the accepted athlete files and any intentional supporting changes.
-3. Commit with a short message such as `Add {Name} athlete` or `Update {Name} athlete results`.
-4. Push `origin master` only when on `master` and the user approved pushing. If not on `master`, ask before switching or pushing.
-5. Re-read the current submission anchor and set `expectedThreadId` from its Gmail metadata. Re-read the approved welcome/update draft and require its thread id to equal `expectedThreadId`. Recheck its `From`, recipient, subject, and body. If any check fails or the thread id is unavailable, stop without sending.
-6. Send the verified draft. Require the send result's thread id and the sent message metadata's thread id to both equal `expectedThreadId`. A `SENT` label, correct recipient, or matching subject is insufficient. If either id differs, report the threading incident immediately and do not claim successful finalization or retry without fresh user approval.
-7. Verify that every current submission message still has `UNREAD`. If one does not, add `UNREAD` immediately and verify the restoration. Never remove `UNREAD` or alter any other label; the user decides when to mark submission emails read.
-8. Append the finalized ledger entry with `expectedThreadId`, saved draft thread id, send-result thread id, and sent-message thread id so the thread invariant is auditable.
-9. Report the commit hash, pushed branch, profile URL, email-send status, all four verified thread ids, confirmation that every current submission remains unread, and whether any `UNREAD` label was restored.
+1. For an approved new applicant, move `.artifacts/pending-athlete-reviews/{folder_key}/` back to `LongevityWorldCup.Website/wwwroot/athletes/{folder_key}/`. Verify the destination was absent before the move and that the restored files are exactly the reviewed files.
+2. Recheck `git status --short`.
+3. Stage only the accepted athlete files and any intentional supporting changes.
+4. Commit with a short message such as `Add {Name} athlete` or `Update {Name} athlete results`.
+5. Push `origin master` only when on `master` and the user approved pushing. If not on `master`, ask before switching or pushing.
+6. Re-read the current submission anchor and set `expectedThreadId` from its Gmail metadata. Re-read the approved welcome/update draft and require its thread id to equal `expectedThreadId`. Recheck its `From`, recipient, subject, and body. If any check fails or the thread id is unavailable, stop without sending.
+7. Send the verified draft. Require the send result's thread id and the sent message metadata's thread id to both equal `expectedThreadId`. A `SENT` label, correct recipient, or matching subject is insufficient. If either id differs, report the threading incident immediately and do not claim successful finalization or retry without fresh user approval.
+8. Verify that every current submission message still has `UNREAD`. If one does not, add `UNREAD` immediately and verify the restoration. Never remove `UNREAD` or alter any other label; the user decides when to mark submission emails read.
+9. Append the finalized ledger entry with `expectedThreadId`, saved draft thread id, send-result thread id, and sent-message thread id so the thread invariant is auditable.
+10. Report the commit hash, pushed branch, profile URL, email-send status, all four verified thread ids, confirmation that every current submission remains unread, and whether any `UNREAD` label was restored.
