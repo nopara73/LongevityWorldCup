@@ -277,16 +277,19 @@ class AppServerClient {
 }
 
 async function ensureThreadLoaded(client, cwd, explicitThreadId) {
-  let threadId = explicitThreadId;
-
-  if (!threadId) {
-    const list = await client.call('thread/list', {
+  if (!explicitThreadId) {
+    const started = await client.call('thread/start', {
       cwd,
-      limit: 1,
-      useStateDbOnly: true,
+      ephemeral: true,
     });
-    threadId = list?.data?.[0]?.id;
+    const threadId = started?.thread?.id;
+    if (!threadId) {
+      throw new Error('Unable to start an ephemeral Codex helper thread.');
+    }
+    return threadId;
   }
+
+  const threadId = explicitThreadId;
 
   if (!threadId) {
     throw new Error('Unable to infer a Codex thread id. Pass --thread-id explicitly.');
