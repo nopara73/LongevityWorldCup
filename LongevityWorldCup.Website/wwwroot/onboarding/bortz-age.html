@@ -1377,6 +1377,7 @@
         const isFake = urlParams.get('fake') === '1';
         const bioageFlow = window.LwcBioageFlow;
         const isUpdate = bioageFlow.isUpdateMode(window.location.search);
+        const isUpgrade = isUpdate && urlParams.get('upgrade') === '1';
 
         function getBioageBackDestination() {
             return bioageFlow.getBackDestination(isUpdate);
@@ -1412,7 +1413,7 @@
         const BORTZ_LAB_GEO_CACHE_KEY = 'bortzLabGeoEligibility';
         const REQUEST_COUNTRY_CODE = '{{REQUEST_COUNTRY_CODE}}';
 
-        if (isUpdate) {
+        if (isUpdate && (!isUpgrade || !hasUsablePendingPaymentOffer('pro', ['go-pro-upgrade']))) {
             clearPendingPaymentOffer();
         }
 
@@ -1424,39 +1425,48 @@
         }
 
         function preserveAppliedDiscountMetadata(offer, result) {
+            const adjustedOffer = Object.assign({}, offer, {
+                perfectGuessDiscount: Boolean(
+                    result
+                    && Array.isArray(result.components)
+                    && result.components.some(component => component && component.kind === 'perfectGuess')
+                )
+            });
             const hasDiscountCode = result
                 && Array.isArray(result.components)
                 && result.components.some(component => component && component.kind === 'discountCode');
-            if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
+            if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return adjustedOffer;
 
             try {
-                const adjustedOffer = window.addActiveDiscountMetadataToPaymentOffer(offer);
-                return isUsablePaymentOffer(adjustedOffer) ? adjustedOffer : null;
+                const offerWithDiscount = window.addActiveDiscountMetadataToPaymentOffer(adjustedOffer);
+                return isUsablePaymentOffer(offerWithDiscount) ? offerWithDiscount : null;
             } catch (_) {
                 return null;
             }
         }
 
-        function buildDirectBortzPaymentOffer() {
+        function buildBortzPaymentOffer(source, discountAthlete, isOnLeaderboard) {
             const result = window.proDiscounts && typeof window.proDiscounts.buildDiscountBreakdown === 'function'
-                ? window.proDiscounts.buildDiscountBreakdown(null, { isOnLeaderboard: false })
+                ? window.proDiscounts.buildDiscountBreakdown(discountAthlete, { isOnLeaderboard })
                 : null;
             const amountUsd = result && Number.isFinite(result.finalPriceUsd) ? result.finalPriceUsd : 100;
             return preserveAppliedDiscountMetadata({
-                source: 'direct-bortz-age',
+                source,
                 offerType: 'pro',
                 currency: 'USD',
                 amountUsd
             }, result);
         }
 
-        function hasUsablePendingPaymentOffer(expectedOfferType) {
+        function hasUsablePendingPaymentOffer(expectedOfferType, expectedSources) {
             const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
             if (!rawOffer) return false;
 
             try {
                 const parsedOffer = JSON.parse(rawOffer);
-                if (isUsablePaymentOffer(parsedOffer) && parsedOffer.offerType === expectedOfferType) return true;
+                if (isUsablePaymentOffer(parsedOffer)
+                    && parsedOffer.offerType === expectedOfferType
+                    && expectedSources.includes(parsedOffer.source)) return true;
             } catch (_) {
             }
 
@@ -1494,8 +1504,14 @@
 
         function storeBortzResultForNextStep(biomarkerData, chronoBortzDifference, chronoPhenoDifference) {
             let serializedPaymentOffer = null;
-            if (!isUpdate && !hasUsablePendingPaymentOffer('pro')) {
-                const paymentOffer = buildDirectBortzPaymentOffer();
+            const paymentOfferRequired = !isUpdate || isUpgrade;
+            const expectedOfferSources = isUpgrade
+                ? ['go-pro-upgrade']
+                : ['join-game', 'direct-bortz-age'];
+            if (paymentOfferRequired && !hasUsablePendingPaymentOffer('pro', expectedOfferSources)) {
+                const paymentOffer = isUpgrade
+                    ? buildBortzPaymentOffer('go-pro-upgrade', athlete, true)
+                    : buildBortzPaymentOffer('direct-bortz-age', null, false);
                 try {
                     const adjustedPaymentOffer = window.applyPaymentAdjustmentsToPaymentOffer
                         ? window.applyPaymentAdjustmentsToPaymentOffer(paymentOffer)
@@ -1531,7 +1547,7 @@
 
             if (!stored) {
                 clearStoredBiomarkerHandoff();
-                if (!isUpdate) clearPendingPaymentOffer();
+                if (!isUpdate || isUpgrade) clearPendingPaymentOffer();
                 customAlert('Browser storage is unavailable. Enable storage and try again.')
                     .then(() => document.getElementById('continueButton')?.focus());
                 return false;

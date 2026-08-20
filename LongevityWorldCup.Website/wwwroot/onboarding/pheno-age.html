@@ -1244,13 +1244,15 @@
             window.captureDiscountFromUrl();
         }
 
-        function hasUsablePendingPaymentOffer(expectedOfferType) {
+        function hasUsablePendingPaymentOffer(expectedOfferType, expectedSources) {
             const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);
             if (!rawOffer) return false;
 
             try {
                 const parsedOffer = JSON.parse(rawOffer);
-                if (isUsablePaymentOffer(parsedOffer) && parsedOffer.offerType === expectedOfferType) return true;
+                if (isUsablePaymentOffer(parsedOffer)
+                    && parsedOffer.offerType === expectedOfferType
+                    && expectedSources.includes(parsedOffer.source)) return true;
             } catch (_) {
             }
 
@@ -1288,7 +1290,7 @@
 
         function storePhenoResultForNextStep(biomarkerData, chronoPhenoDifference) {
             let serializedPaymentOffer = null;
-            if (!isUpdate && !hasUsablePendingPaymentOffer('amateur')) {
+            if (!isUpdate && !hasUsablePendingPaymentOffer('amateur', ['join-game', 'direct-pheno-age'])) {
                 const paymentOffer = {
                     source: 'direct-pheno-age',
                     offerType: 'amateur',

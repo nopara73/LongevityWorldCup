@@ -49,6 +49,7 @@ namespace LongevityWorldCup.Website.Business
         public decimal? AmountUsd { get; set; }
         public string? DiscountCode { get; set; }
         public decimal? DiscountPercent { get; set; }
+        public bool PerfectGuessDiscount { get; set; }
     }
 
     public class DateOfBirthData

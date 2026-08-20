@@ -28,7 +28,8 @@ namespace LongevityWorldCup.Website.Controllers
         ApplicationSubmissionRetryStore applicationSubmissionRetries,
         DiscountSignupReportService? discountSignupReports = null,
         IBtcpayInvoiceClient? btcpayInvoices = null,
-        SiteStatisticsService? statistics = null) : ControllerBase
+        SiteStatisticsService? statistics = null,
+        IAthleteSnapshotProvider? athleteSnapshots = null) : ControllerBase
     {
         private readonly IWebHostEnvironment _environment = environment ?? throw new ArgumentNullException(nameof(environment));
         private readonly ILogger<ApplicationController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -36,6 +37,7 @@ namespace LongevityWorldCup.Website.Controllers
         private readonly DiscountSignupReportService? _discountSignupReports = discountSignupReports;
         private readonly IBtcpayInvoiceClient? _btcpayInvoices = btcpayInvoices;
         private readonly SiteStatisticsService? _statistics = statistics;
+        private readonly IAthleteSnapshotProvider? _athleteSnapshots = athleteSnapshots;
         private static readonly SemaphoreSlim PaidInvoiceNotificationFileLock = new(1, 1);
         private const string DefaultCommunitySlackInviteUrl = "https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ";
         private const string CommunitySlackInvitationText = "Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!";
@@ -392,6 +394,13 @@ namespace LongevityWorldCup.Website.Controllers
                 return await BadRequestWithStatsAsync("incomplete_biomarker_results", biomarkerResultError).ConfigureAwait(false);
             }
 
+            if (ApplicationPaymentPolicy.HasBortzBiomarkersWithoutBortzResult(applicantData))
+            {
+                return await BadRequestWithStatsAsync(
+                    "missing_bortz_result",
+                    "Submitted Bortz biomarkers require a bortz age result.").ConfigureAwait(false);
+            }
+
             var requestFingerprint = CreateApplicationSubmissionFingerprint(applicantData);
             await using var submissionLease = await _applicationSubmissionRetries
                 .AcquireAsync(submissionId, requestFingerprint, ct)
@@ -424,6 +433,42 @@ namespace LongevityWorldCup.Website.Controllers
 
             try
             {
+                var folderKey = SanitizeFileName(applicantData.Name ?? "noname");
+                var existingAthleteFields = isResultSubmissionOnly || isEditSubmissionOnly
+                    ? TryReadExistingAthleteFields(_environment, folderKey, applicantData.Name)
+                    : new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+                if ((isResultSubmissionOnly || isEditSubmissionOnly) && string.IsNullOrWhiteSpace(accountEmail))
+                {
+                    accountEmail = ResolveExistingAthleteContactEmail(existingAthleteFields);
+                }
+
+                applicantData.FreePass = NormalizeFreePassValue(applicantData.FreePass);
+                applicantData.Discount = NormalizeDiscountValue(applicantData.Discount)
+                    ?? NormalizeDiscountValue(applicantData.PaymentOffer?.DiscountCode);
+
+                var submittedPaymentOffer = applicantData.PaymentOffer;
+                var paymentDecision = ApplicationPaymentPolicy.Evaluate(
+                    applicantData,
+                    isResultSubmissionOnly,
+                    isEditSubmissionOnly,
+                    existingAthleteFields,
+                    folderKey,
+                    _athleteSnapshots?.GetAthletesSnapshot());
+                if (!paymentDecision.Success)
+                {
+                    return await BadRequestWithStatsAsync(
+                        paymentDecision.ErrorCode!,
+                        paymentDecision.ErrorMessage!).ConfigureAwait(false);
+                }
+
+                LogAuthoritativePaymentDecision(
+                    submissionId,
+                    paymentDecision,
+                    submittedPaymentOffer);
+                applicantData.PaymentOffer = paymentDecision.PaymentOffer;
+                paymentRequiredForStats = paymentDecision.PaymentRequired;
+                var hasFreePass = applicantData.FreePass is not null;
+
                 // Load SMTP configuration
                 Config config;
                 try
@@ -447,18 +492,6 @@ namespace LongevityWorldCup.Website.Controllers
                     string.Join(",", proofLengths),
                     profilePicLength);
 
-                applicantData.FreePass = NormalizeFreePassValue(applicantData.FreePass);
-                applicantData.Discount = NormalizeDiscountValue(applicantData.Discount)
-                    ?? NormalizeDiscountValue(applicantData.PaymentOffer?.DiscountCode);
-                if (applicantData.PaymentOffer is not null)
-                {
-                    applicantData.PaymentOffer.DiscountCode = applicantData.Discount;
-                    applicantData.PaymentOffer.DiscountPercent = applicantData.Discount is null
-                        ? null
-                        : MightyKlausDiscountPercent;
-                }
-                var hasFreePass = applicantData.FreePass is not null;
-
                 // Prepare the email body (excluding the images)
                 // Moved this block after processing images to include paths
 
@@ -476,15 +509,6 @@ namespace LongevityWorldCup.Website.Controllers
                 var displayNameOrName = trimmedDisplayName ?? applicantData.Name?.Trim();
 
                 // 1) Build a temp folder with profile + proofs + athlete.json
-                var folderKey = SanitizeFileName(applicantData.Name ?? "noname");
-                var existingAthleteFields = isResultSubmissionOnly || isEditSubmissionOnly
-                    ? TryReadExistingAthleteFields(_environment, folderKey, applicantData.Name)
-                    : new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-                if ((isResultSubmissionOnly || isEditSubmissionOnly) && string.IsNullOrWhiteSpace(accountEmail))
-                {
-                    accountEmail = ResolveExistingAthleteContactEmail(existingAthleteFields);
-                }
-
                 var includePhenoDifference = !string.IsNullOrWhiteSpace(chronoPhenoDifference);
                 var includeBortzDifference = !string.IsNullOrWhiteSpace(chronoBortzDifference);
                 var canonicalDifferences = SubmittedAgeDifferenceCalculator.Calculate(
@@ -714,8 +738,8 @@ namespace LongevityWorldCup.Website.Controllers
                     _logger.LogWarning(ex, "Failed to subscribe applicant email to the newsletter.");
                 }
 
-                var requestedAmountUsd = hasFreePass ? 0m : applicantData.PaymentOffer?.AmountUsd ?? 0m;
-                var paymentRequired = requestedAmountUsd > 0m;
+                var requestedAmountUsd = paymentDecision.PaymentOffer?.AmountUsd ?? 0m;
+                var paymentRequired = paymentDecision.PaymentRequired;
                 paymentRequiredForStats = paymentRequired;
                 string? archivedSubmissionPath = null;
                 var auditEmailDelivered = false;
@@ -1675,6 +1699,7 @@ namespace LongevityWorldCup.Website.Controllers
                     ["offerType"] = offerType,
                     ["discountCode"] = applicantData.Discount,
                     ["discountPercent"] = applicantData.PaymentOffer?.DiscountPercent,
+                    ["perfectGuessDiscount"] = applicantData.PaymentOffer?.PerfectGuessDiscount is true,
                     ["submissionType"] = isEditSubmissionOnly ? "edit" : isResultSubmissionOnly ? "result" : "application",
                     ["athleteName"] = applicantData.Name?.Trim(),
                     ["buyerEmail"] = accountEmail
@@ -1980,8 +2005,11 @@ namespace LongevityWorldCup.Website.Controllers
                 .AppendLine($"Submitted at: {submittedAtUtc:yyyy-MM-dd HH:mm:ss 'UTC'}")
                 .AppendLine($"Attachment filename: {attachmentFilename}")
                 .AppendLine($"Payment due: {paymentDueText}")
+                .AppendLine($"Payment source: {FormatAuditValue(applicantData.PaymentOffer?.Source)}")
+                .AppendLine($"Payment offer type: {FormatAuditValue(applicantData.PaymentOffer?.OfferType)}")
                 .AppendLine($"Free pass: {FormatFreePassAuditValue(applicantData.FreePass)}")
                 .AppendLine($"Discount: {FormatDiscountAuditValue(applicantData.Discount)}")
+                .AppendLine($"Perfect guess discount: {(applicantData.PaymentOffer?.PerfectGuessDiscount is true ? "yes" : "no")}")
                 .AppendLine()
                 .AppendLine("Changed fields:")
                 .AppendLine(changedFields)
@@ -2502,6 +2530,45 @@ namespace LongevityWorldCup.Website.Controllers
             return Convert.ToHexString(SHA256.HashData(json));
         }
 
+        private void LogAuthoritativePaymentDecision(
+            string submissionId,
+            ApplicationPaymentDecision paymentDecision,
+            PaymentOfferData? submittedPaymentOffer)
+        {
+            var authoritativeOffer = paymentDecision.PaymentOffer;
+            if (authoritativeOffer is null)
+            {
+                if (submittedPaymentOffer is not null)
+                {
+                    _logger.LogInformation(
+                        "Ignored a client payment offer for a free application flow. SubmissionId={SubmissionId} PricingKind={PricingKind} SubmittedSource={SubmittedSource} SubmittedAmountUsd={SubmittedAmountUsd}",
+                        submissionId,
+                        paymentDecision.PricingKind,
+                        submittedPaymentOffer.Source,
+                        submittedPaymentOffer.AmountUsd);
+                }
+
+                return;
+            }
+
+            var submittedOfferMatches = submittedPaymentOffer is not null
+                && string.Equals(submittedPaymentOffer.Source?.Trim(), authoritativeOffer.Source, StringComparison.Ordinal)
+                && string.Equals(submittedPaymentOffer.OfferType?.Trim(), authoritativeOffer.OfferType, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(submittedPaymentOffer.Currency?.Trim(), authoritativeOffer.Currency, StringComparison.OrdinalIgnoreCase)
+                && submittedPaymentOffer.AmountUsd == authoritativeOffer.AmountUsd;
+            if (submittedOfferMatches)
+                return;
+
+            _logger.LogWarning(
+                "Replaced a missing or mismatched client payment offer with authoritative pricing. SubmissionId={SubmissionId} PricingKind={PricingKind} SubmittedSource={SubmittedSource} SubmittedAmountUsd={SubmittedAmountUsd} AuthoritativeSource={AuthoritativeSource} AuthoritativeAmountUsd={AuthoritativeAmountUsd}",
+                submissionId,
+                paymentDecision.PricingKind,
+                submittedPaymentOffer?.Source,
+                submittedPaymentOffer?.AmountUsd,
+                authoritativeOffer.Source,
+                authoritativeOffer.AmountUsd);
+        }
+
         private static string GetSubmissionKind(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
         {
             if (isResultSubmissionOnly) return "result-upload";
@@ -2771,7 +2838,7 @@ namespace LongevityWorldCup.Website.Controllers
 
             if (!string.IsNullOrWhiteSpace(chronoBortzDifference))
             {
-                if (!biomarkers.All(HasCompleteBortzBiomarkers))
+                if (!biomarkers.All(BiomarkerPanelRequirements.HasCompleteBortzPanel))
                 {
                     errorMessage = "Submitted bortz age results require all Bortz biomarkers.";
                     return false;
@@ -2781,53 +2848,13 @@ namespace LongevityWorldCup.Website.Controllers
             }
 
             if (!string.IsNullOrWhiteSpace(chronoPhenoDifference)
-                && !biomarkers.All(HasCompletePhenoBiomarkers))
+                && !biomarkers.All(BiomarkerPanelRequirements.HasCompletePhenoPanel))
             {
                 errorMessage = "Submitted pheno age results require all pheno biomarkers.";
                 return false;
             }
 
             return true;
-        }
-
-        private static bool HasCompletePhenoBiomarkers(BiomarkerData? biomarker)
-        {
-            return biomarker is not null
-                && HasFiniteValue(biomarker.AlbGL)
-                && HasFiniteValue(biomarker.CreatUmolL)
-                && HasFiniteValue(biomarker.GluMmolL)
-                && HasFiniteValue(biomarker.CrpMgL)
-                && HasFiniteValue(biomarker.Wbc1000cellsuL)
-                && HasFiniteValue(biomarker.LymPc)
-                && HasFiniteValue(biomarker.McvFL)
-                && HasFiniteValue(biomarker.RdwPc)
-                && HasFiniteValue(biomarker.AlpUL);
-        }
-
-        private static bool HasCompleteBortzBiomarkers(BiomarkerData? biomarker)
-        {
-            if (!HasCompletePhenoBiomarkers(biomarker))
-                return false;
-
-            var row = biomarker!;
-            return HasFiniteValue(row.UreaMmolL)
-                && HasFiniteValue(row.CholesterolMmolL)
-                && HasFiniteValue(row.CystatinCMgL)
-                && HasFiniteValue(row.Hba1cMmolMol)
-                && HasFiniteValue(row.GgtUL)
-                && HasFiniteValue(row.Rbc10e12L)
-                && HasFiniteValue(row.MonocytePc)
-                && HasFiniteValue(row.NeutrophilPc)
-                && HasFiniteValue(row.AltUL)
-                && HasFiniteValue(row.ShbgNmolL)
-                && HasFiniteValue(row.VitaminDNmolL)
-                && HasFiniteValue(row.MchPg)
-                && HasFiniteValue(row.ApoA1GL);
-        }
-
-        private static bool HasFiniteValue(double? value)
-        {
-            return value.HasValue && double.IsFinite(value.Value);
         }
 
         private sealed record ImageOptimizationResult(bool Success, byte[]? Bytes, string? ContentType, string? Extension, string ErrorMessage)

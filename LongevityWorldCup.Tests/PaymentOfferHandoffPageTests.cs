@@ -55,11 +55,12 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("function startProApplication(retryButton: HTMLButtonElement): void", playMenu);
         Assert.Contains("if (!flow.setPendingPaymentOffer(paymentOffer, retryButton)) return;", playMenu);
         Assert.Contains("function preserveAppliedDiscountMetadata(", flow);
-        Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", flow);
-        Assert.Contains("const adjustedOffer = window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
-        Assert.Contains("return isUsablePaymentOffer(adjustedOffer) ? adjustedOffer : null;", flow);
+        Assert.Contains("perfectGuessDiscount: Boolean(", flow);
+        Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return adjustedOffer;", flow);
+        Assert.Contains("const offerWithDiscount = window.addActiveDiscountMetadataToPaymentOffer(adjustedOffer);", flow);
+        Assert.Contains("return isUsablePaymentOffer(offerWithDiscount) ? offerWithDiscount : null;", flow);
         Assert.Contains("return null;", flow);
-        Assert.DoesNotContain("return window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
+        Assert.DoesNotContain("return window.addActiveDiscountMetadataToPaymentOffer(adjustedOffer);", flow);
         Assert.DoesNotContain("setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))", flow);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", flow);
     }
@@ -138,13 +139,15 @@ public sealed class PaymentOfferHandoffPageTests
         Assert.Contains("if (setSessionItem(PENDING_PAYMENT_OFFER_KEY, serializedOffer)) return true;", flow);
         Assert.Contains("if (typeof beforeNavigate === \"function\" && beforeNavigate(button) === false) return;", flow);
         Assert.Contains("function preserveAppliedDiscountMetadata(", flow);
-        Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", flow);
-        Assert.Contains("const adjustedOffer = window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
-        Assert.Contains("return isUsablePaymentOffer(adjustedOffer) ? adjustedOffer : null;", flow);
+        Assert.Contains("perfectGuessDiscount: Boolean(", flow);
+        Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return adjustedOffer;", flow);
+        Assert.Contains("const offerWithDiscount = window.addActiveDiscountMetadataToPaymentOffer(adjustedOffer);", flow);
+        Assert.Contains("return isUsablePaymentOffer(offerWithDiscount) ? offerWithDiscount : null;", flow);
         Assert.Contains("return null;", flow);
-        Assert.DoesNotContain("return window.addActiveDiscountMetadataToPaymentOffer(offer);", flow);
+        Assert.DoesNotContain("return window.addActiveDiscountMetadataToPaymentOffer(adjustedOffer);", flow);
         Assert.Contains("const paymentOffer = preserveAppliedDiscountMetadata({", flow);
         Assert.Contains("return setPendingPaymentOffer(paymentOffer, button);", flow);
+        Assert.Contains("\"/bortz-age?update=1&upgrade=1\"", flow);
         Assert.DoesNotContain("paymentOffer = window.addActiveDiscountMetadataToPaymentOffer(paymentOffer);", flow);
         Assert.DoesNotContain("setSessionItem(PENDING_PAYMENT_OFFER_KEY, JSON.stringify(effectiveOffer))", flow);
         Assert.DoesNotContain("sessionStorage.setItem(PENDING_PAYMENT_OFFER_KEY", flow);

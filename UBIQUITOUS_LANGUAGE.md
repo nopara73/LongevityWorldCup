@@ -22,6 +22,11 @@
 - **Resting** means a Challenge participant is currently inactive for leaderboard grouping; saved check-ins and notes remain visible, and eligible catch-up check-ins can clear missed-day resting.
 - **Habit garden** is the participant's persistent Challenge growth visualization, separate from leaderboard scoring. Each category replays all saved answers in Challenge-day order, including practice, from a seedling vitality of `0`; Somewhat is neutral. Each Yes closes `2.5%` of the remaining distance to full growth, so early growth is visibly gradual and gains diminish. Each No retains `65%` of current vitality, so a mature plant loses much more absolute growth than a seedling and consecutive losses diminish. Later Yes answers can regrow the plant. A pending answer previews its projected vitality without replacing the accumulated history.
 
+## Entry and upgrade payments
+
+- A result submission that gives an existing Amateur their first eligible bortz age result is a Pro upgrade, not a free result update.
+- Ordinary result updates and profile updates remain free. The server determines the submission class from the existing athlete and submitted clock data, then calculates the authoritative entry or upgrade price; browser payment state is only a handoff hint.
+
 ## Naming
 
 Use lowercase pheno age, bortz age, crowd age, age reduction, and effective age reduction in prose. Keep `PhenoAge`, `BortzAge`, and `CrowdAge` for code, serialized fields, external names, or quoted legacy data. Do not collapse clock, calculator, and result.

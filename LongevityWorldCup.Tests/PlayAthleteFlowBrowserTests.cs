@@ -150,6 +150,83 @@ public sealed class PlayAthleteFlowBrowserTests
     }
 
     [Fact]
+    public async Task AmateurGoProAction_PreservesUpgradeOfferOnlyForExplicitUpgradeFlow()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US"
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        await context.AddInitScriptAsync(
+            """
+            const athlete = {
+                Name: 'Upgrade Browser Athlete',
+                DisplayName: 'Upgrade Browser Athlete',
+                DateOfBirth: { Year: 1980, Month: 5, Day: 20 },
+                PersonalLink: 'https://example.test/upgrade-browser-athlete',
+                Biomarkers: []
+            };
+            sessionStorage.setItem('selectedAthlete', JSON.stringify(athlete));
+            localStorage.setItem('selectedAthleteName', athlete.Name);
+            localStorage.setItem('hasApplication', 'true');
+            """);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        await page.GotoAsync("/dashboard", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var goProButton = page.GetByRole(AriaRole.Button).Filter(new LocatorFilterOptions { HasTextString = "Go pro" });
+        await goProButton.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+        await goProButton.ClickAsync();
+        await page.WaitForURLAsync("**/bortz-age?update=1&upgrade=1");
+        await page.WaitForFunctionAsync("() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
+
+        var storedOffer = await page.EvaluateAsync<string?>("() => sessionStorage.getItem('pendingPaymentOffer')");
+        Assert.NotNull(storedOffer);
+        using (var paymentOffer = JsonDocument.Parse(storedOffer))
+        {
+            Assert.Equal("go-pro-upgrade", paymentOffer.RootElement.GetProperty("source").GetString());
+            Assert.Equal("pro", paymentOffer.RootElement.GetProperty("offerType").GetString());
+            Assert.Equal("USD", paymentOffer.RootElement.GetProperty("currency").GetString());
+            Assert.Equal(80, paymentOffer.RootElement.GetProperty("amountUsd").GetDouble());
+        }
+
+        await page.GotoAsync("/bortz-age?update=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
+
+        Assert.Null(await page.EvaluateAsync<string?>("() => sessionStorage.getItem('pendingPaymentOffer')"));
+
+        await page.GotoAsync("/bortz-age?update=1&upgrade=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
+        Assert.True(await page.EvaluateAsync<bool>(
+            "() => storeBortzResultForNextStep({ Biomarkers: [] }, -4.2, -3.1)"));
+
+        var rebuiltOffer = await page.EvaluateAsync<string?>("() => sessionStorage.getItem('pendingPaymentOffer')");
+        Assert.NotNull(rebuiltOffer);
+        using (var paymentOffer = JsonDocument.Parse(rebuiltOffer))
+        {
+            Assert.Equal("go-pro-upgrade", paymentOffer.RootElement.GetProperty("source").GetString());
+            Assert.Equal(80, paymentOffer.RootElement.GetProperty("amountUsd").GetDouble());
+        }
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task NewAthleteNavigation_KeepsJoinUrlPanelAndBackActionsInSync()
     {
         await using var app = await BrowserTestApp.StartAsync();

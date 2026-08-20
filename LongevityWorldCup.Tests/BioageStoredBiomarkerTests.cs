@@ -559,12 +559,12 @@ public sealed class BioageStoredBiomarkerTests
     public void BioagePages_ReplaceMalformedPendingPaymentOfferBeforeHandoff(string fileName)
     {
         var html = File.ReadAllText(GetPagePath(fileName));
-        var expectedOfferType = fileName == "pheno-age.html" ? "amateur" : "pro";
 
-        Assert.Contains("function hasUsablePendingPaymentOffer(expectedOfferType)", html);
+        Assert.Contains("function hasUsablePendingPaymentOffer(expectedOfferType, expectedSources)", html);
         Assert.Contains("const rawOffer = getSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.Contains("const parsedOffer = JSON.parse(rawOffer);", html);
-        Assert.Contains("if (isUsablePaymentOffer(parsedOffer) && parsedOffer.offerType === expectedOfferType) return true;", html);
+        Assert.Contains("&& parsedOffer.offerType === expectedOfferType", html);
+        Assert.Contains("&& expectedSources.includes(parsedOffer.source)) return true;", html);
         Assert.Contains("function isUsablePaymentOffer(paymentOffer)", html);
         Assert.Contains("typeof paymentOffer.source === 'string'", html);
         Assert.Contains("typeof paymentOffer.offerType === 'string'", html);
@@ -575,8 +575,18 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("function clearPendingPaymentOffer()", html);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", html);
         Assert.Contains("clearPendingPaymentOffer();", html);
-        Assert.Contains("if (isUpdate) {\n            clearPendingPaymentOffer();\n        }", html);
-        Assert.Contains($"if (!isUpdate && !hasUsablePendingPaymentOffer('{expectedOfferType}'))", html);
+        if (fileName == "pheno-age.html")
+        {
+            Assert.Contains("if (isUpdate) {\n            clearPendingPaymentOffer();\n        }", html);
+            Assert.Contains("if (!isUpdate && !hasUsablePendingPaymentOffer('amateur', ['join-game', 'direct-pheno-age']))", html);
+        }
+        else
+        {
+            Assert.Contains("const isUpgrade = isUpdate && urlParams.get('upgrade') === '1';", html);
+            Assert.Contains("if (isUpdate && (!isUpgrade || !hasUsablePendingPaymentOffer('pro', ['go-pro-upgrade'])))", html);
+            Assert.Contains("const paymentOfferRequired = !isUpdate || isUpgrade;", html);
+            Assert.Contains("? ['go-pro-upgrade']\n                : ['join-game', 'direct-bortz-age'];", html);
+        }
         Assert.DoesNotContain("if (!isUpdate && !sessionStorage.getItem(PENDING_PAYMENT_OFFER_KEY))", html);
     }
 
@@ -597,9 +607,10 @@ public sealed class BioageStoredBiomarkerTests
         Assert.Contains("paymentOffer.amountUsd >= 0", html);
         Assert.Contains("const serializedOffer = JSON.stringify(offer);", html);
         Assert.Contains("function preserveAppliedDiscountMetadata(offer, result)", html);
-        Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;", html);
-        Assert.Contains("const adjustedOffer = window.addActiveDiscountMetadataToPaymentOffer(offer);", html);
-        Assert.Contains("return isUsablePaymentOffer(adjustedOffer) ? adjustedOffer : null;", html);
+        Assert.Contains("perfectGuessDiscount: Boolean(", html);
+        Assert.Contains("if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return adjustedOffer;", html);
+        Assert.Contains("const offerWithDiscount = window.addActiveDiscountMetadataToPaymentOffer(adjustedOffer);", html);
+        Assert.Contains("return isUsablePaymentOffer(offerWithDiscount) ? offerWithDiscount : null;", html);
         Assert.Contains("return null;", html);
         Assert.Contains("let serializedPaymentOffer = null;", html);
         Assert.Contains("try {", html);
@@ -629,7 +640,7 @@ public sealed class BioageStoredBiomarkerTests
 
         var failureBody = GetStoreFailureBody(html, "function storeBortzResultForNextStep");
         Assert.Contains("clearStoredBiomarkerHandoff();", failureBody);
-        Assert.Contains("if (!isUpdate) clearPendingPaymentOffer();", failureBody);
+        Assert.Contains("if (!isUpdate || isUpgrade) clearPendingPaymentOffer();", failureBody);
         Assert.Contains("customAlert('Browser storage is unavailable. Enable storage and try again.')\n                    .then(() => document.getElementById('continueButton')?.focus());", failureBody);
     }
 
