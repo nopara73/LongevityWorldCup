@@ -833,14 +833,22 @@ function isUsablePaymentOffer(paymentOffer: unknown): paymentOffer is PendingPay
 }
 
 function preserveAppliedDiscountMetadata(offer: PendingPaymentOffer, result: DiscountBreakdown | null): PendingPaymentOffer | null {
+    const adjustedOffer: PendingPaymentOffer = {
+        ...offer,
+        perfectGuessDiscount: Boolean(
+            result
+            && Array.isArray(result.components)
+            && result.components.some(component => component && component.kind === "perfectGuess")
+        )
+    };
     const hasDiscountCode = result
         && Array.isArray(result.components)
         && result.components.some(component => component && component.kind === "discountCode");
-    if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return offer;
+    if (!hasDiscountCode || !window.addActiveDiscountMetadataToPaymentOffer) return adjustedOffer;
 
     try {
-        const adjustedOffer = window.addActiveDiscountMetadataToPaymentOffer(offer);
-        return isUsablePaymentOffer(adjustedOffer) ? adjustedOffer : null;
+        const offerWithDiscount = window.addActiveDiscountMetadataToPaymentOffer(adjustedOffer);
+        return isUsablePaymentOffer(offerWithDiscount) ? offerWithDiscount : null;
     } catch (_) {
         return null;
     }
@@ -1023,7 +1031,7 @@ function renderDashboardActions(
                 ? `<span class="dashboard-action-label flow-action__label">Go pro for&nbsp;${goProPriceHtml}</span><i class="fas fa-bolt" aria-hidden="true"></i>`
                 : "<span class=\"dashboard-action-label flow-action__label\">Go pro</span><i class=\"fas fa-bolt\" aria-hidden=\"true\"></i>",
             "option-button green flow-action",
-            "/bortz-age?update=1",
+            "/bortz-age?update=1&upgrade=1",
             button => {
                 const amountUsd =
                     goProDiscountResult && Number.isFinite(goProDiscountResult.finalPriceUsd)

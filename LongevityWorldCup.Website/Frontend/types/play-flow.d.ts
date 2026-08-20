@@ -14,6 +14,9 @@ interface PendingPaymentOffer {
     offerType: string;
     currency: string;
     amountUsd: number;
+    discountCode?: string;
+    discountPercent?: number;
+    perfectGuessDiscount?: boolean;
 }
 
 interface AthletePictureTargets {

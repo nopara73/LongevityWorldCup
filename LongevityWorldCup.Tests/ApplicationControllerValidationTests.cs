@@ -358,6 +358,40 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task SubmissionWithBortzOnlyBiomarkersButNoBortzResultReturnsBadRequest()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.Application(new ApplicantData
+        {
+            Name = "Applicant Ada",
+            ChronoPhenoDifference = "-2.0",
+            Biomarkers =
+            [
+                new BiomarkerData
+                {
+                    Date = "2026-02-02",
+                    AlbGL = 45,
+                    CreatUmolL = 80,
+                    GluMmolL = 5,
+                    CrpMgL = 0.5,
+                    Wbc1000cellsuL = 5,
+                    LymPc = 35,
+                    McvFL = 90,
+                    RdwPc = 12,
+                    AlpUL = 70,
+                    Hba1cMmolMol = 35
+                }
+            ],
+            ProofPics = ["data:image/png;base64,AA=="]
+        }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Submitted Bortz biomarkers require a bortz age result.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task ResultSubmissionMissingProofReturnsBadRequestBeforeProcessing()
     {
         using var factory = new TestWebApplicationFactory();
@@ -484,7 +518,7 @@ public sealed class ApplicationControllerValidationTests
 
         var result = await controller.Application(new ApplicantData
         {
-            Name = "Applicant Ada",
+            Name = "nopara73",
             Biomarkers = [new BiomarkerData { Date = "2026-02-02", AlbGL = 45 }],
             ProofPics = ["data:image/png;base64,not-base64"]
         }, CancellationToken.None);
@@ -1128,7 +1162,8 @@ public sealed class ApplicationControllerValidationTests
             factory.Services.GetRequiredService<IWebHostEnvironment>(),
             NullLogger<ApplicationController>.Instance,
             factory.Services.GetRequiredService<ApplicationSubmissionRetryStore>(),
-            statistics: statistics)
+            statistics: statistics,
+            athleteSnapshots: factory.Services.GetRequiredService<IAthleteSnapshotProvider>())
         {
             ControllerContext = new ControllerContext
             {

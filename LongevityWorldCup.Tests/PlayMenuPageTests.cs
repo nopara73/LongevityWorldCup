@@ -135,6 +135,7 @@ public sealed class PlayMenuPageTests
         Assert.Contains("removeLocalItem(\"contactEmail\");", flow);
         Assert.Contains("\"/pheno-age?update=1\"", flow);
         Assert.Contains("\"/bortz-age?update=1\"", flow);
+        Assert.Contains("\"/bortz-age?update=1&upgrade=1\"", flow);
         Assert.Contains("\"/longevitymaxxing\"", flow);
         Assert.Contains("dynamicActions.append(challengeButton, submitButton, goProButton);", flow);
         Assert.Contains("dynamicActions.append(challengeButton, phenoButton, bortzButton);", flow);
