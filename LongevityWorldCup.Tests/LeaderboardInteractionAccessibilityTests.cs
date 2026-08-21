@@ -105,7 +105,7 @@ public sealed class LeaderboardInteractionAccessibilityTests
     {
         var html = File.ReadAllText(GetLeaderboardPartialPath());
 
-        Assert.Contains("<a class=\"podium-item-lower\" href=\"#donation-section\" aria-label=\"Donate to the prize pool\">", html);
+        Assert.Contains("<a class=\"podium-item-lower\" href=\"#contribute\" aria-label=\"Donate to the prize pool\">", html);
         Assert.DoesNotContain("function subscribeLowerPodiumClick()", html);
     }
 

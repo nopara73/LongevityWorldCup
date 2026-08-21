@@ -2,8 +2,8 @@ namespace LongevityWorldCup.Website.Tools;
 
 public static class DonationReminderPost
 {
-    public const string Url = "https://longevityworldcup.com/#donation-section";
-    public const string InfoToken = "donation-reminder[v1] url[https://longevityworldcup.com/#donation-section]";
+    public const string Url = "https://longevityworldcup.com/#contribute";
+    public const string InfoToken = "donation-reminder[v1] url[https://longevityworldcup.com/#contribute]";
     public const int MinCooldownDays = 30;
     public const int MaxCooldownDays = 90;
     private static readonly string[] LeadLineOptions =

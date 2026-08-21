@@ -59,7 +59,7 @@ public sealed class LeaderboardPodiumBrowserTests
 
         // The prize panel remains a donation link and must not be swallowed by the card handler.
         await firstPodiumCard.Locator(".podium-item-lower").ClickAsync();
-        await page.WaitForURLAsync("**/#donation-section");
+        await page.WaitForURLAsync("**/#contribute");
         Assert.False(await page.Locator("#detailsModal").IsVisibleAsync());
     }
 
