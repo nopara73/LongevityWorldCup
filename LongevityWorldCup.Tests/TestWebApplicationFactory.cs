@@ -3,6 +3,7 @@ using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -27,6 +28,11 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<DatabaseManager>();
             services.AddSingleton(_ => new DatabaseManager(dbPath: dbPath));
+            services.RemoveAll<ApplicationSubmissionRetryStore>();
+            services.AddSingleton(serviceProvider => new ApplicationSubmissionRetryStore(
+                serviceProvider.GetRequiredService<IMemoryCache>(),
+                Path.Combine(_dbRoot, "application-submission-responses"),
+                TimeProvider.System));
         });
         _configure?.Invoke(builder);
     }

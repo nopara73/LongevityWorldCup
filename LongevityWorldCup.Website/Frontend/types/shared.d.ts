@@ -140,6 +140,35 @@ interface ApplicationSubmissionReport {
     readonly errorMessage: string | null;
 }
 
+interface PendingApplicationSubmission {
+    readonly submissionId: string;
+    readonly payloadFingerprint: string;
+    readonly submissionKind: string;
+    readonly applicantName: string | null;
+    readonly accountEmail: string | null;
+    readonly createdAt: number;
+}
+
+interface PendingApplicationSubmissionDetails {
+    readonly submissionId: string;
+    readonly payloadFingerprint: string;
+    readonly submissionKind: string;
+    readonly applicantName?: string | null;
+    readonly accountEmail?: string | null;
+}
+
+interface RecoveredApplicationSubmission {
+    readonly pending: PendingApplicationSubmission;
+    readonly submitResult: Record<string, unknown>;
+}
+
+interface ApplicationSubmissionAttempt {
+    readonly ok: boolean;
+    readonly response: Response | null;
+    readonly submitResult: Record<string, unknown> | null;
+    readonly recovered: boolean;
+}
+
 interface HypotheticalRankOptions {
     readonly containerId: string;
     readonly calculator: string;
@@ -392,6 +421,11 @@ interface Window {
     __pendingApplicationSubmissionFingerprint?: string;
     createApplicationSubmissionPayloadKey(applicantData: unknown): string;
     createApplicationSubmissionId(payloadFingerprint?: string): string;
+    rememberPendingApplicationSubmission(details: PendingApplicationSubmissionDetails): void;
+    getPendingApplicationSubmission(submissionKind?: string): PendingApplicationSubmission | null;
+    clearPendingApplicationSubmission(submissionId?: string): void;
+    tryRecoverPendingApplicationSubmission(submissionKind: string): Promise<RecoveredApplicationSubmission | null>;
+    submitApplicationWithRecovery(applicantData: unknown, timeoutMs?: number): Promise<ApplicationSubmissionAttempt>;
     APPLICATION_SUBMISSION_TIMEOUT_MS: number;
     APPLICATION_SUBMISSION_REPORT_TIMEOUT_MS: number;
     readApplicationErrorMessage(response: Response | null | undefined): Promise<string>;

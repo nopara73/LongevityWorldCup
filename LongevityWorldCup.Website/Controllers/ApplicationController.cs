@@ -1053,6 +1053,29 @@ namespace LongevityWorldCup.Website.Controllers
             }
         }
 
+        [HttpPost("submission-status")]
+        [RequestTimeout(PublicRequestTimeoutPolicies.ApplicationSubmission)]
+        public async Task<IActionResult> SubmissionStatus(
+            [FromBody] ApplicationSubmissionStatusRequest request,
+            CancellationToken ct)
+        {
+            Response.Headers.CacheControl = "no-store";
+
+            var submissionId = request?.SubmissionId?.Trim();
+            if (string.IsNullOrWhiteSpace(submissionId) || submissionId.Length > 80)
+            {
+                return BadRequest("A valid application submission ID is required.");
+            }
+
+            var completedResponse = await _applicationSubmissionRetries
+                .GetCompletedResponseAsync(submissionId, ct)
+                .ConfigureAwait(false);
+
+            return completedResponse is null
+                ? NotFound(new { status = "pending" })
+                : Ok(completedResponse);
+        }
+
         private Task TrackApplicationSubmitEventAsync(
             string outcome,
             string submissionKind,
@@ -2884,6 +2907,11 @@ namespace LongevityWorldCup.Website.Controllers
         public string? ApplicantName { get; set; }
         public string? AccountEmail { get; set; }
         public string? SubmissionType { get; set; }
+    }
+
+    public sealed class ApplicationSubmissionStatusRequest
+    {
+        public string? SubmissionId { get; set; }
     }
 
     public sealed class InterviewRequestData

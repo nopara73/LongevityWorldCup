@@ -121,6 +121,37 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("window.__pendingApplicationSubmissionId = submissionId;", javascript);
         Assert.Contains("delete window.__pendingApplicationSubmissionFingerprint;", javascript);
         Assert.Contains("window.__pendingApplicationSubmissionFingerprint = normalizedFingerprint;", javascript);
+        Assert.Contains("pendingApplicationSubmission", javascript);
+        Assert.Contains("readPendingApplicationSubmission()", javascript);
+        Assert.Contains("storedSubmission.payloadFingerprint === normalizedFingerprint", javascript);
+    }
+
+    [Fact]
+    public async Task ApplicationSubmissionRecovery_ReusesTheServerResponseAndRedirectsWithoutAnAlertGate()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var javascript = await GetFrontendTypeScriptAsync(client, "misc.ts");
+        var onboarding = await client.GetStringAsync("/onboarding/convergence.html");
+        var proofUpload = await client.GetStringAsync("/play/proof-upload.html");
+        var editProfile = await client.GetStringAsync("/play/edit-profile.html");
+
+        Assert.Contains("window.rememberPendingApplicationSubmission = function (details)", javascript);
+        Assert.Contains("'/api/application/submission-status'", javascript);
+        Assert.Contains("window.submitApplicationWithRecovery = async function (applicantData", javascript);
+        Assert.Contains("for (let attempt = 0; attempt < 2; attempt++)", javascript);
+        Assert.Contains("return { ok: true, response: null, submitResult: recovered, recovered: true };", javascript);
+        Assert.Contains("window.tryRecoverPendingApplicationSubmission = async function (submissionKind: string)", javascript);
+
+        Assert.Contains("window.rememberPendingApplicationSubmission({", onboarding);
+        Assert.Contains("window.tryRecoverPendingApplicationSubmission('full-application')", onboarding);
+        Assert.Contains("window.location.replace(checkoutLink);", onboarding);
+        Assert.Contains("window.rememberPendingApplicationSubmission({", proofUpload);
+        Assert.Contains("window.tryRecoverPendingApplicationSubmission('result-upload')", proofUpload);
+        Assert.Contains("window.location.replace(checkoutLink);", proofUpload);
+        Assert.Contains("window.rememberPendingApplicationSubmission({", editProfile);
+        Assert.Contains("window.tryRecoverPendingApplicationSubmission('edit-request')", editProfile);
     }
 
     [Fact]
@@ -223,7 +254,8 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("if (isRecord(data))", javascript);
         Assert.Contains("return messages.join('\\n');", javascript);
         Assert.DoesNotContain(".map(value => String(value || '').trim())", javascript);
-        Assert.Contains("const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';", html);
+        Assert.Contains("const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;", html);
+        Assert.Contains("const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';", html);
         Assert.Contains("window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse =>", html);
         Assert.Contains("function isSubmissionAcceptedPaymentFailure(message)", html);
         Assert.Contains("/^Application sent, but failed to create BTCPay invoice:/i.test(message.trim())", html);
@@ -271,7 +303,7 @@ public sealed class ApplicationOnboardingPageTests
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
         var handlerStart = html.IndexOf("document.getElementById('nextButton').addEventListener('click', async function (event)", StringComparison.Ordinal);
-        var handlerEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", handlerStart, StringComparison.Ordinal);
+        var handlerEnd = html.IndexOf("window.submitApplicationWithRecovery(applicantData", handlerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
         Assert.True(handlerEnd > handlerStart);
@@ -779,8 +811,8 @@ public sealed class ApplicationOnboardingPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
-        var successStart = html.IndexOf("customAlert(nextStepMessage).then(() =>", StringComparison.Ordinal);
-        var successEnd = html.IndexOf("window.location.href = '/review';", successStart, StringComparison.Ordinal);
+        var successStart = html.IndexOf("function finishFullApplicationSubmission(submitResult, submissionContext)", StringComparison.Ordinal);
+        var successEnd = html.IndexOf("function collectApplicantData()", successStart, StringComparison.Ordinal);
 
         Assert.True(successStart >= 0);
         Assert.True(successEnd > successStart);
@@ -812,16 +844,21 @@ public sealed class ApplicationOnboardingPageTests
         Assert.Contains("if (checkoutLink)", successBody);
         Assert.Contains("if (invoiceId)", successBody);
         Assert.Contains("invoiceId: invoiceId", successBody);
-        Assert.Contains("window.location.href = checkoutLink;", successBody);
-        Assert.Contains("rememberAthleteContactEmail(applicantData.name, applicantData.accountEmail);", successBody);
-        Assert.Contains("setSessionItem('contactEmail', applicantData.accountEmail);", successBody);
-        Assert.Contains("setLocalItem('contactEmail', applicantData.accountEmail);", successBody);
+        Assert.Contains("submissionId: submissionId", successBody);
+        Assert.Contains("window.location.replace(checkoutLink);", successBody);
+        Assert.Contains("rememberAthleteContactEmail(applicantName, accountEmail)", successBody);
+        Assert.Contains("setSessionItem('contactEmail', accountEmail);", successBody);
+        Assert.Contains("setLocalItem('contactEmail', accountEmail);", successBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", successBody);
         Assert.Contains("setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);", successBody);
         Assert.Contains("setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);", successBody);
         Assert.Contains("submissionType: 'application'", successBody);
+        Assert.Contains("window.clearPendingApplicationSubmission(submissionId);", successBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", successBody);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", successBody);
+        Assert.True(
+            successBody.IndexOf("window.location.replace(checkoutLink);", StringComparison.Ordinal)
+            < successBody.IndexOf("customAlert(nextStepMessage).then(() =>", StringComparison.Ordinal));
         Assert.DoesNotContain("window.location.href = submitResult.checkoutLink;", successBody);
         Assert.DoesNotContain("if (submitResult.invoiceId)", successBody);
         Assert.DoesNotContain("invoiceId: submitResult.invoiceId", successBody);
@@ -839,7 +876,7 @@ public sealed class ApplicationOnboardingPageTests
 
         var html = await client.GetStringAsync("/onboarding/convergence.html");
         var submitStart = html.IndexOf("const applicantData = collectApplicantData();", StringComparison.Ordinal);
-        var submitEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", submitStart, StringComparison.Ordinal);
+        var submitEnd = html.IndexOf("window.submitApplicationWithRecovery(applicantData", submitStart, StringComparison.Ordinal);
 
         Assert.True(submitStart >= 0);
         Assert.True(submitEnd > submitStart);

@@ -825,9 +825,41 @@
             }
         });
 
+        function finishEditProfileSubmission(submissionContext) {
+            const reviewContactEmail = normalizeContactEmail(submissionContext.accountEmail);
+            if (reviewContactEmail) {
+                if (submissionContext.applicantName) {
+                    rememberAthleteContactEmail(submissionContext.applicantName, reviewContactEmail);
+                }
+                setSessionItem('contactEmail', reviewContactEmail);
+                setLocalItem('contactEmail', reviewContactEmail);
+            }
+            window.clearPendingApplicationSubmission(submissionContext.submissionId);
+            setSessionItem('came-from', 'edit-profile');
+            customAlert('Change request submitted!').then(() => {
+                window.location.href = '/review?from=edit-profile';
+            });
+        }
+
         setSubmitChangeRequestButton();
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
+            const pendingSubmission = window.getPendingApplicationSubmission('edit-request');
+            if (pendingSubmission) {
+                showLoading();
+                try {
+                    const recovered = await window.tryRecoverPendingApplicationSubmission('edit-request');
+                    if (recovered) {
+                        hideLoading();
+                        finishEditProfileSubmission(recovered.pending);
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('Could not recover the pending edit request yet.', error);
+                }
+                hideLoading();
+            }
+
             const athleteDisplayName = getAthleteDisplayName();
             document.getElementById('character-title').textContent = athleteDisplayName;
             const athleteImage = document.createElement('img');
@@ -1055,12 +1087,10 @@
                 athlete.MediaContact = normalizeMediaContact(mediaContactInput.value);
                 mediaContactInput.value = athlete.MediaContact;
 
-                const submissionId = window.createApplicationSubmissionId();
                 const submissionKind = 'edit-request';
                 const applicantData = {
                     name: athlete.Name,
                     accountEmail: readEditProfileContactEmail(),
-                    submissionId: submissionId,
                     profilePic: athlete.ProfilePic,
                     division: athlete.Division,
                     flag: athlete.Flag,
@@ -1068,6 +1098,16 @@
                     mediaContact: athlete.MediaContact,
                     why: athlete.Why
                 };
+                const submissionPayloadKey = window.createApplicationSubmissionPayloadKey(applicantData);
+                const submissionId = window.createApplicationSubmissionId(submissionPayloadKey);
+                applicantData.submissionId = submissionId;
+                window.rememberPendingApplicationSubmission({
+                    submissionId: submissionId,
+                    payloadFingerprint: submissionPayloadKey,
+                    submissionKind: submissionKind,
+                    applicantName: applicantData.name,
+                    accountEmail: applicantData.accountEmail
+                });
 
                 isEditProfileSubmitting = true;
                 submitButton.disabled = true;
@@ -1076,29 +1116,22 @@
 
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
-                fetchWithTimeout('/api/application/application', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(applicantData)
-                }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
-                    .then(response => {
+                window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
+                    .then(attempt => {
                         hideLoading();
-                        if (response.ok) {
-                            customAlert('Change request submitted!').then(() => {
-                                const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
-                                if (reviewContactEmail) {
-                                    rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);
-                                    setSessionItem('contactEmail', reviewContactEmail);
-                                    setLocalItem('contactEmail', reviewContactEmail);
-                                }
-                                setSessionItem("came-from", "edit-profile");
-                                window.location.href = '/review?from=edit-profile';
+                        if (attempt.ok && attempt.submitResult) {
+                            finishEditProfileSubmission({
+                                submissionId: submissionId,
+                                applicantName: applicantData.name,
+                                accountEmail: applicantData.accountEmail
                             });
                         } else {
-                            const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
+                            const response = attempt.response;
+                            const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;
+                            const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';
                             window.readApplicationErrorMessage(response).catch(() => fallbackError).then(txt => {
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                    type: `HTTP ${response.status}`,
+                                    type: `HTTP ${responseStatus}`,
                                     message: txt
                                 });
                                 customAlert(`Failed to submit change request. Please try again later.\n\n${txt}`).then(() => {

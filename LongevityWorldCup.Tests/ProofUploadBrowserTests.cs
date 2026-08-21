@@ -366,6 +366,14 @@ public sealed class ProofUploadBrowserTests
                 const applicantData = { proofPics: [largeProof] };
                 const firstPayload = window.createApplicationSubmissionPayloadKey(applicantData);
                 const editedPayload = window.createApplicationSubmissionPayloadKey({ proofPics: [largeProof, 'proof-b'] });
+                const firstId = window.createApplicationSubmissionId(firstPayload);
+                window.rememberPendingApplicationSubmission({
+                    submissionId: firstId,
+                    payloadFingerprint: firstPayload,
+                    submissionKind: 'result-upload',
+                    applicantName: 'Reload Test',
+                    accountEmail: 'reload@example.test'
+                });
                 const report = window.buildApplicationSubmissionReport(
                     applicantData,
                     'submission-test',
@@ -374,7 +382,7 @@ public sealed class ProofUploadBrowserTests
                     null);
                 return {
                     ids: [
-                        window.createApplicationSubmissionId(firstPayload),
+                        firstId,
                         window.createApplicationSubmissionId(firstPayload),
                         window.createApplicationSubmissionId(editedPayload)
                     ],
@@ -394,6 +402,76 @@ public sealed class ProofUploadBrowserTests
         Assert.Equal(
             result.GetProperty("actualBodyLength").GetInt32(),
             result.GetProperty("reportedBodyLength").GetInt32());
+
+        await page.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => typeof window.createApplicationSubmissionId === 'function'");
+        var reloadedId = await page.EvaluateAsync<string>(
+            """
+            () => {
+                const largeProof = 'data:image/jpeg;base64,' + 'A'.repeat(2 * 1024 * 1024);
+                const firstPayload = window.createApplicationSubmissionPayloadKey({ proofPics: [largeProof] });
+                return window.createApplicationSubmissionId(firstPayload);
+            }
+            """);
+
+        Assert.Equal(ids[0], reloadedId);
+    }
+
+    [Fact]
+    public async Task ApplicationSubmission_RecoversCheckoutAfterThePostConnectionDrops()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await LaunchBrowserAsync(playwright);
+        await using var context = await NewContextAsync(browser, app);
+        await RoutePageDependenciesAsync(context, delayProofHelper: false);
+        var applicationAttempts = 0;
+        var recoveryAttempts = 0;
+
+        await context.RouteAsync("**/api/application/application", async route =>
+        {
+            Interlocked.Increment(ref applicationAttempts);
+            await route.AbortAsync("connectionreset");
+        });
+        await context.RouteAsync("**/api/application/submission-status", async route =>
+        {
+            Interlocked.Increment(ref recoveryAttempts);
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = """{"success":true,"paymentRequired":true,"checkoutLink":"https://pay.example.test/invoice-1","invoiceId":"invoice-1"}"""
+            });
+        });
+
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync("() => typeof window.submitApplicationWithRecovery === 'function'");
+
+        var result = await page.EvaluateAsync<JsonElement>(
+            """
+            async () => {
+                const attempt = await window.submitApplicationWithRecovery({
+                    submissionId: 'submission-recovery-test',
+                    name: 'Recovery Test'
+                }, 2000);
+                return {
+                    ok: attempt.ok,
+                    recovered: attempt.recovered,
+                    hasResponse: attempt.response !== null,
+                    checkoutLink: attempt.submitResult?.checkoutLink,
+                    invoiceId: attempt.submitResult?.invoiceId
+                };
+            }
+            """);
+
+        Assert.True(result.GetProperty("ok").GetBoolean());
+        Assert.True(result.GetProperty("recovered").GetBoolean());
+        Assert.False(result.GetProperty("hasResponse").GetBoolean());
+        Assert.Equal("https://pay.example.test/invoice-1", result.GetProperty("checkoutLink").GetString());
+        Assert.Equal("invoice-1", result.GetProperty("invoiceId").GetString());
+        Assert.Equal(1, applicationAttempts);
+        Assert.Equal(1, recoveryAttempts);
     }
 
     private static async Task<IBrowser> LaunchBrowserAsync(IPlaywright playwright)

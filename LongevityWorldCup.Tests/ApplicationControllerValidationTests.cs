@@ -45,6 +45,44 @@ public sealed class ApplicationControllerValidationTests
     }
 
     [Fact]
+    public async Task SubmissionStatusReturnsTheCompletedCheckoutResponseWithoutCaching()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var store = factory.Services.GetRequiredService<ApplicationSubmissionRetryStore>();
+        var expected = new ApplicationSubmissionResponse(
+            true,
+            true,
+            "https://pay.example.test/invoice-1",
+            "invoice-1");
+        await using (var lease = await store.AcquireAsync("submission-1", "fingerprint-1", CancellationToken.None))
+        {
+            lease.Complete(expected);
+        }
+        var controller = CreateController(factory);
+
+        var result = await controller.SubmissionStatus(
+            new ApplicationSubmissionStatusRequest { SubmissionId = " submission-1 " },
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(expected, ok.Value);
+        Assert.Equal("no-store", controller.Response.Headers.CacheControl);
+    }
+
+    [Fact]
+    public async Task SubmissionStatusReturnsNotFoundForAnUnknownSubmission()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory);
+
+        var result = await controller.SubmissionStatus(
+            new ApplicationSubmissionStatusRequest { SubmissionId = "unknown-submission" },
+            CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
     public async Task ApplicationMissingNameReturnsBadRequestBeforeProcessing()
     {
         using var factory = new TestWebApplicationFactory();

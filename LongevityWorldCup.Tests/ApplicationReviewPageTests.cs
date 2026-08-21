@@ -78,6 +78,9 @@ public sealed class ApplicationReviewPageTests
         Assert.Contains("submissionType: normalizePaymentSubmissionType(pending.submissionType)", script);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", script);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", script);
+        Assert.Contains("const completedSubmissionId = normalizeOptionalString(pending.submissionId);", script);
+        Assert.Contains("if (completedSubmissionId && typeof window.clearPendingApplicationSubmission === 'function')", script);
+        Assert.Contains("window.clearPendingApplicationSubmission(completedSubmissionId);", script);
         Assert.DoesNotContain("sessionStorage.getItem(", script);
         Assert.DoesNotContain("sessionStorage.setItem(", script);
         Assert.DoesNotContain("sessionStorage.removeItem(", script);

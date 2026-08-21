@@ -78,7 +78,8 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
 
-        Assert.Contains("const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';", html);
+        Assert.Contains("const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;", html);
+        Assert.Contains("const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';", html);
         Assert.Contains("window.readApplicationErrorMessage(response).catch(() => fallbackError).then(txt =>", html);
         Assert.Contains("customAlert(`Failed to submit change request. Please try again later.\\n\\n${txt}`).then(() => {\n                                    isEditProfileSubmitting = false;", html);
         Assert.DoesNotContain("response.text().then(txt =>", html);
@@ -316,8 +317,8 @@ public sealed class EditProfilePageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
-        var successStart = html.IndexOf("customAlert('Change request submitted!').then(() =>", StringComparison.Ordinal);
-        var successEnd = html.IndexOf("});", html.IndexOf("window.location.href = '/review?from=edit-profile';", successStart, StringComparison.Ordinal), StringComparison.Ordinal);
+        var successStart = html.IndexOf("function finishEditProfileSubmission(submissionContext)", StringComparison.Ordinal);
+        var successEnd = html.IndexOf("setSubmitChangeRequestButton();", successStart, StringComparison.Ordinal);
 
         Assert.True(successStart >= 0);
         Assert.True(successEnd > successStart);
@@ -327,11 +328,13 @@ public sealed class EditProfilePageTests
         Assert.Contains("function setBrowserStorageItem(storageName, key, value)", html);
         Assert.Contains("function setSessionItem(key, value)", html);
         Assert.Contains("function setLocalItem(key, value)", html);
-        Assert.Contains("const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);", successBody);
-        Assert.Contains("rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);", successBody);
+        Assert.Contains("const reviewContactEmail = normalizeContactEmail(submissionContext.accountEmail);", successBody);
+        Assert.Contains("rememberAthleteContactEmail(submissionContext.applicantName, reviewContactEmail);", successBody);
         Assert.Contains("setSessionItem('contactEmail', reviewContactEmail);", successBody);
         Assert.Contains("setLocalItem('contactEmail', reviewContactEmail);", successBody);
-        Assert.Contains("setSessionItem(\"came-from\", \"edit-profile\");", successBody);
+        Assert.Contains("window.clearPendingApplicationSubmission(submissionContext.submissionId);", successBody);
+        Assert.Contains("setSessionItem('came-from', 'edit-profile');", successBody);
+        Assert.Contains("customAlert('Change request submitted!').then(() =>", successBody);
         Assert.Contains("window.location.href = '/review?from=edit-profile';", successBody);
         Assert.DoesNotContain("sessionStorage.setItem(", successBody);
         Assert.DoesNotContain("localStorage.setItem(", successBody);
@@ -345,7 +348,7 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
         var submitStart = html.IndexOf("const applicantData = {", StringComparison.Ordinal);
-        var submitEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", submitStart, StringComparison.Ordinal);
+        var submitEnd = html.IndexOf("window.submitApplicationWithRecovery(applicantData", submitStart, StringComparison.Ordinal);
 
         Assert.True(submitStart >= 0);
         Assert.True(submitEnd > submitStart);
@@ -393,7 +396,7 @@ public sealed class EditProfilePageTests
         var html = await client.GetStringAsync("/play/edit-profile.html");
         var submitStart = html.IndexOf("submitButton.addEventListener('click', async function ()", StringComparison.Ordinal);
         var applicantDataStart = html.IndexOf("const applicantData = {", submitStart, StringComparison.Ordinal);
-        var fetchStart = html.IndexOf("fetchWithTimeout('/api/application/application'", applicantDataStart, StringComparison.Ordinal);
+        var fetchStart = html.IndexOf("window.submitApplicationWithRecovery(applicantData", applicantDataStart, StringComparison.Ordinal);
         var blurStart = html.IndexOf("// --- BLUR HANDLERS ---", StringComparison.Ordinal);
         var blurEnd = html.IndexOf("let skipWhyValidation = false;", blurStart, StringComparison.Ordinal);
 
@@ -530,7 +533,7 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
         var handlerStart = html.IndexOf("submitButton.addEventListener('click', async function ()", StringComparison.Ordinal);
-        var handlerEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", handlerStart, StringComparison.Ordinal);
+        var handlerEnd = html.IndexOf("window.submitApplicationWithRecovery(applicantData", handlerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
         Assert.True(handlerEnd > handlerStart);
@@ -581,7 +584,7 @@ public sealed class EditProfilePageTests
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
         var guardStart = html.IndexOf("if (!isValidSelectedAthlete(athlete))", StringComparison.Ordinal);
-        var guardEnd = html.IndexOf("const submissionId = window.createApplicationSubmissionId();", guardStart, StringComparison.Ordinal);
+        var guardEnd = html.IndexOf("const submissionPayloadKey = window.createApplicationSubmissionPayloadKey(applicantData);", guardStart, StringComparison.Ordinal);
 
         Assert.True(guardStart >= 0);
         Assert.True(guardEnd > guardStart);
