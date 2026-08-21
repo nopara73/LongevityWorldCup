@@ -911,6 +911,57 @@
                 : null;
         }
 
+        function finishResultSubmission(submitResult, submissionContext) {
+            const checkoutLink = getCheckoutLink(submitResult);
+            const invoiceId = getInvoiceId(submitResult);
+            const paymentRequired = isPaymentRequired(submitResult);
+            const paymentUnavailable = isPaymentUnavailable(submitResult);
+            const applicantName = submissionContext.applicantName || null;
+            const reviewContactEmail = normalizeContactEmail(submissionContext.accountEmail);
+            const submissionId = submissionContext.submissionId;
+
+            if (reviewContactEmail) {
+                if (applicantName) rememberAthleteContactEmail(applicantName, reviewContactEmail);
+                setSessionItem('contactEmail', reviewContactEmail);
+                setLocalItem('contactEmail', reviewContactEmail);
+            }
+            proofPics = [];
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+            clearCompletedBioageState();
+
+            if (checkoutLink) {
+                removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                if (invoiceId) {
+                    const pendingInvoiceInfo = JSON.stringify({
+                        invoiceId: invoiceId,
+                        applicantName: applicantName,
+                        accountEmail: reviewContactEmail,
+                        submissionType: 'result',
+                        reviewSource: 'proof-upload',
+                        submissionId: submissionId
+                    });
+                    setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
+                    setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
+                }
+                window.location.replace(checkoutLink);
+                return;
+            }
+
+            window.clearPendingApplicationSubmission(submissionId);
+            removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+            removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+            setSessionItem('came-from', 'proof-upload');
+            const nextStepMessage = paymentUnavailable
+                ? 'Your results were received, but the payment page could not be created. We will follow up by email.'
+                : paymentRequired
+                    ? 'Your results were received, but the payment page could not be opened. Check your confirmation email.'
+                    : 'Your results were received';
+            customAlert(nextStepMessage).then(() => {
+                window.location.href = '/review?from=proof-upload';
+            });
+        }
+
         if (window.captureFreePassFromUrl) {
             window.captureFreePassFromUrl();
         }
@@ -967,6 +1018,22 @@
 
         document.addEventListener('DOMContentLoaded', async function () {
             await waitForPageModules();
+
+            const pendingSubmission = window.getPendingApplicationSubmission('result-upload');
+            if (pendingSubmission) {
+                showLoading();
+                try {
+                    const recovered = await window.tryRecoverPendingApplicationSubmission('result-upload');
+                    if (recovered) {
+                        hideLoading();
+                        finishResultSubmission(recovered.submitResult, recovered.pending);
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('Could not recover the pending result submission yet.', error);
+                }
+                hideLoading();
+            }
 
             document.getElementById('character-title').textContent = getAthleteDisplayName();
 
@@ -1043,7 +1110,13 @@
                 const submissionPayloadKey = window.createApplicationSubmissionPayloadKey(applicantData);
                 const submissionId = window.createApplicationSubmissionId(submissionPayloadKey);
                 applicantData.submissionId = submissionId;
-                const submissionBody = JSON.stringify(applicantData);
+                window.rememberPendingApplicationSubmission({
+                    submissionId: submissionId,
+                    payloadFingerprint: submissionPayloadKey,
+                    submissionKind: submissionKind,
+                    applicantName: applicantData.name,
+                    accountEmail: applicantData.accountEmail
+                });
 
                 isResultUploadSubmitting = true;
                 submitButton.disabled = true;
@@ -1054,65 +1127,23 @@
 
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
-                fetchWithTimeout('/api/application/application', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: submissionBody
-                }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
-                    .then(response => {
+                window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
+                    .then(attempt => {
                         hideLoading();
-                        if (response.ok) {
-                            response.json().catch(() => ({})).then(submitResult => {
-                                const checkoutLink = getCheckoutLink(submitResult);
-                                const invoiceId = getInvoiceId(submitResult);
-                                const paymentRequired = isPaymentRequired(submitResult);
-                                const paymentUnavailable = isPaymentUnavailable(submitResult);
-                                const nextStepMessage =
-                                    checkoutLink
-                                        ? 'You\'ll be redirected to the payment page'
-                                        : paymentUnavailable
-                                            ? 'Your results were received, but the payment page could not be created. We will follow up by email.'
-                                        : paymentRequired
-                                            ? 'Your results were received, but the payment page could not be opened. Check your confirmation email.'
-                                            : 'Your results were received';
-                                customAlert(nextStepMessage).then(() => {
-                                    const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);
-                                    if (reviewContactEmail) {
-                                        rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);
-                                        setSessionItem('contactEmail', reviewContactEmail);
-                                        setLocalItem('contactEmail', reviewContactEmail);
-                                    }
-                                    proofPics = [];
-                                    removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
-                                    clearCompletedBioageState();
-                                    if (checkoutLink) {
-                                        if (invoiceId) {
-                                            const pendingInvoiceInfo = JSON.stringify({
-                                                invoiceId: invoiceId,
-                                                applicantName: athlete.Name || null,
-                                                accountEmail: reviewContactEmail || null,
-                                                submissionType: 'result',
-                                                reviewSource: 'proof-upload'
-                                            });
-                                            setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
-                                            setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
-                                        }
-                                        window.location.href = checkoutLink;
-                                        return;
-                                    }
-
-                                    removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
-                                    removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
-                                    setSessionItem("came-from", "proof-upload");
-                                    window.location.href = '/review?from=proof-upload';
-                                });
+                        if (attempt.ok && attempt.submitResult) {
+                            finishResultSubmission(attempt.submitResult, {
+                                submissionId: submissionId,
+                                applicantName: applicantData.name,
+                                accountEmail: applicantData.accountEmail
                             });
                         } else {
-                            const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
+                            const response = attempt.response;
+                            const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;
+                            const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';
                             window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
                                 if (isSubmissionAcceptedPaymentFailure(badResponse)) {
                                     void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'payment-unavailable', submissionKind, {
-                                        type: `HTTP ${response.status}`,
+                                        type: `HTTP ${responseStatus}`,
                                         message: badResponse
                                     });
                                     customAlert('Your results were received, but the payment page could not be created. We will follow up by email.').then(() => {
@@ -1125,6 +1156,7 @@
                                         proofPics = [];
                                         removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
                                         clearCompletedBioageState();
+                                        window.clearPendingApplicationSubmission(submissionId);
                                         removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
                                         removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
                                         setSessionItem("came-from", "proof-upload");
@@ -1133,7 +1165,7 @@
                                     return;
                                 }
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                    type: `HTTP ${response.status}`,
+                                    type: `HTTP ${responseStatus}`,
                                     message: badResponse
                                 });
                                 customAlert(`Failed to submit results. Please try again later.\n\n${badResponse}`).then(() => {

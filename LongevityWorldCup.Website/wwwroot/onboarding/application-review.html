@@ -463,6 +463,10 @@
                     if (result.isPaid && (result.notificationSent || result.alreadyNotified)) {
                         removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
                         removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                        const completedSubmissionId = normalizeOptionalString(pending.submissionId);
+                        if (completedSubmissionId && typeof window.clearPendingApplicationSubmission === 'function') {
+                            window.clearPendingApplicationSubmission(completedSubmissionId);
+                        }
                     }
                 })
                 .catch(() => {

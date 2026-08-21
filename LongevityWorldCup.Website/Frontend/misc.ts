@@ -886,9 +886,103 @@ function compactApplicationDataString(value: string): string {
     return `${value.length}:${(firstHash >>> 0).toString(16)}:${(secondHash >>> 0).toString(16)}`;
 }
 
+const PENDING_APPLICATION_SUBMISSION_STORAGE_KEY = 'pendingApplicationSubmission';
+const PENDING_APPLICATION_SUBMISSION_LIFETIME_MS = 24 * 24 * 60 * 60 * 1000;
+
+function readPendingApplicationSubmission(): PendingApplicationSubmission | null {
+    let raw: string | null = null;
+    try {
+        raw = window.localStorage.getItem(PENDING_APPLICATION_SUBMISSION_STORAGE_KEY);
+    } catch (_) {
+        return null;
+    }
+
+    if (!raw) return null;
+
+    try {
+        const parsed: unknown = JSON.parse(raw);
+        if (!isRecord(parsed)
+            || typeof parsed.submissionId !== 'string'
+            || !parsed.submissionId
+            || typeof parsed.payloadFingerprint !== 'string'
+            || typeof parsed.submissionKind !== 'string'
+            || typeof parsed.createdAt !== 'number'
+            || !Number.isFinite(parsed.createdAt)
+            || parsed.createdAt + PENDING_APPLICATION_SUBMISSION_LIFETIME_MS <= Date.now()) {
+            window.localStorage.removeItem(PENDING_APPLICATION_SUBMISSION_STORAGE_KEY);
+            return null;
+        }
+
+        return {
+            submissionId: parsed.submissionId,
+            payloadFingerprint: parsed.payloadFingerprint,
+            submissionKind: parsed.submissionKind,
+            applicantName: typeof parsed.applicantName === 'string' ? parsed.applicantName : null,
+            accountEmail: typeof parsed.accountEmail === 'string' ? parsed.accountEmail : null,
+            createdAt: parsed.createdAt
+        };
+    } catch (_) {
+        try {
+            window.localStorage.removeItem(PENDING_APPLICATION_SUBMISSION_STORAGE_KEY);
+        } catch (_) {
+        }
+        return null;
+    }
+}
+
+function storePendingApplicationSubmission(pending: PendingApplicationSubmission): void {
+    try {
+        window.localStorage.setItem(PENDING_APPLICATION_SUBMISSION_STORAGE_KEY, JSON.stringify(pending));
+    } catch (_) {
+        // Recovery is best effort when storage is unavailable (for example, private browsing).
+    }
+}
+
+async function fetchWithApplicationTimeout(
+    input: RequestInfo | URL,
+    init: RequestInit,
+    timeoutMs: number
+): Promise<Response> {
+    const timeoutController = typeof AbortController !== 'undefined' && !init.signal
+        ? new AbortController()
+        : null;
+    const timeoutId = window.setTimeout(() => timeoutController?.abort(), timeoutMs);
+
+    try {
+        return await fetch(input, timeoutController ? { ...init, signal: timeoutController.signal } : init);
+    } catch (error) {
+        if (timeoutController?.signal.aborted) {
+            throw new Error('Request timed out');
+        }
+        throw error;
+    } finally {
+        window.clearTimeout(timeoutId);
+    }
+}
+
+async function recoverApplicationSubmissionResponse(
+    submissionId: string,
+    timeoutMs: number
+): Promise<Record<string, unknown> | null> {
+    const response = await fetchWithApplicationTimeout('/api/application/submission-status', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId })
+    }, timeoutMs);
+
+    if (response.status === 404) return null;
+    if (!response.ok) {
+        throw new Error(`Submission recovery failed with HTTP ${response.status}`);
+    }
+
+    const recovered: unknown = await response.json();
+    return isRecord(recovered) && recovered.success === true ? recovered : null;
+}
+
 window.createApplicationSubmissionPayloadKey = function (applicantData: unknown): string {
     const data = isRecord(applicantData) ? applicantData : {};
-    return JSON.stringify(data, (key, value: unknown) => {
+    const normalizedPayload = JSON.stringify(data, (key, value: unknown) => {
         if (key === 'proofPics' && Array.isArray(value)) {
             return value.map(proof => typeof proof === 'string'
                 ? compactApplicationDataString(proof)
@@ -899,6 +993,7 @@ window.createApplicationSubmissionPayloadKey = function (applicantData: unknown)
         }
         return value;
     }) ?? '{}';
+    return compactApplicationDataString(normalizedPayload);
 };
 
 window.createApplicationSubmissionId = function (payloadFingerprint?: string) {
@@ -910,6 +1005,17 @@ window.createApplicationSubmissionId = function (payloadFingerprint?: string) {
         && (normalizedFingerprint === undefined
             || window.__pendingApplicationSubmissionFingerprint === normalizedFingerprint)) {
         return window.__pendingApplicationSubmissionId;
+    }
+
+    const storedSubmission = normalizedFingerprint === undefined
+        ? null
+        : readPendingApplicationSubmission();
+    if (storedSubmission
+        && normalizedFingerprint !== undefined
+        && storedSubmission.payloadFingerprint === normalizedFingerprint) {
+        window.__pendingApplicationSubmissionId = storedSubmission.submissionId;
+        window.__pendingApplicationSubmissionFingerprint = normalizedFingerprint;
+        return storedSubmission.submissionId;
     }
 
     let submissionId;
@@ -926,6 +1032,108 @@ window.createApplicationSubmissionId = function (payloadFingerprint?: string) {
         window.__pendingApplicationSubmissionFingerprint = normalizedFingerprint;
     }
     return submissionId;
+};
+
+window.rememberPendingApplicationSubmission = function (details) {
+    const submissionId = typeof details?.submissionId === 'string' ? details.submissionId.trim() : '';
+    const payloadFingerprint = typeof details?.payloadFingerprint === 'string' ? details.payloadFingerprint : '';
+    const submissionKind = typeof details?.submissionKind === 'string' ? details.submissionKind.trim() : '';
+    if (!submissionId || !payloadFingerprint || !submissionKind) return;
+
+    const pending: PendingApplicationSubmission = {
+        submissionId,
+        payloadFingerprint,
+        submissionKind,
+        applicantName: typeof details.applicantName === 'string' ? details.applicantName.trim() || null : null,
+        accountEmail: typeof details.accountEmail === 'string' ? details.accountEmail.trim() || null : null,
+        createdAt: Date.now()
+    };
+    window.__pendingApplicationSubmissionId = submissionId;
+    window.__pendingApplicationSubmissionFingerprint = payloadFingerprint;
+    storePendingApplicationSubmission(pending);
+};
+
+window.getPendingApplicationSubmission = function (submissionKind?: string) {
+    const pending = readPendingApplicationSubmission();
+    if (!pending || (submissionKind && pending.submissionKind !== submissionKind)) return null;
+    return pending;
+};
+
+window.clearPendingApplicationSubmission = function (submissionId?: string) {
+    const pending = readPendingApplicationSubmission();
+    if (submissionId && pending && pending.submissionId !== submissionId) return;
+
+    try {
+        window.localStorage.removeItem(PENDING_APPLICATION_SUBMISSION_STORAGE_KEY);
+    } catch (_) {
+    }
+    if (!submissionId || window.__pendingApplicationSubmissionId === submissionId) {
+        delete window.__pendingApplicationSubmissionId;
+        delete window.__pendingApplicationSubmissionFingerprint;
+    }
+};
+
+window.tryRecoverPendingApplicationSubmission = async function (submissionKind: string) {
+    const pending = window.getPendingApplicationSubmission(submissionKind);
+    if (!pending) return null;
+
+    const submitResult = await recoverApplicationSubmissionResponse(
+        pending.submissionId,
+        window.APPLICATION_SUBMISSION_TIMEOUT_MS || 310000);
+    return submitResult ? { pending, submitResult } : null;
+};
+
+window.submitApplicationWithRecovery = async function (applicantData: unknown, timeoutMs?: number) {
+    const data = isRecord(applicantData) ? applicantData : {};
+    const submissionId = typeof data.submissionId === 'string' ? data.submissionId : '';
+    const requestTimeout = Number.isFinite(timeoutMs) && Number(timeoutMs) > 0
+        ? Number(timeoutMs)
+        : window.APPLICATION_SUBMISSION_TIMEOUT_MS || 310000;
+    const requestInit: RequestInit = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    };
+    let lastResponse: Response | null = null;
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const response = await fetchWithApplicationTimeout(
+                '/api/application/application',
+                requestInit,
+                requestTimeout);
+            lastResponse = response;
+
+            if (response.ok) {
+                const submitResult: unknown = await response.json();
+                if (!isRecord(submitResult)) throw new Error('The submission response was invalid.');
+                return { ok: true, response, submitResult, recovered: false };
+            }
+
+            if (response.status !== 408 && response.status < 500) {
+                return { ok: false, response, submitResult: null, recovered: false };
+            }
+        } catch (error) {
+            lastError = error;
+        }
+
+        if (submissionId) {
+            try {
+                const recovered = await recoverApplicationSubmissionResponse(submissionId, requestTimeout);
+                if (recovered) {
+                    return { ok: true, response: null, submitResult: recovered, recovered: true };
+                }
+            } catch (error) {
+                lastError = error;
+            }
+        }
+    }
+
+    if (lastResponse && !lastResponse.ok) {
+        return { ok: false, response: lastResponse, submitResult: null, recovered: false };
+    }
+    throw lastError || new Error('Application submission failed.');
 };
 
 window.APPLICATION_SUBMISSION_TIMEOUT_MS = 310000;

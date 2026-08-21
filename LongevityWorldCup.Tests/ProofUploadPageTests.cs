@@ -429,7 +429,8 @@ public sealed class ProofUploadPageTests
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
 
-        Assert.Contains("const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';", html);
+        Assert.Contains("const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;", html);
+        Assert.Contains("const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';", html);
         Assert.Contains("window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse =>", html);
         Assert.Contains("function isSubmissionAcceptedPaymentFailure(message)", html);
         Assert.Contains("/^Application sent, but failed to create BTCPay invoice:/i.test(message.trim())", html);
@@ -463,7 +464,7 @@ public sealed class ProofUploadPageTests
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
         var handlerStart = html.IndexOf("submitButton.addEventListener('click', async function ()", StringComparison.Ordinal);
-        var handlerEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", handlerStart, StringComparison.Ordinal);
+        var handlerEnd = html.IndexOf("window.submitApplicationWithRecovery(applicantData", handlerStart, StringComparison.Ordinal);
 
         Assert.True(handlerStart >= 0);
         Assert.True(handlerEnd > handlerStart);
@@ -540,7 +541,7 @@ public sealed class ProofUploadPageTests
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
         var applicantStart = html.IndexOf("const applicantData = {", StringComparison.Ordinal);
-        var fetchStart = html.IndexOf("fetchWithTimeout('/api/application/application'", applicantStart, StringComparison.Ordinal);
+        var fetchStart = html.IndexOf("window.submitApplicationWithRecovery(applicantData", applicantStart, StringComparison.Ordinal);
 
         Assert.True(applicantStart >= 0);
         Assert.True(fetchStart > applicantStart);
@@ -549,8 +550,10 @@ public sealed class ProofUploadPageTests
         Assert.Contains("const submissionPayloadKey = window.createApplicationSubmissionPayloadKey(applicantData);", submissionSetup);
         Assert.Contains("const submissionId = window.createApplicationSubmissionId(submissionPayloadKey);", submissionSetup);
         Assert.Contains("applicantData.submissionId = submissionId;", submissionSetup);
-        Assert.Contains("const submissionBody = JSON.stringify(applicantData);", submissionSetup);
-        Assert.Contains("body: submissionBody", html[fetchStart..]);
+        Assert.Contains("window.rememberPendingApplicationSubmission({", submissionSetup);
+        Assert.Contains("payloadFingerprint: submissionPayloadKey", submissionSetup);
+        Assert.Contains("submissionKind: submissionKind", submissionSetup);
+        Assert.Contains("window.submitApplicationWithRecovery(applicantData", html[fetchStart..]);
     }
 
     [Fact]
@@ -561,7 +564,7 @@ public sealed class ProofUploadPageTests
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
         var submitStart = html.IndexOf("const paymentOffer = readAdjustedPendingPaymentOffer();", StringComparison.Ordinal);
-        var submitEnd = html.IndexOf("fetchWithTimeout('/api/application/application'", submitStart, StringComparison.Ordinal);
+        var submitEnd = html.IndexOf("window.submitApplicationWithRecovery(applicantData", submitStart, StringComparison.Ordinal);
 
         Assert.True(submitStart >= 0);
         Assert.True(submitEnd > submitStart);
@@ -694,8 +697,8 @@ public sealed class ProofUploadPageTests
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/proof-upload.html");
-        var successStart = html.IndexOf("customAlert(nextStepMessage).then(() =>", StringComparison.Ordinal);
-        var successEnd = html.IndexOf("});", html.IndexOf("window.location.href = '/review?from=proof-upload';", successStart, StringComparison.Ordinal), StringComparison.Ordinal);
+        var successStart = html.IndexOf("function finishResultSubmission(submitResult, submissionContext)", StringComparison.Ordinal);
+        var successEnd = html.IndexOf("if (window.captureFreePassFromUrl)", successStart, StringComparison.Ordinal);
 
         Assert.True(successStart >= 0);
         Assert.True(successEnd > successStart);
@@ -724,21 +727,26 @@ public sealed class ProofUploadPageTests
         Assert.Contains("if (checkoutLink)", successBody);
         Assert.Contains("if (invoiceId)", successBody);
         Assert.Contains("invoiceId: invoiceId", successBody);
-        Assert.Contains("window.location.href = checkoutLink;", successBody);
-        Assert.Contains("const reviewContactEmail = normalizeContactEmail(applicantData.accountEmail);", successBody);
-        Assert.Contains("rememberAthleteContactEmail(athlete && athlete.Name, reviewContactEmail);", successBody);
+        Assert.Contains("submissionId: submissionId", successBody);
+        Assert.Contains("window.location.replace(checkoutLink);", successBody);
+        Assert.Contains("const reviewContactEmail = normalizeContactEmail(submissionContext.accountEmail);", successBody);
+        Assert.Contains("rememberAthleteContactEmail(applicantName, reviewContactEmail);", successBody);
         Assert.Contains("setSessionItem('contactEmail', reviewContactEmail);", successBody);
         Assert.Contains("setLocalItem('contactEmail', reviewContactEmail);", successBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_OFFER_KEY);", successBody);
         Assert.Contains("setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);", successBody);
         Assert.Contains("setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);", successBody);
-        Assert.Contains("accountEmail: reviewContactEmail || null", successBody);
+        Assert.Contains("accountEmail: reviewContactEmail", successBody);
         Assert.Contains("submissionType: 'result'", successBody);
         Assert.Contains("reviewSource: 'proof-upload'", successBody);
+        Assert.Contains("window.clearPendingApplicationSubmission(submissionId);", successBody);
         Assert.Contains("removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);", successBody);
         Assert.Contains("removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);", successBody);
-        Assert.Contains("setSessionItem(\"came-from\", \"proof-upload\");", successBody);
+        Assert.Contains("setSessionItem('came-from', 'proof-upload');", successBody);
         Assert.Contains("window.location.href = '/review?from=proof-upload';", successBody);
+        Assert.True(
+            successBody.IndexOf("window.location.replace(checkoutLink);", StringComparison.Ordinal)
+            < successBody.IndexOf("customAlert(nextStepMessage).then(() =>", StringComparison.Ordinal));
         Assert.DoesNotContain("window.location.href = submitResult.checkoutLink;", successBody);
         Assert.DoesNotContain("if (submitResult.invoiceId)", successBody);
         Assert.DoesNotContain("invoiceId: submitResult.invoiceId", successBody);

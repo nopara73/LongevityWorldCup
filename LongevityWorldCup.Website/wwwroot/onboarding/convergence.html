@@ -1330,6 +1330,56 @@
                 : null;
         }
 
+        function finishFullApplicationSubmission(submitResult, submissionContext) {
+            const checkoutLink = getCheckoutLink(submitResult);
+            const invoiceId = getInvoiceId(submitResult);
+            const paymentRequired = isPaymentRequired(submitResult);
+            const paymentUnavailable = isPaymentUnavailable(submitResult);
+            const applicantName = submissionContext.applicantName || null;
+            const accountEmail = normalizeContactEmail(submissionContext.accountEmail);
+            const submissionId = submissionContext.submissionId;
+
+            if (applicantName && accountEmail) rememberAthleteContactEmail(applicantName, accountEmail);
+            if (accountEmail) {
+                setSessionItem('contactEmail', accountEmail);
+                setLocalItem('contactEmail', accountEmail);
+            }
+            removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
+            clearCompletedBioageState();
+            profilePic = null;
+            proofPics = [];
+
+            if (checkoutLink) {
+                removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+                removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+                if (invoiceId) {
+                    const pendingInvoiceInfo = JSON.stringify({
+                        invoiceId: invoiceId,
+                        applicantName: applicantName,
+                        accountEmail: accountEmail,
+                        submissionType: 'application',
+                        submissionId: submissionId
+                    });
+                    setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
+                    setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
+                }
+                window.location.replace(checkoutLink);
+                return;
+            }
+
+            window.clearPendingApplicationSubmission(submissionId);
+            removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
+            removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
+            const nextStepMessage = paymentUnavailable
+                ? 'Your application was received, but the payment page could not be created. We will follow up by email.'
+                : paymentRequired
+                    ? 'Your application was received, but the payment page could not be opened. Check your confirmation email.'
+                    : 'Your application was received';
+            customAlert(nextStepMessage).then(() => {
+                window.location.href = '/review';
+            });
+        }
+
         function collectApplicantData() {
             // Get the data from the form fields
             const name = document.getElementById('name').value.trim();
@@ -1722,6 +1772,22 @@
         document.addEventListener('DOMContentLoaded', async function () {
             await waitForPageModules();
 
+            const pendingSubmission = window.getPendingApplicationSubmission('full-application');
+            if (pendingSubmission) {
+                showLoading();
+                try {
+                    const recovered = await window.tryRecoverPendingApplicationSubmission('full-application');
+                    if (recovered) {
+                        hideLoading();
+                        finishFullApplicationSubmission(recovered.submitResult, recovered.pending);
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('Could not recover the pending application submission yet.', error);
+                }
+                hideLoading();
+            }
+
             // Initialize the first stage
             goToStage(currentStage);
             applyFakeDataIfNeeded();
@@ -1995,9 +2061,17 @@
                 // Collect all the data and send it to the backend via an API call
                 const applicantData = collectApplicantData();
                 if (!applicantData) return;
-                const submissionId = window.createApplicationSubmissionId();
                 const submissionKind = 'full-application';
+                const submissionPayloadKey = window.createApplicationSubmissionPayloadKey(applicantData);
+                const submissionId = window.createApplicationSubmissionId(submissionPayloadKey);
                 applicantData.submissionId = submissionId;
+                window.rememberPendingApplicationSubmission({
+                    submissionId: submissionId,
+                    payloadFingerprint: submissionPayloadKey,
+                    submissionKind: submissionKind,
+                    applicantName: applicantData.name,
+                    accountEmail: applicantData.accountEmail
+                });
 
                 // remember this athlete for next time
                 setLocalItem('selectedAthleteName', applicantData.name);
@@ -2012,65 +2086,23 @@
 
                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'started', submissionKind);
 
-                // Send the data via fetch POST request
-                fetchWithTimeout('/api/application/application', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(applicantData)
-                }, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
-                    .then(response => {
+                window.submitApplicationWithRecovery(applicantData, window.APPLICATION_SUBMISSION_TIMEOUT_MS || 180000)
+                    .then(attempt => {
                         hideLoading();
-                        if (response.ok) {
-                            response.json().catch(() => ({})).then(submitResult => {
-                                const checkoutLink = getCheckoutLink(submitResult);
-                                const invoiceId = getInvoiceId(submitResult);
-                                const paymentRequired = isPaymentRequired(submitResult);
-                                const paymentUnavailable = isPaymentUnavailable(submitResult);
-                                const nextStepMessage =
-                                    checkoutLink
-                                        ? 'You\'ll be redirected to the payment page'
-                                        : paymentUnavailable
-                                            ? 'Your application was received, but the payment page could not be created. We will follow up by email.'
-                                        : paymentRequired
-                                            ? 'Your application was received, but the payment page could not be opened. Check your confirmation email.'
-                                            : 'Your application was received';
-                                customAlert(nextStepMessage).then(() => {
-                                    rememberAthleteContactEmail(applicantData.name, applicantData.accountEmail);
-                                    setSessionItem('contactEmail', applicantData.accountEmail);
-                                    setLocalItem('contactEmail', applicantData.accountEmail);
-                                    removeSessionItem(PENDING_PAYMENT_OFFER_KEY);
-                                    clearCompletedBioageState();
-                                    // Clear the image variables
-                                    profilePic = null;
-                                    proofPics = [];
-                                    // Redirect to BTCPay invoice if required, otherwise to review.
-                                    if (checkoutLink) {
-                                        if (invoiceId) {
-                                            const pendingInvoiceInfo = JSON.stringify({
-                                                invoiceId: invoiceId,
-                                                applicantName: applicantData.name || null,
-                                                accountEmail: applicantData.accountEmail || null,
-                                                submissionType: 'application'
-                                            });
-                                            setSessionItem(PENDING_PAYMENT_INVOICE_KEY, pendingInvoiceInfo);
-                                            setLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY, pendingInvoiceInfo);
-                                        }
-                                        window.location.href = checkoutLink;
-                                        return;
-                                    }
-                                    removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
-                                    removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
-                                    window.location.href = '/review';
-                                });
+                        if (attempt.ok && attempt.submitResult) {
+                            finishFullApplicationSubmission(attempt.submitResult, {
+                                submissionId: submissionId,
+                                applicantName: applicantData.name,
+                                accountEmail: applicantData.accountEmail
                             });
                         } else {
-                            const fallbackError = Number.isFinite(response.status) ? `HTTP ${response.status}` : 'Request failed';
+                            const response = attempt.response;
+                            const responseStatus = response && Number.isFinite(response.status) ? response.status : 0;
+                            const fallbackError = responseStatus ? `HTTP ${responseStatus}` : 'Request failed';
                             window.readApplicationErrorMessage(response).catch(() => fallbackError).then(badResponse => {
                                 if (isSubmissionAcceptedPaymentFailure(badResponse)) {
                                     void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'payment-unavailable', submissionKind, {
-                                        type: `HTTP ${response.status}`,
+                                        type: `HTTP ${responseStatus}`,
                                         message: badResponse
                                     });
                                     customAlert('Your application was received, but the payment page could not be created. We will follow up by email.').then(() => {
@@ -2081,6 +2113,7 @@
                                         clearCompletedBioageState();
                                         profilePic = null;
                                         proofPics = [];
+                                        window.clearPendingApplicationSubmission(submissionId);
                                         removeSessionItem(PENDING_PAYMENT_INVOICE_KEY);
                                         removeLocalItem(PENDING_PAYMENT_INVOICE_STORAGE_KEY);
                                         window.location.href = '/review';
@@ -2088,7 +2121,7 @@
                                     return;
                                 }
                                 void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
-                                    type: `HTTP ${response.status}`,
+                                    type: `HTTP ${responseStatus}`,
                                     message: badResponse
                                 });
                                 customAlert(`Failed to submit application. Please try again later.\n\n${badResponse}`).then(() => {
