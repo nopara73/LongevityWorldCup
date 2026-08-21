@@ -46,6 +46,21 @@ public sealed class HomepageLinkAccessibilityTests
     }
 
     [Fact]
+    public async Task ContentSections_HaveStableDeepLinkTargets()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+
+        Assert.Contains("<section id=\"hall-of-fame\" class=\"section-container archive-section\" aria-labelledby=\"hall-of-fame-title\"", html);
+        Assert.Contains("<section id=\"faq\" class=\"section-container homepage-faq-section\" aria-labelledby=\"homepage-faq-title\"", html);
+        Assert.Contains("<section id=\"contribute\" class=\"section-container contribute-section\" aria-labelledby=\"contribute-title\"", html);
+        Assert.Contains("<section id=\"newsletter\" class=\"section-container newsletter-section\" aria-labelledby=\"newsletter-title\"", html);
+        Assert.Contains("<div id=\"donation-section\" class=\"contribute-content\">", html);
+    }
+
+    [Fact]
     public async Task MerchCarousel_OnlyTabsToTheVisibleSlide()
     {
         using var factory = new TestWebApplicationFactory();
