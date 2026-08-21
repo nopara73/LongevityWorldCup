@@ -130,6 +130,106 @@ public sealed class HomepageChromeRegressionBrowserTests
     }
 
     [Fact]
+    public async Task HomepageSectionFooterLinks_AreCenteredWithinTheirSections()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app);
+        var page = await context.NewPageAsync();
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await SettleLayoutAsync(page);
+
+        foreach (var selector in new[]
+                 {
+                     "#hall-of-fame > p",
+                     "#faq .homepage-faq-more"
+                 })
+        {
+            var footer = page.Locator(selector);
+            Assert.Equal("center", await footer.EvaluateAsync<string>("element => getComputedStyle(element).textAlign"));
+
+            var horizontalOffset = await footer.Locator("a").EvaluateAsync<double>(
+                "element => { const link = element.getBoundingClientRect(); const section = element.closest('.section-container').getBoundingClientRect(); return Math.abs((link.left + link.right - section.left - section.right) / 2); }");
+            Assert.InRange(horizontalOffset, 0, 1);
+        }
+    }
+
+    [Fact]
+    public async Task ContributeDeepLink_KeepsTheQrCodeAndAddressInThePreviewViewport()
+    {
+        const string donationAddress = "bc1qpreviewdonationaddress000000000000000000000";
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app);
+        await context.RouteAsync("**/api/bitcoin/donation-address", route =>
+            route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/json",
+                Body = $$"""{"address":"{{donationAddress}}"}"""
+            }));
+        var page = await context.NewPageAsync();
+        await page.SetViewportSizeAsync(1194, 862);
+
+        await page.GotoAsync("/#contribute", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            """
+            expectedAddress => document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'
+                && document.getElementById('eventsStatus')?.textContent === 'Events loaded.'
+                && document.getElementById('btcAddressLink')?.href.includes(expectedAddress)
+                && document.querySelector('.qr-code-img')?.complete
+                && document.querySelector('.qr-code-img')?.naturalWidth > 0
+            """,
+            donationAddress);
+        await page.WaitForTimeoutAsync(1200);
+        await SettleLayoutAsync(page);
+        // Model any late async homepage content that grows above the fragment target.
+        await page.EvaluateAsync(
+            """
+            () => {
+                const simulatedLateContent = document.createElement('div');
+                simulatedLateContent.id = 'simulated-late-homepage-content';
+                simulatedLateContent.style.height = '520px';
+                document.getElementById('contribute').before(simulatedLateContent);
+            }
+            """);
+        await SettleLayoutAsync(page);
+
+        var preview = await page.EvaluateAsync<ContributePreviewDiagnostics>(
+            """
+            () => {
+                const section = document.getElementById('contribute').getBoundingClientRect();
+                const qrCode = document.querySelector('.qr-code-img').getBoundingClientRect();
+                const address = document.querySelector('.btc-address').getBoundingClientRect();
+                return {
+                    Hash: location.hash,
+                    SectionTop: section.top,
+                    QrTop: qrCode.top,
+                    QrBottom: qrCode.bottom,
+                    AddressTop: address.top,
+                    AddressBottom: address.bottom,
+                    ViewportHeight: innerHeight
+                };
+            }
+            """);
+
+        Assert.Equal("#contribute", preview.Hash);
+        Assert.InRange(preview.SectionTop, 0, 80);
+        Assert.InRange(preview.QrTop, 0, preview.ViewportHeight);
+        Assert.InRange(preview.QrBottom, 0, preview.ViewportHeight);
+        Assert.InRange(preview.AddressTop, 0, preview.ViewportHeight);
+        Assert.InRange(preview.AddressBottom, 0, preview.ViewportHeight);
+    }
+
+    [Fact]
     public async Task SharedHeaderBrand_HoverKeepsItsTextColorAndUsesPointerCursor()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -817,6 +917,17 @@ public sealed class HomepageChromeRegressionBrowserTests
         public double LogoNaturalHeight { get; set; }
         public double LogoRenderedAspectRatio { get; set; }
         public double LogoNaturalAspectRatio { get; set; }
+    }
+
+    private sealed class ContributePreviewDiagnostics
+    {
+        public string Hash { get; set; } = "";
+        public double SectionTop { get; set; }
+        public double QrTop { get; set; }
+        public double QrBottom { get; set; }
+        public double AddressTop { get; set; }
+        public double AddressBottom { get; set; }
+        public double ViewportHeight { get; set; }
     }
 
     private sealed class VisibleActionDiagnostics

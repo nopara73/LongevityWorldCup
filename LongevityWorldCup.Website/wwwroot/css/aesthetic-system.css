@@ -359,6 +359,10 @@ html body #lmxParticipantTabs .lmx-tab[aria-selected="true"] {
     text-align: left;
 }
 
+.section-container .homepage-section-footer {
+    text-align: center;
+}
+
 .homepage-faq-grid,
 .contribute-content,
 .newsletter-section form {
