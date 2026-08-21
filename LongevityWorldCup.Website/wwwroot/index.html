@@ -1876,7 +1876,7 @@
                     </div>
                 </div>
             </div>
-            <p style="margin-top: 1.5rem; font-size: 1rem; color: var(--dark-text-color);">
+            <p class="homepage-section-footer">
                 <a href="/history" style="color: var(--primary-color); text-decoration: underline;"><i class="fas fa-book-open" aria-hidden="true"></i> History of longevity as a sport</a>
             </p>
         </section>
@@ -1901,7 +1901,7 @@
                     <p><a href="/play">Submit an application</a> with eligible biomarker results and proof. For full eligibility details, see the <a href="/ruleset">ruleset</a>.</p>
                 </div>
             </div>
-            <p class="homepage-faq-more">
+            <p class="homepage-faq-more homepage-section-footer">
                 <a href="/ruleset#faq"><i class="fas fa-circle-question" aria-hidden="true"></i> Extended FAQ</a>
             </p>
         </section>
@@ -2063,6 +2063,74 @@
             }
         }
 
+        function stabilizeHomepageFragmentTarget() {
+            const requestedHash = window.location.hash;
+            if (!requestedHash || requestedHash === '#') return;
+
+            let targetId;
+            try {
+                targetId = decodeURIComponent(requestedHash.slice(1));
+            } catch (_) {
+                return;
+            }
+
+            const target = document.getElementById(targetId);
+            const main = document.querySelector('main');
+            const section = target ? target.closest('.section-container') : null;
+            if (!target || !main || !section || !main.contains(section)) return;
+
+            let stopped = false;
+            let firstFrame = 0;
+            let secondFrame = 0;
+            let stopTimer = 0;
+            const interactionEvents = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+
+            const alignTarget = function () {
+                firstFrame = 0;
+                secondFrame = 0;
+                if (stopped || window.location.hash !== requestedHash) return;
+                target.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
+            };
+
+            const queueAlignment = function () {
+                if (stopped) return;
+                window.cancelAnimationFrame(firstFrame);
+                window.cancelAnimationFrame(secondFrame);
+                firstFrame = window.requestAnimationFrame(function () {
+                    firstFrame = 0;
+                    secondFrame = window.requestAnimationFrame(alignTarget);
+                });
+            };
+
+            const resizeObserver = typeof ResizeObserver === 'function'
+                ? new ResizeObserver(queueAlignment)
+                : null;
+
+            const stopTracking = function () {
+                if (stopped) return;
+                stopped = true;
+                resizeObserver?.disconnect();
+                window.clearTimeout(stopTimer);
+                window.cancelAnimationFrame(firstFrame);
+                window.cancelAnimationFrame(secondFrame);
+                window.removeEventListener('load', queueAlignment);
+                window.removeEventListener('hashchange', stopTracking);
+                interactionEvents.forEach(eventName => window.removeEventListener(eventName, stopTracking));
+            };
+
+            resizeObserver?.observe(main);
+            window.addEventListener('load', queueAlignment, { once: true });
+            window.addEventListener('hashchange', stopTracking, { once: true });
+            interactionEvents.forEach(eventName =>
+                window.addEventListener(eventName, stopTracking, { once: true, passive: true }));
+
+            queueAlignment();
+            stopTimer = window.setTimeout(function () {
+                alignTarget();
+                stopTracking();
+            }, 5000);
+        }
+
         function placeHomepageHighlightsForVisit() {
             const main = document.querySelector('main');
             if (!isHomepageVisitCounterRoute()) {
@@ -2154,6 +2222,7 @@
             placeHomepageHighlightsForVisit();
             fitHomepageHighlights();
             LoadLeaderboard(true, 10);
+            stabilizeHomepageFragmentTarget();
 
             window.addEventListener('resize', function () {
                 window.clearTimeout(homepageHighlightsResizeTimer);
