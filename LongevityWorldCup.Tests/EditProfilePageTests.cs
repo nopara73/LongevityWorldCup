@@ -542,7 +542,7 @@ public sealed class EditProfilePageTests
         Assert.Contains("isEditProfileSubmitting = true;", handlerBeforeFetch);
         Assert.Contains("submitButton.disabled = true;", handlerBeforeFetch);
         Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
-        Assert.Contains("const alertMessage = 'Change request could not be submitted. Please check your connection and try again.';", html);
+        Assert.Contains("const alertMessage = `Your connection was interrupted. Your change request may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;", html);
         Assert.Contains("message: displayError", html);
         Assert.Contains("submitButton.innerHTML = '<span class=\"flow-action__label\">Submit change request</span><i class=\"fa fa-rocket\" aria-hidden=\"true\"></i>';\n                                    submitButton.focus();", html);
         Assert.Contains("customAlert(alertMessage).then(() => {\n                            isEditProfileSubmitting = false;", html);
