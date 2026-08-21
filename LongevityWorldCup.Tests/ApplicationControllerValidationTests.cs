@@ -1,6 +1,7 @@
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using LongevityWorldCup.Website.Controllers;
+using LongevityWorldCup.Website.Tools;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -987,6 +988,7 @@ public sealed class ApplicationControllerValidationTests
         var freeSubmissionBody = source[paymentStart..invoiceStart];
 
         Assert.Contains("archivedSubmissionPath = await PersistApplicationSubmissionArchiveAsync(zipPath, folderKey, submissionId, ct);", emailBody);
+        Assert.Contains("catch (Exception ex) when (!ct.IsCancellationRequested)", emailBody);
         Assert.Contains("Application submission email failed after archive was saved.", emailBody);
         Assert.Contains("Application submission email failed and archive could not be saved.", emailBody);
         Assert.Contains("return await StatusCodeWithStatsAsync(500, \"application_archive_failed\", \"Internal server error: application could not be saved.\").ConfigureAwait(false);", emailBody);
@@ -1009,6 +1011,59 @@ public sealed class ApplicationControllerValidationTests
 
         var methodBody = source[methodStart..methodEnd];
         Assert.Contains("ExpirationMinutes: BtcpayInvoiceClient.MaximumInvoiceExpirationMinutes", methodBody);
+    }
+
+    [Fact]
+    public async Task ApplicationPayments_TreatBtcpayDependencyCancellationAsUnavailable()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var controller = CreateController(factory, btcpayInvoices: new TimeoutBtcpayInvoiceClient());
+        controller.ControllerContext.HttpContext.Request.Scheme = "https";
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("submit.example.test");
+        var method = typeof(ApplicationController).GetMethod(
+            "CreateBtcpayInvoiceAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        var task = Assert.IsAssignableFrom<Task<(bool Success, string? CheckoutLink, string? InvoiceId, string? Error)>>(method!.Invoke(
+            controller,
+            [
+                new Config
+                {
+                    BTCPayBaseUrl = "https://btcpay.example.test",
+                    BTCPayStoreId = "store",
+                    BTCPayGreenfieldApiKey = "secret-token"
+                },
+                new ApplicantData { Name = "Applicant Ada" },
+                60m,
+                "athlete@example.test",
+                false,
+                false,
+                CancellationToken.None
+            ]));
+
+        var result = await task;
+
+        Assert.False(result.Success);
+        Assert.Null(result.CheckoutLink);
+        Assert.Null(result.InvoiceId);
+        Assert.Equal("BTCPay invoice creation timed out.", result.Error);
+    }
+
+    [Fact]
+    public void ApplicationExternalDependencies_UseThirtySecondTimeouts()
+    {
+        Assert.Equal(
+            TimeSpan.FromSeconds(30),
+            PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout);
+
+        var source = ReadApplicationControllerSource();
+
+        Assert.Contains(
+            "dependencyTimeout.CancelAfter(PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout);",
+            source);
+        Assert.Contains(
+            "client.Timeout = checked((int)PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout.TotalMilliseconds);",
+            source);
     }
 
     [Fact]
@@ -1156,12 +1211,16 @@ public sealed class ApplicationControllerValidationTests
         throw new FileNotFoundException("ApplicationController.cs was not found.");
     }
 
-    private static ApplicationController CreateController(TestWebApplicationFactory factory, SiteStatisticsService? statistics = null)
+    private static ApplicationController CreateController(
+        TestWebApplicationFactory factory,
+        SiteStatisticsService? statistics = null,
+        IBtcpayInvoiceClient? btcpayInvoices = null)
     {
         return new ApplicationController(
             factory.Services.GetRequiredService<IWebHostEnvironment>(),
             NullLogger<ApplicationController>.Instance,
             factory.Services.GetRequiredService<ApplicationSubmissionRetryStore>(),
+            btcpayInvoices: btcpayInvoices,
             statistics: statistics,
             athleteSnapshots: factory.Services.GetRequiredService<IAthleteSnapshotProvider>())
         {
@@ -1194,6 +1253,21 @@ public sealed class ApplicationControllerValidationTests
             Why = "I want to compete, learn, and improve my healthspan.",
             MediaContact = "media@example.test"
         };
+    }
+
+    private sealed class TimeoutBtcpayInvoiceClient : IBtcpayInvoiceClient
+    {
+        public Task<BtcpayInvoiceCreateResult> CreateInvoiceAsync(
+            Config config,
+            BtcpayInvoiceCreateRequest request,
+            CancellationToken ct = default) =>
+            Task.FromException<BtcpayInvoiceCreateResult>(new TaskCanceledException("Simulated BTCPay timeout."));
+
+        public Task<BtcpayInvoiceLookupResult> GetInvoiceAsync(
+            Config config,
+            string invoiceId,
+            CancellationToken ct = default) =>
+            Task.FromResult(BtcpayInvoiceLookupResult.Failure("Not used."));
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

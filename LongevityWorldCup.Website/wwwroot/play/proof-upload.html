@@ -1150,7 +1150,7 @@
                     .catch(error => {
                         hideLoading();
                         const displayError = error && error.message ? error.message : String(error);
-                        const alertMessage = 'Results could not be submitted. Please check your connection and try again.';
+                        const alertMessage = `Your connection was interrupted. Your results may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;
                         void window.trySendApplicationSubmissionReport(applicantData, submissionId, 'failed', submissionKind, {
                             type: error && error.name || 'Error',
                             message: displayError

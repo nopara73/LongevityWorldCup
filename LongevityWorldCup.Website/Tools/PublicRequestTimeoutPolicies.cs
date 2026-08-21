@@ -7,4 +7,5 @@ public static class PublicRequestTimeoutPolicies
     public static readonly TimeSpan PublicWorkTimeout = TimeSpan.FromSeconds(60);
     public static readonly TimeSpan ApplicationSubmissionTimeout = TimeSpan.FromMinutes(5);
     public static readonly TimeSpan ApplicationSubmissionWorkTimeout = TimeSpan.FromSeconds(270);
+    public static readonly TimeSpan ApplicationExternalDependencyTimeout = TimeSpan.FromSeconds(30);
 }

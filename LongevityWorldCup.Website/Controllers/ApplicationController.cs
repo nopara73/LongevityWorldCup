@@ -751,7 +751,7 @@ namespace LongevityWorldCup.Website.Controllers
                     await SendEmailThroughSmtpAsync(config, message, ct);
                     auditEmailDelivered = true;
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+                catch (Exception ex) when (!ct.IsCancellationRequested)
                 {
                     try
                     {
@@ -1348,7 +1348,7 @@ namespace LongevityWorldCup.Website.Controllers
 
                 await SendEmailThroughSmtpAsync(config, message, ct);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex) when (!ct.IsCancellationRequested)
             {
                 _logger.LogWarning(ex, "Failed to send submission confirmation email.");
             }
@@ -1532,7 +1532,7 @@ namespace LongevityWorldCup.Website.Controllers
                 await SendEmailThroughSmtpAsync(config, message, ct);
                 return Ok(new { success = true });
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex) when (!ct.IsCancellationRequested)
             {
                 _logger.LogError(ex, "Failed to send interview request email.");
                 return StatusCode(500, "Failed to send interview request.");
@@ -1708,42 +1708,52 @@ namespace LongevityWorldCup.Website.Controllers
                 RedirectAutomatically: true,
                 ExpirationMinutes: BtcpayInvoiceClient.MaximumInvoiceExpirationMinutes);
 
-            if (_btcpayInvoices is not null)
+            using var dependencyTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            dependencyTimeout.CancelAfter(PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout);
+
+            try
             {
-                var invoiceResult = await _btcpayInvoices.CreateInvoiceAsync(config, invoiceRequest, ct);
-                return (invoiceResult.Success, invoiceResult.CheckoutLink, invoiceResult.InvoiceId, invoiceResult.Error);
+                if (_btcpayInvoices is not null)
+                {
+                    var invoiceResult = await _btcpayInvoices.CreateInvoiceAsync(config, invoiceRequest, dependencyTimeout.Token);
+                    return (invoiceResult.Success, invoiceResult.CheckoutLink, invoiceResult.InvoiceId, invoiceResult.Error);
+                }
+
+                var invoicePayload = BtcpayInvoiceClient.BuildCreateInvoicePayload(invoiceRequest);
+
+                using var client = new HttpClient();
+                var baseUrl = config.BTCPayBaseUrl!.TrimEnd('/');
+                var endpoint = $"{baseUrl}/api/v1/stores/{Uri.EscapeDataString(config.BTCPayStoreId!)}/invoices";
+
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("token", config.BTCPayGreenfieldApiKey);
+
+                var body = JsonSerializer.Serialize(invoicePayload);
+                using var content = new StringContent(body, Encoding.UTF8, "application/json");
+                using var response = await client.PostAsync(endpoint, content, dependencyTimeout.Token);
+                var responseBody = await response.Content.ReadAsStringAsync(dependencyTimeout.Token);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return (false, null, null, BuildBtcpayFailureMessage(response.StatusCode));
+                }
+
+                using var json = JsonDocument.Parse(responseBody);
+                if (!TryGetPropertyString(json.RootElement, "checkoutLink", out var checkoutLink) || string.IsNullOrWhiteSpace(checkoutLink))
+                {
+                    return (false, null, null, "BTCPay response missing checkoutLink.");
+                }
+
+                if (!TryGetPropertyString(json.RootElement, "id", out var invoiceId) || string.IsNullOrWhiteSpace(invoiceId))
+                {
+                    return (false, null, null, "BTCPay response missing invoice id.");
+                }
+
+                return (true, BtcpayInvoiceClient.PreferDefaultPaymentMethod(checkoutLink), invoiceId, null);
             }
-
-            var invoicePayload = BtcpayInvoiceClient.BuildCreateInvoicePayload(invoiceRequest);
-
-            using var client = new HttpClient();
-            var baseUrl = config.BTCPayBaseUrl!.TrimEnd('/');
-            var endpoint = $"{baseUrl}/api/v1/stores/{Uri.EscapeDataString(config.BTCPayStoreId!)}/invoices";
-
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("token", config.BTCPayGreenfieldApiKey);
-
-            var body = JsonSerializer.Serialize(invoicePayload);
-            using var content = new StringContent(body, Encoding.UTF8, "application/json");
-            using var response = await client.PostAsync(endpoint, content, ct);
-            var responseBody = await response.Content.ReadAsStringAsync(ct);
-
-            if (!response.IsSuccessStatusCode)
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
-                return (false, null, null, BuildBtcpayFailureMessage(response.StatusCode));
+                return (false, null, null, "BTCPay invoice creation timed out.");
             }
-
-            using var json = JsonDocument.Parse(responseBody);
-            if (!TryGetPropertyString(json.RootElement, "checkoutLink", out var checkoutLink) || string.IsNullOrWhiteSpace(checkoutLink))
-            {
-                return (false, null, null, "BTCPay response missing checkoutLink.");
-            }
-
-            if (!TryGetPropertyString(json.RootElement, "id", out var invoiceId) || string.IsNullOrWhiteSpace(invoiceId))
-            {
-                return (false, null, null, "BTCPay response missing invoice id.");
-            }
-
-            return (true, BtcpayInvoiceClient.PreferDefaultPaymentMethod(checkoutLink), invoiceId, null);
         }
 
         private string BuildReviewRedirectUrlForCurrentRequest(bool isResultSubmissionOnly, bool isEditSubmissionOnly)
@@ -1918,7 +1928,7 @@ namespace LongevityWorldCup.Website.Controllers
                 await SendEmailThroughSmtpAsync(config, message, ct);
                 return (true, null);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex) when (!ct.IsCancellationRequested)
             {
                 _logger.LogWarning(ex, "Failed to send payment follow-up email for invoice {InvoiceId}", request.InvoiceId);
                 return (false, ex.Message);
@@ -2378,6 +2388,7 @@ namespace LongevityWorldCup.Website.Controllers
             var smtpPassword = GetConfiguredSecret(config.SmtpPassword, "LWC_SMTP_PASSWORD");
 
             using var client = new SmtpClient();
+            client.Timeout = checked((int)PublicRequestTimeoutPolicies.ApplicationExternalDependencyTimeout.TotalMilliseconds);
             await client.ConnectAsync(smtpServer, smtpPort, SecureSocketOptions.StartTls, ct);
 
             if (!string.IsNullOrWhiteSpace(smtpPassword))

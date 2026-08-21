@@ -448,7 +448,7 @@ public sealed class ProofUploadPageTests
         var html = await client.GetStringAsync("/play/proof-upload.html");
 
         Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
-        Assert.Contains("const alertMessage = 'Results could not be submitted. Please check your connection and try again.';", html);
+        Assert.Contains("const alertMessage = `Your connection was interrupted. Your results may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;", html);
         Assert.Contains("message: displayError", html);
         Assert.Contains("customAlert(alertMessage)", html);
         Assert.DoesNotContain("customAlert(`An error occurred:\\n\\n${displayError}`)", html);

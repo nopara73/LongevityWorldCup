@@ -256,7 +256,7 @@ public sealed class ApplicationOnboardingPageTests
         var html = await client.GetStringAsync("/onboarding/convergence.html");
 
         Assert.Contains("const displayError = error && error.message ? error.message : String(error);", html);
-        Assert.Contains("const alertMessage = 'Application could not be submitted. Please check your connection and try again.';", html);
+        Assert.Contains("const alertMessage = `Your connection was interrupted. Your application may have been received. Submission ID: ${submissionId}. Please contact LWC before trying again.`;", html);
         Assert.Contains("message: displayError", html);
         Assert.Contains("customAlert(alertMessage)", html);
         Assert.DoesNotContain("customAlert(`An error occurred while submitting your application:\\n\\n${displayError}`)", html);
