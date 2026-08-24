@@ -6,6 +6,31 @@ namespace LongevityWorldCup.Tests;
 public sealed class HomepageChromeRegressionBrowserTests
 {
     [Fact]
+    public async Task HomepageViewAllAthletesButton_ShowsLoadedAthleteCount()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await NewContextAsync(browser, app);
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            "() => document.getElementById('leaderboardStatus')?.textContent === 'Leaderboard loaded.'");
+
+        var athleteCount = await page.EvaluateAsync<int>(
+            "() => window.getSharedAthletes().then(athletes => athletes.length)");
+        var button = page.Locator("#viewAllAthletesBtn");
+
+        Assert.True(athleteCount > 0);
+        Assert.Equal($"VIEW ALL ATHLETES ({athleteCount})", (await button.InnerTextAsync()).Trim());
+        Assert.Equal("false", await button.GetAttributeAsync("data-use-default-leaderboard-url"));
+    }
+
+    [Fact]
     public async Task LeaderboardPortraits_UseTheOriginalPhotoWhenGeneratedThumbnailsFail()
     {
         await using var app = await BrowserTestApp.StartAsync();

@@ -4331,10 +4331,7 @@
         const currentLoadPromise = window.getSharedAthletes()
             .then(athletes => {
                 // Array to store athletes with their lowest PhenoAge and age reduction
-                var viewAllAthletesBtn = document.getElementById('viewAllAthletesBtn');
-                if (viewAllAthletesBtn) {
-                    updateViewAllAthletesButton(athletes.length);
-                }
+                updateViewAllAthletesButton(athletes.length);
                 const nowForCrowdAgeUtc = new Date();
                 const crowdAgeAsOfUtcDate = new Date(
                     nowForCrowdAgeUtc.getUTCFullYear(),
@@ -6329,8 +6326,14 @@
         }
     }
 
+    function getViewAllAthletesButton() {
+        // This homepage action intentionally lives outside athleteDialogRuntime.
+        // Cross-component controls must bypass the runtime-scoped document proxy.
+        return pageDocument.getElementById('viewAllAthletesBtn');
+    }
+
     function updateViewAllAthletesButton(count) {
-        const button = document.getElementById('viewAllAthletesBtn');
+        const button = getViewAllAthletesButton();
         if (!button) return;
 
         const hasResults = Number.isFinite(count) && count > 0;
@@ -6384,7 +6387,7 @@
     }
 
     window.getFullLeaderboardUrlWithCurrentState = function () {
-        const button = document.getElementById('viewAllAthletesBtn');
+        const button = getViewAllAthletesButton();
         if (button?.dataset.useDefaultLeaderboardUrl === 'true') {
             return '/leaderboard';
         }
