@@ -1,0 +1,28 @@
+{
+  "Name": "Henrik",
+  "DisplayName": null,
+  "MediaContact": "henriksb@pm.me",
+  "DateOfBirth": {
+    "Year": 2000,
+    "Month": 5,
+    "Day": 23
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-07-06",
+      "AlbGL": 43,
+      "CreatUmolL": 86,
+      "GluMmolL": 5.2,
+      "CrpMgL": 1,
+      "LymPc": 11.01,
+      "McvFL": 94,
+      "RdwPc": 13,
+      "AlpUL": 61,
+      "Wbc1000cellsuL": 10.9
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Norway",
+  "Why": "Getting my health back after abusing drugs for several years.",
+  "PersonalLink": "https://henriksb.com"
+}
