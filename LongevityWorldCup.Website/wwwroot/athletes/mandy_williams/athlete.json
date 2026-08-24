@@ -1,0 +1,28 @@
+{
+  "Name": "Mandy Williams",
+  "DisplayName": null,
+  "MediaContact": "merlaunicorn@gmail.com",
+  "DateOfBirth": {
+    "Year": 1975,
+    "Month": 6,
+    "Day": 18
+  },
+  "Biomarkers": [
+    {
+      "Date": "2025-07-07",
+      "AlbGL": 43,
+      "CreatUmolL": 61,
+      "GluMmolL": 3.9,
+      "CrpMgL": 0.16,
+      "LymPc": 44.23,
+      "McvFL": 97.9,
+      "RdwPc": 14.9,
+      "AlpUL": 56,
+      "Wbc1000cellsuL": 4.07
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "United Kingdom",
+  "Why": "Avoiding hospitals amd stayimg strong",
+  "PersonalLink": "https://whop.com/nthdegree"
+}
