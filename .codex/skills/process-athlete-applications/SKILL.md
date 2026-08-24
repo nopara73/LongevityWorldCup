@@ -314,6 +314,10 @@ Draft replies in Gmail, do not send them before approval.
 
 Write athlete-facing replies in a warm, casual, conversational voice. Keep them concise and accurate; avoid stiff support-language, forced slang, or unnecessary formality. Treat the templates below as starting points, not scripts.
 
+Before saving any draft, inspect the prior direct human replies in `expectedThreadId` for an earlier salutation to the athlete. Treat the Gmail thread as one conversation: use `Hi/Hey {name}` only in the first direct human reply in that thread. If a prior human reply already greeted them, start the follow-up with the acknowledgment or substance instead, including security, correction, welcome, and update replies. Template salutations are conditional and never override this rule.
+
+Keep enthusiasm restrained: use at most one brief positive acknowledgment. Do not repeat or stack `great`, `good`, `excellent`, or equivalent praise in the same reply; one natural acknowledgment is enough.
+
 Choose the reply language in this order:
 
 1. If the athlete's `Why` field is clearly written in a language other than English, write the entire reply naturally in that language. This applies to welcome, update, correction-disclosure, and blocked-submission drafts; do not translate only the greeting.
