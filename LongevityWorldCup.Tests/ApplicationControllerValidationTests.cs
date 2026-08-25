@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MimeKit;
 using System.Reflection;
@@ -17,6 +18,30 @@ namespace LongevityWorldCup.Tests;
 
 public sealed class ApplicationControllerValidationTests
 {
+    [Fact]
+    public void FailedSubmissionReport_IsLoggedAsClientWarning()
+    {
+        using var factory = new TestWebApplicationFactory();
+        var logger = new RecordingLogger<ApplicationController>();
+        var controller = CreateController(factory, logger: logger);
+
+        var result = controller.SubmissionReport(new SubmissionReportData
+        {
+            SubmissionId = "test-submission",
+            Phase = "failed",
+            PagePath = "/apply",
+            SubmissionKind = "full-application",
+            ErrorType = "Error",
+            ErrorMessage = "Request timed out"
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+        var warning = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Warning, warning.Level);
+        Assert.Contains("Application submission client report failed.", warning.Message);
+        Assert.DoesNotContain(logger.Entries, entry => entry.Level >= LogLevel.Error);
+    }
+
     [Fact]
     public async Task ApplicationInvalidModelStateReturnsValidationProblemDetails()
     {
@@ -1252,11 +1277,12 @@ public sealed class ApplicationControllerValidationTests
     private static ApplicationController CreateController(
         TestWebApplicationFactory factory,
         SiteStatisticsService? statistics = null,
-        IBtcpayInvoiceClient? btcpayInvoices = null)
+        IBtcpayInvoiceClient? btcpayInvoices = null,
+        ILogger<ApplicationController>? logger = null)
     {
         return new ApplicationController(
             factory.Services.GetRequiredService<IWebHostEnvironment>(),
-            NullLogger<ApplicationController>.Instance,
+            logger ?? NullLogger<ApplicationController>.Instance,
             factory.Services.GetRequiredService<ApplicationSubmissionRetryStore>(),
             btcpayInvoices: btcpayInvoices,
             statistics: statistics,
@@ -1292,6 +1318,27 @@ public sealed class ApplicationControllerValidationTests
             MediaContact = "media@example.test"
         };
     }
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        public List<LogEntry> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add(new LogEntry(logLevel, formatter(state, exception)));
+        }
+    }
+
+    private sealed record LogEntry(LogLevel Level, string Message);
 
     private sealed class TimeoutBtcpayInvoiceClient : IBtcpayInvoiceClient
     {
