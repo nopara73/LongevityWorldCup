@@ -1301,7 +1301,7 @@ namespace LongevityWorldCup.Website.Controllers
 
             if (string.Equals(phase, "failed", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogError(
+                _logger.LogWarning(
                     "Application submission client report failed. SubmissionId={SubmissionId} PagePath={PagePath} SubmissionKind={SubmissionKind} ProofCount={ProofCount} ProofDataUrlLengths={ProofDataUrlLengths} ProfilePicDataUrlLength={ProfilePicDataUrlLength} JsonBodyLength={JsonBodyLength} ErrorType={ErrorType} ErrorMessage={ErrorMessage}",
                     submissionId,
                     pagePath,
