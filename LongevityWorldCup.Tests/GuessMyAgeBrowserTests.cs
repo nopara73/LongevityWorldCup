@@ -1280,13 +1280,23 @@ public sealed class GuessMyAgeBrowserTests
         }
 
         // The exact result is a sustained jackpot, not a single decorative pop.
-        await page.WaitForFunctionAsync(
-            "() => Number(document.querySelector('.gma-exact-confetti-canvas')?.dataset.burstsFired || 0) === 30");
-        var completedWaves = await canvas.EvaluateAsync<double[]>(
-            "element => [Number(element.dataset.activeParticles), Number(element.dataset.totalSpawned)]");
-        Assert.InRange(completedWaves[0], 1, 2_200);
-        Assert.InRange(completedWaves[1], 5_000, 8_500);
-        Assert.Equal("finale", await jackpot.GetAttributeAsync("data-phase"));
+        var completedWavesHandle = await page.WaitForFunctionAsync(
+            """
+            () => {
+                const canvas = document.querySelector('.gma-exact-confetti-canvas');
+                const jackpot = canvas?.closest('.gma-exact-jackpot');
+                if (!jackpot || Number(canvas.dataset.burstsFired || 0) !== 30) return null;
+                return {
+                    activeParticles: Number(canvas.dataset.activeParticles),
+                    totalSpawned: Number(canvas.dataset.totalSpawned),
+                    phase: jackpot.dataset.phase
+                };
+            }
+            """);
+        var completedWaves = await completedWavesHandle.JsonValueAsync<JsonElement>();
+        Assert.InRange(completedWaves.GetProperty("activeParticles").GetInt32(), 1, 2_200);
+        Assert.InRange(completedWaves.GetProperty("totalSpawned").GetInt32(), 5_000, 8_500);
+        Assert.Equal("finale", completedWaves.GetProperty("phase").GetString());
 
         await page.EmulateMediaAsync(new PageEmulateMediaOptions { ReducedMotion = ReducedMotion.Reduce });
         await page.WaitForFunctionAsync(
