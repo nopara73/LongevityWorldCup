@@ -43,16 +43,24 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                     inputStyle.borderTopWidth,
                     inputStyle.outlineStyle,
                     inputStyle.boxShadow,
+                    inputStyle.backgroundColor,
+                    inputStyle.borderRadius,
+                    inputStyle.minHeight,
                     wrapperStyle.borderTopColor,
-                    wrapperStyle.boxShadow
+                    wrapperStyle.boxShadow,
+                    wrapperStyle.backgroundColor
                 ];
             }
             """);
         Assert.Equal("0px", focusStyles[0]);
         Assert.Equal("none", focusStyles[1]);
         Assert.Equal("none", focusStyles[2]);
-        Assert.NotEqual("rgba(0, 0, 0, 0)", focusStyles[3]);
-        Assert.NotEqual("none", focusStyles[4]);
+        Assert.Equal("rgba(0, 0, 0, 0)", focusStyles[3]);
+        Assert.Equal("0px", focusStyles[4]);
+        Assert.Equal("42px", focusStyles[5]);
+        Assert.NotEqual("rgba(0, 0, 0, 0)", focusStyles[6]);
+        Assert.NotEqual("none", focusStyles[7]);
+        Assert.NotEqual("rgba(0, 0, 0, 0)", focusStyles[8]);
 
         var geometry = await search.EvaluateAsync<double[]>(
             """
@@ -64,6 +72,17 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             """);
         Assert.True(geometry[1] >= geometry[0]);
         Assert.True(geometry[2] <= geometry[3]);
+
+        var selectedOptionContentFits = await page.Locator(".lmx-timezone-option[aria-selected=\"true\"]")
+            .EvaluateAsync<bool>(
+                """
+                option => {
+                    const optionRect = option.getBoundingClientRect();
+                    const metadataRect = option.querySelector('small').getBoundingClientRect();
+                    return metadataRect.bottom <= optionRect.bottom;
+                }
+                """);
+        Assert.True(selectedOptionContentFits);
 
         var preferredIds = new[]
         {
