@@ -29,6 +29,12 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             "**/api/longevitymaxxing/state",
             route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
         await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+        var picker = page.Locator("[data-timezone-picker][data-select-id=\"lmxSignupTimeZone\"]");
+        await Assertions.Expect(picker).ToHaveAttributeAsync(
+            "data-wired",
+            "true",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 30_000 });
         await page.Locator("#lmxSignupTimeZoneButton").ClickAsync();
 
         var search = page.Locator("#lmxSignupTimeZoneSearch");
