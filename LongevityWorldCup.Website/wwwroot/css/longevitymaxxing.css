@@ -3167,7 +3167,7 @@ a.lmx-note-mention:focus-visible {
 }
 
 .lmx-checkin-switcher button:focus-visible,
-.lmx-answer-input:focus-visible + span {
+.lmx-answer-input:focus-visible + .lmx-answer-face {
     outline: 3px solid rgba(0, 188, 212, 0.32);
     outline-offset: 2px;
 }
@@ -3466,6 +3466,44 @@ a.lmx-note-mention:focus-visible {
     cursor: pointer;
 }
 
+.lmx-answer-option[data-answer="no"] {
+    --lmx-answer-accent: #dc2626;
+    --lmx-answer-deep: #991b1b;
+    --lmx-answer-soft: 220, 38, 38;
+}
+
+.lmx-answer-option[data-answer="somewhat"] {
+    --lmx-answer-accent: #2563eb;
+    --lmx-answer-deep: #1e40af;
+    --lmx-answer-soft: 37, 99, 235;
+}
+
+.lmx-answer-option[data-answer="yes"] {
+    --lmx-answer-accent: #16a34a;
+    --lmx-answer-deep: #166534;
+    --lmx-answer-soft: 22, 163, 74;
+}
+
+@media (prefers-color-scheme: dark) {
+    .lmx-answer-option[data-answer="no"] {
+        --lmx-answer-accent: var(--lmx-danger);
+        --lmx-answer-deep: var(--lmx-danger);
+        --lmx-answer-soft: 255, 139, 160;
+    }
+
+    .lmx-answer-option[data-answer="somewhat"] {
+        --lmx-answer-accent: #60a5fa;
+        --lmx-answer-deep: #bfdbfe;
+        --lmx-answer-soft: 96, 165, 250;
+    }
+
+    .lmx-answer-option[data-answer="yes"] {
+        --lmx-answer-accent: var(--lmx-success);
+        --lmx-answer-deep: var(--lmx-success);
+        --lmx-answer-soft: 104, 196, 125;
+    }
+}
+
 .lmx-answer-input {
     position: absolute;
     width: 1px;
@@ -3475,7 +3513,7 @@ a.lmx-note-mention:focus-visible {
     pointer-events: none;
 }
 
-.lmx-answer-option span {
+.lmx-answer-option > .lmx-answer-face {
     width: 100%;
     min-height: 100%;
     display: flex;
@@ -3486,8 +3524,6 @@ a.lmx-note-mention:focus-visible {
     border-radius: 8px;
     background: var(--lmx-surface-muted);
     color: var(--lmx-muted);
-    font-size: 0.82rem;
-    font-weight: 900;
     text-align: center;
     transition:
         border-color var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease),
@@ -3496,17 +3532,38 @@ a.lmx-note-mention:focus-visible {
         transform var(--lwc-duration-fast, 140ms) var(--lwc-ease, ease);
 }
 
-.lmx-answer-option:hover span {
-    border-color: var(--lmx-habit-accent);
+.lmx-answer-face-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    display: block;
+    overflow: visible;
+}
+
+.lmx-answer-face-outline,
+.lmx-answer-face-mouth {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.lmx-answer-face-eye {
+    fill: currentColor;
+}
+
+.lmx-answer-option:hover > .lmx-answer-face {
+    border-color: var(--lmx-answer-accent);
     color: var(--lmx-ink);
     transform: translateY(-1px);
 }
 
-.lmx-answer-input:checked + span {
-    border-color: var(--lmx-habit-accent);
-    background: rgba(var(--lmx-habit-soft), 0.12);
-    color: var(--lmx-habit-deep);
-    box-shadow: inset 0 0 0 1px rgba(var(--lmx-habit-soft), 0.16);
+.lmx-answer-input:checked + .lmx-answer-face {
+    border-color: var(--lmx-answer-accent);
+    background: rgba(var(--lmx-answer-soft), 0.12);
+    color: var(--lmx-answer-deep);
+    box-shadow: inset 0 0 0 1px rgba(var(--lmx-answer-soft), 0.16);
 }
 
 .lmx-notes {
@@ -3979,10 +4036,13 @@ a.lmx-note-mention:focus-visible {
         min-height: 8rem;
     }
 
-    .lmx-answer-option span {
+    .lmx-answer-option > .lmx-answer-face {
         padding-inline: 0.1rem;
-        font-size: 0.74rem;
-        white-space: nowrap;
+    }
+
+    .lmx-answer-face-icon {
+        width: 2.35rem;
+        height: 2.35rem;
     }
 
     .lmx-checkin-card > .lmx-button {
@@ -4032,7 +4092,7 @@ a.lmx-note-mention:focus-visible {
     .lmx-plant-node,
     .lmx-plant-leaf,
     .lmx-plant-bud,
-    .lmx-answer-option span {
+    .lmx-answer-option > .lmx-answer-face {
         transition: none;
     }
 }

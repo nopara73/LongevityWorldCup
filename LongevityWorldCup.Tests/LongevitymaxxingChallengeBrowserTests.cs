@@ -714,7 +714,31 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         var answerInputs = dialog.Locator(".lmx-answer-input");
         Assert.Equal(12, await answerInputs.CountAsync());
         Assert.Equal(0, await dialog.Locator(".lmx-answer-input:checked").CountAsync());
-        var answerHeights = await dialog.Locator(".lmx-answer-option span").EvaluateAllAsync<double[]>(
+        var expectedAccessibleLabels = Enumerable.Range(0, 4)
+            .SelectMany(_ => new[] { "No", "Somewhat", "Yes" })
+            .ToArray();
+        Assert.Equal(
+            expectedAccessibleLabels,
+            await answerInputs.EvaluateAllAsync<string[]>(
+                "elements => elements.map(element => element.getAttribute('aria-label'))"));
+        var answerFaces = dialog.Locator(".lmx-answer-face");
+        Assert.Equal(12, await answerFaces.CountAsync());
+        Assert.All(
+            await answerFaces.EvaluateAllAsync<string[]>("elements => elements.map(element => element.textContent.trim())"),
+            Assert.Empty);
+        var answerIcons = dialog.Locator(".lmx-answer-face-icon");
+        Assert.Equal(12, await answerIcons.CountAsync());
+        var answerIconSizes = await answerIcons.EvaluateAllAsync<double[][]>(
+            "elements => elements.map(element => { const box = element.getBoundingClientRect(); return [box.width, box.height]; })");
+        Assert.All(answerIconSizes, size =>
+        {
+            Assert.InRange(size[0], 36, 42);
+            Assert.InRange(size[1], 36, 42);
+        });
+        var answerMouths = await dialog.Locator(".lmx-answer-face-mouth").EvaluateAllAsync<string[]>(
+            "elements => elements.map(element => element.getAttribute('d'))");
+        Assert.Equal(3, answerMouths.Distinct().Count());
+        var answerHeights = await answerFaces.EvaluateAllAsync<double[]>(
             "elements => elements.map(element => element.getBoundingClientRect().height)");
         Assert.All(answerHeights, height => Assert.True(height >= 100, $"Expected a tall answer button; got {height}px."));
 
@@ -726,14 +750,41 @@ public sealed class LongevitymaxxingChallengeBrowserTests
 
         var save = dialog.Locator(".lmx-checkin-card > button[type='submit']");
         Assert.False(await save.IsEnabledAsync());
-        foreach (var key in new[] { "sleep", "exercise", "nutrition" })
+        var selections = new[]
         {
-            await dialog.Locator($".lmx-question[data-key='{key}'] .lmx-answer-option:has(.lmx-answer-input[value='1'])").ClickAsync();
+            (Key: "sleep", Value: "0", Border: "rgb(220, 38, 38)", Text: "rgb(153, 27, 27)"),
+            (Key: "exercise", Value: "1", Border: "rgb(37, 99, 235)", Text: "rgb(30, 64, 175)"),
+            (Key: "nutrition", Value: "2", Border: "rgb(22, 163, 74)", Text: "rgb(22, 101, 52)")
+        };
+        foreach (var selection in selections)
+        {
+            var option = dialog.Locator($".lmx-question[data-key='{selection.Key}'] .lmx-answer-option:has(.lmx-answer-input[value='{selection.Value}'])");
+            await option.ClickAsync();
+            Assert.True(await option.Locator(".lmx-answer-input").IsCheckedAsync());
+            await Assertions.Expect(option.Locator(".lmx-answer-face")).ToHaveCSSAsync("border-color", selection.Border);
+            await Assertions.Expect(option.Locator(".lmx-answer-face")).ToHaveCSSAsync("color", selection.Text);
         }
         Assert.False(await save.IsEnabledAsync());
-        await dialog.Locator(".lmx-question[data-key='vices'] .lmx-answer-option:has(.lmx-answer-input[value='1'])").ClickAsync();
+        var vicesYes = dialog.Locator(".lmx-question[data-key='vices'] .lmx-answer-option:has(.lmx-answer-input[value='2'])");
+        await vicesYes.ClickAsync();
+        Assert.True(await vicesYes.Locator(".lmx-answer-input").IsCheckedAsync());
+        await Assertions.Expect(vicesYes.Locator(".lmx-answer-face")).ToHaveCSSAsync("border-color", "rgb(22, 163, 74)");
+        await Assertions.Expect(vicesYes.Locator(".lmx-answer-face")).ToHaveCSSAsync("color", "rgb(22, 101, 52)");
         Assert.True(await save.IsEnabledAsync());
 
+        await page.EmulateMediaAsync(new PageEmulateMediaOptions { ColorScheme = ColorScheme.Dark });
+        var darkSelections = new[]
+        {
+            (Option: dialog.Locator(".lmx-question[data-key='sleep'] .lmx-answer-option[data-answer='no'] .lmx-answer-face"), Border: "rgb(255, 139, 160)", Text: "rgb(255, 139, 160)"),
+            (Option: dialog.Locator(".lmx-question[data-key='exercise'] .lmx-answer-option[data-answer='somewhat'] .lmx-answer-face"), Border: "rgb(96, 165, 250)", Text: "rgb(191, 219, 254)"),
+            (Option: dialog.Locator(".lmx-question[data-key='nutrition'] .lmx-answer-option[data-answer='yes'] .lmx-answer-face"), Border: "rgb(104, 196, 125)", Text: "rgb(104, 196, 125)"),
+            (Option: vicesYes.Locator(".lmx-answer-face"), Border: "rgb(104, 196, 125)", Text: "rgb(104, 196, 125)")
+        };
+        foreach (var selection in darkSelections)
+        {
+            await Assertions.Expect(selection.Option).ToHaveCSSAsync("border-color", selection.Border);
+            await Assertions.Expect(selection.Option).ToHaveCSSAsync("color", selection.Text);
+        }
         await closeButton.ClickAsync();
         await dialog.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
         Assert.False(await page.Locator("main").EvaluateAsync<bool>("main => main.inert"));
