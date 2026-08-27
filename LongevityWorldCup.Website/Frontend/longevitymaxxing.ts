@@ -73,6 +73,14 @@
     }
 
     interface CheckInFormDraft {
+        sleep: number | null;
+        exercise: number | null;
+        nutrition: number | null;
+        vices: number | null;
+        note: string;
+    }
+
+    interface CompleteCheckInFormDraft {
         sleep: number;
         exercise: number;
         nutrition: number;
@@ -223,11 +231,6 @@
     interface ParticipantNotice {
         message: string;
         isError: boolean;
-    }
-
-    interface ResponsiveLabel {
-        shortLabel: string;
-        longLabel: string;
     }
 
     interface LeaderboardDayWindow {
@@ -642,6 +645,11 @@
     let showInactiveLeaderboard = false;
     let accessTab: AccessTab = "signup";
     let accessLoading = !!accessToken;
+    let checkInDialogRequested = false;
+    let checkInDialogDismissed = false;
+    let checkInDialogReturnFocus: HTMLElement | null = null;
+    let checkInDialogHome: { parent: Node; nextSibling: ChildNode | null } | null = null;
+    let checkInDialogInertStates: Array<{ element: HTMLElement; inert: boolean }> = [];
     let timeZoneCountryCodes: Map<string, string[]> | null = null;
     let regionDisplayNames: Intl.DisplayNames | null = null;
     let callCountdownTimer: number | null = null;
@@ -744,6 +752,7 @@
         initAthleteSelectors();
         wireIdentityControls();
         wireNotePhotoViewer();
+        wireCheckInDialog();
         startCallCountdownTimer();
         if (accessLoading) renderAccessLoading();
 
@@ -1019,6 +1028,8 @@
             if (token.length > 0) {
                 accessToken = token;
                 accessLoading = true;
+                checkInDialogRequested = true;
+                checkInDialogDismissed = false;
                 safeStorageSet(STORAGE_KEY, accessToken);
                 shouldClean = true;
                 renderAccessLoading();
@@ -1116,7 +1127,7 @@
         const state = participantState ? participantState.public : publicState;
         if (!state) return;
 
-        renderMetrics(state);
+        renderBoardSummary(state);
         renderHeroContext(state);
         renderChallengeVisuals(state);
         renderBoard(state);
@@ -1128,6 +1139,8 @@
         } else {
             renderNotes(state.notes || [], false);
         }
+
+        syncCheckInDialog();
 
         scrollBoardToLatestDay();
     }
@@ -1145,15 +1158,10 @@
             </div>`).join("");
     }
 
-    function renderMetrics(state: PublicState): void {
+    function renderBoardSummary(state: PublicState): void {
         const preStartSignup = isPreStartSignup(state);
         const boardRows = splitLeaderboardRows(state);
         const checks = boardRows.active.reduce((sum, row) => sum + row.checkedInDays, 0);
-        const callCount = challengeCallCount(state);
-        setText("lmxMetricPeople", String(boardRows.active.length));
-        setText("lmxMetricChecks", String(checks));
-        setText("lmxMetricMax", String(callCount));
-        setText("lmxMetricPhase", phaseLabel(state.phase));
         setText("lmxHeroStatus", phaseLabel(state.phase));
         const boardSection = document.getElementById("lmxBoardSection");
         if (boardSection) boardSection.classList.toggle("signup-roster", preStartSignup);
@@ -1170,16 +1178,15 @@
         const hasParticipant = !!participantState;
         const preStartSignup = isPreStartSignup(state);
         const dashboardMode = hasParticipant || !preStartSignup;
-        const titlePanel = document.getElementById("lmxTitlePanel");
         const highlights = document.getElementById("lmxHeroHighlights");
         const life = document.getElementById("lmxLifeStrip");
         if (!highlights || !life) return;
-        titlePanel?.classList.toggle("stats-last", !hasParticipant && dashboardMode);
 
         if (!dashboardMode) {
             toggle("lmxHeroStatus", true);
             toggle("lmxHeroMode", true);
             toggle("lmxHeroCopy", true);
+            toggle("lmxHeroHighlights", true);
             toggle("lmxLifeStrip", true);
             setText("lmxHeroMode", `Starts ${formatDateLabel(state.startDate)}`);
             setText("lmxHeroCopy", "The first muscle to train is your mind.");
@@ -1204,19 +1211,13 @@
             toggle("lmxHeroStatus", false);
             toggle("lmxHeroMode", false);
             toggle("lmxHeroCopy", true);
+            toggle("lmxHeroHighlights", false);
             toggle("lmxLifeStrip", true);
             setText("lmxHeroCopy", "The first muscle to train is your mind.");
-            highlights.className = "lmx-benefit-strip lmx-ops-strip";
-            highlights.setAttribute("aria-label", "Challenge status");
-            const boardRows = splitLeaderboardRows(state);
-            const callCount = challengeCallCount(state);
-            highlights.innerHTML = [
-                opsTile("People", boardRows.active.length, "fa-users"),
-                opsTile("Check-ins", boardRows.active.reduce((sum, row) => sum + row.checkedInDays, 0), "fa-list-check"),
-                opsTile(responsiveLabel("Calls", "Community calls"), callCount, "fa-layer-group", "community-calls"),
-                opsTile("", phaseLabel(state.phase), "fa-signal")
-            ].join("");
-            life.className = "lmx-life-strip lmx-ops-status";
+            highlights.className = "lmx-benefit-strip";
+            highlights.removeAttribute("aria-label");
+            highlights.innerHTML = "";
+            life.className = "lmx-life-strip";
             life.setAttribute("aria-label", "Challenge compatibility");
             life.innerHTML = `
                 <span><i class="fas fa-briefcase" aria-hidden="true"></i>Work compatible</span>
@@ -1238,6 +1239,7 @@
         toggle("lmxHeroStatus", true);
         toggle("lmxHeroMode", true);
         toggle("lmxHeroCopy", true);
+        toggle("lmxHeroHighlights", true);
         toggle("lmxLifeStrip", false);
         setText("lmxHeroMode", "You're in");
         setText("lmxHeroCopy", "The first muscle to train is your mind.");
@@ -1251,39 +1253,12 @@
         ].join("");
     }
 
-    function responsiveLabel(shortLabel: string, longLabel: string): ResponsiveLabel {
-        return { shortLabel, longLabel };
-    }
-
-    function opsTile(label: string | ResponsiveLabel, value: string | number, icon: string, modifier = ""): string {
-        const hasLabel = !!String(label || "").trim();
-        const labelHtml = opsTileLabelHtml(label);
-        return `<div class="lmx-ops-tile${hasLabel ? "" : " no-label"}${modifier ? ` ${escAttr(modifier)}` : ""}">
+    function opsTile(label: string, value: string | number, icon: string): string {
+        return `<div class="lmx-ops-tile">
             <i class="fas ${escAttr(icon)}" aria-hidden="true"></i>
-            ${labelHtml}
+            <span class="lmx-ops-label">${esc(label)}</span>
             <strong>${esc(value)}</strong>
         </div>`;
-    }
-
-    function opsTileLabelHtml(label: string | ResponsiveLabel): string {
-        if (label && typeof label === "object") {
-            return `<span class="lmx-ops-label">
-                <span class="lmx-ops-label-short">${esc(label.shortLabel || "")}</span>
-                <span class="lmx-ops-label-long">${esc(label.longLabel || label.shortLabel || "")}</span>
-            </span>`;
-        }
-        return String(label || "").trim() ? `<span class="lmx-ops-label">${esc(label)}</span>` : "";
-    }
-
-    function challengeCallCount(state: PublicState): number {
-        const dayCount = (state?.days || []).length;
-        if (dayCount > 0) return Math.max(1, Math.ceil(dayCount / 7));
-
-        const start = parseIsoDate(state?.startDate);
-        if (!start) return 1;
-
-        const elapsedDays = Math.floor((Date.now() - start.getTime()) / 86400000) + 1;
-        return Math.max(1, Math.ceil(elapsedDays / 7));
     }
 
     function renderChallengeVisuals(state: PublicState): void {
@@ -1447,30 +1422,22 @@
         const isAccessLoading = accessLoading && !hasParticipant;
         const pendingCheckInDays = currentParticipantState ? getPendingCheckInDays(currentParticipantState) : [];
         const activeParticipantTab = currentParticipantState ? ensureParticipantTab(currentParticipantState) : null;
-        const checkInOnly = pendingCheckInDays.length > 0 && activeParticipantTab === "checkin";
-        const participantGateOnly = checkInOnly;
-        const publicContentHidden = checkInOnly;
         const dashboardMode = hasParticipant || !isPreStartSignup(state);
-        const hero = document.getElementById("lmxHeroLayout");
-        if (hero) {
-            hero.classList.toggle("checkin-only", publicContentHidden);
-        }
 
-        toggle("lmxTitlePanel", !publicContentHidden);
+        toggle("lmxTitlePanel", true);
         toggle("lmxAccessTabs", !hasParticipant && !isAccessLoading);
         toggle("lmxSignupPanel", !hasParticipant && !isAccessLoading && accessTab === "signup");
         toggle("lmxAccessLoadingPanel", isAccessLoading);
         toggle("lmxParticipantPanel", hasParticipant);
         toggle("lmxResendPanel", !hasParticipant && !isAccessLoading && accessTab === "signin");
-        toggle("lmxNotesPanel", dashboardMode && !publicContentHidden);
+        toggle("lmxNotesPanel", dashboardMode);
         toggle("lmxSignupIntro", !signupSubmitted);
         toggle("lmxSignupDonePanel", signupSubmitted);
         toggle("lmxHabitHeading", !hasParticipant);
         toggle("lmxHabitGrid", !hasParticipant);
         toggle("lmxQuestionPreview", !hasParticipant || pendingCheckInDays.length > 0);
-        toggle("lmxTrack", hasParticipant && dashboardMode && !participantGateOnly);
-        toggle("lmxMetrics", hasParticipant && dashboardMode && !participantGateOnly);
-        toggle("lmxBoardSection", !publicContentHidden);
+        toggle("lmxTrack", hasParticipant && dashboardMode);
+        toggle("lmxBoardSection", true);
         toggle("lmxParticipantTabs", hasParticipant);
         toggle("lmxCheckinPanel", hasParticipant && activeParticipantTab === "checkin");
         toggle("lmxEditForm", hasParticipant && activeParticipantTab === "profile");
@@ -1504,6 +1471,131 @@
         toggle("lmxResendPanel", false);
         toggle("lmxParticipantPanel", false);
         toggle("lmxAccessLoadingPanel", true);
+    }
+
+    function wireCheckInDialog(): void {
+        const panel = requiredElement("lmxParticipantPanel", HTMLElement);
+        const closeButton = requiredButton("lmxCheckinDialogClose");
+        const backdrop = requiredElement("lmxCheckinDialogBackdrop", HTMLElement);
+
+        closeButton.addEventListener("click", () => closeCheckInDialog(true));
+        backdrop.addEventListener("click", () => closeCheckInDialog(true));
+        panel.addEventListener("keydown", event => {
+            if (!panel.classList.contains("lmx-checkin-dialog-panel")) return;
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeCheckInDialog(true);
+                return;
+            }
+            if (event.key !== "Tab") return;
+
+            const focusable = getDialogFocusableElements(panel);
+            if (!focusable.length) {
+                event.preventDefault();
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus({ preventScroll: true });
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus({ preventScroll: true });
+            }
+        });
+    }
+
+    function syncCheckInDialog(): void {
+        const currentParticipantState = participantState;
+        const shouldOpen = !!currentParticipantState
+            && checkInDialogRequested
+            && !checkInDialogDismissed
+            && getPendingCheckInDays(currentParticipantState).length > 0
+            && ensureParticipantTab(currentParticipantState) === "checkin";
+
+        if (shouldOpen) {
+            openCheckInDialog();
+        } else {
+            closeCheckInDialog(false, false);
+        }
+    }
+
+    function openCheckInDialog(): void {
+        const panel = requiredElement("lmxParticipantPanel", HTMLElement);
+        if (panel.classList.contains("lmx-checkin-dialog-panel")) return;
+
+        const backdrop = requiredElement("lmxCheckinDialogBackdrop", HTMLElement);
+        const closeButton = requiredButton("lmxCheckinDialogClose");
+        const parent = panel.parentNode;
+        if (!parent) return;
+
+        checkInDialogHome = { parent, nextSibling: panel.nextSibling };
+        checkInDialogReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        document.body.appendChild(panel);
+        panel.classList.add("lmx-checkin-dialog-panel");
+        panel.setAttribute("role", "dialog");
+        panel.setAttribute("aria-modal", "true");
+        panel.setAttribute("aria-label", "Daily check-in");
+        closeButton.hidden = false;
+        backdrop.hidden = false;
+        document.documentElement.classList.add("lmx-checkin-dialog-open");
+        document.body.classList.add("lmx-checkin-dialog-open");
+        setCheckInDialogPageInert(panel, backdrop, true);
+        panel.scrollTop = 0;
+        closeButton.focus({ preventScroll: true });
+    }
+
+    function closeCheckInDialog(dismissed: boolean, restoreFocus = true): void {
+        if (dismissed) checkInDialogDismissed = true;
+
+        const panel = document.getElementById("lmxParticipantPanel");
+        const backdrop = document.getElementById("lmxCheckinDialogBackdrop");
+        const wasOpen = !!panel?.classList.contains("lmx-checkin-dialog-panel");
+        if (!panel || !wasOpen) return;
+
+        panel.classList.remove("lmx-checkin-dialog-panel");
+        panel.removeAttribute("role");
+        panel.removeAttribute("aria-modal");
+        panel.removeAttribute("aria-label");
+        const closeButton = optionalElement("lmxCheckinDialogClose", HTMLButtonElement);
+        if (closeButton) closeButton.hidden = true;
+        if (backdrop) backdrop.hidden = true;
+        document.documentElement.classList.remove("lmx-checkin-dialog-open");
+        document.body.classList.remove("lmx-checkin-dialog-open");
+
+        const home = checkInDialogHome;
+        if (home) {
+            const nextSibling = home.nextSibling?.parentNode === home.parent ? home.nextSibling : null;
+            home.parent.insertBefore(panel, nextSibling);
+        }
+        checkInDialogHome = null;
+        setCheckInDialogPageInert(panel, backdrop, false);
+
+        const returnFocus = checkInDialogReturnFocus;
+        checkInDialogReturnFocus = null;
+        if (restoreFocus && returnFocus?.isConnected) {
+            requestAnimationFrame(() => returnFocus.focus({ preventScroll: true }));
+        }
+    }
+
+    function setCheckInDialogPageInert(panel: HTMLElement, backdrop: HTMLElement | null, inert: boolean): void {
+        if (inert) {
+            if (checkInDialogInertStates.length) return;
+            checkInDialogInertStates = Array.from(document.body.children)
+                .filter((element): element is HTMLElement => element instanceof HTMLElement && element !== panel && element !== backdrop)
+                .map(element => ({ element, inert: element.inert }));
+            checkInDialogInertStates.forEach(state => {
+                state.element.inert = true;
+            });
+            return;
+        }
+
+        checkInDialogInertStates.forEach(state => {
+            state.element.inert = state.inert;
+        });
+        checkInDialogInertStates = [];
     }
 
     function renderParticipant(state: ParticipantState): void {
@@ -2167,25 +2259,13 @@
                 renderCheckIns(orderedDays, containerId, recentRemarks);
             });
         });
-        container.querySelectorAll<HTMLInputElement>(".lmx-lever-input").forEach(input => {
-            const update = () => {
+        container.querySelectorAll<HTMLInputElement>(".lmx-answer-input").forEach(input => {
+            input.addEventListener("change", () => {
+                if (!input.checked) return;
                 const question = input.closest<HTMLElement>(".lmx-question");
                 if (question) syncGrowthControl(question, clampHabitValue(Number(input.value)));
                 const form = input.closest<HTMLFormElement>("form");
                 if (form) updateCheckInSaveState(form);
-            };
-            input.addEventListener("input", update);
-            input.addEventListener("change", update);
-            update();
-        });
-        container.querySelectorAll<HTMLElement>(".lmx-lever-label[data-value]").forEach(label => {
-            label.addEventListener("click", () => {
-                const lever = label.closest<HTMLElement>(".lmx-lever");
-                const input = lever?.querySelector<HTMLInputElement>(".lmx-lever-input");
-                if (!input) return;
-                input.value = String(clampHabitValue(Number(label.dataset.value)));
-                input.dispatchEvent(new Event("input", { bubbles: true }));
-                input.focus({ preventScroll: true });
             });
         });
         container.querySelectorAll<HTMLFormElement>("form").forEach(form => {
@@ -2232,7 +2312,7 @@
                 const isActive = day.challengeDay === activeDay.challengeDay;
                 const status = day.existing ? "Saved" : "Due";
                 return `<button type="button" data-day="${day.challengeDay}" aria-pressed="${isActive ? "true" : "false"}">
-                    <strong>Day ${day.challengeDay}</strong>
+                    <strong>${esc(checkInDayLabel(day))}</strong>
                     <span>${esc(formatShortDateLabel(day.date))}</span>
                     <em>${status}</em>
                 </button>`;
@@ -2264,30 +2344,30 @@
         const questions = QUESTIONS.map(q => {
             const savedValue = existing[q.key];
             const originalValue = typeof savedValue === "number" ? clampHabitValue(savedValue) : null;
-            const current = typeof savedValue === "number" ? savedValue : 1;
+            const current = typeof savedValue === "number" ? clampHabitValue(savedValue) : null;
             const evidence = lifetimeHabitEvidence(q.key);
-            const labels = ANSWERS.map(answer => `<span class="lmx-lever-label${answer.value === current ? " selected" : ""}" data-value="${answer.value}">${answer.label}</span>`).join("");
+            const answerName = `lmx-answer-${day.challengeDay}-${q.key}`;
+            const answers = ANSWERS.map(answer => `<label class="lmx-answer-option">
+                <input class="lmx-answer-input" type="radio" name="${answerName}" value="${answer.value}"${answer.value === current ? " checked" : ""} required>
+                <span>${answer.label}</span>
+            </label>`).join("");
             return `<div class="lmx-question" data-key="${q.key}">
                 <div class="lmx-question-label">${habitQuestionIconHtml(q.key)}<span>${q.text}</span></div>
                 <div class="lmx-growth-control">
                     ${habitPlantHtml(q, evidence, current, originalValue, day.challengeDay)}
-                    <div class="lmx-lever" data-value="${current}">
-                        <div class="lmx-lever-control">
-                            <span class="lmx-lever-rail" aria-hidden="true"><i></i><i></i><i></i></span>
-                            <input class="lmx-lever-input" type="range" min="0" max="2" step="1" value="${current}" aria-label="${escAttr(q.text)}" aria-valuetext="${escAttr(answerLabel(current))}">
-                        </div>
-                        <div class="lmx-lever-labels" aria-hidden="true">${labels}</div>
+                    <div class="lmx-answer-options" role="radiogroup" aria-label="${escAttr(q.text)}">
+                        ${answers}
                     </div>
                 </div>
             </div>`;
         }).join("");
 
         const originalAttrs = QUESTIONS
-            .map(q => `data-original-${q.key}="${typeof existing[q.key] === "number" ? existing[q.key] : 1}"`)
+            .map(q => `data-original-${q.key}="${typeof existing[q.key] === "number" ? existing[q.key] : ""}"`)
             .join(" ");
 
         return `<form class="lmx-checkin-card" data-day="${day.challengeDay}" data-saved="${hasExisting ? "true" : "false"}" ${originalAttrs} data-original-note="${escAttr(note)}">
-            <h3>Day ${day.challengeDay} <span class="lmx-phase">${practice ? `Practice check-in - ${esc(formatCheckInDate(day.date))}` : esc(formatCheckInDate(day.date))}</span></h3>
+            <h3><span data-check-in-day-label>${esc(checkInDayLabel(day))}</span> <span class="lmx-phase">${practice ? `Practice check-in - ${esc(formatCheckInDate(day.date))}` : esc(formatCheckInDate(day.date))}</span></h3>
             ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
             ${questions}
             <div class="lmx-field lmx-mention-field">
@@ -2308,7 +2388,7 @@
                 </div>
                 <div class="lmx-note-photo-grid pending" data-photo-previews></div>
             </div>
-            <button class="lmx-button" type="submit"${hasExisting ? " disabled" : ""}>
+            <button class="lmx-button" type="submit" disabled>
                 <i class="fas fa-check" aria-hidden="true"></i>
                 Save
             </button>
@@ -2609,10 +2689,6 @@
         return (row?.cells || []).filter(cell => cell.checkedIn).length;
     }
 
-    function answerLabel(value: number): string {
-        return ANSWERS.find(answer => answer.value === clampHabitValue(value))?.label || "Somewhat";
-    }
-
     function applyGardenAnswer(vitality: number, answer: number): number {
         const current = Math.max(0, Math.min(1, Number(vitality) || 0));
         const value = clampHabitValue(answer);
@@ -2661,11 +2737,13 @@
 
     function projectedPlantState(
         evidence: GardenHabitState,
-        preview: number,
+        preview: number | null,
         originalValue: number | null,
         key: HabitKey,
         challengeDay: number
     ): PlantProjection {
+        if (preview === null) return { ...evidence };
+
         const historyProjection = projectedHistoryPlantState(key, challengeDay, preview);
         if (historyProjection) return historyProjection;
 
@@ -2729,10 +2807,7 @@
 
     function syncGrowthControl(question: HTMLElement, value: number): void {
         const current = clampHabitValue(value);
-        const lever = question.querySelector<HTMLElement>(".lmx-lever");
         const plant = question.querySelector<HTMLElement>(".lmx-plant");
-        const input = question.querySelector<HTMLInputElement>(".lmx-lever-input");
-        if (lever) lever.dataset.value = String(current);
         if (plant) {
             const key = question.dataset.key as HabitKey;
             const challengeDay = Math.max(1, Math.trunc(Number(plant.dataset.challengeDay) || 1));
@@ -2773,16 +2848,12 @@
             const title = QUESTIONS.find(item => item.key === key)?.title || "Habit";
             plant.setAttribute("aria-label", plantAriaLabel(title, projection, current));
         }
-        if (input) input.setAttribute("aria-valuetext", answerLabel(current));
-        question.querySelectorAll<HTMLElement>(".lmx-lever-label[data-value]").forEach(label => {
-            label.classList.toggle("selected", Number(label.dataset.value) === current);
-        });
     }
 
     function habitPlantHtml(
         question: ChallengeQuestion,
         evidence: GardenHabitState,
-        preview: number,
+        preview: number | null,
         originalValue: number | null,
         challengeDay: number
     ): string {
@@ -2840,7 +2911,7 @@
         const originalAttribute = originalValue === null ? "" : String(originalValue);
         const vitality = projection.vitality.toFixed(4);
 
-        return `<figure id="${plantId}" class="lmx-plant" data-challenge-day="${challengeDay}" data-yes-count="${evidence.yesCount}" data-no-count="${evidence.noCount}" data-base-vitality="${evidence.vitality.toFixed(4)}" data-original-value="${originalAttribute}" data-projected-yes="${projection.yesCount}" data-projected-no="${projection.noCount}" data-preview="${preview}" data-vitality="${vitality}" data-vitality-band="${vitalityBand(projection.vitality)}" data-leaf-count="${leafCount}" style="--lmx-plant-vitality: ${vitality}; --lmx-plant-scale: ${(0.18 + (projection.vitality * 0.82)).toFixed(4)}; --lmx-trunk-opacity: ${(0.16 + (projection.vitality * 0.84)).toFixed(4)}; --lmx-canopy-opacity: ${(0.02 + (projection.vitality * 0.23)).toFixed(4)}; --lmx-plant-stem-width: ${species.stemWidth}" role="img" aria-label="${escAttr(plantAriaLabel(question.title, projection, preview))}">
+        return `<figure id="${plantId}" class="lmx-plant" data-challenge-day="${challengeDay}" data-yes-count="${evidence.yesCount}" data-no-count="${evidence.noCount}" data-base-vitality="${evidence.vitality.toFixed(4)}" data-original-value="${originalAttribute}" data-projected-yes="${projection.yesCount}" data-projected-no="${projection.noCount}" data-preview="${preview === null ? "" : preview}" data-vitality="${vitality}" data-vitality-band="${vitalityBand(projection.vitality)}" data-leaf-count="${leafCount}" style="--lmx-plant-vitality: ${vitality}; --lmx-plant-scale: ${(0.18 + (projection.vitality * 0.82)).toFixed(4)}; --lmx-trunk-opacity: ${(0.16 + (projection.vitality * 0.84)).toFixed(4)}; --lmx-canopy-opacity: ${(0.02 + (projection.vitality * 0.23)).toFixed(4)}; --lmx-plant-stem-width: ${species.stemWidth}" role="img" aria-label="${escAttr(plantAriaLabel(question.title, projection, preview))}">
             <svg class="lmx-plant-visual" viewBox="0 0 120 128" aria-hidden="true" focusable="false">
                 <defs>
                     <linearGradient id="${plantId}-pot" x1="0" x2="1" y1="0" y2="1">
@@ -2865,7 +2936,10 @@
         </figure>`;
     }
 
-    function plantAriaLabel(title: string, projection: PlantProjection, preview: number): string {
+    function plantAriaLabel(title: string, projection: PlantProjection, preview: number | null): string {
+        if (preview === null) {
+            return `${title} plant vitality ${Math.round(projection.vitality * 100)} percent from ${gardenCheckedInDays()} saved check-ins. No answer selected yet.`;
+        }
         const current = clampHabitValue(preview);
         const previewText = current === 2
             ? "The selected Yes previews added growth."
@@ -3302,7 +3376,7 @@
         </div>`;
     }
 
-    function selectQuoteBucket(draft: CheckInFormDraft): QuoteBucket | null {
+    function selectQuoteBucket(draft: CompleteCheckInFormDraft): QuoteBucket | null {
         const values = QUESTIONS.map(question => ({
             key: question.key,
             value: clampHabitValue(draft?.[question.key])
@@ -3356,6 +3430,7 @@
     }
 
     function showCheckInQuoteDialog(quote: CheckInQuote, bestRank: QuoteRankCandidateInput | null, token: string): void {
+        closeCheckInDialog(false, false);
         const dialog = ensureCheckInQuoteDialog();
         const text = dialog.querySelector("#lmxQuoteDialogText");
         const source = dialog.querySelector("#lmxQuoteDialogSource");
@@ -3456,6 +3531,7 @@
         } catch (_) {
         }
         quoteDialogLastFocus = null;
+        syncCheckInDialog();
     }
 
     function renderCheckInQuoteSourceHtml(quote: CheckInQuote, bestRank: QuoteRankCandidateInput | null): string {
@@ -3523,8 +3599,13 @@
         if (!accessToken) return;
         const currentAccessToken = accessToken;
         if (!hasCheckInChanged(form)) return;
+        const draft = collectCheckInDraft(form);
+        if (!isCompleteCheckInDraft(draft)) {
+            updateCheckInSaveState(form);
+            form.querySelector<HTMLInputElement>(".lmx-question:not(:has(.lmx-answer-input:checked)) .lmx-answer-input")?.focus();
+            return;
+        }
         await withButton(form.querySelector<HTMLButtonElement>("button[type='submit']"), async () => {
-            const draft = collectCheckInDraft(form);
             const quoteBucket = selectQuoteBucket(draft);
             const notePhotos = getPendingNotePhotos(form);
             const payload: CheckInPayload = {
@@ -3570,9 +3651,9 @@
     }
 
     function collectCheckInDraft(form: HTMLFormElement): CheckInFormDraft {
-        const readHabit = (key: HabitKey): number => {
-            const input = form.querySelector<HTMLInputElement>(`.lmx-question[data-key="${key}"] .lmx-lever-input`);
-            return clampHabitValue(Number(input?.value ?? 1));
+        const readHabit = (key: HabitKey): number | null => {
+            const input = form.querySelector<HTMLInputElement>(`.lmx-question[data-key="${key}"] .lmx-answer-input:checked`);
+            return input ? clampHabitValue(Number(input.value)) : null;
         };
         const draft: CheckInFormDraft = {
             note: form.querySelector<HTMLTextAreaElement>("textarea")?.value.trim() || "",
@@ -3584,10 +3665,15 @@
         return draft;
     }
 
+    function isCompleteCheckInDraft(draft: CheckInFormDraft): draft is CompleteCheckInFormDraft {
+        return QUESTIONS.every(question => typeof draft[question.key] === "number");
+    }
+
     function hasCheckInChanged(form: HTMLFormElement): boolean {
         if (!form || form.dataset.saved !== "true") return true;
 
         const draft = collectCheckInDraft(form);
+        if (!isCompleteCheckInDraft(draft)) return false;
         if (getPendingNotePhotos(form).length > 0) return true;
         if ((form.dataset.originalNote || "") !== draft.note) return true;
 
@@ -3599,9 +3685,10 @@
 
         const button = form.querySelector<HTMLButtonElement>("button[type='submit']");
         const status = form.querySelector(".lmx-status");
+        const complete = isCompleteCheckInDraft(collectCheckInDraft(form));
         const changed = hasCheckInChanged(form);
 
-        if (button) button.disabled = !changed;
+        if (button) button.disabled = !complete || !changed;
         if (status && form.dataset.saved === "true") {
             status.textContent = changed ? "" : SAVED_CHECKIN_TEXT;
             status.classList.remove("error");
@@ -5385,6 +5472,29 @@
         const date = parseIsoDate(value);
         if (!date) return value || "";
         return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }).format(date);
+    }
+
+    function checkInDayLabel(day: EligibleDay): string {
+        const today = isoDateInTimeZone(new Date(), getParticipantTimeZone());
+        return day.date === datePlusDays(today, -1) ? "Yesterday" : `Day ${day.challengeDay}`;
+    }
+
+    function isoDateInTimeZone(date: Date, timeZoneId: string): string {
+        try {
+            const parts = new Intl.DateTimeFormat("en-US", {
+                timeZone: timeZoneId,
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit"
+            }).formatToParts(date);
+            const read = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value || "";
+            const year = read("year");
+            const month = read("month");
+            const day = read("day");
+            if (year && month && day) return `${year}-${month}-${day}`;
+        } catch (_) {
+        }
+        return date.toISOString().slice(0, 10);
     }
 
     function formatCheckInDate(value: string): string {

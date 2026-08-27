@@ -61,23 +61,6 @@
                         <span>Days</span>
                     </div>
                 </div>
-                <div id="lmxMetrics" class="lmx-metrics lmx-hidden" aria-label="Challenge snapshot">
-                    <div class="lmx-metric">
-                        <strong id="lmxMetricPeople">0</strong>
-                        <span>people</span>
-                    </div>
-                    <div class="lmx-metric">
-                        <strong id="lmxMetricChecks">0</strong>
-                        <span>check-ins</span>
-                    </div>
-                    <div class="lmx-metric">
-                        <strong id="lmxMetricMax">1</strong>
-                        <span>Calls</span>
-                    </div>
-                    <div class="lmx-metric phase-only">
-                        <strong id="lmxMetricPhase">...</strong>
-                    </div>
-                </div>
             </div>
 
             <aside class="lmx-card lmx-action-card" aria-live="polite">
@@ -190,6 +173,7 @@
                 </div>
 
                 <div id="lmxParticipantPanel" class="lmx-participant-actions lmx-hidden">
+                    <button id="lmxCheckinDialogClose" class="lmx-checkin-dialog-close" type="button" aria-label="Close check-in" hidden>&times;</button>
                     <div class="lmx-card-head">
                         <span id="lmxParticipantKicker" class="lmx-mini-label">check-in</span>
                         <h2 id="lmxParticipantTitle">Check in</h2>
@@ -312,6 +296,8 @@
         </section>
     </section>
 </main>
+
+<div id="lmxCheckinDialogBackdrop" class="lmx-checkin-dialog-backdrop" aria-hidden="true" hidden></div>
 
 <!--FOOTER-->
 <script src="{{ASSET_LONGEVITYMAXXING_JS}}" defer></script>
