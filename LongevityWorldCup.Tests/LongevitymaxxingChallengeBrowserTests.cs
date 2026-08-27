@@ -8,6 +8,126 @@ namespace LongevityWorldCup.Tests;
 public sealed class LongevitymaxxingChallengeBrowserTests
 {
     [Fact]
+    public async Task TimeZonePicker_NormalizesBrowserAliasesAndUsesOneFocusBoundary()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 450, Height = 800 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        await page.RouteAsync(
+            "**/api/longevitymaxxing/state",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator("#lmxSignupTimeZoneButton").ClickAsync();
+
+        var search = page.Locator("#lmxSignupTimeZoneSearch");
+        await search.WaitForAsync();
+        await search.FocusAsync();
+        var focusStyles = await search.EvaluateAsync<string[]>(
+            """
+            input => {
+                const inputStyle = getComputedStyle(input);
+                const wrapperStyle = getComputedStyle(input.closest('.lmx-timezone-search'));
+                return [
+                    inputStyle.borderTopWidth,
+                    inputStyle.outlineStyle,
+                    inputStyle.boxShadow,
+                    wrapperStyle.borderTopColor,
+                    wrapperStyle.boxShadow
+                ];
+            }
+            """);
+        Assert.Equal("0px", focusStyles[0]);
+        Assert.Equal("none", focusStyles[1]);
+        Assert.Equal("none", focusStyles[2]);
+        Assert.NotEqual("rgba(0, 0, 0, 0)", focusStyles[3]);
+        Assert.NotEqual("none", focusStyles[4]);
+
+        var geometry = await search.EvaluateAsync<double[]>(
+            """
+            input => {
+                const inputRect = input.getBoundingClientRect();
+                const wrapperRect = input.closest('.lmx-timezone-search').getBoundingClientRect();
+                return [wrapperRect.left, inputRect.left, inputRect.right, wrapperRect.right];
+            }
+            """);
+        Assert.True(geometry[1] >= geometry[0]);
+        Assert.True(geometry[2] <= geometry[3]);
+
+        var preferredIds = new[]
+        {
+            "Africa/Asmara",
+            "America/Argentina/Buenos_Aires",
+            "America/Argentina/Catamarca",
+            "America/Atikokan",
+            "America/Argentina/Cordoba",
+            "America/Nuuk",
+            "America/Indiana/Indianapolis",
+            "America/Argentina/Jujuy",
+            "America/Kentucky/Louisville",
+            "America/Argentina/Mendoza",
+            "Asia/Kolkata",
+            "Asia/Kathmandu",
+            "Asia/Yangon",
+            "Asia/Ho_Chi_Minh",
+            "Atlantic/Faroe",
+            "Europe/Kyiv",
+            "Pacific/Kanton",
+            "Pacific/Pohnpei",
+            "Pacific/Chuuk"
+        };
+        var legacyIds = new[]
+        {
+            "Africa/Asmera",
+            "America/Buenos_Aires",
+            "America/Catamarca",
+            "America/Coral_Harbour",
+            "America/Cordoba",
+            "America/Godthab",
+            "America/Indianapolis",
+            "America/Jujuy",
+            "America/Louisville",
+            "America/Mendoza",
+            "Asia/Calcutta",
+            "Asia/Katmandu",
+            "Asia/Rangoon",
+            "Asia/Saigon",
+            "Atlantic/Faeroe",
+            "Europe/Kiev",
+            "Pacific/Enderbury",
+            "Pacific/Ponape",
+            "Pacific/Truk"
+        };
+        var zoneValues = await page.Locator("#lmxSignupTimeZone option")
+            .EvaluateAllAsync<string[]>("options => options.map(option => option.value)");
+        Assert.Equal(zoneValues.Length, zoneValues.Distinct(StringComparer.Ordinal).Count());
+        Assert.All(preferredIds, preferredId => Assert.Contains(preferredId, zoneValues));
+        Assert.All(legacyIds, legacyId => Assert.DoesNotContain(legacyId, zoneValues));
+
+        var labelsWithoutCountries = await page.Locator(".lmx-timezone-option span")
+            .EvaluateAllAsync<string[]>(
+                "labels => labels.map(label => label.textContent.trim()).filter(label => label !== 'UTC' && !label.includes(', '))");
+        Assert.Empty(labelsWithoutCountries);
+
+        await search.FillAsync("Vietnam");
+        var vietnamOption = page.Locator(".lmx-timezone-option");
+        await Assertions.Expect(vietnamOption).ToHaveCountAsync(1);
+        await Assertions.Expect(vietnamOption).ToHaveAttributeAsync("data-time-zone", "Asia/Ho_Chi_Minh");
+        await Assertions.Expect(vietnamOption.Locator("span")).ToHaveTextAsync("Ho Chi Minh, Vietnam");
+    }
+
+    [Fact]
     public async Task ChallengeContent_UsesReadableSemanticColorsInLightAndDarkThemes()
     {
         await using var app = await BrowserTestApp.StartAsync();

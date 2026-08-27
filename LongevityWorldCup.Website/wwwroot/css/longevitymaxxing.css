@@ -1614,6 +1614,8 @@
 }
 
 .lmx-timezone-search input {
+    width: 100%;
+    min-width: 0;
     min-height: 42px;
     padding: 0;
     border: 0;
@@ -1621,6 +1623,7 @@
     font: inherit;
     color: var(--lmx-ink);
     outline: none;
+    appearance: none;
 }
 
 .lmx-timezone-search:focus-within {
@@ -1628,10 +1631,12 @@
     box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.18);
 }
 
-.lmx-field .lmx-timezone-search input:focus {
-    border-color: transparent;
+.lmx-field .lmx-timezone-picker .lmx-timezone-search input[type="search"]:focus,
+.lmx-field .lmx-timezone-picker .lmx-timezone-search input[type="search"]:focus-visible {
+    border: 0;
     box-shadow: none;
     outline: none;
+    outline-offset: 0;
 }
 
 .lmx-timezone-list {

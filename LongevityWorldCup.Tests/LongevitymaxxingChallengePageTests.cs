@@ -792,8 +792,21 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("\"America/New_York\"", javascript);
         Assert.Contains("Intl.supportedValuesOf(\"timeZone\")", javascript);
         Assert.Contains("const TIME_ZONE_COUNTRY_DATA = \"Europe/Andorra=AD", javascript);
+        var timeZoneCountryDataMatch = System.Text.RegularExpressions.Regex.Match(
+            javascript,
+            @"const TIME_ZONE_COUNTRY_DATA = ""(?<data>[^""]+)"";");
+        Assert.True(timeZoneCountryDataMatch.Success);
+        var timeZoneCountryEntries = timeZoneCountryDataMatch.Groups["data"].Value
+            .Split('|', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(418, timeZoneCountryEntries.Length);
+        Assert.Contains("Africa/Accra=GH", timeZoneCountryEntries);
+        Assert.Contains("Africa/Addis_Ababa=ET", timeZoneCountryEntries);
+        Assert.Contains("Asia/Ho_Chi_Minh=VN", timeZoneCountryEntries);
         Assert.Contains("Europe/Budapest=HU", javascript);
         Assert.Contains("function getAvailableTimeZones", javascript);
+        Assert.Contains("function getPreferredTimeZoneIds(): Map<string, string>", javascript);
+        Assert.Contains("const runtimeId = resolveTimeZoneId(preferredId);", javascript);
+        Assert.Contains("preferredTimeZoneId(Intl.DateTimeFormat().resolvedOptions().timeZone || \"UTC\")", javascript);
         Assert.Contains("function initTimeZonePickers()", javascript);
         Assert.Contains("function renderTimeZoneOptions", javascript);
         Assert.Contains("function chooseTimeZone", javascript);
@@ -808,7 +821,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains(".lmx-timezone-popover", css);
         Assert.Contains(".lmx-timezone-option", css);
         Assert.Contains(".lmx-timezone-search:focus-within", css);
-        Assert.Contains(".lmx-field .lmx-timezone-search input:focus", css);
+        Assert.Contains(".lmx-field .lmx-timezone-picker .lmx-timezone-search input[type=\"search\"]:focus", css);
         Assert.DoesNotContain("signupTimeZone.addEventListener(\"change\"", javascript);
         Assert.Contains("editTimeZone.addEventListener(\"change\"", javascript);
         Assert.Contains("renderParticipantCalls(participantState.calls || [], participantState.public.callSelectionClosesAtUtc)", javascript);
