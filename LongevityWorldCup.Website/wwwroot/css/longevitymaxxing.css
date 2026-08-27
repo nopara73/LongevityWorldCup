@@ -1613,13 +1613,15 @@
     font-size: 0.8rem;
 }
 
-.lmx-timezone-search input {
+.lmx-field .lmx-timezone-picker .lmx-timezone-search input[type="search"] {
     width: 100%;
     min-width: 0;
     min-height: 42px;
     padding: 0;
     border: 0;
+    border-radius: 0;
     background: transparent;
+    box-shadow: none;
     font: inherit;
     color: var(--lmx-ink);
     outline: none;
@@ -1647,10 +1649,12 @@
 }
 
 .lmx-timezone-option {
-    min-height: 42px;
+    min-height: 48px;
+    height: auto;
     display: grid;
     gap: 0.04rem;
-    padding: 0.45rem 0.55rem;
+    align-content: center;
+    padding: 0.4rem 0.55rem;
     border: 0;
     border-radius: 6px;
     background: transparent;
@@ -1672,6 +1676,7 @@
 
 .lmx-timezone-option span {
     font-weight: 850;
+    line-height: 1.2;
 }
 
 .lmx-timezone-option small {
@@ -1679,6 +1684,7 @@
     opacity: 0.72;
     font-size: 0.75rem;
     font-weight: 750;
+    line-height: 1.25;
 }
 
 .lmx-timezone-empty {
@@ -1693,7 +1699,7 @@
     }
 
     .lmx-timezone-option {
-        min-height: 38px;
+        min-height: 46px;
         padding-block: 0.34rem;
     }
 }
