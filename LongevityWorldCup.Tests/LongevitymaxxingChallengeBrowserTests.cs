@@ -47,22 +47,24 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 "**/api/longevitymaxxing/state",
                 route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
             await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-            await page.Locator(".lmx-ops-tile").First.WaitForAsync();
+            await page.Locator("#lmxBoardMeta").WaitForAsync();
+
+            Assert.True(await page.Locator("#lmxHeroHighlights").IsHiddenAsync());
+            Assert.Equal(0, await page.Locator("#lmxMetrics").CountAsync());
+            Assert.Equal(0, await page.Locator(".lmx-ops-tile").CountAsync());
 
             var diagnostics = await BrowserContrast.MeasureVisibleTextAsync(
                 page,
                 "#lmxTitlePanel h1",
                 "#lmxHeroCopy",
                 ".lmx-question-preview-label span",
-                ".lmx-ops-label",
-                ".lmx-ops-tile strong",
                 "#lmxBoardMeta",
                 ".lmx-board-row:not(.header) .lmx-name",
                 ".lmx-board-row:not(.header) .lmx-number",
                 ".lmx-field > .lmx-label",
                 ".lmx-week-pager button:not(:disabled)");
 
-            Assert.True(diagnostics.Length >= 12, $"Expected representative Challenge copy in {scheme} mode.");
+            Assert.True(diagnostics.Length >= 10, $"Expected representative Challenge copy in {scheme} mode.");
             BrowserContrast.AssertMinimum($"{scheme} Challenge", diagnostics);
 
             await page.Locator("label:has(input[name='lmxSignupIdentity'][value='athlete'])").ClickAsync();
@@ -661,6 +663,87 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
+    public async Task DirectCheckInLink_OpensFocusedDialogWithExplicitTallAnswersAndDisabledSaveUntilComplete()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 760, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+
+        var yesterday = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+        await page.RouteAsync(
+            "**/api/longevitymaxxing/participant",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildParticipantState(eligibleDayDate: yesterday))));
+
+        await page.GotoAsync("/longevitymaxxing?token=browser-token", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var dialog = page.Locator("#lmxParticipantPanel.lmx-checkin-dialog-panel");
+        await dialog.WaitForAsync();
+
+        Assert.Equal("dialog", await dialog.GetAttributeAsync("role"));
+        Assert.Equal("true", await dialog.GetAttributeAsync("aria-modal"));
+        Assert.Equal("Daily check-in", await dialog.GetAttributeAsync("aria-label"));
+        Assert.True(await page.Locator("html").EvaluateAsync<bool>("html => html.classList.contains('lmx-checkin-dialog-open')"));
+        Assert.True(await page.Locator("body").EvaluateAsync<bool>("body => body.classList.contains('lmx-checkin-dialog-open')"));
+        Assert.True(await page.Locator("main").EvaluateAsync<bool>("main => main.inert"));
+        Assert.True(await page.Locator("#lmxTitlePanel").IsVisibleAsync());
+        Assert.True(await page.Locator("#lmxBoardSection").IsVisibleAsync());
+        Assert.True(await dialog.Locator("#lmxParticipantTabs").IsHiddenAsync());
+        Assert.Equal("Yesterday", await dialog.Locator("[data-check-in-day-label]").InnerTextAsync());
+        Assert.DoesNotContain("Day 22", await dialog.Locator(".lmx-checkin-card > h3").InnerTextAsync());
+        Assert.Equal(0, await dialog.Locator("input[type='range']").CountAsync());
+
+        var answerInputs = dialog.Locator(".lmx-answer-input");
+        Assert.Equal(12, await answerInputs.CountAsync());
+        Assert.Equal(0, await dialog.Locator(".lmx-answer-input:checked").CountAsync());
+        var answerHeights = await dialog.Locator(".lmx-answer-option span").EvaluateAllAsync<double[]>(
+            "elements => elements.map(element => element.getBoundingClientRect().height)");
+        Assert.All(answerHeights, height => Assert.True(height >= 100, $"Expected a tall answer button; got {height}px."));
+
+        var closeButton = dialog.Locator("#lmxCheckinDialogClose");
+        var closeBox = await closeButton.BoundingBoxAsync();
+        Assert.NotNull(closeBox);
+        Assert.True(closeBox.Width >= 44 && closeBox.Height >= 44, $"Expected a 44px close target; got {closeBox.Width}x{closeBox.Height}.");
+        Assert.True(await closeButton.EvaluateAsync<bool>("button => button === document.activeElement"));
+
+        var save = dialog.Locator(".lmx-checkin-card > button[type='submit']");
+        Assert.False(await save.IsEnabledAsync());
+        foreach (var key in new[] { "sleep", "exercise", "nutrition" })
+        {
+            await dialog.Locator($".lmx-question[data-key='{key}'] .lmx-answer-option:has(.lmx-answer-input[value='1'])").ClickAsync();
+        }
+        Assert.False(await save.IsEnabledAsync());
+        await dialog.Locator(".lmx-question[data-key='vices'] .lmx-answer-option:has(.lmx-answer-input[value='1'])").ClickAsync();
+        Assert.True(await save.IsEnabledAsync());
+
+        await closeButton.ClickAsync();
+        await dialog.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden });
+        Assert.False(await page.Locator("main").EvaluateAsync<bool>("main => main.inert"));
+        Assert.False(await page.Locator("html").EvaluateAsync<bool>("html => html.classList.contains('lmx-checkin-dialog-open')"));
+        Assert.False(await page.Locator("body").EvaluateAsync<bool>("body => body.classList.contains('lmx-checkin-dialog-open')"));
+        Assert.True(await page.Locator("#lmxParticipantPanel").EvaluateAsync<bool>("panel => !!panel.closest('.lmx-action-card')"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task CheckInGarden_UsesEstablishedGrowthDamageWithSeedlingStartAndBoundedProceduralPlants()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -703,7 +786,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             Assert.Equal(12, await plant.Locator(".lmx-plant-bud").CountAsync());
         }
         Assert.Equal(0, await page.Locator(".lmx-plant figcaption").CountAsync());
-        Assert.Equal(0, await page.Locator(".lmx-lever-kicker").CountAsync());
+        Assert.Equal(0, await page.Locator(".lmx-lever-input").CountAsync());
+        Assert.Equal(0, await page.Locator(".lmx-answer-input:checked").CountAsync());
         Assert.Equal("55", await page.Locator(".lmx-question[data-key='sleep'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
         Assert.Equal("24", await page.Locator(".lmx-question[data-key='exercise'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
         Assert.Equal("0", await page.Locator(".lmx-question[data-key='nutrition'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
@@ -713,23 +797,20 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(0, await page.Locator(".lmx-question[data-key='nutrition'] .lmx-plant-leaf.active").CountAsync());
         Assert.Equal(64, await page.Locator(".lmx-question[data-key='vices'] .lmx-plant-leaf.active").CountAsync());
 
-        var sleep = page.Locator(".lmx-question[data-key='sleep'] .lmx-lever-input");
-        var nutrition = page.Locator(".lmx-question[data-key='nutrition'] .lmx-lever-input");
-        var vices = page.Locator(".lmx-question[data-key='vices'] .lmx-lever-input");
-        await sleep.FocusAsync();
-        await sleep.PressAsync("ArrowLeft");
+        var sleepNo = page.Locator(".lmx-question[data-key='sleep'] .lmx-answer-option:has(.lmx-answer-input[value='0'])");
+        var sleepYes = page.Locator(".lmx-question[data-key='sleep'] .lmx-answer-option:has(.lmx-answer-input[value='2'])");
+        var nutritionNo = page.Locator(".lmx-question[data-key='nutrition'] .lmx-answer-option:has(.lmx-answer-input[value='0'])");
+        var vicesYes = page.Locator(".lmx-question[data-key='vices'] .lmx-answer-option:has(.lmx-answer-input[value='2'])");
+        await sleepNo.ClickAsync();
         var damagedSleepPlant = page.Locator(".lmx-question[data-key='sleep'] .lmx-plant");
         var establishedDamageVitality = double.Parse(
             (await damagedSleepPlant.GetAttributeAsync("data-vitality"))!,
             CultureInfo.InvariantCulture);
         Assert.Equal(0.559d, establishedDamageVitality, 4);
         Assert.Equal("34", await damagedSleepPlant.GetAttributeAsync("data-leaf-count"));
-        await sleep.PressAsync("ArrowRight");
-        await sleep.PressAsync("ArrowRight");
-        await nutrition.FocusAsync();
-        await nutrition.PressAsync("ArrowLeft");
-        await vices.FocusAsync();
-        await vices.PressAsync("ArrowRight");
+        await sleepYes.ClickAsync();
+        await nutritionNo.ClickAsync();
+        await vicesYes.ClickAsync();
 
         Assert.Equal("2", await page.Locator(".lmx-question[data-key='sleep'] .lmx-plant").GetAttributeAsync("data-preview"));
         Assert.Equal("0", await page.Locator(".lmx-question[data-key='nutrition'] .lmx-plant").GetAttributeAsync("data-preview"));
@@ -741,19 +822,18 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         await page.ReloadAsync(new PageReloadOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator(".lmx-growth-control").First.WaitForAsync();
 
-        var newSleep = page.Locator(".lmx-question[data-key='sleep'] .lmx-lever-input");
+        var newSleepNo = page.Locator(".lmx-question[data-key='sleep'] .lmx-answer-option:has(.lmx-answer-input[value='0'])");
+        var newSleepYes = page.Locator(".lmx-question[data-key='sleep'] .lmx-answer-option:has(.lmx-answer-input[value='2'])");
         var newSleepPlant = page.Locator(".lmx-question[data-key='sleep'] .lmx-plant");
         Assert.Equal("0.0000", await newSleepPlant.GetAttributeAsync("data-vitality"));
         Assert.Contains("--lmx-plant-scale: 0.1800", await newSleepPlant.GetAttributeAsync("style"));
-        await newSleep.FocusAsync();
-        await newSleep.PressAsync("ArrowLeft");
+        await newSleepNo.ClickAsync();
         var firstNoVitality = double.Parse(
             (await newSleepPlant.GetAttributeAsync("data-vitality"))!,
             CultureInfo.InvariantCulture);
         Assert.Equal(0d, firstNoVitality, 4);
         Assert.Equal("0", await newSleepPlant.GetAttributeAsync("data-leaf-count"));
-        await newSleep.PressAsync("ArrowRight");
-        await newSleep.PressAsync("ArrowRight");
+        await newSleepYes.ClickAsync();
         var firstYesVitality = double.Parse(
             (await newSleepPlant.GetAttributeAsync("data-vitality"))!,
             CultureInfo.InvariantCulture);
@@ -779,7 +859,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     private static object BuildParticipantState(
         bool emptyGarden = false,
         bool includeUpcomingCall = false,
-        bool includeMentionParticipants = false)
+        bool includeMentionParticipants = false,
+        string? eligibleDayDate = null)
         => new
         {
             @public = BuildPublicState(includeMentionParticipants),
@@ -803,7 +884,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                     new
                     {
                         challengeDay = 22,
-                        date = "2026-06-29",
+                        date = eligibleDayDate ?? "2026-06-29",
                         countsForScore = true,
                         existing = (object?)null
                     }
