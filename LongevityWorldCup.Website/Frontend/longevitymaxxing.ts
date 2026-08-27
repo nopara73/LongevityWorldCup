@@ -7,8 +7,10 @@
     type QuoteBucket = HabitKey | "mindset";
     type ButtonWork = () => Promise<void>;
     type Quote = readonly [text: string, author: string, athleteSlug: string, sourceUrl: string];
+    type AnswerTone = "no" | "somewhat" | "yes";
 
     interface AnswerOption {
+        tone: AnswerTone;
         label: string;
         value: number;
     }
@@ -458,9 +460,9 @@
     const REQUEST_TIMEOUT_MS = 65000;
     const CALL_ACTIVE_WINDOW_MS = 90 * 60 * 1000;
     const ANSWERS: readonly AnswerOption[] = [
-        { label: "No", value: 0 },
-        { label: "Somewhat", value: 1 },
-        { label: "Yes", value: 2 }
+        { tone: "no", label: "No", value: 0 },
+        { tone: "somewhat", label: "Somewhat", value: 1 },
+        { tone: "yes", label: "Yes", value: 2 }
     ];
     const SAVED_CHECKIN_TEXT = "Saved.";
     const MAX_NOTE_PHOTOS = 4;
@@ -2330,6 +2332,20 @@
         return `<span class="lmx-question-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false">${icon}</svg></span>`;
     }
 
+    function answerFaceIconHtml(tone: AnswerTone): string {
+        const mouthPath = {
+            no: "M15.5 33C18.5 26 29.5 26 32.5 33",
+            somewhat: "M16 30H32",
+            yes: "M15.5 27C18.5 34 29.5 34 32.5 27"
+        }[tone];
+        return `<svg class="lmx-answer-face-icon" viewBox="0 0 48 48" focusable="false">
+            <circle class="lmx-answer-face-outline" cx="24" cy="24" r="20"></circle>
+            <circle class="lmx-answer-face-eye" cx="18" cy="20" r="2.2"></circle>
+            <circle class="lmx-answer-face-eye" cx="30" cy="20" r="2.2"></circle>
+            <path class="lmx-answer-face-mouth" d="${mouthPath}"></path>
+        </svg>`;
+    }
+
     function checkInCardHtml(day: EligibleDay, recentRemarks: ParticipantNote[]): string {
         const existing: Partial<CheckInDraft> = day.existing || {};
         const saved = savedDays.has(day.challengeDay);
@@ -2347,9 +2363,9 @@
             const current = typeof savedValue === "number" ? clampHabitValue(savedValue) : null;
             const evidence = lifetimeHabitEvidence(q.key);
             const answerName = `lmx-answer-${day.challengeDay}-${q.key}`;
-            const answers = ANSWERS.map(answer => `<label class="lmx-answer-option">
-                <input class="lmx-answer-input" type="radio" name="${answerName}" value="${answer.value}"${answer.value === current ? " checked" : ""} required>
-                <span>${answer.label}</span>
+            const answers = ANSWERS.map(answer => `<label class="lmx-answer-option" data-answer="${answer.tone}">
+                <input class="lmx-answer-input" type="radio" name="${answerName}" value="${answer.value}" aria-label="${escAttr(answer.label)}"${answer.value === current ? " checked" : ""} required>
+                <span class="lmx-answer-face" aria-hidden="true">${answerFaceIconHtml(answer.tone)}</span>
             </label>`).join("");
             return `<div class="lmx-question" data-key="${q.key}">
                 <div class="lmx-question-label">${habitQuestionIconHtml(q.key)}<span>${q.text}</span></div>
