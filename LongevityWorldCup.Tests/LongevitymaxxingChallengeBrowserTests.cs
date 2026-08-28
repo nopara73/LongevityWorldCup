@@ -856,6 +856,19 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.DoesNotContain("Day 22", await dialog.Locator(".lmx-checkin-card > h3").InnerTextAsync());
         Assert.Equal(0, await dialog.Locator("input[type='range']").CountAsync());
 
+        var publicNotes = dialog.Locator(".lmx-recent-remarks");
+        await publicNotes.WaitForAsync();
+        Assert.True(await publicNotes.IsVisibleAsync());
+        Assert.Equal("Recent public check-ins", await publicNotes.GetAttributeAsync("aria-label"));
+        Assert.Equal(3, await publicNotes.Locator(".lmx-recent-remark").CountAsync());
+        var publicNotesText = await publicNotes.InnerTextAsync();
+        Assert.Contains("Ari · Day 22", publicNotesText);
+        Assert.Contains("First recent public remark.", publicNotesText);
+        Assert.Contains("Bea · Day 21", publicNotesText);
+        Assert.Contains("Cam · Day 20", publicNotesText);
+        Assert.DoesNotContain("Fourth older public remark.", publicNotesText);
+        Assert.DoesNotContain("Private participant-only remark.", publicNotesText);
+
         var answerInputs = dialog.Locator(".lmx-answer-input");
         Assert.Equal(12, await answerInputs.CountAsync());
         Assert.Equal(0, await dialog.Locator(".lmx-answer-input:checked").CountAsync());
