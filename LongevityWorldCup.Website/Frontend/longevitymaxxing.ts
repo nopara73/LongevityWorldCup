@@ -242,6 +242,13 @@
         mobile: boolean;
     }
 
+    interface NotesDayWindow {
+        notes: ParticipantNote[];
+        days: number[];
+        pageIndex: number;
+        pageCount: number;
+    }
+
     interface DashboardCategory {
         key: HabitKey;
         label: string;
@@ -640,6 +647,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     let boardScrollObservedElement: Element | null = null;
     let mobileLeaderboardMedia: MediaQueryList | null = null;
     let mobileLeaderboardPage = 0;
+    let notesPage = 0;
     let dashboardScrollObserver: ResizeObserver | null = null;
     let dashboardScrollObservedElement: Element | null = null;
     let participantActiveTab: ParticipantTab | null = null;
@@ -752,6 +760,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         renderQuestionPreview();
         wireForms();
         wireLeaderboardPager();
+        wireNotesPager();
         wireAccessTabs();
         initAthleteSelectors();
         wireIdentityControls();
@@ -894,6 +903,21 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const dayWindow = leaderboardDayWindow(state);
         mobileLeaderboardPage = Math.max(0, Math.min(dayWindow.pageCount - 1, dayWindow.pageIndex + delta));
         renderBoard(state);
+    }
+
+    function wireNotesPager(): void {
+        optionalElement("lmxNotesNewer", HTMLButtonElement)?.addEventListener("click", () => changeNotesPage(-1));
+        optionalElement("lmxNotesOlder", HTMLButtonElement)?.addEventListener("click", () => changeNotesPage(1));
+    }
+
+    function changeNotesPage(delta: number): void {
+        const participantView = participantState !== null;
+        const notes = participantState
+            ? (participantState.notes || participantState.public.notes || [])
+            : (publicState?.notes || []);
+        const dayWindow = notesDayWindow(notes);
+        notesPage = Math.max(0, Math.min(dayWindow.pageCount - 1, dayWindow.pageIndex + delta));
+        renderNotes(notes, participantView);
     }
 
     function wireAccessTabs() {
@@ -3842,12 +3866,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     function renderNotes(notes: ParticipantNote[], participantView: boolean): void {
         const container = document.getElementById("lmxNotes");
         if (!container) return;
-        if (!notes.length) {
+        const allNotes = Array.isArray(notes) ? notes : [];
+        const dayWindow = notesDayWindow(allNotes);
+        updateNotesPager(dayWindow);
+        if (!allNotes.length) {
             container.innerHTML = `<div class="lmx-note"><strong>${participantView ? "No participant notes yet." : "No public notes yet."}</strong></div>`;
             return;
         }
 
-        container.innerHTML = notes.map(note => {
+        container.innerHTML = dayWindow.notes.map(note => {
             const images = Array.isArray(note.images) ? note.images : [];
             const imageHtml = images.length
                 ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
@@ -3859,6 +3886,56 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ${imageHtml}
             </article>`;
         }).join("");
+    }
+
+    function notesDayWindow(notes: ParticipantNote[]): NotesDayWindow {
+        const days = Array.from(new Set(notes
+            .map(note => Number(note.challengeDay))
+            .filter(day => Number.isFinite(day))))
+            .sort((left, right) => right - left);
+        const pageCount = Math.max(1, days.length <= 2 ? 1 : days.length - 1);
+        const pageIndex = Math.max(0, Math.min(pageCount - 1, notesPage));
+        notesPage = pageIndex;
+
+        const visibleDays = pageIndex === 0
+            ? days.slice(0, 2)
+            : days.slice(pageIndex + 1, pageIndex + 2);
+        const visibleNotes = visibleDays.flatMap(day => notes.filter(note => Number(note.challengeDay) === day));
+
+        return {
+            notes: visibleNotes,
+            days: visibleDays,
+            pageIndex,
+            pageCount
+        };
+    }
+
+    function updateNotesPager(dayWindow: NotesDayWindow): void {
+        const pager = document.getElementById("lmxNotesPager");
+        const newerButton = optionalElement("lmxNotesNewer", HTMLButtonElement);
+        const olderButton = optionalElement("lmxNotesOlder", HTMLButtonElement);
+        const label = document.getElementById("lmxNotesDayLabel");
+        if (!pager || !newerButton || !olderButton || !label) return;
+
+        const visible = dayWindow.pageCount > 1;
+        pager.classList.toggle("lmx-hidden", !visible);
+        pager.toggleAttribute("hidden", !visible);
+
+        const newestDay = dayWindow.days[0];
+        const oldestDay = dayWindow.days[dayWindow.days.length - 1];
+        if (newestDay === undefined || oldestDay === undefined) {
+            label.textContent = "";
+            label.removeAttribute("aria-label");
+        } else if (newestDay === oldestDay) {
+            label.textContent = `Day ${newestDay}`;
+            label.setAttribute("aria-label", `Day ${newestDay}`);
+        } else {
+            label.textContent = `Days ${oldestDay}\u2013${newestDay}`;
+            label.setAttribute("aria-label", `Days ${oldestDay} through ${newestDay}`);
+        }
+
+        newerButton.disabled = !visible || dayWindow.pageIndex === 0;
+        olderButton.disabled = !visible || dayWindow.pageIndex >= dayWindow.pageCount - 1;
     }
 
 
