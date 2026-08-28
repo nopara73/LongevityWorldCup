@@ -5,6 +5,31 @@ namespace LongevityWorldCup.Website.Jobs;
 
 internal static class XDailyPostMediaHelper
 {
+    public static async Task<IReadOnlyList<string>?> TryBuildFillerMediaIdsAsync(
+        FillerType fillerType,
+        string payloadText,
+        LeagueOgImageService leagueImages,
+        XApiClient xApiClient,
+        CancellationToken cancellationToken = default)
+    {
+        if (fillerType != FillerType.Top3Leaderboard)
+            return null;
+
+        if (!EventHelpers.TryExtractLeague(payloadText, out var leagueSlug) ||
+            string.IsNullOrWhiteSpace(leagueSlug) ||
+            !leagueImages.TryGetCurrentPayload(leagueSlug, out var payload))
+        {
+            return null;
+        }
+
+        var imagePath = await leagueImages.EnsureRenderedImageAsync(payload, cancellationToken);
+        if (string.IsNullOrWhiteSpace(imagePath) || !File.Exists(imagePath))
+            return null;
+
+        await using var imageStream = File.OpenRead(imagePath);
+        return await UploadSingleAsync(imageStream, "image/png", xApiClient);
+    }
+
     public static async Task<IReadOnlyList<string>?> TryBuildMediaIdsAsync(
         EventType type,
         string rawText,

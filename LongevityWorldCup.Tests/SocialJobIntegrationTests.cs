@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Quartz;
+using SixLabors.ImageSharp;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
@@ -145,6 +146,70 @@ public sealed class SocialJobIntegrationTests
     }
 
     [Fact]
+    public async Task XJob_Top3FillerUploadsCurrentLeagueImageAndKeepsLeagueLink()
+    {
+        using var fixture = SocialJobFixture.Create(xSendSucceeds: true, seedLeaderboardAssets: true);
+        var nowUtc = DateTime.UtcNow;
+        foreach (var fillerType in new[]
+                 {
+                     FillerType.HistoryDocument,
+                     FillerType.Ruleset,
+                     FillerType.GitHubRepository,
+                     FillerType.Donation
+                 })
+        {
+            fixture.XFillerLog.LogPost(nowUtc, fillerType, "test cooldown");
+        }
+
+        Assert.True(fixture.LeagueImages.TryGetCurrentPayload("ultimate", out var expectedPayload));
+        Assert.Equal(3, expectedPayload.Top3Slugs.Count);
+
+        await fixture.CreateXJob().Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        Assert.Collection(
+            fixture.XRequests,
+            request => Assert.Equal("/1.1/media/upload.json", request.RequestUri?.AbsolutePath),
+            request => Assert.Equal("/2/tweets", request.RequestUri?.AbsolutePath));
+
+        var tweetJson = await fixture.XRequests[1].Content!.ReadAsStringAsync();
+        Assert.Contains("https://longevityworldcup.com/leaderboard", tweetJson, StringComparison.Ordinal);
+        Assert.Contains("\"media_ids\":[\"media-1\"]", tweetJson, StringComparison.Ordinal);
+
+        var renderDirectory = Path.Combine(fixture.Env.WebRootPath, "generated", "og", "league");
+        var renderedImagePath = Assert.Single(Directory.GetFiles(renderDirectory, "ultimate-*.png"));
+        using var image = await Image.LoadAsync(renderedImagePath);
+        Assert.Equal(1200, image.Width);
+        Assert.Equal(630, image.Height);
+        Assert.True(fixture.XFillerLog.IsOnCooldownForType(FillerType.Top3Leaderboard, TimeSpan.FromDays(7), nowUtc.AddMinutes(1)));
+    }
+
+    [Fact]
+    public async Task XJob_Top3FillerUploadFailureLeavesPostRetryable()
+    {
+        using var fixture = SocialJobFixture.Create(
+            xSendSucceeds: true,
+            seedLeaderboardAssets: true,
+            xMediaUploadSucceeds: false);
+        var nowUtc = DateTime.UtcNow;
+        foreach (var fillerType in new[]
+                 {
+                     FillerType.HistoryDocument,
+                     FillerType.Ruleset,
+                     FillerType.GitHubRepository,
+                     FillerType.Donation
+                 })
+        {
+            fixture.XFillerLog.LogPost(nowUtc, fillerType, "test cooldown");
+        }
+
+        await fixture.CreateXJob().Execute(TestJobExecutionContext.At(XDailyPostSlot()));
+
+        var uploadRequest = Assert.Single(fixture.XRequests);
+        Assert.Equal("/1.1/media/upload.json", uploadRequest.RequestUri?.AbsolutePath);
+        Assert.False(fixture.XFillerLog.IsOnCooldownForType(FillerType.Top3Leaderboard, TimeSpan.FromDays(7), nowUtc.AddMinutes(1)));
+    }
+
+    [Fact]
     public async Task FacebookJob_SendFailureLeavesCustomEventRetryable()
     {
         using var fixture = SocialJobFixture.Create(facebookSendSucceeds: false);
@@ -239,6 +304,7 @@ public sealed class SocialJobIntegrationTests
             FacebookFillerPostLogService facebookFillerLog,
             XApiClient xApiClient,
             XImageService xImageService,
+            LeagueOgImageService leagueImages,
             AthleteCountMilestoneMemeService milestoneMemes,
             List<HttpRequestMessage> xRequests,
             List<HttpRequestMessage> threadsRequests,
@@ -257,6 +323,7 @@ public sealed class SocialJobIntegrationTests
             FacebookFillerLog = facebookFillerLog;
             XApiClient = xApiClient;
             XImageService = xImageService;
+            LeagueImages = leagueImages;
             MilestoneMemes = milestoneMemes;
             XRequests = xRequests;
             ThreadsRequests = threadsRequests;
@@ -275,22 +342,34 @@ public sealed class SocialJobIntegrationTests
         public FacebookFillerPostLogService FacebookFillerLog { get; }
         public XApiClient XApiClient { get; }
         public XImageService XImageService { get; }
+        public LeagueOgImageService LeagueImages { get; }
         public AthleteCountMilestoneMemeService MilestoneMemes { get; }
         public List<HttpRequestMessage> XRequests { get; }
         public List<HttpRequestMessage> ThreadsRequests { get; }
         public List<HttpRequestMessage> FacebookRequests { get; }
 
-        public static SocialJobFixture Create(bool xSendSucceeds = true, bool facebookSendSucceeds = true, Action? onFacebookRequest = null)
+        public static SocialJobFixture Create(
+            bool xSendSucceeds = true,
+            bool facebookSendSucceeds = true,
+            Action? onFacebookRequest = null,
+            bool seedLeaderboardAssets = false,
+            bool xMediaUploadSucceeds = true)
         {
             var root = Path.Combine(Path.GetTempPath(), "lwc-social-job-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path.Combine(root, "athletes"));
             Directory.CreateDirectory(Path.Combine(root, "generated", "thumbs", "athletes"));
+            if (seedLeaderboardAssets)
+                SeedLeaderboardFiles(root);
 
             var env = new TestWebHostEnvironment(root);
             var database = new DatabaseManager(dbPath: Path.Combine(root, "test.db"));
             var config = new Config
             {
                 XAccessToken = "x-token",
+                XConsumerKey = "x-consumer-key",
+                XConsumerSecret = "x-consumer-secret",
+                XUserAccessToken = "x-user-token",
+                XUserAccessTokenSecret = "x-user-token-secret",
                 ThreadsAccessToken = null,
                 ThreadsAccessTokenExpiresAtUtc = DateTimeOffset.UtcNow.AddDays(60).ToString("o"),
                 FacebookPageId = "page-id",
@@ -312,9 +391,13 @@ public sealed class SocialJobIntegrationTests
 
             var xClient = new XApiClient(
                 new HttpClient(new RecordingHttpHandler(
-                    _ => xSendSucceeds
-                        ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"data":{"id":"tweet-1"}}""") }
-                        : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"boom"}""") },
+                    request => request.RequestUri?.AbsolutePath == "/1.1/media/upload.json"
+                        ? xMediaUploadSucceeds
+                            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"media_id_string":"media-1"}""") }
+                            : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"media boom"}""") }
+                        : xSendSucceeds
+                            ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"data":{"id":"tweet-1"}}""") }
+                            : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent("""{"error":"boom"}""") },
                     xRequests)),
                 config,
                 env,
@@ -353,6 +436,7 @@ public sealed class SocialJobIntegrationTests
             var threadsFillerLog = new ThreadsFillerPostLogService(database);
             var facebookFillerLog = new FacebookFillerPostLogService(database);
             var xImages = new XImageService(env, athletes, NullLogger<XImageService>.Instance);
+            var leagueImages = new LeagueOgImageService(env, athletes, NullLogger<LeagueOgImageService>.Instance);
             var milestoneMemes = new AthleteCountMilestoneMemeService(env);
 
             database.Run(sqlite =>
@@ -376,13 +460,14 @@ public sealed class SocialJobIntegrationTests
                 facebookFillerLog,
                 xClient,
                 xImages,
+                leagueImages,
                 milestoneMemes,
                 xRequests,
                 threadsRequests,
                 facebookRequests);
         }
 
-        public XDailyPostJob CreateXJob() => new(NullLogger<XDailyPostJob>.Instance, Events, XEvents, Athletes, XFillerLog, XImageService, XApiClient, MilestoneMemes);
+        public XDailyPostJob CreateXJob() => new(NullLogger<XDailyPostJob>.Instance, Events, XEvents, Athletes, XFillerLog, XImageService, LeagueImages, XApiClient, MilestoneMemes);
 
         public ThreadsDailyPostJob CreateThreadsJob() => new(NullLogger<ThreadsDailyPostJob>.Instance, Events, ThreadsEvents, Athletes, ThreadsFillerLog, MilestoneMemes);
 
@@ -456,6 +541,50 @@ public sealed class SocialJobIntegrationTests
             method!.Invoke(Events, null);
         }
 
+        private static void SeedLeaderboardFiles(string destinationRoot)
+        {
+            var repositoryRoot = FindRepositoryRoot();
+            var sourceWebRoot = Path.Combine(repositoryRoot, "LongevityWorldCup.Website", "wwwroot");
+            foreach (var relativePath in new[]
+                     {
+                         Path.Combine("assets", "HdLogo.png"),
+                         Path.Combine("assets", "fonts", "Poppins-Bold.ttf"),
+                         Path.Combine("assets", "fonts", "Poppins-Regular.ttf")
+                     })
+            {
+                var destinationPath = Path.Combine(destinationRoot, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                File.Copy(Path.Combine(sourceWebRoot, relativePath), destinationPath);
+            }
+
+            foreach (var slug in new[] { "benjamin_garden", "siim_land", "tiat_lim", "max", "nopara73" })
+            {
+                var sourceAthleteDirectory = Path.Combine(sourceWebRoot, "athletes", slug);
+                var destinationAthleteDirectory = Path.Combine(destinationRoot, "athletes", slug);
+                Directory.CreateDirectory(destinationAthleteDirectory);
+                File.Copy(
+                    Path.Combine(sourceAthleteDirectory, "athlete.json"),
+                    Path.Combine(destinationAthleteDirectory, "athlete.json"));
+
+                var profilePath = Directory.EnumerateFiles(sourceAthleteDirectory, $"{slug}.*")
+                    .Single(path => Path.GetExtension(path) is ".webp" or ".png" or ".jpg" or ".jpeg");
+                File.Copy(profilePath, Path.Combine(destinationAthleteDirectory, Path.GetFileName(profilePath)));
+            }
+        }
+
+        private static string FindRepositoryRoot()
+        {
+            for (var directory = new DirectoryInfo(AppContext.BaseDirectory);
+                 directory is not null;
+                 directory = directory.Parent)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "LongevityWorldCup.sln")))
+                    return directory.FullName;
+            }
+
+            throw new DirectoryNotFoundException($"Could not find repository root from {AppContext.BaseDirectory}.");
+        }
+
         public void Dispose()
         {
             Athletes.Dispose();
@@ -473,10 +602,22 @@ public sealed class SocialJobIntegrationTests
 
     private sealed class RecordingHttpHandler(Func<HttpRequestMessage, HttpResponseMessage> respond, List<HttpRequestMessage> requests) : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            requests.Add(new HttpRequestMessage(request.Method, request.RequestUri));
-            return Task.FromResult(respond(request));
+            var recorded = new HttpRequestMessage(request.Method, request.RequestUri);
+            if (string.Equals(request.Content?.Headers.ContentType?.MediaType, "application/json", StringComparison.OrdinalIgnoreCase))
+            {
+                var body = await request.Content!.ReadAsStringAsync(cancellationToken);
+                recorded.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+            }
+            else if (request.Content?.Headers.ContentType is { } contentType)
+            {
+                recorded.Content = new ByteArrayContent([]);
+                recorded.Content.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(contentType.ToString());
+            }
+
+            requests.Add(recorded);
+            return respond(request);
         }
     }
 

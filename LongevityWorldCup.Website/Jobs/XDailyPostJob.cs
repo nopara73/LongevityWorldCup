@@ -22,6 +22,7 @@ public class XDailyPostJob : IJob
     private readonly AthleteDataService _athletes;
     private readonly XFillerPostLogService _fillerLog;
     private readonly XImageService _images;
+    private readonly LeagueOgImageService _leagueImages;
     private readonly XApiClient _xApiClient;
     private readonly AthleteCountMilestoneMemeService _milestoneMemes;
 
@@ -32,6 +33,7 @@ public class XDailyPostJob : IJob
         AthleteDataService athletes,
         XFillerPostLogService fillerLog,
         XImageService images,
+        LeagueOgImageService leagueImages,
         XApiClient xApiClient,
         AthleteCountMilestoneMemeService milestoneMemes)
     {
@@ -41,6 +43,7 @@ public class XDailyPostJob : IJob
         _athletes = athletes;
         _fillerLog = fillerLog;
         _images = images;
+        _leagueImages = leagueImages;
         _xApiClient = xApiClient;
         _milestoneMemes = milestoneMemes;
     }
@@ -204,7 +207,24 @@ public class XDailyPostJob : IJob
                 fillerMsg.Length,
                 infoToken);
 
-            var fillerSent = await _xEvents.TrySendAsync(fillerMsg);
+            var fillerMediaIds = await XDailyPostMediaHelper.TryBuildFillerMediaIdsAsync(
+                fillerType,
+                payload,
+                _leagueImages,
+                _xApiClient,
+                context.CancellationToken);
+            if (fillerType == FillerType.Top3Leaderboard && fillerMediaIds is not { Count: > 0 })
+            {
+                _logger.LogWarning(
+                    "XDailyPostJob league image render or upload failed for filler {FillerType} {PayloadText}; leaving unlogged",
+                    fillerType,
+                    payloadText);
+                return;
+            }
+
+            var fillerSent = fillerMediaIds is { Count: > 0 }
+                ? await _xEvents.TrySendAsync(fillerMsg, fillerMediaIds)
+                : await _xEvents.TrySendAsync(fillerMsg);
             if (!fillerSent)
             {
                 _logger.LogWarning("XDailyPostJob send failed for filler {FillerType}; leaving unlogged", fillerType);
