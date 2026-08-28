@@ -3464,7 +3464,10 @@ a.lmx-note-mention:focus-visible {
     min-width: 0;
     min-height: 8.1rem;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns:
+        minmax(2.75rem, 0.64fr)
+        minmax(2.75rem, 0.82fr)
+        minmax(2.75rem, 1fr);
     gap: 0.35rem;
     align-self: stretch;
 }

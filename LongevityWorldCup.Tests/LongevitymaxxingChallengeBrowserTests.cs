@@ -808,7 +808,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
-    public async Task DirectCheckInLink_OpensFocusedDialogWithExplicitTallAnswersAndDisabledSaveUntilComplete()
+    public async Task DirectCheckInLink_OpensFocusedDialogWithExplicitTaperedTallAnswersAndDisabledSaveUntilComplete()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -899,6 +899,16 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         var answerHeights = await answerFaces.EvaluateAllAsync<double[]>(
             "elements => elements.map(element => element.getBoundingClientRect().height)");
         Assert.All(answerHeights, height => Assert.True(height >= 100, $"Expected a tall answer button; got {height}px."));
+        var sleepAnswerBoxes = await dialog
+            .Locator(".lmx-question[data-key='sleep'] .lmx-answer-face")
+            .EvaluateAllAsync<double[][]>(
+                "elements => elements.map(element => { const box = element.getBoundingClientRect(); return [box.width, box.height]; })");
+        Assert.Equal(3, sleepAnswerBoxes.Length);
+        Assert.InRange(sleepAnswerBoxes[0][0] / sleepAnswerBoxes[2][0], 0.62d, 0.66d);
+        Assert.InRange(sleepAnswerBoxes[1][0] / sleepAnswerBoxes[2][0], 0.80d, 0.84d);
+        Assert.True(
+            sleepAnswerBoxes.Max(box => box[1]) - sleepAnswerBoxes.Min(box => box[1]) <= 0.5d,
+            $"Expected equal-height answer buttons; got {string.Join(", ", sleepAnswerBoxes.Select(box => box[1]))}px.");
 
         var closeButton = dialog.Locator("#lmxCheckinDialogClose");
         var closeBox = await closeButton.BoundingBoxAsync();
@@ -997,6 +1007,13 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(0, await page.Locator(".lmx-plant figcaption").CountAsync());
         Assert.Equal(0, await page.Locator(".lmx-lever-input").CountAsync());
         Assert.Equal(0, await page.Locator(".lmx-answer-input:checked").CountAsync());
+        var mobileAnswerWidths = await page
+            .Locator(".lmx-question[data-key='sleep'] .lmx-answer-face")
+            .EvaluateAllAsync<double[]>(
+                "elements => elements.map(element => element.getBoundingClientRect().width)");
+        Assert.All(
+            mobileAnswerWidths,
+            width => Assert.True(width >= 44, $"Expected at least a 44px mobile answer target; got {width}px."));
         Assert.Equal("55", await page.Locator(".lmx-question[data-key='sleep'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
         Assert.Equal("24", await page.Locator(".lmx-question[data-key='exercise'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
         Assert.Equal("0", await page.Locator(".lmx-question[data-key='nutrition'] .lmx-plant").GetAttributeAsync("data-leaf-count"));
