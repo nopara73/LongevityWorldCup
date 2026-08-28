@@ -3579,12 +3579,80 @@ a.lmx-note-mention:focus-visible {
     box-shadow: inset 0 0 0 1px rgba(var(--lmx-answer-soft), 0.16);
 }
 
+.lmx-notes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+.lmx-notes-header h2 {
+    margin: 0;
+}
+
+.lmx-notes-pager {
+    min-width: min(100%, 17.25rem);
+    display: grid;
+    grid-template-columns: minmax(4.75rem, auto) minmax(5.5rem, 1fr) minmax(4.75rem, auto);
+    gap: 0.3rem;
+    align-items: stretch;
+    padding: 0.25rem;
+    border: 1px solid var(--lmx-border);
+    border-radius: 12px;
+    background: var(--lmx-surface-muted);
+}
+
+.lmx-notes-pager button {
+    min-height: 2.75rem;
+    padding: 0 0.65rem;
+    border: 1px solid var(--lmx-border);
+    border-radius: 9px;
+    background: var(--lmx-surface);
+    color: var(--lmx-ink);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 850;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.lmx-notes-pager button:not(:disabled):hover {
+    border-color: rgba(0, 188, 212, 0.48);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
+}
+
+.lmx-notes-pager button:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.25);
+    outline-offset: 2px;
+}
+
+.lmx-notes-pager button:disabled {
+    opacity: 0.42;
+    cursor: default;
+    box-shadow: none;
+}
+
+.lmx-notes-day-label {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--lmx-ink);
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+}
+
 .lmx-notes {
     display: grid;
     gap: 0.55rem;
-    max-height: 26rem;
-    overflow: auto;
-    padding-right: 0.25rem;
 }
 
 .lmx-note {
@@ -3909,6 +3977,17 @@ a.lmx-note-mention:focus-visible {
 
     .lmx-card-head {
         margin-bottom: 0.7rem;
+    }
+
+    .lmx-notes-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .lmx-notes-pager {
+        width: 100%;
+        min-width: 0;
+        grid-template-columns: minmax(4.75rem, auto) minmax(0, 1fr) minmax(4.75rem, auto);
     }
 
     .lmx-tab {

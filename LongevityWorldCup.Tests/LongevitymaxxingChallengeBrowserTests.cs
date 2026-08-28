@@ -699,6 +699,87 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
+    public async Task ParticipantNotesPager_ShowsTwoNewestDaysThenOneWholeDayPerPage()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1140, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error")
+                errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState())));
+
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+        var notes = page.Locator("#lmxNotes");
+        var pager = page.Locator("#lmxNotesPager");
+        var newer = page.Locator("#lmxNotesNewer");
+        var older = page.Locator("#lmxNotesOlder");
+        var label = page.Locator("#lmxNotesDayLabel");
+        await notes.WaitForAsync();
+
+        Assert.Equal("Days 21–22", await label.InnerTextAsync());
+        Assert.Equal("Days 21 through 22", await label.GetAttributeAsync("aria-label"));
+        Assert.True(await newer.IsDisabledAsync());
+        Assert.False(await older.IsDisabledAsync());
+        var firstPageText = await notes.InnerTextAsync();
+        Assert.Contains("Ari · Day 22", firstPageText);
+        Assert.Contains("Bea · Day 21", firstPageText);
+        Assert.DoesNotContain("Day 20", firstPageText);
+        Assert.Equal("visible", await notes.EvaluateAsync<string>("element => getComputedStyle(element).overflowY"));
+        Assert.Equal("none", await notes.EvaluateAsync<string>("element => getComputedStyle(element).maxHeight"));
+
+        await older.ClickAsync();
+        Assert.Equal("Day 20", await label.InnerTextAsync());
+        Assert.Contains("Cam · Day 20", await notes.InnerTextAsync());
+        Assert.DoesNotContain("Day 21", await notes.InnerTextAsync());
+
+        await older.ClickAsync();
+        Assert.Equal("Day 19", await label.InnerTextAsync());
+        var oldestPageText = await notes.InnerTextAsync();
+        Assert.Contains("Dee · Day 19", oldestPageText);
+        Assert.Contains("Eli · Day 19", oldestPageText);
+        Assert.True(await older.IsDisabledAsync());
+        Assert.False(await newer.IsDisabledAsync());
+
+        await newer.ClickAsync();
+        Assert.Equal("Day 20", await label.InnerTextAsync());
+        await newer.ClickAsync();
+        Assert.Equal("Days 21–22", await label.InnerTextAsync());
+        Assert.Contains("Ari · Day 22", await notes.InnerTextAsync());
+        Assert.Contains("Bea · Day 21", await notes.InnerTextAsync());
+
+        foreach (var control in new[] { newer, older })
+        {
+            var box = await control.BoundingBoxAsync();
+            Assert.NotNull(box);
+            Assert.True(box.Width >= 44 && box.Height >= 44, $"Expected at least a 44px notes pager touch target; got {box.Width}x{box.Height}.");
+        }
+
+        await page.SetViewportSizeAsync(390, 844);
+        Assert.True(await pager.EvaluateAsync<bool>(
+            "element => element.getBoundingClientRect().right <= element.closest('.lmx-card').getBoundingClientRect().right"));
+        Assert.Equal("column", await page.Locator(".lmx-notes-header").EvaluateAsync<string>("element => getComputedStyle(element).flexDirection"));
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task CheckInNoteMentionPickerSupportsKeyboardAndPointerWithoutCoveringActions()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -1230,7 +1311,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                     Note("p3", "Bea", 21, "2026-06-28", null,
                         [CheckInImage("/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea")]),
                     Note("p4", "Cam", 20, "2026-06-27", "Third recent public remark."),
-                    Note("p5", "Dee", 19, "2026-06-26", "Fourth older public remark.")
+                    Note("p5", "Dee", 19, "2026-06-26", "Fourth older public remark."),
+                    Note("p6", "Eli", 19, "2026-06-26", "Another note from the same day.")
                 },
             calls = Array.Empty<object>(),
             slackInviteUrl = "",
