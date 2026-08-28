@@ -2017,8 +2017,7 @@ body.lmx-checkin-dialog-open {
 
 .lmx-checkin-dialog-panel > .lmx-card-head,
 .lmx-checkin-dialog-panel > .lmx-tabs,
-.lmx-checkin-dialog-panel .lmx-checkin-switcher,
-.lmx-checkin-dialog-panel .lmx-recent-remarks {
+.lmx-checkin-dialog-panel .lmx-checkin-switcher {
     display: none;
 }
 
