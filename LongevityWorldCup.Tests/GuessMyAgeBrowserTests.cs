@@ -11,6 +11,14 @@ public sealed class GuessMyAgeBrowserTests
     private const string ProfileImageA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private const string ProfileImageB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
+    private static async Task PauseClockAsync(IPage page)
+    {
+        // Fix the wall clock first so PauseAt cannot lose a race to its own Playwright round trip.
+        var pauseAt = DateTime.UtcNow;
+        await page.Clock.SetFixedTimeAsync(pauseAt);
+        await page.Clock.PauseAtAsync(pauseAt);
+    }
+
     [Fact]
     public async Task PatrickRoute_CompletesAFilteredGuessWithoutAddingItToCrowdAge()
     {
@@ -302,8 +310,7 @@ public sealed class GuessMyAgeBrowserTests
             """,
             ProfileImageA);
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
-        var pauseAt = await page.EvaluateAsync<string>("() => new Date(Date.now() + 5000).toISOString()");
-        await page.Clock.PauseAtAsync(pauseAt);
+        await PauseClockAsync(page);
 
         await page.Locator("#gmaRange").EvaluateAsync(
             "(range, endpoint) => { range.value = range[endpoint]; range.dispatchEvent(new Event('input', { bubbles: true })); }",
@@ -468,8 +475,7 @@ public sealed class GuessMyAgeBrowserTests
             """,
             ProfileImageA);
         await page.WaitForFunctionAsync("() => document.getElementById('gmaRange')?.disabled === false");
-        var pauseAt = await page.EvaluateAsync<string>("() => new Date(Date.now() + 5000).toISOString()");
-        await page.Clock.PauseAtAsync(pauseAt);
+        await PauseClockAsync(page);
 
         var range = page.Locator("#gmaRange");
         var submit = page.Locator("#guessAgeContainer .gma-btn--primary");
@@ -866,8 +872,7 @@ public sealed class GuessMyAgeBrowserTests
             }
             """);
 
-        var pauseAt = await page.EvaluateAsync<string>("() => new Date(Date.now() + 100).toISOString()");
-        await page.Clock.PauseAtAsync(pauseAt);
+        await PauseClockAsync(page);
         await page.Locator("#guessAgeContainer .gma-btn--primary").EvaluateAsync("button => button.click()");
         await requestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -1003,8 +1008,7 @@ public sealed class GuessMyAgeBrowserTests
                 };
             }
             """);
-        var pauseAt = await page.EvaluateAsync<string>("() => new Date(Date.now() + 100).toISOString()");
-        await page.Clock.PauseAtAsync(pauseAt);
+        await PauseClockAsync(page);
         await page.Locator("#guessAgeContainer .gma-btn--primary").EvaluateAsync("button => button.click()");
 
         Assert.True(await page.EvaluateAsync<bool>("() => window.__gmaResultAppliedPromise"));
