@@ -968,6 +968,24 @@ public sealed class GuessMyAgeBrowserTests
                     observer.observe(status, { childList: true, characterData: true, subtree: true });
                     resolveWhenApplied();
                 });
+                window.__gmaCelebrationSparkPromise = new Promise(resolve => {
+                    const observedSparks = new Set();
+                    const captureSparks = () => {
+                        document.querySelectorAll('.gma-celebration-spark')
+                            .forEach(spark => observedSparks.add(spark));
+                        if (observedSparks.size < 48) return;
+                        observer.disconnect();
+                        resolve({
+                            count: observedSparks.size,
+                            quadrants: [...new Set([...observedSparks]
+                                .map(spark => spark.dataset.quadrant)
+                                .filter(Boolean))]
+                        });
+                    };
+                    const observer = new MutationObserver(captureSparks);
+                    observer.observe(document.body, { childList: true, subtree: true });
+                    captureSparks();
+                });
                 document.querySelector('#guessAgeContainer .gma-btn--primary')
                     .addEventListener('click', () => {
                         window.__gmaSubmitAt = performance.now();
@@ -1068,11 +1086,11 @@ public sealed class GuessMyAgeBrowserTests
         Assert.InRange(settledBubbleThumbDelta, 0, 2.5);
         await page.GetByText("You beat the crowd!", new PageGetByTextOptions { Exact = true }).WaitForAsync();
 
-        var sparkCount = await page.Locator(".gma-celebration-spark").CountAsync();
+        var sparkSnapshot = await page.EvaluateAsync<JsonElement>("() => window.__gmaCelebrationSparkPromise");
+        var sparkCount = sparkSnapshot.GetProperty("count").GetInt32();
         Assert.Equal(48, sparkCount);
         Assert.InRange(sparkCount, 1, 64);
-        Assert.True((await page.Locator(".gma-celebration-spark").EvaluateAllAsync<string[]>(
-            "elements => [...new Set(elements.map(element => element.dataset.quadrant))]" )).Length >= 3);
+        Assert.True(sparkSnapshot.GetProperty("quadrants").GetArrayLength() >= 3);
         Assert.True(await page.EvaluateAsync<bool>(
             """
             () => {
