@@ -43,6 +43,8 @@ public sealed class LongevitymaxxingChallengeService
     private const int CommunityCallGenerationFutureDays = 42;
     private const int UpcomingCommunityCallDisplayCount = 4;
     private static readonly TimeOnly WeeklyCommunityCallTimeUtc = new(6, 30);
+    private static readonly TimeOnly CommunityCallReminderLocalStartTime = new(7, 0);
+    private static readonly TimeOnly CommunityCallReminderLocalEndTime = new(21, 0);
     private static readonly TimeSpan GravatarMissingCacheDuration = TimeSpan.FromDays(1);
     private static readonly SemaphoreSlim ProfilePictureWarmupSlots = new(2);
     private static readonly EmailAddressAttribute EmailValidator = new();
@@ -1326,6 +1328,8 @@ public sealed class LongevitymaxxingChallengeService
 
                 foreach (var participant in participants)
                 {
+                    if (!IsCommunityCallReminderLocalTimeAllowed(startsAt, participant.TimeZoneId))
+                        continue;
                     if (WasCallReminderSent(participant.Id, call.Key, kind))
                         continue;
 
@@ -2953,6 +2957,18 @@ public sealed class LongevitymaxxingChallengeService
 
         return TimeZoneInfo.Utc;
     }
+
+    private static bool IsCommunityCallReminderLocalTimeAllowed(
+        DateTimeOffset startsAt,
+        string timeZoneId)
+    {
+        var localStartsAt = TimeZoneInfo.ConvertTime(startsAt, ResolveTimeZone(timeZoneId));
+        return IsCommunityCallReminderLocalTimeAllowed(TimeOnly.FromDateTime(localStartsAt.DateTime));
+    }
+
+    internal static bool IsCommunityCallReminderLocalTimeAllowed(TimeOnly localStartsAt)
+        => localStartsAt >= CommunityCallReminderLocalStartTime &&
+           localStartsAt < CommunityCallReminderLocalEndTime;
 
     private static bool TryFindTimeZone(string timeZoneId, out TimeZoneInfo timeZone)
     {
