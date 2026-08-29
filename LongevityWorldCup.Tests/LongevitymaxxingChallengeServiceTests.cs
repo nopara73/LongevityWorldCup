@@ -1560,7 +1560,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
     public async Task CallReminderCandidatesCanSendSundayCommunityCall24HourReminderBeforeSignupCloses()
     {
         using var fixture = TestChallengeFixture.Create();
-        await fixture.ConfirmParticipantAsync("call@example.com", "Call Casey");
+        await fixture.ConfirmParticipantAsync(
+            "call@example.com",
+            "Call Casey",
+            timeZoneId: "Europe/Budapest");
 
         var candidates = fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z"));
         var reminder = Assert.Single(candidates);
@@ -1568,7 +1571,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
         Assert.Equal("Community call", reminder.CallLabel);
         Assert.Equal("24h", reminder.ReminderKind);
         Assert.Equal("2026-06-07T06:30:00.0000000+00:00", reminder.StartsAtUtc);
-        Assert.Equal("UTC", reminder.TimeZoneId);
+        Assert.Equal("Europe/Budapest", reminder.TimeZoneId);
         Assert.Equal(4, reminder.Calls.Count);
 
         Assert.Empty(fixture.Service.GetChallengeStartCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
@@ -1581,7 +1584,10 @@ public sealed class LongevitymaxxingChallengeServiceTests
     public async Task StoppingCommunityCallEmailsKeepsDailyChallengeRemindersEnabled()
     {
         using var fixture = TestChallengeFixture.Create();
-        await fixture.ConfirmParticipantAsync("call-opt-out@example.com", "Call Opt Out");
+        await fixture.ConfirmParticipantAsync(
+            "call-opt-out@example.com",
+            "Call Opt Out",
+            timeZoneId: "Europe/Budapest");
 
         var callReminder = Assert.Single(
             fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
@@ -1592,6 +1598,43 @@ public sealed class LongevitymaxxingChallengeServiceTests
 
         Assert.Empty(fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:37:00Z")));
         Assert.Single(fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-09T08:05:00Z")));
+    }
+
+    [Fact]
+    public async Task CallReminderCandidatesExcludeCallsDuringParticipantLocalQuietHours()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        await fixture.ConfirmParticipantAsync(
+            "quiet-hours@example.com",
+            "Quiet Hours",
+            timeZoneId: "America/New_York");
+        await fixture.ConfirmParticipantAsync(
+            "daytime@example.com",
+            "Daytime Dana",
+            timeZoneId: "Europe/Budapest");
+
+        var reminder = Assert.Single(
+            fixture.Service.GetCallReminderCandidates(DateTimeOffset.Parse("2026-06-06T06:35:00Z")));
+
+        Assert.Equal("Daytime Dana", reminder.DisplayName);
+        Assert.Equal("Europe/Budapest", reminder.TimeZoneId);
+    }
+
+    [Theory]
+    [InlineData(0, 0, false)]
+    [InlineData(6, 59, false)]
+    [InlineData(7, 0, true)]
+    [InlineData(20, 59, true)]
+    [InlineData(21, 0, false)]
+    [InlineData(23, 59, false)]
+    public void CommunityCallReminderLocalTimeWindowIncludesSevenAndExcludesTwentyOne(
+        int hour,
+        int minute,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            LongevitymaxxingChallengeService.IsCommunityCallReminderLocalTimeAllowed(new TimeOnly(hour, minute)));
     }
 
     [Fact]
