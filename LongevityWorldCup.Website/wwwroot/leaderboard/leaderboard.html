@@ -7,7 +7,7 @@
 </head>
 <body>
     <!--HEADER-->
-    <main>
+    <main data-leaderboard-page="full">
         <h1 id="leaderboardTitle">Longevity leaderboard</h1>
         <!--LEADERBOARD-CONTENT-->
         <div class="options-container" data-aos="fade" data-aos-duration="700" data-aos-delay="700">
@@ -21,7 +21,10 @@
 </html>
 
 <script>
-    history.replaceState({}, '', '/leaderboard' + (window.location.search || '') + (window.location.hash || ''));
+    const normalizedLeaderboardPath = window.location.pathname.replace(/\/+$/, '').toLowerCase();
+    if (normalizedLeaderboardPath === '/leaderboard/leaderboard' || normalizedLeaderboardPath === '/leaderboard/leaderboard.html') {
+        history.replaceState({}, '', '/leaderboard' + (window.location.search || '') + (window.location.hash || ''));
+    }
 
     document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {

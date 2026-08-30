@@ -7681,7 +7681,13 @@
     }
 
     function getLeaguelessURL() {
-        const url = new URL(window.location.href.replace(/\/(?:league|flag)\/[^/]+\/?$/, ''));
+        const url = new URL(window.location.href);
+        const isCanonicalLeaderboardRoute = /^\/(?:league|flag)\/[^/]+\/?$/i.test(url.pathname);
+        if (isCanonicalLeaderboardRoute) {
+            url.pathname = pageDocument.querySelector('[data-leaderboard-page="full"]')
+                ? '/leaderboard'
+                : '/';
+        }
         return url;
     }
 

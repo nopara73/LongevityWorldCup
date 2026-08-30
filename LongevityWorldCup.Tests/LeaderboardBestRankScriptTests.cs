@@ -54,7 +54,8 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("function getFlagRouteState(pathname)", html);
         Assert.Contains("const flagPrefix = '/flag/';", html);
         Assert.Contains("url.pathname = `/flag/${getFlagRouteSlug(selectedFlagNames[0])}`;", html);
-        Assert.Contains("replace(/\\/(?:league|flag)\\/[^/]+\\/?$/, '')", html);
+        Assert.Contains("/^\\/(?:league|flag)\\/[^/]+\\/?$/i.test(url.pathname)", html);
+        Assert.Contains("pageDocument.querySelector('[data-leaderboard-page=\"full\"]')", html);
     }
 
     [Fact]
