@@ -1,0 +1,28 @@
+{
+  "Name": "Tamas Toth",
+  "DisplayName": null,
+  "MediaContact": "ttoti@me.com",
+  "DateOfBirth": {
+    "Year": 1976,
+    "Month": 7,
+    "Day": 18
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-08-27",
+      "AlbGL": 43,
+      "CreatUmolL": 102,
+      "GluMmolL": 4.6,
+      "CrpMgL": 0.4,
+      "LymPc": 30.2,
+      "McvFL": 95,
+      "RdwPc": 12.2,
+      "AlpUL": 67,
+      "Wbc1000cellsuL": 6.4
+    }
+  ],
+  "Division": "Men's",
+  "Flag": "Hungary",
+  "Why": "To be more healthy for a few more decades.",
+  "PersonalLink": null
+}
