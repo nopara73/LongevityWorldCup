@@ -6886,7 +6886,7 @@
             if (selectedFlags.length > 0) {
                 const selectedFlagNames = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
                     .map(input => input.value.toUpperCase());
-                leagueText = selectedFlagNames.join(' AND ') + ' FLAGS';
+                leagueText = selectedFlagNames.join(' AND ');
             } else {
                 // If an exclusive league is selected, override the league text.
                 if (selectedExclusiveLeagues.length > 0) {
