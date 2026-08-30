@@ -318,7 +318,9 @@ Write athlete-facing replies in a warm, casual, conversational voice. Keep them 
 
 Before saving any draft, inspect the prior direct human replies in `expectedThreadId` for an earlier salutation to the athlete. Treat the Gmail thread as one conversation: use `Hi/Hey {name}` only in the first direct human reply in that thread. If a prior human reply already greeted them, start the follow-up with the acknowledgment or substance instead, including security, correction, welcome, and update replies. Template salutations are conditional and never override this rule.
 
-Keep enthusiasm restrained: use at most one brief positive acknowledgment. Do not repeat or stack `great`, `good`, `excellent`, or equivalent praise in the same reply; one natural acknowledgment is enough.
+Calibrate the reply to the selected sender's demonstrated human voice before applying a generic template. Use direct sent replies already found in the current thread and related-history review to match brevity, emoji repetition, punctuation, headings, and calls to action. Thread-specific sender style outranks generic template tone when it remains clear and accurate; do not invent stylistic quirks without evidence.
+
+Keep prose praise restrained: do not stack `great`, `good`, `excellent`, or equivalent praise. A repeated emoji completion marker such as `🚀🚀🚀` is not stacked praise and may be preserved when it matches the sender's demonstrated voice.
 
 Choose the reply language in this order:
 
@@ -328,7 +330,9 @@ Choose the reply language in this order:
 
 Do not infer reply language from the laboratory report alone; a report's language may reflect the provider rather than the athlete's preference. Preserve proper names, URLs, biomarker labels, and exact submitted/corrected values when localizing a draft.
 
-Before drafting, read the latest direct exchange with the athlete and continue that conversation naturally. Briefly acknowledge the athlete's latest relevant action—such as sending requested proof or a correction—using only details present in the thread. For every accepted full-application welcome, introduce the sender briefly as Adam, the founder of LWC, in the reply's language. Keep this personal introduction even when the applicant supplied a requested item before acceptance; result/profile-update replies do not need to repeat it.
+Before drafting, read the latest direct exchange with the athlete and continue that conversation naturally. Briefly acknowledge the athlete's latest submission-relevant action—such as sending requested proof or a correction—using only details present in the thread. Do not force an acknowledgment of unrelated side topics merely to demonstrate that the thread was read. For every accepted full-application welcome, introduce the sender briefly as Adam, the founder of LWC, in the reply's language. Keep this personal introduction even when the applicant supplied a requested item before acceptance; result/profile-update replies do not need to repeat it.
+
+Before saving, remove every sentence that neither communicates new information or a required action nor preserves the sender's demonstrated voice. Existing-athlete updates are continuations of a relationship, not onboarding announcements.
 
 When blocked, keep the message concise and specific:
 
@@ -352,7 +356,7 @@ Common `{specific issue}` examples:
 - `I could not safely censor {identifier type} without hiding the proof values needed for verification. Please upload a censored version.`
 - `The submission still shows a payment due, and I do not see a payment confirmation yet. Please complete the payment or reply if you believe it was already paid.`
 
-When accepted and the user approves finalization, send a welcome/update reply. If you changed any athlete-submitted information during review, include a `Changes I made during the review:` section before the profile link. Use one short bullet per change, explaining what the athlete submitted and what was ultimately stored; include the original and corrected values or units when relevant.
+When accepted and the user approves finalization, send a welcome/update reply. If you changed any athlete-submitted information during review, include a `Changes I made during the review:` section. For a new application, place it before the profile link; for an existing-athlete update, it may be the entire substantive body. Use one short bullet per change, explaining what the athlete submitted and what was ultimately stored; include the original and corrected values or units when relevant.
 
 List only changes the athlete should know about. Do not mention routine processing, proof-file redaction, filenames, internal implementation details, or the normal addition of an accepted result. Never invent a change. When no corrections were made, omit the heading and the entire section.
 
@@ -393,23 +397,29 @@ Please reply if you spot anything that needs a correction.
 Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
 ```
 
-For an accepted result upload or profile update, use:
+For an accepted result upload or profile update, draft the shortest natural continuation that communicates the outcome and any athlete-facing correction or required action. Normally omit all of the following from an ongoing existing-athlete thread:
+
+- a repeated greeting,
+- the generic sentence `Your Longevity World Cup profile has been updated.`,
+- the profile URL when it is already known and unchanged,
+- `Please reply if you spot anything that needs a correction.` when no action is required,
+- the Slack invitation, founder introduction, and signature.
+
+Include a profile link only when the profile is new, the link changed, the athlete asked for it, or it materially helps resolve the request. Include a call to action only when the athlete needs to do something.
+
+When a clerical correction is the only meaningful athlete-facing delta and the sender's demonstrated voice supports a celebratory completion marker, prefer this shape:
 
 ```text
-Hey {name},
+🚀🚀🚀
 
-Your Longevity World Cup profile has been updated.
+Changes I made during the review:
 
-{Include the Changes I made during the review section here only when required by the preceding instructions.}
-
-Your athlete profile: {profileUrl}
-
-Please reply if you spot anything that needs a correction.
-
-Want to hang out with other longevity athletes? Join the #longevity-world-cup room on the TumbleBit Slack!
+- Your MCV was submitted as 84.7 fL, but the proof shows 86.7 fL, so I stored 86.7 fL.
 ```
 
-In Gmail's rich-text editor, hyperlink only the visible words `TumbleBit Slack` in the final sentence to `https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ`. Do not paste the full Slack URL into the visible email body. Keep the Slack invitation as the final paragraph, with no signature after it.
+Adapt the field and values to the actual correction; do not copy the MCV example when it does not apply. When there is no correction or required action, one short, sender-appropriate completion line may be sufficient.
+
+Include the Slack invitation only in the first accepted full-application welcome when related history does not show that it was already sent, unless the user explicitly requests it elsewhere. In Gmail's rich-text editor, hyperlink only the visible words `TumbleBit Slack` to `https://join.slack.com/t/tumblebit/shared_invite/zt-2wzmjg6tg-PRup8nbL7GxViJzofNoBFQ`. Do not paste the full Slack URL into the visible email body. Keep the Slack invitation as the final paragraph, with no signature after it.
 
 ## Human Approval Summary
 
