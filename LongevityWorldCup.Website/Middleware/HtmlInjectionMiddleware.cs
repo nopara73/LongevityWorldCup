@@ -90,18 +90,10 @@ namespace LongevityWorldCup.Website.Middleware
         public async Task Invoke(HttpContext context)
         {
             var path = context.Request.Path.Value;
-            if (path == "/" || path?.EndsWith(".html") is true || IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path))
+            var templatePath = ResolveHtmlTemplatePath(path);
+            if (templatePath is not null)
             {
-                string filePath;
-
-                if (path == "/" || IsLeagueRoute(path) || IsFlagRoute(path) || IsAthleteRoute(path))
-                {
-                    filePath = Path.Combine(_webRootPath, "index.html");
-                }
-                else
-                {
-                    filePath = Path.Combine(_webRootPath, (path ?? "").TrimStart('/'));
-                }
+                var filePath = Path.Combine(_webRootPath, templatePath);
 
                 if (File.Exists(filePath))
                 {
@@ -220,6 +212,23 @@ namespace LongevityWorldCup.Website.Middleware
 
             // For all other requests, continue down the pipeline
             await _next(context);
+        }
+
+        private static string? ResolveHtmlTemplatePath(string? path)
+        {
+            if (string.Equals(path, "/", StringComparison.Ordinal) || IsAthleteRoute(path))
+            {
+                return "index.html";
+            }
+
+            if (IsLeagueRoute(path) || IsFlagRoute(path))
+            {
+                return Path.Combine("leaderboard", "leaderboard.html");
+            }
+
+            return path?.EndsWith(".html", StringComparison.OrdinalIgnoreCase) is true
+                ? path.TrimStart('/')
+                : null;
         }
 
         private string ApplyHeadAssets(string html, string path)
