@@ -319,12 +319,12 @@
        4) Sidebar & filters
        ========================= */
     .sidebar{
-        position:relative; width:50px; min-height:var(--leaderboard-table-height); padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
+        position:relative; width:50px; height:var(--leaderboard-table-height); min-height:var(--leaderboard-table-height); max-height:var(--leaderboard-table-height); padding:0; background:var(--card-bg); border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,.1);
         margin-right:.2rem; display:flex; flex-direction:column; align-items:center; transition:width var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease), padding var(--lwc-duration-normal, 220ms) var(--lwc-ease, ease);
-        overflow:visible; flex-shrink:0;
+        overflow:hidden; flex-shrink:0;
     }
     .sidebar:hover:not(.button-collapsed), .sidebar.expanded{
-        position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; min-height:0; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height)); padding:1rem; align-items:flex-start;
+        position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; height:auto; min-height:0; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height)); padding:1rem; align-items:flex-start;
         overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable;
         scrollbar-width:thin; scrollbar-color:rgba(0,188,212,.55) transparent;
     }
@@ -397,6 +397,7 @@
 
     .collapsed-title{
         display:block; position:sticky; top:calc(var(--leaderboard-sidebar-sticky-top) + .75rem); z-index:1; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:1.8rem; color:var(--primary-color);
+        max-height:calc(var(--leaderboard-table-height) - 4.5rem); overflow:hidden; box-sizing:border-box; white-space:nowrap;
         padding:15px 0; letter-spacing:1px; word-spacing:10px; font-family:'Orbitron', sans-serif;
         background:linear-gradient(45deg, var(--primary-color), var(--secondary-color)); background-size:200%;
         -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; border-radius:5px;
@@ -2765,6 +2766,12 @@
         -webkit-text-fill-color: currentColor;
     }
 
+    .collapsed-title.is-compact {
+        padding-block: var(--space-2, .5rem);
+        font-size: .875rem;
+        letter-spacing: .02em;
+    }
+
     .sidebar-toggle,
     .sidebar-close,
     .clear-sidebar-filters,
@@ -3034,7 +3041,7 @@
                         <i class="fa fa-times"></i>
                     </button>
                 </div>
-                <button class="sidebar-toggle" aria-label="Show leagues" aria-controls="leaderboardFilters" aria-expanded="false" title="Show leagues" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
+                <button class="sidebar-toggle" aria-label="Show league filters" aria-controls="leaderboardFilters" aria-expanded="false" title="Show league filters" data-aos="fade" data-aos-duration="700" data-aos-delay="650">
                     <i class="fa fa-sliders-h"></i>
                 </button>
             </div>
@@ -3044,7 +3051,7 @@
 
         <div class="leaderboard">
             <div class="sidebar" id="leaderboardFilters">
-                <button class="sidebar-close" aria-label="Hide leagues" title="Hide leagues"><i class="fa fa-times"></i></button>
+                <button class="sidebar-close" aria-label="Hide league filters" title="Hide league filters"><i class="fa fa-times"></i></button>
                 <h2 class="sidebar-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">
                     <span class="sidebar-icon"><i class="fa fa-trophy"></i></span>
                     <span class="sidebar-title-text">Leagues</span>
@@ -3055,7 +3062,7 @@
                 </button>
                 <div class="collapsed-title" data-aos="fade" data-aos-duration="700" data-aos-delay="200">ULTIMATE LEAGUE</div>
                 <div class="filter-section" id="aging-clock-filter-section">
-                    <h3>Aging clocks</h3>
+                    <h3>Ranking views</h3>
                     <ul>
                         <li>
                             <label data-aging-clock-view="bortz">
@@ -3103,7 +3110,7 @@
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
                 <div class="filter-section" id="exclusive-filter-section">
-                    <h3>Exclusive</h3>
+                    <h3>Exclusive leagues</h3>
                     <ul></ul> <!-- This will be populated dynamically -->
                 </div>
                 <div class="filter-section" id="flag-filter-section">
@@ -3421,6 +3428,9 @@
 <script>
     (function () {
     const pageDocument = window.document;
+    let currentLeaderboardDocumentTitle = /^\/athlete\/[^/]+\/?$/i.test(window.location.pathname)
+        ? 'Longevity World Cup'
+        : pageDocument.title;
     const athleteDialogRuntime = pageDocument.getElementById('athleteDialogRuntime');
     if (!athleteDialogRuntime) {
         console.error('Athlete dialog runtime root was not found.');
@@ -3845,7 +3855,7 @@
 
         const label = candidate.leagueLabel || candidate.leagueName || 'Ultimate League';
         const labelHtml = candidate.leagueLabelHtml || escapeHtml(label);
-        const preposition = candidate.leagueType === 'flag' ? 'in' : 'in the';
+        const preposition = candidate.leagueType === 'flag' ? 'for' : 'in the';
         if (!candidate.href) {
             return `#${rank} ${preposition} ${labelHtml}`;
         }
@@ -3940,6 +3950,28 @@
             : '';
     }
 
+    const leagueFilterRoutes = Object.freeze({
+        amateur: { label: 'Amateur', canonical: true },
+        professional: { label: 'Professional', canonical: false },
+        womens: { label: "Women's", canonical: true },
+        mens: { label: "Men's", canonical: true },
+        open: { label: 'Open', canonical: true },
+        'silent-generation': { label: 'Silent Generation', canonical: true },
+        'baby-boomers': { label: 'Baby Boomers', canonical: true },
+        'gen-x': { label: 'Gen X', canonical: true },
+        millennials: { label: 'Millennials', canonical: true },
+        'gen-z': { label: 'Gen Z', canonical: true },
+        'gen-alpha': { label: 'Gen Alpha', canonical: true },
+        prosperan: { label: 'Prosperan', canonical: true }
+    });
+
+    function getCanonicalLeagueSlugForFilter(filterLabel) {
+        const normalizedLabel = String(filterLabel || '').trim().toLowerCase();
+        const match = Object.entries(leagueFilterRoutes).find(([, route]) =>
+            route.canonical && route.label.toLowerCase() === normalizedLabel);
+        return match ? match[0] : null;
+    }
+
     function getLeagueRouteState(pathname) {
         let normalizedPath = (pathname || '').trim().toLowerCase();
         while (normalizedPath.length > 1 && normalizedPath.endsWith('/')) {
@@ -3952,20 +3984,6 @@
         }
 
         const slug = normalizedPath.slice(leaguePrefix.length);
-        const filterLabelsBySlug = {
-            amateur: 'Amateur',
-            womens: "Women's",
-            mens: "Men's",
-            open: 'Open',
-            'silent-generation': 'Silent Generation',
-            'baby-boomers': 'Baby Boomers',
-            'gen-x': 'Gen X',
-            millennials: 'Millennials',
-            'gen-z': 'Gen Z',
-            'gen-alpha': 'Gen Alpha',
-            prosperan: 'Prosperan'
-        };
-
         if (slug === 'pheno-improvement') {
             return { slug, filterLabel: null, view: 'improvement' };
         }
@@ -3976,7 +3994,7 @@
 
         return {
             slug,
-            filterLabel: filterLabelsBySlug[slug] || null,
+            filterLabel: leagueFilterRoutes[slug]?.label || null,
             view: slug === 'ultimate' ? 'ultimate' : null
         };
     }
@@ -5170,6 +5188,7 @@
                     }
                     const selectedViewRadio = document.querySelector('input[name="leaderboardView"]:checked');
                     updateRankingExplanation(selectedViewRadio ? selectedViewRadio.value : 'ultimate');
+                    updateLeaderboardTitles(getSelectedLeaderboardState());
 
                     if (searchOrFilterApplied) {
                         debounceFilterAthletes();
@@ -6386,6 +6405,23 @@
         clearSidebarFilters();
     }
 
+    function getSelectedLeaderboardState() {
+        const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
+        return {
+            divisions: Array.from(document.querySelectorAll('input[name="division"]:checked'))
+                .map(checkbox => checkbox.value),
+            flags: Array.from(document.querySelectorAll('input[name="flag"]:checked'))
+                .map(checkbox => getCanonicalFlagName(checkbox.value)),
+            generations: Array.from(document.querySelectorAll('input[name="generation"]:checked'))
+                .map(checkbox => checkbox.value),
+            exclusiveLeagues: Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
+                .map(checkbox => checkbox.value),
+            leagueTracks: Array.from(document.querySelectorAll('input[name="leagueTrack"]:checked'))
+                .map(checkbox => checkbox.value),
+            view: viewRadio ? viewRadio.value.toLowerCase() : 'ultimate'
+        };
+    }
+
     window.getFullLeaderboardUrlWithCurrentState = function () {
         const button = getViewAllAthletesButton();
         if (button?.dataset.useDefaultLeaderboardUrl === 'true') {
@@ -6399,18 +6435,12 @@
             url.searchParams.set('search', encodeURIComponent(searchQuery));
         }
 
-        const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
-            .map(checkbox => checkbox.value.toLowerCase());
-        const selectedFlags = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-            .map(checkbox => getFlagFilterKey(checkbox.value));
-        const selectedFlagNames = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-            .map(checkbox => getCanonicalFlagName(checkbox.value));
-        const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
-            .map(checkbox => checkbox.value.toLowerCase());
-        const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
-            .map(checkbox => checkbox.value.toLowerCase());
-        const selectedLeagueTracks = Array.from(document.querySelectorAll('input[name="leagueTrack"]:checked'))
-            .map(checkbox => checkbox.value.toLowerCase());
+        const state = getSelectedLeaderboardState();
+        const selectedDivisions = state.divisions.map(value => value.toLowerCase());
+        const selectedFlags = state.flags.map(getFlagFilterKey);
+        const selectedGenerations = state.generations.map(value => value.toLowerCase());
+        const selectedExclusiveLeagues = state.exclusiveLeagues.map(value => value.toLowerCase());
+        const selectedLeagueTracks = state.leagueTracks.map(value => value.toLowerCase());
 
         const filters = [
             ...selectedDivisions,
@@ -6423,10 +6453,15 @@
             url.searchParams.set('filters', serializeFiltersParam(filters));
         }
 
-        const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
-        const currentLeaderboardView = viewRadio ? viewRadio.value.toLowerCase() : 'ultimate';
+        const currentLeaderboardView = state.view;
         if (!searchQuery && filters.length === 1 && selectedFlags.length === 1 && currentLeaderboardView === 'ultimate') {
-            return buildFlagHref(selectedFlagNames[0]);
+            return buildFlagHref(state.flags[0]);
+        }
+        const canonicalLeagueSlug = selectedFlags.length === 0 && filters.length === 1
+            ? getCanonicalLeagueSlugForFilter(filters[0])
+            : null;
+        if (!searchQuery && canonicalLeagueSlug && currentLeaderboardView === 'ultimate') {
+            return `/league/${canonicalLeagueSlug}`;
         }
 
         if (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno' || currentLeaderboardView === 'improvement' || currentLeaderboardView === 'bortz-improvement' || currentLeaderboardView === 'crowd') {
@@ -6437,29 +6472,16 @@
     };
 
     function performFilter() {
-        // Get selected divisions
-        const selectedDivisions = Array.from(document.querySelectorAll('input[name="division"]:checked'))
-            .map(checkbox => checkbox.value.toLowerCase());
-
-        const selectedFlags = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-            .map(checkbox => getFlagFilterKey(checkbox.value));
-
-        // Get selected generations
-        const selectedGenerations = Array.from(document.querySelectorAll('input[name="generation"]:checked'))
-            .map(checkbox => checkbox.value.toLowerCase());
-
-        // Get selected exclusive leagues (e.g. "Prosperan")
-        const selectedExclusiveLeagues = Array.from(document.querySelectorAll('input[name="exclusiveLeague"]:checked'))
-            .map(checkbox => checkbox.value.toLowerCase());
-
-        // Get selected league track (Amateur / Professional); only one selected means filter
-        const selectedLeagueTracks = Array.from(document.querySelectorAll('input[name="leagueTrack"]:checked'))
-            .map(checkbox => checkbox.value);
+        const selectedState = getSelectedLeaderboardState();
+        const selectedDivisions = selectedState.divisions.map(value => value.toLowerCase());
+        const selectedFlags = selectedState.flags.map(getFlagFilterKey);
+        const selectedGenerations = selectedState.generations.map(value => value.toLowerCase());
+        const selectedExclusiveLeagues = selectedState.exclusiveLeagues.map(value => value.toLowerCase());
+        const selectedLeagueTracks = selectedState.leagueTracks;
         const leagueTrackFilterActive = selectedLeagueTracks.length === 1;
 
         // Get leaderboard view (ultimate | bortz | pheno | improvement | bortz-improvement | crowd)
-        const viewRadio = document.querySelector('input[name="leaderboardView"]:checked');
-        const currentLeaderboardView = viewRadio ? viewRadio.value : 'ultimate';
+        const currentLeaderboardView = selectedState.view;
         syncAgingClockFilters(currentLeaderboardView);
         updateActiveFilterSections();
         updateRankingExplanation(currentLeaderboardView);
@@ -6783,7 +6805,7 @@
             }
         });
 
-        updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView);
+        updateLeaderboardTitles(selectedState);
 
         // Display "No Results Found" if Necessary
         displayNoResults(tableRows, podiumItems, query);
@@ -6813,18 +6835,24 @@
 
         const selectedFlagKeys = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
             .map(checkbox => getFlagFilterKey(checkbox.value));
-        const selectedFlagNames = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-            .map(checkbox => getCanonicalFlagName(checkbox.value));
-        const filters = [...selectedDivisions, ...selectedFlagKeys, ...selectedGenerations, ...selectedExclusiveLeagues, ...(leagueTrackFilterActive ? selectedLeagueTracks : [])];
+        const filters = [
+            ...selectedDivisions,
+            ...selectedFlagKeys,
+            ...selectedGenerations,
+            ...selectedExclusiveLeagues,
+            ...(leagueTrackFilterActive ? selectedLeagueTracks.map(value => value.toLowerCase()) : [])
+        ];
+        const canonicalLeagueSlug = filters.length === 1 && selectedFlagKeys.length === 0
+            ? getCanonicalLeagueSlugForFilter(filters[0])
+            : null;
         const cleanSearch = ([...url.searchParams].length === 0)
             || ([...url.searchParams].length === 1 && (url.searchParams.has('filters') || url.searchParams.has('view')));
         if (filters.length === 1 && selectedFlagKeys.length === 1 && cleanSearch && currentLeaderboardView === 'ultimate') {
             url.searchParams.delete('filters');
-            url.pathname = `/flag/${getFlagRouteSlug(selectedFlagNames[0])}`;
-        } else if (filters.length === 1 && selectedFlagKeys.length === 0 && cleanSearch && currentLeaderboardView === 'ultimate') {
+            url.pathname = `/flag/${getFlagRouteSlug(selectedState.flags[0])}`;
+        } else if (canonicalLeagueSlug && cleanSearch && currentLeaderboardView === 'ultimate') {
             url.searchParams.delete('filters');
-            const leagueSlug = window.slugifyName(filters[0], true);
-            url.pathname = `/league/${leagueSlug}`;
+            url.pathname = `/league/${canonicalLeagueSlug}`;
         } else if (filters.length === 0 && cleanSearch && (currentLeaderboardView === 'bortz' || currentLeaderboardView === 'pheno' || currentLeaderboardView === 'improvement' || currentLeaderboardView === 'bortz-improvement' || currentLeaderboardView === 'crowd')) {
             url.pathname = `/league/${currentLeaderboardView}`;
             url.searchParams.delete('view');
@@ -6851,12 +6879,12 @@
         if (!explanation) return;
 
         const explanations = {
-            ultimate: '<strong>Ultimate leaderboard</strong> ranks athletes first by bortz, then by pheno age reductions.',
+            ultimate: '<strong>Ultimate League</strong> ranks Pro athletes before Amateur athletes, then by effective age reduction and tie-breakers within each track.',
             bortz: '<strong>Bortz age</strong> estimates biological age from advanced blood-test markers.',
             pheno: '<strong>Pheno age</strong> estimates biological age from common blood-test markers.',
             improvement: '<strong>Pheno improvement</strong> ranks each athlete’s latest pheno age against their worst pheno age.',
             'bortz-improvement': '<strong>Bortz improvement</strong> ranks each athlete’s latest bortz age against their worst bortz age.',
-            crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they pass 100 guesses.'
+            crowd: '<strong>Crowd age</strong> is a visual age estimate from visitors. Athletes qualify once they reach 100 accepted guesses.'
         };
 
         const html = explanations[currentLeaderboardView] || '';
@@ -6864,124 +6892,137 @@
         explanation.classList.toggle('is-visible', html.length > 0);
     }
 
-    function updateCollapsedTitle(selectedDivisions, selectedFlags, selectedGenerations, selectedExclusiveLeagues, selectedLeagueTracks, currentLeaderboardView) {
-        selectedFlags = selectedFlags || [];
-        selectedLeagueTracks = selectedLeagueTracks || [];
-        currentLeaderboardView = currentLeaderboardView || 'ultimate';
+    const leaderboardViewPresentations = Object.freeze({
+        ultimate: { railText: 'Ultimate League', compactRailText: 'ULT', documentTitle: 'Ultimate League' },
+        bortz: { railText: 'Bortz Age League', compactRailText: 'BORTZ', documentTitle: 'Bortz Age Leaderboard' },
+        pheno: { railText: 'Pheno Age League', compactRailText: 'PHENO', documentTitle: 'Pheno Age Leaderboard' },
+        improvement: { railText: 'Pheno Improvement League', compactRailText: 'PHENO', documentTitle: 'Pheno Improvement Leaderboard' },
+        'bortz-improvement': { railText: 'Bortz Improvement League', compactRailText: 'BORTZ', documentTitle: 'Bortz Improvement Leaderboard' },
+        crowd: { railText: 'Crowd Age League', compactRailText: 'CROWD', documentTitle: 'Crowd Age Leaderboard' }
+    });
 
-        // Update the collapsed-title text based on selected filters
-        let leagueText = '';
+    const generationLeagueAliases = Object.freeze({
+        'baby boomers|silent generation': 'Heritage',
+        'baby boomers|gen x': 'Senior',
+        'gen x|millennials': 'Prime',
+        'gen z|millennials': 'Rising',
+        'gen alpha|gen z': 'Next-gen'
+    });
 
-        if (currentLeaderboardView === 'bortz') {
-            leagueText = 'BORTZ AGE LEAGUE';
-        } else if (currentLeaderboardView === 'pheno') {
-            leagueText = 'PHENO AGE LEAGUE';
-        } else if (currentLeaderboardView === 'improvement') {
-            leagueText = 'IMPROVEMENT LEAGUE';
-        } else if (currentLeaderboardView === 'bortz-improvement') {
-            leagueText = 'BORTZ IMPROVEMENT LEAGUE';
-        } else if (currentLeaderboardView === 'crowd') {
-            leagueText = 'CROWD AGE LEAGUE';
-        } else {
-            if (selectedFlags.length > 0) {
-                const selectedFlagNames = Array.from(document.querySelectorAll('input[name="flag"]:checked'))
-                    .map(input => input.value.toUpperCase());
-                leagueText = selectedFlagNames.join(' AND ');
-            } else {
-                // If an exclusive league is selected, override the league text.
-                if (selectedExclusiveLeagues.length > 0) {
-                    // If multiple exclusive leagues are selected, join them with " AND "
-                    leagueText = selectedExclusiveLeagues.map(league => league.toUpperCase()).join(' AND ') + ' LEAGUE';
-                } else {
-                    // Build generation part of the league text
-                    if (selectedGenerations.length === 1) {
-                        leagueText += selectedGenerations[0].toUpperCase();
-                    } else if (selectedGenerations.length === 2) {
-                        const [first, second] = selectedGenerations.map(gen => gen.toLowerCase()).sort();
+    function getSelectionKey(values) {
+        return values.map(value => value.toLowerCase()).sort().join('|');
+    }
 
-                        // Check for specific two-generation combinations
-                        if (first === "baby boomers" && second === "silent generation") {
-                            leagueText += "HERITAGE";
-                        } else if (first === "baby boomers" && second === "gen x") {
-                            leagueText += "SENIOR";
-                        } else if (first === "gen x" && second === "millennials") {
-                            leagueText += "PRIME";
-                        } else if (first === "gen z" && second === "millennials") {
-                            leagueText += "RISING";
-                        } else if (first === "gen alpha" && second === "gen z") {
-                            leagueText += "NEXT-GEN";
-                        } else {
-                            leagueText += selectedGenerations[0].toUpperCase() + ' AND ' + selectedGenerations[1].toUpperCase();
-                        }
-                    } else if (selectedGenerations.length === 3) {
-                        leagueText +=
-                            selectedGenerations[0].toUpperCase() + ', ' +
-                            selectedGenerations[1].toUpperCase() + ', AND ' +
-                            selectedGenerations[2].toUpperCase();
-                    } else if (selectedGenerations.length === 4) {
-                        leagueText +=
-                            selectedGenerations[0].toUpperCase() + ', ' +
-                            selectedGenerations[1].toUpperCase() + ', ' +
-                            selectedGenerations[2].toUpperCase() + ', AND ' +
-                            selectedGenerations[3].toUpperCase();
-                    } else if (selectedGenerations.length === 5) {
-                        leagueText +=
-                            selectedGenerations[0].toUpperCase() + ', ' +
-                            selectedGenerations[1].toUpperCase() + ', ' +
-                            selectedGenerations[2].toUpperCase() + ', ' +
-                            selectedGenerations[3].toUpperCase() + ', AND ' +
-                            selectedGenerations[4].toUpperCase();
-                    }
+    function getGenerationLeagueLabel(generations) {
+        if (generations.length === 0) return '';
+        if (generations.length === 1) return generations[0];
+        return generationLeagueAliases[getSelectionKey(generations)] || 'Multi-generation';
+    }
 
-                    // Build division part of the league text
-                    if (selectedDivisions.length === 1) {
-                        if (leagueText.length > 0) {
-                            leagueText += ' ';
-                        }
-                        leagueText += selectedDivisions[0].toUpperCase();
-                    } else if (selectedDivisions.length === 2) {
-                        if (leagueText.length > 0) {
-                            leagueText += ' ';
-                        }
+    function getDivisionLeagueLabel(divisions) {
+        if (divisions.length === 0) return '';
+        if (divisions.length === 1) return divisions[0];
+        if (divisions.length >= 3) return 'All Divisions';
 
-                        // Custom sorting order for divisions
-                        const order = { "men's": 1, "women's": 2, "open": 3 };
-                        const [first, second] = selectedDivisions
-                            .map(div => div.toLowerCase())
-                            .sort((a, b) => order[a] - order[b]);
+        const aliases = {
+            "men's|women's": 'Mixed',
+            "men's|open": "Inclusive Men's",
+            "open|women's": "Inclusive Women's"
+        };
+        return aliases[getSelectionKey(divisions)] || 'Multi-division';
+    }
 
-                        if (first === "men's" && second === "women's") {
-                            leagueText += 'MIXED';
-                        } else if (first === "men's" && second === 'open') {
-                            leagueText += "INCLUSIVE MEN'S";
-                        } else if (first === "women's" && second === 'open') {
-                            leagueText += "INCLUSIVE WOMEN'S";
-                        }
-                    }
-
-                    // Default text if no filters are selected (or only league track)
-                    if (leagueText === '') {
-                        const trackLabel = selectedLeagueTracks.length === 1
-                            ? (selectedLeagueTracks[0] === 'Professional' ? 'Pro' : selectedLeagueTracks[0])
-                            : null;
-                        leagueText = trackLabel ? trackLabel.toUpperCase() : 'ULTIMATE';
-                    }
-
-                    leagueText += " LEAGUE";
-                }
-            }
+    function buildLeaderboardPresentation(state) {
+        const viewPresentation = leaderboardViewPresentations[state.view] || leaderboardViewPresentations.ultimate;
+        if (state.view !== 'ultimate') {
+            return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
         }
 
-        // Update the text content of the collapsed-title element
+        const flags = state.flags.filter(Boolean);
+        if (flags.length === 1) {
+            const documentTitle = `Leaderboard: ${flags[0]}`;
+            return { railText: flags[0], compactRailText: 'FLAG', documentTitle, accessibleLabel: documentTitle };
+        }
+        if (flags.length > 1) {
+            const documentTitle = `${flags.length} Flags Leaderboard`;
+            return { railText: `${flags.length} Flags`, compactRailText: 'FLAGS', documentTitle, accessibleLabel: documentTitle };
+        }
+
+        if (state.exclusiveLeagues.length > 0) {
+            const leagueLabel = state.exclusiveLeagues.length === 1
+                ? `${state.exclusiveLeagues[0]} League`
+                : 'Exclusive Leagues';
+            return { railText: leagueLabel, compactRailText: 'EXCL', documentTitle: leagueLabel, accessibleLabel: leagueLabel };
+        }
+
+        const generationLabel = getGenerationLeagueLabel(state.generations);
+        const divisionLabel = getDivisionLeagueLabel(state.divisions);
+        if (generationLabel || divisionLabel) {
+            const leagueLabel = `${[generationLabel, divisionLabel].filter(Boolean).join(' ')} League`;
+            const compactRailText = generationLabel && divisionLabel
+                ? 'MULTI'
+                : generationLabel
+                    ? 'GEN'
+                    : 'DIV';
+            return { railText: leagueLabel, compactRailText, documentTitle: leagueLabel, accessibleLabel: leagueLabel };
+        }
+
+        if (state.leagueTracks.length === 1) {
+            const trackLabel = state.leagueTracks[0] === 'Professional' ? 'Pro' : state.leagueTracks[0];
+            const leagueLabel = `${trackLabel} League`;
+            return { railText: leagueLabel, compactRailText: trackLabel === 'Pro' ? 'PRO' : 'AM', documentTitle: leagueLabel, accessibleLabel: leagueLabel };
+        }
+
+        return { ...viewPresentation, accessibleLabel: viewPresentation.documentTitle };
+    }
+
+    function fitCollapsedTitleToSidebar() {
+        const collapsedTitle = document.querySelector('.collapsed-title');
+        if (!collapsedTitle || collapsedTitle.getClientRects().length === 0 || collapsedTitle.clientHeight <= 0) return;
+
+        const fullRailText = collapsedTitle.dataset.fullRailText || collapsedTitle.textContent || '';
+        const compactRailText = collapsedTitle.dataset.compactRailText || fullRailText;
+        collapsedTitle.classList.remove('is-compact');
+        collapsedTitle.style.removeProperty('font-size');
+        collapsedTitle.textContent = fullRailText;
+
+        if (collapsedTitle.scrollHeight <= collapsedTitle.clientHeight + 1) return;
+
+        collapsedTitle.textContent = compactRailText;
+        collapsedTitle.classList.add('is-compact');
+        if (collapsedTitle.scrollHeight <= collapsedTitle.clientHeight + 1) return;
+
+        const computedStyle = window.getComputedStyle(collapsedTitle);
+        const currentFontSize = Number.parseFloat(computedStyle.fontSize);
+        if (Number.isFinite(currentFontSize) && collapsedTitle.scrollHeight > 0) {
+            const fittedFontSize = Math.max(10, currentFontSize * collapsedTitle.clientHeight / collapsedTitle.scrollHeight * .94);
+            collapsedTitle.style.fontSize = `${fittedFontSize}px`;
+        }
+    }
+
+    function updateLeaderboardTitles(state) {
+        const presentation = buildLeaderboardPresentation(state);
         const collapsedTitle = document.querySelector('.collapsed-title');
         if (collapsedTitle) {
-            collapsedTitle.textContent = leagueText;
-
-            // Force reflow by toggling opacity
+            const fullRailText = presentation.railText.toUpperCase();
+            collapsedTitle.dataset.fullRailText = fullRailText;
+            collapsedTitle.dataset.compactRailText = presentation.compactRailText.toUpperCase();
+            collapsedTitle.textContent = fullRailText;
+            collapsedTitle.title = presentation.accessibleLabel;
+            collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);
             collapsedTitle.style.opacity = '0';
             requestAnimationFrame(() => {
+                fitCollapsedTitleToSidebar();
                 collapsedTitle.style.opacity = '1';
             });
+        }
+
+        if (pageDocument.querySelector('[data-leaderboard-page="full"]')) {
+            currentLeaderboardDocumentTitle = `${presentation.documentTitle} | Longevity World Cup`;
+            const athleteModal = document.getElementById('detailsModal');
+            if (!athleteModal || athleteModal.style.display !== 'block') {
+                pageDocument.title = currentLeaderboardDocumentTitle;
+            }
         }
     }
 
@@ -9165,6 +9206,7 @@
         const tableHeight = table.getBoundingClientRect().height;
         if (tableHeight > 0) {
             leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);
+            fitCollapsedTitleToSidebar();
         }
     }
 
@@ -9327,8 +9369,8 @@
         }
         syncSidebarDrawerBackdrop();
 
-        sidebarToggle.title = "Hide leagues";
-        sidebarToggle.setAttribute('aria-label', 'Hide leagues');
+        sidebarToggle.title = "Hide league filters";
+        sidebarToggle.setAttribute('aria-label', 'Hide league filters');
         sidebarToggle.setAttribute('aria-expanded', 'true');
 
         if (isMobileDrawer) {
@@ -9363,10 +9405,11 @@
         if (!sidebar.classList.contains('button-collapsed')) {
             sidebar.classList.add('button-collapsed');
         }
-        sidebarToggle.title = "Show leagues";
-        sidebarToggle.setAttribute('aria-label', 'Show leagues');
+        sidebarToggle.title = "Show league filters";
+        sidebarToggle.setAttribute('aria-label', 'Show league filters');
         sidebarToggle.setAttribute('aria-expanded', 'false');
         syncSidebarDrawerBackdrop();
+        requestAnimationFrame(fitCollapsedTitleToSidebar);
 
         if (options.restoreFocus) {
             requestAnimationFrame(() => {
@@ -9447,13 +9490,12 @@
 
     // Updates the document title for the selected athlete.
     function updatePageTitleForAthlete(athleteName, athleteRank) {
-        document.title = `${athleteName} (#${athleteRank}) - Longevity World Cup`;
+        pageDocument.title = `${athleteName} (#${athleteRank}) - Longevity World Cup`;
     }
 
-    // Resets the document title to the default when no athlete is selected.
-    const originalDocumentTitle = document.title;
+    // Restore the latest leaderboard title rather than the title captured before filters changed.
     function resetPageTitle() {
-        document.title = originalDocumentTitle;
+        pageDocument.title = currentLeaderboardDocumentTitle;
     }
     function addClickListenerToImages(selector, callback, accessibleLabel) {
         document.querySelectorAll(selector).forEach(img => {

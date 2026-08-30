@@ -45,6 +45,19 @@ public sealed class PageOgImageServiceTests
         Assert.Equal($"https://longevityworldcup.com/og/page/longevitymaxxing.png?v={payload.Signature}", url);
     }
 
+    [Fact]
+    public void TryGetCurrentPayload_NamesPhenoImprovementExplicitly()
+    {
+        using var factory = CreateFactory();
+        var pages = factory.Services.GetRequiredService<PageOgImageService>();
+
+        var found = pages.TryGetCurrentPayload("view-improvement", out var payload);
+
+        Assert.True(found);
+        Assert.Equal("Pheno Improvement leaderboard", payload.Title);
+        Assert.Contains("Pheno Improvement", payload.Stats);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("missing")]

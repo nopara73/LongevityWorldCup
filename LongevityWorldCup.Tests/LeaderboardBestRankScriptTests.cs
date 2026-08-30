@@ -40,7 +40,7 @@ public class LeaderboardBestRankScriptTests
         var html = ReadLeaderboardPartial();
 
         Assert.Contains("renderBestRankLink(rankSummary && rankSummary.bestCandidate)", html);
-        Assert.Contains("const preposition = candidate.leagueType === 'flag' ? 'in' : 'in the';", html);
+        Assert.Contains("const preposition = candidate.leagueType === 'flag' ? 'for' : 'in the';", html);
         Assert.Contains("href=\"${escapeHtml(candidate.href)}\"", html);
         Assert.Contains("candidates.length === 0 && Number.isFinite(ultimateRank)", html);
         Assert.DoesNotContain("bestLeagueType ===", html);
@@ -53,9 +53,28 @@ public class LeaderboardBestRankScriptTests
 
         Assert.Contains("function getFlagRouteState(pathname)", html);
         Assert.Contains("const flagPrefix = '/flag/';", html);
-        Assert.Contains("url.pathname = `/flag/${getFlagRouteSlug(selectedFlagNames[0])}`;", html);
+        Assert.Contains("url.pathname = `/flag/${getFlagRouteSlug(selectedState.flags[0])}`;", html);
         Assert.Contains("/^\\/(?:league|flag)\\/[^/]+\\/?$/i.test(url.pathname)", html);
         Assert.Contains("pageDocument.querySelector('[data-leaderboard-page=\"full\"]')", html);
+    }
+
+    [Fact]
+    public void LeaderboardPresentation_UsesAccurateBoundedNamesAndKeepsDocumentTitleInSync()
+    {
+        var html = ReadLeaderboardPartial();
+
+        Assert.Contains("railText: 'Pheno Improvement League'", html);
+        Assert.Contains("documentTitle: 'Pheno Improvement Leaderboard'", html);
+        Assert.Contains("generationLeagueAliases", html);
+        Assert.Contains("|| 'Multi-generation'", html);
+        Assert.Contains("return 'All Divisions';", html);
+        Assert.Contains("const documentTitle = `Leaderboard: ${flags[0]}`;", html);
+        Assert.Contains("collapsedTitle.setAttribute('aria-label', presentation.accessibleLabel);", html);
+        Assert.Contains("currentLeaderboardDocumentTitle = `${presentation.documentTitle} | Longevity World Cup`;", html);
+        Assert.Contains("pageDocument.title = currentLeaderboardDocumentTitle;", html);
+        Assert.Contains("professional: { label: 'Professional', canonical: false }", html);
+        Assert.Contains("getCanonicalLeagueSlugForFilter(filters[0])", html);
+        Assert.DoesNotContain("selectedGenerations[0].toUpperCase() + ' AND '", html);
     }
 
     [Fact]
@@ -122,8 +141,8 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("--leaderboard-sidebar-sticky-top: 4rem;", html);
         Assert.Contains("min-height:var(--leaderboard-table-height);", html);
         Assert.Contains("overflow:clip; flex-grow:1;", html);
-        Assert.Contains("position:relative; width:50px; min-height:var(--leaderboard-table-height);", html);
-        Assert.Contains("overflow:visible; flex-shrink:0;", html);
+        Assert.Contains("position:relative; width:50px; height:var(--leaderboard-table-height); min-height:var(--leaderboard-table-height); max-height:var(--leaderboard-table-height);", html);
+        Assert.Contains("overflow:hidden; flex-shrink:0;", html);
         Assert.DoesNotContain(".sidebar::before", html);
         Assert.DoesNotContain("border-bottom:3px solid rgba(0,188,212,.7);", html);
         Assert.DoesNotContain("background:linear-gradient(to bottom, rgba(0,188,212,0), rgba(0,188,212,.12));", html);
@@ -131,12 +150,15 @@ public class LeaderboardBestRankScriptTests
         Assert.Contains("#flag-filter-section ul::after", html);
         Assert.Contains("background:linear-gradient(90deg, rgba(0,188,212,.68), rgba(0,188,212,.18));", html);
         Assert.Contains("display:block; position:sticky; top:calc(var(--leaderboard-sidebar-sticky-top) + .75rem);", html);
+        Assert.Contains("max-height:calc(var(--leaderboard-table-height) - 4.5rem); overflow:hidden;", html);
+        Assert.Contains(".collapsed-title.is-compact", html);
+        Assert.Contains("function fitCollapsedTitleToSidebar()", html);
         Assert.Contains("width:100%; box-sizing:border-box;", html);
         Assert.DoesNotContain("position:sticky; top:var(--leaderboard-sidebar-sticky-top); z-index:2;", html);
         Assert.Contains("display:flex; align-items:center; justify-content:center; border-bottom:2px solid var(--primary-color);", html);
         Assert.Contains("display:inline-flex; align-items:center; justify-content:center; flex:0 0 2.25rem; width:2.25rem; height:2.25rem;", html);
         Assert.Contains(".sidebar.expanded .sidebar-title{ position:static; justify-content:flex-start; }", html);
-        Assert.Contains("position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; min-height:0; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height));", html);
+        Assert.Contains("position:sticky; top:var(--leaderboard-sidebar-sticky-top); width:auto; height:auto; min-height:0; max-height:min(calc(100vh - 2rem), var(--leaderboard-table-height));", html);
         Assert.Contains("height:100dvh; min-height:0; max-height:100dvh;", html);
         Assert.Contains("leaderboard.style.setProperty('--leaderboard-table-height', `${Math.ceil(tableHeight)}px`);", html);
         Assert.DoesNotContain("LEADERBOARD_SIDEBAR_MIN_ROWS", html);

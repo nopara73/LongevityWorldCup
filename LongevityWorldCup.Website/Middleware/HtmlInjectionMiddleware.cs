@@ -61,7 +61,7 @@ namespace LongevityWorldCup.Website.Middleware
                     "Pheno Age Leaderboard | Longevity World Cup",
                     "Verified Pheno Age submissions."),
                 ["improvement"] = new(
-                    "Improvement Leaderboard | Longevity World Cup",
+                    "Pheno Improvement Leaderboard | Longevity World Cup",
                     "Pheno Improvement rankings."),
                 ["bortz-improvement"] = new(
                     "Bortz Improvement Leaderboard | Longevity World Cup",
@@ -1151,8 +1151,8 @@ $@"<script type=""module"">
             }
 
             var canonicalUrl = $"{SiteBaseUrl}{flagRoute.Path}";
-            var title = $"{flagRoute.Name} Leaderboard | Longevity World Cup";
-            var description = $"Current Longevity World Cup athletes from {flagRoute.Name}.";
+            var title = $"Leaderboard: {flagRoute.Name} | Longevity World Cup";
+            var description = $"Current Longevity World Cup athletes representing {flagRoute.Name}.";
 
             seo = new SeoMeta(
                 flagRoute.Path,
@@ -1160,7 +1160,7 @@ $@"<script type=""module"">
                 "index, follow",
                 canonicalUrl,
                 title,
-                $"{flagRoute.Name} Leaderboard",
+                $"Leaderboard: {flagRoute.Name}",
                 "",
                 BuildDefaultOgImageUrl()
             );
