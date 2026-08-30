@@ -155,7 +155,8 @@ public sealed class SharePreviewMetadataTests
     [InlineData("/athlete/ron-lugbill", "Ron Lugbill | Longevity World Cup")]
     [InlineData("/league/gen-alpha", "Gen Alpha League | Longevity World Cup")]
     [InlineData("/league/prosperan", "Prosperan League | Longevity World Cup")]
-    [InlineData("/flag/hungary", "Hungary Leaderboard | Longevity World Cup")]
+    [InlineData("/league/improvement", "Pheno Improvement Leaderboard | Longevity World Cup")]
+    [InlineData("/flag/hungary", "Leaderboard: Hungary | Longevity World Cup")]
     [InlineData("/about", "About | Longevity World Cup")]
     public async Task SharePreviewTitles_AddBrandSuffixWhenMissing(string path, string expectedTitle)
     {
@@ -177,8 +178,8 @@ public sealed class SharePreviewMetadataTests
         var html = await client.GetStringAsync("/flag/hungary");
 
         Assert.Contains("rel=\"canonical\" href=\"https://longevityworldcup.com/flag/hungary\"", html);
-        Assert.Contains("Current Longevity World Cup athletes from Hungary.", html);
-        Assert.Contains("property=\"og:title\" content=\"Hungary Leaderboard | Longevity World Cup\"", html);
+        Assert.Contains("Current Longevity World Cup athletes representing Hungary.", html);
+        Assert.Contains("property=\"og:title\" content=\"Leaderboard: Hungary | Longevity World Cup\"", html);
     }
 
     [Fact]
@@ -190,8 +191,21 @@ public sealed class SharePreviewMetadataTests
         var html = await client.GetStringAsync("/flag/magyarorszag");
 
         Assert.Contains("rel=\"canonical\" href=\"https://longevityworldcup.com/flag/hungary\"", html);
-        Assert.Contains("Current Longevity World Cup athletes from Hungary.", html);
-        Assert.Contains("property=\"og:title\" content=\"Hungary Leaderboard | Longevity World Cup\"", html);
+        Assert.Contains("Current Longevity World Cup athletes representing Hungary.", html);
+        Assert.Contains("property=\"og:title\" content=\"Leaderboard: Hungary | Longevity World Cup\"", html);
+    }
+
+    [Fact]
+    public async Task CustomFlagRoute_UsesNeutralRepresentationMetadata()
+    {
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var html = await client.GetStringAsync("/flag/live-long-enough-to-live-forever");
+
+        Assert.Contains("Current Longevity World Cup athletes representing Live long enough to live forever.", html);
+        Assert.Contains("property=\"og:title\" content=\"Leaderboard: Live long enough to live forever | Longevity World Cup\"", html);
+        Assert.DoesNotContain("athletes from Live long enough", html);
     }
 
     [Fact]

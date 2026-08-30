@@ -101,7 +101,7 @@ public sealed class PageOgImageService
             ["view-improvement"] = new(
                 "view-improvement",
                 "Progress view",
-                "Improvement leaderboard",
+                "Pheno Improvement leaderboard",
                 "Track Pheno Improvement from each athlete's worst eligible result to latest eligible result.",
                 "78DA3B",
                 ["Pheno Improvement", "Latest result", "Worst result"]),
