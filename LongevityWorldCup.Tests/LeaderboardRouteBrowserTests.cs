@@ -6,7 +6,7 @@ namespace LongevityWorldCup.Tests;
 public sealed class LeaderboardRouteBrowserTests
 {
     [Fact]
-    public async Task FlagLeaderboard_ActionAndDirectRoute_ShowEveryMatchingAthleteOnFullPage()
+    public async Task FlagLeaderboard_ActionAndDirectRoutes_ShowFullCountryLeaderboardsWithCountryTitle()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -58,6 +58,13 @@ public sealed class LeaderboardRouteBrowserTests
         await directPage.Locator("#clearSidebarFiltersBtn").EvaluateAsync("button => button.click()");
         await directPage.WaitForFunctionAsync("() => location.pathname === '/leaderboard'");
         Assert.NotNull(await directPage.QuerySelectorAsync("[data-leaderboard-page=\"full\"]"));
+
+        await directPage.GotoAsync("/flag/czech-republic", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await AssertFullLeaderboardAsync(
+            directPage,
+            "/flag/czech-republic",
+            "#flag-filter-section input[name=\"flag\"][value=\"Czech Republic\"]:checked");
+        Assert.Equal("CZECH REPUBLIC", (await directPage.Locator(".collapsed-title").TextContentAsync())?.Trim());
     }
 
     [Theory]
