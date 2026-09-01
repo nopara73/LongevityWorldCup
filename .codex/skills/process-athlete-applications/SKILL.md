@@ -336,14 +336,12 @@ Before saving, remove every sentence that neither communicates new information o
 
 When blocked, keep the message concise and specific:
 
+For a paid new application, introduce Adam on first contact, ask only about the confirmed blocker, and offer a refund if the missing evidence may not exist. Keep uncertain secondary findings in the internal summary.
+
 ```text
 Hi {name},
 
-Thanks for your Longevity World Cup submission. I reviewed the materials, but I need one update before I can approve it:
-
 {specific issue}
-
-Please reply with updated proof or a corrected submission. The proof should show the relevant biomarker values and test date, while censoring nonessential private identifiers such as phone numbers, addresses, ID numbers, patient IDs, provider or facility codes, order IDs, accession numbers, barcodes, and QR codes.
 
 Best,
 Longevity World Cup
