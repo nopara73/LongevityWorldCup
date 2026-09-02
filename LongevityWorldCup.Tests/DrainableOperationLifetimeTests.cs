@@ -15,15 +15,27 @@ public sealed class DrainableOperationLifetimeTests
         var drained = lifetime.StopAndDrainAsync();
 
         Assert.False(drained.IsCompleted);
-        Assert.Null(lifetime.TryEnter());
-        Assert.Throws<ObjectDisposedException>(() => lifetime.Enter());
 
-        first.Dispose();
+        // A synchronous continuation of admitted work remains part of the same
+        // operation tree even after shutdown closes admission.
+        var nested = lifetime.Enter();
+
+        Task<IDisposable?> unrelatedEntry;
+        using (ExecutionContext.SuppressFlow())
+            unrelatedEntry = Task.Run(lifetime.TryEnter);
+        Assert.Null(await unrelatedEntry);
+
+        nested.Dispose();
         Assert.False(drained.IsCompleted);
 
         second.Dispose();
+        Assert.False(drained.IsCompleted);
+
+        first.Dispose();
         await drained;
 
+        Assert.Null(lifetime.TryEnter());
+        Assert.Throws<ObjectDisposedException>(() => lifetime.Enter());
         second.Dispose();
         Assert.True(drained.IsCompletedSuccessfully);
         Assert.True(lifetime.StopAndDrainAsync().IsCompletedSuccessfully);

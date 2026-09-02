@@ -1,13 +1,15 @@
 namespace LongevityWorldCup.Website.Business;
 
 /// <summary>
-/// Prevents new operations once shutdown starts and exposes a task that
-/// completes after every operation admitted before shutdown has returned.
+/// Prevents unrelated operations once shutdown starts while allowing
+/// descendants of an admitted logical operation to finish. The drain task
+/// completes after every lease in those admitted operation trees has returned.
 /// </summary>
 internal sealed class DrainableOperationLifetime(string objectName)
 {
     private readonly object _sync = new();
     private readonly string _objectName = objectName;
+    private readonly AsyncLocal<OperationContext?> _currentOperation = new();
     private TaskCompletionSource? _drained;
     private int _activeOperations;
     private bool _stopping;
@@ -17,14 +19,28 @@ internal sealed class DrainableOperationLifetime(string objectName)
 
     public IDisposable? TryEnter()
     {
+        var inheritedOperation = _currentOperation.Value;
+        OperationContext operation;
         lock (_sync)
         {
-            if (_stopping)
-                return null;
+            if (inheritedOperation is not null && inheritedOperation.ActiveLeases > 0)
+            {
+                operation = inheritedOperation;
+            }
+            else
+            {
+                if (_stopping)
+                    return null;
 
+                operation = new OperationContext();
+            }
+
+            operation.ActiveLeases++;
             _activeOperations++;
-            return new OperationLease(this);
         }
+
+        _currentOperation.Value = operation;
+        return new OperationLease(this, operation, inheritedOperation);
     }
 
     public Task StopAndDrainAsync()
@@ -40,11 +56,13 @@ internal sealed class DrainableOperationLifetime(string objectName)
         }
     }
 
-    private void Exit()
+    private void Exit(OperationContext operation, OperationContext? inheritedOperation)
     {
+        _currentOperation.Value = inheritedOperation;
         TaskCompletionSource? drained = null;
         lock (_sync)
         {
+            operation.ActiveLeases--;
             _activeOperations--;
             if (_stopping && _activeOperations == 0)
                 drained = _drained;
@@ -53,11 +71,19 @@ internal sealed class DrainableOperationLifetime(string objectName)
         drained?.TrySetResult();
     }
 
-    private sealed class OperationLease(DrainableOperationLifetime owner) : IDisposable
+    private sealed class OperationContext
+    {
+        public int ActiveLeases { get; set; }
+    }
+
+    private sealed class OperationLease(
+        DrainableOperationLifetime owner,
+        OperationContext operation,
+        OperationContext? inheritedOperation) : IDisposable
     {
         private DrainableOperationLifetime? _owner = owner;
 
         public void Dispose()
-            => Interlocked.Exchange(ref _owner, null)?.Exit();
+            => Interlocked.Exchange(ref _owner, null)?.Exit(operation, inheritedOperation);
     }
 }
