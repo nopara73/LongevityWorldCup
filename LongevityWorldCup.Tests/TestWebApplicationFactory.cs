@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using LongevityWorldCup.Website;
 using LongevityWorldCup.Website.Business;
 using Microsoft.AspNetCore.Hosting;
@@ -71,29 +72,49 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 
     public override async ValueTask DisposeAsync()
     {
-        await base.DisposeAsync();
+        Exception? disposalFailure = null;
+        try
+        {
+            await base.DisposeAsync();
 
-        if (_hostDisposalSignal is not null)
-            await _hostDisposalSignal.Disposed.WaitAsync(TimeSpan.FromSeconds(10));
+            if (_hostDisposalSignal is not null)
+                await _hostDisposalSignal.Disposed.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        catch (Exception ex)
+        {
+            disposalFailure = ex;
+        }
 
-        DeleteWorkingDirectory();
+        DeleteWorkingDirectoryAndRethrow(disposalFailure);
     }
 
     protected override void Dispose(bool disposing)
     {
-        base.Dispose(disposing);
-
         if (!disposing)
+        {
+            base.Dispose(disposing);
             return;
+        }
 
-        if (_hostDisposalSignal is not null)
-            _hostDisposalSignal.Disposed.WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
+        Exception? disposalFailure = null;
+        try
+        {
+            base.Dispose(disposing);
 
-        DeleteWorkingDirectory();
+            if (_hostDisposalSignal is not null)
+                _hostDisposalSignal.Disposed.WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            disposalFailure = ex;
+        }
+
+        DeleteWorkingDirectoryAndRethrow(disposalFailure);
     }
 
-    private void DeleteWorkingDirectory()
+    private void DeleteWorkingDirectoryAndRethrow(Exception? disposalFailure)
     {
+        Exception? cleanupFailure = null;
         try
         {
             Directory.Delete(_dbRoot, recursive: true);
@@ -102,6 +123,24 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             // Disposal is idempotent, and configuring the host is lazy.
         }
+        catch (Exception ex)
+        {
+            cleanupFailure = ex;
+        }
+
+        if (disposalFailure is not null && cleanupFailure is not null)
+        {
+            throw new AggregateException(
+                "The test host failed to dispose and its isolated workspace also failed to delete.",
+                disposalFailure,
+                cleanupFailure);
+        }
+
+        if (disposalFailure is not null)
+            ExceptionDispatchInfo.Capture(disposalFailure).Throw();
+
+        if (cleanupFailure is not null)
+            ExceptionDispatchInfo.Capture(cleanupFailure).Throw();
     }
 
     private sealed class HostDisposalSignal : IDisposable

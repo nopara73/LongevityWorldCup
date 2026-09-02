@@ -202,11 +202,17 @@ public sealed partial class AestheticSystemBrowserTests
                              ViewportSize = new ViewportSize { Width = 390, Height = 844 }
                          }))
         {
+            var eventRequestCount = 0;
             var eventRequestStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var duplicateEventRequestStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var releaseEventRequest = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             await slowContext.RouteAsync("**/api/events", async route =>
             {
-                eventRequestStarted.SetResult();
+                var requestCount = Interlocked.Increment(ref eventRequestCount);
+                eventRequestStarted.TrySetResult();
+                if (requestCount >= 2)
+                    duplicateEventRequestStarted.TrySetResult();
+
                 await releaseEventRequest.Task;
                 await route.ContinueAsync();
             });
@@ -216,7 +222,13 @@ public sealed partial class AestheticSystemBrowserTests
             var loadingRoot = slowPage.Locator("#events-root[aria-busy=\"true\"]");
             await loadingRoot.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
             Assert.Equal("Loading events...", await slowPage.Locator("#eventsStatus").InnerTextAsync());
-            releaseEventRequest.SetResult();
+            var duplicateRequest = slowPage.EvaluateAsync<int>(
+                "async () => (await fetch('/api/events')).status");
+            await duplicateEventRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.True(Volatile.Read(ref eventRequestCount) >= 2);
+
+            releaseEventRequest.TrySetResult();
+            Assert.Equal(200, await duplicateRequest);
             await slowPage.Locator("#events-root[aria-busy=\"false\"]").WaitForAsync(
                 new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
         }

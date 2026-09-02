@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Playwright;
 
@@ -36,10 +37,34 @@ public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient
 
             return new BrowserTestApp(factory, client, baseAddress);
         }
-        catch
+        catch (Exception startupFailure)
         {
-            client?.Dispose();
-            await factory.DisposeAsync();
+            var cleanupFailures = new List<Exception>();
+            try
+            {
+                client?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                cleanupFailures.Add(ex);
+            }
+
+            try
+            {
+                await factory.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                cleanupFailures.Add(ex);
+            }
+
+            if (cleanupFailures.Count > 0)
+            {
+                throw new AggregateException(
+                    "The browser application failed to start and cleanup also failed.",
+                    new[] { startupFailure }.Concat(cleanupFailures));
+            }
+
             throw;
         }
     }
@@ -106,7 +131,29 @@ public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient
 
     public async ValueTask DisposeAsync()
     {
-        client.Dispose();
-        await factory.DisposeAsync();
+        Exception? clientFailure = null;
+        try
+        {
+            client.Dispose();
+        }
+        catch (Exception ex)
+        {
+            clientFailure = ex;
+        }
+
+        try
+        {
+            await factory.DisposeAsync();
+        }
+        catch (Exception factoryFailure) when (clientFailure is not null)
+        {
+            throw new AggregateException(
+                "The browser client and application factory both failed to dispose.",
+                clientFailure,
+                factoryFailure);
+        }
+
+        if (clientFailure is not null)
+            ExceptionDispatchInfo.Capture(clientFailure).Throw();
     }
 }
