@@ -1,0 +1,28 @@
+{
+  "Name": "Anna Büky",
+  "DisplayName": null,
+  "MediaContact": "anna.buky@gmail.com",
+  "DateOfBirth": {
+    "Year": 1965,
+    "Month": 7,
+    "Day": 12
+  },
+  "Biomarkers": [
+    {
+      "Date": "2026-08-31",
+      "AlbGL": 48,
+      "CreatUmolL": 71,
+      "GluMmolL": 4,
+      "CrpMgL": 0.2,
+      "LymPc": 49.8,
+      "McvFL": 91,
+      "RdwPc": 13.5,
+      "AlpUL": 69,
+      "Wbc1000cellsuL": 4.9
+    }
+  ],
+  "Division": "Women's",
+  "Flag": "Magyarország",
+  "Why": "Egészséges, tudatos élet! A kudarcos öregség ellenszere! Ez motivál!",
+  "PersonalLink": null
+}
