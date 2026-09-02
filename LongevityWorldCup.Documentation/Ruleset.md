@@ -65,6 +65,8 @@ Yes. Email `hi@longevityworldcup.com`.
 - Alkaline Phosphatase (ALP, Alk Phos)
 - White Blood Cell Count (WBC Count, Leukocyte Count)
 
+![Biomarkers used in pheno age calculation and their common laboratory names](https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3)
+
 #### From which biomarkers can I calculate my [bortz age](https://www.nature.com/articles/s42003-023-05456-z)?
 - Albumin
 - Alkaline Phosphatase (ALP)
@@ -87,8 +89,6 @@ Yes. Email `hi@longevityworldcup.com`.
 - Glucose
 - Mean Corpuscular Hemoglobin (MCH)
 - Apolipoprotein A1 (ApoA1)
-
-![Biomarkers used in pheno age calculation and their common laboratory names](https://github.com/user-attachments/assets/4770485d-440c-4ce6-be6a-b547798696c3)
 
 #### Can I use any laboratory for my tests?
 Yes, as long as the lab provides the biomarkers required for that clock.
