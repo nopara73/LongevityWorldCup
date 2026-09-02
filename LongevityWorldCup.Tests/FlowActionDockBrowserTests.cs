@@ -5,8 +5,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
-public sealed partial class FlowActionDockBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
-    : BrowserIntegrationTest(browserFixture, appFixture)
+public sealed partial class FlowActionDockBrowserTests(PlaywrightBrowserFixture browserFixture)
+    : IsolatedBrowserIntegrationTest(browserFixture)
 {
     [Fact]
     public async Task HomePlayButton_NavigatesDirectlyToReadablePlayMenu()
