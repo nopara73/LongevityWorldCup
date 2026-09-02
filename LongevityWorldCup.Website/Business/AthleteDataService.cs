@@ -94,6 +94,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private readonly EventDataService _eventDataService;
     private readonly FileSystemWatcher _athleteWatcher;
     private readonly SemaphoreSlim _reloadLock = new(1, 1);
+    private readonly DrainableOperationLifetime _reloadOperations = new(nameof(AthleteDataService));
     private readonly CancellationTokenSource _reloadWorkerCts = new();
     private readonly SemaphoreSlim _reloadSignal = new(0, 1);
     private readonly Task _reloadWorkerTask;
@@ -394,6 +395,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private void OnDatabaseChanged()
     {
+        using var operation = _reloadOperations.TryEnter();
+        if (operation is null)
+            return;
+
         _reloadLock.Wait();
         try
         {
@@ -957,6 +962,10 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private async Task ReloadFromSourceAsync(CancellationToken cancellationToken)
     {
+        using var operation = _reloadOperations.TryEnter();
+        if (operation is null)
+            return;
+
         var notify = false;
 
         await _reloadLock.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -1058,6 +1067,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     /// </summary>
     public bool TryAddAgeGuess(string athleteSlug, string profileImageId, int ageGuess)
     {
+        using var operation = _reloadOperations.Enter();
         int cnt;
         double median;
 
@@ -1144,6 +1154,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     /// </summary>
     public void ReloadCrowdStats()
     {
+        using var operation = _reloadOperations.Enter();
         _reloadLock.Wait();
         try
         {
@@ -1206,6 +1217,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         string expectedProfileImageId,
         out (double Median, int Count) stats)
     {
+        using var operation = _reloadOperations.Enter();
         stats = (0, 0);
         _reloadLock.Wait();
         try
@@ -2313,6 +2325,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     public void SetPlacements(string athleteSlug, int?[] placements)
     {
+        using var operation = _reloadOperations.Enter();
         if (placements is null) throw new ArgumentNullException(nameof(placements));
         if (placements.Length != 4) placements = new[] { placements.ElementAtOrDefault(0), placements.ElementAtOrDefault(1), placements.ElementAtOrDefault(2), placements.ElementAtOrDefault(3) };
 
@@ -2511,6 +2524,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     // Public entry-point so other services (e.g., BadgeDataService) can trigger a badges refresh.
     public void RefreshBadgesFromDatabase()
     {
+        using var operation = _reloadOperations.Enter();
         _reloadLock.Wait();
         try
         {
@@ -2607,6 +2621,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
             return;
 
+        var reloadOperationsDrained = _reloadOperations.StopAndDrainAsync();
         _db.DatabaseChanged -= OnDatabaseChanged;
         _athleteWatcher.Dispose();
         _reloadWorkerCts.Cancel();
@@ -2622,6 +2637,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         {
         }
 
+        reloadOperationsDrained.GetAwaiter().GetResult();
         _reloadWorkerCts.Dispose();
         _reloadSignal.Dispose();
         _reloadLock.Dispose();

@@ -31,6 +31,7 @@ The sub-minute runtime target was abandoned. This ledger records the final corre
 | `BrowserTestAppTests.BitcoinEndpointsUseRealApplicationBehaviorWithDeterministicProviders` | UI tests either depended on live providers or stubbed the first-party endpoint. | Add. It calls all three first-party Bitcoin endpoints and proves the external provider requests remain behind the deterministic boundary. | Coverage added |
 | `BrowserTestAppTests.UnconfiguredExternalHostsFailClosedWithoutNetworkAccess` | An accidental new outbound dependency could silently make the suite network-dependent again. | Add. An unknown HTTPS host returns an in-process 503 and is recorded without opening a socket. | Coverage added |
 | `BrowserTestAppTests.SynchronousFactoryDisposalRemovesItsWorkingDirectory` and `AsyncFactoryDisposalRemovesItsWorkingDirectory` | Deferred host disposal could return before the entry-point thread finished disposing SQLite, best-effort cleanup hid the leak, and the first deterministic repair covered only asynchronous callers. A later review also found that a disposal timeout could bypass deletion and that startup cleanup could replace the original failure. | Add both lifecycle contracts. Each starts the real app service graph, disposes it through one public ownership mode, and requires the exact per-test workspace to be gone. Cleanup is attempted after either success or failure; simultaneous lifecycle/cleanup failures are aggregated, and browser startup preserves its original exception alongside any cleanup exception. | Coverage added |
+| `DrainableOperationLifetimeTests.StopWaitsForEveryAdmittedOperationAndRejectsNewOnes` | Joining the watcher worker did not cover another request or database callback already waiting on or owning the athlete mutation semaphore when shutdown began. | Add a focused lifecycle regression. The shared primitive closes admission atomically, waits for every previously admitted lease, rejects later work, and tolerates idempotent lease disposal; `AthleteDataService` uses it at every reload-gated entry point before disposing synchronization state. | Coverage added |
 | `BioageResultReveal_KeepsTheSemanticResultImmediateAndHonorsReducedMotion` | Real-time animation and final CSS-frame sampling were load-sensitive. | Rewrite synchronization with a pre-navigation clock, deterministic advancement, animation completion, and exact settled-opacity checks; assertions remain strict. | Not claimed |
 | `BioageMobileUxBrowserTests.RestoredDraftEdit_InvalidatesThePreviouslyCalculatedHandoff` | The waiter could be registered after navigation and waited for unrelated full-load resources. | Arm navigation observation around the action and assert the destination document/URL contract. | Not claimed |
 | `FlowActionDockBrowserTests.ApplyNextStageTransition_DoesNotForceViewportScroll` | Playwright could auto-scroll a control before the dock had settled. | Wait for the action's visible settled state, perform the real click, cross the layout boundary, and retain the no-scroll assertions. | Not claimed |
@@ -46,10 +47,10 @@ The sub-minute runtime target was abandoned. This ledger records the final corre
 ## Count and assertion checks
 
 - Current master baseline: 1,484 tests.
-- Final suite: 1,490 tests; the six additions are the Kestrel 429 regression, atomic athlete-reload regression, real Bitcoin endpoint boundary regression, deny-by-default external HTTP regression, and the synchronous and asynchronous factory-disposal regressions.
-- Fact/theory declarations: 992 baseline, 998 final.
+- Final suite: 1,491 tests; the seven additions are the Kestrel 429 regression, atomic athlete-reload regression, real Bitcoin endpoint boundary regression, deny-by-default external HTTP regression, the synchronous and asynchronous factory-disposal regressions, and the drainable-operation lifetime regression.
+- Fact/theory declarations: 992 baseline, 999 final.
 - Inline/member/class data declarations: 625 baseline, 625 final.
-- Assertion-call sites: 8,346 baseline, 8,395 final.
+- Assertion-call sites: 8,346 baseline, 8,401 final.
 - Final test removals: none.
 
 ## Final verification
@@ -63,8 +64,10 @@ The sub-minute runtime target was abandoned. This ledger records the final corre
 - Complete instrumented suite after the browser and athlete-service lifecycle repairs, before the synchronous factory regression was added: 1,489 passed, 0 failed, 0 skipped in 12 minutes 20.5 seconds test time (12 minutes 30.8 seconds wall clock), with 73.76% line, 57.85% branch, and 82.99% method coverage.
 - Complete instrumented suite before the final review fixes: 1,490 passed, 0 failed, 0 skipped in 12 minutes 36 seconds test time (12 minutes 48.7 seconds wall clock). The temp-directory count returned from one active workspace to the same 7,725 baseline after teardown.
 - Post-review complete instrumented suite: 1,490 passed, 0 failed, 0 skipped in 11 minutes 48 seconds test time (12 minutes 1.1 seconds wall clock). The temp-directory count again returned to the exact 7,725 baseline.
-- Final coverage: 73.78% line, 57.87% branch, 82.99% method. No baseline coverage percentage is claimed because the baseline run failed before report generation.
+- Final coverage: 73.78% line, 57.90% branch, 83.03% method. No baseline coverage percentage is claimed because the baseline run failed before report generation.
 - The asynchronous teardown regression passed 10 of 10 fresh processes without creating a workspace. A later mixed run exposed that ordinary synchronous `using` still lacked the same cleanup boundary. After repairing both public disposal modes, the pair passed 20 of 20 executions across 10 fresh processes and the temp-directory count remained 7,725.
 - Affected lifecycle and browser batch: 30 passed, 0 failed, 0 skipped, with no additional temp directories.
 - Post-review duplicate-request, reload, and synchronous/asynchronous teardown set: 10 of 10 fresh-process runs passed, 40 of 40 affected executions; the temp-directory count remained 7,725.
-- The 7,725 historical pre-fix workspaces were not deleted as part of this audit.
+- Final shutdown-operation batch: 10 of 10 fresh-process runs passed, 110 of 110 affected executions; the temp-directory count remained 7,725 before and after.
+- Final complete instrumented suite: 1,491 passed, 0 failed, 0 skipped in 11 minutes 53 seconds test time (12 minutes 5.2 seconds wall clock). The temp-directory count was unchanged at 7,733 before and after.
+- The 7,725 historical pre-fix workspaces were not deleted as part of this audit. Eight additional workspaces came only from explicitly interrupting a local run after discovering that its requested collector was unavailable; their exact paths were identified, no test process remained, and recursive removal was blocked by the execution policy. Successful runs before and after that interruption leaked none.
