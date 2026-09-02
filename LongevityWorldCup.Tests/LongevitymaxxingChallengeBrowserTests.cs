@@ -571,7 +571,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
-    public async Task CheckInForm_ShowsLatestPublicCheckInsAndOpensPhotosInAccessibleViewer()
+    public async Task CheckInForm_ShowsLatestDiscussionSupportsRepliesAndOpensPhotosInAccessibleViewer()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -588,8 +588,12 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
-        var publicStateJson = JsonSerializer.Serialize(BuildPublicState());
-        var participantStateJson = JsonSerializer.Serialize(BuildParticipantState());
+        var publicStateJson = JsonSerializer.Serialize(BuildPublicState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true));
+        var participantStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true));
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.Console += (_, message) =>
@@ -601,6 +605,12 @@ public sealed class LongevitymaxxingChallengeBrowserTests
 
         await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, publicStateJson));
         await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, participantStateJson));
+        string? replyPayload = null;
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route =>
+        {
+            replyPayload = route.Request.PostData;
+            await FulfillJsonAsync(route, participantStateJson);
+        });
 
         await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator(".lmx-recent-remarks").WaitForAsync();
@@ -609,14 +619,56 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(3, await remarks.CountAsync());
 
         var checkInText = await page.Locator("#lmxCheckinList").InnerTextAsync();
-        Assert.Contains("Recent check-ins", checkInText);
-        Assert.Contains("Ari · Day 22", checkInText);
+        Assert.Contains("Active discussion", checkInText);
+        Assert.Contains("Fox\nFri, Jun 12 · Day 5", checkInText);
+        Assert.Contains("An older post with enough current discussion to rank first.", checkInText);
+        Assert.Contains("Ari\nMon, Jun 29 · Day 22", checkInText);
         Assert.Contains("First recent public remark.", checkInText);
-        Assert.Contains("Bea · Day 21", checkInText);
-        Assert.Contains("Cam · Day 20", checkInText);
-        Assert.Contains("Third recent public remark.", checkInText);
+        Assert.Contains("Bea\nSun, Jun 28 · Day 21", checkInText);
+        Assert.DoesNotContain("Cam\nSat, Jun 27 · Day 20", checkInText);
         Assert.DoesNotContain("Fourth older public remark.", checkInText);
         Assert.DoesNotContain("Private participant-only remark.", checkInText);
+
+        var replyButtons = remarks.Locator(".lmx-discussion-reply");
+        Assert.Equal(3, await replyButtons.CountAsync());
+        var replyBox = await replyButtons.First.BoundingBoxAsync();
+        Assert.NotNull(replyBox);
+        Assert.True(replyBox.Width >= 44 && replyBox.Height >= 44, $"Expected at least a 44px discussion reply target; got {replyBox.Width}x{replyBox.Height}.");
+        await replyButtons.First.ClickAsync();
+        var discussionInput = page.Locator(".lmx-checkin-card > .lmx-field textarea[data-mention-input]").First;
+        Assert.Equal("", await discussionInput.InputValueAsync());
+        var composer = remarks.First.Locator(".lmx-discussion-reply-composer");
+        await composer.WaitForAsync();
+        Assert.Contains("Reply to Fox", await composer.InnerTextAsync());
+        var replyText = composer.Locator("textarea");
+        Assert.True(await replyText.EvaluateAsync<bool>("element => element === document.activeElement"));
+        await replyText.FillAsync("Thanks @Ari");
+        var ariMention = composer.Locator(".lmx-mention-option", new LocatorLocatorOptions { HasText = "Ari Able" });
+        await ariMention.ClickAsync();
+        Assert.Equal("Thanks @Ari Able ", await replyText.InputValueAsync());
+
+        var foxReplies = remarks.First.Locator(".lmx-discussion-reply-item");
+        Assert.Equal(4, await foxReplies.CountAsync());
+        Assert.Equal(3, await remarks.First.Locator(".lmx-discussion-reply-item:visible").CountAsync());
+        var showAllReplies = remarks.First.Locator("[data-discussion-replies-toggle]");
+        Assert.Equal("View all 4 replies", (await showAllReplies.InnerTextAsync()).Trim());
+        await showAllReplies.ClickAsync();
+        Assert.Equal(4, await remarks.First.Locator(".lmx-discussion-reply-item:visible").CountAsync());
+        Assert.Equal("Hide earlier replies", (await showAllReplies.InnerTextAsync()).Trim());
+
+        await replyText.FillAsync("An actual child reply for @Ari Able.");
+        await composer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
+        Assert.NotNull(replyPayload);
+        using (var replyJson = JsonDocument.Parse(replyPayload!))
+        {
+            var root = replyJson.RootElement;
+            Assert.Equal("browser-token", root.GetProperty("accessToken").GetString());
+            Assert.Equal("p7", root.GetProperty("postParticipantId").GetString());
+            Assert.Equal(5, root.GetProperty("challengeDay").GetInt32());
+            Assert.Equal("An actual child reply for @Ari Able.", root.GetProperty("body").GetString());
+        }
+        Assert.Equal("", await discussionInput.InputValueAsync());
 
         var photos = page.Locator(".lmx-recent-remark .lmx-note-photo");
         Assert.Equal(2, await photos.CountAsync());
@@ -699,7 +751,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
-    public async Task ParticipantNotesPager_ShowsTwoNewestDaysThenOneWholeDayPerPage()
+    public async Task DiscussionPager_PreservesServerHotOrderAndPagesPosts()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -734,36 +786,40 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         var label = page.Locator("#lmxNotesDayLabel");
         await notes.WaitForAsync();
 
-        Assert.Equal("Days 21–22", await label.InnerTextAsync());
-        Assert.Equal("Days 21 through 22", await label.GetAttributeAsync("aria-label"));
+        Assert.Equal("1–5 of 6", await label.InnerTextAsync());
+        Assert.Equal("Discussion posts 1 through 5 of 6", await label.GetAttributeAsync("aria-label"));
         Assert.True(await newer.IsDisabledAsync());
         Assert.False(await older.IsDisabledAsync());
         var firstPageText = await notes.InnerTextAsync();
-        Assert.Contains("Ari · Day 22", firstPageText);
-        Assert.Contains("Bea · Day 21", firstPageText);
-        Assert.DoesNotContain("Day 20", firstPageText);
+        Assert.Contains("Fox\nFri, Jun 12 · Day 5", firstPageText);
+        Assert.Contains("An older post with enough current discussion to rank first.", firstPageText);
+        Assert.Contains("Ari\nMon, Jun 29 · Day 22", firstPageText);
+        Assert.Contains("Cam\nSat, Jun 27 · Day 20", firstPageText);
+        Assert.Contains("Dee\nFri, Jun 26 · Day 19", firstPageText);
+        Assert.DoesNotContain("Another note from the same day.", firstPageText);
+        var postHeader = notes.Locator(".lmx-discussion-post-header").First;
+        Assert.Equal("div", await postHeader.EvaluateAsync<string>("element => element.tagName.toLowerCase()"));
+        Assert.NotEqual("fixed", await postHeader.EvaluateAsync<string>("element => getComputedStyle(element).position"));
+        var postHeaderBox = await postHeader.BoundingBoxAsync();
+        Assert.NotNull(postHeaderBox);
+        Assert.True(postHeaderBox.Height < 80, $"Discussion post header unexpectedly expanded to {postHeaderBox.Height}px.");
         Assert.Equal("visible", await notes.EvaluateAsync<string>("element => getComputedStyle(element).overflowY"));
         Assert.Equal("none", await notes.EvaluateAsync<string>("element => getComputedStyle(element).maxHeight"));
 
         await older.ClickAsync();
-        Assert.Equal("Day 20", await label.InnerTextAsync());
-        Assert.Contains("Cam · Day 20", await notes.InnerTextAsync());
-        Assert.DoesNotContain("Day 21", await notes.InnerTextAsync());
-
-        await older.ClickAsync();
-        Assert.Equal("Day 19", await label.InnerTextAsync());
+        Assert.Equal("6 of 6", await label.InnerTextAsync());
+        Assert.Equal("Discussion post 6 of 6", await label.GetAttributeAsync("aria-label"));
         var oldestPageText = await notes.InnerTextAsync();
-        Assert.Contains("Dee · Day 19", oldestPageText);
-        Assert.Contains("Eli · Day 19", oldestPageText);
+        Assert.Contains("Eli\nFri, Jun 26 · Day 19", oldestPageText);
+        Assert.Contains("Another note from the same day.", oldestPageText);
+        Assert.DoesNotContain("Fox", oldestPageText);
         Assert.True(await older.IsDisabledAsync());
         Assert.False(await newer.IsDisabledAsync());
 
         await newer.ClickAsync();
-        Assert.Equal("Day 20", await label.InnerTextAsync());
-        await newer.ClickAsync();
-        Assert.Equal("Days 21–22", await label.InnerTextAsync());
-        Assert.Contains("Ari · Day 22", await notes.InnerTextAsync());
-        Assert.Contains("Bea · Day 21", await notes.InnerTextAsync());
+        Assert.Equal("1–5 of 6", await label.InnerTextAsync());
+        Assert.Contains("Fox", await notes.InnerTextAsync());
+        Assert.Contains("Ari", await notes.InnerTextAsync());
 
         foreach (var control in new[] { newer, older })
         {
@@ -937,18 +993,19 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.DoesNotContain("Day 22", await dialog.Locator(".lmx-checkin-card > h3").InnerTextAsync());
         Assert.Equal(0, await dialog.Locator("input[type='range']").CountAsync());
 
-        var publicNotes = dialog.Locator(".lmx-recent-remarks");
-        await publicNotes.WaitForAsync();
-        Assert.True(await publicNotes.IsVisibleAsync());
-        Assert.Equal("Recent public check-ins", await publicNotes.GetAttributeAsync("aria-label"));
-        Assert.Equal(3, await publicNotes.Locator(".lmx-recent-remark").CountAsync());
-        var publicNotesText = await publicNotes.InnerTextAsync();
-        Assert.Contains("Ari · Day 22", publicNotesText);
-        Assert.Contains("First recent public remark.", publicNotesText);
-        Assert.Contains("Bea · Day 21", publicNotesText);
-        Assert.Contains("Cam · Day 20", publicNotesText);
-        Assert.DoesNotContain("Fourth older public remark.", publicNotesText);
-        Assert.DoesNotContain("Private participant-only remark.", publicNotesText);
+        var publicDiscussion = dialog.Locator(".lmx-recent-remarks");
+        await publicDiscussion.WaitForAsync();
+        Assert.True(await publicDiscussion.IsVisibleAsync());
+        Assert.Equal("Active public discussion", await publicDiscussion.GetAttributeAsync("aria-label"));
+        Assert.Equal(3, await publicDiscussion.Locator(".lmx-recent-remark").CountAsync());
+        var publicDiscussionText = await publicDiscussion.InnerTextAsync();
+        Assert.Contains("Fox\nFri, Jun 12 · Day 5", publicDiscussionText);
+        Assert.Contains("An older post with enough current discussion to rank first.", publicDiscussionText);
+        Assert.Contains("Ari\nMon, Jun 29 · Day 22", publicDiscussionText);
+        Assert.Contains("First recent public remark.", publicDiscussionText);
+        Assert.Contains("Bea\nSun, Jun 28 · Day 21", publicDiscussionText);
+        Assert.DoesNotContain("Cam\nSat, Jun 27 · Day 20", publicDiscussionText);
+        Assert.DoesNotContain("Private participant-only remark.", publicDiscussionText);
 
         var answerInputs = dialog.Locator(".lmx-answer-input");
         Assert.Equal(12, await answerInputs.CountAsync());
@@ -1167,10 +1224,11 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         bool emptyGarden = false,
         bool includeUpcomingCall = false,
         bool includeMentionParticipants = false,
+        bool includeDiscussionNotesWithMentionParticipants = false,
         string? eligibleDayDate = null)
         => new
         {
-            @public = BuildPublicState(includeMentionParticipants),
+            @public = BuildPublicState(includeMentionParticipants, includeDiscussionNotesWithMentionParticipants),
             participant = new
             {
                 id = "p1",
@@ -1196,10 +1254,9 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                         existing = (object?)null
                     }
                 },
-            notes = new[]
-            {
-                Note("p5", "Private", 1, "2026-06-08", "Private participant-only remark.")
-            },
+            notes = (includeMentionParticipants ? BuildMentionDiscussionNotes() : BuildDiscussionNotes())
+                .Concat(new[] { Note("p-private", "Private", 1, "2026-06-08", "Private participant-only remark.") })
+                .ToArray(),
             calls = includeUpcomingCall
                 ? new object[]
                 {
@@ -1238,7 +1295,9 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 vices = new { yesCount = 1000, noCount = 0, vitality = 0.999d }
             };
 
-    private static object BuildPublicState(bool includeMentionParticipants = false)
+    private static object BuildPublicState(
+        bool includeMentionParticipants = false,
+        bool includeDiscussionNotesWithMentionParticipants = false)
         => new
         {
             challengeName = "Longevitymaxxing Challenge",
@@ -1294,30 +1353,53 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 }
                 : []).ToArray(),
             podium = Array.Empty<object>(),
-            notes = includeMentionParticipants
-                ? new[]
-                {
-                    Note(
-                        "p4",
-                        "Cam",
-                        22,
-                        "2026-06-29",
-                        "Contact test@Ari Able, then thank @Ari Able and @Bea Builder — not @Nobody.")
-                }
-                : new[]
-                {
-                    Note("p2", "Ari", 22, "2026-06-29", "First recent public remark.",
-                        [CheckInImage("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari")]),
-                    Note("p3", "Bea", 21, "2026-06-28", null,
-                        [CheckInImage("/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea")]),
-                    Note("p4", "Cam", 20, "2026-06-27", "Third recent public remark."),
-                    Note("p5", "Dee", 19, "2026-06-26", "Fourth older public remark."),
-                    Note("p6", "Eli", 19, "2026-06-26", "Another note from the same day.")
-                },
+            notes = includeMentionParticipants && !includeDiscussionNotesWithMentionParticipants
+                ? BuildMentionDiscussionNotes()
+                : BuildDiscussionNotes(),
             calls = Array.Empty<object>(),
             slackInviteUrl = "",
             slackRoomUrl = (string?)null
         };
+
+    private static object[] BuildDiscussionNotes()
+        =>
+        [
+            Note(
+                "p7",
+                "Fox",
+                5,
+                "2026-06-12",
+                "An older post with enough current discussion to rank first.",
+                updatedAtUtc: "2026-06-12T07:00:00Z",
+                lastActivityAtUtc: "2026-06-30T09:00:00Z",
+                replies:
+                [
+                    Reply("r1", "p3", "Bea", "This helped me rethink breakfast.", "2026-06-29T08:00:00Z"),
+                    Reply("r2", "p4", "Cam", "Trying the same approach tomorrow.", "2026-06-29T12:00:00Z"),
+                    Reply("r3", "p5", "Dee", "The small version worked for me.", "2026-06-30T07:00:00Z"),
+                    Reply("r4", "p2", "Ari", "Keep us posted on the next step.", "2026-06-30T09:00:00Z")
+                ]),
+            Note("p2", "Ari", 22, "2026-06-29", "First recent public remark.",
+                [CheckInImage("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari")],
+                lastActivityAtUtc: "2026-06-29T10:00:00Z",
+                replies: [Reply("r5", "p4", "Cam", "Nice work.", "2026-06-29T10:00:00Z")]),
+            Note("p3", "Bea", 21, "2026-06-28", null,
+                [CheckInImage("/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea")]),
+            Note("p4", "Cam", 20, "2026-06-27", "Third recent public remark."),
+            Note("p5", "Dee", 19, "2026-06-26", "Fourth older public remark."),
+            Note("p6", "Eli", 19, "2026-06-26", "Another note from the same day.")
+        ];
+
+    private static object[] BuildMentionDiscussionNotes()
+        =>
+        [
+            Note(
+                "p4",
+                "Cam",
+                22,
+                "2026-06-29",
+                "Contact test@Ari Able, then thank @Ari Able and @Bea Builder — not @Nobody.")
+        ];
 
     private static object MentionLeaderboardRow(string participantId, string displayName, string? athleteUrl = null)
         => new
@@ -1354,17 +1436,35 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         int challengeDay,
         string date,
         string? note,
-        object[]? images = null)
-        => new
+        object[]? images = null,
+        string? updatedAtUtc = null,
+        string? lastActivityAtUtc = null,
+        object[]? replies = null)
+    {
+        var effectiveUpdatedAtUtc = updatedAtUtc ?? $"{date}T07:00:00Z";
+        var effectiveReplies = replies ?? Array.Empty<object>();
+        return new
         {
             participantId,
             displayName,
             challengeDay,
             date,
             note,
-            updatedAtUtc = $"{date}T07:00:00Z",
-            images = images ?? Array.Empty<object>()
+            updatedAtUtc = effectiveUpdatedAtUtc,
+            lastActivityAtUtc = lastActivityAtUtc ?? effectiveUpdatedAtUtc,
+            replyCount = effectiveReplies.Length,
+            images = images ?? Array.Empty<object>(),
+            replies = effectiveReplies
         };
+    }
+
+    private static object Reply(
+        string id,
+        string participantId,
+        string displayName,
+        string body,
+        string createdAtUtc)
+        => new { id, participantId, displayName, body, createdAtUtc };
 
     private static object CheckInImage(string url)
         => new
