@@ -6,8 +6,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
-public sealed class LongevitymaxxingChallengeBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
-    : BrowserIntegrationTest(browserFixture, appFixture)
+public sealed class LongevitymaxxingChallengeBrowserTests(PlaywrightBrowserFixture browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     [Fact]
     public async Task TimeZonePicker_NormalizesBrowserAliasesAndUsesOneFocusBoundary()

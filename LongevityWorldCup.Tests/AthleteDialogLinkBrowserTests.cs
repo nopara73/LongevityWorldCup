@@ -6,9 +6,8 @@ namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
 public sealed class AthleteDialogLinkBrowserTests(
-    PlaywrightBrowserFixture browserFixture,
-    BrowserTestAppFixture appFixture)
-    : BrowserIntegrationTest(browserFixture, appFixture)
+    PlaywrightBrowserFixture browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     private const string MichaelSlug = "michael-lustgarten";
     private const string ProfileImageA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";

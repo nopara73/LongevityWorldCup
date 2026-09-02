@@ -4,8 +4,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
-public sealed class BioageRankPreviewBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
-    : BrowserIntegrationTest(browserFixture, appFixture)
+public sealed class BioageRankPreviewBrowserTests(PlaywrightBrowserFixture browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     [Fact]
     public async Task RankPreview_RetryRecoversWithoutNestedLiveRegionsOrStaleState()

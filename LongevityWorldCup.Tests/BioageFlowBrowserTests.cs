@@ -5,8 +5,8 @@ namespace LongevityWorldCup.Tests;
 
 
 [Collection(BrowserTestCollections.Integration)]
-public sealed class BioageFlowBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
-    : BrowserIntegrationTest(browserFixture, appFixture)
+public sealed class BioageFlowBrowserTests(PlaywrightBrowserFixture browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     [Fact]
     public async Task BortzAgeCalculator_ConfiguredCapsPlateauInRawLaboratoryUnits()

@@ -6,7 +6,7 @@ namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
 public sealed partial class FlowActionDockBrowserTests(PlaywrightBrowserFixture browserFixture)
-    : IsolatedBrowserIntegrationTest(browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     [Fact]
     public async Task HomePlayButton_NavigatesDirectlyToReadablePlayMenu()

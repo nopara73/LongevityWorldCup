@@ -346,17 +346,28 @@ public sealed partial class GuessMyAgeBrowserTests
         await page.EvaluateAsync(
             """
             imageId => {
-                const originalGetItem = Storage.prototype.getItem;
-                const originalSetItem = Storage.prototype.setItem;
-                window.__gmaOriginalStorageGetItem = originalGetItem;
-                Storage.prototype.getItem = function (key) {
-                    if (key === 'gmaAllGuesses') throw new DOMException('Storage unavailable', 'SecurityError');
-                    return originalGetItem.call(this, key);
-                };
-                Storage.prototype.setItem = function (key, value) {
-                    if (key === 'gmaAllGuesses') throw new DOMException('Storage unavailable', 'QuotaExceededError');
-                    return originalSetItem.call(this, key, value);
-                };
+                localStorage.removeItem('gmaAllGuesses');
+                let acceptedLength = 0;
+                let rejectedLength = 16 * 1024 * 1024;
+                while (acceptedLength + 1 < rejectedLength) {
+                    const candidateLength = Math.floor((acceptedLength + rejectedLength) / 2);
+                    try {
+                        localStorage.setItem('gma-quota-filler', 'x'.repeat(candidateLength));
+                        acceptedLength = candidateLength;
+                    } catch {
+                        rejectedLength = candidateLength;
+                    }
+                }
+
+                let quotaReached = false;
+                try {
+                    localStorage.setItem('gma-quota-probe', 'x');
+                } catch (error) {
+                    quotaReached = error instanceof DOMException
+                        && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED');
+                }
+                if (!quotaReached) throw new Error('Could not exhaust the real localStorage quota.');
+
                 const modal = document.getElementById('detailsModal');
                 const modalContent = modal.querySelector('.modal-content');
                 modal.style.display = 'block';
@@ -388,13 +399,12 @@ public sealed partial class GuessMyAgeBrowserTests
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('#detailsModal .modal-content')?.classList.contains('guess-mode')");
         Assert.Null(await page.EvaluateAsync<string?>(
-            "imageId => JSON.parse(window.__gmaOriginalStorageGetItem.call(localStorage, 'gmaAllGuesses') || '{}')['storage-failure-submit-test']?.byImage?.[imageId]?.value ?? null",
+            "imageId => JSON.parse(localStorage.getItem('gmaAllGuesses') || '{}')['storage-failure-submit-test']?.byImage?.[imageId]?.value ?? null",
             ProfileImageA));
 
         await page.EvaluateAsync(
             """
             imageId => {
-                Storage.prototype.getItem = window.__gmaOriginalStorageGetItem;
                 const modalContent = document.querySelector('#detailsModal .modal-content');
                 modalContent.dataset.athleteSlug = 'storage-failure-skip-test';
                 modalContent.dataset.profileImageId = imageId;

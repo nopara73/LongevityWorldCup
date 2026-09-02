@@ -5,8 +5,8 @@ using Xunit;
 namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
-public sealed class PlayAthleteFlowBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
-    : BrowserIntegrationTest(browserFixture, appFixture)
+public sealed class PlayAthleteFlowBrowserTests(PlaywrightBrowserFixture browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     [Fact]
     public async Task PlayForwardActions_KeepTheirGreenNavigationCue()

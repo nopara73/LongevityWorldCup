@@ -45,6 +45,22 @@ public sealed partial class GuessMyAgeBrowserTests
             }
             """,
             ProfileImageA);
+        await page.WaitForFunctionAsync(
+            """
+            imageId => {
+                const modalContent = document.querySelector('#detailsModal .modal-content');
+                const range = document.getElementById('gmaRange');
+                return modalContent?.dataset.athleteSlug === 'animated-history-test'
+                    && modalContent.dataset.profileImageId === imageId
+                    && modalContent.classList.contains('guess-mode')
+                    && !modalContent.classList.contains('gma-result-ready')
+                    && range?.disabled === false
+                    && range.value === '33'
+                    && range === document.activeElement
+                    && !document.getElementById('gmaRealBubble');
+            }
+            """,
+            ProfileImageA);
 
         var range = page.Locator("#gmaRange");
         await range.EvaluateAsync(
@@ -255,7 +271,22 @@ public sealed partial class GuessMyAgeBrowserTests
             }
             """,
             ProfileImageB);
-        Assert.False(await page.Locator("#gmaRange").IsDisabledAsync());
+        await page.WaitForFunctionAsync(
+            """
+            imageId => {
+                const modalContent = document.querySelector('#detailsModal .modal-content');
+                const range = document.getElementById('gmaRange');
+                return modalContent?.dataset.athleteSlug === 'exact-animation-test'
+                    && modalContent.dataset.profileImageId === imageId
+                    && modalContent.classList.contains('guess-mode')
+                    && !modalContent.classList.contains('gma-result-ready')
+                    && range?.disabled === false
+                    && range.value === '33'
+                    && range === document.activeElement
+                    && !document.getElementById('gmaRealBubble');
+            }
+            """,
+            ProfileImageB);
         await page.EvaluateAsync(
             """
             () => {

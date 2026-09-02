@@ -9,7 +9,7 @@ namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
 public sealed partial class GuessMyAgeBrowserTests(PlaywrightBrowserFixture browserFixture)
-    : IsolatedBrowserIntegrationTest(browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     internal const string ProfileImageA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     internal const string ProfileImageB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";

@@ -31,57 +31,23 @@ public sealed class PlaywrightBrowserFixture : IAsyncLifetime
 }
 
 /// <summary>
-/// Owns one production-equivalent Kestrel application for one browser-test
-/// class. Tests that mutate server state explicitly opt into per-test hosts.
-/// </summary>
-public sealed class BrowserTestAppFixture : IAsyncLifetime
-{
-    public BrowserTestApp App { get; private set; } = null!;
-
-    public async Task InitializeAsync()
-        => App = await BrowserTestApp.StartAsync();
-
-    public async Task DisposeAsync()
-    {
-        if (App is not null)
-            await App.DisposeAsync();
-    }
-}
-
-/// <summary>
-/// Exposes the collection-owned browser and class-owned application. Browser
-/// contexts remain explicitly test-owned through <c>await using</c>.
-/// </summary>
-public abstract class BrowserIntegrationTest(
-    PlaywrightBrowserFixture browserFixture,
-    BrowserTestAppFixture appFixture)
-    : IAsyncLifetime, IClassFixture<BrowserTestAppFixture>
-{
-    protected BrowserTestApp App => appFixture.App;
-    protected IBrowser Browser => browserFixture.Browser;
-
-    public virtual Task InitializeAsync() => Task.CompletedTask;
-    public virtual Task DisposeAsync() => Task.CompletedTask;
-}
-
-/// <summary>
 /// Exposes the collection-owned browser while giving every test its own
-/// application host. Use this boundary for scenarios that mutate real server
-/// state instead of routing the request in the browser context.
+/// production-equivalent application, database, rate limiters, and caches.
+/// Browser contexts remain explicitly test-owned through <c>await using</c>.
 /// </summary>
-public abstract class IsolatedBrowserIntegrationTest(PlaywrightBrowserFixture browserFixture)
+public abstract class BrowserIntegrationTest(PlaywrightBrowserFixture browserFixture)
     : IAsyncLifetime
 {
     private BrowserTestApp? _app;
 
     protected BrowserTestApp App => _app
-        ?? throw new InvalidOperationException("The isolated browser application has not started.");
+        ?? throw new InvalidOperationException("The browser test application has not started.");
     protected IBrowser Browser => browserFixture.Browser;
 
-    public async Task InitializeAsync()
+    public virtual async Task InitializeAsync()
         => _app = await BrowserTestApp.StartAsync();
 
-    public async Task DisposeAsync()
+    public virtual async Task DisposeAsync()
     {
         if (_app is not null)
             await _app.DisposeAsync();

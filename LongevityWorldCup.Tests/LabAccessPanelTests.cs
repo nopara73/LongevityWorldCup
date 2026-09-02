@@ -6,9 +6,8 @@ namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
 public sealed class LabAccessPanelTests(
-    PlaywrightBrowserFixture browserFixture,
-    BrowserTestAppFixture appFixture)
-    : BrowserIntegrationTest(browserFixture, appFixture)
+    PlaywrightBrowserFixture browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     [Fact]
     public void BortzPageShowsNewZealandPanelForEligibleVisitors()

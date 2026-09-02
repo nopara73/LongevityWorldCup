@@ -18,20 +18,30 @@ public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient
     public static async Task<BrowserTestApp> StartAsync()
     {
         var factory = new TestWebApplicationFactory();
-        factory.UseKestrel(0);
-        factory.StartServer();
-        var baseAddress = factory.ClientOptions.BaseAddress;
-
-        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        HttpClient? client = null;
+        try
         {
-            AllowAutoRedirect = false,
-            BaseAddress = baseAddress
-        });
+            factory.UseKestrel(0);
+            factory.StartServer();
+            var baseAddress = factory.ClientOptions.BaseAddress;
 
-        using var response = await client.GetAsync("/health");
-        response.EnsureSuccessStatusCode();
+            client = factory.CreateClient(new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                BaseAddress = baseAddress
+            });
 
-        return new BrowserTestApp(factory, client, baseAddress);
+            using var response = await client.GetAsync("/health");
+            response.EnsureSuccessStatusCode();
+
+            return new BrowserTestApp(factory, client, baseAddress);
+        }
+        catch
+        {
+            client?.Dispose();
+            await factory.DisposeAsync();
+            throw;
+        }
     }
 
     public static async Task RouteExternalResourcesAsync(

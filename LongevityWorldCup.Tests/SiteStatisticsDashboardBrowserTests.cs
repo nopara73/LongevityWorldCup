@@ -9,9 +9,8 @@ namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
 public sealed class SiteStatisticsDashboardBrowserTests(
-    PlaywrightBrowserFixture browserFixture,
-    BrowserTestAppFixture appFixture)
-    : BrowserIntegrationTest(browserFixture, appFixture)
+    PlaywrightBrowserFixture browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     public override async Task InitializeAsync()
     {

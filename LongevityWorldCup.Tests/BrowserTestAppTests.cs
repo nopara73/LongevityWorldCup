@@ -8,6 +8,34 @@ namespace LongevityWorldCup.Tests;
 public sealed class BrowserTestAppTests
 {
     [Fact]
+    public void SynchronousFactoryDisposalRemovesItsWorkingDirectory()
+    {
+        var factory = new TestWebApplicationFactory();
+        _ = factory.Services;
+        var workingDirectory = factory.WorkingDirectory;
+
+        Assert.True(Directory.Exists(workingDirectory));
+
+        factory.Dispose();
+
+        Assert.False(Directory.Exists(workingDirectory));
+    }
+
+    [Fact]
+    public async Task AsyncFactoryDisposalRemovesItsWorkingDirectory()
+    {
+        var factory = new TestWebApplicationFactory();
+        _ = factory.Services;
+        var workingDirectory = factory.WorkingDirectory;
+
+        Assert.True(Directory.Exists(workingDirectory));
+
+        await factory.DisposeAsync();
+
+        Assert.False(Directory.Exists(workingDirectory));
+    }
+
+    [Fact]
     public async Task BitcoinEndpointsUseRealApplicationBehaviorWithDeterministicProviders()
     {
         await using var app = await BrowserTestApp.StartAsync();

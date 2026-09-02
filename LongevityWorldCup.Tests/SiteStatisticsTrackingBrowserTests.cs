@@ -5,7 +5,7 @@ namespace LongevityWorldCup.Tests;
 
 [Collection(BrowserTestCollections.Integration)]
 public sealed class SiteStatisticsTrackingBrowserTests(PlaywrightBrowserFixture browserFixture)
-    : IsolatedBrowserIntegrationTest(browserFixture)
+    : BrowserIntegrationTest(browserFixture)
 {
     [Fact]
     public async Task Tracker_ForwardsOnlyConfirmedBusinessConversionsToGoogleAnalyticsOnce()

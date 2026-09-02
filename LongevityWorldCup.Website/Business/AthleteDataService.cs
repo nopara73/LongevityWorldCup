@@ -94,8 +94,11 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     private readonly EventDataService _eventDataService;
     private readonly FileSystemWatcher _athleteWatcher;
     private readonly SemaphoreSlim _reloadLock = new(1, 1);
-
-    private CancellationTokenSource? _debounceCts;
+    private readonly CancellationTokenSource _reloadWorkerCts = new();
+    private readonly SemaphoreSlim _reloadSignal = new(0, 1);
+    private readonly Task _reloadWorkerTask;
+    private readonly ILogger<AthleteDataService>? _logger;
+    private int _disposed;
     private static readonly TimeSpan _debounceInterval = TimeSpan.FromMilliseconds(100);
 
     private const string DatabaseFileName = "LongevityWorldCup.db";
@@ -125,11 +128,16 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private readonly object _athletesJsonLock = new();
 
-    public AthleteDataService(IWebHostEnvironment env, EventDataService eventDataService, DatabaseManager db)
+    public AthleteDataService(
+        IWebHostEnvironment env,
+        EventDataService eventDataService,
+        DatabaseManager db,
+        ILogger<AthleteDataService>? logger = null)
     {
         _env = env;
         _eventDataService = eventDataService;
         _db = db ?? throw new ArgumentNullException(nameof(db));
+        _logger = logger;
 
         var dataDir = EnvironmentHelpers.GetDataDir();
         Directory.CreateDirectory(dataDir);
@@ -360,6 +368,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
         // Close the startup gap between the initial snapshot and watcher activation.
         // Run after constructor initialization so the rescan cannot overlap startup work.
+        _reloadWorkerTask = ProcessReloadRequestsAsync(_reloadWorkerCts.Token);
         DebounceReload();
     }
 
@@ -807,22 +816,51 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     private void DebounceReload()
     {
-        _debounceCts?.Cancel();
-        _debounceCts = new CancellationTokenSource();
-        var token = _debounceCts.Token;
+        if (Volatile.Read(ref _disposed) != 0)
+            return;
 
-        _ = Task.Run(async () =>
+        try
+        {
+            _reloadSignal.Release();
+        }
+        catch (SemaphoreFullException)
+        {
+            // One queued signal is enough; the worker restarts the debounce
+            // window whenever it observes additional changes.
+        }
+        catch (ObjectDisposedException) when (Volatile.Read(ref _disposed) != 0)
+        {
+        }
+    }
+
+    private async Task ProcessReloadRequestsAsync(CancellationToken cancellationToken)
+    {
+        while (true)
         {
             try
             {
-                await Task.Delay(_debounceInterval, token);
-                if (!token.IsCancellationRequested)
-                    await ReloadFromSourceAsync();
+                await _reloadSignal.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+                var restartDebounce = true;
+                while (restartDebounce)
+                {
+                    await Task.Delay(_debounceInterval, cancellationToken).ConfigureAwait(false);
+                    restartDebounce = false;
+                    while (_reloadSignal.Wait(0))
+                        restartDebounce = true;
+                }
+
+                await ReloadFromSourceAsync().ConfigureAwait(false);
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                return;
             }
-        }, CancellationToken.None);
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Athlete source reload failed; the watcher remains active for the next change.");
+            }
+        }
     }
 
     private static void CanonicalizeIsoDatesInPlace(JsonNode node)
@@ -2535,10 +2573,24 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+
         _db.DatabaseChanged -= OnDatabaseChanged;
         _athleteWatcher.Dispose();
+        _reloadWorkerCts.Cancel();
+
+        try
+        {
+            _reloadWorkerTask.GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        _reloadWorkerCts.Dispose();
+        _reloadSignal.Dispose();
         _reloadLock.Dispose();
-        _debounceCts?.Dispose();
         GC.SuppressFinalize(this);
     }
 
