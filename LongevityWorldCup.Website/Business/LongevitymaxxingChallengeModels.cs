@@ -15,6 +15,28 @@ public sealed record LongevitymaxxingCheckInRequest(
     int Vices,
     string? Note);
 
+public sealed record LongevitymaxxingDiscussionReplyRequest(
+    string AccessToken,
+    string PostParticipantId,
+    int ChallengeDay,
+    string Body,
+    string ReplyId);
+
+public sealed record LongevitymaxxingDiscussionReplyPageRequest(
+    string? AccessToken,
+    string PostParticipantId,
+    int ChallengeDay,
+    string? BeforeCreatedAtUtc,
+    string? BeforeReplyId);
+
+public sealed record LongevitymaxxingDiscussionReplyPage(
+    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies,
+    int TotalCount,
+    int RemainingEarlierReplyCount,
+    bool HasEarlier,
+    string? NextBeforeCreatedAtUtc,
+    string? NextBeforeReplyId);
+
 public sealed record LongevitymaxxingParticipantEditRequest(
     string AccessToken,
     string TimeZoneId,
@@ -150,7 +172,17 @@ public sealed record LongevitymaxxingParticipantNote(
     string Date,
     string? Note,
     string UpdatedAtUtc,
-    IReadOnlyList<LongevitymaxxingCheckInImage> Images);
+    string LastActivityAtUtc,
+    int ReplyCount,
+    IReadOnlyList<LongevitymaxxingCheckInImage> Images,
+    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies);
+
+public sealed record LongevitymaxxingDiscussionReply(
+    string Id,
+    string ParticipantId,
+    string DisplayName,
+    string Body,
+    string CreatedAtUtc);
 
 public sealed record LongevitymaxxingCheckInImage(
     string Url,
@@ -168,7 +200,32 @@ public sealed record LongevitymaxxingReminderCandidate(
     string TargetDate,
     bool CountsForScore,
     bool IncludeCallScheduleUpdate,
-    IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
+    IReadOnlyList<LongevitymaxxingParticipantCall> Calls,
+    LongevitymaxxingDiscussionDigest DiscussionDigest);
+
+public sealed record LongevitymaxxingDiscussionDigest(
+    int MentionCount,
+    int ReplyCount,
+    IReadOnlyList<LongevitymaxxingDiscussionDigestItem> Items,
+    IReadOnlyList<string> NotificationIds)
+{
+    public int TotalCount => MentionCount + ReplyCount;
+
+    public static LongevitymaxxingDiscussionDigest Empty { get; } = new(0, 0, [], []);
+}
+
+public sealed record LongevitymaxxingDiscussionDigestItem(
+    LongevitymaxxingDiscussionActivityKind Kind,
+    int ChallengeDay,
+    string Date,
+    int Count,
+    IReadOnlyList<string> ActorDisplayNames);
+
+public enum LongevitymaxxingDiscussionActivityKind
+{
+    Mention,
+    Reply
+}
 
 public sealed record LongevitymaxxingCallReminderCandidate(
     string ParticipantId,
@@ -199,14 +256,6 @@ public sealed record LongevitymaxxingChallengeStartCandidate(
     string AccessToken,
     string StopToken,
     IReadOnlyList<LongevitymaxxingParticipantCall> Calls);
-
-public sealed record LongevitymaxxingMentionNotificationCandidate(
-    string RecipientParticipantId,
-    string RecipientEmail,
-    string RecipientDisplayName,
-    string SenderDisplayName,
-    int ChallengeDay,
-    string Note);
 
 public sealed record LongevitymaxxingChallengeResultEventRow(
     string ParticipantId,

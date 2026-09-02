@@ -18,6 +18,402 @@ namespace LongevityWorldCup.Tests;
 public sealed class LongevitymaxxingChallengeServiceTests
 {
     [Fact]
+    public async Task DiscussionReplyIsStoredUnderItsPostWithoutEditingEitherCheckInPost()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var ariAccess = await fixture.ConfirmParticipantAsync("ari@example.com", "Ari Author");
+        var beaAccess = await fixture.ConfirmParticipantAsync("bea@example.com", "Bea Builder");
+        var postedAt = DateTimeOffset.Parse("2026-06-09T08:05:00Z");
+
+        var ariState = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(ariAccess, 1, 2, 2, 2, 2, "Ari's discussion post."),
+            postedAt);
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(beaAccess, 1, 2, 2, 2, 2, "Bea's separate post."),
+            postedAt.AddMinutes(1));
+        var ariPost = ariState.Notes.Single(note => note.DisplayName == "Ari Author");
+
+        var result = fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
+                beaAccess,
+                ariPost.ParticipantId,
+                ariPost.ChallengeDay,
+                "This is a real child reply.",
+                Guid.NewGuid().ToString("D")),
+            postedAt.AddMinutes(2));
+
+        var thread = result.Notes.Single(note => note.ParticipantId == ariPost.ParticipantId && note.ChallengeDay == 1);
+        Assert.Equal("Ari's discussion post.", thread.Note);
+        Assert.Equal(1, thread.ReplyCount);
+        var reply = Assert.Single(thread.Replies);
+        Assert.Equal("Bea Builder", reply.DisplayName);
+        Assert.Equal("This is a real child reply.", reply.Body);
+        Assert.Equal(postedAt.AddMinutes(2), DateTimeOffset.Parse(thread.LastActivityAtUtc));
+        Assert.Equal("Bea's separate post.", result.Notes.Single(note => note.DisplayName == "Bea Builder").Note);
+    }
+
+    [Fact]
+    public async Task DiscussionReplyRequiresAnExistingPostAndAThreadWithRepliesCannotBeRemoved()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        var now = DateTimeOffset.Parse("2026-06-09T08:05:00Z");
+
+        var noPostState = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, null),
+            now);
+        var authorId = noPostState.Participant.Id;
+        var missingPost = Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(replierAccess, authorId, 1, "Nowhere to go.", Guid.NewGuid().ToString("D")),
+            now.AddMinutes(1)));
+        Assert.Equal("That discussion post is no longer available.", missingPost.Message);
+
+        var withPost = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "Keep this thread."),
+            now.AddMinutes(2));
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(replierAccess, withPost.Participant.Id, 1, "A saved reply.", Guid.NewGuid().ToString("D")),
+            now.AddMinutes(3));
+
+        var removal = Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, null),
+            now.AddMinutes(4)));
+        Assert.Equal("A discussion post with replies cannot be removed.", removal.Message);
+        Assert.Equal("Keep this thread.", fixture.Service.GetParticipantState(authorAccess, now.AddMinutes(5)).Notes.Single().Note);
+    }
+
+    [Fact]
+    public async Task DiscussionThreadsUseReplyCountAndLatestActivityForVoteFreeHotOrder()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var oldAccess = await fixture.ConfirmParticipantAsync("old@example.com", "Old Olivia");
+        var newAccess = await fixture.ConfirmParticipantAsync("new@example.com", "New Nia");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+
+        var oldState = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(oldAccess, 10, 2, 2, 2, 2, "Older active thread."),
+            DateTimeOffset.Parse("2026-06-18T08:00:00Z"));
+        var oldPost = oldState.Notes.Single(note => note.DisplayName == "Old Olivia");
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(oldAccess, 10, 2, 1, 2, 2, "Older active thread."),
+            DateTimeOffset.Parse("2026-06-19T08:30:00Z"));
+        for (var index = 0; index < 7; index++)
+        {
+            fixture.Service.SubmitDiscussionReply(
+                new LongevitymaxxingDiscussionReplyRequest(replierAccess, oldPost.ParticipantId, 10, $"Reply {index + 1}", Guid.NewGuid().ToString("D")),
+                DateTimeOffset.Parse("2026-06-19T09:00:00Z").AddSeconds(index));
+        }
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(newAccess, 12, 2, 2, 2, 2, "New thread without replies."),
+            DateTimeOffset.Parse("2026-06-20T08:00:00Z"));
+
+        var state = fixture.Service.GetParticipantState(newAccess, DateTimeOffset.Parse("2026-06-20T09:00:00Z"));
+        Assert.Equal("Old Olivia", state.Notes[0].DisplayName);
+        Assert.Equal(7, state.Notes[0].ReplyCount);
+        Assert.Equal(DateTimeOffset.Parse("2026-06-18T08:00:00Z"), DateTimeOffset.Parse(state.Notes[0].UpdatedAtUtc));
+        Assert.Equal(DateTimeOffset.Parse("2026-06-19T09:00:06Z"), DateTimeOffset.Parse(state.Notes[0].LastActivityAtUtc));
+        Assert.Equal("New Nia", state.Notes[1].DisplayName);
+
+        var popularOlder = LongevitymaxxingChallengeService.CalculateDiscussionHotScore(
+            7,
+            DateTimeOffset.Parse("2026-06-19T09:00:00Z"),
+            DateTimeOffset.Parse("2026-06-20T09:00:00Z"));
+        var newWithoutReplies = LongevitymaxxingChallengeService.CalculateDiscussionHotScore(
+            0,
+            DateTimeOffset.Parse("2026-06-20T09:00:00Z"),
+            DateTimeOffset.Parse("2026-06-20T09:00:00Z"));
+        Assert.True(popularOlder > newWithoutReplies);
+    }
+
+    [Fact]
+    public async Task DiscussionRepliesAreBoundedInitiallyAndKeysetPagedWithoutGaps()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        var postedAt = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
+        var post = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 12, 2, 2, 2, 2, "A deliberately busy discussion."),
+            postedAt);
+        var repliedAt = postedAt.AddMinutes(1);
+
+        LongevitymaxxingParticipantState? latest = null;
+        for (var index = 1; index <= 24; index++)
+        {
+            latest = fixture.Service.SubmitDiscussionReply(
+                new LongevitymaxxingDiscussionReplyRequest(
+                    replierAccess,
+                    post.Participant.Id,
+                    12,
+                    $"Reply {index}",
+                    $"00000000-0000-0000-0000-{index:000000000000}"),
+                repliedAt);
+        }
+
+        var authenticatedThread = Assert.Single(latest!.Notes);
+        Assert.Equal(24, authenticatedThread.ReplyCount);
+        Assert.Equal(["Reply 22", "Reply 23", "Reply 24"], authenticatedThread.Replies.Select(reply => reply.Body));
+        Assert.Equal(repliedAt, DateTimeOffset.Parse(authenticatedThread.LastActivityAtUtc));
+        var embeddedPublicThread = Assert.Single(latest.Public.Notes);
+        Assert.Equal(24, embeddedPublicThread.ReplyCount);
+        Assert.Equal(["Reply 22", "Reply 23", "Reply 24"], embeddedPublicThread.Replies.Select(reply => reply.Body));
+        var publicThread = Assert.Single(fixture.Service.GetPublicState(postedAt.AddMinutes(1)).Notes);
+        Assert.Equal(["Reply 22", "Reply 23", "Reply 24"], publicThread.Replies.Select(reply => reply.Body));
+
+        var firstPage = fixture.Service.GetDiscussionReplyPage(new LongevitymaxxingDiscussionReplyPageRequest(
+            null,
+            post.Participant.Id,
+            12,
+            authenticatedThread.Replies[0].CreatedAtUtc,
+            authenticatedThread.Replies[0].Id));
+        Assert.Equal(24, firstPage.TotalCount);
+        Assert.Equal(20, firstPage.Replies.Count);
+        Assert.Equal("Reply 2", firstPage.Replies[0].Body);
+        Assert.Equal("Reply 21", firstPage.Replies[^1].Body);
+        Assert.Equal(1, firstPage.RemainingEarlierReplyCount);
+        Assert.True(firstPage.HasEarlier);
+
+        var secondPage = fixture.Service.GetDiscussionReplyPage(new LongevitymaxxingDiscussionReplyPageRequest(
+            null,
+            post.Participant.Id,
+            12,
+            firstPage.NextBeforeCreatedAtUtc,
+            firstPage.NextBeforeReplyId));
+        Assert.Equal("Reply 1", Assert.Single(secondPage.Replies).Body);
+        Assert.Equal(0, secondPage.RemainingEarlierReplyCount);
+        Assert.False(secondPage.HasEarlier);
+        Assert.Null(secondPage.NextBeforeCreatedAtUtc);
+        Assert.Null(secondPage.NextBeforeReplyId);
+
+        var everyReply = secondPage.Replies
+            .Concat(firstPage.Replies)
+            .Concat(authenticatedThread.Replies)
+            .ToList();
+        Assert.Equal(24, everyReply.Count);
+        Assert.Equal(24, everyReply.Select(reply => reply.Id).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(Enumerable.Range(1, 24).Select(index => $"Reply {index}"), everyReply.Select(reply => reply.Body));
+    }
+
+    [Fact]
+    public async Task DiscussionStateCapsRankedThreadsBeforeReplyBodiesAreEmbedded()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var access = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var participantId = fixture.Service.GetParticipantState(access).Participant.Id;
+        var start = DateTimeOffset.Parse("2026-06-20T08:00:00Z");
+        fixture.Db.Run(sqlite =>
+        {
+            using var insert = sqlite.CreateCommand();
+            insert.CommandText =
+                """
+                INSERT INTO LongevitymaxxingCheckIns
+                (ParticipantId, ChallengeDay, ChallengeDate, Sleep, Exercise, Nutrition, Vices, Note, DiscussionUpdatedAtUtc, CheckedInAtUtc, UpdatedAtUtc)
+                VALUES (@participantId, @day, @date, 2, 2, 2, 2, @note, @updated, @updated, @updated);
+                """;
+            insert.Parameters.AddWithValue("@participantId", participantId);
+            var dayParameter = insert.Parameters.Add("@day", Microsoft.Data.Sqlite.SqliteType.Integer);
+            var dateParameter = insert.Parameters.Add("@date", Microsoft.Data.Sqlite.SqliteType.Text);
+            var noteParameter = insert.Parameters.Add("@note", Microsoft.Data.Sqlite.SqliteType.Text);
+            var updatedParameter = insert.Parameters.Add("@updated", Microsoft.Data.Sqlite.SqliteType.Text);
+            for (var day = 1; day <= 101; day++)
+            {
+                var updated = start.AddMinutes(day);
+                dayParameter.Value = day;
+                dateParameter.Value = DateOnly.FromDateTime(updated.UtcDateTime).ToString("yyyy-MM-dd");
+                noteParameter.Value = $"Discussion {day}";
+                updatedParameter.Value = updated.ToString("o");
+                insert.ExecuteNonQuery();
+            }
+        });
+
+        var state = fixture.Service.GetParticipantState(access, start.AddDays(10));
+        Assert.Equal(100, state.Notes.Count);
+        Assert.Equal(100, state.Public.Notes.Count);
+        Assert.DoesNotContain(state.Notes, note => note.ChallengeDay == 1);
+        Assert.DoesNotContain(state.Public.Notes, note => note.ChallengeDay == 1);
+        Assert.All(state.Notes, note => Assert.InRange(note.Replies.Count, 0, 3));
+    }
+
+    [Fact]
+    public async Task DiscussionReplyReplayIsIdempotentAndReplyIdCannotChangePayload()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        var mentionedAccess = await fixture.ConfirmParticipantAsync("mia@example.com", "Mention Mia");
+        var postedAt = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
+        var post = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "Retry replies here."),
+            postedAt);
+        var replyId = "10101010-2020-3030-4040-505050505050";
+        var request = new LongevitymaxxingDiscussionReplyRequest(
+            replierAccess,
+            post.Participant.Id,
+            1,
+            "One durable reply for @Mention Mia.",
+            replyId);
+
+        fixture.Service.SubmitDiscussionReply(request, postedAt.AddMinutes(1));
+        var replay = fixture.Service.SubmitDiscussionReply(request, postedAt.AddHours(1));
+        var thread = Assert.Single(replay.Notes);
+        Assert.Equal(1, thread.ReplyCount);
+        Assert.Equal(postedAt.AddMinutes(1), DateTimeOffset.Parse(thread.LastActivityAtUtc));
+        Assert.Equal(Guid.Parse(replyId).ToString("N"), Assert.Single(thread.Replies).Id);
+
+        var notificationCount = fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT COUNT(*)
+                FROM LongevitymaxxingDiscussionNotifications
+                WHERE SourceReplyId = @replyId;
+                """;
+            cmd.Parameters.AddWithValue("@replyId", Guid.Parse(replyId).ToString("N"));
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        });
+        Assert.Equal(2, notificationCount);
+        Assert.Equal(1, fixture.Service.GetDailyReminderCandidates(postedAt.AddDays(1).AddMinutes(5))
+            .Single(candidate => candidate.ParticipantId == post.Participant.Id)
+            .DiscussionDigest.ReplyCount);
+        var mentionedId = fixture.Service.GetParticipantState(mentionedAccess).Participant.Id;
+        Assert.Equal(1, fixture.Service.GetDailyReminderCandidates(postedAt.AddDays(1).AddMinutes(5))
+            .Single(candidate => candidate.ParticipantId == mentionedId)
+            .DiscussionDigest.MentionCount);
+
+        var conflict = Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(
+            request with { Body = "A different body." },
+            postedAt.AddHours(2)));
+        Assert.Contains("conflicts with an earlier reply", conflict.Message);
+        Assert.Equal(1, fixture.Service.GetParticipantState(replierAccess, postedAt.AddHours(2)).Notes.Single().ReplyCount);
+    }
+
+    [Fact]
+    public async Task TokenlessReplyPagingHonorsThePublicCutoffWhileAuthenticatedPagingCanReadHistory()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var readerAccess = await fixture.ConfirmParticipantAsync("reader@example.com", "Reader Rae");
+        var oldPost = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "Historical participant discussion."),
+            DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
+
+        var publicError = Assert.Throws<InvalidOperationException>(() => fixture.Service.GetDiscussionReplyPage(
+            new LongevitymaxxingDiscussionReplyPageRequest(null, oldPost.Participant.Id, 1, null, null)));
+        Assert.Equal("That discussion post is no longer available.", publicError.Message);
+
+        var authenticated = fixture.Service.GetDiscussionReplyPage(
+            new LongevitymaxxingDiscussionReplyPageRequest(readerAccess, oldPost.Participant.Id, 1, null, null));
+        Assert.Equal(0, authenticated.TotalCount);
+        Assert.Empty(authenticated.Replies);
+
+        var cursorError = Assert.Throws<InvalidOperationException>(() => fixture.Service.GetDiscussionReplyPage(
+            new LongevitymaxxingDiscussionReplyPageRequest(readerAccess, oldPost.Participant.Id, 1, "2026-06-09T08:00:00Z", null)));
+        Assert.Equal("That reply page cursor is invalid.", cursorError.Message);
+        Assert.Throws<UnauthorizedAccessException>(() => fixture.Service.GetDiscussionReplyPage(
+            new LongevitymaxxingDiscussionReplyPageRequest("not-a-valid-token", oldPost.Participant.Id, 1, null, null)));
+    }
+
+    [Fact]
+    public async Task MentionsAndRepliesAreBundledIntoTheNextDailyEmailAndOnlyItsSnapshotIsMarked()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        var mentionerAccess = await fixture.ConfirmParticipantAsync("mentioner@example.com", "Mention Max");
+        var postedAt = DateTimeOffset.Parse("2026-06-09T07:00:00Z");
+        var authorState = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "Please discuss."),
+            postedAt);
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(mentionerAccess, 1, 2, 2, 2, 2, "A useful point from @Author Ana."),
+            postedAt.AddMinutes(5));
+
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(replierAccess, authorState.Participant.Id, 1, "One reply.", Guid.NewGuid().ToString("D")),
+            postedAt.AddMinutes(15));
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(authorAccess, authorState.Participant.Id, 1, "A self reply.", Guid.NewGuid().ToString("D")),
+            postedAt.AddMinutes(16));
+
+        var firstReminder = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-10T08:05:00Z"))
+            .Single(candidate => candidate.ParticipantId == authorState.Participant.Id);
+        Assert.Equal(1, firstReminder.DiscussionDigest.MentionCount);
+        Assert.Equal(1, firstReminder.DiscussionDigest.ReplyCount);
+        Assert.Equal(2, firstReminder.DiscussionDigest.TotalCount);
+        var mentionItem = Assert.Single(firstReminder.DiscussionDigest.Items, item =>
+            item.Kind == LongevitymaxxingDiscussionActivityKind.Mention);
+        Assert.Equal(1, mentionItem.ChallengeDay);
+        Assert.Equal("2026-06-08", mentionItem.Date);
+        Assert.Equal(["Mention Max"], mentionItem.ActorDisplayNames);
+        var replyItem = Assert.Single(firstReminder.DiscussionDigest.Items, item =>
+            item.Kind == LongevitymaxxingDiscussionActivityKind.Reply);
+        Assert.Equal(["Reply Rae"], replyItem.ActorDisplayNames);
+
+        var email = SmtpLongevitymaxxingEmailSender.BuildDailyReminderEmailContent(
+            firstReminder,
+            fixture.Service.BuildAccessUrl(firstReminder.AccessToken),
+            fixture.Service.BuildStopUrl(firstReminder.StopToken));
+        Assert.Contains("Discussion activity: 1 new mention and 1 new reply", email.TextBody);
+        Assert.Contains("- Mention Max mentioned you in a Day 1 post (2026-06-08).", email.TextBody);
+        Assert.Contains("- Your Day 1 post (2026-06-08): 1 new reply from Reply Rae.", email.TextBody);
+        Assert.Contains("Open the check-in link above to read and reply.", email.TextBody);
+
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(replierAccess, authorState.Participant.Id, 1, "Arrived after the email snapshot.", Guid.NewGuid().ToString("D")),
+            DateTimeOffset.Parse("2026-06-10T08:05:30Z"));
+        fixture.Service.MarkDailyReminderSent(firstReminder, DateTimeOffset.Parse("2026-06-10T08:06:00Z"));
+        var nextReminder = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-11T08:05:00Z"))
+            .Single(candidate => candidate.ParticipantId == authorState.Participant.Id);
+        Assert.Equal(0, nextReminder.DiscussionDigest.MentionCount);
+        Assert.Equal(1, nextReminder.DiscussionDigest.ReplyCount);
+        Assert.Single(nextReminder.DiscussionDigest.NotificationIds);
+    }
+
+    [Fact]
+    public async Task FailedDailyEmailKeepsMentionsAndRepliesPendingForTheSuccessfulRetry()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        var mentionerAccess = await fixture.ConfirmParticipantAsync("mentioner@example.com", "Mention Max");
+        var post = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "Retry this digest."),
+            DateTimeOffset.Parse("2026-06-09T07:00:00Z"));
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(mentionerAccess, 1, 2, 2, 2, 2, "Retry with @Author Ana."),
+            DateTimeOffset.Parse("2026-06-09T07:10:00Z"));
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(replierAccess, post.Participant.Id, 1, "Do not lose this.", Guid.NewGuid().ToString("D")),
+            DateTimeOffset.Parse("2026-06-09T07:15:00Z"));
+
+        using var events = CreateEventDataService(fixture);
+        var job = new LongevitymaxxingReminderJob(
+            fixture.Service,
+            events,
+            fixture.Email,
+            NullLogger<LongevitymaxxingReminderJob>.Instance);
+
+        fixture.Email.ThrowOnDailyReminder = true;
+        await job.ExecuteAtAsync(DateTimeOffset.Parse("2026-06-10T08:05:00Z"));
+        var failedAttempt = Assert.Single(fixture.Email.DailyReminders, reminder => reminder.ParticipantId == post.Participant.Id);
+        Assert.Equal(1, failedAttempt.DiscussionDigest.MentionCount);
+        Assert.Equal(1, failedAttempt.DiscussionDigest.ReplyCount);
+
+        fixture.Email.ThrowOnDailyReminder = false;
+        await job.ExecuteAtAsync(DateTimeOffset.Parse("2026-06-10T08:06:00Z"));
+        var authorAttempts = fixture.Email.DailyReminders.Where(reminder => reminder.ParticipantId == post.Participant.Id).ToList();
+        Assert.Equal(2, authorAttempts.Count);
+        Assert.Equal(1, authorAttempts[1].DiscussionDigest.MentionCount);
+        Assert.Equal(1, authorAttempts[1].DiscussionDigest.ReplyCount);
+
+        await job.ExecuteAtAsync(DateTimeOffset.Parse("2026-06-10T08:07:00Z"));
+        Assert.Equal(2, fixture.Email.DailyReminders.Count(reminder => reminder.ParticipantId == post.Participant.Id));
+    }
+
+    [Fact]
     public void GardenVitality_StartsAsSeedlingAndNoDamageScalesWithEstablishedGrowth()
     {
         static double ApplyRepeatedly(double vitality, int answer, int count)
@@ -80,41 +476,12 @@ public sealed class LongevitymaxxingChallengeServiceTests
     }
 
     [Fact]
-    public async Task CheckInMentionsNotifyExactConfirmedParticipantsWithTheFullNote()
+    public async Task CheckInMentionEditsQueueOnlyNewNamesAndAvoidPartialOrSelfMatches()
     {
         using var fixture = TestChallengeFixture.Create();
         var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
-        var recipientAccess = await fixture.ConfirmParticipantAsync("bea@example.com", "Bea Builder");
-
-        fixture.Service.SubmitCheckIn(
-            new LongevitymaxxingCheckInRequest(
-                senderAccess,
-                1,
-                2,
-                2,
-                2,
-                2,
-                "Strong work @Bea Builder — your consistency helped today."),
-            DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
-
-        var sent = Assert.Single(fixture.Email.Mentions);
-        Assert.Equal("bea@example.com", sent.Mention.RecipientEmail);
-        Assert.Equal("Bea Builder", sent.Mention.RecipientDisplayName);
-        Assert.Equal("Sender Sam", sent.Mention.SenderDisplayName);
-        Assert.Equal(1, sent.Mention.ChallengeDay);
-        Assert.Equal("Strong work @Bea Builder — your consistency helped today.", sent.Mention.Note);
-        Assert.Equal(recipientAccess, ReadQueryToken(sent.Url, "token"));
-        Assert.NotEmpty(ReadQueryToken(sent.StopUrl, "stop"));
-        Assert.Equal("mention", ReadQueryToken(sent.StopUrl, "scope"));
-    }
-
-    [Fact]
-    public async Task CheckInMentionEditsNotifyOnlyNewNamesAndAvoidPartialOrSelfMatches()
-    {
-        using var fixture = TestChallengeFixture.Create();
-        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
-        await fixture.ConfirmParticipantAsync("bob@example.com", "Bob");
-        await fixture.ConfirmParticipantAsync("bob-smith@example.com", "Bob Smith");
+        var bobAccess = await fixture.ConfirmParticipantAsync("bob@example.com", "Bob");
+        var bobSmithAccess = await fixture.ConfirmParticipantAsync("bob-smith@example.com", "Bob Smith");
         var now = DateTimeOffset.Parse("2026-06-09T08:05:00Z");
 
         fixture.Service.SubmitCheckIn(
@@ -128,9 +495,6 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 "Email test@Bob.com; thanks @Bob Smith and @Sender Sam."),
             now);
 
-        var first = Assert.Single(fixture.Email.Mentions);
-        Assert.Equal("bob-smith@example.com", first.Mention.RecipientEmail);
-
         fixture.Service.SubmitCheckIn(
             new LongevitymaxxingCheckInRequest(
                 senderAccess,
@@ -142,8 +506,6 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 "Email test@Bob.com; thanks @Bob Smith and @Sender Sam."),
             now.AddMinutes(1));
 
-        Assert.Single(fixture.Email.Mentions);
-
         fixture.Service.SubmitCheckIn(
             new LongevitymaxxingCheckInRequest(
                 senderAccess,
@@ -154,17 +516,144 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 2,
                 "Thanks again @Bob Smith, and welcome @Bob."),
             now.AddMinutes(2));
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(
+                senderAccess,
+                1,
+                2,
+                2,
+                2,
+                2,
+                "Welcome @Bob; the earlier mention was removed before delivery."),
+            now.AddMinutes(3));
 
-        Assert.Equal(2, fixture.Email.Mentions.Count);
-        Assert.Equal("bob@example.com", fixture.Email.Mentions.Last().Mention.RecipientEmail);
+        var candidates = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-10T08:05:00Z"));
+        var bobId = fixture.Service.GetParticipantState(bobAccess).Participant.Id;
+        var bobSmithId = fixture.Service.GetParticipantState(bobSmithAccess).Participant.Id;
+        var bobDigest = candidates.Single(candidate => candidate.ParticipantId == bobId).DiscussionDigest;
+        var bobSmithDigest = candidates.Single(candidate => candidate.ParticipantId == bobSmithId).DiscussionDigest;
+        Assert.Equal(1, bobDigest.MentionCount);
+        Assert.Equal(0, bobSmithDigest.MentionCount);
+        Assert.Equal(["Sender Sam"], Assert.Single(bobDigest.Items).ActorDisplayNames);
+        Assert.Empty(bobSmithDigest.Items);
     }
 
     [Fact]
-    public async Task CheckInMentionsIgnoreChallengeEmailOptOut()
+    public async Task ConcurrentIdenticalMentionEditsLeaveOnePendingOpeningPostNotification()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
+        var bobAccess = await fixture.ConfirmParticipantAsync("bob@example.com", "Bob Builder");
+        var bobId = fixture.Service.GetParticipantState(bobAccess).Participant.Id;
+        var now = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
+        var request = new LongevitymaxxingCheckInRequest(
+            senderAccess,
+            1,
+            2,
+            2,
+            2,
+            2,
+            "A concurrent hello to @Bob Builder.");
+
+        await Task.WhenAll(Enumerable.Range(0, 8).Select(index => Task.Run(() =>
+            fixture.Service.SubmitCheckIn(request, now.AddMilliseconds(index)))));
+
+        var pending = fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT COUNT(*)
+                FROM LongevitymaxxingDiscussionNotifications
+                WHERE RecipientParticipantId = @recipient
+                  AND Kind = 'mention'
+                  AND SourceReplyId IS NULL
+                  AND NotifiedAtUtc IS NULL;
+                """;
+            cmd.Parameters.AddWithValue("@recipient", bobId);
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        });
+        Assert.Equal(1, pending);
+        Assert.Equal(1, fixture.Service.GetDailyReminderCandidates(now.AddDays(1).AddMinutes(5))
+            .Single(candidate => candidate.ParticipantId == bobId)
+            .DiscussionDigest.MentionCount);
+
+        var senderId = fixture.Service.GetParticipantState(senderAccess).Participant.Id;
+        var duplicate = Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(() => fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                INSERT INTO LongevitymaxxingDiscussionNotifications
+                (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, SourceReplyId, CreatedAtUtc, NotifiedAtUtc)
+                VALUES (@id, @recipient, @sender, @sender, 1, 'mention', NULL, @created, NULL);
+                """;
+            cmd.Parameters.AddWithValue("@id", Guid.NewGuid().ToString("N"));
+            cmd.Parameters.AddWithValue("@recipient", bobId);
+            cmd.Parameters.AddWithValue("@sender", senderId);
+            cmd.Parameters.AddWithValue("@created", now.ToString("o"));
+            cmd.ExecuteNonQuery();
+        }));
+        Assert.Equal(19, duplicate.SqliteErrorCode);
+    }
+
+    [Fact]
+    public async Task RemovingOpeningPostMentionDoesNotDeleteReplyMentionFromTheSameAuthor()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var mentionedAccess = await fixture.ConfirmParticipantAsync("mia@example.com", "Mention Mia");
+        var miaId = fixture.Service.GetParticipantState(mentionedAccess).Participant.Id;
+        var now = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
+        var post = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "Opening mention for @Mention Mia."),
+            now);
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
+                authorAccess,
+                post.Participant.Id,
+                1,
+                "Reply mention for @Mention Mia.",
+                Guid.NewGuid().ToString("D")),
+            now.AddMinutes(1));
+
+        fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "Opening mention removed."),
+            now.AddMinutes(2));
+
+        var pendingSources = fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT SourceReplyId
+                FROM LongevitymaxxingDiscussionNotifications
+                WHERE RecipientParticipantId = @recipient
+                  AND Kind = 'mention'
+                  AND NotifiedAtUtc IS NULL;
+                """;
+            cmd.Parameters.AddWithValue("@recipient", miaId);
+            var values = new List<string?>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                values.Add(reader.IsDBNull(0) ? null : reader.GetString(0));
+            return values;
+        });
+        Assert.NotNull(Assert.Single(pendingSources));
+        var digest = fixture.Service.GetDailyReminderCandidates(now.AddDays(1).AddMinutes(5))
+            .Single(candidate => candidate.ParticipantId == miaId)
+            .DiscussionDigest;
+        Assert.Equal(1, digest.MentionCount);
+        Assert.Equal(["Author Ana"], Assert.Single(digest.Items).ActorDisplayNames);
+    }
+
+    [Fact]
+    public async Task ChallengeEmailOptOutSuppressesTheOnlyDiscussionDeliveryPath()
     {
         using var fixture = TestChallengeFixture.Create();
         var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
         var quietAccess = await fixture.ConfirmParticipantAsync("quiet@example.com", "Quiet Quinn");
+        var quietId = fixture.Service.GetParticipantState(quietAccess).Participant.Id;
         fixture.Service.StopChallengeEmails(quietAccess, DateTimeOffset.Parse("2026-06-08T12:00:00Z"));
 
         var unsubscribed = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T08:04:00Z"))
@@ -176,36 +665,64 @@ public sealed class LongevitymaxxingChallengeServiceTests
             new LongevitymaxxingCheckInRequest(senderAccess, 1, 2, 2, 2, 2, "Still visible to @Quiet Quinn."),
             DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
 
-        var mention = Assert.Single(fixture.Email.Mentions);
-        Assert.Equal("quiet@example.com", mention.Mention.RecipientEmail);
-        Assert.Equal(quietAccess, ReadQueryToken(mention.Url, "token"));
+        Assert.DoesNotContain(
+            fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-10T08:05:00Z")),
+            candidate => candidate.ParticipantId == quietId);
+        var pending = fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT COUNT(*)
+                FROM LongevitymaxxingDiscussionNotifications
+                WHERE RecipientParticipantId = @participantId
+                  AND Kind = 'mention'
+                  AND NotifiedAtUtc IS NULL;
+                """;
+            cmd.Parameters.AddWithValue("@participantId", quietId);
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        });
+        Assert.Equal(1, pending);
     }
 
     [Fact]
-    public async Task CheckInMentionsHonorTheirOwnOptOutWithoutStoppingChallengeReminders()
+    public async Task ReplyMentionsShareTheDigestWithoutDuplicatingThePostAuthor()
     {
         using var fixture = TestChallengeFixture.Create();
-        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
-        var quietAccess = await fixture.ConfirmParticipantAsync("quiet@example.com", "Quiet Quinn");
-        fixture.Service.StopMentionEmails(quietAccess, DateTimeOffset.Parse("2026-06-08T12:00:00Z"));
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        var mentionedAccess = await fixture.ConfirmParticipantAsync("mentioned@example.com", "Mention Mia");
+        var post = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "A post to answer."),
+            DateTimeOffset.Parse("2026-06-09T08:00:00Z"));
 
-        var participant = fixture.Service.GetPublicState(DateTimeOffset.Parse("2026-06-09T08:04:00Z"))
-            .Leaderboard
-            .Single(row => row.DisplayName == "Quiet Quinn");
-        Assert.False(participant.ChallengeEmailsStopped);
-
-        fixture.Service.SubmitCheckIn(
-            new LongevitymaxxingCheckInRequest(senderAccess, 1, 2, 2, 2, 2, "No email for @Quiet Quinn."),
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
+                replierAccess,
+                post.Participant.Id,
+                1,
+                "Thanks @Author Ana; this may help @Mention Mia too.",
+                Guid.NewGuid().ToString("D")),
             DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
 
-        Assert.Empty(fixture.Email.Mentions);
+        var candidates = fixture.Service.GetDailyReminderCandidates(DateTimeOffset.Parse("2026-06-10T08:05:00Z"));
+        var authorDigest = candidates.Single(candidate => candidate.ParticipantId == post.Participant.Id).DiscussionDigest;
+        var mentionedId = fixture.Service.GetParticipantState(mentionedAccess).Participant.Id;
+        var mentionedDigest = candidates.Single(candidate => candidate.ParticipantId == mentionedId).DiscussionDigest;
+        Assert.Equal(0, authorDigest.MentionCount);
+        Assert.Equal(1, authorDigest.ReplyCount);
+        Assert.Single(authorDigest.NotificationIds);
+        Assert.Equal(1, mentionedDigest.MentionCount);
+        Assert.Equal(0, mentionedDigest.ReplyCount);
+        Assert.Equal(["Reply Rae"], Assert.Single(mentionedDigest.Items).ActorDisplayNames);
     }
 
     [Fact]
-    public async Task CheckInMentionsLimitFanout()
+    public async Task DiscussionPostsAndRepliesLimitMentionFanout()
     {
         using var fixture = TestChallengeFixture.Create();
         var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
+        var targetAccess = await fixture.ConfirmParticipantAsync("target@example.com", "Target Tina");
         var names = Enumerable.Range(1, 6).Select(index => $"Person {index}").ToArray();
         foreach (var name in names)
             fixture.InsertConfirmedParticipant($"{name.Replace(' ', '-').ToLowerInvariant()}@example.com", name);
@@ -221,55 +738,19 @@ public sealed class LongevitymaxxingChallengeServiceTests
                 string.Join(" ", names.Select(name => $"@{name}"))),
             DateTimeOffset.Parse("2026-06-09T08:07:00Z")));
 
-        Assert.Equal("Each check-in can mention up to 5 participants.", error.Message);
-    }
-
-    [Fact]
-    public async Task MentionDeliveryFailureDoesNotUndoTheSavedCheckIn()
-    {
-        using var fixture = TestChallengeFixture.Create();
-        var senderAccess = await fixture.ConfirmParticipantAsync("sender@example.com", "Sender Sam");
-        await fixture.ConfirmParticipantAsync("bea@example.com", "Bea Builder");
-        fixture.Email.ThrowOnMention = true;
-
-        var state = fixture.Service.SubmitCheckIn(
-            new LongevitymaxxingCheckInRequest(
+        Assert.Equal("Each discussion post can mention up to 5 participants.", error.Message);
+        var target = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(targetAccess, 1, 2, 2, 2, 2, "Reply here."),
+            DateTimeOffset.Parse("2026-06-09T08:08:00Z"));
+        var replyError = Assert.Throws<InvalidOperationException>(() => fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
                 senderAccess,
+                target.Participant.Id,
                 1,
-                2,
-                2,
-                2,
-                2,
-                "This still saves, @Bea Builder."),
-            DateTimeOffset.Parse("2026-06-09T08:05:00Z"));
-
-        var saved = Assert.Single(state.EligibleDays, day => day.ChallengeDay == 1);
-        Assert.Equal("This still saves, @Bea Builder.", saved.Existing?.Note);
-    }
-
-    [Fact]
-    public void MentionNotificationEmailIncludesSenderMessageAndParticipantLink()
-    {
-        var content = SmtpLongevitymaxxingEmailSender.BuildMentionNotificationEmailContent(
-            new LongevitymaxxingMentionNotificationCandidate(
-                "recipient",
-                "bea@example.com",
-                "Bea Builder",
-                "Sender Sam",
-                12,
-                "You made this easier, @Bea Builder."),
-            "https://example.test/longevitymaxxing?token=recipient-token",
-            "https://example.test/longevitymaxxing?stop=mention-stop-token&scope=mention");
-
-        Assert.Equal("Sender Sam mentioned you in Longevitymaxxing", content.Subject);
-        Assert.Contains("Hi Bea Builder,", content.TextBody);
-        Assert.Contains("Sender Sam mentioned you in their Longevitymaxxing Day 12 check-in:", content.TextBody);
-        Assert.Contains("You made this easier, @Bea Builder.", content.TextBody);
-        Assert.Contains("https://example.test/longevitymaxxing?token=recipient-token", content.TextBody);
-        Assert.Contains(
-            "Stop mention emails: https://example.test/longevitymaxxing?stop=mention-stop-token&scope=mention",
-            content.TextBody);
-        Assert.Empty(content.Attachments);
+                string.Join(" ", names.Select(name => $"@{name}")),
+                Guid.NewGuid().ToString("D")),
+            DateTimeOffset.Parse("2026-06-09T08:09:00Z")));
+        Assert.Equal("Each reply can mention up to 5 participants.", replyError.Message);
     }
 
     [Fact]
@@ -2400,8 +2881,8 @@ public sealed class LongevitymaxxingChallengeServiceTests
     {
         public List<(string Email, string Url)> Confirmations { get; } = [];
         public List<(string Email, string Url)> AccessLinks { get; } = [];
-        public List<(LongevitymaxxingMentionNotificationCandidate Mention, string Url, string StopUrl)> Mentions { get; } = [];
-        public bool ThrowOnMention { get; set; }
+        public List<LongevitymaxxingReminderCandidate> DailyReminders { get; } = [];
+        public bool ThrowOnDailyReminder { get; set; }
 
         public Task SendConfirmationAsync(string email, string displayName, string confirmationUrl, CancellationToken ct = default)
         {
@@ -2416,25 +2897,18 @@ public sealed class LongevitymaxxingChallengeServiceTests
         }
 
         public Task SendDailyReminderAsync(LongevitymaxxingReminderCandidate reminder, string checkInUrl, string stopUrl, CancellationToken ct = default)
-            => Task.CompletedTask;
+        {
+            DailyReminders.Add(reminder);
+            if (ThrowOnDailyReminder)
+                throw new InvalidOperationException("Daily reminder delivery failed.");
+            return Task.CompletedTask;
+        }
 
         public Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopUrl, CancellationToken ct = default)
             => Task.CompletedTask;
 
         public Task SendChallengeStartAsync(LongevitymaxxingChallengeStartCandidate start, string challengeUrl, string stopUrl, CancellationToken ct = default)
             => Task.CompletedTask;
-
-        public Task SendMentionNotificationAsync(
-            LongevitymaxxingMentionNotificationCandidate mention,
-            string challengeUrl,
-            string stopMentionUrl,
-            CancellationToken ct = default)
-        {
-            if (ThrowOnMention)
-                throw new InvalidOperationException("Mention delivery failed.");
-            Mentions.Add((mention, challengeUrl, stopMentionUrl));
-            return Task.CompletedTask;
-        }
     }
 
 

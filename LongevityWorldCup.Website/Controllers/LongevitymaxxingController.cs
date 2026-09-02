@@ -158,6 +158,40 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         }
     }
 
+    [HttpPost("discussion/replies")]
+    public IActionResult ReplyToDiscussion([FromBody] LongevitymaxxingDiscussionReplyRequest request)
+    {
+        try
+        {
+            return Ok(_challenge.SubmitDiscussionReply(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("discussion/replies/page")]
+    public IActionResult GetDiscussionReplyPage([FromBody] LongevitymaxxingDiscussionReplyPageRequest request)
+    {
+        try
+        {
+            return Ok(_challenge.GetDiscussionReplyPage(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("stop-emails")]
     public IActionResult StopEmails([FromBody] LongevitymaxxingTokenRequest request)
     {
@@ -179,20 +213,6 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         {
             _challenge.StopCommunityCallEmails(request.Token);
             return Ok(new { message = "Community call emails stopped." });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { message = ex.Message });
-        }
-    }
-
-    [HttpPost("stop-mention-emails")]
-    public IActionResult StopMentionEmails([FromBody] LongevitymaxxingTokenRequest request)
-    {
-        try
-        {
-            _challenge.StopMentionEmails(request.Token);
-            return Ok(new { message = "Mention emails stopped." });
         }
         catch (UnauthorizedAccessException ex)
         {

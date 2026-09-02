@@ -13,11 +13,6 @@ public interface ILongevitymaxxingEmailSender
     Task SendDailyReminderAsync(LongevitymaxxingReminderCandidate reminder, string checkInUrl, string stopUrl, CancellationToken ct = default);
     Task SendCallReminderAsync(LongevitymaxxingCallReminderCandidate reminder, string challengeUrl, string stopCommunityCallUrl, CancellationToken ct = default);
     Task SendChallengeStartAsync(LongevitymaxxingChallengeStartCandidate start, string challengeUrl, string stopUrl, CancellationToken ct = default);
-    Task SendMentionNotificationAsync(
-        LongevitymaxxingMentionNotificationCandidate mention,
-        string challengeUrl,
-        string stopMentionUrl,
-        CancellationToken ct = default);
 }
 
 public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpLongevitymaxxingEmailSender> logger) : ILongevitymaxxingEmailSender
@@ -67,16 +62,6 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         return SendAsync(start.Email, start.DisplayName, content.Subject, content.TextBody, ct, content.Attachments);
     }
 
-    public Task SendMentionNotificationAsync(
-        LongevitymaxxingMentionNotificationCandidate mention,
-        string challengeUrl,
-        string stopMentionUrl,
-        CancellationToken ct = default)
-    {
-        var content = BuildMentionNotificationEmailContent(mention, challengeUrl, stopMentionUrl);
-        return SendAsync(mention.RecipientEmail, mention.RecipientDisplayName, content.Subject, content.TextBody, ct);
-    }
-
     internal static LongevitymaxxingEmailContent BuildDailyReminderEmailContent(
         LongevitymaxxingReminderCandidate reminder,
         string checkInUrl,
@@ -96,6 +81,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var scheduleUpdate = reminder.IncludeCallScheduleUpdate && reminder.Calls.Any(call => call.SelectedSlot is not null)
             ? $"Updated call schedule:\n{schedule}\n\n"
             : "";
+        var discussionDigest = BuildDiscussionDigestBlock(reminder.DiscussionDigest);
 
         var body =
             $"Hi {SafeName(reminder.DisplayName)},\n\n" +
@@ -104,6 +90,7 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             $"{guidance}\n\n" +
             $"{continuation}" +
             $"{scheduleUpdate}" +
+            $"{discussionDigest}" +
             $"Stop Challenge reminder emails: {stopUrl}\n\n" +
             "Longevity World Cup";
 
@@ -111,6 +98,53 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
             $"Longevitymaxxing Day {reminder.ChallengeDay} check-in",
             body,
             []);
+    }
+
+    private static string BuildDiscussionDigestBlock(LongevitymaxxingDiscussionDigest digest)
+    {
+        if (digest.TotalCount <= 0 || digest.Items.Count == 0)
+            return "";
+
+        const int displayedItemLimit = 3;
+        const int displayedAuthorLimit = 3;
+        var lines = digest.Items
+            .Take(displayedItemLimit)
+            .Select(item =>
+            {
+                var actors = item.ActorDisplayNames
+                    .Take(displayedAuthorLimit)
+                    .Select(SafeName)
+                    .ToList();
+                var remainingActors = Math.Max(0, item.ActorDisplayNames.Count - actors.Count);
+                var actorText = string.Join(", ", actors);
+                if (remainingActors > 0)
+                    actorText += $" and {remainingActors} more";
+
+                return item.Kind switch
+                {
+                    LongevitymaxxingDiscussionActivityKind.Mention when item.Count == 1
+                        => $"- {actorText} mentioned you in a Day {item.ChallengeDay} post ({item.Date}).",
+                    LongevitymaxxingDiscussionActivityKind.Mention
+                        => $"- {item.Count} new mentions in a Day {item.ChallengeDay} post ({item.Date}) from {actorText}.",
+                    LongevitymaxxingDiscussionActivityKind.Reply
+                        => $"- Your Day {item.ChallengeDay} post ({item.Date}): {item.Count} new {(item.Count == 1 ? "reply" : "replies")} from {actorText}.",
+                    _ => throw new InvalidOperationException("Unknown discussion activity kind.")
+                };
+            })
+            .ToList();
+        var remainingItems = Math.Max(0, digest.Items.Count - lines.Count);
+        if (remainingItems > 0)
+            lines.Add($"- Plus activity on {remainingItems} more discussion {(remainingItems == 1 ? "post" : "posts")}.");
+
+        var summary = new List<string>();
+        if (digest.MentionCount > 0)
+            summary.Add($"{digest.MentionCount} new {(digest.MentionCount == 1 ? "mention" : "mentions")}");
+        if (digest.ReplyCount > 0)
+            summary.Add($"{digest.ReplyCount} new {(digest.ReplyCount == 1 ? "reply" : "replies")}");
+        return
+            $"Discussion activity: {string.Join(" and ", summary)}\n" +
+            string.Join("\n", lines) +
+            "\nOpen the check-in link above to read and reply.\n\n";
     }
 
     internal static LongevitymaxxingEmailContent BuildCallReminderEmailContent(
@@ -174,27 +208,6 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         return new LongevitymaxxingEmailContent("Longevitymaxxing Challenge check-ins are ready", body, attachments);
     }
 
-    internal static LongevitymaxxingEmailContent BuildMentionNotificationEmailContent(
-        LongevitymaxxingMentionNotificationCandidate mention,
-        string challengeUrl,
-        string stopMentionUrl)
-    {
-        var senderName = SafeName(mention.SenderDisplayName);
-        var body =
-            $"Hi {SafeName(mention.RecipientDisplayName)},\n\n" +
-            $"{senderName} mentioned you in their Longevitymaxxing Day {mention.ChallengeDay} check-in:\n\n" +
-            $"{mention.Note}\n\n" +
-            "Open your participant page:\n" +
-            $"{challengeUrl}\n\n" +
-            $"Stop mention emails: {stopMentionUrl}\n\n" +
-            "Longevity World Cup";
-
-        return new LongevitymaxxingEmailContent(
-            $"{SafeSubjectText(senderName)} mentioned you in Longevitymaxxing",
-            body,
-            []);
-    }
-
     private async Task SendAsync(
         string email,
         string displayName,
@@ -245,10 +258,6 @@ public sealed class SmtpLongevitymaxxingEmailSender(Config config, ILogger<SmtpL
         var name = (displayName ?? "").Trim();
         return string.IsNullOrWhiteSpace(name) ? "there" : name;
     }
-
-    private static string SafeSubjectText(string value)
-        => value.Replace("\r", " ", StringComparison.Ordinal)
-            .Replace("\n", " ", StringComparison.Ordinal);
 
     private static string BuildScheduleBlock(IReadOnlyList<LongevitymaxxingParticipantCall> calls, string timeZoneId)
     {

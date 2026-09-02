@@ -571,7 +571,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
-    public async Task CheckInForm_ShowsLatestPublicCheckInsAndOpensPhotosInAccessibleViewer()
+    public async Task CheckInForm_ShowsLatestDiscussionSupportsRepliesAndOpensPhotosInAccessibleViewer()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -588,8 +588,29 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
 
-        var publicStateJson = JsonSerializer.Serialize(BuildPublicState());
-        var participantStateJson = JsonSerializer.Serialize(BuildParticipantState());
+        var publicStateJson = JsonSerializer.Serialize(BuildPublicState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true));
+        var participantStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true));
+        var successfulReplyStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.ContinuousAfterReply));
+        var adjacentReplyStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.AdjacentAfterExactlyThreeReplies,
+            publicDiscussionReplySnapshot: DiscussionReplySnapshot.ContinuousAfterReply));
+        var disjointReplyStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.DisjointAfterFourMoreReplies));
+        var freshAfterDelayedPageStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.FreshAfterDelayedPage));
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.Console += (_, message) =>
@@ -601,6 +622,66 @@ public sealed class LongevitymaxxingChallengeBrowserTests
 
         await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, publicStateJson));
         await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, participantStateJson));
+        string? replyPagePayload = null;
+        var replyPageAttempts = 0;
+        var delayedReplyPageRequested = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseDelayedReplyPage = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var delayedReplyPageFulfilled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/page", async route =>
+        {
+            replyPagePayload = route.Request.PostData;
+            replyPageAttempts++;
+            if (replyPageAttempts > 1)
+            {
+                delayedReplyPageRequested.TrySetResult(true);
+                await releaseDelayedReplyPage.Task;
+                await FulfillJsonAsync(route, JsonSerializer.Serialize(new
+                {
+                    replies = new[]
+                    {
+                        Reply("stale-r4", "p3", "Bea", "Delayed old reply four.", "2026-06-30T08:00:00Z"),
+                        Reply("stale-r5", "p4", "Cam", "Delayed old reply five.", "2026-06-30T09:00:00Z"),
+                        Reply("stale-r6", "p5", "Dee", "Delayed old reply six.", "2026-06-30T10:00:00Z")
+                    },
+                    totalCount = 12,
+                    remainingEarlierReplyCount = 6,
+                    hasEarlier = true,
+                    nextBeforeCreatedAtUtc = "2026-06-30T08:00:00Z",
+                    nextBeforeReplyId = "stale-r4"
+                }));
+                delayedReplyPageFulfilled.TrySetResult(true);
+                return;
+            }
+            await FulfillJsonAsync(route, JsonSerializer.Serialize(new
+            {
+                replies = new[] { Reply("r1", "p3", "Bea", "This helped me rethink breakfast.", "2026-06-29T08:00:00Z") },
+                totalCount = 4,
+                remainingEarlierReplyCount = 0,
+                hasEarlier = false,
+                nextBeforeCreatedAtUtc = (string?)null,
+                nextBeforeReplyId = (string?)null
+            }));
+        });
+        var replyPayloads = new List<string>();
+        var replyAttempts = 0;
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route =>
+        {
+            replyPayloads.Add(route.Request.PostData ?? "");
+            replyAttempts++;
+            if (replyAttempts == 1)
+            {
+                await route.AbortAsync("connectionfailed");
+                return;
+            }
+            var response = replyAttempts switch
+            {
+                2 => successfulReplyStateJson,
+                3 => adjacentReplyStateJson,
+                4 => disjointReplyStateJson,
+                _ => freshAfterDelayedPageStateJson
+            };
+            await FulfillJsonAsync(route, response);
+        });
 
         await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.Locator(".lmx-recent-remarks").WaitForAsync();
@@ -609,14 +690,173 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.Equal(3, await remarks.CountAsync());
 
         var checkInText = await page.Locator("#lmxCheckinList").InnerTextAsync();
-        Assert.Contains("Recent check-ins", checkInText);
-        Assert.Contains("Ari · Day 22", checkInText);
+        Assert.Contains("Active discussion", checkInText);
+        Assert.Contains("Fox\nFri, Jun 12 · Day 5", checkInText);
+        Assert.Contains("An older post with enough current discussion to rank first.", checkInText);
+        Assert.Contains("Ari\nMon, Jun 29 · Day 22", checkInText);
         Assert.Contains("First recent public remark.", checkInText);
-        Assert.Contains("Bea · Day 21", checkInText);
-        Assert.Contains("Cam · Day 20", checkInText);
-        Assert.Contains("Third recent public remark.", checkInText);
+        Assert.Contains("Bea\nSun, Jun 28 · Day 21", checkInText);
+        Assert.DoesNotContain("Cam\nSat, Jun 27 · Day 20", checkInText);
         Assert.DoesNotContain("Fourth older public remark.", checkInText);
         Assert.DoesNotContain("Private participant-only remark.", checkInText);
+
+        var replyButtons = remarks.Locator(".lmx-discussion-reply");
+        Assert.Equal(3, await replyButtons.CountAsync());
+        var replyBox = await replyButtons.First.BoundingBoxAsync();
+        Assert.NotNull(replyBox);
+        Assert.True(replyBox.Width >= 44 && replyBox.Height >= 44, $"Expected at least a 44px discussion reply target; got {replyBox.Width}x{replyBox.Height}.");
+        var discussionInput = page.Locator(".lmx-checkin-card > .lmx-field textarea[data-mention-input]").First;
+        Assert.Equal("", await discussionInput.InputValueAsync());
+        await discussionInput.FillAsync("Unsaved check-in discussion draft.");
+        var unsavedExerciseNo = page.Locator(".lmx-checkin-card .lmx-question[data-key='exercise'] input[value='0']");
+        await page.Locator(".lmx-checkin-card .lmx-question[data-key='sleep'] label[data-answer='yes']").ClickAsync();
+        await page.Locator(".lmx-checkin-card .lmx-question[data-key='exercise'] label[data-answer='no']").ClickAsync();
+        await page.Locator(".lmx-checkin-card .lmx-question[data-key='nutrition'] label[data-answer='yes']").ClickAsync();
+        await page.Locator(".lmx-checkin-card .lmx-question[data-key='vices'] label[data-answer='yes']").ClickAsync();
+        await replyButtons.First.ClickAsync();
+        var composer = remarks.First.Locator(".lmx-discussion-reply-composer");
+        await composer.WaitForAsync();
+        Assert.Contains("Reply to Fox", await composer.InnerTextAsync());
+        Assert.True(await page.Locator(".lmx-checkin-card").EvaluateAsync<bool>("form => form.checkValidity()"));
+        var replyText = composer.Locator("textarea");
+        Assert.True(await replyText.EvaluateAsync<bool>("element => element === document.activeElement"));
+        await replyText.FillAsync("Thanks @Ari");
+        var ariMention = composer.Locator(".lmx-mention-option", new LocatorLocatorOptions { HasText = "Ari Able" });
+        await ariMention.ClickAsync();
+        Assert.Equal("Thanks @Ari Able ", await replyText.InputValueAsync());
+
+        var foxReplies = remarks.First.Locator(".lmx-discussion-reply-item");
+        Assert.Equal(3, await foxReplies.CountAsync());
+        var loadEarlierReplies = remarks.First.Locator("[data-discussion-replies-page]");
+        Assert.Equal("View 1 earlier reply", (await loadEarlierReplies.InnerTextAsync()).Trim());
+        await loadEarlierReplies.ClickAsync();
+        await Assertions.Expect(remarks.First.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(4);
+        await Assertions.Expect(remarks.First.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+        Assert.Equal("Thanks @Ari Able ", await replyText.InputValueAsync());
+        Assert.Equal("Unsaved check-in discussion draft.", await discussionInput.InputValueAsync());
+        Assert.True(await unsavedExerciseNo.IsCheckedAsync());
+        Assert.NotNull(replyPagePayload);
+        using (var pageJson = JsonDocument.Parse(replyPagePayload!))
+        {
+            var root = pageJson.RootElement;
+            Assert.Equal("browser-token", root.GetProperty("accessToken").GetString());
+            Assert.Equal("p7", root.GetProperty("postParticipantId").GetString());
+            Assert.Equal(5, root.GetProperty("challengeDay").GetInt32());
+            Assert.Equal("2026-06-29T12:00:00Z", root.GetProperty("beforeCreatedAtUtc").GetString());
+            Assert.Equal("r2", root.GetProperty("beforeReplyId").GetString());
+        }
+
+        await replyText.FillAsync("An actual child reply for @Ari Able.");
+        await composer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(composer.Locator("[data-reply-submit]")).ToBeEnabledAsync();
+        Assert.Single(replyPayloads);
+        await composer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
+        var foxDiscussionSurfaces = new[]
+        {
+            page.Locator(".lmx-recent-remark[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']"),
+            page.Locator("#lmxNotes .lmx-note[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']")
+        };
+        foreach (var surface in foxDiscussionSurfaces)
+        {
+            var visibleReplyIds = await surface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)");
+            Assert.Equal(["r1", "r2", "r3", "r4", "r6"], visibleReplyIds);
+            await Assertions.Expect(surface.Locator("[data-discussion-reply-id='r1']")).ToContainTextAsync("This helped me rethink breakfast.");
+            await Assertions.Expect(surface.Locator("[data-discussion-reply-id='r2']")).ToContainTextAsync("Trying the same approach tomorrow.");
+            await Assertions.Expect(surface.Locator("[data-discussion-reply-id='r6']")).ToContainTextAsync("An actual child reply for @Ari Able.");
+            await Assertions.Expect(surface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+        }
+        Assert.Equal(2, replyPayloads.Count);
+        string? firstReplyId = null;
+        foreach (var replyPayload in replyPayloads)
+        {
+            using var replyJson = JsonDocument.Parse(replyPayload);
+            var root = replyJson.RootElement;
+            Assert.Equal("browser-token", root.GetProperty("accessToken").GetString());
+            Assert.Equal("p7", root.GetProperty("postParticipantId").GetString());
+            Assert.Equal(5, root.GetProperty("challengeDay").GetInt32());
+            Assert.Equal("An actual child reply for @Ari Able.", root.GetProperty("body").GetString());
+            var replyId = root.GetProperty("replyId").GetString();
+            Assert.True(Guid.TryParse(replyId, out _));
+            firstReplyId ??= replyId;
+            Assert.Equal(firstReplyId, replyId);
+        }
+        Assert.Equal("Unsaved check-in discussion draft.", await discussionInput.InputValueAsync());
+        Assert.True(await unsavedExerciseNo.IsCheckedAsync());
+        Assert.False(await page.Locator(".lmx-checkin-card button[type='submit']").IsDisabledAsync());
+
+        await foxDiscussionSurfaces[0].Locator("[data-discussion-reply]").ClickAsync();
+        var secondComposer = foxDiscussionSurfaces[0].Locator(".lmx-discussion-reply-composer");
+        await secondComposer.Locator("textarea").FillAsync("A second local reply after concurrent activity.");
+        await secondComposer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
+        Assert.Equal(3, replyPayloads.Count);
+        foreach (var surface in foxDiscussionSurfaces)
+        {
+            var visibleReplyIds = await surface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)");
+            Assert.Equal(["r1", "r2", "r3", "r4", "r6", "r7", "r8", "r9"], visibleReplyIds);
+            await Assertions.Expect(surface.Locator(".lmx-discussion-post-author small")).ToContainTextAsync("8 replies");
+            await Assertions.Expect(surface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+        }
+        Assert.Equal("Unsaved check-in discussion draft.", await discussionInput.InputValueAsync());
+        Assert.True(await unsavedExerciseNo.IsCheckedAsync());
+
+        await foxDiscussionSurfaces[0].Locator("[data-discussion-reply]").ClickAsync();
+        var thirdComposer = foxDiscussionSurfaces[0].Locator(".lmx-discussion-reply-composer");
+        await thirdComposer.Locator("textarea").FillAsync("A fourth concurrent reply creates a gap.");
+        await thirdComposer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
+        Assert.Equal(4, replyPayloads.Count);
+        foreach (var surface in foxDiscussionSurfaces)
+        {
+            var visibleReplyIds = await surface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)");
+            Assert.Equal(["r10", "r11", "r12"], visibleReplyIds);
+            var restartedPager = surface.Locator("[data-discussion-replies-page]");
+            await Assertions.Expect(restartedPager).ToHaveTextAsync("View 9 earlier replies");
+            Assert.Equal("2026-06-30T14:00:00Z", await restartedPager.GetAttributeAsync("data-before-created-at-utc"));
+            Assert.Equal("r10", await restartedPager.GetAttributeAsync("data-before-reply-id"));
+        }
+
+        var delayedPager = foxDiscussionSurfaces[0].Locator("[data-discussion-replies-page]");
+        await delayedPager.ClickAsync();
+        await delayedReplyPageRequested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(await delayedPager.IsDisabledAsync());
+        await foxDiscussionSurfaces[0].Locator("[data-discussion-reply]").ClickAsync();
+        var fourthComposer = foxDiscussionSurfaces[0].Locator(".lmx-discussion-reply-composer");
+        await fourthComposer.Locator("textarea").FillAsync("A reply while older discussion is loading.");
+        await fourthComposer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
+        Assert.Equal(5, replyPayloads.Count);
+        foreach (var surface in foxDiscussionSurfaces)
+        {
+            var visibleReplyIds = await surface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)");
+            Assert.Equal(["r10", "r11", "r12", "r13", "r14", "r15"], visibleReplyIds);
+            var freshPager = surface.Locator("[data-discussion-replies-page]");
+            await Assertions.Expect(freshPager).ToHaveTextAsync("View 9 earlier replies");
+            Assert.Equal("2026-06-30T14:00:00Z", await freshPager.GetAttributeAsync("data-before-created-at-utc"));
+            Assert.Equal("r10", await freshPager.GetAttributeAsync("data-before-reply-id"));
+        }
+
+        releaseDelayedReplyPage.TrySetResult(true);
+        await delayedReplyPageFulfilled.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        foreach (var surface in foxDiscussionSurfaces)
+        {
+            var visibleReplyIds = await surface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)");
+            Assert.Equal(["r10", "r11", "r12", "r13", "r14", "r15"], visibleReplyIds);
+            await Assertions.Expect(surface.Locator("[data-discussion-reply-id^='stale-']")).ToHaveCountAsync(0);
+            var freshPager = surface.Locator("[data-discussion-replies-page]");
+            await Assertions.Expect(freshPager).ToHaveTextAsync("View 9 earlier replies");
+            Assert.Equal("2026-06-30T14:00:00Z", await freshPager.GetAttributeAsync("data-before-created-at-utc"));
+            Assert.Equal("r10", await freshPager.GetAttributeAsync("data-before-reply-id"));
+        }
+        Assert.Equal("Unsaved check-in discussion draft.", await discussionInput.InputValueAsync());
+        Assert.True(await unsavedExerciseNo.IsCheckedAsync());
 
         var photos = page.Locator(".lmx-recent-remark .lmx-note-photo");
         Assert.Equal(2, await photos.CountAsync());
@@ -695,11 +935,178 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 return !!save && !!remarks && !!(save.compareDocumentPosition(remarks) & Node.DOCUMENT_POSITION_FOLLOWING);
             }
             """));
-        Assert.Empty(errors);
+        Assert.Contains(errors, error => error.Contains("ERR_CONNECTION_FAILED", StringComparison.Ordinal));
+        Assert.DoesNotContain(errors, error => !error.Contains("ERR_CONNECTION_FAILED", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task ParticipantNotesPager_ShowsTwoNewestDaysThenOneWholeDayPerPage()
+    public async Task ReplyPagingUpdatesOnlyDiscussionSurfacesAtTheRequestedCursor()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 760, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
+
+        var publicStateJson = JsonSerializer.Serialize(BuildPublicState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.ContinuousAfterReply));
+        var participantStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.AdjacentAfterExactlyThreeReplies,
+            publicDiscussionReplySnapshot: DiscussionReplySnapshot.ContinuousAfterReply));
+        var afterMixedSurfacePagingReplyStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.AfterMixedSurfacePagingReply));
+        var backdatedReplyStateJson = JsonSerializer.Serialize(BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.BackdatedReplyOutsideLatestWindow,
+            publicDiscussionReplySnapshot: DiscussionReplySnapshot.AfterMixedSurfacePagingReply));
+        var page = await context.NewPageAsync();
+        await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, publicStateJson));
+        await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, participantStateJson));
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/page", route =>
+        {
+            using var payload = JsonDocument.Parse(route.Request.PostData ?? "{}");
+            var beforeReplyId = payload.RootElement.GetProperty("beforeReplyId").GetString();
+            var response = beforeReplyId switch
+            {
+                "r3" => new
+                {
+                    replies = new[]
+                    {
+                        Reply("r1", "p3", "Bea", "Older reply one.", "2026-06-29T08:00:00Z"),
+                        Reply("r2", "p4", "Cam", "Older reply two.", "2026-06-29T12:00:00Z")
+                    },
+                    totalCount = 5
+                },
+                "r7" => new
+                {
+                    replies = new[]
+                    {
+                        Reply("r1", "p3", "Bea", "Older reply one.", "2026-06-29T08:00:00Z"),
+                        Reply("r2", "p4", "Cam", "Older reply two.", "2026-06-29T12:00:00Z"),
+                        Reply("r3", "p5", "Dee", "The small version worked for me.", "2026-06-30T07:00:00Z"),
+                        Reply("r4", "p2", "Ari", "Keep us posted on the next step.", "2026-06-30T09:00:00Z"),
+                        Reply("r6", "p1", "Browser Tester", "An actual child reply for @Ari Able.", "2026-06-30T10:00:00Z")
+                    },
+                    totalCount = 8
+                },
+                _ => throw new InvalidOperationException($"Unexpected reply cursor '{beforeReplyId}'.")
+            };
+            return FulfillJsonAsync(route, JsonSerializer.Serialize(new
+            {
+                response.replies,
+                response.totalCount,
+                remainingEarlierReplyCount = 0,
+                hasEarlier = false,
+                nextBeforeCreatedAtUtc = (string?)null,
+                nextBeforeReplyId = (string?)null
+            }));
+        });
+        var replyAttempts = 0;
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", route =>
+        {
+            replyAttempts++;
+            return FulfillJsonAsync(route, replyAttempts == 1
+                ? afterMixedSurfacePagingReplyStateJson
+                : backdatedReplyStateJson);
+        });
+
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var staleActiveSurface = page.Locator(
+            ".lmx-recent-remark[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
+        var newerMainSurface = page.Locator(
+            "#lmxNotes .lmx-note[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
+        await staleActiveSurface.WaitForAsync();
+        await newerMainSurface.WaitForAsync();
+
+        Assert.Equal(
+            ["r3", "r4", "r6"],
+            await staleActiveSurface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+        Assert.Equal(
+            ["r7", "r8", "r9"],
+            await newerMainSurface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+        var stalePager = staleActiveSurface.Locator("[data-discussion-replies-page]");
+        await Assertions.Expect(stalePager).ToHaveTextAsync("View 2 earlier replies");
+        Assert.Equal("r3", await stalePager.GetAttributeAsync("data-before-reply-id"));
+        var newerPager = newerMainSurface.Locator("[data-discussion-replies-page]");
+        await Assertions.Expect(newerPager).ToHaveTextAsync("View 5 earlier replies");
+        Assert.Equal("r7", await newerPager.GetAttributeAsync("data-before-reply-id"));
+
+        await stalePager.ClickAsync();
+        await Assertions.Expect(staleActiveSurface.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(5);
+        Assert.Equal(
+            ["r1", "r2", "r3", "r4", "r6"],
+            await staleActiveSurface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+        await Assertions.Expect(staleActiveSurface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+        Assert.Equal(
+            ["r7", "r8", "r9"],
+            await newerMainSurface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+        await Assertions.Expect(newerPager).ToHaveTextAsync("View 5 earlier replies");
+        Assert.Equal("r7", await newerPager.GetAttributeAsync("data-before-reply-id"));
+
+        await newerPager.ClickAsync();
+        await Assertions.Expect(newerMainSurface.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(8);
+        Assert.Equal(
+            ["r1", "r2", "r3", "r4", "r6", "r7", "r8", "r9"],
+            await newerMainSurface.Locator(".lmx-discussion-reply-item")
+                .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+        await Assertions.Expect(newerMainSurface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+
+        await newerMainSurface.Locator("[data-discussion-reply]").ClickAsync();
+        var composer = newerMainSurface.Locator(".lmx-discussion-reply-composer");
+        await composer.Locator("textarea").FillAsync("One reply after paging both snapshots.");
+        await composer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
+        foreach (var surface in new[] { staleActiveSurface, newerMainSurface })
+        {
+            await Assertions.Expect(surface.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(9);
+            Assert.Equal(
+                ["r1", "r2", "r3", "r4", "r6", "r7", "r8", "r9", "r10"],
+                await surface.Locator(".lmx-discussion-reply-item")
+                    .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+            await Assertions.Expect(surface.Locator(".lmx-discussion-post-author small")).ToContainTextAsync("9 replies");
+            await Assertions.Expect(surface.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+        }
+
+        await newerMainSurface.Locator("[data-discussion-reply]").ClickAsync();
+        var delayedComposer = newerMainSurface.Locator(".lmx-discussion-reply-composer");
+        await delayedComposer.Locator("textarea").FillAsync("A delayed reply that sorts before the latest window.");
+        await delayedComposer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
+        foreach (var surface in new[] { staleActiveSurface, newerMainSurface })
+        {
+            Assert.Equal(
+                ["r9", "r10", "r12"],
+                await surface.Locator(".lmx-discussion-reply-item")
+                    .EvaluateAllAsync<string[]>("replies => replies.map(reply => reply.dataset.discussionReplyId)"));
+            await Assertions.Expect(surface.Locator(".lmx-discussion-post-author small")).ToContainTextAsync("11 replies");
+            var restartedPager = surface.Locator("[data-discussion-replies-page]");
+            await Assertions.Expect(restartedPager).ToHaveTextAsync("View 8 earlier replies");
+            Assert.Equal("r9", await restartedPager.GetAttributeAsync("data-before-reply-id"));
+        }
+    }
+
+    [Fact]
+    public async Task DiscussionPager_PreservesServerHotOrderAndPagesPosts()
     {
         await using var app = await BrowserTestApp.StartAsync();
         using var playwright = await Playwright.CreateAsync();
@@ -734,36 +1141,40 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         var label = page.Locator("#lmxNotesDayLabel");
         await notes.WaitForAsync();
 
-        Assert.Equal("Days 21–22", await label.InnerTextAsync());
-        Assert.Equal("Days 21 through 22", await label.GetAttributeAsync("aria-label"));
+        Assert.Equal("1–5 of 6", await label.InnerTextAsync());
+        Assert.Equal("Discussion posts 1 through 5 of 6", await label.GetAttributeAsync("aria-label"));
         Assert.True(await newer.IsDisabledAsync());
         Assert.False(await older.IsDisabledAsync());
         var firstPageText = await notes.InnerTextAsync();
-        Assert.Contains("Ari · Day 22", firstPageText);
-        Assert.Contains("Bea · Day 21", firstPageText);
-        Assert.DoesNotContain("Day 20", firstPageText);
+        Assert.Contains("Fox\nFri, Jun 12 · Day 5", firstPageText);
+        Assert.Contains("An older post with enough current discussion to rank first.", firstPageText);
+        Assert.Contains("Ari\nMon, Jun 29 · Day 22", firstPageText);
+        Assert.Contains("Cam\nSat, Jun 27 · Day 20", firstPageText);
+        Assert.Contains("Dee\nFri, Jun 26 · Day 19", firstPageText);
+        Assert.DoesNotContain("Another note from the same day.", firstPageText);
+        var postHeader = notes.Locator(".lmx-discussion-post-header").First;
+        Assert.Equal("div", await postHeader.EvaluateAsync<string>("element => element.tagName.toLowerCase()"));
+        Assert.NotEqual("fixed", await postHeader.EvaluateAsync<string>("element => getComputedStyle(element).position"));
+        var postHeaderBox = await postHeader.BoundingBoxAsync();
+        Assert.NotNull(postHeaderBox);
+        Assert.True(postHeaderBox.Height < 80, $"Discussion post header unexpectedly expanded to {postHeaderBox.Height}px.");
         Assert.Equal("visible", await notes.EvaluateAsync<string>("element => getComputedStyle(element).overflowY"));
         Assert.Equal("none", await notes.EvaluateAsync<string>("element => getComputedStyle(element).maxHeight"));
 
         await older.ClickAsync();
-        Assert.Equal("Day 20", await label.InnerTextAsync());
-        Assert.Contains("Cam · Day 20", await notes.InnerTextAsync());
-        Assert.DoesNotContain("Day 21", await notes.InnerTextAsync());
-
-        await older.ClickAsync();
-        Assert.Equal("Day 19", await label.InnerTextAsync());
+        Assert.Equal("6 of 6", await label.InnerTextAsync());
+        Assert.Equal("Discussion post 6 of 6", await label.GetAttributeAsync("aria-label"));
         var oldestPageText = await notes.InnerTextAsync();
-        Assert.Contains("Dee · Day 19", oldestPageText);
-        Assert.Contains("Eli · Day 19", oldestPageText);
+        Assert.Contains("Eli\nFri, Jun 26 · Day 19", oldestPageText);
+        Assert.Contains("Another note from the same day.", oldestPageText);
+        Assert.DoesNotContain("Fox", oldestPageText);
         Assert.True(await older.IsDisabledAsync());
         Assert.False(await newer.IsDisabledAsync());
 
         await newer.ClickAsync();
-        Assert.Equal("Day 20", await label.InnerTextAsync());
-        await newer.ClickAsync();
-        Assert.Equal("Days 21–22", await label.InnerTextAsync());
-        Assert.Contains("Ari · Day 22", await notes.InnerTextAsync());
-        Assert.Contains("Bea · Day 21", await notes.InnerTextAsync());
+        Assert.Equal("1–5 of 6", await label.InnerTextAsync());
+        Assert.Contains("Fox", await notes.InnerTextAsync());
+        Assert.Contains("Ari", await notes.InnerTextAsync());
 
         foreach (var control in new[] { newer, older })
         {
@@ -937,18 +1348,19 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.DoesNotContain("Day 22", await dialog.Locator(".lmx-checkin-card > h3").InnerTextAsync());
         Assert.Equal(0, await dialog.Locator("input[type='range']").CountAsync());
 
-        var publicNotes = dialog.Locator(".lmx-recent-remarks");
-        await publicNotes.WaitForAsync();
-        Assert.True(await publicNotes.IsVisibleAsync());
-        Assert.Equal("Recent public check-ins", await publicNotes.GetAttributeAsync("aria-label"));
-        Assert.Equal(3, await publicNotes.Locator(".lmx-recent-remark").CountAsync());
-        var publicNotesText = await publicNotes.InnerTextAsync();
-        Assert.Contains("Ari · Day 22", publicNotesText);
-        Assert.Contains("First recent public remark.", publicNotesText);
-        Assert.Contains("Bea · Day 21", publicNotesText);
-        Assert.Contains("Cam · Day 20", publicNotesText);
-        Assert.DoesNotContain("Fourth older public remark.", publicNotesText);
-        Assert.DoesNotContain("Private participant-only remark.", publicNotesText);
+        var publicDiscussion = dialog.Locator(".lmx-recent-remarks");
+        await publicDiscussion.WaitForAsync();
+        Assert.True(await publicDiscussion.IsVisibleAsync());
+        Assert.Equal("Active public discussion", await publicDiscussion.GetAttributeAsync("aria-label"));
+        Assert.Equal(3, await publicDiscussion.Locator(".lmx-recent-remark").CountAsync());
+        var publicDiscussionText = await publicDiscussion.InnerTextAsync();
+        Assert.Contains("Fox\nFri, Jun 12 · Day 5", publicDiscussionText);
+        Assert.Contains("An older post with enough current discussion to rank first.", publicDiscussionText);
+        Assert.Contains("Ari\nMon, Jun 29 · Day 22", publicDiscussionText);
+        Assert.Contains("First recent public remark.", publicDiscussionText);
+        Assert.Contains("Bea\nSun, Jun 28 · Day 21", publicDiscussionText);
+        Assert.DoesNotContain("Cam\nSat, Jun 27 · Day 20", publicDiscussionText);
+        Assert.DoesNotContain("Private participant-only remark.", publicDiscussionText);
 
         var answerInputs = dialog.Locator(".lmx-answer-input");
         Assert.Equal(12, await answerInputs.CountAsync());
@@ -1167,10 +1579,16 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         bool emptyGarden = false,
         bool includeUpcomingCall = false,
         bool includeMentionParticipants = false,
-        string? eligibleDayDate = null)
+        bool includeDiscussionNotesWithMentionParticipants = false,
+        string? eligibleDayDate = null,
+        DiscussionReplySnapshot discussionReplySnapshot = DiscussionReplySnapshot.Initial,
+        DiscussionReplySnapshot? publicDiscussionReplySnapshot = null)
         => new
         {
-            @public = BuildPublicState(includeMentionParticipants),
+            @public = BuildPublicState(
+                includeMentionParticipants,
+                includeDiscussionNotesWithMentionParticipants,
+                publicDiscussionReplySnapshot ?? discussionReplySnapshot),
             participant = new
             {
                 id = "p1",
@@ -1196,10 +1614,11 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                         existing = (object?)null
                     }
                 },
-            notes = new[]
-            {
-                Note("p5", "Private", 1, "2026-06-08", "Private participant-only remark.")
-            },
+            notes = (includeMentionParticipants && !includeDiscussionNotesWithMentionParticipants
+                    ? BuildMentionDiscussionNotes()
+                    : BuildDiscussionNotes(discussionReplySnapshot))
+                .Concat(new[] { Note("p-private", "Private", 1, "2026-06-08", "Private participant-only remark.") })
+                .ToArray(),
             calls = includeUpcomingCall
                 ? new object[]
                 {
@@ -1238,7 +1657,10 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 vices = new { yesCount = 1000, noCount = 0, vitality = 0.999d }
             };
 
-    private static object BuildPublicState(bool includeMentionParticipants = false)
+    private static object BuildPublicState(
+        bool includeMentionParticipants = false,
+        bool includeDiscussionNotesWithMentionParticipants = false,
+        DiscussionReplySnapshot discussionReplySnapshot = DiscussionReplySnapshot.Initial)
         => new
         {
             challengeName = "Longevitymaxxing Challenge",
@@ -1294,30 +1716,128 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 }
                 : []).ToArray(),
             podium = Array.Empty<object>(),
-            notes = includeMentionParticipants
-                ? new[]
-                {
-                    Note(
-                        "p4",
-                        "Cam",
-                        22,
-                        "2026-06-29",
-                        "Contact test@Ari Able, then thank @Ari Able and @Bea Builder — not @Nobody.")
-                }
-                : new[]
-                {
-                    Note("p2", "Ari", 22, "2026-06-29", "First recent public remark.",
-                        [CheckInImage("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari")]),
-                    Note("p3", "Bea", 21, "2026-06-28", null,
-                        [CheckInImage("/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea")]),
-                    Note("p4", "Cam", 20, "2026-06-27", "Third recent public remark."),
-                    Note("p5", "Dee", 19, "2026-06-26", "Fourth older public remark."),
-                    Note("p6", "Eli", 19, "2026-06-26", "Another note from the same day.")
-                },
+            notes = includeMentionParticipants && !includeDiscussionNotesWithMentionParticipants
+                ? BuildMentionDiscussionNotes()
+                : BuildDiscussionNotes(discussionReplySnapshot),
             calls = Array.Empty<object>(),
             slackInviteUrl = "",
             slackRoomUrl = (string?)null
         };
+
+    private static object[] BuildDiscussionNotes(DiscussionReplySnapshot snapshot = DiscussionReplySnapshot.Initial)
+    {
+        var (foxReplies, foxReplyCount, foxLastActivityAtUtc) = snapshot switch
+        {
+            DiscussionReplySnapshot.ContinuousAfterReply => (
+                new object[]
+                {
+                    Reply("r3", "p5", "Dee", "The small version worked for me.", "2026-06-30T07:00:00Z"),
+                    Reply("r4", "p2", "Ari", "Keep us posted on the next step.", "2026-06-30T09:00:00Z"),
+                    Reply("r6", "p1", "Browser Tester", "An actual child reply for @Ari Able.", "2026-06-30T10:00:00Z")
+                },
+                5,
+                "2026-06-30T10:00:00Z"),
+            DiscussionReplySnapshot.AdjacentAfterExactlyThreeReplies => (
+                new object[]
+                {
+                    Reply("r7", "p7", "Fox", "Concurrent reply seven.", "2026-06-30T11:00:00Z"),
+                    Reply("r8", "p3", "Bea", "Concurrent reply eight.", "2026-06-30T12:00:00Z"),
+                    Reply("r9", "p4", "Cam", "Concurrent reply nine.", "2026-06-30T13:00:00Z")
+                },
+                8,
+                "2026-06-30T13:00:00Z"),
+            DiscussionReplySnapshot.DisjointAfterFourMoreReplies => (
+                new object[]
+                {
+                    Reply("r10", "p3", "Bea", "Disjoint reply ten.", "2026-06-30T14:00:00Z"),
+                    Reply("r11", "p4", "Cam", "Disjoint reply eleven.", "2026-06-30T15:00:00Z"),
+                    Reply("r12", "p5", "Dee", "Disjoint reply twelve.", "2026-06-30T16:00:00Z")
+                },
+                12,
+                "2026-06-30T16:00:00Z"),
+            DiscussionReplySnapshot.AfterMixedSurfacePagingReply => (
+                new object[]
+                {
+                    Reply("r8", "p3", "Bea", "Concurrent reply eight.", "2026-06-30T12:00:00Z"),
+                    Reply("r9", "p4", "Cam", "Concurrent reply nine.", "2026-06-30T13:00:00Z"),
+                    Reply("r10", "p1", "Browser Tester", "One reply after paging both snapshots.", "2026-06-30T14:00:00Z")
+                },
+                9,
+                "2026-06-30T14:00:00Z"),
+            DiscussionReplySnapshot.BackdatedReplyOutsideLatestWindow => (
+                new object[]
+                {
+                    Reply("r9", "p4", "Cam", "Concurrent reply nine.", "2026-06-30T13:00:00Z"),
+                    Reply("r10", "p1", "Browser Tester", "One reply after paging both snapshots.", "2026-06-30T14:00:00Z"),
+                    Reply("r12", "p3", "Bea", "A concurrent reply after the delayed one.", "2026-06-30T15:00:00Z")
+                },
+                11,
+                "2026-06-30T15:00:00Z"),
+            DiscussionReplySnapshot.FreshAfterDelayedPage => (
+                new object[]
+                {
+                    Reply("r13", "p3", "Bea", "Fresh reply thirteen.", "2026-06-30T17:00:00Z"),
+                    Reply("r14", "p4", "Cam", "Fresh reply fourteen.", "2026-06-30T18:00:00Z"),
+                    Reply("r15", "p5", "Dee", "Fresh reply fifteen.", "2026-06-30T19:00:00Z")
+                },
+                15,
+                "2026-06-30T19:00:00Z"),
+            _ => (
+                new object[]
+                {
+                    Reply("r2", "p4", "Cam", "Trying the same approach tomorrow.", "2026-06-29T12:00:00Z"),
+                    Reply("r3", "p5", "Dee", "The small version worked for me.", "2026-06-30T07:00:00Z"),
+                    Reply("r4", "p2", "Ari", "Keep us posted on the next step.", "2026-06-30T09:00:00Z")
+                },
+                4,
+                "2026-06-30T09:00:00Z")
+        };
+
+        return
+        [
+            Note(
+                "p7",
+                "Fox",
+                5,
+                "2026-06-12",
+                "An older post with enough current discussion to rank first.",
+                updatedAtUtc: "2026-06-12T07:00:00Z",
+                lastActivityAtUtc: foxLastActivityAtUtc,
+                replies: foxReplies,
+                replyCount: foxReplyCount),
+            Note("p2", "Ari", 22, "2026-06-29", "First recent public remark.",
+                [CheckInImage("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari")],
+                lastActivityAtUtc: "2026-06-29T10:00:00Z",
+                replies: [Reply("r5", "p4", "Cam", "Nice work.", "2026-06-29T10:00:00Z")]),
+            Note("p3", "Bea", 21, "2026-06-28", null,
+                [CheckInImage("/generated/longevitymaxxing/check-in-photos/bea.webp?v=bea")]),
+            Note("p4", "Cam", 20, "2026-06-27", "Third recent public remark."),
+            Note("p5", "Dee", 19, "2026-06-26", "Fourth older public remark."),
+            Note("p6", "Eli", 19, "2026-06-26", "Another note from the same day.")
+        ];
+    }
+
+    private enum DiscussionReplySnapshot
+    {
+        Initial,
+        ContinuousAfterReply,
+        AdjacentAfterExactlyThreeReplies,
+        DisjointAfterFourMoreReplies,
+        AfterMixedSurfacePagingReply,
+        BackdatedReplyOutsideLatestWindow,
+        FreshAfterDelayedPage
+    }
+
+    private static object[] BuildMentionDiscussionNotes()
+        =>
+        [
+            Note(
+                "p4",
+                "Cam",
+                22,
+                "2026-06-29",
+                "Contact test@Ari Able, then thank @Ari Able and @Bea Builder — not @Nobody.")
+        ];
 
     private static object MentionLeaderboardRow(string participantId, string displayName, string? athleteUrl = null)
         => new
@@ -1354,17 +1874,36 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         int challengeDay,
         string date,
         string? note,
-        object[]? images = null)
-        => new
+        object[]? images = null,
+        string? updatedAtUtc = null,
+        string? lastActivityAtUtc = null,
+        object[]? replies = null,
+        int? replyCount = null)
+    {
+        var effectiveUpdatedAtUtc = updatedAtUtc ?? $"{date}T07:00:00Z";
+        var effectiveReplies = replies ?? Array.Empty<object>();
+        return new
         {
             participantId,
             displayName,
             challengeDay,
             date,
             note,
-            updatedAtUtc = $"{date}T07:00:00Z",
-            images = images ?? Array.Empty<object>()
+            updatedAtUtc = effectiveUpdatedAtUtc,
+            lastActivityAtUtc = lastActivityAtUtc ?? effectiveUpdatedAtUtc,
+            replyCount = replyCount ?? effectiveReplies.Length,
+            images = images ?? Array.Empty<object>(),
+            replies = effectiveReplies
         };
+    }
+
+    private static object Reply(
+        string id,
+        string participantId,
+        string displayName,
+        string body,
+        string createdAtUtc)
+        => new { id, participantId, displayName, body, createdAtUtc };
 
     private static object CheckInImage(string url)
         => new
