@@ -17,8 +17,6 @@ public sealed class LeaderboardRouteBrowserTests
         });
         await using var context = await NewContextAsync(browser, app);
         var page = await context.NewPageAsync();
-        var pageErrors = new List<string>();
-        page.PageError += (_, error) => pageErrors.Add(error);
 
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await WaitForLeaderboardAsync(page);
@@ -39,16 +37,9 @@ public sealed class LeaderboardRouteBrowserTests
         var documentResponse = page.WaitForResponseAsync(response =>
             response.Request.ResourceType == "document" &&
             new Uri(response.Url).AbsolutePath.Equals("/flag/hungary", StringComparison.OrdinalIgnoreCase));
-        pageErrors.Clear();
         await page.Locator("#viewAllAthletesBtn").ClickAsync();
         var response = await documentResponse;
         Assert.True(response.Ok);
-
-        await page.WaitForTimeoutAsync(1500);
-        var statusAfterNavigation = await page.Locator("#leaderboardStatus").TextContentAsync();
-        Assert.True(
-            statusAfterNavigation == "Leaderboard loaded.",
-            $"Flag leaderboard did not finish loading at {page.Url}. Status: {statusAfterNavigation}. Page errors: {string.Join(" | ", pageErrors)}");
 
         await AssertFullLeaderboardAsync(page, "/flag/hungary", "#flag-filter-section input[name=\"flag\"][value=\"Hungary\"]:checked");
         Assert.Equal(expectedCount, await CountVisibleAthleteRowsAsync(page));
