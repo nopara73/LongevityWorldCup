@@ -25,6 +25,9 @@ public sealed class LongevitymaxxingChallengeService
     private const int LeaderboardScoringWindowDays = 14;
     private const int MaxMentionsPerCheckIn = 5;
     private const int MaxDiscussionReplyLength = 240;
+    private const int MaxDiscussionThreads = 100;
+    private const int InitialDiscussionReplyCount = 3;
+    private const int DiscussionReplyPageSize = 20;
     private const string ChallengeInactiveReasonMissedScoredDays = "missed-scored-days";
     private const string PublicParticipantNotesStartAtUtc = "2026-06-19T12:50:40.4598757+00:00";
     private const double FinalDayScoreMultiplier = 1.4d;
@@ -597,7 +600,7 @@ public sealed class LongevitymaxxingChallengeService
         var mentionedParticipants = ResolveMentionedParticipants(body, author.Id, GetConfirmedParticipants());
         if (mentionedParticipants.Count > MaxMentionsPerCheckIn)
             throw new InvalidOperationException($"Each reply can mention up to {MaxMentionsPerCheckIn} participants.");
-        var replyId = Guid.NewGuid().ToString("N");
+        var replyId = NormalizeDiscussionReplyId(request.ReplyId);
 
         _db.Run(sqlite =>
         {
@@ -613,7 +616,7 @@ public sealed class LongevitymaxxingChallengeService
                 insert.Transaction = transaction;
                 insert.CommandText =
                     """
-                    INSERT INTO LongevitymaxxingDiscussionReplies
+                    INSERT OR IGNORE INTO LongevitymaxxingDiscussionReplies
                     (Id, PostParticipantId, PostChallengeDay, AuthorParticipantId, Body, CreatedAtUtc)
                     VALUES (@id, @postParticipantId, @day, @authorParticipantId, @body, @created);
                     """;
@@ -623,7 +626,19 @@ public sealed class LongevitymaxxingChallengeService
                 Add(insert, "@authorParticipantId", author.Id);
                 Add(insert, "@body", body);
                 Add(insert, "@created", now.ToString("o"));
-                insert.ExecuteNonQuery();
+                if (insert.ExecuteNonQuery() == 0)
+                {
+                    EnsureDiscussionReplyReplayMatches(
+                        sqlite,
+                        transaction,
+                        replyId,
+                        postParticipantId,
+                        request.ChallengeDay,
+                        author.Id,
+                        body);
+                    transaction.Commit();
+                    return;
+                }
             }
 
             if (!string.Equals(postAuthorId, author.Id, StringComparison.Ordinal))
@@ -633,14 +648,15 @@ public sealed class LongevitymaxxingChallengeService
                 notify.CommandText =
                     """
                     INSERT INTO LongevitymaxxingDiscussionNotifications
-                    (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, CreatedAtUtc, NotifiedAtUtc)
-                    VALUES (@id, @recipientParticipantId, @actorParticipantId, @postParticipantId, @day, 'reply', @created, NULL);
+                    (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, SourceReplyId, CreatedAtUtc, NotifiedAtUtc)
+                    VALUES (@id, @recipientParticipantId, @actorParticipantId, @postParticipantId, @day, 'reply', @sourceReplyId, @created, NULL);
                     """;
                 Add(notify, "@id", Guid.NewGuid().ToString("N"));
                 Add(notify, "@recipientParticipantId", postAuthorId);
                 Add(notify, "@actorParticipantId", author.Id);
                 Add(notify, "@postParticipantId", postParticipantId);
                 Add(notify, "@day", request.ChallengeDay);
+                Add(notify, "@sourceReplyId", replyId);
                 Add(notify, "@created", now.ToString("o"));
                 notify.ExecuteNonQuery();
             }
@@ -653,14 +669,15 @@ public sealed class LongevitymaxxingChallengeService
                 notify.CommandText =
                     """
                     INSERT INTO LongevitymaxxingDiscussionNotifications
-                    (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, CreatedAtUtc, NotifiedAtUtc)
-                    VALUES (@id, @recipientParticipantId, @actorParticipantId, @postParticipantId, @day, 'mention', @created, NULL);
+                    (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, SourceReplyId, CreatedAtUtc, NotifiedAtUtc)
+                    VALUES (@id, @recipientParticipantId, @actorParticipantId, @postParticipantId, @day, 'mention', @sourceReplyId, @created, NULL);
                     """;
                 Add(notify, "@id", Guid.NewGuid().ToString("N"));
                 Add(notify, "@recipientParticipantId", recipient.Id);
                 Add(notify, "@actorParticipantId", author.Id);
                 Add(notify, "@postParticipantId", postParticipantId);
                 Add(notify, "@day", request.ChallengeDay);
+                Add(notify, "@sourceReplyId", replyId);
                 Add(notify, "@created", now.ToString("o"));
                 notify.ExecuteNonQuery();
             }
@@ -669,6 +686,133 @@ public sealed class LongevitymaxxingChallengeService
         });
 
         return GetParticipantState(request.AccessToken, now);
+    }
+
+    public LongevitymaxxingDiscussionReplyPage GetDiscussionReplyPage(
+        LongevitymaxxingDiscussionReplyPageRequest request)
+    {
+        var postParticipantId = (request.PostParticipantId ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(postParticipantId) || request.ChallengeDay < 1)
+            throw new InvalidOperationException("That discussion post is no longer available.");
+
+        var hasAccessToken = !string.IsNullOrWhiteSpace(request.AccessToken);
+        if (hasAccessToken)
+            _ = RequireParticipantByAccessToken(request.AccessToken!);
+
+        var hasBeforeCreated = !string.IsNullOrWhiteSpace(request.BeforeCreatedAtUtc);
+        var hasBeforeReply = !string.IsNullOrWhiteSpace(request.BeforeReplyId);
+        if (hasBeforeCreated != hasBeforeReply)
+            throw new InvalidOperationException("That reply page cursor is invalid.");
+
+        string? beforeCreatedAtUtc = null;
+        string? beforeReplyId = null;
+        if (hasBeforeCreated)
+        {
+            if (!DateTimeOffset.TryParse(
+                    request.BeforeCreatedAtUtc,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out var parsedBefore) ||
+                !Guid.TryParse(request.BeforeReplyId, out var parsedBeforeReplyId))
+                throw new InvalidOperationException("That reply page cursor is invalid.");
+            beforeCreatedAtUtc = EnsureUtc(parsedBefore).ToString("o");
+            beforeReplyId = parsedBeforeReplyId.ToString("N");
+        }
+
+        return _db.Run(sqlite =>
+        {
+            EnsureDiscussionPostCanBeRead(
+                sqlite,
+                postParticipantId,
+                request.ChallengeDay,
+                publicOnly: !hasAccessToken);
+
+            var totalCount = GetDiscussionReplyCount(sqlite, postParticipantId, request.ChallengeDay);
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                $"""
+                SELECT r.Id, r.AuthorParticipantId, author.DisplayName, r.Body, r.CreatedAtUtc
+                FROM LongevitymaxxingDiscussionReplies r
+                JOIN LongevitymaxxingParticipants author ON author.Id = r.AuthorParticipantId
+                WHERE r.PostParticipantId = @postParticipantId
+                  AND r.PostChallengeDay = @day
+                  AND author.ConfirmedAtUtc IS NOT NULL
+                  {(beforeCreatedAtUtc is null ? "" : "AND (r.CreatedAtUtc < @beforeCreated OR (r.CreatedAtUtc = @beforeCreated AND r.Id < @beforeReplyId))")}
+                ORDER BY r.CreatedAtUtc DESC, r.Id DESC
+                LIMIT @limit;
+                """;
+            Add(cmd, "@postParticipantId", postParticipantId);
+            Add(cmd, "@day", request.ChallengeDay);
+            Add(cmd, "@limit", DiscussionReplyPageSize);
+            if (beforeCreatedAtUtc is not null)
+            {
+                Add(cmd, "@beforeCreated", beforeCreatedAtUtc);
+                Add(cmd, "@beforeReplyId", beforeReplyId);
+            }
+
+            var replies = new List<LongevitymaxxingDiscussionReply>();
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    replies.Add(new LongevitymaxxingDiscussionReply(
+                        reader.GetString(0),
+                        reader.GetString(1),
+                        reader.GetString(2),
+                        reader.GetString(3),
+                        reader.GetString(4)));
+                }
+            }
+            replies.Reverse();
+
+            var earliest = replies.FirstOrDefault();
+            var remainingEarlier = earliest is null
+                ? 0
+                : GetDiscussionReplyCountBefore(
+                    sqlite,
+                    postParticipantId,
+                    request.ChallengeDay,
+                    earliest.CreatedAtUtc,
+                    earliest.Id);
+            return new LongevitymaxxingDiscussionReplyPage(
+                replies,
+                totalCount,
+                remainingEarlier,
+                remainingEarlier > 0,
+                remainingEarlier > 0 ? earliest!.CreatedAtUtc : null,
+                remainingEarlier > 0 ? earliest!.Id : null);
+        });
+    }
+
+    private static void EnsureDiscussionReplyReplayMatches(
+        SqliteConnection sqlite,
+        SqliteTransaction transaction,
+        string replyId,
+        string postParticipantId,
+        int challengeDay,
+        string authorParticipantId,
+        string body)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = transaction;
+        cmd.CommandText =
+            """
+            SELECT 1
+            FROM LongevitymaxxingDiscussionReplies
+            WHERE Id = @id
+              AND PostParticipantId = @postParticipantId
+              AND PostChallengeDay = @day
+              AND AuthorParticipantId = @authorParticipantId
+              AND Body = @body
+            LIMIT 1;
+            """;
+        Add(cmd, "@id", replyId);
+        Add(cmd, "@postParticipantId", postParticipantId);
+        Add(cmd, "@day", challengeDay);
+        Add(cmd, "@authorParticipantId", authorParticipantId);
+        Add(cmd, "@body", body);
+        if (cmd.ExecuteScalar() is null)
+            throw new InvalidOperationException("That reply request conflicts with an earlier reply. Please try again.");
     }
 
     private static string RequireDiscussionPostAuthorId(
@@ -704,6 +848,82 @@ public sealed class LongevitymaxxingChallengeService
             ?? throw new InvalidOperationException("That discussion post is no longer available.");
     }
 
+    private static void EnsureDiscussionPostCanBeRead(
+        SqliteConnection sqlite,
+        string postParticipantId,
+        int challengeDay,
+        bool publicOnly)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            $"""
+            SELECT 1
+            FROM LongevitymaxxingCheckIns c
+            JOIN LongevitymaxxingParticipants p ON p.Id = c.ParticipantId
+            WHERE c.ParticipantId = @postParticipantId
+              AND c.ChallengeDay = @day
+              AND p.ConfirmedAtUtc IS NOT NULL
+              {(publicOnly ? "AND c.CheckedInAtUtc >= @publicNotesStart" : "")}
+              AND (
+                (c.Note IS NOT NULL AND TRIM(c.Note) <> '')
+                OR EXISTS (
+                    SELECT 1
+                    FROM LongevitymaxxingCheckInImages i
+                    WHERE i.ParticipantId = c.ParticipantId
+                      AND i.ChallengeDay = c.ChallengeDay
+                )
+              )
+            LIMIT 1;
+            """;
+        Add(cmd, "@postParticipantId", postParticipantId);
+        Add(cmd, "@day", challengeDay);
+        if (publicOnly)
+            Add(cmd, "@publicNotesStart", PublicParticipantNotesStartAtUtc);
+        if (cmd.ExecuteScalar() is null)
+            throw new InvalidOperationException("That discussion post is no longer available.");
+    }
+
+    private static int GetDiscussionReplyCount(
+        SqliteConnection sqlite,
+        string postParticipantId,
+        int challengeDay)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            """
+            SELECT COUNT(*)
+            FROM LongevitymaxxingDiscussionReplies
+            WHERE PostParticipantId = @postParticipantId
+              AND PostChallengeDay = @day;
+            """;
+        Add(cmd, "@postParticipantId", postParticipantId);
+        Add(cmd, "@day", challengeDay);
+        return Convert.ToInt32(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
+    private static int GetDiscussionReplyCountBefore(
+        SqliteConnection sqlite,
+        string postParticipantId,
+        int challengeDay,
+        string beforeCreatedAtUtc,
+        string beforeReplyId)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            """
+            SELECT COUNT(*)
+            FROM LongevitymaxxingDiscussionReplies
+            WHERE PostParticipantId = @postParticipantId
+              AND PostChallengeDay = @day
+              AND (CreatedAtUtc < @beforeCreated OR (CreatedAtUtc = @beforeCreated AND Id < @beforeReplyId));
+            """;
+        Add(cmd, "@postParticipantId", postParticipantId);
+        Add(cmd, "@day", challengeDay);
+        Add(cmd, "@beforeCreated", beforeCreatedAtUtc);
+        Add(cmd, "@beforeReplyId", beforeReplyId);
+        return Convert.ToInt32(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
     private ValidatedCheckIn ValidateCheckIn(LongevitymaxxingCheckInRequest request, DateTimeOffset? nowUtc)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
@@ -724,19 +944,6 @@ public sealed class LongevitymaxxingChallengeService
         if (mentionedParticipants.Count > MaxMentionsPerCheckIn)
             throw new InvalidOperationException($"Each discussion post can mention up to {MaxMentionsPerCheckIn} participants.");
 
-        byDay.TryGetValue(request.ChallengeDay, out var existingCheckIn);
-        var previousMentionIds = ResolveMentionedParticipants(existingCheckIn?.Note, participant.Id, confirmedParticipants)
-            .Select(mentioned => mentioned.Id)
-            .ToHashSet(StringComparer.Ordinal);
-        var currentMentionIds = mentionedParticipants
-            .Select(mentioned => mentioned.Id)
-            .ToHashSet(StringComparer.Ordinal);
-        var newMentionRecipients = mentionedParticipants
-            .Where(mentioned => !previousMentionIds.Contains(mentioned.Id))
-            .ToList();
-        var removedMentionRecipientIds = previousMentionIds
-            .Where(previousId => !currentMentionIds.Contains(previousId))
-            .ToList();
         var challengeDate = settings.StartDate.AddDays(request.ChallengeDay - 1);
 
         return new ValidatedCheckIn(
@@ -749,11 +956,7 @@ public sealed class LongevitymaxxingChallengeService
             values.Vices,
             note,
             challengeDate,
-            eligible.CountsForScore,
-            existingCheckIn?.Note,
-            existingCheckIn?.Images.Count ?? 0,
-            newMentionRecipients,
-            removedMentionRecipientIds);
+            eligible.CountsForScore);
     }
 
     private static IReadOnlyList<ParticipantRecord> ResolveMentionedParticipants(
@@ -810,13 +1013,35 @@ public sealed class LongevitymaxxingChallengeService
 
     private LongevitymaxxingParticipantState SaveCheckIn(ValidatedCheckIn checkIn, IReadOnlyList<PendingCheckInImage> newImages)
     {
-        var hasDiscussionContent = checkIn.Note is not null || checkIn.ExistingDiscussionImageCount + newImages.Count > 0;
-        var discussionChanged = !string.Equals(checkIn.Note, checkIn.ExistingNote, StringComparison.Ordinal) || newImages.Count > 0;
-        var discussionUpdatedAt = hasDiscussionContent ? checkIn.NowUtc.ToString("o") : null;
-
         _db.Run(sqlite =>
         {
             using var transaction = sqlite.BeginTransaction(deferred: false);
+            var existingDiscussion = GetPersistedDiscussionSnapshot(
+                sqlite,
+                transaction,
+                checkIn.Participant.Id,
+                checkIn.Request.ChallengeDay);
+            var confirmedParticipants = GetConfirmedParticipants(sqlite, transaction);
+            var hasDiscussionContent = checkIn.Note is not null || existingDiscussion.ImageCount + newImages.Count > 0;
+            var discussionChanged = !string.Equals(checkIn.Note, existingDiscussion.Note, StringComparison.Ordinal) || newImages.Count > 0;
+            var discussionUpdatedAt = hasDiscussionContent ? checkIn.NowUtc.ToString("o") : null;
+
+            var previousMentionIds = ResolveMentionedParticipants(
+                    existingDiscussion.Note,
+                    checkIn.Participant.Id,
+                    confirmedParticipants)
+                .Select(mentioned => mentioned.Id)
+                .ToHashSet(StringComparer.Ordinal);
+            var currentMentionRecipients = ResolveMentionedParticipants(
+                checkIn.Note,
+                checkIn.Participant.Id,
+                confirmedParticipants);
+            if (currentMentionRecipients.Count > MaxMentionsPerCheckIn)
+                throw new InvalidOperationException($"Each discussion post can mention up to {MaxMentionsPerCheckIn} participants.");
+            var currentMentionIds = currentMentionRecipients
+                .Select(mentioned => mentioned.Id)
+                .ToHashSet(StringComparer.Ordinal);
+
             if (!hasDiscussionContent && DiscussionPostHasReplies(
                     sqlite,
                     transaction,
@@ -877,15 +1102,22 @@ public sealed class LongevitymaxxingChallengeService
                 insertImage.ExecuteNonQuery();
             }
 
-            foreach (var recipient in checkIn.NewMentionRecipients)
+            RemovePendingOpeningPostMentionsExcept(
+                sqlite,
+                transaction,
+                checkIn.Participant.Id,
+                checkIn.Request.ChallengeDay,
+                currentMentionIds);
+
+            foreach (var recipient in currentMentionRecipients.Where(recipient => !previousMentionIds.Contains(recipient.Id)))
             {
                 using var notify = sqlite.CreateCommand();
                 notify.Transaction = transaction;
                 notify.CommandText =
                     """
-                    INSERT INTO LongevitymaxxingDiscussionNotifications
-                    (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, CreatedAtUtc, NotifiedAtUtc)
-                    VALUES (@id, @recipientParticipantId, @actorParticipantId, @postParticipantId, @day, 'mention', @created, NULL);
+                    INSERT OR IGNORE INTO LongevitymaxxingDiscussionNotifications
+                    (Id, RecipientParticipantId, ActorParticipantId, PostParticipantId, PostChallengeDay, Kind, SourceReplyId, CreatedAtUtc, NotifiedAtUtc)
+                    VALUES (@id, @recipientParticipantId, @actorParticipantId, @postParticipantId, @day, 'mention', NULL, @created, NULL);
                     """;
                 Add(notify, "@id", Guid.NewGuid().ToString("N"));
                 Add(notify, "@recipientParticipantId", recipient.Id);
@@ -896,31 +1128,72 @@ public sealed class LongevitymaxxingChallengeService
                 notify.ExecuteNonQuery();
             }
 
-            foreach (var recipientId in checkIn.RemovedMentionRecipientIds)
-            {
-                using var removePending = sqlite.CreateCommand();
-                removePending.Transaction = transaction;
-                removePending.CommandText =
-                    """
-                    DELETE FROM LongevitymaxxingDiscussionNotifications
-                    WHERE RecipientParticipantId = @recipientParticipantId
-                      AND ActorParticipantId = @postParticipantId
-                      AND PostParticipantId = @postParticipantId
-                      AND PostChallengeDay = @day
-                      AND Kind = 'mention'
-                      AND NotifiedAtUtc IS NULL;
-                    """;
-                Add(removePending, "@recipientParticipantId", recipientId);
-                Add(removePending, "@postParticipantId", checkIn.Participant.Id);
-                Add(removePending, "@day", checkIn.Request.ChallengeDay);
-                removePending.ExecuteNonQuery();
-            }
-
             transaction.Commit();
         });
 
         ReactivateMissedDayInactiveParticipantIfCaughtUp(checkIn.Participant, checkIn.NowUtc);
         return GetParticipantState(checkIn.Request.AccessToken, checkIn.NowUtc);
+    }
+
+    private static (string? Note, int ImageCount) GetPersistedDiscussionSnapshot(
+        SqliteConnection sqlite,
+        SqliteTransaction transaction,
+        string participantId,
+        int challengeDay)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = transaction;
+        cmd.CommandText =
+            """
+            SELECT c.Note,
+                   (SELECT COUNT(*)
+                    FROM LongevitymaxxingCheckInImages i
+                    WHERE i.ParticipantId = c.ParticipantId
+                      AND i.ChallengeDay = c.ChallengeDay)
+            FROM LongevitymaxxingCheckIns c
+            WHERE c.ParticipantId = @participantId
+              AND c.ChallengeDay = @day
+            LIMIT 1;
+            """;
+        Add(cmd, "@participantId", participantId);
+        Add(cmd, "@day", challengeDay);
+        using var reader = cmd.ExecuteReader();
+        return reader.Read()
+            ? (reader.IsDBNull(0) ? null : reader.GetString(0), reader.GetInt32(1))
+            : (null, 0);
+    }
+
+    private static void RemovePendingOpeningPostMentionsExcept(
+        SqliteConnection sqlite,
+        SqliteTransaction transaction,
+        string postParticipantId,
+        int challengeDay,
+        IReadOnlySet<string> retainedRecipientIds)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = transaction;
+        var retained = retainedRecipientIds
+            .Select((recipientId, index) => (recipientId, Parameter: $"@retained{index}"))
+            .ToList();
+        var retainedPredicate = retained.Count == 0
+            ? ""
+            : $"AND RecipientParticipantId NOT IN ({string.Join(", ", retained.Select(item => item.Parameter))})";
+        cmd.CommandText =
+            $"""
+            DELETE FROM LongevitymaxxingDiscussionNotifications
+            WHERE ActorParticipantId = @postParticipantId
+              AND PostParticipantId = @postParticipantId
+              AND PostChallengeDay = @day
+              AND Kind = 'mention'
+              AND SourceReplyId IS NULL
+              AND NotifiedAtUtc IS NULL
+              {retainedPredicate};
+            """;
+        Add(cmd, "@postParticipantId", postParticipantId);
+        Add(cmd, "@day", challengeDay);
+        foreach (var item in retained)
+            Add(cmd, item.Parameter, item.recipientId);
+        cmd.ExecuteNonQuery();
     }
 
     private static bool DiscussionPostHasReplies(
@@ -1814,6 +2087,7 @@ public sealed class LongevitymaxxingChallengeService
                     PostParticipantId TEXT NOT NULL,
                     PostChallengeDay INTEGER NOT NULL,
                     Kind TEXT NOT NULL CHECK (Kind IN ('mention', 'reply')),
+                    SourceReplyId TEXT NULL,
                     CreatedAtUtc TEXT NOT NULL,
                     NotifiedAtUtc TEXT NULL,
                     FOREIGN KEY (RecipientParticipantId)
@@ -1821,11 +2095,27 @@ public sealed class LongevitymaxxingChallengeService
                     FOREIGN KEY (ActorParticipantId)
                         REFERENCES LongevitymaxxingParticipants(Id) ON DELETE CASCADE,
                     FOREIGN KEY (PostParticipantId, PostChallengeDay)
-                        REFERENCES LongevitymaxxingCheckIns(ParticipantId, ChallengeDay) ON DELETE CASCADE
+                        REFERENCES LongevitymaxxingCheckIns(ParticipantId, ChallengeDay) ON DELETE CASCADE,
+                    FOREIGN KEY (SourceReplyId)
+                        REFERENCES LongevitymaxxingDiscussionReplies(Id) ON DELETE CASCADE
                 );
 
                 CREATE INDEX IF NOT EXISTS IX_LongevitymaxxingDiscussionNotifications_Pending
                     ON LongevitymaxxingDiscussionNotifications(RecipientParticipantId, NotifiedAtUtc, CreatedAtUtc);
+
+                CREATE UNIQUE INDEX IF NOT EXISTS UX_LongevitymaxxingDiscussionNotifications_PendingPostMention
+                    ON LongevitymaxxingDiscussionNotifications(
+                        RecipientParticipantId,
+                        ActorParticipantId,
+                        PostParticipantId,
+                        PostChallengeDay)
+                    WHERE Kind = 'mention'
+                      AND SourceReplyId IS NULL
+                      AND NotifiedAtUtc IS NULL;
+
+                CREATE UNIQUE INDEX IF NOT EXISTS UX_LongevitymaxxingDiscussionNotifications_ReplySource
+                    ON LongevitymaxxingDiscussionNotifications(SourceReplyId, RecipientParticipantId, Kind)
+                    WHERE SourceReplyId IS NOT NULL;
 
                 CREATE TABLE IF NOT EXISTS LongevitymaxxingReminderLog (
                     ParticipantId TEXT NOT NULL,
@@ -2507,9 +2797,14 @@ public sealed class LongevitymaxxingChallengeService
             cmd.CommandText =
                 $"""
                 SELECT p.Id, p.DisplayName, c.ChallengeDay, c.ChallengeDate, c.Note,
-                       COALESCE(c.DiscussionUpdatedAtUtc, c.UpdatedAtUtc)
+                       COALESCE(c.DiscussionUpdatedAtUtc, c.UpdatedAtUtc),
+                       COUNT(r.Id),
+                       MAX(r.CreatedAtUtc)
                 FROM LongevitymaxxingCheckIns c
                 JOIN LongevitymaxxingParticipants p ON p.Id = c.ParticipantId
+                LEFT JOIN LongevitymaxxingDiscussionReplies r
+                  ON r.PostParticipantId = c.ParticipantId
+                 AND r.PostChallengeDay = c.ChallengeDay
                 WHERE p.ConfirmedAtUtc IS NOT NULL
                   {(publicOnly ? "AND c.CheckedInAtUtc >= @publicNotesStart" : "")}
                   AND (
@@ -2521,39 +2816,51 @@ public sealed class LongevitymaxxingChallengeService
                           AND i.ChallengeDay = c.ChallengeDay
                     )
                   )
-                ORDER BY COALESCE(c.DiscussionUpdatedAtUtc, c.UpdatedAtUtc) DESC;
+                GROUP BY p.Id, p.DisplayName, c.ChallengeDay, c.ChallengeDate, c.Note,
+                         COALESCE(c.DiscussionUpdatedAtUtc, c.UpdatedAtUtc);
                 """;
             if (publicOnly)
                 Add(cmd, "@publicNotesStart", PublicParticipantNotesStartAtUtc);
-            var rows = new List<(string ParticipantId, string DisplayName, int ChallengeDay, string Date, string? Note, string UpdatedAtUtc)>();
-            var participantIds = new HashSet<string>(StringComparer.Ordinal);
+            var rows = new List<DiscussionThreadRow>();
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                var id = reader.GetString(0);
-                participantIds.Add(id);
-                rows.Add((
-                    id,
+                var postUpdatedAtText = reader.GetString(5);
+                var postUpdatedAt = ParseDateTimeOffset(postUpdatedAtText, DateTimeOffset.UnixEpoch);
+                var latestReplyAt = reader.IsDBNull(7)
+                    ? (DateTimeOffset?)null
+                    : ParseDateTimeOffset(reader.GetString(7), DateTimeOffset.UnixEpoch);
+                rows.Add(new DiscussionThreadRow(
+                    reader.GetString(0),
                     reader.GetString(1),
                     reader.GetInt32(2),
                     reader.GetString(3),
                     reader.IsDBNull(4) ? null : reader.GetString(4),
-                    reader.GetString(5)));
+                    postUpdatedAtText,
+                    reader.GetInt32(6),
+                    latestReplyAt is null || latestReplyAt <= postUpdatedAt ? postUpdatedAt : latestReplyAt.Value));
             }
 
-            var imagesByCheckIn = GetCheckInImagesFor(sqlite, participantIds);
-            var repliesByPost = GetDiscussionReplies(sqlite, publicOnly);
-            var threads = rows
+            var selectedRows = rows
+                .OrderByDescending(row => CalculateDiscussionHotScore(
+                    row.ReplyCount,
+                    row.LastActivityAtUtc,
+                    now))
+                .ThenByDescending(row => row.LastActivityAtUtc)
+                .ThenByDescending(row => row.ChallengeDay)
+                .ThenBy(row => row.ParticipantId, StringComparer.Ordinal)
+                .Take(MaxDiscussionThreads)
+                .ToList();
+
+            var imagesByCheckIn = GetCheckInImagesForDiscussionThreads(sqlite, selectedRows);
+            var repliesByPost = GetInitialDiscussionReplies(sqlite, selectedRows);
+            return selectedRows
                 .Select(row =>
                 {
                     var key = (row.ParticipantId, row.ChallengeDay);
                     var replies = repliesByPost.TryGetValue(key, out var foundReplies)
                         ? (IReadOnlyList<LongevitymaxxingDiscussionReply>)foundReplies
                         : [];
-                    var postUpdatedAt = ParseDateTimeOffset(row.UpdatedAtUtc, DateTimeOffset.UnixEpoch);
-                    var lastActivityAt = replies.Count == 0
-                        ? postUpdatedAt
-                        : new[] { postUpdatedAt, ParseDateTimeOffset(replies[^1].CreatedAtUtc, DateTimeOffset.UnixEpoch) }.Max();
                     return new LongevitymaxxingParticipantNote(
                         row.ParticipantId,
                         row.DisplayName,
@@ -2561,73 +2868,106 @@ public sealed class LongevitymaxxingChallengeService
                         row.Date,
                         row.Note,
                         row.UpdatedAtUtc,
-                        lastActivityAt.ToString("o"),
-                        replies.Count,
+                        row.LastActivityAtUtc.ToString("o"),
+                        row.ReplyCount,
                         BuildCheckInImages(imagesByCheckIn, row.ParticipantId, row.ChallengeDay),
                         replies);
                 })
-                .OrderByDescending(thread => CalculateDiscussionHotScore(
-                    thread.ReplyCount,
-                    ParseDateTimeOffset(thread.LastActivityAtUtc, DateTimeOffset.UnixEpoch),
-                    now))
-                .ThenByDescending(thread => ParseDateTimeOffset(thread.LastActivityAtUtc, DateTimeOffset.UnixEpoch))
-                .ThenByDescending(thread => thread.ChallengeDay)
-                .ThenBy(thread => thread.ParticipantId, StringComparer.Ordinal)
                 .ToList();
-
-            return publicOnly ? threads.Take(100).ToList() : threads;
         });
     }
 
-    private static Dictionary<(string ParticipantId, int ChallengeDay), List<LongevitymaxxingDiscussionReply>> GetDiscussionReplies(
+    private static Dictionary<(string ParticipantId, int ChallengeDay), List<LongevitymaxxingDiscussionReply>> GetInitialDiscussionReplies(
         SqliteConnection sqlite,
-        bool publicOnly)
+        IReadOnlyList<DiscussionThreadRow> selectedRows)
     {
+        var result = new Dictionary<(string ParticipantId, int ChallengeDay), List<LongevitymaxxingDiscussionReply>>();
+        foreach (var row in selectedRows.Where(row => row.ReplyCount > 0))
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT recent.Id, recent.AuthorParticipantId, recent.DisplayName, recent.Body, recent.CreatedAtUtc
+                FROM (
+                    SELECT r.Id, r.AuthorParticipantId, author.DisplayName, r.Body, r.CreatedAtUtc
+                    FROM LongevitymaxxingDiscussionReplies r
+                    JOIN LongevitymaxxingParticipants author ON author.Id = r.AuthorParticipantId
+                    WHERE r.PostParticipantId = @postParticipantId
+                      AND r.PostChallengeDay = @day
+                      AND author.ConfirmedAtUtc IS NOT NULL
+                    ORDER BY r.CreatedAtUtc DESC, r.Id DESC
+                    LIMIT @limit
+                ) recent
+                ORDER BY recent.CreatedAtUtc, recent.Id;
+                """;
+            Add(cmd, "@postParticipantId", row.ParticipantId);
+            Add(cmd, "@day", row.ChallengeDay);
+            Add(cmd, "@limit", InitialDiscussionReplyCount);
+            var replies = new List<LongevitymaxxingDiscussionReply>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                replies.Add(new LongevitymaxxingDiscussionReply(
+                    reader.GetString(0),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetString(3),
+                    reader.GetString(4)));
+            }
+            result[(row.ParticipantId, row.ChallengeDay)] = replies;
+        }
+
+        return result;
+    }
+
+    private static Dictionary<(string ParticipantId, int ChallengeDay), List<CheckInImageRecord>> GetCheckInImagesForDiscussionThreads(
+        SqliteConnection sqlite,
+        IReadOnlyList<DiscussionThreadRow> selectedRows)
+    {
+        var result = new Dictionary<(string ParticipantId, int ChallengeDay), List<CheckInImageRecord>>();
+        if (selectedRows.Count == 0)
+            return result;
+
         using var cmd = sqlite.CreateCommand();
+        var selectedValues = selectedRows
+            .Select((_, index) => $"(@participant{index}, @day{index})")
+            .ToList();
         cmd.CommandText =
             $"""
-            SELECT r.PostParticipantId, r.PostChallengeDay, r.Id, r.AuthorParticipantId,
-                   author.DisplayName, r.Body, r.CreatedAtUtc
-            FROM LongevitymaxxingDiscussionReplies r
-            JOIN LongevitymaxxingCheckIns c
-              ON c.ParticipantId = r.PostParticipantId
-             AND c.ChallengeDay = r.PostChallengeDay
-            JOIN LongevitymaxxingParticipants postAuthor ON postAuthor.Id = c.ParticipantId
-            JOIN LongevitymaxxingParticipants author ON author.Id = r.AuthorParticipantId
-            WHERE postAuthor.ConfirmedAtUtc IS NOT NULL
-              AND author.ConfirmedAtUtc IS NOT NULL
-              {(publicOnly ? "AND c.CheckedInAtUtc >= @publicNotesStart" : "")}
-              AND (
-                (c.Note IS NOT NULL AND TRIM(c.Note) <> '')
-                OR EXISTS (
-                    SELECT 1
-                    FROM LongevitymaxxingCheckInImages i
-                    WHERE i.ParticipantId = c.ParticipantId
-                      AND i.ChallengeDay = c.ChallengeDay
-                )
-              )
-            ORDER BY r.PostParticipantId, r.PostChallengeDay, r.CreatedAtUtc, r.Id;
+            WITH SelectedThreads(ParticipantId, ChallengeDay) AS (
+                VALUES {string.Join(", ", selectedValues)}
+            )
+            SELECT i.ParticipantId, i.ChallengeDay, i.ImageIndex, i.FileName, i.Width, i.Height, i.CreatedAtUtc
+            FROM LongevitymaxxingCheckInImages i
+            JOIN SelectedThreads selected
+              ON selected.ParticipantId = i.ParticipantId
+             AND selected.ChallengeDay = i.ChallengeDay
+            ORDER BY i.ParticipantId, i.ChallengeDay, i.ImageIndex;
             """;
-        if (publicOnly)
-            Add(cmd, "@publicNotesStart", PublicParticipantNotesStartAtUtc);
+        for (var index = 0; index < selectedRows.Count; index++)
+        {
+            Add(cmd, $"@participant{index}", selectedRows[index].ParticipantId);
+            Add(cmd, $"@day{index}", selectedRows[index].ChallengeDay);
+        }
 
-        var result = new Dictionary<(string ParticipantId, int ChallengeDay), List<LongevitymaxxingDiscussionReply>>();
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
         {
-            var key = (reader.GetString(0), reader.GetInt32(1));
-            if (!result.TryGetValue(key, out var replies))
-            {
-                replies = [];
-                result[key] = replies;
-            }
-
-            replies.Add(new LongevitymaxxingDiscussionReply(
-                reader.GetString(2),
+            var image = new CheckInImageRecord(
+                reader.GetString(0),
+                reader.GetInt32(1),
+                reader.GetInt32(2),
                 reader.GetString(3),
-                reader.GetString(4),
-                reader.GetString(5),
-                reader.GetString(6)));
+                reader.GetInt32(4),
+                reader.GetInt32(5),
+                reader.GetString(6));
+            var key = (image.ParticipantId, image.ChallengeDay);
+            if (!result.TryGetValue(key, out var images))
+            {
+                images = [];
+                result[key] = images;
+            }
+            images.Add(image);
         }
 
         return result;
@@ -2748,20 +3088,23 @@ public sealed class LongevitymaxxingChallengeService
     }
 
     private IReadOnlyList<ParticipantRecord> GetConfirmedParticipants()
+        => _db.Run(sqlite => GetConfirmedParticipants(sqlite, transaction: null));
+
+    private static IReadOnlyList<ParticipantRecord> GetConfirmedParticipants(
+        SqliteConnection sqlite,
+        SqliteTransaction? transaction)
     {
-        return _db.Run(sqlite =>
-        {
-            using var cmd = sqlite.CreateCommand();
-            cmd.CommandText =
-                """
-                SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
-                       ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
-                       ChallengeInactiveAtUtc, ChallengeInactiveReason, CreatedAtUtc, UpdatedAtUtc
-                FROM LongevitymaxxingParticipants
-                WHERE ConfirmedAtUtc IS NOT NULL;
-                """;
-            return ReadParticipants(cmd);
-        });
+        using var cmd = sqlite.CreateCommand();
+        cmd.Transaction = transaction;
+        cmd.CommandText =
+            """
+            SELECT Id, Email, DisplayName, TimeZoneId, AthleteSlug, AccessToken, ConfirmationToken, StopToken,
+                   ConfirmedAtUtc, StoppedEmailsAtUtc, StoppedCommunityCallEmailsAtUtc,
+                   ChallengeInactiveAtUtc, ChallengeInactiveReason, CreatedAtUtc, UpdatedAtUtc
+            FROM LongevitymaxxingParticipants
+            WHERE ConfirmedAtUtc IS NOT NULL;
+            """;
+        return ReadParticipants(cmd);
     }
 
     private IReadOnlyDictionary<string, Dictionary<int, CheckInRecord>> GetCheckInsFor(IReadOnlySet<string> participantIds)
@@ -3452,6 +3795,13 @@ public sealed class LongevitymaxxingChallengeService
             : normalized[..MaxDiscussionReplyLength];
     }
 
+    private static string NormalizeDiscussionReplyId(string? replyId)
+    {
+        if (!Guid.TryParse((replyId ?? "").Trim(), out var parsed))
+            throw new InvalidOperationException("That reply request is invalid. Please try again.");
+        return parsed.ToString("N");
+    }
+
     private static string? BuildAthleteUrl(string? athleteSlug)
         => string.IsNullOrWhiteSpace(athleteSlug) ? null : $"/athlete/{Uri.EscapeDataString(athleteSlug)}";
 
@@ -3870,6 +4220,16 @@ public sealed class LongevitymaxxingChallengeService
         LongevitymaxxingDiscussionActivityKind Kind,
         string CreatedAtUtc);
 
+    private sealed record DiscussionThreadRow(
+        string ParticipantId,
+        string DisplayName,
+        int ChallengeDay,
+        string Date,
+        string? Note,
+        string UpdatedAtUtc,
+        int ReplyCount,
+        DateTimeOffset LastActivityAtUtc);
+
     private sealed record AthleteTieBreak(bool IsOnLeaderboard, int? CurrentPlacement, DateTime? DateOfBirthUtc)
     {
         public static readonly AthleteTieBreak None = new(false, null, null);
@@ -3889,11 +4249,7 @@ public sealed class LongevitymaxxingChallengeService
         int Vices,
         string? Note,
         DateOnly ChallengeDate,
-        bool CountsForScore,
-        string? ExistingNote,
-        int ExistingDiscussionImageCount,
-        IReadOnlyList<ParticipantRecord> NewMentionRecipients,
-        IReadOnlyList<string> RemovedMentionRecipientIds);
+        bool CountsForScore);
 
     private sealed record PendingCheckInImage(
         int ImageIndex,

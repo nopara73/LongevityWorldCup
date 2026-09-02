@@ -605,10 +605,31 @@ public sealed class LongevitymaxxingChallengeBrowserTests
 
         await page.RouteAsync("**/api/longevitymaxxing/state", route => FulfillJsonAsync(route, publicStateJson));
         await page.RouteAsync("**/api/longevitymaxxing/participant", route => FulfillJsonAsync(route, participantStateJson));
-        string? replyPayload = null;
+        string? replyPagePayload = null;
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/page", async route =>
+        {
+            replyPagePayload = route.Request.PostData;
+            await FulfillJsonAsync(route, JsonSerializer.Serialize(new
+            {
+                replies = new[] { Reply("r1", "p3", "Bea", "This helped me rethink breakfast.", "2026-06-29T08:00:00Z") },
+                totalCount = 4,
+                remainingEarlierReplyCount = 0,
+                hasEarlier = false,
+                nextBeforeCreatedAtUtc = (string?)null,
+                nextBeforeReplyId = (string?)null
+            }));
+        });
+        var replyPayloads = new List<string>();
+        var replyAttempts = 0;
         await page.RouteAsync("**/api/longevitymaxxing/discussion/replies", async route =>
         {
-            replyPayload = route.Request.PostData;
+            replyPayloads.Add(route.Request.PostData ?? "");
+            replyAttempts++;
+            if (replyAttempts == 1)
+            {
+                await route.AbortAsync("connectionfailed");
+                return;
+            }
             await FulfillJsonAsync(route, participantStateJson);
         });
 
@@ -634,12 +655,19 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         var replyBox = await replyButtons.First.BoundingBoxAsync();
         Assert.NotNull(replyBox);
         Assert.True(replyBox.Width >= 44 && replyBox.Height >= 44, $"Expected at least a 44px discussion reply target; got {replyBox.Width}x{replyBox.Height}.");
-        await replyButtons.First.ClickAsync();
         var discussionInput = page.Locator(".lmx-checkin-card > .lmx-field textarea[data-mention-input]").First;
         Assert.Equal("", await discussionInput.InputValueAsync());
+        await discussionInput.FillAsync("Unsaved check-in discussion draft.");
+        var unsavedExerciseNo = page.Locator(".lmx-checkin-card .lmx-question[data-key='exercise'] input[value='0']");
+        await page.Locator(".lmx-checkin-card .lmx-question[data-key='sleep'] label[data-answer='yes']").ClickAsync();
+        await page.Locator(".lmx-checkin-card .lmx-question[data-key='exercise'] label[data-answer='no']").ClickAsync();
+        await page.Locator(".lmx-checkin-card .lmx-question[data-key='nutrition'] label[data-answer='yes']").ClickAsync();
+        await page.Locator(".lmx-checkin-card .lmx-question[data-key='vices'] label[data-answer='yes']").ClickAsync();
+        await replyButtons.First.ClickAsync();
         var composer = remarks.First.Locator(".lmx-discussion-reply-composer");
         await composer.WaitForAsync();
         Assert.Contains("Reply to Fox", await composer.InnerTextAsync());
+        Assert.True(await page.Locator(".lmx-checkin-card").EvaluateAsync<bool>("form => form.checkValidity()"));
         var replyText = composer.Locator("textarea");
         Assert.True(await replyText.EvaluateAsync<bool>("element => element === document.activeElement"));
         await replyText.FillAsync("Thanks @Ari");
@@ -648,27 +676,50 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         Assert.Equal("Thanks @Ari Able ", await replyText.InputValueAsync());
 
         var foxReplies = remarks.First.Locator(".lmx-discussion-reply-item");
-        Assert.Equal(4, await foxReplies.CountAsync());
-        Assert.Equal(3, await remarks.First.Locator(".lmx-discussion-reply-item:visible").CountAsync());
-        var showAllReplies = remarks.First.Locator("[data-discussion-replies-toggle]");
-        Assert.Equal("View all 4 replies", (await showAllReplies.InnerTextAsync()).Trim());
-        await showAllReplies.ClickAsync();
-        Assert.Equal(4, await remarks.First.Locator(".lmx-discussion-reply-item:visible").CountAsync());
-        Assert.Equal("Hide earlier replies", (await showAllReplies.InnerTextAsync()).Trim());
+        Assert.Equal(3, await foxReplies.CountAsync());
+        var loadEarlierReplies = remarks.First.Locator("[data-discussion-replies-page]");
+        Assert.Equal("View 1 earlier reply", (await loadEarlierReplies.InnerTextAsync()).Trim());
+        await loadEarlierReplies.ClickAsync();
+        await Assertions.Expect(remarks.First.Locator(".lmx-discussion-reply-item")).ToHaveCountAsync(4);
+        await Assertions.Expect(remarks.First.Locator("[data-discussion-replies-page]")).ToHaveCountAsync(0);
+        Assert.Equal("Thanks @Ari Able ", await replyText.InputValueAsync());
+        Assert.Equal("Unsaved check-in discussion draft.", await discussionInput.InputValueAsync());
+        Assert.True(await unsavedExerciseNo.IsCheckedAsync());
+        Assert.NotNull(replyPagePayload);
+        using (var pageJson = JsonDocument.Parse(replyPagePayload!))
+        {
+            var root = pageJson.RootElement;
+            Assert.Equal("browser-token", root.GetProperty("accessToken").GetString());
+            Assert.Equal("p7", root.GetProperty("postParticipantId").GetString());
+            Assert.Equal(5, root.GetProperty("challengeDay").GetInt32());
+            Assert.Equal("2026-06-29T12:00:00Z", root.GetProperty("beforeCreatedAtUtc").GetString());
+            Assert.Equal("r2", root.GetProperty("beforeReplyId").GetString());
+        }
 
         await replyText.FillAsync("An actual child reply for @Ari Able.");
         await composer.Locator("[data-reply-submit]").ClickAsync();
+        await Assertions.Expect(composer.Locator("[data-reply-submit]")).ToBeEnabledAsync();
+        Assert.Single(replyPayloads);
+        await composer.Locator("[data-reply-submit]").ClickAsync();
         await Assertions.Expect(page.Locator(".lmx-discussion-reply-composer")).ToHaveCountAsync(0);
-        Assert.NotNull(replyPayload);
-        using (var replyJson = JsonDocument.Parse(replyPayload!))
+        Assert.Equal(2, replyPayloads.Count);
+        string? firstReplyId = null;
+        foreach (var replyPayload in replyPayloads)
         {
+            using var replyJson = JsonDocument.Parse(replyPayload);
             var root = replyJson.RootElement;
             Assert.Equal("browser-token", root.GetProperty("accessToken").GetString());
             Assert.Equal("p7", root.GetProperty("postParticipantId").GetString());
             Assert.Equal(5, root.GetProperty("challengeDay").GetInt32());
             Assert.Equal("An actual child reply for @Ari Able.", root.GetProperty("body").GetString());
+            var replyId = root.GetProperty("replyId").GetString();
+            Assert.True(Guid.TryParse(replyId, out _));
+            firstReplyId ??= replyId;
+            Assert.Equal(firstReplyId, replyId);
         }
-        Assert.Equal("", await discussionInput.InputValueAsync());
+        Assert.Equal("Unsaved check-in discussion draft.", await discussionInput.InputValueAsync());
+        Assert.True(await unsavedExerciseNo.IsCheckedAsync());
+        Assert.False(await page.Locator(".lmx-checkin-card button[type='submit']").IsDisabledAsync());
 
         var photos = page.Locator(".lmx-recent-remark .lmx-note-photo");
         Assert.Equal(2, await photos.CountAsync());
@@ -747,7 +798,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 return !!save && !!remarks && !!(save.compareDocumentPosition(remarks) & Node.DOCUMENT_POSITION_FOLLOWING);
             }
             """));
-        Assert.Empty(errors);
+        Assert.Contains(errors, error => error.Contains("ERR_CONNECTION_FAILED", StringComparison.Ordinal));
+        Assert.DoesNotContain(errors, error => !error.Contains("ERR_CONNECTION_FAILED", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -1374,11 +1426,11 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 lastActivityAtUtc: "2026-06-30T09:00:00Z",
                 replies:
                 [
-                    Reply("r1", "p3", "Bea", "This helped me rethink breakfast.", "2026-06-29T08:00:00Z"),
                     Reply("r2", "p4", "Cam", "Trying the same approach tomorrow.", "2026-06-29T12:00:00Z"),
                     Reply("r3", "p5", "Dee", "The small version worked for me.", "2026-06-30T07:00:00Z"),
                     Reply("r4", "p2", "Ari", "Keep us posted on the next step.", "2026-06-30T09:00:00Z")
-                ]),
+                ],
+                replyCount: 4),
             Note("p2", "Ari", 22, "2026-06-29", "First recent public remark.",
                 [CheckInImage("/generated/longevitymaxxing/check-in-photos/ari.webp?v=ari")],
                 lastActivityAtUtc: "2026-06-29T10:00:00Z",
@@ -1439,7 +1491,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         object[]? images = null,
         string? updatedAtUtc = null,
         string? lastActivityAtUtc = null,
-        object[]? replies = null)
+        object[]? replies = null,
+        int? replyCount = null)
     {
         var effectiveUpdatedAtUtc = updatedAtUtc ?? $"{date}T07:00:00Z";
         var effectiveReplies = replies ?? Array.Empty<object>();
@@ -1452,7 +1505,7 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             note,
             updatedAtUtc = effectiveUpdatedAtUtc,
             lastActivityAtUtc = lastActivityAtUtc ?? effectiveUpdatedAtUtc,
-            replyCount = effectiveReplies.Length,
+            replyCount = replyCount ?? effectiveReplies.Length,
             images = images ?? Array.Empty<object>(),
             replies = effectiveReplies
         };

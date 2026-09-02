@@ -133,6 +133,24 @@
         postParticipantId: string;
         challengeDay: number;
         body: string;
+        replyId: string;
+    }
+
+    interface DiscussionReplyPagePayload {
+        accessToken: string | null;
+        postParticipantId: string;
+        challengeDay: number;
+        beforeCreatedAtUtc: string | null;
+        beforeReplyId: string | null;
+    }
+
+    interface DiscussionReplyPage {
+        replies: DiscussionReply[];
+        totalCount: number;
+        remainingEarlierReplyCount: number;
+        hasEarlier: boolean;
+        nextBeforeCreatedAtUtc: string | null;
+        nextBeforeReplyId: string | null;
     }
 
     interface LeaderboardRow {
@@ -496,7 +514,6 @@
     const MAX_NOTE_MENTIONS = 5;
     const RECENT_REMARK_LIMIT = 3;
     const DISCUSSION_PAGE_SIZE = 5;
-    const COLLAPSED_DISCUSSION_REPLY_LIMIT = 3;
     const PLANT_LEAF_CAPACITY = 64;
     const PLANT_BUD_CAPACITY = 12;
     const PLANT_YES_GROWTH_RATE = 0.025;
@@ -1099,12 +1116,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (params.has("stop")) {
             const scope = params.get("scope");
             accessTab = "signin";
-            if (scope === "mention") {
-                // Legacy mention-only stop links are deliberately harmless: discussion activity
-                // is now bundled into Challenge reminder emails and has no separate email stream.
+            if (scope && scope !== "community-call") {
+                // Retired scoped stop links are deliberately harmless and leave the daily setting unchanged.
                 setStatus(
                     "lmxResendStatus",
-                    "Discussion activity is included in Challenge reminder emails; there are no separate mention emails to stop.",
+                    "Discussion activity follows your daily Challenge email setting.",
                     false);
             } else {
                 const stopEndpoint = scope === "community-call"
@@ -3048,7 +3064,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const imageHtml = images.length
                     ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
                     : "";
-                return `<article class="lmx-recent-remark">
+                return `<article class="lmx-recent-remark"
+                    data-discussion-post-participant-id="${escAttr(note.participantId)}"
+                    data-discussion-post-challenge-day="${escAttr(note.challengeDay)}">
                     ${discussionPostHeaderHtml(note, true)}
                     ${noteText ? `<p>${participantMentionTextHtml(noteText)}</p>` : ""}
                     ${imageHtml}
@@ -3092,25 +3110,37 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionRepliesHtml(note: ParticipantNote): string {
         const replies = Array.isArray(note.replies) ? note.replies : [];
-        if (!replies.length) return "";
+        const totalCount = Math.max(replies.length, Math.max(0, Number(note.replyCount) || 0));
+        if (!totalCount) return "";
 
-        const firstVisibleIndex = Math.max(0, replies.length - COLLAPSED_DISCUSSION_REPLY_LIMIT);
-        const toggle = firstVisibleIndex > 0
-            ? `<button class="lmx-discussion-replies-toggle" type="button" data-discussion-replies-toggle data-reply-count="${replies.length}" aria-expanded="false">
-                View all ${replies.length} replies
+        const remainingEarlier = Math.max(0, totalCount - replies.length);
+        const earliest = replies[0] || null;
+        const loadEarlier = remainingEarlier > 0 && earliest
+            ? `<button class="lmx-discussion-replies-toggle" type="button"
+                data-discussion-replies-page
+                data-post-participant-id="${escAttr(note.participantId)}"
+                data-post-challenge-day="${escAttr(note.challengeDay)}"
+                data-before-created-at-utc="${escAttr(earliest.createdAtUtc)}"
+                data-before-reply-id="${escAttr(earliest.id)}"
+                data-remaining-earlier-replies="${escAttr(remainingEarlier)}">
+                ${earlierRepliesButtonLabel(remainingEarlier)}
             </button>`
             : "";
         return `<div class="lmx-discussion-replies" data-discussion-replies>
-            ${toggle}
+            ${loadEarlier}
             <div class="lmx-discussion-reply-list">
-                ${replies.map((reply, index) => discussionReplyHtml(reply, index < firstVisibleIndex)).join("")}
+                ${replies.map(discussionReplyHtml).join("")}
             </div>
         </div>`;
     }
 
-    function discussionReplyHtml(reply: DiscussionReply, initiallyHidden: boolean): string {
+    function earlierRepliesButtonLabel(remaining: number): string {
+        return `View ${remaining} earlier ${remaining === 1 ? "reply" : "replies"}`;
+    }
+
+    function discussionReplyHtml(reply: DiscussionReply): string {
         const when = formatDiscussionReplyTime(reply.createdAtUtc);
-        return `<article class="lmx-discussion-reply-item"${initiallyHidden ? " hidden data-collapsed-reply" : ""}>
+        return `<article class="lmx-discussion-reply-item" data-discussion-reply-id="${escAttr(reply.id)}">
             <div class="lmx-discussion-reply-meta">
                 <strong>${esc(reply.displayName)}</strong>
                 ${when ? `<time datetime="${escAttr(reply.createdAtUtc)}">${esc(when)}</time>` : ""}
@@ -3988,7 +4018,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 ? `<div class="lmx-note-photo-grid">${images.map((image, index) => notePhotoHtml(image, `${note.participantId}-${note.challengeDay}-${index}`)).join("")}</div>`
                 : "";
             const noteText = String(note.note || "").trim();
-            return `<article class="lmx-note">
+            return `<article class="lmx-note"
+                data-discussion-post-participant-id="${escAttr(note.participantId)}"
+                data-discussion-post-challenge-day="${escAttr(note.challengeDay)}">
                 ${discussionPostHeaderHtml(note, canReply)}
                 ${noteText ? `<p>${participantMentionTextHtml(noteText)}</p>` : ""}
                 ${imageHtml}
@@ -4003,21 +4035,64 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         root.querySelectorAll<HTMLButtonElement>("[data-discussion-reply]").forEach(button => {
             button.addEventListener("click", () => openDiscussionReplyComposer(button));
         });
-        root.querySelectorAll<HTMLButtonElement>("[data-discussion-replies-toggle]").forEach(button => {
-            button.addEventListener("click", () => toggleDiscussionReplies(button));
+        root.querySelectorAll<HTMLButtonElement>("[data-discussion-replies-page]").forEach(button => {
+            button.addEventListener("click", () => void loadEarlierDiscussionReplies(button));
         });
     }
 
-    function toggleDiscussionReplies(button: HTMLButtonElement): void {
-        const replies = button.closest<HTMLElement>("[data-discussion-replies]");
-        if (!replies) return;
-        const expanded = button.getAttribute("aria-expanded") === "true";
-        replies.querySelectorAll<HTMLElement>("[data-collapsed-reply]").forEach(reply => {
-            reply.toggleAttribute("hidden", expanded);
-        });
-        button.setAttribute("aria-expanded", expanded ? "false" : "true");
-        const replyCount = Math.max(0, Number(button.dataset.replyCount) || 0);
-        button.textContent = expanded ? `View all ${replyCount} replies` : "Hide earlier replies";
+    async function loadEarlierDiscussionReplies(button: HTMLButtonElement): Promise<void> {
+        const payload: DiscussionReplyPagePayload = {
+            accessToken: accessToken || null,
+            postParticipantId: String(button.dataset.postParticipantId || ""),
+            challengeDay: Number(button.dataset.postChallengeDay),
+            beforeCreatedAtUtc: String(button.dataset.beforeCreatedAtUtc || "") || null,
+            beforeReplyId: String(button.dataset.beforeReplyId || "") || null
+        };
+        const remaining = Math.max(0, Number(button.dataset.remainingEarlierReplies) || 0);
+        const original = earlierRepliesButtonLabel(remaining);
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
+        button.textContent = "Loading replies...";
+        try {
+            const page = await postJson(`${API}/discussion/replies/page`, payload);
+            updateDiscussionReplyPages(payload, page);
+        } catch (err) {
+            button.disabled = false;
+            button.removeAttribute("aria-busy");
+            button.textContent = original;
+            button.title = messageOf(err);
+        }
+    }
+
+    function updateDiscussionReplyPages(payload: DiscussionReplyPagePayload, page: DiscussionReplyPage): void {
+        document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id][data-discussion-post-challenge-day]")
+            .forEach(article => {
+                if (article.dataset.discussionPostParticipantId !== payload.postParticipantId ||
+                    Number(article.dataset.discussionPostChallengeDay) !== payload.challengeDay) return;
+                const replies = article.querySelector<HTMLElement>("[data-discussion-replies]");
+                const list = replies?.querySelector<HTMLElement>(".lmx-discussion-reply-list");
+                if (!replies || !list) return;
+
+                const existingIds = new Set(Array.from(
+                    list.querySelectorAll<HTMLElement>("[data-discussion-reply-id]"),
+                    item => String(item.dataset.discussionReplyId || "")));
+                const additions = page.replies.filter(reply => !existingIds.has(reply.id));
+                if (additions.length) list.insertAdjacentHTML("afterbegin", additions.map(discussionReplyHtml).join(""));
+
+                const currentButton = replies.querySelector<HTMLButtonElement>("[data-discussion-replies-page]");
+                if (!page.hasEarlier || page.remainingEarlierReplyCount <= 0 || !page.nextBeforeCreatedAtUtc || !page.nextBeforeReplyId) {
+                    currentButton?.remove();
+                    return;
+                }
+                if (!currentButton) return;
+                currentButton.dataset.beforeCreatedAtUtc = page.nextBeforeCreatedAtUtc;
+                currentButton.dataset.beforeReplyId = page.nextBeforeReplyId;
+                currentButton.dataset.remainingEarlierReplies = String(page.remainingEarlierReplyCount);
+                currentButton.disabled = false;
+                currentButton.removeAttribute("aria-busy");
+                currentButton.removeAttribute("title");
+                currentButton.textContent = earlierRepliesButtonLabel(page.remainingEarlierReplyCount);
+            });
     }
 
     function openDiscussionReplyComposer(button: HTMLButtonElement): void {
@@ -4038,11 +4113,13 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
         const displayName = String(button.dataset.postDisplayName || "participant").trim() || "participant";
         const mentionListId = `lmx-reply-mentions-${String(button.dataset.postParticipantId || "post")}-${Number(button.dataset.postChallengeDay) || 0}`;
+        slot.dataset.replyId = createDiscussionReplyId();
+        delete slot.dataset.replySubmittedBody;
         slot.hidden = false;
         slot.innerHTML = `<div class="lmx-discussion-reply-composer" data-discussion-reply-composer>
             <label class="lmx-mention-field">
                 <span>Reply to ${esc(displayName)}</span>
-                <textarea maxlength="240" rows="3" placeholder="Write a reply or mention @Name" required
+                <textarea maxlength="240" rows="3" placeholder="Write a reply or mention @Name"
                     data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
                     aria-expanded="false" aria-controls="${escAttr(mentionListId)}"></textarea>
                 <div id="${escAttr(mentionListId)}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
@@ -4087,11 +4164,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const body = textarea.value.trim();
         if (!body) return;
 
+        if (!slot.dataset.replyId || (slot.dataset.replySubmittedBody && slot.dataset.replySubmittedBody !== body))
+            slot.dataset.replyId = createDiscussionReplyId();
+        slot.dataset.replySubmittedBody = body;
+
         const payload: DiscussionReplyPayload = {
             accessToken,
             postParticipantId: String(sourceButton.dataset.postParticipantId || ""),
             challengeDay: Number(sourceButton.dataset.postChallengeDay),
-            body
+            body,
+            replyId: slot.dataset.replyId
         };
         const status = slot.querySelector<HTMLElement>(".lmx-status");
         const original = submit.innerHTML;
@@ -4102,7 +4184,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const result = await postJson(`${API}/discussion/replies`, payload);
             participantState = result;
             publicState = result.public;
-            renderAll();
+            renderDiscussionSurfaces(result);
         } catch (err) {
             if (status) {
                 status.textContent = messageOf(err);
@@ -4112,6 +4194,31 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             submit.removeAttribute("aria-busy");
             submit.innerHTML = original;
         }
+    }
+
+    function createDiscussionReplyId(): string {
+        return window.crypto.randomUUID();
+    }
+
+    function renderDiscussionSurfaces(state: ParticipantState): void {
+        renderNotes(state.notes || state.public.notes || [], true);
+
+        const form = document.querySelector<HTMLFormElement>("#lmxCheckinList .lmx-checkin-card");
+        if (!form) return;
+        const current = form.querySelector<HTMLElement>(".lmx-recent-remarks");
+        const html = activeDiscussionHtml(activePublicDiscussion(state));
+        if (!html) {
+            current?.remove();
+            return;
+        }
+
+        const template = document.createElement("template");
+        template.innerHTML = html.trim();
+        const next = template.content.firstElementChild;
+        if (!(next instanceof HTMLElement)) return;
+        if (current) current.replaceWith(next);
+        else form.append(next);
+        wireDiscussionControls(next);
     }
 
     function getDiscussionPage(notes: ParticipantNote[]): DiscussionPage {
@@ -5309,6 +5416,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             typeof value.createdAtUtc === "string";
     }
 
+    function isDiscussionReplyPage(value: unknown): value is DiscussionReplyPage {
+        return hasProperties(value, "replies", "totalCount", "remainingEarlierReplyCount", "hasEarlier", "nextBeforeCreatedAtUtc", "nextBeforeReplyId") &&
+            isArrayOf(value.replies, isDiscussionReply) &&
+            typeof value.totalCount === "number" && value.totalCount >= 0 &&
+            typeof value.remainingEarlierReplyCount === "number" && value.remainingEarlierReplyCount >= 0 &&
+            typeof value.hasEarlier === "boolean" &&
+            isNullableString(value.nextBeforeCreatedAtUtc) && isNullableString(value.nextBeforeReplyId);
+    }
+
     function isLeaderboardRow(value: unknown): value is LeaderboardRow {
         return hasProperties(value, "participantId", "displayName", "athleteUrl", "profileImageUrl", "checkedInDays", "totalPoints", "currentStreak", "cells", "badges", "latestCheckInAtUtc", "challengeEmailsStopped", "challengeInactive") &&
             typeof value.participantId === "string" && typeof value.displayName === "string" &&
@@ -5413,6 +5529,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     async function postJson(url: `${typeof API}/signup` | `${typeof API}/resend`, payload: object): Promise<SignupResult>;
     async function postJson(url: `${typeof API}/confirm`, payload: object): Promise<AccessResult>;
+    async function postJson(url: `${typeof API}/discussion/replies/page`, payload: object): Promise<DiscussionReplyPage>;
     async function postJson(
         url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies`,
         payload: object
@@ -5434,6 +5551,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         const data = await readJsonResponse(response, url);
         if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
+        if (url === `${API}/discussion/replies/page` && !isDiscussionReplyPage(data)) throw invalidApiResponse(url);
         if ((url === `${API}/edit` || url === `${API}/participant` || url === `${API}/check-in` || url === `${API}/discussion/replies`) && !isParticipantState(data)) {
             throw invalidApiResponse(url);
         }

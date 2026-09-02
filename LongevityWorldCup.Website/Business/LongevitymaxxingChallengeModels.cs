@@ -19,7 +19,23 @@ public sealed record LongevitymaxxingDiscussionReplyRequest(
     string AccessToken,
     string PostParticipantId,
     int ChallengeDay,
-    string Body);
+    string Body,
+    string ReplyId);
+
+public sealed record LongevitymaxxingDiscussionReplyPageRequest(
+    string? AccessToken,
+    string PostParticipantId,
+    int ChallengeDay,
+    string? BeforeCreatedAtUtc,
+    string? BeforeReplyId);
+
+public sealed record LongevitymaxxingDiscussionReplyPage(
+    IReadOnlyList<LongevitymaxxingDiscussionReply> Replies,
+    int TotalCount,
+    int RemainingEarlierReplyCount,
+    bool HasEarlier,
+    string? NextBeforeCreatedAtUtc,
+    string? NextBeforeReplyId);
 
 public sealed record LongevitymaxxingParticipantEditRequest(
     string AccessToken,

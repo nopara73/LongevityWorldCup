@@ -175,6 +175,23 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         }
     }
 
+    [HttpPost("discussion/replies/page")]
+    public IActionResult GetDiscussionReplyPage([FromBody] LongevitymaxxingDiscussionReplyPageRequest request)
+    {
+        try
+        {
+            return Ok(_challenge.GetDiscussionReplyPage(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("stop-emails")]
     public IActionResult StopEmails([FromBody] LongevitymaxxingTokenRequest request)
     {

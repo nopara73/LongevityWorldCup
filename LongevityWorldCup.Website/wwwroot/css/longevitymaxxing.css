@@ -2563,10 +2563,6 @@ body.lmx-checkin-dialog-open {
     border-top: 1px solid var(--lmx-border);
 }
 
-.lmx-discussion-reply-item[hidden] {
-    display: none;
-}
-
 .lmx-discussion-reply-meta {
     display: flex;
     align-items: baseline;
