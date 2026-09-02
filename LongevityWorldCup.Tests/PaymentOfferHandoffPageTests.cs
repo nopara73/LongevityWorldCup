@@ -3,7 +3,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PaymentOfferHandoffPageTests
+
+public sealed class PaymentOfferHandoffPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public void JoinPaymentOffer_HaltsNavigationWhenStorageFails()
@@ -80,8 +81,7 @@ public sealed class PaymentOfferHandoffPageTests
     [Fact]
     public async Task JoinPricing_DiscountBadgeSlotFitsMobileTapTarget()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = sharedFactory.CreateClient();
 
         var css = await client.GetStringAsync("/css/play-menu.css");
 

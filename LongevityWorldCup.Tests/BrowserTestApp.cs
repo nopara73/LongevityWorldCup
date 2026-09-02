@@ -3,9 +3,17 @@ using Microsoft.Playwright;
 
 namespace LongevityWorldCup.Tests;
 
-internal sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient client, Uri baseAddress) : IAsyncDisposable
+public sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClient client, Uri baseAddress) : IAsyncDisposable
 {
     public Uri BaseAddress { get; } = baseAddress;
+    public IServiceProvider Services => factory.Services;
+
+    public HttpClient CreateClient()
+        => factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            BaseAddress = BaseAddress
+        });
 
     public static async Task<BrowserTestApp> StartAsync()
     {
@@ -47,36 +55,42 @@ internal sealed class BrowserTestApp(TestWebApplicationFactory factory, HttpClie
                 return;
             }
 
-            if (uri.Host.Equals("ipapi.co", StringComparison.OrdinalIgnoreCase))
-            {
-                await route.FulfillAsync(new RouteFulfillOptions
-                {
-                    Status = 200,
-                    ContentType = "application/json",
-                    Body = """{"country_code":"HU","region_code":""}"""
-                });
-                return;
-            }
+            await FulfillExternalResourceAsync(route);
+        });
+    }
 
-            if (route.Request.ResourceType == "script")
-            {
-                await route.FulfillAsync(new RouteFulfillOptions
-                {
-                    Status = 200,
-                    ContentType = "application/javascript",
-                    Body = uri.AbsolutePath.Contains("/aos/", StringComparison.OrdinalIgnoreCase)
-                        ? "window.AOS={init(){},refresh(){}};"
-                        : ""
-                });
-                return;
-            }
-
+    private static async Task FulfillExternalResourceAsync(IRoute route)
+    {
+        var uri = new Uri(route.Request.Url);
+        if (uri.Host.Equals("ipapi.co", StringComparison.OrdinalIgnoreCase))
+        {
             await route.FulfillAsync(new RouteFulfillOptions
             {
                 Status = 200,
-                ContentType = route.Request.ResourceType == "stylesheet" ? "text/css" : "text/plain",
-                Body = ""
+                ContentType = "application/json",
+                Body = """{"country_code":"HU","region_code":""}"""
             });
+            return;
+        }
+
+        if (route.Request.ResourceType == "script")
+        {
+            await route.FulfillAsync(new RouteFulfillOptions
+            {
+                Status = 200,
+                ContentType = "application/javascript",
+                Body = uri.AbsolutePath.Contains("/aos/", StringComparison.OrdinalIgnoreCase)
+                    ? "window.AOS={init(){},refresh(){}};"
+                    : ""
+            });
+            return;
+        }
+
+        await route.FulfillAsync(new RouteFulfillOptions
+        {
+            Status = 200,
+            ContentType = route.Request.ResourceType == "stylesheet" ? "text/css" : "text/plain",
+            Body = ""
         });
     }
 

@@ -8,8 +8,14 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class NewAthleteOnboardingBrowserTests
+[Collection(BrowserTestCollections.Integration)]
+public sealed class NewAthleteOnboardingBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    private static int s_nextClientAddress;
+    private readonly string _clientAddress =
+        $"2001:db8::{Interlocked.Increment(ref s_nextClientAddress):x}";
+
     [Fact]
     public async Task AmateurOnboarding_CarriesPhenoHandoffFromJoinToApplicationProofStage()
     {
@@ -19,30 +25,30 @@ public sealed class NewAthleteOnboardingBrowserTests
         {
             await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
             await page.GetByRole(AriaRole.Button, new() { Name = "Start amateur" }).ClickAsync();
-            await page.WaitForURLAsync("**/pheno-age");
+            await page.WaitForDomContentLoadedUrlAsync("**/pheno-age");
 
             Assert.Equal("/pheno-age", new Uri(page.Url).AbsolutePath);
             await AssertPendingPaymentOfferAsync(page, "amateur", 10);
 
             await page.Locator("#bioageStepOneBackButton").ClickAsync();
-            await page.WaitForURLAsync("**/join");
+            await page.WaitForDomContentLoadedUrlAsync("**/join");
 
             Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
             await AssertPendingPaymentOfferAsync(page, "amateur", 10);
 
             await page.GetByRole(AriaRole.Button, new() { Name = "Start amateur" }).ClickAsync();
-            await page.WaitForURLAsync("**/pheno-age");
+            await page.WaitForDomContentLoadedUrlAsync("**/pheno-age");
             await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
 
             await page.Locator("#continueButton").ClickAsync();
-            await page.WaitForURLAsync("**/apply");
+            await page.WaitForDomContentLoadedUrlAsync("**/apply");
             await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
 
             Assert.Equal("/apply", new Uri(page.Url).AbsolutePath);
             await AssertPhenoHandoffAsync(page, bloodDrawDate);
 
             await page.Locator("#backButton").ClickAsync();
-            await page.WaitForURLAsync("**/pheno-age");
+            await page.WaitForDomContentLoadedUrlAsync("**/pheno-age");
 
             Assert.Equal("/pheno-age", new Uri(page.Url).AbsolutePath);
 
@@ -70,30 +76,30 @@ public sealed class NewAthleteOnboardingBrowserTests
         {
             await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
             await page.GetByRole(AriaRole.Button, new() { Name = "Go pro" }).ClickAsync();
-            await page.WaitForURLAsync("**/bortz-age");
+            await page.WaitForDomContentLoadedUrlAsync("**/bortz-age");
 
             Assert.Equal("/bortz-age", new Uri(page.Url).AbsolutePath);
             await AssertPendingPaymentOfferAsync(page, "pro", 100);
 
             await page.Locator("#bioageStepOneBackButton").ClickAsync();
-            await page.WaitForURLAsync("**/join");
+            await page.WaitForDomContentLoadedUrlAsync("**/join");
 
             Assert.Equal("/join", new Uri(page.Url).AbsolutePath);
             await AssertPendingPaymentOfferAsync(page, "pro", 100);
 
             await page.GetByRole(AriaRole.Button, new() { Name = "Go pro" }).ClickAsync();
-            await page.WaitForURLAsync("**/bortz-age");
+            await page.WaitForDomContentLoadedUrlAsync("**/bortz-age");
             await FillAndCalculateBortzAgeAsync(page, bloodDrawDate);
 
             await page.Locator("#continueButton").ClickAsync();
-            await page.WaitForURLAsync("**/apply");
+            await page.WaitForDomContentLoadedUrlAsync("**/apply");
             await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
 
             Assert.Equal("/apply", new Uri(page.Url).AbsolutePath);
             await AssertBortzHandoffAsync(page, bloodDrawDate);
 
             await page.Locator("#backButton").ClickAsync();
-            await page.WaitForURLAsync("**/bortz-age");
+            await page.WaitForDomContentLoadedUrlAsync("**/bortz-age");
 
             Assert.Equal("/bortz-age", new Uri(page.Url).AbsolutePath);
 
@@ -196,7 +202,7 @@ public sealed class NewAthleteOnboardingBrowserTests
                 """);
             await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
             await page.Locator("#continueButton").ClickAsync();
-            await page.WaitForURLAsync("**/apply");
+            await page.WaitForDomContentLoadedUrlAsync("**/apply");
 
             await AssertPaymentOfferAsync(page, "direct-pheno-age", "amateur", 10);
             Assert.Equal("pheno", await page.EvaluateAsync<string?>(
@@ -218,7 +224,7 @@ public sealed class NewAthleteOnboardingBrowserTests
             await SetPendingPaymentOfferAsync(page, "join-game", "amateur", 10);
             await FillAndCalculateBortzAgeAsync(page, bloodDrawDate);
             await page.Locator("#continueButton").ClickAsync();
-            await page.WaitForURLAsync("**/apply");
+            await page.WaitForDomContentLoadedUrlAsync("**/apply");
 
             await AssertPaymentOfferAsync(page, "direct-bortz-age", "pro", 100);
             Assert.Empty(errors);
@@ -408,21 +414,21 @@ public sealed class NewAthleteOnboardingBrowserTests
             timezoneId: "Europe/Budapest");
     }
 
-    private static async Task RunOnboardingBrowserAsync(
+    private async Task RunOnboardingBrowserAsync(
         Func<IPage, List<string>, Task> testBody,
         string? timezoneId = null)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
             TimezoneId = timezoneId,
+            ExtraHTTPHeaders = new Dictionary<string, string>
+            {
+                ["X-Forwarded-For"] = _clientAddress
+            },
             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
@@ -432,7 +438,12 @@ public sealed class NewAthleteOnboardingBrowserTests
         page.Console += (_, message) =>
         {
             if (message.Type == "error")
-                errors.Add(message.Text);
+            {
+                var location = message.Location;
+                errors.Add(string.IsNullOrWhiteSpace(location)
+                    ? message.Text
+                    : $"{message.Text} [{location}]");
+            }
         };
         page.PageError += (_, error) => errors.Add(error);
 
@@ -486,10 +497,10 @@ public sealed class NewAthleteOnboardingBrowserTests
     {
         await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.GetByRole(AriaRole.Button, new() { Name = "Start amateur" }).ClickAsync();
-        await page.WaitForURLAsync("**/pheno-age");
+        await page.WaitForDomContentLoadedUrlAsync("**/pheno-age");
         await FillAndCalculatePhenoAgeAsync(page, bloodDrawDate);
         await page.Locator("#continueButton").ClickAsync();
-        await page.WaitForURLAsync("**/apply");
+        await page.WaitForDomContentLoadedUrlAsync("**/apply");
         await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
     }
 
@@ -497,10 +508,10 @@ public sealed class NewAthleteOnboardingBrowserTests
     {
         await page.GotoAsync("/join", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.GetByRole(AriaRole.Button, new() { Name = "Go pro" }).ClickAsync();
-        await page.WaitForURLAsync("**/bortz-age");
+        await page.WaitForDomContentLoadedUrlAsync("**/bortz-age");
         await FillAndCalculateBortzAgeAsync(page, bloodDrawDate);
         await page.Locator("#continueButton").ClickAsync();
-        await page.WaitForURLAsync("**/apply");
+        await page.WaitForDomContentLoadedUrlAsync("**/apply");
         await page.GetByRole(AriaRole.Heading, new() { Name = "1. Enter the arena" }).WaitForAsync();
     }
 

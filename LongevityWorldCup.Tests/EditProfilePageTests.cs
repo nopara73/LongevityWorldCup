@@ -2,12 +2,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class EditProfilePageTests
+
+public sealed class EditProfilePageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task EditProfileFields_HavePersistentLabels()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -23,7 +24,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileOptions_UseTheConfiguredEntranceAnimation()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -35,7 +36,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfile_BackButtonReturnsToDashboardWithoutHistoryFallback()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -47,7 +48,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task InvalidProfileFields_RemainEditableAfterValidationFailure()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -73,7 +74,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileFailures_UseReadableErrorExtractor()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -89,7 +90,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task DivisionSelect_UsesFallbackWhenApiFailsOrReturnsEmpty()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -106,7 +107,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task FlagInput_KeepsCurrentFlagWhenOptionsRequestFails()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -123,7 +124,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfile_RendersSelectedAthleteImageWithoutInnerHtml()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -142,7 +143,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task ProfilePictureSelection_ClearsInputAfterCapturingFile()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -165,7 +166,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task ProfilePictureCropper_UsesAnAccessibleModalInteraction()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -185,7 +186,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task ProfilePictureCropper_UsesCspAllowedCdn()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -198,7 +199,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task ProfilePictureSelection_RejectsUnsupportedFormatsBeforeReading()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -229,7 +230,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task ProfilePictureSelection_ReplacesExistingCropperBeforeNewImage()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -283,7 +284,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task ProfilePictureCrop_FallsBackToRawCropWhenOptimizationFails()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -313,7 +314,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileSuccessHandoff_UsesSafeStorageBeforeNavigation()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -343,7 +344,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileSubmit_DoesNotBlockOnStoredContactEmailRead()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -390,7 +391,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileSubmit_NormalizesPersonalLinkAndEmailShapedMediaContactBeforePosting()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -428,7 +429,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfilePersonalLinkChangeState_UsesNormalizedComparison()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -463,7 +464,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileTextChangeState_IgnoresWhitespaceOnlyDifferences()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -528,7 +529,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileSubmit_GuardsAgainstDuplicateClicks()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -556,7 +557,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileSubmit_EnterKeyUsesExistingSubmitPathForSingleLineFields()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -579,7 +580,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileNoAthleteGuard_ReturnsToAthleteSelection()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -599,7 +600,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileSelectionHandoff_RejectsIncompleteStoredAthlete()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -621,7 +622,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileValidation_FallsBackWhenValidatorScriptIsUnavailable()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -652,7 +653,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileFields_AdvertiseExistingRequiredValidation()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");
@@ -672,7 +673,7 @@ public sealed class EditProfilePageTests
     [Fact]
     public async Task EditProfileDraftPersistence_UsesSafeStorageHelpers()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");

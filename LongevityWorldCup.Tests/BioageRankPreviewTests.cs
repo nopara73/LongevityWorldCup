@@ -3,12 +3,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class BioageRankPreviewTests
+
+public sealed class BioageRankPreviewTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task HypotheticalRankPreviewRequest_IsTimeBounded()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await GetFrontendTypeScriptAsync(client, "misc.ts");
@@ -29,7 +30,7 @@ public sealed class BioageRankPreviewTests
     [Fact]
     public async Task RankPreviewDisplayName_FallsBackWhenDisplayNameIsNotText()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/bioage-rank-preview.js");
@@ -42,7 +43,7 @@ public sealed class BioageRankPreviewTests
     [Fact]
     public async Task RankPreviewAthleteFetch_BypassesBrowserCacheRevalidation()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/bioage-rank-preview.js");
@@ -54,7 +55,7 @@ public sealed class BioageRankPreviewTests
     [Fact]
     public async Task RankPreview_PreservesSharedCalculatorReceivers()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var source = await GetFrontendTypeScriptAsync(client, "bioage-rank-preview.ts");
@@ -67,7 +68,7 @@ public sealed class BioageRankPreviewTests
     [Fact]
     public async Task RankPreview_LoadingAndFailureStates_AreAnnouncedAndRetryable()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var source = await GetFrontendTypeScriptAsync(client, "bioage-rank-preview.ts");

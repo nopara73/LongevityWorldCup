@@ -6,12 +6,12 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PageOgImageServiceTests
+public sealed class PageOgImageServiceTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public void TryGetCurrentPayload_NormalizesSlugAndBuildsVersionedUrl()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var pages = factory.Services.GetRequiredService<PageOgImageService>();
 
         var found = pages.TryGetCurrentPayload(" VIEW-CROWD ", out var payload);
@@ -29,7 +29,7 @@ public sealed class PageOgImageServiceTests
     [Fact]
     public void TryGetCurrentPayload_IncludesLongevitymaxxingPage()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var pages = factory.Services.GetRequiredService<PageOgImageService>();
 
         var found = pages.TryGetCurrentPayload("longevitymaxxing", out var payload);
@@ -48,7 +48,7 @@ public sealed class PageOgImageServiceTests
     [Fact]
     public void TryGetCurrentPayload_NamesPhenoImprovementExplicitly()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var pages = factory.Services.GetRequiredService<PageOgImageService>();
 
         var found = pages.TryGetCurrentPayload("view-improvement", out var payload);
@@ -64,7 +64,7 @@ public sealed class PageOgImageServiceTests
     [InlineData("view-unknown")]
     public void TryGetCurrentPayload_RejectsUnknownPageSlug(string rawSlug)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var pages = factory.Services.GetRequiredService<PageOgImageService>();
 
         var found = pages.TryGetCurrentPayload(rawSlug, out var payload);
@@ -73,8 +73,4 @@ public sealed class PageOgImageServiceTests
         Assert.Null(payload);
     }
 
-    private static WebApplicationFactory<Program> CreateFactory()
-    {
-        return new TestWebApplicationFactory();
-    }
 }

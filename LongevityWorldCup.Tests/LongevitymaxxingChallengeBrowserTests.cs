@@ -5,17 +5,15 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class LongevitymaxxingChallengeBrowserTests
+[Collection(BrowserTestCollections.Integration)]
+public sealed class LongevitymaxxingChallengeBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task TimeZonePicker_NormalizesBrowserAliasesAndUsesOneFocusBoundary()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -155,12 +153,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task ChallengeContent_UsesReadableSemanticColorsInLightAndDarkThemes()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
 
         foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
         {
@@ -298,12 +292,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task QuoteDialogSourceLinksAndActions_MeetContrastForEveryThemeAndCategory()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
 
         foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
         {
@@ -381,12 +371,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task Leaderboard_UsesTwoWeekPagerOnMobileAndKeepsFullDesktopTimeline()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -473,12 +459,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task HabitIcons_UseCategoryPaletteWhileLeaderboardDotsMatchTheirCells()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -541,12 +523,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task CommunityCallIcon_RendersWithoutExternalIconFont()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -573,12 +551,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task CheckInForm_ShowsLatestDiscussionSupportsRepliesAndOpensPhotosInAccessibleViewer()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -1380,12 +1354,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task DiscussionPager_PreservesServerHotOrderAndPagesPosts()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -1465,12 +1435,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task CheckInNoteMentionPickerSupportsKeyboardAndPointerWithoutCoveringActions()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -1574,12 +1540,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task DirectCheckInLink_OpensFocusedDialogWithExplicitTaperedTallAnswersAndDisabledSaveUntilComplete()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -1730,12 +1692,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     [Fact]
     public async Task CheckInGarden_UsesEstablishedGrowthDamageWithSeedlingStartAndBoundedProceduralPlants()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),

@@ -3,12 +3,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class CharacterSelectionPageTests
+
+public sealed class CharacterSelectionPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task SelectAthleteRoute_UsesPlayShellSelectionPanel()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/select-athlete");
@@ -31,7 +32,7 @@ public sealed class CharacterSelectionPageTests
     [Fact]
     public async Task AthleteSelection_UsesSharedControllerForStorageHydrationAndRetryableLoading()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/select-athlete");
@@ -67,7 +68,7 @@ public sealed class CharacterSelectionPageTests
     [Fact]
     public async Task AthleteSelection_ExposesListboxStateToAssistiveTechnology()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/select-athlete");
@@ -85,7 +86,7 @@ public sealed class CharacterSelectionPageTests
     [Fact]
     public async Task AthleteSelection_SearchesDisplayNamesAndKeepsCanonicalSelectionInSharedController()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
@@ -109,7 +110,7 @@ public sealed class CharacterSelectionPageTests
     [Fact]
     public async Task AthleteSelection_EnterSelectsExactTypedMatchInSharedController()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
@@ -142,7 +143,7 @@ public sealed class CharacterSelectionPageTests
     [Fact]
     public async Task AthleteSelection_InputChangeClearsStaleSelectedAthleteAndTransitionsBackToPlaceholder()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var flow = await client.GetStringAsync("/js/play-athlete-flow.js");
@@ -170,7 +171,7 @@ public sealed class CharacterSelectionPageTests
     [Fact]
     public async Task AthleteSelection_ProfilePictureSwapWaitsForImageLoad()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/select-athlete");

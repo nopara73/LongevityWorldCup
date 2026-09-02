@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PublicGetCachingTests
+public sealed class PublicGetCachingTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Theory]
     [InlineData("/api/data/flags")]
@@ -14,7 +14,7 @@ public sealed class PublicGetCachingTests
     [InlineData("/api/bitcoin/donation-address")]
     public async Task StableReferenceEndpoints_ReturnLongPublicCacheHeadersAndHonorConditionalGet(string path)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var firstResponse = await client.GetAsync(path);
@@ -49,7 +49,7 @@ public sealed class PublicGetCachingTests
     [InlineData("/ai/athlete-names.md")]
     public async Task AiMarkdownEndpoints_ReturnValidatorsAndHonorConditionalGet(string path)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var firstResponse = await client.GetAsync(path);
@@ -87,7 +87,7 @@ public sealed class PublicGetCachingTests
     [Fact]
     public async Task LegacyAiAthletesEndpoint_RedirectsPermanentlyToLeaderboardFacts()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/ai/athletes.md");
@@ -104,8 +104,4 @@ public sealed class PublicGetCachingTests
             string.Equals(extension.Value, value, StringComparison.Ordinal));
     }
 
-    private static WebApplicationFactory<Program> CreateFactory()
-    {
-        return new TestWebApplicationFactory();
-    }
 }

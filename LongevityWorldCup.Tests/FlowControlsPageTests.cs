@@ -3,7 +3,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class FlowControlsPageTests
+
+public sealed class FlowControlsPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Theory]
     [InlineData("/play")]
@@ -18,7 +19,7 @@ public sealed class FlowControlsPageTests
     [InlineData("/proofs")]
     public async Task FlowPages_LoadSharedFlowControlsStylesheet(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -30,7 +31,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task FlowControls_DefinePlayWorkflowFooterHiding()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/flow-controls.css");
@@ -43,7 +44,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task MainProgress_DelayedContentScrollRunsOnlyWhenProgressIsVisible()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/pheno-age");
@@ -58,7 +59,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task MainProgress_UsesExclusiveAccessibleRepresentationsAndFrameScheduledObservers()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/pheno-age");
@@ -82,7 +83,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task CompactFlowLayouts_PreserveMinimumDirectTargetHeight()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var playMenuCss = (await client.GetStringAsync("/css/play-menu.css")).Replace("\r\n", "\n");
@@ -111,7 +112,7 @@ public sealed class FlowControlsPageTests
     [InlineData("/proofs")]
     public async Task PlayWorkflowPages_MarkBodyForSharedFooterHiding(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -122,7 +123,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task PlayWorkflowPages_DoNotRenderCompactHeaderMenuWhenFooterIsHidden()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/join");
@@ -136,7 +137,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task FlowControls_DefineFrameMatchedActionGeometry()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/flow-controls.css");
@@ -156,7 +157,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task FlowControls_UseQuietSecondaryTreatmentForNonPrimaryActions()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/flow-controls.css");
@@ -176,7 +177,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task FlowNavigation_DefinesExplicitDestinationHelper()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var javascript = await client.GetStringAsync("/js/misc.js");
@@ -190,7 +191,7 @@ public sealed class FlowControlsPageTests
     [InlineData("/bortz-age")]
     public async Task BioagePages_LoadVersionedBioageFlowScript(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -211,7 +212,7 @@ public sealed class FlowControlsPageTests
     [InlineData("/proofs")]
     public async Task FlowPages_LoadVersionedFlowActionDockScript(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -222,7 +223,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task FlowActionDock_PortalsActionsWithoutRewritingAncestors()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/flow-controls.css");
@@ -242,7 +243,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task PlayMenu_DefinesUnboxedJustTrackItStartExperience()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play");
@@ -296,7 +297,7 @@ public sealed class FlowControlsPageTests
     [Fact]
     public async Task HeaderPlayButton_NavigatesDirectlyWithoutDuplicateLaunchStage()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");
@@ -323,7 +324,7 @@ public sealed class FlowControlsPageTests
     [InlineData("/proofs", "onclick=\"window.navigateToFlowDestination('/dashboard')\"")]
     public async Task FlowPageBackButtons_UseExplicitRouteDestinations(string path, string expectedBackDestination)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -343,7 +344,7 @@ public sealed class FlowControlsPageTests
     [InlineData("/proofs", "proof-upload-final-actions flow-action-stack", "option-button back-button flow-action flow-action--secondary flow-action--icon-left")]
     public async Task FlowPages_UseSharedActionStacksAndButtons(string path, string stackClass, string buttonClass)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);

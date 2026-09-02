@@ -2,12 +2,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SharedFetchTimeoutTests
+
+public sealed class SharedFetchTimeoutTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task SharedFetchWithTimeout_AbortsTimedOutRequestsWhenSupported()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");
@@ -22,7 +23,7 @@ public sealed class SharedFetchTimeoutTests
     [Fact]
     public async Task SharedHeaderModals_AvoidNativeDialogTopLayer()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");

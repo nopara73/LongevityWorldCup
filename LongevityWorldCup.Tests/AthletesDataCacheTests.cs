@@ -1,17 +1,16 @@
 using System.Net;
-using LongevityWorldCup.Website;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class AthletesDataCacheTests
+
+public sealed class AthletesDataCacheTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task AthletesEndpoint_ReturnsETagAndHonorsConditionalGet()
     {
-        using var factory = CreateFactory();
-        using var client = factory.CreateClient();
+        using var client = sharedFactory.CreateClient();
 
         using var firstResponse = await client.GetAsync("/api/data/athletes");
 
@@ -35,10 +34,5 @@ public sealed class AthletesDataCacheTests
         Assert.Equal(firstResponse.Headers.ETag.Tag, secondResponse.Headers.ETag!.Tag);
         Assert.Equal(firstResponse.Headers.ETag.IsWeak, secondResponse.Headers.ETag.IsWeak);
         Assert.Equal("", await secondResponse.Content.ReadAsStringAsync());
-    }
-
-    private static WebApplicationFactory<Program> CreateFactory()
-    {
-        return new TestWebApplicationFactory();
     }
 }

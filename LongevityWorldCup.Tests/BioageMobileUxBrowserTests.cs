@@ -3,19 +3,17 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class BioageMobileUxBrowserTests
+[Collection(BrowserTestCollections.Integration)]
+public sealed class BioageMobileUxBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Theory]
     [InlineData("/pheno-age", "pheno")]
     [InlineData("/bortz-age", "bortz")]
     public async Task CompletedDraftClear_IsNotUndoneByCachedCalculator(string path, string clock)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -27,47 +25,56 @@ public sealed class BioageMobileUxBrowserTests
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
         var page = await context.NewPageAsync();
-        await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync(
-            "() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
+        try
+        {
+            await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+                await page.WaitForFunctionAsync(
+                    "() => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')");
 
-        var draftKey = $"bioageDraft:{clock}:v1";
-        await page.EvaluateAsync(
-            """
-            () => {
-                const input = document.querySelector('#wbc');
-                input.value = '6.54';
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            """);
-        await page.WaitForFunctionAsync(
-            "key => sessionStorage.getItem(key)?.includes('6.54') === true",
-            draftKey);
+                var draftKey = $"bioageDraft:{clock}:v1";
+                await page.EvaluateAsync(
+                    """
+                    () => {
+                        const input = document.querySelector('#wbc');
+                        input.value = '6.54';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    """);
+                await page.WaitForFunctionAsync(
+                    "key => sessionStorage.getItem(key)?.includes('6.54') === true",
+                    draftKey);
 
-        await page.EvaluateAsync(
-            """
-            key => {
-                window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
-                sessionStorage.removeItem(key);
-                window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
-            }
-            """,
-            draftKey);
-        await page.EvaluateAsync(
-            """
-            () => {
-                const input = document.querySelector('#wbc');
-                input.value = '6.55';
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            """);
-        await page.WaitForTimeoutAsync(250);
-        await page.EvaluateAsync(
-            "() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))");
+                await page.EvaluateAsync(
+                    """
+                    key => {
+                        window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+                        sessionStorage.removeItem(key);
+                        window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+                    }
+                    """,
+                    draftKey);
+                await page.EvaluateAsync(
+                    """
+                    () => {
+                        const input = document.querySelector('#wbc');
+                        input.value = '6.55';
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    """);
+                Assert.Null(await page.EvaluateAsync<string?>(
+                    "key => sessionStorage.getItem(key)",
+                    draftKey));
+                await page.EvaluateAsync(
+                    "() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }))");
 
-        Assert.Null(await page.EvaluateAsync<string?>(
-            "key => sessionStorage.getItem(key)",
-            draftKey));
+                Assert.Null(await page.EvaluateAsync<string?>(
+                    "key => sessionStorage.getItem(key)",
+                    draftKey));
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
     }
 
     [Fact]
@@ -75,12 +82,8 @@ public sealed class BioageMobileUxBrowserTests
     {
         const string path =
             "/pheno-age?Year=1980&Month=6&Day=15&Date=2026-06-01&AlbGL=45&CreatUmolL=80&GluMmolL=5&CrpMgL=1&Wbc1000cellsuL=5.5&LymPc=30&McvFL=90&RdwPc=13&AlpUL=70";
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -93,18 +96,31 @@ public sealed class BioageMobileUxBrowserTests
 
         var page = await context.NewPageAsync();
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.WaitForFunctionAsync(
+            """
+            () => document.querySelector('.bioageform')?.classList.contains('bioage-biomarker-entry-ready')
+                && document.querySelector('#wbc')?.value === '5.5'
+                && document.querySelector('#blood-draw-date')?.value === '2026-06-01'
+            """);
+        await FlowActionDockBrowserTests.WaitForManagedActionStacksSettledAsync(page);
         await page.Locator("#lwcToStep2Btn").TapAsync();
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
         await page.Locator("#calculateBioageButton").TapAsync();
         await page.WaitForSelectorAsync("#phenoAgeResult.show");
-        await page.Locator("#continueButton").TapAsync();
-        await page.WaitForURLAsync("**/apply");
+        await Task.WhenAll(
+            page.WaitForURLAsync(
+                "**/apply",
+                new PageWaitForURLOptions { WaitUntil = WaitUntilState.DOMContentLoaded }),
+            page.Locator("#continueButton").TapAsync());
         Assert.Equal("pheno", await page.EvaluateAsync<string?>(
             "() => sessionStorage.getItem('bioageClock')"));
 
-        await page.Locator("#backButton").TapAsync();
-        await page.WaitForURLAsync("**/pheno-age");
+        await Task.WhenAll(
+            page.WaitForURLAsync(
+                "**/pheno-age",
+                new PageWaitForURLOptions { WaitUntil = WaitUntilState.DOMContentLoaded }),
+            page.Locator("#backButton").TapAsync());
         await page.WaitForFunctionAsync(
             "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
         await page.Locator("#wbc").FillAsync("6.1");
@@ -129,12 +145,8 @@ public sealed class BioageMobileUxBrowserTests
         string resultSelector,
         int biomarkerCount)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -184,6 +196,15 @@ public sealed class BioageMobileUxBrowserTests
             }));
             """);
 
+        await AssertMobileUpdateAsync(context, path, resultSelector, biomarkerCount);
+    }
+
+    private static async Task AssertMobileUpdateAsync(
+        IBrowserContext context,
+        string path,
+        string resultSelector,
+        int biomarkerCount)
+    {
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.Console += (_, message) =>
@@ -239,6 +260,7 @@ public sealed class BioageMobileUxBrowserTests
         Assert.True(await page.Locator("#validAgeInput").IsVisibleAsync());
         Assert.False(await page.Locator("#ensureCorrectInputSuggestion").IsVisibleAsync());
         Assert.Empty(errors);
+        await page.CloseAsync();
     }
 
     [Theory]
@@ -248,16 +270,10 @@ public sealed class BioageMobileUxBrowserTests
     [InlineData(
         "/bortz-age?Year=1980&Month=6&Day=15&Date=2026-06-01&AlbGL=45&AlpUL=70&UreaMmolL=5&CholesterolMmolL=4.5&CreatUmolL=80&CystatinCMgL=0.9&Hba1cMmolMol=33.33&CrpMgL=1&GgtUL=20&Rbc10e12L=4.8&McvFL=90&RdwPc=13&GluMmolL=5&MchPg=30&ApoA1GL=1.5&LymPc=30&AltUL=25&ShbgNmolL=40&VitaminDNmolL=200&Wbc1000cellsuL=5.5&MonocytePc=6&NeutrophilPc=60",
         "#bortzAgeResult")]
-    public async Task MobileResult_DoesNotShowInlineEditValuesAction(
-        string path,
-        string resultSelector)
+    public async Task MobileResult_DoesNotShowInlineEditValuesAction(string path, string resultSelector)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -268,6 +284,14 @@ public sealed class BioageMobileUxBrowserTests
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
+        await AssertNoInlineEditValuesActionAsync(context, path, resultSelector);
+    }
+
+    private static async Task AssertNoInlineEditValuesActionAsync(
+        IBrowserContext context,
+        string path,
+        string resultSelector)
+    {
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.Console += (_, message) =>
@@ -296,6 +320,7 @@ public sealed class BioageMobileUxBrowserTests
             new() { Name = "Edit values" }).CountAsync());
         Assert.Equal(0, await page.Locator(".bioage-edit-values-button").CountAsync());
         Assert.Empty(errors);
+        await page.CloseAsync();
     }
 
     [Theory]
@@ -308,12 +333,8 @@ public sealed class BioageMobileUxBrowserTests
         string firstInputId,
         string nextInputId)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -324,6 +345,23 @@ public sealed class BioageMobileUxBrowserTests
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
+        await AssertMobileBiomarkerEntryAsync(
+            context,
+            path,
+            clock,
+            biomarkerCount,
+            firstInputId,
+            nextInputId);
+    }
+
+    private static async Task AssertMobileBiomarkerEntryAsync(
+        IBrowserContext context,
+        string path,
+        string clock,
+        int biomarkerCount,
+        string firstInputId,
+        string nextInputId)
+    {
         var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.Console += (_, message) =>
@@ -458,5 +496,6 @@ public sealed class BioageMobileUxBrowserTests
             "() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - window.innerWidth");
         Assert.True(horizontalOverflow <= 1, $"Page has {horizontalOverflow}px horizontal overflow.");
         Assert.Empty(errors);
+        await page.CloseAsync();
     }
 }

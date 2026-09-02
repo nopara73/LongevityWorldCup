@@ -1,0 +1,35 @@
+# Bugs exposed during the test-suite audit
+
+This ledger distinguishes product defects from test-infrastructure defects. A failing test is listed as a product bug only when the behavior was reproduced independently of the experimental runner architecture.
+
+## Confirmed product defects
+
+| Defect | Evidence and root cause | Fix | Regression protection |
+| --- | --- | --- | --- |
+| Bioage result reveal could run off-screen | The reveal started while the calculator form and dock were still changing layout. The semantic result existed, but the bounded visual reveal could spend its entire animation hundreds of pixels outside the viewport. | `bioage-flow.ts` now rechecks the final value container after layout, reanchors for up to 12 animation frames, and falls back to the complete static result if the viewport cannot settle. | `BioageFlowBrowserTests.BioageResultReveal_KeepsTheSemanticResultImmediateAndHonorsReducedMotion` covers both calculators and both motion preferences, including visibility at the start of counting. |
+| Analytics rate-limit rejection became a false 404 | A real Kestrel reproduction admitted 240 analytics posts, then returned 404 for the rejected request. `UseStatusCodePagesWithReExecute` wrapped the limiter and re-executed the deliberate 429 through the static error route. | `UseRateLimiter` now sits outside status-code re-execution, preserving the limiter's 429 and `Retry-After` response. | `PublicPostRateLimitingTests.AnalyticsRateLimitPreservesTooManyRequestsStatusOverKestrel`. |
+| Athlete source reload published a partially hydrated snapshot | Source parsing replaced the shared athlete array before Crowd Age, placements, flags, badges, and improvement fields were rehydrated from SQLite. Concurrent readers could observe a valid athlete with zeroed derived fields. | A source reload is built privately, then published and hydrated while the athlete snapshot lock is held. Readers see the old complete snapshot or the new complete snapshot, never the intermediate state. | `CrowdAgeProfileImageTests.SourceReloadPublishesCrowdStatsAsOneCompleteSnapshot` continuously reads during a real `FileSystemWatcher` reload. |
+| An older database callback could overwrite newer Crowd Age statistics | `OnDatabaseChanged` used the service reload gate, but public `ReloadCrowdStats` did not. Two refreshes could read different database states and publish the older calculation last. | `ReloadCrowdStats` now owns `_reloadLock`; callers already inside the gate use `ReloadCrowdStatsCore`. | The atomic reload regression, `SocialImageRenderingTests.AthleteCrowdAgeSharePreviewImage_UsesCrowdAgeMetrics`, and `SharePreviewMetadataTests.AthleteProfile_CrowdContextUsesCrowdAgeSharePreviewMetadata` cover the affected consumers. |
+
+## Confirmed test-infrastructure defects
+
+| Defect | Fix retained |
+| --- | --- |
+| Browser assertions used fixed sleeps for layout, transitions, network requests, and long product timers. This made success depend on host load. | Fixed sleeps were replaced with observable DOM/presentation predicates, explicit request gates, Web Animation completion, and Playwright's controlled clock. The suite went from 38 fixed `WaitForTimeoutAsync`/`Task.Delay` sites to one 10 ms delay inside a bounded asynchronous polling helper. |
+| Navigation assertions could register after a fast navigation had already fired `commit` or `DOMContentLoaded`, then wait for an event in the past. | `WaitForDomContentLoadedUrlAsync` polls the expected URL suffix and the destination document's `readyState`; action-specific waiters are armed before the action where possible. |
+| Delayed-resource tests used elapsed delays as a proxy for a request being in flight. | Proof helper, event recovery, and proof viewer tests use `TaskCompletionSource` gates: observe the exact request, assert the pending UI, release it, and assert recovery. |
+| The noisy-PDF witness used random pixels, so its first compressed image was not guaranteed to exceed the byte cap. | The test uses deterministic seeded block noise and records the real canvas encodes. It asserts that the first 2,560 px encode exceeds 1.5 MiB and the accepted result satisfies both byte and dimension caps. |
+| Challenge Gravatar tests busy-spun while background callbacks mutated ordinary `List<T>` instances. | Request and user-agent observations use `ConcurrentQueue<T>` and the tests use bounded asynchronous polling rather than `SpinWait`. |
+| Several browser tests treated a state class as proof that final geometry, iframe height, modal text, opacity, or accessibility state had settled. | The affected tests wait for the exact observable property they assert and capture transient values atomically when a second read could race repopulation. |
+| Experimental runtime bins shared Kestrel hosts across unrelated browser classes and shared HTTP caches across unrelated contract classes. | One semantic browser collection shares only Chromium. Browser applications are class-scoped, contexts are test-scoped, and stateful Guess/statistics tests use per-test hosts or explicit reset. HTTP factories are class-scoped. |
+| Speed experiments introduced process-wide working-directory mutation, release optimization in Debug tests, logging suppression, and runtime-derived workload A-D assignments. | All four mechanisms were removed. They are not part of the recovered architecture. |
+| Full-suite browser hosts reached live `blockchain.info`, `api.blockcypher.com`, and `api.coingecko.com`, while several UI tests intercepted our own `/api/bitcoin/*` routes. Results therefore depended on public services and the browser checks bypassed the controller, parsing, and cache behavior they appeared to exercise. | `TestWebApplicationFactory` now replaces only the outbound `IHttpClientFactory` boundary with representative provider responses and fails every unconfigured host closed. All first-party Bitcoin interception was removed; browser tests execute the real controller and service. `BrowserTestAppTests` protects both the real first-party path and the deny-by-default network boundary. |
+
+## Verification
+
+- Clean solution build: 0 warnings, 0 errors.
+- Untouched master comparison under coverage instrumentation: 1,483 passed, 1 failed, 0 skipped. `GuessSubmission_AnimatesThroughTheRevealAndBoundsCelebrationWork` sampled the status mutation before the reaction node existed (`expected 1, actual 0`); the run also logged repeated live Bitcoin/CoinGecko requests.
+- The same Guess regression after synchronization repair: five of five fresh-process runs passed, with no retries inside a run.
+- Real Bitcoin endpoint and external-boundary batch after removal of the final first-party interceptors: 6 passed, 0 failed, 0 skipped.
+- Complete instrumented suite: 1,488 passed, 0 failed, 0 skipped in 8 minutes 28 seconds test time (8 minutes 41 seconds wall clock).
+- Final coverage: 73.78% line, 57.84% branch, 82.99% method. Untouched master emitted no coverage report because its suite failed; no baseline percentage is inferred.

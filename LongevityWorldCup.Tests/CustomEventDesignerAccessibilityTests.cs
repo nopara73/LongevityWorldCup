@@ -2,13 +2,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class CustomEventDesignerAccessibilityTests
+
+public sealed class CustomEventDesignerAccessibilityTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task GeneratedOutputs_HaveAccessibleNames()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = sharedFactory.CreateClient();
 
         var html = await client.GetStringAsync("/internal/custom-event-designer.html");
 

@@ -3,17 +3,16 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class BioageFlowBrowserTests
+
+[Collection(BrowserTestCollections.Integration)]
+public sealed class BioageFlowBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task BortzAgeCalculator_ConfiguredCapsPlateauInRawLaboratoryUnits()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -55,12 +54,8 @@ public sealed class BioageFlowBrowserTests
         string changedUnitValue,
         string changedPlaceholder)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -84,7 +79,7 @@ public sealed class BioageFlowBrowserTests
             }));
             """);
 
-        var page = await context.NewPageAsync();
+        await using var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.Console += (_, message) =>
         {
@@ -95,8 +90,11 @@ public sealed class BioageFlowBrowserTests
 
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync(
-            "() => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')");
-        await page.WaitForTimeoutAsync(700);
+            """
+            () => document.querySelector('#lwc-step-2')?.classList.contains('lwc-step--visible')
+                && window.scrollY <= 1
+                && Math.abs(document.querySelector('header')?.getBoundingClientRect().top || 0) <= 1
+            """);
 
         Assert.Equal("/" + path.TrimStart('/'), new Uri(page.Url).PathAndQuery);
         Assert.Equal("Browser Test Athlete", await page.Locator("#mainPageTitleH2").InnerTextAsync());
@@ -116,7 +114,7 @@ public sealed class BioageFlowBrowserTests
         Assert.Equal(changedPlaceholder, await page.Locator(inputSelector).GetAttributeAsync("placeholder"));
 
         await page.Locator("#lwcToStep1Btn").ClickAsync();
-        await page.WaitForURLAsync("**/dashboard");
+        await page.WaitForDomContentLoadedUrlAsync("**/dashboard");
 
         Assert.Equal("/dashboard", new Uri(page.Url).AbsolutePath);
         Assert.Empty(errors);
@@ -134,12 +132,8 @@ public sealed class BioageFlowBrowserTests
         string changedUnitValue,
         string changedPlaceholder)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -182,7 +176,7 @@ public sealed class BioageFlowBrowserTests
             }));
             """);
 
-        var page = await context.NewPageAsync();
+        await using var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.Console += (_, message) =>
         {
@@ -219,12 +213,8 @@ public sealed class BioageFlowBrowserTests
         string expectedChipText,
         string expectedStateClass)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -274,7 +264,7 @@ public sealed class BioageFlowBrowserTests
             }));
             """);
 
-        var page = await context.NewPageAsync();
+        await using var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.Console += (_, message) =>
         {
@@ -315,12 +305,8 @@ public sealed class BioageFlowBrowserTests
         string expectedContextPrefix,
         bool reduceMotion)
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         var contextOptions = new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -331,9 +317,10 @@ public sealed class BioageFlowBrowserTests
         await using var context = await browser.NewContextAsync(contextOptions);
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
-        var page = await context.NewPageAsync();
+        await using var page = await context.NewPageAsync();
         var errors = new List<string>();
         page.PageError += (_, error) => errors.Add(error);
+        await page.Clock.InstallAsync();
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
         await page.WaitForFunctionAsync("() => typeof window.LwcBioageFlow?.animateBioageResult === 'function'");
         await page.WaitForFunctionAsync(
@@ -350,6 +337,7 @@ public sealed class BioageFlowBrowserTests
         await page.WaitForFunctionAsync("() => window.__lwcPlayFlowScrollInitialized === true");
         await page.EvaluateAsync(
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+        await GuessMyAgeBrowserTests.PauseClockAsync(page);
 
         var initial = await page.EvaluateAsync<BioageResultRevealDiagnostics>(
             """
@@ -458,6 +446,15 @@ public sealed class BioageFlowBrowserTests
                     attributes: true,
                     attributeFilter: ['data-bioage-reveal-state']
                 });
+                const captureAfterAnimations = (element, callback) => {
+                    const animations = element.getAnimations();
+                    if (animations.length === 0) {
+                        callback();
+                        return;
+                    }
+                    Promise.all(animations.map(animation => animation.finished.catch(() => undefined)))
+                        .then(callback);
+                };
                 new MutationObserver(() => {
                     const stage = result.dataset.bioageResultStage;
                     if (stage === 'age') timeline.AgeStageAt ??= performance.now();
@@ -468,12 +465,18 @@ public sealed class BioageFlowBrowserTests
                         timeline.DifferenceStageRankOpacity ??= Number.parseFloat(getComputedStyle(rank).opacity);
                     } else if (stage === 'context') {
                         timeline.ContextStageAt ??= performance.now();
-                        timeline.ContextStageDifferenceOpacity ??= Number.parseFloat(getComputedStyle(difference).opacity);
+                        captureAfterAnimations(difference, () => {
+                            timeline.ContextStageDifferenceOpacity ??=
+                                Number.parseFloat(getComputedStyle(difference).opacity);
+                        });
                         timeline.ContextStageContextOpacity ??= Number.parseFloat(getComputedStyle(contextDetail).opacity);
                         timeline.ContextStageRankOpacity ??= Number.parseFloat(getComputedStyle(rank).opacity);
                     } else if (stage === 'rank') {
                         timeline.RankStageAt ??= performance.now();
-                        timeline.RankStageContextOpacity ??= Number.parseFloat(getComputedStyle(contextDetail).opacity);
+                        captureAfterAnimations(contextDetail, () => {
+                            timeline.RankStageContextOpacity ??=
+                                Number.parseFloat(getComputedStyle(contextDetail).opacity);
+                        });
                         timeline.RankStageRankOpacity ??= Number.parseFloat(getComputedStyle(rank).opacity);
                     }
                 }).observe(result, {
@@ -589,6 +592,7 @@ public sealed class BioageFlowBrowserTests
             Assert.Equal("0", initial.ContextOpacity);
             Assert.Equal("0", initial.RankOpacity);
 
+            await page.Clock.RunForAsync(700);
             await page.WaitForFunctionAsync(
                 """
                 ({ resultSelector }) =>
@@ -597,6 +601,29 @@ public sealed class BioageFlowBrowserTests
                         ?.dataset.bioageRevealState === 'counting'
                 """,
                 new { resultSelector });
+            if (path == "/bortz-age")
+            {
+                var titleTransitionDuration = await page.Locator(
+                        $"{resultSelector} #validAgeInput > div:first-child")
+                    .EvaluateAsync<double>(
+                        """
+                        element => {
+                            const style = getComputedStyle(element);
+                            const properties = style.transitionProperty.split(',').map(value => value.trim());
+                            const durations = style.transitionDuration.split(',').map(value => {
+                                const trimmed = value.trim();
+                                return Number.parseFloat(trimmed) * (trimmed.endsWith('ms') ? 1 : 1000);
+                            });
+                            const opacityIndex = properties.indexOf('opacity');
+                            for (const animation of element.getAnimations()) {
+                                if (Number.isFinite(animation.effect?.getComputedTiming().endTime))
+                                    animation.finish();
+                            }
+                            return durations[opacityIndex < 0 ? 0 : opacityIndex] || 0;
+                        }
+                        """);
+                Assert.InRange(titleTransitionDuration, 180, 260);
+            }
             var countStageOpacities = await page.EvaluateAsync<double[]>(
                 """
                 ({ resultSelector }) => {
@@ -617,8 +644,10 @@ public sealed class BioageFlowBrowserTests
             Assert.Equal(0, countStageOpacities[1]);
             Assert.Equal(0, countStageOpacities[2]);
             Assert.Equal(0, countStageOpacities[3]);
+            await page.Clock.RunForAsync(1000);
             await page.WaitForFunctionAsync("() => window.__bioageRevealTimeline?.SettlingAt !== null");
 
+            await page.Clock.RunForAsync(1800);
             await page.WaitForFunctionAsync(
                 """
                 () => {
@@ -626,6 +655,8 @@ public sealed class BioageFlowBrowserTests
                     return timeline?.DifferenceStageAt !== null
                         && timeline?.ContextStageAt !== null
                         && timeline?.RankStageAt !== null
+                        && timeline?.ContextStageDifferenceOpacity !== null
+                        && timeline?.RankStageContextOpacity !== null
                         && timeline?.DifferenceOpacityTransitionDurationMs !== null
                         && timeline?.ContextOpacityTransitionDurationMs !== null
                         && timeline?.RankOpacityTransitionDurationMs !== null;
@@ -639,6 +670,25 @@ public sealed class BioageFlowBrowserTests
                 document.querySelector(resultSelector)
                     ?.querySelector('.bio-age-number-container')
                     ?.dataset.bioageRevealState === 'complete'
+            """,
+            new { resultSelector });
+
+        // The state changes to complete when the staged detail reveal begins;
+        // synchronize on the observable, fully settled presentation before
+        // sampling computed styles. This avoids racing the final CSS frame.
+        await page.WaitForFunctionAsync(
+            """
+            ({ resultSelector }) => {
+                const result = document.querySelector(resultSelector);
+                const opacity = selector => getComputedStyle(result.querySelector(selector)).opacity;
+                return result?.dataset.bioageResultStage === 'rank'
+                    && opacity('#animatedAge') === '1'
+                    && opacity('[data-bioage-result-visual]') === '0'
+                    && opacity('[data-bioage-result-difference]') === '1'
+                    && opacity('#validAgeInput > div:first-child') === '1'
+                    && opacity('[data-bioage-result-context]') === '1'
+                    && opacity('[data-bioage-result-rank]') === '1';
+            }
             """,
             new { resultSelector });
 
@@ -787,16 +837,13 @@ public sealed class BioageFlowBrowserTests
     [Fact]
     public async Task BioageResultReveal_ReentryCancelsThePreviousCount()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US"
+            Locale = "en-US",
+            ReducedMotion = ReducedMotion.NoPreference
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
@@ -867,16 +914,13 @@ public sealed class BioageFlowBrowserTests
     [Fact]
     public async Task BioageResultReveal_ReentryCancelsPendingDetailStages()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
-            Locale = "en-US"
+            Locale = "en-US",
+            ReducedMotion = ReducedMotion.NoPreference
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
 
@@ -949,16 +993,15 @@ public sealed class BioageFlowBrowserTests
 
     private static async Task<string> ExpandBiomarkerCardAsync(IPage page, string inputSelector)
     {
-        return await page.Locator(inputSelector).EvaluateAsync<string>(
-            """
-            input => {
-                const card = input.closest('.biomarker-card');
-                const header = card?.querySelector('.biomarker-card-header');
-                if (!card || !header) return '';
-                if (!card.classList.contains('active')) header.click();
-                return card.classList.contains('active') ? header.textContent.trim() : '';
-            }
-            """);
+        var input = page.Locator(inputSelector);
+        var card = input.Locator("xpath=ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' biomarker-card ')]");
+        if (!await card.EvaluateAsync<bool>("element => element.classList.contains('active')"))
+            await card.Locator(".biomarker-card-header").ClickAsync();
+        await page.WaitForFunctionAsync(
+            "selector => document.querySelector(selector)?.closest('.biomarker-card')?.classList.contains('active') === true",
+            inputSelector);
+        return await input.EvaluateAsync<string>(
+            "input => input.closest('.biomarker-card')?.querySelector('.biomarker-card-header')?.textContent?.trim() || ''");
     }
 
     private sealed class BioageResultRevealDiagnostics

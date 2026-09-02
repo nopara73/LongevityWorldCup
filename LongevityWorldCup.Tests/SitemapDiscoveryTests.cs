@@ -7,7 +7,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public class SitemapDiscoveryTests
+
+public sealed class SitemapDiscoveryTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     private static readonly string[] PublicLeaguePaths =
     [
@@ -102,8 +103,7 @@ public class SitemapDiscoveryTests
     [Fact]
     public async Task SitemapEndpoint_ReturnsXmlWithShortPublicCacheHeaders()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var client = sharedFactory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         using var response = await client.GetAsync("/sitemap.xml");
 
@@ -122,8 +122,7 @@ public class SitemapDiscoveryTests
     [Fact]
     public async Task SitemapEndpoint_IncludesPublicFlagRoutes()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = sharedFactory.CreateClient();
 
         var xml = await client.GetStringAsync("/sitemap.xml");
 

@@ -9,12 +9,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PublicRequestTimeoutTests
+
+public sealed class PublicRequestTimeoutTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public void PublicWorkTimeoutPolicy_IsConfigured()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
 
         var options = factory.Services.GetRequiredService<IOptions<RequestTimeoutOptions>>().Value;
 
@@ -27,7 +28,7 @@ public sealed class PublicRequestTimeoutTests
     [Fact]
     public void ApplicationSubmissionTimeoutPolicy_IsConfigured()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
 
         var options = factory.Services.GetRequiredService<IOptions<RequestTimeoutOptions>>().Value;
 
@@ -49,7 +50,7 @@ public sealed class PublicRequestTimeoutTests
     [InlineData("ai/leaderboard.md")]
     public void ExpensivePublicEndpoints_UsePublicWorkTimeoutPolicy(string routePattern)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var _ = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var endpoints = factory.Services.GetRequiredService<EndpointDataSource>()
@@ -70,7 +71,7 @@ public sealed class PublicRequestTimeoutTests
     [Fact]
     public void ApplicationSubmissionEndpoint_UsesDedicatedTimeoutPolicy()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var _ = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var endpoints = factory.Services.GetRequiredService<EndpointDataSource>()

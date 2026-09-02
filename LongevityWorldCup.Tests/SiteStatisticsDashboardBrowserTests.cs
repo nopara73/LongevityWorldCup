@@ -1,25 +1,50 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using LongevityWorldCup.Website.Business;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SiteStatisticsDashboardBrowserTests
+[Collection(BrowserTestCollections.Integration)]
+public sealed class SiteStatisticsDashboardBrowserTests(
+    PlaywrightBrowserFixture browserFixture,
+    BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
+    public override async Task InitializeAsync()
+    {
+        await base.InitializeAsync();
+        await ResetSiteStatisticsAsync(App);
+    }
+
+    private static async Task ResetSiteStatisticsAsync(BrowserTestApp app)
+    {
+        var statistics = app.Services.GetRequiredService<SiteStatisticsService>();
+        await statistics.StopAsync(CancellationToken.None);
+        await statistics.GetDashboardAsync(new SiteStatisticsDashboardQuery { Range = "7d" });
+
+        var database = app.Services.GetRequiredService<DatabaseManager>();
+        database.Run(sqlite =>
+        {
+            using var command = sqlite.CreateCommand();
+            command.CommandText =
+                "DELETE FROM SiteStatisticEvents; DELETE FROM SiteStatisticSessions;";
+            command.ExecuteNonQuery();
+        });
+
+        await statistics.StartAsync(CancellationToken.None);
+    }
+
     [Fact]
     public async Task Dashboard_RendersRedactedOnboardingAndChallengeDrilldowns()
     {
-        await using var app = await BrowserTestApp.StartAsync();
+        var app = App;
         using var client = new HttpClient { BaseAddress = app.BaseAddress };
         await SeedEventsAsync(client);
 
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -111,15 +136,11 @@ public sealed class SiteStatisticsDashboardBrowserTests
     [Fact]
     public async Task Dashboard_SummarizesNoisyJoinPageBurstsAsSingleTrackSelectionBottleneck()
     {
-        await using var app = await BrowserTestApp.StartAsync();
+        var app = App;
         using var client = new HttpClient { BaseAddress = app.BaseAddress };
         await SeedNoisyJoinEventsAsync(client);
 
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -166,12 +187,8 @@ public sealed class SiteStatisticsDashboardBrowserTests
     [Fact]
     public async Task Dashboard_DiagnosticsLoadCompleteCurrentAndPreviousWindows()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -208,12 +225,8 @@ public sealed class SiteStatisticsDashboardBrowserTests
     [Fact]
     public async Task Dashboard_ExportLoadsCompleteCurrentWindow()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -251,12 +264,8 @@ public sealed class SiteStatisticsDashboardBrowserTests
     [Fact]
     public async Task ApplyPage_RecordsOnlyTheCoarseApplicationStage()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),

@@ -4,7 +4,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class LeaderboardRouteShellTests
+
+public sealed class LeaderboardRouteShellTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Theory]
     [InlineData("/flag/hungary")]
@@ -12,8 +13,7 @@ public sealed class LeaderboardRouteShellTests
     [InlineData("/league/bortz")]
     public async Task CanonicalLeaderboardRoute_RendersFullLeaderboardShell(string path)
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        using var client = sharedFactory.CreateClient(new WebApplicationFactoryClientOptions
         {
             AllowAutoRedirect = false
         });
@@ -31,8 +31,7 @@ public sealed class LeaderboardRouteShellTests
     [Fact]
     public async Task AthleteRoute_KeepsHomepageShellForSharedProfileDialog()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = sharedFactory.CreateClient();
 
         var html = await client.GetStringAsync("/athlete/ron-lugbill");
 

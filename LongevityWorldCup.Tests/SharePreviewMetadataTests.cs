@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SharePreviewMetadataTests
+public sealed class SharePreviewMetadataTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Theory]
     [InlineData("/", "/og/page/home.png?v=")]
@@ -23,7 +23,7 @@ public sealed class SharePreviewMetadataTests
     [InlineData("/league/crowd", "/og/page/view-crowd.png?v=")]
     public async Task PublicPages_UseGeneratedPageSharePreviewImages(string path, string expectedImagePath)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -35,7 +35,7 @@ public sealed class SharePreviewMetadataTests
     [Fact]
     public async Task Leaderboard_StillUsesLeagueSharePreviewImage()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/leaderboard");
@@ -47,7 +47,7 @@ public sealed class SharePreviewMetadataTests
     [Fact]
     public async Task AthleteProfile_StillUsesAthleteSharePreviewImage()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/athlete/ron-lugbill");
@@ -59,11 +59,17 @@ public sealed class SharePreviewMetadataTests
     [Fact]
     public async Task AthleteProfile_CrowdContextUsesCrowdAgeSharePreviewMetadata()
     {
-        using var factory = CreateFactory();
+        using var factory = new TestWebApplicationFactory();
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var database = factory.Services.GetRequiredService<DatabaseManager>();
         Assert.True(athletes.TryGetProfileImageId("ron_lugbill", out var profileImageId));
-        for (var i = 0; i < 100; i++)
-            Assert.True(athletes.TryAddAgeGuess("ron_lugbill", profileImageId, 68));
+        CrowdAgeTestData.SeedAcceptedGuesses(
+            database,
+            athletes,
+            "ron_lugbill",
+            profileImageId,
+            age: 68,
+            count: 100);
 
         using var client = factory.CreateClient();
         var html = await client.GetStringAsync("/athlete/ron-lugbill?ctx=crowd");
@@ -80,7 +86,7 @@ public sealed class SharePreviewMetadataTests
         string context,
         string expectedLeagueName)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
         AthleteOgImageService.AthleteOgPayload? payload = null;
@@ -113,7 +119,7 @@ public sealed class SharePreviewMetadataTests
         string context,
         string expectedTitle)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         var athletes = factory.Services.GetRequiredService<AthleteDataService>();
         var athleteImages = factory.Services.GetRequiredService<AthleteOgImageService>();
         AthleteOgImageService.AthleteOgPayload? payload = null;
@@ -142,7 +148,7 @@ public sealed class SharePreviewMetadataTests
     [Fact]
     public async Task GeneratedPageSharePreviewEndpoint_ReturnsPng()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         using var response = await client.GetAsync("/og/page/home.png");
@@ -160,7 +166,7 @@ public sealed class SharePreviewMetadataTests
     [InlineData("/about", "About | Longevity World Cup")]
     public async Task SharePreviewTitles_AddBrandSuffixWhenMissing(string path, string expectedTitle)
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -172,7 +178,7 @@ public sealed class SharePreviewMetadataTests
     [Fact]
     public async Task FlagRoute_UsesCanonicalFlagMetadata()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/flag/hungary");
@@ -185,7 +191,7 @@ public sealed class SharePreviewMetadataTests
     [Fact]
     public async Task FlagRouteAlias_UsesCanonicalFlagMetadata()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/flag/magyarorszag");
@@ -198,7 +204,7 @@ public sealed class SharePreviewMetadataTests
     [Fact]
     public async Task CustomFlagRoute_UsesNeutralRepresentationMetadata()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/flag/live-long-enough-to-live-forever");
@@ -211,7 +217,7 @@ public sealed class SharePreviewMetadataTests
     [Fact]
     public async Task SharePreviewTitles_DoNotDuplicateBrandSuffix()
     {
-        using var factory = CreateFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/");
@@ -220,8 +226,4 @@ public sealed class SharePreviewMetadataTests
         Assert.DoesNotContain("Longevity World Cup | Longevity World Cup", html);
     }
 
-    private static WebApplicationFactory<Program> CreateFactory()
-    {
-        return new TestWebApplicationFactory();
-    }
 }

@@ -17,6 +17,49 @@ public sealed class CrowdAgeProfileImageTests
     private const string AthleteSlug = "profile_history";
 
     [Fact]
+    public async Task SourceReloadPublishesCrowdStatsAsOneCompleteSnapshot()
+    {
+        using var workspace = new TestWorkspace();
+        workspace.WriteProfileImage(CreateProfileImage(new Rgba32(35, 120, 210)));
+        workspace.SeedLegacyGuesses(40, 42);
+        using var factory = CreateFactory(workspace);
+        var athletes = factory.Services.GetRequiredService<AthleteDataService>();
+        var reloadCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void ObserveReload()
+        {
+            var athlete = Assert.Single(athletes.GetAthletesSnapshot().OfType<JsonObject>());
+            if (athlete["DisplayName"]?.GetValue<string>() == "Reloaded Profile History")
+                reloadCompleted.TrySetResult();
+        }
+
+        athletes.AthletesChanged += ObserveReload;
+        workspace.WriteAthleteJson("Reloaded Profile History");
+
+        var snapshotsRead = 0;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            while (!reloadCompleted.Task.IsCompleted)
+            {
+                timeout.Token.ThrowIfCancellationRequested();
+                var athlete = Assert.Single(athletes.GetAthletesSnapshot().OfType<JsonObject>());
+                Assert.Equal(41d, athlete["CrowdAge"]!.GetValue<double>());
+                Assert.Equal(2, athlete["CrowdCount"]!.GetValue<int>());
+                snapshotsRead++;
+                await Task.Yield();
+            }
+
+            await reloadCompleted.Task;
+        }
+        finally
+        {
+            athletes.AthletesChanged -= ObserveReload;
+        }
+
+        Assert.True(snapshotsRead > 0);
+    }
+
+    [Fact]
     public void LegacyGuessesFollowExactProfileImageAcrossAtoBtoA()
     {
         using var workspace = new TestWorkspace();
@@ -298,12 +341,21 @@ public sealed class CrowdAgeProfileImageTests
             _profileImagePath = Path.Combine(_athleteDirectory, $"{AthleteSlug}.png");
 
             Directory.CreateDirectory(_athleteDirectory);
+            WriteAthleteJson("Profile History");
+        }
+
+        public string Root { get; }
+        public string WebRoot { get; }
+        public string DatabasePath { get; }
+
+        public void WriteAthleteJson(string displayName)
+        {
             File.WriteAllText(
                 Path.Combine(_athleteDirectory, "athlete.json"),
-                """
+                $$"""
                 {
                   "Name": "Profile History",
-                  "DisplayName": "Profile History",
+                  "DisplayName": "{{displayName}}",
                   "DateOfBirth": { "Year": 1980, "Month": 1, "Day": 2 },
                   "Biomarkers": [],
                   "Division": "Open",
@@ -311,10 +363,6 @@ public sealed class CrowdAgeProfileImageTests
                 }
                 """);
         }
-
-        public string Root { get; }
-        public string WebRoot { get; }
-        public string DatabasePath { get; }
 
         public void WriteProfileImage(byte[] bytes)
             => File.WriteAllBytes(_profileImagePath, bytes);

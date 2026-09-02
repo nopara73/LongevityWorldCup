@@ -273,7 +273,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         });
 
         // Initial load
-        LoadAthletesAsync().GetAwaiter().GetResult();
+        _athletes = LoadAthletesAsync().GetAwaiter().GetResult();
 
         var newlyJoined = EnsureDbRowsForNewAthletes();
 
@@ -298,7 +298,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
 
         // Hydrate persisted age‐guess stats from SQLite
-        ReloadCrowdStats();
+        ReloadCrowdStatsCore();
         SyncCrowdAgeTop10Placements(emitEvents: false);
         HydrateAgeImprovementIntoAthletesJson();
         HydrateNewFlagsIntoAthletesJson();
@@ -388,7 +388,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         _reloadLock.Wait();
         try
         {
-            ReloadCrowdStats();
+            ReloadCrowdStatsCore();
             SyncCrowdAgeTop10Placements(emitEvents: false);
             HydrateAgeImprovementIntoAthletesJson();
             HydratePlacementsIntoAthletesJson();
@@ -437,7 +437,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         return result;
     }
 
-    private async Task LoadAthletesAsync()
+    private async Task<JsonArray> LoadAthletesAsync()
     {
         // Build up a JsonArray by reading every athlete.json under wwwroot/athletes
         var athletesRoot = new JsonArray();
@@ -531,8 +531,8 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             athletesRoot.Add(athlete);
         }
 
-        lock (_athletesJsonLock) _athletes = athletesRoot;
         PruneStaleGeneratedProfileAssets(activeGeneratedProfileAssets);
+        return athletesRoot;
     }
 
     private static string BuildVersionedAthleteAssetUrl(string folderName, string fileName, string version)
@@ -817,7 +817,7 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
             {
                 await Task.Delay(_debounceInterval, token);
                 if (!token.IsCancellationRequested)
-                    await OnSourceChangedAsync(this, null);
+                    await ReloadFromSourceAsync();
             }
             catch (TaskCanceledException)
             {
@@ -887,60 +887,66 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
         }
     }
 
-    private async Task OnSourceChangedAsync(object sender, FileSystemEventArgs? e)
+    private async Task ReloadFromSourceAsync()
     {
         var notify = false;
 
         await _reloadLock.WaitAsync();
         try
         {
-            await LoadAthletesAsync();
+            var reloadedAthletes = await LoadAthletesAsync();
 
-            var newlyJoined = EnsureDbRowsForNewAthletes();
-
-            SyncAgeGuessProfileImageIds(migrateLegacyGuesses: false);
-            ReloadCrowdStats();
-            // A new profile image can remove the athlete from the Crowd Age field.
-            // Keep stored placements current without publishing incidental social events.
-            SyncCrowdAgeTop10Placements(emitEvents: false);
-            HydrateAgeImprovementIntoAthletesJson();
-            HydratePlacementsIntoAthletesJson();
-            HydrateNewFlagsIntoAthletesJson();
-            HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
-            HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
-
-            // recompute and persist biomarker/test signatures after reload
-            var changedSigs = SyncBiomarkerSignatures();
-            SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigs);
-            var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
-            var bioAgeImprovements = SyncBestBioAgeStates(
-                changedSigs,
-                newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
-
-            if (newlyJoined.Count > 0)
+            // Readers must never observe the base JSON between its reset of derived
+            // values and the database-backed hydration that follows. Holding the
+            // snapshot lock publishes the entire reload as one atomic transition.
+            lock (_athletesJsonLock)
             {
-                var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
-                _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+                _athletes = reloadedAthletes;
+                var newlyJoined = EnsureDbRowsForNewAthletes();
+
+                SyncAgeGuessProfileImageIds(migrateLegacyGuesses: false);
+                ReloadCrowdStatsCore();
+                // A new profile image can remove the athlete from the Crowd Age field.
+                // Keep stored placements current without publishing incidental social events.
+                SyncCrowdAgeTop10Placements(emitEvents: false);
+                HydrateAgeImprovementIntoAthletesJson();
+                HydratePlacementsIntoAthletesJson();
+                HydrateNewFlagsIntoAthletesJson();
+                HydrateCurrentPlacementIntoAthletesJson(); // NOTE: no DB persist here
+                HydrateBadgesIntoAthletesJson();           // badges into athlete JSON
+
+                // recompute and persist biomarker/test signatures after reload
+                var changedSigs = SyncBiomarkerSignatures();
+                SyncAgeImprovementTop10Placements(emitEvents: true, eventSubjectSlugs: changedSigs);
+                var becamePro = SyncProTrackStates(newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+                var bioAgeImprovements = SyncBestBioAgeStates(
+                    changedSigs,
+                    newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>()));
+
+                if (newlyJoined.Count > 0)
+                {
+                    var payload = BuildJoinedPayloadWithReplaced(newlyJoined);
+                    _eventDataService.CreateJoinedEventsForAthletes(payload, skipIfExists: true);
+                }
+
+                if (becamePro.Count > 0)
+                {
+                    _eventDataService.CreateBecameProEvents(becamePro, skipIfExists: true);
+                }
+
+                if (bioAgeImprovements.Count > 0)
+                {
+                    _eventDataService.CreateBiologicalAgeImprovementEvents(bioAgeImprovements, skipIfExists: true);
+                }
+
+                DetectAndEmitRankUpsForSlugs(
+                    changedSlugs: changedSigs,
+                    newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
+                );
+
+                DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
+                notify = true;
             }
-
-            if (becamePro.Count > 0)
-            {
-                _eventDataService.CreateBecameProEvents(becamePro, skipIfExists: true);
-            }
-
-            if (bioAgeImprovements.Count > 0)
-            {
-                _eventDataService.CreateBiologicalAgeImprovementEvents(bioAgeImprovements, skipIfExists: true);
-            }
-
-            DetectAndEmitRankUpsForSlugs(
-                changedSlugs: changedSigs,
-                newcomerSlugs: newlyJoined.Select(x => x.Athlete["AthleteSlug"]!.GetValue<string>())
-            );
-
-            DetectAndEmitAthleteCountMilestones(); // emit milestones on reload/new joins
-
-            notify = true;
         }
         finally
         {
@@ -1068,6 +1074,19 @@ public class AthleteDataService : IAthleteSnapshotProvider, IDisposable
     /// Re-reads all medians and counts from SQLite and updates the in-memory JSON.
     /// </summary>
     public void ReloadCrowdStats()
+    {
+        _reloadLock.Wait();
+        try
+        {
+            ReloadCrowdStatsCore();
+        }
+        finally
+        {
+            _reloadLock.Release();
+        }
+    }
+
+    private void ReloadCrowdStatsCore()
     {
         List<string> slugs;
         lock (_athletesJsonLock)

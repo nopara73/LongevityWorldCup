@@ -2,7 +2,7 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class AestheticSystemPageTests
+public sealed class AestheticSystemPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Theory]
     [InlineData("/", true)]
@@ -13,7 +13,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/?view=pheno", false)]
     public async Task HomepageHeroClass_IsLimitedToTheActualHomepage(string path, bool expectsHomepageHero)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -32,7 +32,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task SearchDeepLink_UsesLeaderboardChrome()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/?search=pascoe");
@@ -53,7 +53,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/privacy")]
     public async Task SharedPages_LoadVersionedAestheticSystemLastInHead(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -82,7 +82,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/ruleset")]
     public async Task SharedPages_LoadVersionedSelfHostedFontAwesome(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -97,7 +97,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task SelfHostedFontAwesome_DistributionIsCompleteAndServedLocally()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/vendor/font-awesome/6.7.2/css/all.min.css");
@@ -129,7 +129,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task AestheticSystem_DefinesSemanticPaletteGeometryAndStateFallbacks()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/aesthetic-system.css");
@@ -156,7 +156,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task TaskPages_UsePurposefulVisualsAndReadableCopy()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var proofs = await client.GetStringAsync("/proofs");
@@ -178,7 +178,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task SharedSystem_UsesOneAccentAndBoundsCompactBadgeDensity()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var header = await client.GetStringAsync("/");
@@ -192,7 +192,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task SharedFormAndBadgeStates_KeepAccessibleContrastAndRestrainedMotion()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var aestheticCss = await client.GetStringAsync("/css/aesthetic-system.css");
@@ -209,7 +209,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task PrivacyPolicy_WrapsExtremeTokensInsideTheSharedVisualSystem()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/privacy");
@@ -224,7 +224,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task UnsubscribePage_UsesTheSharedAccentGeometryAndRestrainedMotion()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/unsubscribe");
@@ -242,7 +242,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task HelstabChallenge_UsesTheSharedAccentForActionsAndStructuralMarkers()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/helstab-kihivas.css");
@@ -274,7 +274,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/ruleset")]
     public async Task DocumentationPages_ProgressivelyEnhanceDeepMobileNavigation(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -291,7 +291,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task ProofViewer_OffersReadableMobileZoomAndPanControls()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/leaderboard");
@@ -308,7 +308,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task GuessMyAge_ReservesBubbleSpaceAndAllowsShortViewportRecovery()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/leaderboard");
@@ -324,7 +324,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task GuessMyAge_RestoresBoundedRevealChoreographyWithoutHeavyDependencies()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/leaderboard");
@@ -449,7 +449,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task HungarianChrome_LocalizesTheSharedFooterColumnHeadings()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/helstab-kihivas");
@@ -466,7 +466,7 @@ public sealed class AestheticSystemPageTests
     [InlineData("/error/504.html")]
     public async Task FallbackErrors_KeepRecoveryContentCompactHumorousAndCacheSafe(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -481,7 +481,7 @@ public sealed class AestheticSystemPageTests
     [Fact]
     public async Task StandaloneInternalTools_KeepTheirIndependentVisualSystem()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/internal/custom-event-designer.html");

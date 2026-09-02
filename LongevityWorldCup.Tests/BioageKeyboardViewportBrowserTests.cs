@@ -1,20 +1,17 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Playwright;
 using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class BioageKeyboardViewportBrowserTests
+[Collection(BrowserTestCollections.Integration)]
+public sealed class BioageKeyboardViewportBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task FocusedInput_InWindowedViewportDoesNotTreatUnusedScreenSpaceAsAKeyboard()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -69,27 +66,11 @@ public sealed class BioageKeyboardViewportBrowserTests
         int keyboardViewportHeight,
         int keyboardViewportOffsetTop)
     {
-        using var factory = new TestWebApplicationFactory();
-        factory.UseKestrel(0);
-        factory.StartServer();
-        var baseAddress = factory.ClientOptions.BaseAddress;
-
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false,
-            BaseAddress = baseAddress
-        });
-        using var healthResponse = await client.GetAsync("/health");
-        healthResponse.EnsureSuccessStatusCode();
-
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
-            BaseURL = baseAddress.ToString(),
+            BaseURL = app.BaseAddress.ToString(),
             Locale = "en-US",
             IsMobile = true,
             HasTouch = true,
@@ -98,6 +79,26 @@ public sealed class BioageKeyboardViewportBrowserTests
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
         await context.AddInitScriptAsync(VisualViewportTestBootstrap());
+
+        await AssertFocusedBiomarkerWithKeyboardAsync(
+            context,
+            path,
+            inputSelector,
+            inputValue,
+            viewportHeight,
+            keyboardViewportHeight,
+            keyboardViewportOffsetTop);
+    }
+
+    private static async Task AssertFocusedBiomarkerWithKeyboardAsync(
+        IBrowserContext context,
+        string path,
+        string inputSelector,
+        string inputValue,
+        int viewportHeight,
+        int keyboardViewportHeight,
+        int keyboardViewportOffsetTop)
+    {
 
         var page = await context.NewPageAsync();
         await page.GotoAsync(path, new PageGotoOptions
@@ -138,11 +139,19 @@ public sealed class BioageKeyboardViewportBrowserTests
             new { height = keyboardViewportHeight, offsetTop = keyboardViewportOffsetTop });
         await page.WaitForFunctionAsync(
             """
-            () => document.documentElement.classList.contains('flow-input-keyboard-open')
-                && document.body.classList.contains('flow-input-keyboard-open')
-                && !document.querySelector('#lwcStepTwoActions')?.classList.contains('flow-action-stack--docked')
-            """);
-        await page.WaitForTimeoutAsync(750);
+            selector => {
+                const input = document.querySelector(selector);
+                const viewport = window.visualViewport;
+                if (!input || !viewport || document.activeElement !== input) return false;
+                const rect = input.getBoundingClientRect();
+                return document.documentElement.classList.contains('flow-input-keyboard-open')
+                    && document.body.classList.contains('flow-input-keyboard-open')
+                    && !document.querySelector('#lwcStepTwoActions')?.classList.contains('flow-action-stack--docked')
+                    && rect.top >= viewport.offsetTop
+                    && rect.bottom <= viewport.offsetTop + viewport.height;
+            }
+            """,
+            inputSelector);
 
         var state = await page.EvaluateAsync<KeyboardViewportState>(
             """
@@ -180,14 +189,19 @@ public sealed class BioageKeyboardViewportBrowserTests
             $"The focused biomarker must remain fully visible: input {state.InputTop}-{state.InputBottom}, "
             + $"visual viewport {state.VisualViewportTop}-{state.VisualViewportBottom}.");
         Assert.Equal("next", await biomarker.GetAttributeAsync("enterkeyhint"));
+        await page.EvaluateAsync(
+            """
+            () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+            """);
 
         await page.EvaluateAsync("() => window.scrollTo({ top: 0, behavior: 'instant' })");
-        await page.WaitForTimeoutAsync(250);
+        await page.WaitForFunctionAsync("() => window.scrollY <= 1");
         Assert.InRange(await page.EvaluateAsync<double>("() => window.scrollY"), 0, 1);
 
         await page.EvaluateAsync(
             "() => window.scrollTo({ top: document.scrollingElement.scrollHeight, behavior: 'instant' })");
-        await page.WaitForTimeoutAsync(250);
+        await page.WaitForFunctionAsync(
+            "() => document.scrollingElement.scrollHeight - window.innerHeight - window.scrollY <= 1");
         var downwardScroll = await page.EvaluateAsync<ManualScrollState>(
             """
             () => ({
@@ -211,7 +225,11 @@ public sealed class BioageKeyboardViewportBrowserTests
             """);
 
         await page.EvaluateAsync("() => window.__testSetVisualViewport(window.innerHeight, 0)");
-        await page.WaitForTimeoutAsync(750);
+        await page.WaitForFunctionAsync(
+            """
+            () => !document.documentElement.classList.contains('flow-input-keyboard-open')
+                && document.querySelector('#lwcStepTwoActions')?.classList.contains('flow-action-stack--docked')
+            """);
         var restoredState = await page.EvaluateAsync<string>(
             """
             () => JSON.stringify({
@@ -231,6 +249,7 @@ public sealed class BioageKeyboardViewportBrowserTests
             "html => html.classList.contains('flow-input-keyboard-open')"), restoredState);
         Assert.True(await page.Locator("#lwcStepTwoActions").EvaluateAsync<bool>(
             "dock => dock.classList.contains('flow-action-stack--docked')"), restoredState);
+        await page.CloseAsync();
     }
 
     private static string VisualViewportTestBootstrap()

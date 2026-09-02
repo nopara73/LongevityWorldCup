@@ -3,7 +3,8 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SelectedAthleteBootstrapPageTests
+
+public sealed class SelectedAthleteBootstrapPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Theory]
     [InlineData("/onboarding/pheno-age.html", "if (isUpdate && !hasSelectedAthlete)")]
@@ -13,7 +14,7 @@ public sealed class SelectedAthleteBootstrapPageTests
     [InlineData("/play/edit-profile.html", "if (!isValidSelectedAthlete(originalAthlete))")]
     public async Task SelectedAthleteRecovery_UsesSafeStorageCleanup(string path, string guard)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -76,7 +77,7 @@ public sealed class SelectedAthleteBootstrapPageTests
     [InlineData("/play/edit-profile.html")]
     public async Task SelectedAthleteValidation_RejectsArrays(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -109,7 +110,7 @@ public sealed class SelectedAthleteBootstrapPageTests
     [InlineData("/play/edit-profile.html")]
     public async Task SelectedAthleteValidation_RejectsBlankNames(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -149,7 +150,7 @@ public sealed class SelectedAthleteBootstrapPageTests
     [InlineData("/onboarding/bortz-age.html")]
     public async Task UpdateBioageSelectedAthleteValidation_RequiresUsableDateOfBirthParts(string path)
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -181,7 +182,7 @@ public sealed class SelectedAthleteBootstrapPageTests
     [Fact]
     public async Task EditProfileTempAthleteFallback_UsesSafeStorageCleanup()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/edit-profile.html");

@@ -9,23 +9,40 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace LongevityWorldCup.Tests;
 
-internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
+/// <summary>
+/// Owns one isolated application host and database. xUnit class or collection
+/// fixtures dispose the host at their explicit fixture boundary.
+/// </summary>
+public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly string _dbRoot = Path.Combine(Path.GetTempPath(), "LongevityWorldCup.Tests", Guid.NewGuid().ToString("N"));
+    private readonly string _dbRoot = Path.Combine(
+        Path.GetTempPath(),
+        "LongevityWorldCup.Tests",
+        Guid.NewGuid().ToString("N"));
     private readonly Action<IWebHostBuilder>? _configure;
 
-    public TestWebApplicationFactory(Action<IWebHostBuilder>? configure = null)
+    public TestWebApplicationFactory()
+        : this(configure: null)
+    {
+    }
+
+    internal TestWebApplicationFactory(Action<IWebHostBuilder>? configure)
     {
         _configure = configure;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        Directory.CreateDirectory(_dbRoot);
         var dbPath = Path.Combine(_dbRoot, "test.db");
         builder.UseSetting("EnableScheduledJobs", "false");
         builder.UseSetting("EnableStartupBadgeRefresh", "false");
         builder.ConfigureTestServices(services =>
         {
+            services.RemoveAll<IHttpClientFactory>();
+            services.AddSingleton<DeterministicExternalHttpClientFactory>();
+            services.AddSingleton<IHttpClientFactory>(serviceProvider =>
+                serviceProvider.GetRequiredService<DeterministicExternalHttpClientFactory>());
             services.RemoveAll<DatabaseManager>();
             services.AddSingleton(_ => new DatabaseManager(dbPath: dbPath));
             services.RemoveAll<ApplicationSubmissionRetryStore>();
@@ -40,16 +57,17 @@ internal sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        if (!disposing)
-            return;
-
-        try
+        if (disposing)
         {
-            if (Directory.Exists(_dbRoot))
-                Directory.Delete(_dbRoot, recursive: true);
-        }
-        catch
-        {
+            try
+            {
+                if (Directory.Exists(_dbRoot))
+                    Directory.Delete(_dbRoot, recursive: true);
+            }
+            catch
+            {
+                // Best-effort cleanup for transient test data.
+            }
         }
     }
 }

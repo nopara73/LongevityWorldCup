@@ -3,12 +3,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class PlayMenuPageTests
+
+public sealed class PlayMenuPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task PlayMenu_HandlesUnavailableApplicationStorageThroughSharedFlow()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
@@ -36,7 +37,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_AlreadyAthletePathStaysInPlayHubAndPreservesUrls()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
@@ -76,7 +77,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_NewAthletePathStaysInPlayHubAndPreservesJoinUrl()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
@@ -120,7 +121,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_DashboardKeepsRealTasksAsNavigations()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
@@ -146,7 +147,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_ContextualPrimaryActionDoesNotKeepSecondaryFlowStyling()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play");
@@ -170,7 +171,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_UsesOneContainedReducedMotionSafePanelTransition()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
@@ -197,7 +198,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_StartEntranceUsesBoundedSharedTokenChoreographyAndSkipsReducedMotion()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/play-menu.css");
@@ -233,7 +234,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_AthletePicturesUseSharedFrameAndTransitionBehavior()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
@@ -275,7 +276,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_AthleteSelectionHydratesStoredAthleteBeforePanelShows()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
@@ -319,7 +320,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_DashboardRendersStoredAthleteBeforePanelShows()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var playMenu = await client.GetStringAsync("/js/play-menu.js");
@@ -337,7 +338,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_LoadsDashboardHelpersThroughInjectedHeadAssets()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/play/menu.html");
@@ -355,7 +356,7 @@ public sealed class PlayMenuPageTests
     [Fact]
     public async Task PlayMenu_DiscountBadgeSlotFitsMobileTapTarget()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var css = await client.GetStringAsync("/css/play-menu.css");

@@ -3,17 +3,15 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class LeaderboardPodiumBrowserTests
+[Collection(BrowserTestCollections.Integration)]
+public sealed class LeaderboardPodiumBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task LeaderboardRowsAndPodiumCards_PreserveTheirBroadDetailsHitAreas()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -22,7 +20,14 @@ public sealed class LeaderboardPodiumBrowserTests
         });
         await context.AddInitScriptAsync("localStorage.setItem('gmaSkipAll', 'true');");
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await RouteBitcoinDependenciesAsync(context);
+        await context.RouteAsync("**/api/data/athletes", async route =>
+        {
+            var separator = route.Request.Url.Contains('?') ? '&' : '?';
+            await route.ContinueAsync(new RouteContinueOptions
+            {
+                Url = $"{route.Request.Url}{separator}browserFullFixture=1"
+            });
+        });
 
         var page = await context.NewPageAsync();
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -30,6 +35,9 @@ public sealed class LeaderboardPodiumBrowserTests
             "() => document.querySelectorAll('.podium-item:not(.podium-skeleton-item)').length === 3");
         await page.WaitForSelectorAsync(
             ".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name]:visible");
+        var fullAthleteCount = await page.EvaluateAsync<int>(
+            "() => window.__sharedAthletesRequest.then(athletes => athletes.length)");
+        Assert.True(fullAthleteCount >= 200, $"Expected the full-scale athlete fixture; received {fullAthleteCount} rows.");
 
         var visibleRows = page.Locator(".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name]:visible");
         var visibleRowCount = await visibleRows.CountAsync();
@@ -59,19 +67,15 @@ public sealed class LeaderboardPodiumBrowserTests
 
         // The prize panel remains a donation link and must not be swallowed by the card handler.
         await firstPodiumCard.Locator(".podium-item-lower").ClickAsync();
-        await page.WaitForURLAsync("**/#contribute");
+        await page.WaitForDomContentLoadedUrlAsync("**/#contribute");
         Assert.False(await page.Locator("#detailsModal").IsVisibleAsync());
     }
 
     [Fact]
     public async Task PodiumContent_RemainsAboveThePrizePanelAcrossTheDesktopBoundary()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
+        var app = App;
+        var browser = Browser;
         await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = app.BaseAddress.ToString(),
@@ -79,22 +83,6 @@ public sealed class LeaderboardPodiumBrowserTests
             ViewportSize = new ViewportSize { Width = 1026, Height = 505 }
         });
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.RouteAsync("**/api/bitcoin/**", async route =>
-        {
-            var path = new Uri(route.Request.Url).AbsolutePath;
-            var body = path.EndsWith("/donation-address", StringComparison.OrdinalIgnoreCase)
-                ? """{"address":""}"""
-                : path.EndsWith("/btcusd", StringComparison.OrdinalIgnoreCase)
-                    ? """{"btcToUsdRate":0}"""
-                    : """{"totalReceivedSatoshis":0}""";
-
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = 200,
-                ContentType = "application/json",
-                Body = body
-            });
-        });
 
         var page = await context.NewPageAsync();
         await page.GotoAsync("/", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -162,26 +150,6 @@ public sealed class LeaderboardPodiumBrowserTests
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
         await page.EvaluateAsync(
             "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-    }
-
-    private static async Task RouteBitcoinDependenciesAsync(IBrowserContext context)
-    {
-        await context.RouteAsync("**/api/bitcoin/**", async route =>
-        {
-            var path = new Uri(route.Request.Url).AbsolutePath;
-            var body = path.EndsWith("/donation-address", StringComparison.OrdinalIgnoreCase)
-                ? """{"address":""}"""
-                : path.EndsWith("/btcusd", StringComparison.OrdinalIgnoreCase)
-                    ? """{"btcToUsdRate":0}"""
-                    : """{"totalReceivedSatoshis":0}""";
-
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = 200,
-                ContentType = "application/json",
-                Body = body
-            });
-        });
     }
 
     private static async Task AssertDetailsModalShowsAthleteAsync(IPage page, string expectedName)

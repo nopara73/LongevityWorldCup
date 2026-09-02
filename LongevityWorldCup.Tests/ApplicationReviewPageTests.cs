@@ -2,12 +2,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class ApplicationReviewPageTests
+
+public sealed class ApplicationReviewPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task ApplicationReview_UsesSafeStorageAccessForSubmissionContext()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/application-review.html");
@@ -92,7 +93,7 @@ public sealed class ApplicationReviewPageTests
     [Fact]
     public async Task ApplicationReview_NormalizesStoredContactEmailBeforeDisplayAndPaymentCheck()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/application-review.html");
@@ -142,7 +143,7 @@ public sealed class ApplicationReviewPageTests
     [Fact]
     public async Task ApplicationReview_WrapsLongStoredContactEmail()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/application-review.html");
@@ -161,7 +162,7 @@ public sealed class ApplicationReviewPageTests
     [Fact]
     public async Task ApplicationReview_KeepsWaitingJokeArtworkVersionedAndAccessible()
     {
-        using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/onboarding/application-review.html");

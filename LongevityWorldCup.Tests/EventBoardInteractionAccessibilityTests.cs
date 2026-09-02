@@ -2,13 +2,13 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class EventBoardInteractionAccessibilityTests
+
+public sealed class EventBoardInteractionAccessibilityTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task CustomEventExpander_HasVisibleKeyboardFocus()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = sharedFactory.CreateClient();
 
         var html = await client.GetStringAsync("/events");
 
@@ -21,8 +21,7 @@ public sealed class EventBoardInteractionAccessibilityTests
     [Fact]
     public async Task EventLoadingFailure_HasLiveStatusAndRetryAction()
     {
-        using var factory = new TestWebApplicationFactory();
-        using var client = factory.CreateClient();
+        using var client = sharedFactory.CreateClient();
 
         var html = await client.GetStringAsync("/events");
 

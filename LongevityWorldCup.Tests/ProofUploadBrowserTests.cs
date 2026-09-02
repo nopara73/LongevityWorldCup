@@ -5,16 +5,23 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class ProofUploadBrowserTests
+[Collection(BrowserTestCollections.Integration)]
+public sealed class ProofUploadBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
     [Fact]
     public async Task ResultUpload_WaitsForDelayedProofHelperBeforeBindingUploadControls()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
-        await RoutePageDependenciesAsync(context, delayProofHelper: true);
+        var proofHelperRequestStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseProofHelper = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await RoutePageDependenciesAsync(
+            context,
+            delayProofHelper: true,
+            proofHelperRequestStarted,
+            releaseProofHelper.Task);
 
         await context.AddInitScriptAsync(
             """
@@ -39,7 +46,12 @@ public sealed class ProofUploadBrowserTests
         };
         page.PageError += (_, error) => errors.Add(error);
 
-        await page.GotoAsync("/play/proof-upload.html", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var navigation = page.GotoAsync(
+            "/play/proof-upload.html",
+            new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await proofHelperRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        releaseProofHelper.SetResult();
+        await navigation;
         await page.WaitForFunctionAsync(
             "() => document.getElementById('uploadProofButton')?.getAttribute('data-listener') === 'true'");
 
@@ -53,11 +65,16 @@ public sealed class ProofUploadBrowserTests
     [Fact]
     public async Task OnboardingProofStage_WaitsForDelayedProofHelperBeforeBindingUploadControls()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
-        await RoutePageDependenciesAsync(context, delayProofHelper: true);
+        var proofHelperRequestStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseProofHelper = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await RoutePageDependenciesAsync(
+            context,
+            delayProofHelper: true,
+            proofHelperRequestStarted,
+            releaseProofHelper.Task);
 
         await context.AddInitScriptAsync(
             """
@@ -78,7 +95,12 @@ public sealed class ProofUploadBrowserTests
         };
         page.PageError += (_, error) => errors.Add(error);
 
-        await page.GotoAsync("/onboarding/convergence.html?fake=1", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        var navigation = page.GotoAsync(
+            "/onboarding/convergence.html?fake=1",
+            new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await proofHelperRequestStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        releaseProofHelper.SetResult();
+        await navigation;
 
         await AdvanceOnboardingStageAsync(page, "2. Finding your why");
         await AdvanceOnboardingStageAsync(page, "3. The price of glory");
@@ -129,9 +151,8 @@ public sealed class ProofUploadBrowserTests
     [Fact]
     public async Task ResultUpload_SubmitsPdfProofFromReportedFlow()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         var payloadTask = await RoutePageDependenciesAndCaptureApplicationPostAsync(context);
 
@@ -271,14 +292,31 @@ public sealed class ProofUploadBrowserTests
     [Fact]
     public async Task ResultUpload_BoundsLargeNoisyPdfCanvasBeforeKeepingIt()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         await RoutePageDependenciesAsync(context, delayProofHelper: false);
 
         await context.AddInitScriptAsync(
             """
+            const nativeCanvasToBlob = HTMLCanvasElement.prototype.toBlob;
+            window.__proofCanvasEncodes = [];
+            HTMLCanvasElement.prototype.toBlob = function(callback, contentType, quality) {
+                const width = this.width;
+                const height = this.height;
+                return nativeCanvasToBlob.call(this, blob => {
+                    if (width > 1 && height > 1) {
+                        window.__proofCanvasEncodes.push({
+                            width,
+                            height,
+                            contentType,
+                            quality,
+                            size: blob?.size || 0
+                        });
+                    }
+                    callback(blob);
+                }, contentType, quality);
+            };
             window.pdfjsLib = {
                 GlobalWorkerOptions: {},
                 getDocument() {
@@ -286,20 +324,31 @@ public sealed class ProofUploadBrowserTests
                         promise: Promise.resolve({
                             numPages: 1,
                             getPage: async () => ({
-                                getViewport: () => ({ width: 3000, height: 2200 }),
+                                getViewport: () => ({ width: 2600, height: 1600 }),
                                 render: ({ canvasContext }) => {
                                     const width = canvasContext.canvas.width;
                                     const height = canvasContext.canvas.height;
-                                    const pixels = canvasContext.createImageData(width, height);
+                                    const noiseCanvas = document.createElement('canvas');
+                                    noiseCanvas.width = Math.ceil(width / 4);
+                                    noiseCanvas.height = Math.ceil(height / 4);
+                                    const noiseContext = noiseCanvas.getContext('2d');
+                                    const pixels = noiseContext.createImageData(noiseCanvas.width, noiseCanvas.height);
+                                    // Deterministic block noise keeps this a real, difficult encode
+                                    // without making the regression depend on random compressed size.
                                     let state = 0x12345678;
                                     for (let index = 0; index < pixels.data.length; index += 4) {
-                                        state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+                                        state ^= state << 13;
+                                        state ^= state >>> 17;
+                                        state ^= state << 5;
+                                        state >>>= 0;
                                         pixels.data[index] = state & 255;
                                         pixels.data[index + 1] = (state >>> 8) & 255;
                                         pixels.data[index + 2] = (state >>> 16) & 255;
                                         pixels.data[index + 3] = 255;
                                     }
-                                    canvasContext.putImageData(pixels, 0, 0);
+                                    noiseContext.putImageData(pixels, 0, 0);
+                                    canvasContext.imageSmoothingEnabled = false;
+                                    canvasContext.drawImage(noiseCanvas, 0, 0, width, height);
                                     return { promise: Promise.resolve() };
                                 }
                             })
@@ -340,6 +389,15 @@ public sealed class ProofUploadBrowserTests
         var bytes = Convert.FromBase64String(dataUrl[(separator + 1)..]);
         Assert.True(bytes.Length <= (int)(1.5 * 1024 * 1024), $"Encoded proof was {bytes.Length} bytes.");
 
+        var encodeDiagnostics = await page.EvaluateAsync<JsonElement>("() => window.__proofCanvasEncodes");
+        var encodes = encodeDiagnostics.EnumerateArray().ToArray();
+        Assert.NotEmpty(encodes);
+        Assert.Equal(2560, encodes[0].GetProperty("width").GetInt32());
+        Assert.True(
+            encodes[0].GetProperty("size").GetInt32() > (int)(1.5 * 1024 * 1024),
+            "The noisy PDF witness must exceed the byte cap before the optimizer accepts it.");
+        Assert.Equal(bytes.Length, encodes[^1].GetProperty("size").GetInt32());
+
         using var stream = new MemoryStream(bytes);
         var imageInfo = SixLabors.ImageSharp.Image.Identify(stream);
         Assert.NotNull(imageInfo);
@@ -349,9 +407,8 @@ public sealed class ProofUploadBrowserTests
     [Fact]
     public async Task ApplicationSubmissionId_ReusesExactPayloadAndRotatesAfterAnEdit()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         await RoutePageDependenciesAsync(context, delayProofHelper: false);
 
@@ -420,9 +477,8 @@ public sealed class ProofUploadBrowserTests
     [Fact]
     public async Task ApplicationSubmission_RecoversCheckoutAfterThePostConnectionDrops()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(browser, app);
         await RoutePageDependenciesAsync(context, delayProofHelper: false);
         var applicationAttempts = 0;
@@ -474,14 +530,6 @@ public sealed class ProofUploadBrowserTests
         Assert.Equal(1, recoveryAttempts);
     }
 
-    private static async Task<IBrowser> LaunchBrowserAsync(IPlaywright playwright)
-    {
-        return await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-    }
-
     private static async Task<IBrowserContext> NewContextAsync(IBrowser browser, BrowserTestApp app)
     {
         return await browser.NewContextAsync(new BrowserNewContextOptions
@@ -491,12 +539,20 @@ public sealed class ProofUploadBrowserTests
         });
     }
 
-    private static async Task RoutePageDependenciesAsync(IBrowserContext context, bool delayProofHelper)
+    private static async Task RoutePageDependenciesAsync(
+        IBrowserContext context,
+        bool delayProofHelper,
+        TaskCompletionSource? proofHelperRequestStarted = null,
+        Task? releaseProofHelper = null)
     {
         await BrowserTestApp.RouteExternalResourcesAsync(context, async uri =>
         {
             if (delayProofHelper && uri.AbsolutePath.Equals("/js/proof-helpers.js", StringComparison.OrdinalIgnoreCase))
-                await Task.Delay(1200);
+            {
+                proofHelperRequestStarted?.TrySetResult();
+                if (releaseProofHelper is not null)
+                    await releaseProofHelper;
+            }
         });
     }
 

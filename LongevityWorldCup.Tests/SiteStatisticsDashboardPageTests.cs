@@ -4,12 +4,12 @@ using static LongevityWorldCup.Tests.FrontendSourceTestHelper;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class SiteStatisticsDashboardPageTests
+public sealed class SiteStatisticsDashboardPageTests(TestWebApplicationFactory sharedFactory) : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
     public async Task SiteStatisticsDashboardPage_UsesVersionedLocalAssets()
     {
-        await using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync("/internal/site-statistics.html");
@@ -54,7 +54,7 @@ public sealed class SiteStatisticsDashboardPageTests
     [InlineData("/longevitymaxxing")]
     public async Task OnboardingAndChallengePages_UseVersionedStatisticsTracker(string path)
     {
-        await using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);
@@ -71,7 +71,7 @@ public sealed class SiteStatisticsDashboardPageTests
     [InlineData("/league/pheno")]
     public async Task PublicDashboardEventPages_UseVersionedStatisticsTracker(string path)
     {
-        await using var factory = new TestWebApplicationFactory();
+        var factory = sharedFactory;
         using var client = factory.CreateClient();
 
         var html = await client.GetStringAsync(path);

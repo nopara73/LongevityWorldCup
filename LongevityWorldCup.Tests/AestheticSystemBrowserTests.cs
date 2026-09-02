@@ -4,9 +4,11 @@ using Xunit;
 
 namespace LongevityWorldCup.Tests;
 
-public sealed class AestheticSystemBrowserTests
+[Collection(BrowserTestCollections.Integration)]
+public sealed partial class AestheticSystemBrowserTests(PlaywrightBrowserFixture browserFixture, BrowserTestAppFixture appFixture)
+    : BrowserIntegrationTest(browserFixture, appFixture)
 {
-    private static readonly string[] RepresentativePaths =
+    internal static readonly string[] RepresentativePaths =
     [
         "/",
         "/leaderboard",
@@ -21,9 +23,8 @@ public sealed class AestheticSystemBrowserTests
     [Fact]
     public async Task DarkTheme_RendersWithTheIndependentSemanticPalette()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(
             browser,
             app,
@@ -177,9 +178,8 @@ public sealed class AestheticSystemBrowserTests
     [Fact]
     public async Task SelfHostedFontAwesome_RendersEveryVisibleChallengeAndFooterIconWithoutExternalNetwork()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(
             browser,
             app,
@@ -193,6 +193,19 @@ public sealed class AestheticSystemBrowserTests
         await NavigateAndSettleAsync(page, "/longevitymaxxing");
         await page.Locator(".lmx-life-strip i").First.WaitForAsync();
         await page.Locator(".footer .footer-link i").First.WaitForAsync();
+        await page.WaitForFunctionAsync(
+            """
+            () => [...document.querySelectorAll('.lmx-page i.fa, .lmx-page i.fas, .lmx-page i.fab, .lmx-page i.fa-solid, .lmx-page i.fa-brands, .footer i.fa, .footer i.fas, .footer i.fab, .footer i.fa-solid, .footer i.fa-brands')]
+                .filter(element => {
+                    const style = getComputedStyle(element);
+                    const rect = element.getBoundingClientRect();
+                    return style.display !== 'none'
+                        && style.visibility !== 'hidden'
+                        && Number(style.opacity) > 0
+                        && rect.width > 0
+                        && rect.height > 0;
+                }).length >= 34
+            """);
 
         var diagnostics = await page.EvaluateAsync<IconFontDiagnostics>(
             """
@@ -270,9 +283,8 @@ public sealed class AestheticSystemBrowserTests
     [Fact]
     public async Task ReducedMotion_DisablesThePlayEntranceMotion()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(
             browser,
             app,
@@ -316,9 +328,8 @@ public sealed class AestheticSystemBrowserTests
     [Fact]
     public async Task ForcedColorsAndHigherContrast_PreserveVisibleControlBoundariesAndFocus()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(
             browser,
             app,
@@ -360,9 +371,8 @@ public sealed class AestheticSystemBrowserTests
     [Fact]
     public async Task ColorVisionDeficiencyEmulation_PreservesNonColorStateMeaning()
     {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
+        var app = App;
+        var browser = Browser;
         await using var context = await NewContextAsync(
             browser,
             app,
@@ -370,17 +380,22 @@ public sealed class AestheticSystemBrowserTests
             {
                 ViewportSize = new ViewportSize { Width = 1280, Height = 800 }
             });
-        var page = await context.NewPageAsync();
-        var cdp = await context.NewCDPSessionAsync(page);
+        var challengePage = await context.NewPageAsync();
+        var applyPage = await context.NewPageAsync();
+        var challengeCdp = await context.NewCDPSessionAsync(challengePage);
+        var applyCdp = await context.NewCDPSessionAsync(applyPage);
+        await Task.WhenAll(
+            NavigateAndSettleAsync(challengePage, "/longevitymaxxing"),
+            NavigateAndSettleAsync(applyPage, "/apply"));
 
         foreach (var deficiency in new[] { "protanopia", "deuteranopia", "tritanopia", "achromatopsia" })
         {
-            await cdp.SendAsync(
-                "Emulation.setEmulatedVisionDeficiency",
-                new Dictionary<string, object> { ["type"] = deficiency });
+            var emulation = new Dictionary<string, object> { ["type"] = deficiency };
+            await Task.WhenAll(
+                challengeCdp.SendAsync("Emulation.setEmulatedVisionDeficiency", emulation),
+                applyCdp.SendAsync("Emulation.setEmulatedVisionDeficiency", emulation));
 
-            await NavigateAndSettleAsync(page, "/longevitymaxxing");
-            var selectedAndStatus = await page.EvaluateAsync<ColorIndependentStateDiagnostics>(
+            var selectedAndStatus = await challengePage.EvaluateAsync<ColorIndependentStateDiagnostics>(
                 """
                 () => {
                     const selected = document.querySelector('#lmxAccessTabs .lmx-tab[aria-selected="true"]');
@@ -414,8 +429,7 @@ public sealed class AestheticSystemBrowserTests
                 $"Status had no non-color border indicator under {deficiency} emulation.");
             Assert.True(selectedAndStatus.StatusIsVisible, $"Status text was not visible under {deficiency} emulation.");
 
-            await NavigateAndSettleAsync(page, "/apply");
-            var error = await page.EvaluateAsync<ColorIndependentErrorDiagnostics>(
+            var error = await applyPage.EvaluateAsync<ColorIndependentErrorDiagnostics>(
                 """
                 () => {
                     const input = document.getElementById('name');
@@ -447,582 +461,14 @@ public sealed class AestheticSystemBrowserTests
             Assert.True(error.ErrorIsVisible, $"Error text was not visible under {deficiency} emulation.");
         }
 
-        await cdp.SendAsync(
-            "Emulation.setEmulatedVisionDeficiency",
-            new Dictionary<string, object> { ["type"] = "none" });
-        await cdp.DetachAsync();
+        var resetEmulation = new Dictionary<string, object> { ["type"] = "none" };
+        await Task.WhenAll(
+            challengeCdp.SendAsync("Emulation.setEmulatedVisionDeficiency", resetEmulation),
+            applyCdp.SendAsync("Emulation.setEmulatedVisionDeficiency", resetEmulation));
+        await Task.WhenAll(challengeCdp.DetachAsync(), applyCdp.DetachAsync());
     }
 
-    [Fact]
-    public async Task RepresentativePages_DoNotOverflowAtNarrowShortAndLandscapeViewports()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-        await using var context = await NewContextAsync(
-            browser,
-            app,
-            new BrowserNewContextOptions
-            {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 800 }
-            });
-        var page = await context.NewPageAsync();
-
-        var viewports = new[]
-        {
-            new ViewportSize { Width = 360, Height = 640 },
-            new ViewportSize { Width = 844, Height = 390 },
-            new ViewportSize { Width = 1280, Height = 350 }
-        };
-
-        foreach (var viewport in viewports)
-        {
-            await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
-            foreach (var path in RepresentativePaths)
-            {
-                await NavigateAndSettleAsync(page, path);
-                var layout = await MeasureLayoutAsync(page);
-
-                Assert.True(layout.HasVisibleContent, $"{path} rendered no visible main content at {viewport.Width}x{viewport.Height}.");
-                Assert.True(
-                    layout.HorizontalOverflow <= 1,
-                    $"{path} overflowed horizontally by {layout.HorizontalOverflow}px at {viewport.Width}x{viewport.Height}. " +
-                    $"scrollWidth={layout.ScrollWidth}, clientWidth={layout.ClientWidth}.");
-            }
-        }
-    }
-
-    [Fact]
-    public async Task FallbackErrorArtwork_DecodesAndRemainsVisibleAcrossResponsiveLayouts()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-        await using var context = await NewContextAsync(
-            browser,
-            app,
-            new BrowserNewContextOptions
-            {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 800 }
-            });
-        var page = await context.NewPageAsync();
-        var viewports = new[]
-        {
-            new ViewportSize { Width = 1280, Height = 800 },
-            new ViewportSize { Width = 390, Height = 844 },
-            new ViewportSize { Width = 640, Height = 390 }
-        };
-
-        foreach (var viewport in viewports)
-        {
-            await page.SetViewportSizeAsync(viewport.Width, viewport.Height);
-            foreach (var path in new[] { "/error/502.html", "/error/503.html", "/error/504.html" })
-            {
-                await NavigateAndSettleAsync(page, path);
-                await page.WaitForFunctionAsync(
-                    "() => { const image = document.querySelector('.visual img'); return image?.complete && image.naturalWidth > 0; }");
-
-                var artwork = page.Locator(".visual img");
-                var bounds = await artwork.BoundingBoxAsync();
-                Assert.NotNull(bounds);
-                Assert.True(
-                    await artwork.EvaluateAsync<bool>(
-                        "image => image.complete && image.naturalWidth > 0 && getComputedStyle(image).display !== 'none' && getComputedStyle(image).visibility !== 'hidden'"),
-                    $"{path} artwork did not decode visibly at {viewport.Width}x{viewport.Height}.");
-                Assert.True(
-                    bounds.Width >= 90 && bounds.Height >= 90,
-                    $"{path} artwork collapsed to {bounds.Width}x{bounds.Height}px at {viewport.Width}x{viewport.Height}.");
-                Assert.True(
-                    await page.EvaluateAsync<bool>(
-                        "() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) <= window.innerWidth + 1"),
-                    $"{path} overflowed horizontally at {viewport.Width}x{viewport.Height}.");
-            }
-        }
-    }
-
-    [Fact]
-    public async Task ResponsiveMediaInventory_MatchesAtAndCrossesEveryDeclaredViewportBoundary()
-    {
-        var mediaInventory = GetResponsiveMediaInventory()
-            .Concat(GetResponsiveScriptMediaInventory())
-            .GroupBy(item => (item.Query, item.Source))
-            .Select(group => group.First())
-            .ToArray();
-        Assert.NotEmpty(mediaInventory);
-        var scriptThresholds = GetResponsiveScriptThresholdInventory();
-        Assert.NotEmpty(scriptThresholds);
-
-        var boundaryCases = mediaInventory
-            .SelectMany(CreateResponsiveBoundaryCases)
-            .ToArray();
-        var scriptBoundaryCases = scriptThresholds
-            .SelectMany(CreateResponsiveScriptBoundaryCases)
-            .ToArray();
-        Assert.NotEmpty(boundaryCases);
-
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-        await using var context = await NewContextAsync(
-            browser,
-            app,
-            new BrowserNewContextOptions
-            {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 800 }
-            });
-        await AddRouteStressStateAsync(context);
-        var page = await context.NewPageAsync();
-        await page.SetContentAsync("<!doctype html><html><body><main>Responsive boundary probe</main></body></html>");
-
-        var results = new Dictionary<ResponsiveBoundaryCase, bool>();
-        foreach (var viewportGroup in boundaryCases.GroupBy(item => (item.Width, item.Height)))
-        {
-            await page.SetViewportSizeAsync(viewportGroup.Key.Width, viewportGroup.Key.Height);
-            var queries = viewportGroup
-                .Select(item => item.Branch.Query)
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
-            var matches = await page.EvaluateAsync<bool[]>(
-                "queries => queries.map(query => matchMedia(query).matches)",
-                queries);
-            var matchesByQuery = queries
-                .Select((query, index) => (query, matches[index]))
-                .ToDictionary(item => item.query, item => item.Item2, StringComparer.Ordinal);
-
-            foreach (var boundaryCase in viewportGroup)
-            {
-                results[boundaryCase] = matchesByQuery[boundaryCase.Branch.Query];
-            }
-        }
-
-        foreach (var boundaryCase in boundaryCases)
-        {
-            Assert.True(
-                results[boundaryCase] == boundaryCase.ExpectedMatch,
-                $"Responsive condition '{boundaryCase.Branch.Query}' from {boundaryCase.Branch.Source} " +
-                $"was expected to {(boundaryCase.ExpectedMatch ? "match" : "stop matching")} at " +
-                $"{boundaryCase.Width}x{boundaryCase.Height} while checking " +
-                $"{boundaryCase.Feature.Bound}-{boundaryCase.Feature.Axis}: {boundaryCase.Feature.Value}px.");
-        }
-
-        var testedBranches = boundaryCases
-            .Select(item => item.Branch.Query)
-            .Distinct(StringComparer.Ordinal)
-            .ToHashSet(StringComparer.Ordinal);
-        Assert.All(mediaInventory, branch => Assert.Contains(branch.Query, testedBranches));
-
-        foreach (var viewportGroup in scriptBoundaryCases.GroupBy(item => (item.Width, item.Height)))
-        {
-            await page.SetViewportSizeAsync(viewportGroup.Key.Width, viewportGroup.Key.Height);
-            var actualViewport = await page.EvaluateAsync<ScriptViewportDiagnostics>(
-                "() => ({ Width: window.innerWidth, Height: window.innerHeight })");
-            Assert.Equal(viewportGroup.Key.Width, actualViewport.Width);
-            Assert.Equal(viewportGroup.Key.Height, actualViewport.Height);
-            foreach (var scriptCase in viewportGroup)
-            {
-                var actualValue = scriptCase.Threshold.Axis == "width"
-                    ? actualViewport.Width
-                    : actualViewport.Height;
-                Assert.Equal(
-                    scriptCase.ExpectedMatch,
-                    EvaluateComparison(actualValue, scriptCase.Threshold.Operator, scriptCase.Threshold.Value));
-            }
-        }
-
-        var layoutProbes = boundaryCases
-            .Select(item => new ResponsiveLayoutProbe(
-                MapResponsiveSourceToRoute(item.Branch.Source),
-                item.Width,
-                item.Height,
-                item.Branch.Source,
-                item.Branch.Query))
-            .Concat(scriptBoundaryCases.Select(item => new ResponsiveLayoutProbe(
-                MapResponsiveSourceToRoute(item.Threshold.Source),
-                item.Width,
-                item.Height,
-                item.Threshold.Source,
-                $"inner{item.Threshold.Axis} {item.Threshold.Operator} {item.Threshold.Value}")))
-            .GroupBy(item => (item.Route, item.Width, item.Height))
-            .Select(group => group.First())
-            .GroupBy(item => item.Route, StringComparer.Ordinal)
-            .OrderBy(group => group.Key, StringComparer.Ordinal)
-            .ToArray();
-
-        foreach (var routeGroup in layoutProbes)
-        {
-            var probes = routeGroup
-                .OrderBy(item => item.Width)
-                .ThenBy(item => item.Height)
-                .ToArray();
-            await page.SetViewportSizeAsync(probes[0].Width, probes[0].Height);
-            await NavigateAndSettleAsync(page, routeGroup.Key);
-
-            foreach (var probe in probes)
-            {
-                await page.SetViewportSizeAsync(probe.Width, probe.Height);
-                await page.EvaluateAsync(
-                    "() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
-                var layout = await MeasureLayoutAsync(page);
-                Assert.True(
-                    layout.HasVisibleContent,
-                    $"{probe.Route} rendered no visible content at {probe.Width}x{probe.Height} " +
-                    $"for '{probe.Query}' from {probe.Source}.");
-                Assert.True(
-                    layout.HorizontalOverflow <= 1,
-                    $"{probe.Route} overflowed horizontally by {layout.HorizontalOverflow}px at " +
-                    $"{probe.Width}x{probe.Height} for '{probe.Query}' from {probe.Source}. " +
-                    $"scrollWidth={layout.ScrollWidth}, clientWidth={layout.ClientWidth}.");
-            }
-        }
-
-
-        var containerInventory = GetResponsiveContainerInventory();
-        await AssertResponsiveContainerBoundariesAsync(page, containerInventory);
-    }
-
-    [Fact]
-    public async Task RepresentativePages_ReflowAtFourHundredPercentZoomApproximation()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-        await using var context = await NewContextAsync(
-            browser,
-            app,
-            new BrowserNewContextOptions
-            {
-                // A 320 CSS-pixel viewport approximates viewing a 1280px desktop
-                // page at 400% browser zoom, where the layout viewport reflows.
-                ViewportSize = new ViewportSize { Width = 320, Height = 720 }
-            });
-        var page = await context.NewPageAsync();
-
-        foreach (var path in RepresentativePaths)
-        {
-            await NavigateAndSettleAsync(page, path);
-            var layout = await MeasureLayoutAsync(page);
-
-            Assert.True(layout.RootFontSize >= 16, $"{path} reduced the root font below 16px during reflow.");
-            Assert.True(
-                layout.HorizontalOverflow <= 1,
-                $"{path} did not reflow at the 400% zoom approximation: " +
-                $"overflow={layout.HorizontalOverflow}px, scrollWidth={layout.ScrollWidth}, clientWidth={layout.ClientWidth}.");
-        }
-    }
-
-    [Fact]
-    public async Task LongLocalizedContent_ReflowsWithoutClippingAtThreeHundredTwentyPixels()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-        await using var context = await NewContextAsync(
-            browser,
-            app,
-            new BrowserNewContextOptions
-            {
-                ViewportSize = new ViewportSize { Width = 320, Height = 720 }
-            });
-        await AddRouteStressStateAsync(context);
-        var page = await context.NewPageAsync();
-
-        await NavigateAndSettleAsync(page, "/leaderboard");
-        await page.WaitForSelectorAsync(
-            ".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name] .athlete-name",
-            new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible });
-        var leaderboard = await InjectAndMeasureLongContentAsync(
-            page,
-            new Dictionary<string, string>
-            {
-                [".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name] .athlete-name"] =
-                    "Alexandria-Cassandra von Hohenlohe-Longevity-Research-Collective",
-                [".leaderboard-view-switcher .view-badge"] =
-                    "Classement général de toutes les catégories biologiques",
-                [".ranking-explanation"] =
-                    "Classement international calculé à partir de la réduction de l’âge biologique, " +
-                    "avec départage transparent selon les mesures admissibles les plus récentes."
-            },
-            [
-                ".leaderboard tbody:not(.loading-skeleton) tr[data-athlete-name] .athlete-name",
-                ".leaderboard-view-switcher .view-badge",
-                ".ranking-explanation"
-            ]);
-        AssertLongContentLayout("/leaderboard", leaderboard);
-
-        await NavigateAndSettleAsync(page, "/apply");
-        var form = await InjectAndMeasureLongContentAsync(
-            page,
-            new Dictionary<string, string>
-            {
-                ["label[for=\"name\"]"] =
-                    "Nom complet ou pseudonyme public international de l’athlète (obligatoire)",
-                ["#nextButton .flow-action__label"] =
-                    "Continuer vers l’étape suivante de la candidature internationale"
-            },
-            ["label[for=\"name\"]", "#nextButton"]);
-        AssertLongContentLayout("/apply", form);
-
-        await NavigateAndSettleAsync(page, "/play");
-        var actions = await InjectAndMeasureLongContentAsync(
-            page,
-            new Dictionary<string, string>
-            {
-                ["#newGameBtn .flow-action__label"] =
-                    "Je souhaite participer pour la toute première fois à cette compétition",
-                ["#continueGameBtn .flow-action__label"] =
-                    "Je participe déjà en tant qu’athlète international enregistré"
-            },
-            ["#newGameBtn", "#continueGameBtn"]);
-        AssertLongContentLayout("/play", actions);
-
-        var canonicalRoutes = GetCanonicalFirstPartyRoutes();
-        Assert.NotEmpty(canonicalRoutes);
-        foreach (var path in canonicalRoutes)
-        {
-            await NavigateAndSettleAsync(page, path);
-            var stress = await InjectAndMeasureExtremeContentAsync(page);
-            AssertExtremeContentLayout(path, stress);
-        }
-    }
-
-    [Fact]
-    public async Task MobileDocumentationNavigation_UsesProgressiveDisclosureAndLargeTargets()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-        await using var context = await NewContextAsync(
-            browser,
-            app,
-            new BrowserNewContextOptions
-            {
-                ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-            });
-        var page = await context.NewPageAsync();
-
-        await NavigateAndSettleAsync(page, "/history");
-        var toggle = page.Locator(".documentation-nav-toggle");
-        var links = page.Locator(".documentation-nav-links");
-        var heading = page.Locator(".documentation-document h1");
-
-        Assert.True(await toggle.IsVisibleAsync());
-        Assert.False(await links.IsVisibleAsync());
-        Assert.Equal("false", await toggle.GetAttributeAsync("aria-expanded"));
-        var toggleBox = await toggle.BoundingBoxAsync();
-        var headingBox = await heading.BoundingBoxAsync();
-        Assert.NotNull(toggleBox);
-        Assert.NotNull(headingBox);
-        Assert.True(toggleBox.Height >= 44, $"Documentation disclosure measured {toggleBox.Height}px high.");
-        Assert.True(headingBox.Y < 260, $"Collapsed navigation delayed the History heading to y={headingBox.Y}px.");
-
-        await toggle.ClickAsync();
-        Assert.True(await links.IsVisibleAsync());
-        Assert.Equal("true", await toggle.GetAttributeAsync("aria-expanded"));
-
-        var targets = page.Locator(".documentation-nav-links a");
-        var targetCount = await targets.CountAsync();
-        Assert.True(targetCount > 8, "History should retain its detailed document navigation inside the disclosure.");
-        for (var index = 0; index < targetCount; index++)
-        {
-            var box = await targets.Nth(index).BoundingBoxAsync();
-            Assert.NotNull(box);
-            Assert.True(box.Height >= 44, $"Documentation navigation target {index + 1} measured {box.Height}px high.");
-        }
-
-        var nestedMargin = await page.Locator(".documentation-nav-level-3").First.EvaluateAsync<double>(
-            "element => parseFloat(getComputedStyle(element).marginLeft)");
-        Assert.True(nestedMargin >= 8, $"Nested documentation hierarchy lost its indent ({nestedMargin}px).");
-    }
-
-    [Fact]
-    public async Task MobileDocumentationNavigation_RemainsAvailableWithoutJavaScript()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-        await using var context = await NewContextAsync(
-            browser,
-            app,
-            new BrowserNewContextOptions
-            {
-                JavaScriptEnabled = false,
-                ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-            });
-        var page = await context.NewPageAsync();
-
-        await page.GotoAsync("/history", new PageGotoOptions { WaitUntil = WaitUntilState.Load });
-
-        Assert.False(await page.Locator(".documentation-nav-toggle").IsVisibleAsync());
-        Assert.True(await page.Locator(".documentation-nav-links").IsVisibleAsync());
-        Assert.True(await page.Locator(".documentation-source-link").IsVisibleAsync());
-        Assert.True(
-            await page.Locator(".documentation-nav-links a").CountAsync() > 8,
-            "History should expose its full document navigation when JavaScript is unavailable.");
-    }
-
-    [Fact]
-    public async Task SharedInteractionStates_MeetComputedContrastAcrossLightDarkAndHigherContrastModes()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-
-        foreach (var mode in new[] { "light", "dark", "higher-contrast" })
-        {
-            var options = new BrowserNewContextOptions
-            {
-                ColorScheme = mode == "dark" ? ColorScheme.Dark : ColorScheme.Light,
-                ViewportSize = new ViewportSize { Width = 1280, Height = 800 }
-            };
-            if (mode == "higher-contrast")
-            {
-                options.Contrast = Contrast.More;
-            }
-
-            await using var context = await NewContextAsync(browser, app, options);
-            var page = await context.NewPageAsync();
-            await NavigateAndSettleAsync(page, "/apply");
-
-            var stateDiagnostics = await MeasureSharedInteractionStatesAsync(page);
-            AssertInteractionStateContrast(mode, stateDiagnostics);
-
-            if (mode != "light")
-            {
-                continue;
-            }
-
-            var placeholderContrast = await MeasurePlaceholderContrastAsync(page.Locator("#name"));
-            Assert.True(placeholderContrast >= 4.5, $"Placeholder contrast was only {placeholderContrast:F2}:1.");
-
-            await NavigateAndSettleAsync(page, "/leaderboard");
-            var badge = page.Locator("a.badge-class, .badge-class.badge-clickable, .badge-class[data-clickable=\"true\"]").First;
-            await badge.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-            await badge.HoverAsync();
-            var hoverMotion = await badge.EvaluateAsync<BadgeMotionDiagnostics>(
-                """
-                element => {
-                    const style = getComputedStyle(element);
-                    const durations = style.transitionDuration.split(',').map(value => {
-                        const trimmed = value.trim();
-                        return trimmed.endsWith('ms') ? parseFloat(trimmed) : parseFloat(trimmed) * 1000;
-                    });
-                    return {
-                        AnimationName: style.animationName,
-                        Transform: style.transform,
-                        LongestTransitionMilliseconds: Math.max(0, ...durations)
-                    };
-                }
-                """);
-
-            Assert.Equal("none", hoverMotion.AnimationName);
-            Assert.Equal("none", hoverMotion.Transform);
-            Assert.True(
-                hoverMotion.LongestTransitionMilliseconds <= 220,
-                $"Badge hover transition lasted {hoverMotion.LongestTransitionMilliseconds}ms.");
-
-            await badge.FocusAsync();
-            var focus = await badge.EvaluateAsync<FocusStateDiagnostics>(
-                """
-                element => {
-                    const style = getComputedStyle(element);
-                    return {
-                        AnimationName: style.animationName,
-                        OutlineWidth: parseFloat(style.outlineWidth),
-                        OutlineStyle: style.outlineStyle
-                    };
-                }
-                """);
-            Assert.Equal("none", focus.AnimationName);
-            Assert.True(focus.OutlineWidth >= 3);
-            Assert.NotEqual("none", focus.OutlineStyle);
-        }
-    }
-
-    [Fact]
-    public async Task SharedPrimaryActionsAndSemanticAccentCopy_MeetTextContrastInLightAndDarkThemes()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-
-        foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
-        {
-            await using var context = await NewContextAsync(
-                browser,
-                app,
-                new BrowserNewContextOptions
-                {
-                    ColorScheme = scheme,
-                    ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-                });
-            var page = await context.NewPageAsync();
-
-            await NavigateAndSettleAsync(page, "/");
-            var actions = await BrowserContrast.MeasureVisibleTextAsync(
-                page,
-                ".join-game:not(.scrolled-button)",
-                ".enhanced-subscribe-btn");
-            Assert.Equal(2, actions.Length);
-            BrowserContrast.AssertMinimum($"{scheme} shared action", actions);
-
-            await NavigateAndSettleAsync(page, "/pheno-age");
-            var accentCopy = await BrowserContrast.MeasureVisibleTextAsync(page, ".blood-sport-accent");
-            Assert.Single(accentCopy);
-            BrowserContrast.AssertMinimum($"{scheme} semantic danger copy", accentCopy);
-        }
-    }
-
-    [Fact]
-    public async Task SlowAndOfflineEventRequests_ShowLoadingAndRecoveryStates()
-    {
-        await using var app = await BrowserTestApp.StartAsync();
-        using var playwright = await Playwright.CreateAsync();
-        await using var browser = await LaunchBrowserAsync(playwright);
-
-        await using (var slowContext = await NewContextAsync(
-                         browser,
-                         app,
-                         new BrowserNewContextOptions
-                         {
-                             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-                         }))
-        {
-            await slowContext.RouteAsync("**/api/events", async route =>
-            {
-                await Task.Delay(900);
-                await route.ContinueAsync();
-            });
-            var slowPage = await slowContext.NewPageAsync();
-            await slowPage.GotoAsync("/events", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-            var loadingRoot = slowPage.Locator("#events-root[aria-busy=\"true\"]");
-            await loadingRoot.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-            Assert.Equal("Loading events...", await slowPage.Locator("#eventsStatus").InnerTextAsync());
-            await slowPage.Locator("#events-root[aria-busy=\"false\"]").WaitForAsync(
-                new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
-        }
-
-        await using (var offlineContext = await NewContextAsync(
-                         browser,
-                         app,
-                         new BrowserNewContextOptions
-                         {
-                             ViewportSize = new ViewportSize { Width = 390, Height = 844 }
-                         }))
-        {
-            await offlineContext.RouteAsync("**/api/events", route => route.AbortAsync("internetdisconnected"));
-            var offlinePage = await offlineContext.NewPageAsync();
-            await NavigateAndSettleAsync(offlinePage, "/events");
-            var retry = offlinePage.Locator(".events-retry-button");
-            await retry.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15_000 });
-            var retryBox = await retry.BoundingBoxAsync();
-            Assert.NotNull(retryBox);
-            Assert.True(retryBox.Height >= 44);
-            Assert.Equal("alert", await offlinePage.Locator("#eventsStatus").GetAttributeAsync("role"));
-            Assert.Contains("could not load", await offlinePage.Locator("#eventsStatus").InnerTextAsync(), StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
-    private static async Task<InteractionStateDiagnostics[]> MeasureSharedInteractionStatesAsync(IPage page)
+    internal static async Task<InteractionStateDiagnostics[]> MeasureSharedInteractionStatesAsync(IPage page)
     {
         await page.EvaluateAsync(
             """
@@ -1197,7 +643,7 @@ public sealed class AestheticSystemBrowserTests
         return diagnostics.ToArray();
     }
 
-    private static void AssertInteractionStateContrast(string mode, InteractionStateDiagnostics[] diagnostics)
+    internal static void AssertInteractionStateContrast(string mode, InteractionStateDiagnostics[] diagnostics)
     {
         var expectedStates = new[]
         {
@@ -1240,7 +686,7 @@ public sealed class AestheticSystemBrowserTests
         Assert.True(byName["error"].BoundaryWidth >= 4);
     }
 
-    private static Task<double> MeasurePlaceholderContrastAsync(ILocator locator)
+    internal static Task<double> MeasurePlaceholderContrastAsync(ILocator locator)
         => locator.EvaluateAsync<double>(
             """
             element => {
@@ -1262,7 +708,7 @@ public sealed class AestheticSystemBrowserTests
             }
             """);
 
-    private static Task AddRouteStressStateAsync(IBrowserContext context)
+    internal static Task AddRouteStressStateAsync(IBrowserContext context)
         => context.AddInitScriptAsync(
             """
             window.sessionStorage.setItem('selectedAthlete', JSON.stringify({
@@ -1283,7 +729,7 @@ public sealed class AestheticSystemBrowserTests
             window.sessionStorage.setItem('came-from', 'proof-upload');
             """);
 
-    private static string[] GetCanonicalFirstPartyRoutes()
+    internal static string[] GetCanonicalFirstPartyRoutes()
     {
         var repositoryRoot = FindRepositoryRoot();
         var middlewarePath = Path.Combine(
@@ -1304,7 +750,7 @@ public sealed class AestheticSystemBrowserTests
             .ToArray();
     }
 
-    private static Task<ExtremeContentDiagnostics> InjectAndMeasureExtremeContentAsync(IPage page)
+    internal static Task<ExtremeContentDiagnostics> InjectAndMeasureExtremeContentAsync(IPage page)
         => page.EvaluateAsync<ExtremeContentDiagnostics>(
             """
             async () => {
@@ -1346,7 +792,6 @@ public sealed class AestheticSystemBrowserTests
                 probe.append(heading, localized, extreme, empty, action, status);
                 (document.querySelector('main') || document.body).append(probe);
                 await (document.fonts?.ready || Promise.resolve());
-                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
                 const root = document.documentElement;
                 const body = document.body;
@@ -1403,7 +848,7 @@ public sealed class AestheticSystemBrowserTests
             }
             """);
 
-    private static void AssertExtremeContentLayout(string path, ExtremeContentDiagnostics diagnostics)
+    internal static void AssertExtremeContentLayout(string path, ExtremeContentDiagnostics diagnostics)
     {
         Assert.True(
             diagnostics.HorizontalOverflow <= 1,
@@ -1429,7 +874,7 @@ public sealed class AestheticSystemBrowserTests
         }
     }
 
-    private static ResponsiveMediaBranch[] GetResponsiveMediaInventory()
+    internal static ResponsiveMediaBranch[] GetResponsiveMediaInventory()
     {
         var repositoryRoot = FindRepositoryRoot();
         var webRoot = Path.Combine(repositoryRoot, "LongevityWorldCup.Website", "wwwroot");
@@ -1484,7 +929,7 @@ public sealed class AestheticSystemBrowserTests
             .ToArray();
     }
 
-    private static ResponsiveMediaBranch[] GetResponsiveScriptMediaInventory()
+    internal static ResponsiveMediaBranch[] GetResponsiveScriptMediaInventory()
     {
         var matchMediaPattern = new Regex(
             """matchMedia\s*\(\s*['"`](?<condition>[^'"`]+)['"`]\s*\)""",
@@ -1513,7 +958,7 @@ public sealed class AestheticSystemBrowserTests
             .ToArray();
     }
 
-    private static ResponsiveScriptThreshold[] GetResponsiveScriptThresholdInventory()
+    internal static ResponsiveScriptThreshold[] GetResponsiveScriptThresholdInventory()
     {
         var comparisonPattern = new Regex(
             """(?:window\s*\.\s*)?inner(?<axis>width|height)\s*(?<operator><=|>=|<|>)\s*(?<value>\d+)""",
@@ -1539,7 +984,7 @@ public sealed class AestheticSystemBrowserTests
             .ToArray();
     }
 
-    private static ResponsiveContainerCondition[] GetResponsiveContainerInventory()
+    internal static ResponsiveContainerCondition[] GetResponsiveContainerInventory()
     {
         var repositoryRoot = FindRepositoryRoot();
         var webRoot = Path.Combine(repositoryRoot, "LongevityWorldCup.Website", "wwwroot");
@@ -1581,7 +1026,7 @@ public sealed class AestheticSystemBrowserTests
         return conditions.Distinct().ToArray();
     }
 
-    private static IEnumerable<(string Source, string Text)> EnumerateResponsiveScriptSources()
+    internal static IEnumerable<(string Source, string Text)> EnumerateResponsiveScriptSources()
     {
         var repositoryRoot = FindRepositoryRoot();
         var websiteRoot = Path.Combine(repositoryRoot, "LongevityWorldCup.Website");
@@ -1608,7 +1053,7 @@ public sealed class AestheticSystemBrowserTests
         }
     }
 
-    private static string NormalizeMediaCondition(string condition)
+    internal static string NormalizeMediaCondition(string condition)
     {
         var normalized = Regex.Replace(condition, "\\s+", " ").Trim().ToLowerInvariant();
         normalized = Regex.Replace(normalized, "\\s*:\\s*", ": ");
@@ -1618,7 +1063,7 @@ public sealed class AestheticSystemBrowserTests
         return normalized;
     }
 
-    private static ResponsiveFeature[] GetResponsiveFeatures(string query)
+    internal static ResponsiveFeature[] GetResponsiveFeatures(string query)
         => Regex.Matches(
                 query,
                 "\\((?<bound>min|max)-(?<axis>width|height):\\s*(?<value>\\d+(?:\\.\\d+)?)px\\)",
@@ -1632,7 +1077,7 @@ public sealed class AestheticSystemBrowserTests
             .Distinct()
             .ToArray();
 
-    private static IEnumerable<ResponsiveBoundaryCase> CreateResponsiveBoundaryCases(ResponsiveMediaBranch branch)
+    internal static IEnumerable<ResponsiveBoundaryCase> CreateResponsiveBoundaryCases(ResponsiveMediaBranch branch)
     {
         var features = GetResponsiveFeatures(branch.Query);
         foreach (var feature in features)
@@ -1657,7 +1102,7 @@ public sealed class AestheticSystemBrowserTests
         }
     }
 
-    private static IEnumerable<ResponsiveScriptBoundaryCase> CreateResponsiveScriptBoundaryCases(
+    internal static IEnumerable<ResponsiveScriptBoundaryCase> CreateResponsiveScriptBoundaryCases(
         ResponsiveScriptThreshold threshold)
     {
         foreach (var delta in new[] { -1, 0, 1 })
@@ -1673,7 +1118,7 @@ public sealed class AestheticSystemBrowserTests
         }
     }
 
-    private static bool EvaluateComparison(int actual, string comparisonOperator, int threshold)
+    internal static bool EvaluateComparison(int actual, string comparisonOperator, int threshold)
         => comparisonOperator switch
         {
             "<" => actual < threshold,
@@ -1683,7 +1128,7 @@ public sealed class AestheticSystemBrowserTests
             _ => throw new InvalidOperationException($"Unsupported responsive comparison '{comparisonOperator}'.")
         };
 
-    private static async Task AssertResponsiveContainerBoundariesAsync(
+    internal static async Task AssertResponsiveContainerBoundariesAsync(
         IPage page,
         ResponsiveContainerCondition[] conditions)
     {
@@ -1751,7 +1196,7 @@ public sealed class AestheticSystemBrowserTests
         }
     }
 
-    private static string MapResponsiveSourceToRoute(string source)
+    internal static string MapResponsiveSourceToRoute(string source)
     {
         var normalized = source.Replace('\\', '/').ToLowerInvariant();
         if (normalized == "index.html" || normalized.Contains("site-statistics")) return "/";
@@ -1787,7 +1232,7 @@ public sealed class AestheticSystemBrowserTests
         return "/";
     }
 
-    private static ViewportSize CreateMatchingViewport(string query, int? fixedWidth, int? fixedHeight)
+    internal static ViewportSize CreateMatchingViewport(string query, int? fixedWidth, int? fixedHeight)
     {
         var features = GetResponsiveFeatures(query);
         var minimumWidth = features
@@ -1840,7 +1285,7 @@ public sealed class AestheticSystemBrowserTests
         return new ViewportSize { Width = width, Height = height };
     }
 
-    private static string FindRepositoryRoot()
+    internal static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory);
              directory is not null;
@@ -1856,13 +1301,7 @@ public sealed class AestheticSystemBrowserTests
         throw new DirectoryNotFoundException("Could not locate the LongevityWorldCup repository root.");
     }
 
-    private static async Task<IBrowser> LaunchBrowserAsync(IPlaywright playwright)
-        => await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Headless = true
-        });
-
-    private static Task<LongContentDiagnostics> InjectAndMeasureLongContentAsync(
+    internal static Task<LongContentDiagnostics> InjectAndMeasureLongContentAsync(
         IPage page,
         Dictionary<string, string> replacements,
         string[] measuredSelectors)
@@ -1876,7 +1315,6 @@ public sealed class AestheticSystemBrowserTests
                 }
 
                 await (document.fonts?.ready || Promise.resolve());
-                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
                 const root = document.documentElement;
                 const body = document.body;
@@ -1938,7 +1376,7 @@ public sealed class AestheticSystemBrowserTests
             """,
             new { Replacements = replacements, MeasuredSelectors = measuredSelectors });
 
-    private static void AssertLongContentLayout(string path, LongContentDiagnostics diagnostics)
+    internal static void AssertLongContentLayout(string path, LongContentDiagnostics diagnostics)
     {
         Assert.True(
             diagnostics.HorizontalOverflow <= 1,
@@ -1967,7 +1405,7 @@ public sealed class AestheticSystemBrowserTests
         }
     }
 
-    private static async Task<IBrowserContext> NewContextAsync(
+    internal static async Task<IBrowserContext> NewContextAsync(
         IBrowser browser,
         BrowserTestApp app,
         BrowserNewContextOptions options)
@@ -1976,34 +1414,16 @@ public sealed class AestheticSystemBrowserTests
         options.Locale = "en-US";
         var context = await browser.NewContextAsync(options);
         await BrowserTestApp.RouteExternalResourcesAsync(context);
-        await context.RouteAsync("**/api/bitcoin/**", async route =>
-        {
-            var path = new Uri(route.Request.Url).AbsolutePath;
-            var body = path.EndsWith("/donation-address", StringComparison.OrdinalIgnoreCase)
-                ? """{"address":""}"""
-                : path.EndsWith("/btcusd", StringComparison.OrdinalIgnoreCase)
-                    ? """{"btcToUsdRate":0}"""
-                    : """{"totalReceivedSatoshis":0}""";
-
-            await route.FulfillAsync(new RouteFulfillOptions
-            {
-                Status = 200,
-                ContentType = "application/json",
-                Body = body
-            });
-        });
         return context;
     }
 
-    private static async Task NavigateAndSettleAsync(IPage page, string path)
+    internal static async Task NavigateAndSettleAsync(IPage page, string path)
     {
         await page.GotoAsync(path, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.WaitForFunctionAsync("() => document.readyState === 'complete'");
         await page.EvaluateAsync("() => document.fonts?.ready || Promise.resolve()");
-        await page.EvaluateAsync("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
     }
 
-    private static Task<LayoutDiagnostics> MeasureLayoutAsync(IPage page)
+    internal static Task<LayoutDiagnostics> MeasureLayoutAsync(IPage page)
         => page.EvaluateAsync<LayoutDiagnostics>(
             """
             () => {
@@ -2028,49 +1448,49 @@ public sealed class AestheticSystemBrowserTests
             }
             """);
 
-    private sealed record ResponsiveMediaBranch(string Query, string Source);
+    internal sealed record ResponsiveMediaBranch(string Query, string Source);
 
-    private sealed record ResponsiveFeature(string Bound, string Axis, int Value);
+    internal sealed record ResponsiveFeature(string Bound, string Axis, int Value);
 
-    private sealed record ResponsiveBoundaryCase(
+    internal sealed record ResponsiveBoundaryCase(
         ResponsiveMediaBranch Branch,
         ResponsiveFeature Feature,
         int Width,
         int Height,
         bool ExpectedMatch);
 
-    private sealed record ResponsiveLayoutProbe(
+    internal sealed record ResponsiveLayoutProbe(
         string Route,
         int Width,
         int Height,
         string Source,
         string Query);
 
-    private sealed record ResponsiveScriptThreshold(
+    internal sealed record ResponsiveScriptThreshold(
         string Axis,
         string Operator,
         int Value,
         string Source);
 
-    private sealed record ResponsiveScriptBoundaryCase(
+    internal sealed record ResponsiveScriptBoundaryCase(
         ResponsiveScriptThreshold Threshold,
         int Width,
         int Height,
         bool ExpectedMatch);
 
-    private sealed record ResponsiveContainerCondition(
+    internal sealed record ResponsiveContainerCondition(
         string Bound,
         double Value,
         string Unit,
         string Source);
 
-    private sealed class ScriptViewportDiagnostics
+    internal sealed class ScriptViewportDiagnostics
     {
         public int Width { get; set; }
         public int Height { get; set; }
     }
 
-    private sealed class ContainerQueryDiagnostics
+    internal sealed class ContainerQueryDiagnostics
     {
         public double ContainerWidth { get; set; }
         public bool ShortVisible { get; set; }
@@ -2078,7 +1498,7 @@ public sealed class AestheticSystemBrowserTests
         public double HorizontalOverflow { get; set; }
     }
 
-    private sealed class InteractionStateDiagnostics
+    internal sealed class InteractionStateDiagnostics
     {
         public string Name { get; set; } = "";
         public double TextContrast { get; set; }
@@ -2091,7 +1511,7 @@ public sealed class AestheticSystemBrowserTests
         public bool HasStateEvidence { get; set; }
     }
 
-    private sealed class ExtremeContentDiagnostics
+    internal sealed class ExtremeContentDiagnostics
     {
         public double ClientWidth { get; set; }
         public double ScrollWidth { get; set; }
@@ -2103,7 +1523,7 @@ public sealed class AestheticSystemBrowserTests
         public ExtremeContentElementDiagnostics[] Elements { get; set; } = [];
     }
 
-    private sealed class ExtremeContentElementDiagnostics
+    internal sealed class ExtremeContentElementDiagnostics
     {
         public string Selector { get; set; } = "";
         public bool IsVisible { get; set; }
@@ -2113,7 +1533,7 @@ public sealed class AestheticSystemBrowserTests
         public double Height { get; set; }
     }
 
-    private sealed class DarkThemeDiagnostics
+    internal sealed class DarkThemeDiagnostics
     {
         public bool DarkPreferenceMatches { get; set; }
         public string ColorScheme { get; set; } = "";
@@ -2126,7 +1546,7 @@ public sealed class AestheticSystemBrowserTests
         public string InputColor { get; set; } = "";
     }
 
-    private sealed class DarkControlDiagnostics
+    internal sealed class DarkControlDiagnostics
     {
         public string Background { get; set; } = "";
         public string Color { get; set; } = "";
@@ -2136,7 +1556,7 @@ public sealed class AestheticSystemBrowserTests
         public bool ServedOverridePresent { get; set; }
     }
 
-    private sealed class DarkProofDiagnostics
+    internal sealed class DarkProofDiagnostics
     {
         public bool HasExpectedAthleteCopy { get; set; }
         public string MainCopyColor { get; set; } = "";
@@ -2146,7 +1566,7 @@ public sealed class AestheticSystemBrowserTests
         public bool FilledActionDisabled { get; set; }
     }
 
-    private sealed class DarkReviewDiagnostics
+    internal sealed class DarkReviewDiagnostics
     {
         public bool ShowsResultReview { get; set; }
         public string PanelBackground { get; set; } = "";
@@ -2157,7 +1577,7 @@ public sealed class AestheticSystemBrowserTests
         public string SecondaryActionColor { get; set; } = "";
     }
 
-    private sealed class IconFontDiagnostics
+    internal sealed class IconFontDiagnostics
     {
         public bool SolidFaceLoaded { get; set; }
         public bool BrandFaceLoaded { get; set; }
@@ -2167,7 +1587,7 @@ public sealed class AestheticSystemBrowserTests
         public string[] ExternalResources { get; set; } = [];
     }
 
-    private sealed class IconGlyphDiagnostics
+    internal sealed class IconGlyphDiagnostics
     {
         public string Label { get; set; } = "";
         public string Content { get; set; } = "";
@@ -2177,7 +1597,7 @@ public sealed class AestheticSystemBrowserTests
         public bool IsFooterIcon { get; set; }
     }
 
-    private sealed class MotionDiagnostics
+    internal sealed class MotionDiagnostics
     {
         public bool ReducedMotionMatches { get; set; }
         public string RootScrollBehavior { get; set; } = "";
@@ -2188,21 +1608,21 @@ public sealed class AestheticSystemBrowserTests
         public string ActionAnimationName { get; set; } = "";
     }
 
-    private sealed class BadgeMotionDiagnostics
+    internal sealed class BadgeMotionDiagnostics
     {
         public string AnimationName { get; set; } = "";
         public string Transform { get; set; } = "";
         public double LongestTransitionMilliseconds { get; set; }
     }
 
-    private sealed class FocusStateDiagnostics
+    internal sealed class FocusStateDiagnostics
     {
         public string AnimationName { get; set; } = "";
         public double OutlineWidth { get; set; }
         public string OutlineStyle { get; set; } = "";
     }
 
-    private sealed class ContrastDiagnostics
+    internal sealed class ContrastDiagnostics
     {
         public bool ForcedColorsMatches { get; set; }
         public bool MoreContrastMatches { get; set; }
@@ -2212,7 +1632,7 @@ public sealed class AestheticSystemBrowserTests
         public string OutlineStyle { get; set; } = "";
     }
 
-    private sealed class ColorIndependentStateDiagnostics
+    internal sealed class ColorIndependentStateDiagnostics
     {
         public bool SelectedHasText { get; set; }
         public bool SelectedIsProgrammaticallyExposed { get; set; }
@@ -2222,7 +1642,7 @@ public sealed class AestheticSystemBrowserTests
         public bool StatusIsVisible { get; set; }
     }
 
-    private sealed class ColorIndependentErrorDiagnostics
+    internal sealed class ColorIndependentErrorDiagnostics
     {
         public bool ErrorHasText { get; set; }
         public bool ErrorIsDescribedByControl { get; set; }
@@ -2231,7 +1651,7 @@ public sealed class AestheticSystemBrowserTests
         public bool ErrorIsVisible { get; set; }
     }
 
-    private sealed class LayoutDiagnostics
+    internal sealed class LayoutDiagnostics
     {
         public double ClientWidth { get; set; }
         public double ScrollWidth { get; set; }
@@ -2240,7 +1660,7 @@ public sealed class AestheticSystemBrowserTests
         public bool HasVisibleContent { get; set; }
     }
 
-    private sealed class LongContentDiagnostics
+    internal sealed class LongContentDiagnostics
     {
         public double ClientWidth { get; set; }
         public double ScrollWidth { get; set; }
@@ -2248,7 +1668,7 @@ public sealed class AestheticSystemBrowserTests
         public LongContentElementDiagnostics[] Elements { get; set; } = [];
     }
 
-    private sealed class LongContentElementDiagnostics
+    internal sealed class LongContentElementDiagnostics
     {
         public string Selector { get; set; } = "";
         public string Text { get; set; } = "";

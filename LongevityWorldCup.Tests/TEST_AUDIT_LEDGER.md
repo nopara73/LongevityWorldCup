@@ -1,0 +1,56 @@
+# Test audit ledger
+
+The sub-minute runtime target was abandoned. This ledger records the final correctness-oriented disposition; no runtime saving is claimed and no test is removed merely for being slow.
+
+## Coverage disposition
+
+| Test or surface | Problem found | Final action | Evidence and retained/replacement coverage | Runtime saved |
+| --- | --- | --- | --- | --- |
+| `AestheticSystemBrowserTests` | One very large file mixed layout, content, responsive-media, and accessibility concerns. | Split by contract into `AestheticSystemBrowserTests.Accessibility.cs`, `.Content.cs`, `.Layout.cs`, and `.ResponsiveMedia.cs` partial files. | The original xUnit class identity, fact/theory declarations, data rows, fixture boundary, and helpers are retained while each concern has a discoverable file. | Not claimed |
+| `FlowActionDockBrowserTests` | A multi-thousand-line file mixed form, layout, and result-state contracts. | Split into `.Form.cs`, `.Layout.cs`, and `.Result.cs` partial files while retaining the core scenarios. | The original test identity and fixture ownership remain. The complete 10-route by 7-viewport placement matrix, footer checks, route-specific checks, and original declarations are present. | Not claimed |
+| `GuessMyAgeBrowserTests` | Celebration, reduced-motion, persistence/re-entry, and core submission behavior were difficult to isolate in one file. | Split into `.Celebration.cs`, `.ReducedMotion.cs`, and `.Reentry.cs` partial files. | The original test identity remains. Every test owns a fresh browser context and application host because this fixture exercises the real Crowd Age endpoint. | Not claimed |
+| `HomepageChromeRegressionBrowserTests` | Header, sticky action, contribution, responsive action, and play action behavior were interleaved. | Split by observable contract into conventionally named partial files. | Original fact/theory identities and assertions remain; the class owns one read-only app and each test owns its browser context. The temporary same-context parallel page loop was removed. | Not claimed |
+| Browser fixture architecture | Runtime-derived workload A-D bins shared mutable applications across unrelated classes. | Rewrite around semantic ownership. | Chromium is collection-scoped; Kestrel is class-scoped; browser contexts are test-scoped; stateful tests opt into per-test Kestrel. | Not claimed |
+| Read-only HTTP contract classes (35 classes) | The speed branch shared one host and cache across unrelated classes, which could mask cold-start/cache defects. | Use one `TestWebApplicationFactory` per class and reuse it only among that class's read-only rows. | Stateful integration classes retain their original per-test factories. | Not claimed |
+| Browser Bitcoin dependencies | Browser hosts called live public providers, while local `/api/bitcoin/*` interception bypassed our controller and service in UI tests. | Replace only outbound provider HTTP with a deterministic fail-closed factory and remove every first-party Bitcoin interceptor. | `BrowserTestAppTests.BitcoinEndpointsUseRealApplicationBehaviorWithDeterministicProviders` executes the real controller/service/cache path; `UnconfiguredExternalHostsFailClosedWithoutNetworkAccess` proves unknown hosts cannot open a network dependency. | Not claimed |
+| `BrowserTestAppTests.ParallelStartsUseUniqueKestrelAssignedPorts` | The speed branch reduced eight concurrent starts to two. | Restore all eight concurrent starts. | The original concurrency/load witness and unique-port assertions are intact. | 0 s |
+| `FlowActionPlacement_AuditsScopedRoutesAcrossViewportMatrix` | The speed branch reduced the 70 route/viewport combinations to a representative subset. | Restore the complete 70-combination matrix. | Every route is checked at every original viewport with the unchanged overflow, footer, dock, and console-error audit. | 0 s |
+| Social image rendering tests | The speed branch reused a stateful class fixture and stopped rendering several payloads. | Restore per-test factories and every PNG render/dimension assertion. | Athlete, league, page, chronological-age, improvement, Crowd Age, and domain-winner image paths render through production code. | 0 s |
+| Stateful controller, event cleanup, Guess controller, and statistics service tests | Class-shared databases introduced ordering and contamination risk. | Restore per-test factories. | Each test again owns its database and service graph. | 0 s |
+| `StaticFileFormattingTests.PublicHtmlAndInjectedPartialsEndWithNewline` | Low-value formatting candidate. | Retain. | With speed no longer an objective, the audit does not trade even minor repository-contract coverage for runtime. | 0 s |
+| `FrontendTypeScriptBuildTests.EveryReusableJavascriptAssetHasMatchingTypeScriptSource` | Overlaps the frontend output verifier. | Retain. | It remains a direct test-level diagnostic in addition to the build-time verifier. | 0 s |
+
+## Added or rewritten regression protection
+
+| Test | Problem | Action and evidence | Runtime saved |
+| --- | --- | --- | --- |
+| `PublicPostRateLimitingTests.AnalyticsRateLimitPreservesTooManyRequestsStatusOverKestrel` | No real-server test covered status-code re-execution after limiter rejection. | Add. It proves 240 admitted analytics posts followed by 429 plus positive `Retry-After`. | Coverage added |
+| `CrowdAgeProfileImageTests.SourceReloadPublishesCrowdStatsAsOneCompleteSnapshot` | No test sampled public snapshots during a real source reload. | Add. It uses the public watcher/event boundary and continuously asserts Crowd Age/count consistency. | Coverage added |
+| `BrowserTestAppTests.BitcoinEndpointsUseRealApplicationBehaviorWithDeterministicProviders` | UI tests either depended on live providers or stubbed the first-party endpoint. | Add. It calls all three first-party Bitcoin endpoints and proves the external provider requests remain behind the deterministic boundary. | Coverage added |
+| `BrowserTestAppTests.UnconfiguredExternalHostsFailClosedWithoutNetworkAccess` | An accidental new outbound dependency could silently make the suite network-dependent again. | Add. An unknown HTTPS host returns an in-process 503 and is recorded without opening a socket. | Coverage added |
+| `BioageResultReveal_KeepsTheSemanticResultImmediateAndHonorsReducedMotion` | Real-time animation and final CSS-frame sampling were load-sensitive. | Rewrite synchronization with a pre-navigation clock, deterministic advancement, animation completion, and exact settled-opacity checks; assertions remain strict. | Not claimed |
+| `BioageMobileUxBrowserTests.RestoredDraftEdit_InvalidatesThePreviouslyCalculatedHandoff` | The waiter could be registered after navigation and waited for unrelated full-load resources. | Arm navigation observation around the action and assert the destination document/URL contract. | Not claimed |
+| `FlowActionDockBrowserTests.ApplyNextStageTransition_DoesNotForceViewportScroll` | Playwright could auto-scroll a control before the dock had settled. | Wait for the action's visible settled state, perform the real click, cross the layout boundary, and retain the no-scroll assertions. | Not claimed |
+| `FlowActionDockBrowserTests.MobileBioageStickyProgress_KeepsOnlyVisibleProgressSemantics` | Programmatic scroll and class readiness did not prove real input dispatch or final accessibility presentation. | Use real wheel input, verify actual scroll movement, and wait for every asserted opacity/pointer/inert/ARIA property. | Not claimed |
+| `GuessSubmission_UsesExistingDismissalWithoutAddingAResultAction` and `GuessSubmission_StorageFailureStillRevealsAndAllowsEveryExit` | Paused-clock callbacks and close transitions could deadlock or be sampled early. | Install the clock before navigation, advance unchanged product timers explicitly, and wait for the mutation/transition boundary. | Not claimed |
+| `ProofViewer_HistoryClosesOneLayerAtATime` | Sequential reads could miss a transient complete modal state. | Capture the visible age text atomically with URL, athlete, and loading state. | Not claimed |
+| Delayed proof-helper tests | Fixed network sleeps did not prove the helper request was pending. | Replace sleeps with request-start/release gates while retaining pending and recovery assertions. | Not claimed |
+| `ResultUpload_BoundsLargeNoisyPdfCanvasBeforeKeepingIt` | Random compressed output made the precondition probabilistic. | Use deterministic real encoding and assert both the oversized first encode and bounded accepted encode. | Not claimed |
+| Challenge Gravatar background tests | `SpinWait` and unsynchronized lists made results CPU- and ordering-sensitive. | Use `ConcurrentQueue<T>` plus bounded async polling; retain request, fallback, cache, and priority assertions. | Not claimed |
+
+## Count and assertion checks
+
+- Current master baseline: 1,484 tests.
+- Final suite: 1,488 tests; the four additions are the Kestrel 429 regression, atomic athlete-reload regression, real Bitcoin endpoint boundary regression, and deny-by-default external HTTP regression.
+- Fact/theory declarations: 992 baseline, 996 final.
+- Inline/member/class data declarations: 625 baseline, 625 final.
+- Assertion-call sites: 8,346 baseline, 8,390 final.
+- Final removals: none.
+
+## Final verification
+
+- Untouched master comparison under the same coverage instrumentation: 1,483 passed, 1 failed, 0 skipped in 16 minutes 21 seconds test time. Coverlet did not emit a baseline report because the run failed.
+- The exact failing Guess reveal test on the repaired architecture: five of five fresh-process runs passed.
+- Affected real Bitcoin/UI boundary tests: 6 passed, 0 failed, 0 skipped.
+- Complete instrumented suite after the final fixture and network-boundary cleanup: 1,488 passed, 0 failed, 0 skipped in 8 minutes 28 seconds test time (8 minutes 41 seconds wall clock).
+- Final coverage: 73.78% line, 57.84% branch, 82.99% method. No baseline coverage percentage is claimed because the baseline run failed before report generation.
