@@ -677,6 +677,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const savedDays = new Set<number>();
     const pendingNotePhotos = new Map<string, File[]>();
     const pendingNotePhotoUrls = new Map<string, string[]>();
+    const discussionReplyCache = new Map<string, Map<string, DiscussionReply>>();
     const PARTICIPANT_TABS: readonly ParticipantTab[] = ["checkin", "profile", "home"];
     const athleteSelectors = new Map<string, AthleteSelectorController>();
     let athleteDirectory: AthleteOption[] = [];
@@ -3109,7 +3110,15 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function discussionRepliesHtml(note: ParticipantNote): string {
-        const replies = Array.isArray(note.replies) ? note.replies : [];
+        const embeddedReplies = Array.isArray(note.replies) ? note.replies : [];
+        const cacheKey = discussionThreadKey(note.participantId, note.challengeDay);
+        const cachedReplies = discussionReplyCache.get(cacheKey);
+        let replies = embeddedReplies;
+        if (cachedReplies) {
+            const overlapsFreshWindow = embeddedReplies.some(reply => cachedReplies.has(reply.id));
+            if (overlapsFreshWindow) replies = mergeDiscussionReplies(cachedReplies, embeddedReplies);
+            else discussionReplyCache.delete(cacheKey);
+        }
         const totalCount = Math.max(replies.length, Math.max(0, Number(note.replyCount) || 0));
         if (!totalCount) return "";
 
@@ -3136,6 +3145,47 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function earlierRepliesButtonLabel(remaining: number): string {
         return `View ${remaining} earlier ${remaining === 1 ? "reply" : "replies"}`;
+    }
+
+    function discussionThreadKey(postParticipantId: string, challengeDay: number): string {
+        return JSON.stringify([postParticipantId, challengeDay]);
+    }
+
+    function rememberLoadedDiscussionReplies(
+        postParticipantId: string,
+        challengeDay: number,
+        replies: DiscussionReply[]
+    ): void {
+        const key = discussionThreadKey(postParticipantId, challengeDay);
+        let byId = discussionReplyCache.get(key);
+        if (!byId) {
+            const seededById = new Map<string, DiscussionReply>();
+            currentDiscussionReplies(postParticipantId, challengeDay)
+                .forEach(reply => seededById.set(reply.id, reply));
+            discussionReplyCache.set(key, seededById);
+            byId = seededById;
+        }
+        mergeDiscussionReplies(byId, replies);
+    }
+
+    function currentDiscussionReplies(postParticipantId: string, challengeDay: number): DiscussionReply[] {
+        const noteCollections = [participantState?.notes, participantState?.public?.notes, publicState?.notes];
+        return noteCollections.flatMap(notes => (notes || [])
+            .filter(note => note.participantId === postParticipantId && note.challengeDay === challengeDay)
+            .flatMap(note => Array.isArray(note.replies) ? note.replies : []));
+    }
+
+    function mergeDiscussionReplies(
+        byId: Map<string, DiscussionReply>,
+        replies: DiscussionReply[]
+    ): DiscussionReply[] {
+        replies.forEach(reply => {
+            if (reply?.id) byId.set(reply.id, reply);
+        });
+        return Array.from(byId.values()).sort((left, right) => {
+            const createdOrder = left.createdAtUtc.localeCompare(right.createdAtUtc);
+            return createdOrder || left.id.localeCompare(right.id);
+        });
     }
 
     function discussionReplyHtml(reply: DiscussionReply): string {
@@ -4055,6 +4105,11 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         button.textContent = "Loading replies...";
         try {
             const page = await postJson(`${API}/discussion/replies/page`, payload);
+            const currentBeforeCreatedAtUtc = String(button.dataset.beforeCreatedAtUtc || "") || null;
+            const currentBeforeReplyId = String(button.dataset.beforeReplyId || "") || null;
+            if (!button.isConnected ||
+                currentBeforeCreatedAtUtc !== payload.beforeCreatedAtUtc ||
+                currentBeforeReplyId !== payload.beforeReplyId) return;
             updateDiscussionReplyPages(payload, page);
         } catch (err) {
             button.disabled = false;
@@ -4065,6 +4120,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function updateDiscussionReplyPages(payload: DiscussionReplyPagePayload, page: DiscussionReplyPage): void {
+        rememberLoadedDiscussionReplies(payload.postParticipantId, payload.challengeDay, page.replies);
         document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id][data-discussion-post-challenge-day]")
             .forEach(article => {
                 if (article.dataset.discussionPostParticipantId !== payload.postParticipantId ||
