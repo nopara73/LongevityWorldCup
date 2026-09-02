@@ -126,6 +126,7 @@
         displayName: string;
         body: string;
         createdAtUtc: string;
+        editedAtUtc?: string | null;
     }
 
     interface DiscussionReplyCacheEntry {
@@ -138,6 +139,17 @@
         postParticipantId: string;
         challengeDay: number;
         body: string;
+        replyId: string;
+    }
+
+    interface DiscussionReplyEditPayload {
+        accessToken: string;
+        replyId: string;
+        body: string;
+    }
+
+    interface DiscussionReplyDeletePayload {
+        accessToken: string;
         replyId: string;
     }
 
@@ -2473,8 +2485,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             ${practice ? `<div class="lmx-practice-note"><strong>Practice check-in.</strong><span>Counts for checked-in days and streak, not points.</span></div>` : ""}
             ${questions}
             <div class="lmx-field lmx-mention-field">
-                <label for="lmx-note-${day.challengeDay}">Post to discussion <span>optional</span></label>
-                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Share an update or mention @Name" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}">${esc(note)}</textarea>
+                <label for="lmx-note-${day.challengeDay}">Remarks <span>optional</span></label>
+                <textarea id="lmx-note-${day.challengeDay}" maxlength="240" placeholder="Visible publicly" data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="lmx-mentions-${day.challengeDay}">${esc(note)}</textarea>
                 <div id="lmx-mentions-${day.challengeDay}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
             </div>
             <div class="lmx-field lmx-note-photo-field" data-photo-slots="${photoSlotsLeft}">
@@ -3107,7 +3119,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             : "";
         return `<div class="lmx-discussion-post-header">
             <span class="lmx-discussion-post-author">
-                <strong>${esc(note.displayName)}</strong>
+                ${discussionAuthorHtml(note.participantId, note.displayName)}
                 <small>${esc(context)}</small>
             </span>
             ${reply}
@@ -3287,13 +3299,40 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionReplyHtml(reply: DiscussionReply): string {
         const when = formatDiscussionReplyTime(reply.createdAtUtc);
+        const edited = reply.editedAtUtc ? `<span class="lmx-discussion-edited">edited</span>` : "";
+        const ownsReply = !!participantState && participantState.participant.id === reply.participantId;
+        const ownerActions = ownsReply
+            ? `<span class="lmx-discussion-reply-owner-actions" aria-label="Reply actions">
+                <button type="button" data-discussion-reply-edit aria-label="Edit reply" aria-expanded="false">Edit</button>
+                <button type="button" data-discussion-reply-delete aria-label="Delete reply">Delete</button>
+            </span>`
+            : "";
         return `<article class="lmx-discussion-reply-item" data-discussion-reply-id="${escAttr(reply.id)}">
             <div class="lmx-discussion-reply-meta">
-                <strong>${esc(reply.displayName)}</strong>
-                ${when ? `<time datetime="${escAttr(reply.createdAtUtc)}">${esc(when)}</time>` : ""}
+                ${discussionAuthorHtml(reply.participantId, reply.displayName)}
+                ${when ? `<span class="lmx-discussion-reply-time"><time datetime="${escAttr(reply.createdAtUtc)}">${esc(when)}</time>${edited}</span>` : edited}
+                ${ownerActions}
             </div>
-            <p>${participantMentionTextHtml(reply.body)}</p>
+            <p data-discussion-reply-body>${participantMentionTextHtml(reply.body)}</p>
+            <div class="lmx-discussion-reply-editor-slot" data-discussion-reply-editor-slot hidden></div>
+            <div class="lmx-discussion-reply-status" role="status" aria-live="polite"></div>
         </article>`;
+    }
+
+    function discussionAuthorHtml(participantId: string, displayName: string): string {
+        const row = challengeParticipants().find(candidate => candidate.participantId === participantId) || null;
+        const avatar = participantAvatarDetails(row, displayName);
+        const athleteUrl = String(row?.athleteUrl || "").trim();
+        const avatarClass = avatar.hasProfileImage
+            ? "lmx-discussion-author-avatar"
+            : "lmx-discussion-author-avatar placeholder";
+        const content = `<span class="${avatarClass}" aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
+                <img src="${escAttr(avatar.image)}" alt="${escAttr(avatar.alt)}" loading="lazy" decoding="async">
+            </span>
+            <strong>${esc(displayName)}</strong>`;
+        return athleteUrl
+            ? `<a class="lmx-discussion-author-identity" href="${escAttr(athleteUrl)}" aria-label="${escAttr(`${displayName}, view athlete profile`)}">${content}</a>`
+            : `<span class="lmx-discussion-author-identity">${content}</span>`;
     }
 
     function formatDiscussionReplyTime(value: string): string {
@@ -4180,10 +4219,24 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function wireDiscussionControls(root: ParentNode): void {
         root.querySelectorAll<HTMLButtonElement>("[data-discussion-reply]").forEach(button => {
+            if (button.dataset.discussionControlWired === "true") return;
+            button.dataset.discussionControlWired = "true";
             button.addEventListener("click", () => openDiscussionReplyComposer(button));
         });
         root.querySelectorAll<HTMLButtonElement>("[data-discussion-replies-page]").forEach(button => {
+            if (button.dataset.discussionControlWired === "true") return;
+            button.dataset.discussionControlWired = "true";
             button.addEventListener("click", () => void loadEarlierDiscussionReplies(button));
+        });
+        root.querySelectorAll<HTMLButtonElement>("[data-discussion-reply-edit]").forEach(button => {
+            if (button.dataset.discussionControlWired === "true") return;
+            button.dataset.discussionControlWired = "true";
+            button.addEventListener("click", () => openDiscussionReplyEditor(button));
+        });
+        root.querySelectorAll<HTMLButtonElement>("[data-discussion-reply-delete]").forEach(button => {
+            if (button.dataset.discussionControlWired === "true") return;
+            button.dataset.discussionControlWired = "true";
+            button.addEventListener("click", () => void deleteDiscussionReply(button));
         });
     }
 
@@ -4236,7 +4289,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     list.querySelectorAll<HTMLElement>("[data-discussion-reply-id]"),
                     item => String(item.dataset.discussionReplyId || "")));
                 const additions = page.replies.filter(reply => !existingIds.has(reply.id));
-                if (additions.length) list.insertAdjacentHTML("afterbegin", additions.map(discussionReplyHtml).join(""));
+                if (additions.length) {
+                    list.insertAdjacentHTML("afterbegin", additions.map(discussionReplyHtml).join(""));
+                    wireDiscussionControls(list);
+                }
 
                 if (!page.hasEarlier || page.remainingEarlierReplyCount <= 0 || !page.nextBeforeCreatedAtUtc || !page.nextBeforeReplyId) {
                     currentButton.remove();
@@ -4259,13 +4315,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if (!slot) return;
 
         const alreadyOpen = !slot.hidden && !!slot.querySelector("[data-discussion-reply-composer]");
-        document.querySelectorAll<HTMLElement>(".lmx-discussion-reply-slot").forEach(candidate => {
-            candidate.replaceChildren();
-            candidate.hidden = true;
-        });
-        document.querySelectorAll<HTMLButtonElement>("[data-discussion-reply]").forEach(candidate => {
-            candidate.setAttribute("aria-expanded", "false");
-        });
+        closeDiscussionReplyComposers();
+        closeDiscussionReplyEditors();
         if (alreadyOpen) return;
 
         const displayName = String(button.dataset.postDisplayName || "participant").trim() || "participant";
@@ -4309,6 +4360,179 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         });
         submit?.addEventListener("click", () => void submitDiscussionReply(button, slot, textarea, submit));
         textarea?.focus({ preventScroll: true });
+    }
+
+    function closeDiscussionReplyComposers(): void {
+        document.querySelectorAll<HTMLElement>(".lmx-discussion-reply-slot").forEach(candidate => {
+            candidate.replaceChildren();
+            candidate.hidden = true;
+        });
+        document.querySelectorAll<HTMLButtonElement>("[data-discussion-reply]").forEach(candidate => {
+            candidate.setAttribute("aria-expanded", "false");
+        });
+    }
+
+    function closeDiscussionReplyEditors(): void {
+        document.querySelectorAll<HTMLElement>(".lmx-discussion-reply-item").forEach(item => {
+            item.querySelector<HTMLElement>("[data-discussion-reply-body]")?.removeAttribute("hidden");
+            const slot = item.querySelector<HTMLElement>("[data-discussion-reply-editor-slot]");
+            if (slot) {
+                slot.replaceChildren();
+                slot.hidden = true;
+            }
+            item.querySelector<HTMLButtonElement>("[data-discussion-reply-edit]")
+                ?.setAttribute("aria-expanded", "false");
+        });
+    }
+
+    function openDiscussionReplyEditor(button: HTMLButtonElement): void {
+        if (!participantState || !accessToken) return;
+        const item = button.closest<HTMLElement>(".lmx-discussion-reply-item");
+        const slot = item?.querySelector<HTMLElement>("[data-discussion-reply-editor-slot]");
+        const replyId = String(item?.dataset.discussionReplyId || "");
+        const reply = findDiscussionReply(replyId);
+        if (!item || !slot || !reply || reply.participantId !== participantState.participant.id) return;
+
+        const alreadyOpen = !slot.hidden && !!slot.querySelector("[data-discussion-reply-editor]");
+        closeDiscussionReplyComposers();
+        closeDiscussionReplyEditors();
+        if (alreadyOpen) return;
+
+        const mentionListId = `lmx-edit-reply-mentions-${reply.id}`;
+        item.querySelector<HTMLElement>("[data-discussion-reply-body]")?.setAttribute("hidden", "");
+        slot.hidden = false;
+        slot.innerHTML = `<div class="lmx-discussion-reply-composer lmx-discussion-reply-editor" data-discussion-reply-editor>
+            <label class="lmx-mention-field">
+                <span>Edit reply</span>
+                <textarea maxlength="240" rows="3"
+                    data-mention-input role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
+                    aria-expanded="false" aria-controls="${escAttr(mentionListId)}"></textarea>
+                <div id="${escAttr(mentionListId)}" class="lmx-mention-options" role="listbox" aria-label="Mention a participant" hidden></div>
+            </label>
+            <div class="lmx-discussion-reply-actions">
+                <button class="lmx-button secondary" type="button" data-reply-edit-cancel>Cancel</button>
+                <button class="lmx-button" type="button" data-reply-edit-submit disabled>Save reply</button>
+            </div>
+            <div class="lmx-status" role="status" aria-live="polite"></div>
+        </div>`;
+        button.setAttribute("aria-expanded", "true");
+
+        const textarea = slot.querySelector<HTMLTextAreaElement>("textarea");
+        const submit = slot.querySelector<HTMLButtonElement>("[data-reply-edit-submit]");
+        const cancel = slot.querySelector<HTMLButtonElement>("[data-reply-edit-cancel]");
+        if (textarea) {
+            textarea.value = reply.body;
+            const updateSaveState = () => {
+                if (submit) submit.disabled = !textarea.value.trim() || textarea.value.trim() === reply.body;
+            };
+            wireMentionAutocomplete(textarea, updateSaveState);
+            textarea.addEventListener("keydown", event => {
+                if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && submit && !submit.disabled) {
+                    event.preventDefault();
+                    submit.click();
+                }
+            });
+        }
+        cancel?.addEventListener("click", () => {
+            closeDiscussionReplyEditors();
+            button.focus({ preventScroll: true });
+        });
+        submit?.addEventListener("click", () => void submitDiscussionReplyEdit(reply, slot, textarea, submit));
+        textarea?.focus({ preventScroll: true });
+        textarea?.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+
+    async function submitDiscussionReplyEdit(
+        reply: DiscussionReply,
+        slot: HTMLElement,
+        textarea: HTMLTextAreaElement | null,
+        submit: HTMLButtonElement
+    ): Promise<void> {
+        if (!accessToken || !participantState || !textarea) return;
+        const body = textarea.value.trim();
+        if (!body || body === reply.body) return;
+
+        const payload: DiscussionReplyEditPayload = { accessToken, replyId: reply.id, body };
+        const status = slot.querySelector<HTMLElement>(".lmx-status");
+        const original = submit.innerHTML;
+        submit.disabled = true;
+        submit.setAttribute("aria-busy", "true");
+        submit.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>Saving...`;
+        try {
+            const updated = await postJson(`${API}/discussion/replies/edit`, payload);
+            replaceDiscussionReplyEverywhere(updated);
+            renderDiscussionSurfaces(participantState);
+        } catch (err) {
+            if (status) {
+                status.textContent = messageOf(err);
+                status.classList.add("error");
+            }
+            submit.disabled = false;
+            submit.removeAttribute("aria-busy");
+            submit.innerHTML = original;
+        }
+    }
+
+    async function deleteDiscussionReply(button: HTMLButtonElement): Promise<void> {
+        if (!accessToken || !participantState) return;
+        const item = button.closest<HTMLElement>(".lmx-discussion-reply-item");
+        const thread = item?.closest<HTMLElement>("article[data-discussion-post-participant-id][data-discussion-post-challenge-day]");
+        const replyId = String(item?.dataset.discussionReplyId || "");
+        const reply = findDiscussionReply(replyId);
+        if (!item || !thread || !reply || reply.participantId !== participantState.participant.id) return;
+        if (!window.confirm("Delete this reply?")) return;
+
+        const payload: DiscussionReplyDeletePayload = { accessToken, replyId };
+        const status = item.querySelector<HTMLElement>(".lmx-discussion-reply-status");
+        const original = button.textContent || "Delete";
+        button.disabled = true;
+        button.setAttribute("aria-busy", "true");
+        button.textContent = "Deleting...";
+        try {
+            const result = await postJson(`${API}/discussion/replies/delete`, payload);
+            const cacheKey = discussionThreadKey(
+                String(thread.dataset.discussionPostParticipantId || ""),
+                Number(thread.dataset.discussionPostChallengeDay));
+            discussionReplyCache.delete(cacheKey);
+            participantState = result;
+            publicState = result.public;
+            renderDiscussionSurfaces(result);
+        } catch (err) {
+            if (status) {
+                status.textContent = messageOf(err);
+                status.classList.add("error");
+            }
+            button.disabled = false;
+            button.removeAttribute("aria-busy");
+            button.textContent = original;
+        }
+    }
+
+    function findDiscussionReply(replyId: string): DiscussionReply | null {
+        if (!replyId) return null;
+        for (const cache of discussionReplyCache.values()) {
+            const cached = cache.byId.get(replyId);
+            if (cached) return cached;
+        }
+        const collections = [participantState?.notes, participantState?.public?.notes, publicState?.notes];
+        for (const collection of collections) {
+            for (const note of collection || []) {
+                const reply = (note.replies || []).find(candidate => candidate.id === replyId);
+                if (reply) return reply;
+            }
+        }
+        return null;
+    }
+
+    function replaceDiscussionReplyEverywhere(updated: DiscussionReply): void {
+        discussionReplyCache.forEach(cache => {
+            if (cache.byId.has(updated.id)) cache.byId.set(updated.id, updated);
+        });
+        const collections = [participantState?.notes, participantState?.public?.notes, publicState?.notes];
+        collections.forEach(collection => (collection || []).forEach(note => {
+            if (!Array.isArray(note.replies)) return;
+            note.replies = note.replies.map(reply => reply.id === updated.id ? updated : reply);
+        }));
     }
 
     async function submitDiscussionReply(
@@ -4427,13 +4651,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
 
     function participantNameHtml(row: LeaderboardRow, nameHtml: string, rank: number): string {
-        const athlete = findAthleteForParticipant(row);
-        const profileImage = String(row.profileImageUrl || "").trim();
-        const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? "" : (athlete?.profilePic || "");
-        const image = athleteProfileImage || profileImage || ATHLETE_PLACEHOLDER_IMAGE;
-        const hasProfileImage = !!(athleteProfileImage || profileImage);
-        const avatarClass = hasProfileImage ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
-        const alt = hasProfileImage ? `${row.displayName || "Participant"} profile picture` : "";
+        const avatar = participantAvatarDetails(row, row.displayName);
+        const avatarClass = avatar.hasProfileImage ? "lmx-participant-avatar" : "lmx-participant-avatar placeholder";
         const badges = [row.challengeInactive ? "Resting" : ""].filter(Boolean);
         const rankNumber = Number.isFinite(Number(rank)) ? Math.trunc(Number(rank)) : null;
         const rankHtml = rankNumber && rankNumber > 0
@@ -4441,11 +4660,27 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             : "";
         return `<div class="lmx-participant-name">
             ${rankHtml}
-            <span class="${avatarClass}" aria-hidden="${hasProfileImage ? "false" : "true"}">
-                <img src="${escAttr(image)}" alt="${escAttr(alt)}" loading="lazy" decoding="async">
+            <span class="${avatarClass}" aria-hidden="${avatar.hasProfileImage ? "false" : "true"}">
+                <img src="${escAttr(avatar.image)}" alt="${escAttr(avatar.alt)}" loading="lazy" decoding="async">
             </span>
             <span class="lmx-participant-label">${nameHtml}${badges.length ? `<span class="lmx-row-badges">${badges.map(badge => `<em>${esc(badge)}</em>`).join("")}</span>` : ""}</span>
         </div>`;
+    }
+
+    function participantAvatarDetails(
+        row: LeaderboardRow | null,
+        displayName: string
+    ): { image: string; hasProfileImage: boolean; alt: string } {
+        const athlete = row ? findAthleteForParticipant(row) : null;
+        const profileImage = String(row?.profileImageUrl || "").trim();
+        const athleteProfileImage = isPlaceholderProfileImage(athlete?.profilePic) ? "" : (athlete?.profilePic || "");
+        const image = athleteProfileImage || profileImage || ATHLETE_PLACEHOLDER_IMAGE;
+        const hasProfileImage = !!(athleteProfileImage || profileImage);
+        return {
+            image,
+            hasProfileImage,
+            alt: hasProfileImage ? `${displayName || "Participant"} profile picture` : ""
+        };
     }
 
     function isPlaceholderProfileImage(url: unknown): boolean {
@@ -5570,7 +5805,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return hasProperties(value, "id", "participantId", "displayName", "body", "createdAtUtc") &&
             typeof value.id === "string" && typeof value.participantId === "string" &&
             typeof value.displayName === "string" && typeof value.body === "string" &&
-            typeof value.createdAtUtc === "string";
+            typeof value.createdAtUtc === "string" &&
+            (!hasProperties(value, "editedAtUtc") || isNullableString(value.editedAtUtc));
     }
 
     function isDiscussionReplyPage(value: unknown): value is DiscussionReplyPage {
@@ -5687,8 +5923,9 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     async function postJson(url: `${typeof API}/signup` | `${typeof API}/resend`, payload: object): Promise<SignupResult>;
     async function postJson(url: `${typeof API}/confirm`, payload: object): Promise<AccessResult>;
     async function postJson(url: `${typeof API}/discussion/replies/page`, payload: object): Promise<DiscussionReplyPage>;
+    async function postJson(url: `${typeof API}/discussion/replies/edit`, payload: object): Promise<DiscussionReply>;
     async function postJson(
-        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies`,
+        url: `${typeof API}/edit` | `${typeof API}/participant` | `${typeof API}/check-in` | `${typeof API}/discussion/replies` | `${typeof API}/discussion/replies/delete`,
         payload: object
     ): Promise<ParticipantState>;
     async function postJson(
@@ -5709,7 +5946,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         if ((url === `${API}/signup` || url === `${API}/resend`) && !isSignupResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/confirm` && !isAccessResult(data)) throw invalidApiResponse(url);
         if (url === `${API}/discussion/replies/page` && !isDiscussionReplyPage(data)) throw invalidApiResponse(url);
-        if ((url === `${API}/edit` || url === `${API}/participant` || url === `${API}/check-in` || url === `${API}/discussion/replies`) && !isParticipantState(data)) {
+        if (url === `${API}/discussion/replies/edit` && !isDiscussionReply(data)) throw invalidApiResponse(url);
+        if ((url === `${API}/edit` || url === `${API}/participant` || url === `${API}/check-in` || url === `${API}/discussion/replies` || url === `${API}/discussion/replies/delete`) && !isParticipantState(data)) {
             throw invalidApiResponse(url);
         }
         return data;

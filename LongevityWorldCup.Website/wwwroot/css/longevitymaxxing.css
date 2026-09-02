@@ -2478,12 +2478,55 @@ body.lmx-checkin-dialog-open {
     gap: 0.08rem;
 }
 
+.lmx-discussion-author-identity {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--lmx-ink);
+    text-decoration: none;
+}
+
+a.lmx-discussion-author-identity:hover strong {
+    color: var(--lmx-accent-hover);
+    text-decoration: underline;
+    text-underline-offset: 0.14em;
+}
+
+a.lmx-discussion-author-identity:focus-visible {
+    border-radius: 6px;
+    outline: 3px solid rgba(0, 188, 212, 0.25);
+    outline-offset: 2px;
+}
+
+.lmx-discussion-author-avatar {
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 2rem;
+    overflow: hidden;
+    border: 1px solid var(--lmx-border);
+    border-radius: 50%;
+    background: var(--lmx-surface-accent);
+}
+
+.lmx-discussion-author-avatar img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.lmx-discussion-author-avatar.placeholder img {
+    opacity: 0.72;
+}
+
 .lmx-discussion-post-author strong,
 .lmx-note .lmx-discussion-post-author strong {
     margin: 0;
 }
 
 .lmx-discussion-post-author small {
+    padding-left: 2.45rem;
     color: var(--lmx-subtle);
     font-size: 0.74rem;
     font-weight: 700;
@@ -2565,9 +2608,16 @@ body.lmx-checkin-dialog-open {
 
 .lmx-discussion-reply-meta {
     display: flex;
-    align-items: baseline;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 0.45rem;
     min-width: 0;
+}
+
+.lmx-discussion-reply-meta .lmx-discussion-author-avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-basis: 1.75rem;
 }
 
 .lmx-discussion-reply-meta strong,
@@ -2578,16 +2628,63 @@ body.lmx-checkin-dialog-open {
     font-size: 0.78rem;
 }
 
-.lmx-discussion-reply-meta time {
+.lmx-discussion-reply-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.lmx-discussion-reply-meta time,
+.lmx-discussion-edited {
     color: var(--lmx-subtle);
     font-size: 0.7rem;
     font-weight: 700;
 }
 
+.lmx-discussion-edited::before {
+    content: "·";
+    margin-right: 0.35rem;
+}
+
+.lmx-discussion-reply-owner-actions {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.12rem;
+}
+
+.lmx-discussion-reply-owner-actions button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 0.42rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--lmx-subtle);
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.lmx-discussion-reply-owner-actions button:hover {
+    background: var(--lmx-surface-accent);
+    color: var(--lmx-accent-hover);
+}
+
+.lmx-discussion-reply-owner-actions button[data-discussion-reply-delete]:hover {
+    color: var(--lmx-danger, #b4233b);
+}
+
+.lmx-discussion-reply-owner-actions button:focus-visible {
+    outline: 3px solid rgba(0, 188, 212, 0.25);
+    outline-offset: 1px;
+}
+
 .lmx-discussion-reply-item p,
 .lmx-recent-remark .lmx-discussion-reply-item p {
     display: block;
-    margin: 0.16rem 0 0;
+    margin: 0.16rem 0 0 2.2rem;
     color: var(--lmx-ink);
     font-size: 0.84rem;
     line-height: 1.4;
@@ -2595,6 +2692,18 @@ body.lmx-checkin-dialog-open {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     -webkit-line-clamp: unset;
+}
+
+.lmx-discussion-reply-editor-slot:not([hidden]) {
+    display: block;
+    margin: 0.35rem 0 0 2.2rem;
+}
+
+.lmx-discussion-reply-status:not(:empty) {
+    margin: 0.25rem 0 0 2.2rem;
+    color: var(--lmx-danger, #b4233b);
+    font-size: 0.75rem;
+    font-weight: 750;
 }
 
 .lmx-discussion-reply-slot:not(:empty) {

@@ -1106,6 +1106,126 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     }
 
     [Fact]
+    public async Task DiscussionUsesLeaderboardIdentityAndReplyOwnerCanEditAndDelete()
+    {
+        await using var app = await BrowserTestApp.StartAsync();
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = true
+        });
+        await using var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = app.BaseAddress.ToString(),
+            Locale = "en-US",
+            ViewportSize = new ViewportSize { Width = 1024, Height = 900 }
+        });
+        await BrowserTestApp.RouteExternalResourcesAsync(context);
+        await context.AddInitScriptAsync("window.localStorage.setItem('lmxAccessToken', 'browser-token');");
+
+        var initialState = BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.ContinuousAfterReply,
+            includeDiscussionIdentityParticipants: true);
+        var deletedState = BuildParticipantState(
+            includeMentionParticipants: true,
+            includeDiscussionNotesWithMentionParticipants: true,
+            discussionReplySnapshot: DiscussionReplySnapshot.AfterOwnReplyDeleted,
+            includeDiscussionIdentityParticipants: true);
+        var page = await context.NewPageAsync();
+        var errors = new List<string>();
+        page.Console += (_, message) =>
+        {
+            if (message.Type == "error") errors.Add(message.Text);
+        };
+        page.PageError += (_, error) => errors.Add(error);
+        await page.RouteAsync(
+            "**/api/longevitymaxxing/state",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(BuildPublicState(
+                includeMentionParticipants: true,
+                includeDiscussionNotesWithMentionParticipants: true,
+                discussionReplySnapshot: DiscussionReplySnapshot.ContinuousAfterReply,
+                includeDiscussionIdentityParticipants: true))));
+        await page.RouteAsync(
+            "**/api/longevitymaxxing/participant",
+            route => FulfillJsonAsync(route, JsonSerializer.Serialize(initialState)));
+
+        string? editPayload = null;
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/edit", route =>
+        {
+            editPayload = route.Request.PostData;
+            return FulfillJsonAsync(route, JsonSerializer.Serialize(Reply(
+                "r6",
+                "p1",
+                "Browser Tester",
+                "Corrected reply for @Ari Able.",
+                "2026-06-30T10:00:00Z",
+                "2026-06-30T10:30:00Z")));
+        });
+        string? deletePayload = null;
+        await page.RouteAsync("**/api/longevitymaxxing/discussion/replies/delete", route =>
+        {
+            deletePayload = route.Request.PostData;
+            return FulfillJsonAsync(route, JsonSerializer.Serialize(deletedState));
+        });
+
+        await page.GotoAsync("/longevitymaxxing", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+        await page.Locator(".lmx-recent-remarks").WaitForAsync();
+
+        var foxSurfaces = page.Locator("article[data-discussion-post-participant-id='p7'][data-discussion-post-challenge-day='5']");
+        Assert.Equal(2, await foxSurfaces.CountAsync());
+        var foxIdentity = foxSurfaces.First.Locator(".lmx-discussion-post-author .lmx-discussion-author-identity");
+        Assert.Equal("a", await foxIdentity.EvaluateAsync<string>("element => element.tagName.toLowerCase()"));
+        Assert.Equal("/athlete/fox", await foxIdentity.GetAttributeAsync("href"));
+        Assert.Equal("/assets/content-images/cr7.webp", await foxIdentity.Locator("img").GetAttributeAsync("src"));
+
+        var ariReplyIdentity = foxSurfaces.First
+            .Locator("[data-discussion-reply-id='r4'] .lmx-discussion-author-identity");
+        Assert.Equal("/athlete/ari-able", await ariReplyIdentity.GetAttributeAsync("href"));
+        Assert.Equal("/assets/content-images/headshot.jpg", await ariReplyIdentity.Locator("img").GetAttributeAsync("src"));
+        Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-edit]").CountAsync());
+        Assert.Equal(1, await foxSurfaces.First.Locator("[data-discussion-reply-delete]").CountAsync());
+        Assert.Equal(0, await foxSurfaces.First.Locator("[data-discussion-reply-id='r4'] [data-discussion-reply-edit]").CountAsync());
+
+        await foxSurfaces.First.Locator("[data-discussion-reply-id='r6'] [data-discussion-reply-edit]").ClickAsync();
+        var editor = foxSurfaces.First.Locator("[data-discussion-reply-editor]");
+        await editor.WaitForAsync();
+        Assert.Equal("An actual child reply for @Ari Able.", await editor.Locator("textarea").InputValueAsync());
+        await editor.Locator("textarea").FillAsync("Corrected reply for @Ari Able.");
+        await editor.Locator("[data-reply-edit-submit]").ClickAsync();
+
+        var editedReplies = page.Locator("[data-discussion-reply-id='r6']");
+        await Assertions.Expect(editedReplies).ToHaveCountAsync(2);
+        for (var index = 0; index < await editedReplies.CountAsync(); index++)
+        {
+            await Assertions.Expect(editedReplies.Nth(index)).ToContainTextAsync("Corrected reply for @Ari Able.");
+            await Assertions.Expect(editedReplies.Nth(index).Locator(".lmx-discussion-edited")).ToHaveTextAsync("edited");
+        }
+        Assert.NotNull(editPayload);
+        using (var json = JsonDocument.Parse(editPayload!))
+        {
+            Assert.Equal("browser-token", json.RootElement.GetProperty("accessToken").GetString());
+            Assert.Equal("r6", json.RootElement.GetProperty("replyId").GetString());
+            Assert.Equal("Corrected reply for @Ari Able.", json.RootElement.GetProperty("body").GetString());
+        }
+
+        page.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+        await editedReplies.First.Locator("[data-discussion-reply-delete]").ClickAsync();
+        await Assertions.Expect(page.Locator("[data-discussion-reply-id='r6']")).ToHaveCountAsync(0);
+        await Assertions.Expect(foxSurfaces).ToHaveCountAsync(2);
+        for (var index = 0; index < await foxSurfaces.CountAsync(); index++)
+            await Assertions.Expect(foxSurfaces.Nth(index).Locator(".lmx-discussion-post-author small")).ToContainTextAsync("4 replies");
+        Assert.NotNull(deletePayload);
+        using (var json = JsonDocument.Parse(deletePayload!))
+        {
+            Assert.Equal("browser-token", json.RootElement.GetProperty("accessToken").GetString());
+            Assert.Equal("r6", json.RootElement.GetProperty("replyId").GetString());
+        }
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public async Task DiscussionPager_PreservesServerHotOrderAndPagesPosts()
     {
         await using var app = await BrowserTestApp.StartAsync();
@@ -1582,13 +1702,15 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         bool includeDiscussionNotesWithMentionParticipants = false,
         string? eligibleDayDate = null,
         DiscussionReplySnapshot discussionReplySnapshot = DiscussionReplySnapshot.Initial,
-        DiscussionReplySnapshot? publicDiscussionReplySnapshot = null)
+        DiscussionReplySnapshot? publicDiscussionReplySnapshot = null,
+        bool includeDiscussionIdentityParticipants = false)
         => new
         {
             @public = BuildPublicState(
                 includeMentionParticipants,
                 includeDiscussionNotesWithMentionParticipants,
-                publicDiscussionReplySnapshot ?? discussionReplySnapshot),
+                publicDiscussionReplySnapshot ?? discussionReplySnapshot,
+                includeDiscussionIdentityParticipants),
             participant = new
             {
                 id = "p1",
@@ -1660,7 +1782,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
     private static object BuildPublicState(
         bool includeMentionParticipants = false,
         bool includeDiscussionNotesWithMentionParticipants = false,
-        DiscussionReplySnapshot discussionReplySnapshot = DiscussionReplySnapshot.Initial)
+        DiscussionReplySnapshot discussionReplySnapshot = DiscussionReplySnapshot.Initial,
+        bool includeDiscussionIdentityParticipants = false)
         => new
         {
             challengeName = "Longevitymaxxing Challenge",
@@ -1711,8 +1834,16 @@ public sealed class LongevitymaxxingChallengeBrowserTests
             }.Concat(includeMentionParticipants
                 ? new object[]
                 {
-                    MentionLeaderboardRow("p2", "Ari Able", "/athlete/ari-able"),
+                    MentionLeaderboardRow("p2", "Ari Able", "/athlete/ari-able", "/assets/content-images/headshot.jpg"),
                     MentionLeaderboardRow("p3", "Bea Builder")
+                }
+                : []).Concat(includeDiscussionIdentityParticipants
+                ? new object[]
+                {
+                    MentionLeaderboardRow("p4", "Cam"),
+                    MentionLeaderboardRow("p5", "Dee"),
+                    MentionLeaderboardRow("p6", "Eli"),
+                    MentionLeaderboardRow("p7", "Fox", "/athlete/fox", "/assets/content-images/cr7.webp")
                 }
                 : []).ToArray(),
             podium = Array.Empty<object>(),
@@ -1782,6 +1913,15 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 },
                 15,
                 "2026-06-30T19:00:00Z"),
+            DiscussionReplySnapshot.AfterOwnReplyDeleted => (
+                new object[]
+                {
+                    Reply("r2", "p4", "Cam", "Trying the same approach tomorrow.", "2026-06-29T12:00:00Z"),
+                    Reply("r3", "p5", "Dee", "The small version worked for me.", "2026-06-30T07:00:00Z"),
+                    Reply("r4", "p2", "Ari", "Keep us posted on the next step.", "2026-06-30T09:00:00Z")
+                },
+                4,
+                "2026-06-30T09:00:00Z"),
             _ => (
                 new object[]
                 {
@@ -1825,7 +1965,8 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         DisjointAfterFourMoreReplies,
         AfterMixedSurfacePagingReply,
         BackdatedReplyOutsideLatestWindow,
-        FreshAfterDelayedPage
+        FreshAfterDelayedPage,
+        AfterOwnReplyDeleted
     }
 
     private static object[] BuildMentionDiscussionNotes()
@@ -1839,13 +1980,17 @@ public sealed class LongevitymaxxingChallengeBrowserTests
                 "Contact test@Ari Able, then thank @Ari Able and @Bea Builder — not @Nobody.")
         ];
 
-    private static object MentionLeaderboardRow(string participantId, string displayName, string? athleteUrl = null)
+    private static object MentionLeaderboardRow(
+        string participantId,
+        string displayName,
+        string? athleteUrl = null,
+        string? profileImageUrl = null)
         => new
         {
             participantId,
             displayName,
             athleteUrl,
-            profileImageUrl = (string?)null,
+            profileImageUrl,
             checkedInDays = 1,
             totalPoints = 8,
             currentStreak = 1,
@@ -1902,8 +2047,9 @@ public sealed class LongevitymaxxingChallengeBrowserTests
         string participantId,
         string displayName,
         string body,
-        string createdAtUtc)
-        => new { id, participantId, displayName, body, createdAtUtc };
+        string createdAtUtc,
+        string? editedAtUtc = null)
+        => new { id, participantId, displayName, body, createdAtUtc, editedAtUtc };
 
     private static object CheckInImage(string url)
         => new

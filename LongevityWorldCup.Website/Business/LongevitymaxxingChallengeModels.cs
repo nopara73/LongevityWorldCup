@@ -22,6 +22,15 @@ public sealed record LongevitymaxxingDiscussionReplyRequest(
     string Body,
     string ReplyId);
 
+public sealed record LongevitymaxxingDiscussionReplyEditRequest(
+    string AccessToken,
+    string ReplyId,
+    string Body);
+
+public sealed record LongevitymaxxingDiscussionReplyDeleteRequest(
+    string AccessToken,
+    string ReplyId);
+
 public sealed record LongevitymaxxingDiscussionReplyPageRequest(
     string? AccessToken,
     string PostParticipantId,
@@ -182,7 +191,8 @@ public sealed record LongevitymaxxingDiscussionReply(
     string ParticipantId,
     string DisplayName,
     string Body,
-    string CreatedAtUtc);
+    string CreatedAtUtc,
+    string? EditedAtUtc);
 
 public sealed record LongevitymaxxingCheckInImage(
     string Url,
