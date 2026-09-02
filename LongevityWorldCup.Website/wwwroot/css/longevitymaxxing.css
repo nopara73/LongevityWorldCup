@@ -2694,6 +2694,10 @@ a.lmx-discussion-author-identity:focus-visible {
     -webkit-line-clamp: unset;
 }
 
+.lmx-discussion-reply-item [data-discussion-reply-body][hidden] {
+    display: none;
+}
+
 .lmx-discussion-reply-editor-slot:not([hidden]) {
     display: block;
     margin: 0.35rem 0 0 2.2rem;

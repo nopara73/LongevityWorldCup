@@ -41,6 +41,7 @@ public sealed record LongevitymaxxingDiscussionReplyPageRequest(
 public sealed record LongevitymaxxingDiscussionReplyPage(
     IReadOnlyList<LongevitymaxxingDiscussionReply> Replies,
     int TotalCount,
+    IReadOnlyList<string> LatestReplyIds,
     int RemainingEarlierReplyCount,
     bool HasEarlier,
     string? NextBeforeCreatedAtUtc,

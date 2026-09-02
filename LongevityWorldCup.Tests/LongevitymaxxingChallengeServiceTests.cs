@@ -298,6 +298,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             authenticatedThread.Replies[0].CreatedAtUtc,
             authenticatedThread.Replies[0].Id));
         Assert.Equal(24, firstPage.TotalCount);
+        Assert.Equal(authenticatedThread.Replies.Select(reply => reply.Id), firstPage.LatestReplyIds);
         Assert.Equal(20, firstPage.Replies.Count);
         Assert.Equal("Reply 2", firstPage.Replies[0].Body);
         Assert.Equal("Reply 21", firstPage.Replies[^1].Body);

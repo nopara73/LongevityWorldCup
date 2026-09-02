@@ -323,6 +323,10 @@ public sealed class LongevitymaxxingChallengeService
     }
 
     public LongevitymaxxingParticipantState GetParticipantState(string accessToken, DateTimeOffset? nowUtc = null)
+        // Keep the embedded public and participant discussion windows coherent across concurrent reply mutations.
+        => _db.Run(_ => BuildParticipantState(accessToken, nowUtc));
+
+    private LongevitymaxxingParticipantState BuildParticipantState(string accessToken, DateTimeOffset? nowUtc)
     {
         var now = EnsureUtc(nowUtc ?? DateTimeOffset.UtcNow);
         var participant = RequireParticipantByAccessToken(accessToken);
@@ -812,6 +816,7 @@ public sealed class LongevitymaxxingChallengeService
                 publicOnly: !hasAccessToken);
 
             var totalCount = GetDiscussionReplyCount(sqlite, postParticipantId, request.ChallengeDay);
+            var latestReplyIds = GetLatestDiscussionReplyIds(sqlite, postParticipantId, request.ChallengeDay);
             using var cmd = sqlite.CreateCommand();
             cmd.CommandText =
                 $"""
@@ -862,11 +867,39 @@ public sealed class LongevitymaxxingChallengeService
             return new LongevitymaxxingDiscussionReplyPage(
                 replies,
                 totalCount,
+                latestReplyIds,
                 remainingEarlier,
                 remainingEarlier > 0,
                 remainingEarlier > 0 ? earliest!.CreatedAtUtc : null,
                 remainingEarlier > 0 ? earliest!.Id : null);
         });
+    }
+
+    private static IReadOnlyList<string> GetLatestDiscussionReplyIds(
+        SqliteConnection sqlite,
+        string postParticipantId,
+        int challengeDay)
+    {
+        using var cmd = sqlite.CreateCommand();
+        cmd.CommandText =
+            """
+            SELECT Id
+            FROM LongevitymaxxingDiscussionReplies
+            WHERE PostParticipantId = @postParticipantId
+              AND PostChallengeDay = @day
+            ORDER BY CreatedAtUtc DESC, Id DESC
+            LIMIT @limit;
+            """;
+        Add(cmd, "@postParticipantId", postParticipantId);
+        Add(cmd, "@day", challengeDay);
+        Add(cmd, "@limit", InitialDiscussionReplyCount);
+
+        var ids = new List<string>();
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+            ids.Add(reader.GetString(0));
+        ids.Reverse();
+        return ids;
     }
 
     private static void EnsureDiscussionReplyReplayMatches(

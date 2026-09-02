@@ -164,6 +164,7 @@
     interface DiscussionReplyPage {
         replies: DiscussionReply[];
         totalCount: number;
+        latestReplyIds: string[];
         remainingEarlierReplyCount: number;
         hasEarlier: boolean;
         nextBeforeCreatedAtUtc: string | null;
@@ -688,6 +689,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     let publicState: PublicState | null = null;
     let participantState: ParticipantState | null = null;
+    let stateAcceptanceGeneration = 0;
+    let discussionStateRefreshPromise: Promise<void> | null = null;
     let accessToken = safeStorageGet(STORAGE_KEY);
     let signupSubmitted = false;
     let selectedCheckInDay: number | null = null;
@@ -921,8 +924,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                     accessToken,
                     timeZoneId: requiredSelect("lmxEditTimeZone").value
                 });
-                participantState = result;
-                publicState = result.public;
+                acceptParticipantState(result);
                 renderAll();
                 setStatus("lmxEditStatus", "Saved.", false);
             }, "Saving...");
@@ -1125,8 +1127,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             const result = await postJson(`${API}/confirm`, { token: params.get("confirm") || "" });
             accessToken = result.accessToken;
             safeStorageSet(STORAGE_KEY, accessToken);
-            participantState = result.state;
-            publicState = result.state.public;
+            acceptParticipantState(result.state);
             setStatus("lmxSignupStatus", "You're in.", false);
             shouldClean = true;
         }
@@ -1175,8 +1176,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             accessLoading = true;
             renderAccessLoading();
             try {
-                participantState = await postJson(`${API}/participant`, { token: accessToken });
-                publicState = participantState.public;
+                const result = await postJson(`${API}/participant`, { token: accessToken });
+                acceptParticipantState(result);
                 accessLoading = false;
                 renderAll();
                 return;
@@ -1207,9 +1208,23 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     async function refreshPublicOnly(options: RefreshPublicOptions = {}): Promise<void> {
         const keepParticipant = !!(options && options.keepParticipant);
-        publicState = await getJson(`${API}/state`);
+        const result = await getJson(`${API}/state`);
+        acceptPublicState(result);
         if (!keepParticipant) participantState = null;
         renderAll();
+    }
+
+    function acceptParticipantState(state: ParticipantState): void {
+        invalidateDiscussionReplyCachesForAuthoritativeState([state.notes, state.public.notes]);
+        participantState = state;
+        publicState = state.public;
+        stateAcceptanceGeneration++;
+    }
+
+    function acceptPublicState(state: PublicState): void {
+        invalidateDiscussionReplyCachesForAuthoritativeState([state.notes]);
+        publicState = state;
+        stateAcceptanceGeneration++;
     }
 
     function renderAll() {
@@ -3128,7 +3143,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionRepliesHtml(note: ParticipantNote): string {
         const embeddedReplies = Array.isArray(note.replies) ? note.replies : [];
-        const reportedReplyCount = Math.max(embeddedReplies.length, Math.max(0, Number(note.replyCount) || 0));
+        const reportedReplyCount = reportedDiscussionReplyCount(note);
         const cacheKey = discussionThreadKey(note.participantId, note.challengeDay);
         const cacheEntry = discussionReplyCache.get(cacheKey);
         let replies = embeddedReplies;
@@ -3170,12 +3185,56 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function effectiveDiscussionReplyCount(note: ParticipantNote): number {
-        const embeddedCount = Array.isArray(note.replies) ? note.replies.length : 0;
-        const reportedCount = Math.max(embeddedCount, Math.max(0, Number(note.replyCount) || 0));
+        const reportedCount = reportedDiscussionReplyCount(note);
         const cached = discussionReplyCache.get(discussionThreadKey(note.participantId, note.challengeDay));
         return cached
             ? Math.max(reportedCount, cached.latestKnownReplyCount, cached.byId.size)
             : reportedCount;
+    }
+
+    function reportedDiscussionReplyCount(note: ParticipantNote): number {
+        const embeddedCount = Array.isArray(note.replies) ? note.replies.length : 0;
+        return Math.max(embeddedCount, Math.max(0, Number(note.replyCount) || 0));
+    }
+
+    function invalidateDiscussionReplyCachesForAuthoritativeState(
+        noteCollections: Array<ParticipantNote[] | undefined>
+    ): void {
+        const authoritativeSnapshots = new Map<string, { replyCount: number; replies: DiscussionReply[] }>();
+        noteCollections.forEach(collection => (collection || []).forEach(note => {
+            const key = discussionThreadKey(note.participantId, note.challengeDay);
+            const snapshot = {
+                replyCount: reportedDiscussionReplyCount(note),
+                replies: Array.isArray(note.replies) ? note.replies : []
+            };
+            const current = authoritativeSnapshots.get(key);
+            if (!current || snapshot.replyCount > current.replyCount ||
+                (snapshot.replyCount === current.replyCount && snapshot.replies.length > current.replies.length))
+                authoritativeSnapshots.set(key, snapshot);
+        }));
+
+        authoritativeSnapshots.forEach((snapshot, key) => {
+            const cached = discussionReplyCache.get(key);
+            if (!cached) return;
+            const cachedCount = Math.max(cached.latestKnownReplyCount, cached.byId.size);
+            const latestWindowChanged = snapshot.replyCount === cached.latestKnownReplyCount &&
+                snapshot.replies.length > 0 &&
+                !discussionLatestReplyIdsMatch(cached.byId, snapshot.replies.map(reply => reply.id));
+            if (snapshot.replyCount < cachedCount || latestWindowChanged)
+                discussionReplyCache.delete(key);
+        });
+    }
+
+    function discussionLatestReplyIdsMatch(
+        cachedReplies: Map<string, DiscussionReply>,
+        latestReplyIds: string[]
+    ): boolean {
+        if (!latestReplyIds.length) return cachedReplies.size === 0;
+        const cachedLatestIds = mergeDiscussionReplies(cachedReplies, [])
+            .slice(-latestReplyIds.length)
+            .map(reply => reply.id);
+        return cachedLatestIds.length === latestReplyIds.length &&
+            cachedLatestIds.every((id, index) => id === latestReplyIds[index]);
     }
 
     function reconcileDiscussionReplyRange(
@@ -3988,9 +4047,8 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 : await postJson(`${API}/check-in`, payload);
             savedDays.add(payload.challengeDay);
             clearPendingNotePhotos(payload.challengeDay);
-            participantState = result;
-            publicState = result.public;
-            const nextMissing = getPendingCheckInDays(participantState)
+            acceptParticipantState(result);
+            const nextMissing = getPendingCheckInDays(result)
                 .sort((a, b) => b.challengeDay - a.challengeDay)[0];
             selectedCheckInDay = nextMissing ? nextMissing.challengeDay : payload.challengeDay;
             renderAll();
@@ -4077,8 +4135,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             formData.append("profilePicture", uploadFile, uploadFile.name || "profile-picture.jpg");
 
             const result = await postForm(`${API}/profile-picture`, formData);
-            participantState = result;
-            publicState = result.public;
+            acceptParticipantState(result);
             renderAll();
             setStatus("lmxProfilePictureStatus", "Uploaded.", false);
         } catch (err) {
@@ -4260,7 +4317,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
             if (!button.isConnected ||
                 currentBeforeCreatedAtUtc !== payload.beforeCreatedAtUtc ||
                 currentBeforeReplyId !== payload.beforeReplyId) return;
-            updateDiscussionReplyPages(payload, page);
+            await updateDiscussionReplyPages(payload, page);
         } catch (err) {
             button.disabled = false;
             button.removeAttribute("aria-busy");
@@ -4269,7 +4326,21 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         }
     }
 
-    function updateDiscussionReplyPages(payload: DiscussionReplyPagePayload, page: DiscussionReplyPage): void {
+    async function updateDiscussionReplyPages(payload: DiscussionReplyPagePayload, page: DiscussionReplyPage): Promise<void> {
+        const snapshot = currentDiscussionReplySnapshot(payload);
+        const cached = discussionReplyCache.get(discussionThreadKey(payload.postParticipantId, payload.challengeDay));
+        const latestKnownReplyCount = Math.max(
+            snapshot.replyCount,
+            cached?.latestKnownReplyCount || 0,
+            cached?.byId.size || 0);
+        const knownReplies = cached?.byId || new Map(snapshot.replies.map(reply => [reply.id, reply]));
+        const latestWindowChanged = page.latestReplyIds.length > 0 &&
+            !discussionLatestReplyIdsMatch(knownReplies, page.latestReplyIds);
+        if (page.totalCount < latestKnownReplyCount || latestWindowChanged) {
+            await refreshDiscussionState();
+            return;
+        }
+
         rememberLoadedDiscussionReplies(payload, page.replies);
         document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id][data-discussion-post-challenge-day]")
             .forEach(article => {
@@ -4306,6 +4377,32 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 currentButton.removeAttribute("title");
                 currentButton.textContent = earlierRepliesButtonLabel(page.remainingEarlierReplyCount);
             });
+    }
+
+    function refreshDiscussionState(): Promise<void> {
+        if (discussionStateRefreshPromise) return discussionStateRefreshPromise;
+        const generation = stateAcceptanceGeneration;
+        const refresh = refreshDiscussionStateCore(generation).finally(() => {
+            if (discussionStateRefreshPromise === refresh)
+                discussionStateRefreshPromise = null;
+        });
+        discussionStateRefreshPromise = refresh;
+        return refresh;
+    }
+
+    async function refreshDiscussionStateCore(generation: number): Promise<void> {
+        if (accessToken) {
+            const result = await postJson(`${API}/participant`, { token: accessToken });
+            if (generation !== stateAcceptanceGeneration) return;
+            acceptParticipantState(result);
+            renderDiscussionSurfaces(result);
+            return;
+        }
+
+        const result = await getJson(`${API}/state`);
+        if (generation !== stateAcceptanceGeneration) return;
+        acceptPublicState(result);
+        renderNotes(result.notes || [], false);
     }
 
     function openDiscussionReplyComposer(button: HTMLButtonElement): void {
@@ -4494,8 +4591,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 String(thread.dataset.discussionPostParticipantId || ""),
                 Number(thread.dataset.discussionPostChallengeDay));
             discussionReplyCache.delete(cacheKey);
-            participantState = result;
-            publicState = result.public;
+            acceptParticipantState(result);
             renderDiscussionSurfaces(result);
         } catch (err) {
             if (status) {
@@ -4563,8 +4659,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         submit.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>Posting...`;
         try {
             const result = await postJson(`${API}/discussion/replies`, payload);
-            participantState = result;
-            publicState = result.public;
+            acceptParticipantState(result);
             renderDiscussionSurfaces(result);
         } catch (err) {
             if (status) {
@@ -5810,9 +5905,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function isDiscussionReplyPage(value: unknown): value is DiscussionReplyPage {
-        return hasProperties(value, "replies", "totalCount", "remainingEarlierReplyCount", "hasEarlier", "nextBeforeCreatedAtUtc", "nextBeforeReplyId") &&
+        return hasProperties(value, "replies", "totalCount", "latestReplyIds", "remainingEarlierReplyCount", "hasEarlier", "nextBeforeCreatedAtUtc", "nextBeforeReplyId") &&
             isArrayOf(value.replies, isDiscussionReply) &&
             typeof value.totalCount === "number" && value.totalCount >= 0 &&
+            Array.isArray(value.latestReplyIds) && value.latestReplyIds.every(id => typeof id === "string") &&
             typeof value.remainingEarlierReplyCount === "number" && value.remainingEarlierReplyCount >= 0 &&
             typeof value.hasEarlier === "boolean" &&
             isNullableString(value.nextBeforeCreatedAtUtc) && isNullableString(value.nextBeforeReplyId);
