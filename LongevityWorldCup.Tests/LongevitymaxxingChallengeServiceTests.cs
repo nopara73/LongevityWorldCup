@@ -48,8 +48,137 @@ public sealed class LongevitymaxxingChallengeServiceTests
         var reply = Assert.Single(thread.Replies);
         Assert.Equal("Bea Builder", reply.DisplayName);
         Assert.Equal("This is a real child reply.", reply.Body);
+        Assert.Null(reply.EditedAtUtc);
         Assert.Equal(postedAt.AddMinutes(2), DateTimeOffset.Parse(thread.LastActivityAtUtc));
         Assert.Equal("Bea's separate post.", result.Notes.Single(note => note.DisplayName == "Bea Builder").Note);
+    }
+
+    [Fact]
+    public async Task ReplyAuthorCanEditWithoutBumpingTheThreadAndPendingMentionsAreReconciled()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        var miaAccess = await fixture.ConfirmParticipantAsync("mia@example.com", "Mention Mia");
+        var noahAccess = await fixture.ConfirmParticipantAsync("noah@example.com", "Mention Noah");
+        var postedAt = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
+        var post = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "Discuss this."),
+            postedAt);
+        var replyId = Guid.NewGuid().ToString("D");
+        var repliedAt = postedAt.AddMinutes(1);
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
+                replierAccess,
+                post.Participant.Id,
+                1,
+                "First version for @Mention Mia.",
+                replyId),
+            repliedAt);
+
+        var unauthorized = Assert.Throws<UnauthorizedAccessException>(() => fixture.Service.EditDiscussionReply(
+            new LongevitymaxxingDiscussionReplyEditRequest(authorAccess, replyId, "Not the author's edit."),
+            postedAt.AddMinutes(2)));
+        Assert.Equal("You can only edit your own replies.", unauthorized.Message);
+
+        var editedAt = postedAt.AddMinutes(3);
+        var edited = fixture.Service.EditDiscussionReply(
+            new LongevitymaxxingDiscussionReplyEditRequest(
+                replierAccess,
+                replyId,
+                "Corrected version for @Mention Noah."),
+            editedAt);
+        Assert.Equal("Corrected version for @Mention Noah.", edited.Body);
+        Assert.Equal(repliedAt, DateTimeOffset.Parse(edited.CreatedAtUtc));
+        Assert.Equal(editedAt, DateTimeOffset.Parse(edited.EditedAtUtc!));
+
+        var thread = Assert.Single(fixture.Service.GetParticipantState(replierAccess, editedAt.AddMinutes(1)).Notes);
+        Assert.Equal(1, thread.ReplyCount);
+        Assert.Equal(repliedAt, DateTimeOffset.Parse(thread.LastActivityAtUtc));
+        var saved = Assert.Single(thread.Replies);
+        Assert.Equal(edited.Body, saved.Body);
+        Assert.Equal(editedAt, DateTimeOffset.Parse(saved.EditedAtUtc!));
+
+        var reminderCandidates = fixture.Service.GetDailyReminderCandidates(postedAt.AddDays(1).AddMinutes(5));
+        var miaId = fixture.Service.GetParticipantState(miaAccess).Participant.Id;
+        var noahId = fixture.Service.GetParticipantState(noahAccess).Participant.Id;
+        Assert.Equal(0, reminderCandidates.Single(candidate => candidate.ParticipantId == miaId).DiscussionDigest.MentionCount);
+        Assert.Equal(1, reminderCandidates.Single(candidate => candidate.ParticipantId == noahId).DiscussionDigest.MentionCount);
+        Assert.Equal(1, reminderCandidates.Single(candidate => candidate.ParticipantId == post.Participant.Id).DiscussionDigest.ReplyCount);
+
+        var unchanged = fixture.Service.EditDiscussionReply(
+            new LongevitymaxxingDiscussionReplyEditRequest(replierAccess, replyId, edited.Body),
+            postedAt.AddHours(2));
+        Assert.Equal(edited.EditedAtUtc, unchanged.EditedAtUtc);
+        var notificationCount = fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM LongevitymaxxingDiscussionNotifications WHERE SourceReplyId = @replyId;";
+            cmd.Parameters.AddWithValue("@replyId", Guid.Parse(replyId).ToString("N"));
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        });
+        Assert.Equal(2, notificationCount);
+    }
+
+    [Fact]
+    public async Task ReplyAuthorCanDeleteAndItsPendingDigestActivityIsRemoved()
+    {
+        using var fixture = TestChallengeFixture.Create();
+        var authorAccess = await fixture.ConfirmParticipantAsync("author@example.com", "Author Ana");
+        var replierAccess = await fixture.ConfirmParticipantAsync("reply@example.com", "Reply Rae");
+        _ = await fixture.ConfirmParticipantAsync("mia@example.com", "Mention Mia");
+        var postedAt = DateTimeOffset.Parse("2026-06-09T08:00:00Z");
+        var post = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, "A removable thread."),
+            postedAt);
+        var replyId = Guid.NewGuid().ToString("D");
+        fixture.Service.SubmitDiscussionReply(
+            new LongevitymaxxingDiscussionReplyRequest(
+                replierAccess,
+                post.Participant.Id,
+                1,
+                "A reply for @Mention Mia.",
+                replyId),
+            postedAt.AddMinutes(1));
+
+        var unauthorized = Assert.Throws<UnauthorizedAccessException>(() => fixture.Service.DeleteDiscussionReply(
+            new LongevitymaxxingDiscussionReplyDeleteRequest(authorAccess, replyId),
+            postedAt.AddMinutes(2)));
+        Assert.Equal("You can only delete your own replies.", unauthorized.Message);
+
+        var deleted = fixture.Service.DeleteDiscussionReply(
+            new LongevitymaxxingDiscussionReplyDeleteRequest(replierAccess, replyId),
+            postedAt.AddMinutes(3));
+        var thread = Assert.Single(deleted.Notes);
+        Assert.Equal(0, thread.ReplyCount);
+        Assert.Empty(thread.Replies);
+        Assert.Equal(postedAt, DateTimeOffset.Parse(thread.LastActivityAtUtc));
+
+        var persistedCounts = fixture.Db.Run(sqlite =>
+        {
+            using var cmd = sqlite.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT
+                    (SELECT COUNT(*) FROM LongevitymaxxingDiscussionReplies WHERE Id = @replyId),
+                    (SELECT COUNT(*) FROM LongevitymaxxingDiscussionNotifications WHERE SourceReplyId = @replyId);
+                """;
+            cmd.Parameters.AddWithValue("@replyId", Guid.Parse(replyId).ToString("N"));
+            using var reader = cmd.ExecuteReader();
+            Assert.True(reader.Read());
+            return (Replies: reader.GetInt32(0), Notifications: reader.GetInt32(1));
+        });
+        Assert.Equal((0, 0), persistedCounts);
+
+        var removedPost = fixture.Service.SubmitCheckIn(
+            new LongevitymaxxingCheckInRequest(authorAccess, 1, 2, 2, 2, 2, null),
+            postedAt.AddMinutes(4));
+        Assert.Empty(removedPost.Notes);
+
+        var missing = Assert.Throws<InvalidOperationException>(() => fixture.Service.DeleteDiscussionReply(
+            new LongevitymaxxingDiscussionReplyDeleteRequest(replierAccess, replyId),
+            postedAt.AddMinutes(5)));
+        Assert.Equal("That reply is no longer available.", missing.Message);
     }
 
     [Fact]
@@ -169,6 +298,7 @@ public sealed class LongevitymaxxingChallengeServiceTests
             authenticatedThread.Replies[0].CreatedAtUtc,
             authenticatedThread.Replies[0].Id));
         Assert.Equal(24, firstPage.TotalCount);
+        Assert.Equal(authenticatedThread.Replies.Select(reply => reply.Id), firstPage.LatestReplyIds);
         Assert.Equal(20, firstPage.Replies.Count);
         Assert.Equal("Reply 2", firstPage.Replies[0].Body);
         Assert.Equal("Reply 21", firstPage.Replies[^1].Body);

@@ -192,6 +192,40 @@ public sealed class LongevitymaxxingController(LongevitymaxxingChallengeService 
         }
     }
 
+    [HttpPost("discussion/replies/edit")]
+    public IActionResult EditDiscussionReply([FromBody] LongevitymaxxingDiscussionReplyEditRequest request)
+    {
+        try
+        {
+            return Ok(_challenge.EditDiscussionReply(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("discussion/replies/delete")]
+    public IActionResult DeleteDiscussionReply([FromBody] LongevitymaxxingDiscussionReplyDeleteRequest request)
+    {
+        try
+        {
+            return Ok(_challenge.DeleteDiscussionReply(request));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex) when (IsClientError(ex))
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [HttpPost("stop-emails")]
     public IActionResult StopEmails([FromBody] LongevitymaxxingTokenRequest request)
     {

@@ -601,6 +601,9 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("function activeDiscussionHtml(notes: ParticipantNote[]): string", javascript);
         Assert.Contains("function discussionThreadsInHotOrder(notes: ParticipantNote[]): ParticipantNote[]", javascript);
         Assert.Contains("function openDiscussionReplyComposer(button: HTMLButtonElement): void", javascript);
+        Assert.Contains("function openDiscussionReplyEditor(button: HTMLButtonElement): void", javascript);
+        Assert.Contains("function deleteDiscussionReply(button: HTMLButtonElement): Promise<void>", javascript);
+        Assert.Contains("function replaceDiscussionReplyEverywhere(updated: DiscussionReply): void", javascript);
         Assert.DoesNotContain("placeholder=\"Write a reply or mention @Name\" required", javascript);
         Assert.Contains("function submitDiscussionReply(", javascript);
         Assert.Contains("function renderDiscussionSurfaces(state: ParticipantState): void", javascript);
@@ -612,6 +615,8 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("renderAll();", replySubmit);
         Assert.Contains("`${API}/discussion/replies`", javascript);
         Assert.Contains("`${API}/discussion/replies/page`", javascript);
+        Assert.Contains("`${API}/discussion/replies/edit`", javascript);
+        Assert.Contains("`${API}/discussion/replies/delete`", javascript);
         Assert.Contains("function loadEarlierDiscussionReplies(button: HTMLButtonElement): Promise<void>", javascript);
         Assert.Contains("function createDiscussionReplyId(): string", javascript);
         Assert.Contains("replyId: slot.dataset.replyId", javascript);
@@ -623,6 +628,12 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("Active discussion", javascript);
         Assert.Contains("aria-label=\"Active public discussion\"", javascript);
         Assert.Contains("data-discussion-reply", javascript);
+        Assert.Contains("data-discussion-reply-edit", javascript);
+        Assert.Contains("data-discussion-reply-delete", javascript);
+        Assert.Contains("class=\"lmx-discussion-edited\"", javascript);
+        Assert.Contains("function discussionAuthorHtml(participantId: string, displayName: string): string", javascript);
+        Assert.Contains("function participantAvatarDetails(", javascript);
+        Assert.Contains("class=\"lmx-discussion-author-identity\"", javascript);
         Assert.Contains("images.map((image, index) => notePhotoHtml(image", javascript);
         Assert.Contains("function wireNotePhotoViewer(): void", javascript);
         Assert.Contains("class=\"lmx-photo-viewer\"", javascript);
@@ -636,9 +647,11 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("window.addEventListener(\"popstate\"", javascript);
         Assert.Contains("dialog.addEventListener(\"touchstart\"", javascript);
         Assert.Contains("No discussion yet.", javascript);
-        Assert.Contains("placeholder=\"Share an update or mention @Name\"", javascript);
+        Assert.Contains("placeholder=\"Visible publicly\"", javascript);
         Assert.Contains("placeholder=\"Write a reply or mention @Name\"", javascript);
         Assert.Contains(".lmx-discussion-reply-composer", css);
+        Assert.Contains(".lmx-discussion-author-avatar", css);
+        Assert.Contains(".lmx-discussion-reply-owner-actions", css);
         Assert.DoesNotContain("Visible to participants only", javascript);
         Assert.DoesNotContain("<h2>Category dashboard</h2>", javascript);
         Assert.DoesNotContain("<div role=\"columnheader\">Category</div>", javascript);
@@ -884,7 +897,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.Contains("formData.append(\"profilePicture\", uploadFile, uploadFile.name || \"profile-picture.jpg\");", javascript);
         Assert.DoesNotContain("Profile picture must be 8 MB or smaller.", javascript);
         Assert.Contains("const MAX_NOTE_PHOTOS = 4;", javascript);
-        Assert.Contains("Post to discussion <span>optional</span>", javascript);
+        Assert.Contains("Remarks <span>optional</span>", javascript);
         Assert.Contains("Photos <span>optional</span>", javascript);
         Assert.Contains(".lmx-field span.lmx-label span", css);
         Assert.Contains("                Save", javascript);
