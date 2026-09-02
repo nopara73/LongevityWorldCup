@@ -128,6 +128,11 @@
         createdAtUtc: string;
     }
 
+    interface DiscussionReplyCacheEntry {
+        byId: Map<string, DiscussionReply>;
+        latestKnownReplyCount: number;
+    }
+
     interface DiscussionReplyPayload {
         accessToken: string;
         postParticipantId: string;
@@ -677,7 +682,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     const savedDays = new Set<number>();
     const pendingNotePhotos = new Map<string, File[]>();
     const pendingNotePhotoUrls = new Map<string, string[]>();
-    const discussionReplyCache = new Map<string, Map<string, DiscussionReply>>();
+    const discussionReplyCache = new Map<string, DiscussionReplyCacheEntry>();
     const PARTICIPANT_TABS: readonly ParticipantTab[] = ["checkin", "profile", "home"];
     const athleteSelectors = new Map<string, AthleteSelectorController>();
     let athleteDirectory: AthleteOption[] = [];
@@ -3085,7 +3090,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionPostHeaderHtml(note: ParticipantNote, canReply: boolean): string {
         const date = note.date ? formatShortDateLabel(note.date) : "";
-        const replyCount = Math.max(0, Number(note.replyCount) || 0);
+        const replyCount = effectiveDiscussionReplyCount(note);
         const replyLabel = `${replyCount} ${replyCount === 1 ? "reply" : "replies"}`;
         const context = [date, `Day ${note.challengeDay}`, replyLabel].filter(Boolean).join(" · ");
         const reply = canReply
@@ -3111,15 +3116,16 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
 
     function discussionRepliesHtml(note: ParticipantNote): string {
         const embeddedReplies = Array.isArray(note.replies) ? note.replies : [];
+        const reportedReplyCount = Math.max(embeddedReplies.length, Math.max(0, Number(note.replyCount) || 0));
         const cacheKey = discussionThreadKey(note.participantId, note.challengeDay);
-        const cachedReplies = discussionReplyCache.get(cacheKey);
+        const cacheEntry = discussionReplyCache.get(cacheKey);
         let replies = embeddedReplies;
-        if (cachedReplies) {
-            const overlapsFreshWindow = embeddedReplies.some(reply => cachedReplies.has(reply.id));
-            if (overlapsFreshWindow) replies = mergeDiscussionReplies(cachedReplies, embeddedReplies);
-            else discussionReplyCache.delete(cacheKey);
+        let totalCount = reportedReplyCount;
+        if (cacheEntry) {
+            reconcileDiscussionReplyRange(cacheEntry, embeddedReplies, reportedReplyCount, true);
+            replies = mergeDiscussionReplies(cacheEntry.byId, []);
+            totalCount = Math.max(replies.length, cacheEntry.latestKnownReplyCount);
         }
-        const totalCount = Math.max(replies.length, Math.max(0, Number(note.replyCount) || 0));
         if (!totalCount) return "";
 
         const remainingEarlier = Math.max(0, totalCount - replies.length);
@@ -3151,28 +3157,119 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
         return JSON.stringify([postParticipantId, challengeDay]);
     }
 
-    function rememberLoadedDiscussionReplies(
-        postParticipantId: string,
-        challengeDay: number,
-        replies: DiscussionReply[]
-    ): void {
-        const key = discussionThreadKey(postParticipantId, challengeDay);
-        let byId = discussionReplyCache.get(key);
-        if (!byId) {
-            const seededById = new Map<string, DiscussionReply>();
-            currentDiscussionReplies(postParticipantId, challengeDay)
-                .forEach(reply => seededById.set(reply.id, reply));
-            discussionReplyCache.set(key, seededById);
-            byId = seededById;
-        }
-        mergeDiscussionReplies(byId, replies);
+    function effectiveDiscussionReplyCount(note: ParticipantNote): number {
+        const embeddedCount = Array.isArray(note.replies) ? note.replies.length : 0;
+        const reportedCount = Math.max(embeddedCount, Math.max(0, Number(note.replyCount) || 0));
+        const cached = discussionReplyCache.get(discussionThreadKey(note.participantId, note.challengeDay));
+        return cached
+            ? Math.max(reportedCount, cached.latestKnownReplyCount, cached.byId.size)
+            : reportedCount;
     }
 
-    function currentDiscussionReplies(postParticipantId: string, challengeDay: number): DiscussionReply[] {
+    function reconcileDiscussionReplyRange(
+        entry: DiscussionReplyCacheEntry,
+        incomingReplies: DiscussionReply[],
+        incomingEndReplyOrdinal: number,
+        incomingIsLatestWindow = false
+    ): "merged" | "replaced" | "ignored" {
+        const incomingById = new Map<string, DiscussionReply>();
+        incomingReplies.forEach(reply => {
+            if (reply?.id) incomingById.set(reply.id, reply);
+        });
+        if (!incomingById.size) return "ignored";
+
+        if (incomingIsLatestWindow && incomingEndReplyOrdinal < entry.latestKnownReplyCount)
+            return "ignored";
+
+        if (incomingIsLatestWindow && incomingEndReplyOrdinal > entry.latestKnownReplyCount) {
+            const replyCountIncrease = incomingEndReplyOrdinal - entry.latestKnownReplyCount;
+            const visibleNewReplyCount = Array.from(incomingById.keys())
+                .filter(id => !entry.byId.has(id)).length;
+            if (visibleNewReplyCount !== replyCountIncrease) {
+                entry.byId = incomingById;
+                entry.latestKnownReplyCount = incomingEndReplyOrdinal;
+                return "replaced";
+            }
+        }
+
+        const cachedStartReplyOrdinal = entry.latestKnownReplyCount - entry.byId.size + 1;
+        const incomingStartReplyOrdinal = incomingEndReplyOrdinal - incomingById.size + 1;
+        const ordinalRangesOverlap = incomingStartReplyOrdinal <= entry.latestKnownReplyCount &&
+            cachedStartReplyOrdinal <= incomingEndReplyOrdinal;
+        const idRangesOverlap = Array.from(incomingById.keys()).some(id => entry.byId.has(id));
+        const ordinalRangesTouch = incomingStartReplyOrdinal <= entry.latestKnownReplyCount + 1 &&
+            cachedStartReplyOrdinal <= incomingEndReplyOrdinal + 1;
+
+        if (ordinalRangesTouch && (!ordinalRangesOverlap || idRangesOverlap)) {
+            mergeDiscussionReplies(entry.byId, Array.from(incomingById.values()));
+            entry.latestKnownReplyCount = Math.max(entry.latestKnownReplyCount, incomingEndReplyOrdinal);
+            return "merged";
+        }
+
+        if (incomingEndReplyOrdinal >= entry.latestKnownReplyCount) {
+            entry.byId = incomingById;
+            entry.latestKnownReplyCount = incomingEndReplyOrdinal;
+            return "replaced";
+        }
+
+        return "ignored";
+    }
+
+    function rememberLoadedDiscussionReplies(
+        payload: DiscussionReplyPagePayload,
+        replies: DiscussionReply[]
+    ): void {
+        const key = discussionThreadKey(payload.postParticipantId, payload.challengeDay);
+        let entry = discussionReplyCache.get(key);
+        if (entry) {
+            const cachedReplies = mergeDiscussionReplies(entry.byId, []);
+            const cachedEarliest = cachedReplies[0] || null;
+            if (cachedEarliest?.createdAtUtc === payload.beforeCreatedAtUtc &&
+                cachedEarliest.id === payload.beforeReplyId) {
+                reconcileDiscussionReplyRange(
+                    entry,
+                    replies,
+                    entry.latestKnownReplyCount - entry.byId.size);
+                return;
+            }
+        }
+
+        const snapshot = currentDiscussionReplySnapshot(payload);
+        if (!entry) {
+            const byId = new Map<string, DiscussionReply>();
+            snapshot.replies.forEach(reply => byId.set(reply.id, reply));
+            entry = { byId, latestKnownReplyCount: snapshot.replyCount };
+            discussionReplyCache.set(key, entry);
+        } else if (reconcileDiscussionReplyRange(entry, snapshot.replies, snapshot.replyCount, true) === "ignored") {
+            return;
+        }
+        reconcileDiscussionReplyRange(
+            entry,
+            replies,
+            snapshot.replyCount - snapshot.replies.length);
+    }
+
+    function currentDiscussionReplySnapshot(payload: DiscussionReplyPagePayload): {
+        replies: DiscussionReply[];
+        replyCount: number;
+    } {
         const noteCollections = [participantState?.notes, participantState?.public?.notes, publicState?.notes];
-        return noteCollections.flatMap(notes => (notes || [])
-            .filter(note => note.participantId === postParticipantId && note.challengeDay === challengeDay)
-            .flatMap(note => Array.isArray(note.replies) ? note.replies : []));
+        const notes = noteCollections.flatMap(collection => (collection || [])
+            .filter(note => note.participantId === payload.postParticipantId && note.challengeDay === payload.challengeDay));
+        const cursorMatches = notes.filter(note => {
+            const earliest = Array.isArray(note.replies) ? note.replies[0] : null;
+            return !!earliest &&
+                earliest.createdAtUtc === payload.beforeCreatedAtUtc &&
+                earliest.id === payload.beforeReplyId;
+        });
+        const candidates = cursorMatches.length ? cursorMatches : notes;
+        const selected = candidates.reduce<ParticipantNote | null>((best, note) =>
+            !best || effectiveDiscussionReplyCount(note) > effectiveDiscussionReplyCount(best) ? note : best, null);
+        const replies = selected && Array.isArray(selected.replies) ? selected.replies : [];
+        return {
+            replies,
+            replyCount: selected ? Math.max(replies.length, Math.max(0, Number(selected.replyCount) || 0)) : 0
+        };
     }
 
     function mergeDiscussionReplies(
@@ -4120,7 +4217,7 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
     }
 
     function updateDiscussionReplyPages(payload: DiscussionReplyPagePayload, page: DiscussionReplyPage): void {
-        rememberLoadedDiscussionReplies(payload.postParticipantId, payload.challengeDay, page.replies);
+        rememberLoadedDiscussionReplies(payload, page.replies);
         document.querySelectorAll<HTMLElement>("article[data-discussion-post-participant-id][data-discussion-post-challenge-day]")
             .forEach(article => {
                 if (article.dataset.discussionPostParticipantId !== payload.postParticipantId ||
@@ -4128,6 +4225,12 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const replies = article.querySelector<HTMLElement>("[data-discussion-replies]");
                 const list = replies?.querySelector<HTMLElement>(".lmx-discussion-reply-list");
                 if (!replies || !list) return;
+                const currentButton = replies.querySelector<HTMLButtonElement>("[data-discussion-replies-page]");
+                const currentBeforeCreatedAtUtc = String(currentButton?.dataset.beforeCreatedAtUtc || "") || null;
+                const currentBeforeReplyId = String(currentButton?.dataset.beforeReplyId || "") || null;
+                if (!currentButton ||
+                    currentBeforeCreatedAtUtc !== payload.beforeCreatedAtUtc ||
+                    currentBeforeReplyId !== payload.beforeReplyId) return;
 
                 const existingIds = new Set(Array.from(
                     list.querySelectorAll<HTMLElement>("[data-discussion-reply-id]"),
@@ -4135,12 +4238,10 @@ const TIME_ZONE_COUNTRY_DATA = "Europe/Andorra=AD|Asia/Dubai=AE|Asia/Kabul=AF|Am
                 const additions = page.replies.filter(reply => !existingIds.has(reply.id));
                 if (additions.length) list.insertAdjacentHTML("afterbegin", additions.map(discussionReplyHtml).join(""));
 
-                const currentButton = replies.querySelector<HTMLButtonElement>("[data-discussion-replies-page]");
                 if (!page.hasEarlier || page.remainingEarlierReplyCount <= 0 || !page.nextBeforeCreatedAtUtc || !page.nextBeforeReplyId) {
-                    currentButton?.remove();
+                    currentButton.remove();
                     return;
                 }
-                if (!currentButton) return;
                 currentButton.dataset.beforeCreatedAtUtc = page.nextBeforeCreatedAtUtc;
                 currentButton.dataset.beforeReplyId = page.nextBeforeReplyId;
                 currentButton.dataset.remainingEarlierReplies = String(page.remainingEarlierReplyCount);
