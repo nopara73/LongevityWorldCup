@@ -310,8 +310,7 @@ public sealed class LongevitymaxxingChallengePageTests
         Assert.DoesNotContain("Choose this only if the participant is already listed as a Longevity athlete.", html);
         Assert.DoesNotContain("Only if you are already listed as an athlete", html);
         Assert.Contains("id=\"lmxProfilePictureField\"", html);
-        Assert.Contains("<span class=\"lmx-label\">Profile picture</span>", html);
-        Assert.DoesNotContain("<span>optional</span>", html);
+        Assert.Contains("<span class=\"lmx-label\">Profile picture <span>optional</span></span>", html);
         Assert.Contains("Upload profile picture", html);
         Assert.Contains("id=\"lmxProfilePictureInput\" type=\"file\" accept=\"image/*\"", html);
         Assert.Contains("id=\"lmxSignupTimeZoneLabel\">Timezone</span>", html);
